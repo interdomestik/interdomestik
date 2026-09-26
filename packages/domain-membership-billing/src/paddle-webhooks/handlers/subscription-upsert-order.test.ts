@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { projectLockedSubscriptionOrder } from './provider-event-order.test-support';
+import {
+  projectLockedSubscriptionOrder,
+  projectReceiptLedgerOrder,
+} from './provider-event-order.test-support';
 
 type StoredRow = {
   id: string;
@@ -13,6 +16,7 @@ type StoredRow = {
 };
 
 type Staged = { row?: StoredRow; events: string[] };
+type StoredReceipt = { occurredAt: string; eventId: string };
 
 // Fake row store: `FOR UPDATE` takes a per-row lock held until the transaction
 // ends, and staged writes become visible only on commit, as in Postgres.
@@ -27,18 +31,35 @@ const hoisted = vi.hoisted(() => {
       providerEventOccurredAt: 'subscriptions.provider_event_occurred_at',
     },
     domainEvents: { id: 'domain_events.id', tenantId: 'domain_events.tenant_id' },
-    webhookEvents: { payload: 'webhook_events.payload' },
+    webhookEvents: {
+      eventId: 'webhook_events.event_id',
+      eventType: 'webhook_events.event_type',
+      payload: 'webhook_events.payload',
+      processingResult: 'webhook_events.processing_result',
+      processingScopeKey: 'webhook_events.processing_scope_key',
+      provider: 'webhook_events.provider',
+      signatureValid: 'webhook_events.signature_valid',
+      tenantId: 'webhook_events.tenant_id',
+    },
   };
   const store = {
     row: null as StoredRow | null,
     events: [] as string[],
+    receipts: [] as StoredReceipt[],
     lock: Promise.resolve(),
   };
 
   function findRight(condition: unknown, left: string): unknown {
     if (!condition || typeof condition !== 'object') return undefined;
-    const node = condition as { left?: unknown; right?: unknown; conditions?: unknown[] };
+    const node = condition as {
+      left?: unknown;
+      right?: unknown;
+      conditions?: unknown[];
+      values?: unknown[];
+    };
     if (node.left === left) return node.right;
+    const sqlIndex = node.values?.indexOf(left) ?? -1;
+    if (sqlIndex >= 0) return node.values?.[sqlIndex + 1];
     for (const child of node.conditions ?? []) {
       const found = findRight(child, left);
       if (found !== undefined) return found;
@@ -70,6 +91,13 @@ const hoisted = vi.hoisted(() => {
               const id = findRight(condition, 'domain_events.id') as string;
               return { limit: async () => (store.events.includes(id) ? [{ id }] : []) };
             }
+            if (table === tables.webhookEvents) {
+              const incomingEventId = findRight(condition, 'webhook_events.event_id');
+              const receipts = store.receipts.filter(
+                receipt => receipt.eventId !== incomingEventId
+              );
+              return Promise.resolve([projectReceiptLedgerOrder(receipts, shape.hasNewer)]);
+            }
             return Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]);
           },
         }),
@@ -83,6 +111,12 @@ const hoisted = vi.hoisted(() => {
             },
           }),
         }),
+      }),
+      insert: (table: unknown) => ({
+        values: async (values: StoredRow) => {
+          if (table !== tables.subscriptions) return;
+          staged.row = values;
+        },
       }),
     };
     try {
@@ -106,7 +140,14 @@ const hoisted = vi.hoisted(() => {
       tx.staged.events.push(params.id);
       return { id: params.id };
     }),
-    db: { transaction: vi.fn(transaction) },
+    db: {
+      query: {
+        subscriptions: {
+          findFirst: vi.fn(async () => store.row),
+        },
+      },
+      transaction: vi.fn(transaction),
+    },
   };
 });
 
@@ -147,6 +188,7 @@ const eventIdFor = (eventId: string) => `paddle:tenant_ks:${eventId}:subscriptio
 beforeEach(() => {
   vi.clearAllMocks();
   hoisted.store.events = [];
+  hoisted.store.receipts = [];
   hoisted.store.lock = Promise.resolve();
   hoisted.store.row = {
     id: 'sub_1',
@@ -160,6 +202,75 @@ beforeEach(() => {
 });
 
 describe('upsertSubscription provider event order', () => {
+  it('does not insert an initial row below a newer verified receipt floor', async () => {
+    hoisted.store.row = null;
+    hoisted.store.receipts = [{ occurredAt: T2, eventId: 'evt_newer' }];
+
+    await expect(
+      upsertSubscription({
+        mappedStatus: 'active',
+        order: { occurredAt: T1, providerEventId: 'evt_created', processingScopeKey: 'entity:ks' },
+        planState: { planId: 'standard', planKey: null },
+        providerEventId: 'evt_created',
+        sub: { id: 'sub_1', customerId: 'ctm_1', status: 'active' },
+        tenantId: 'tenant_ks',
+        userId: 'user_1',
+      })
+    ).resolves.toEqual({ subscriptionId: 'sub_1', effectsApplied: false, stale: true });
+
+    expect(hoisted.store.row).toBeNull();
+    expect(hoisted.store.events).toEqual([]);
+  });
+
+  it('rejects an initial row that ties a distinct verified receipt', async () => {
+    hoisted.store.row = null;
+    hoisted.store.receipts = [{ occurredAt: T1, eventId: 'evt_equal' }];
+
+    await expect(
+      upsertSubscription({
+        mappedStatus: 'active',
+        order: { occurredAt: T1, providerEventId: 'evt_created', processingScopeKey: 'entity:ks' },
+        planState: { planId: 'standard', planKey: null },
+        providerEventId: 'evt_created',
+        sub: { id: 'sub_1', customerId: 'ctm_1', status: 'active' },
+        tenantId: 'tenant_ks',
+        userId: 'user_1',
+      })
+    ).rejects.toThrow(PaddleEventOrderingError);
+
+    expect(hoisted.store.row).toBeNull();
+    expect(hoisted.store.events).toEqual([]);
+  });
+
+  it('inserts an initial row above an older verified receipt floor', async () => {
+    hoisted.store.row = null;
+    hoisted.store.receipts = [
+      {
+        occurredAt: '2026-09-26T10:00:00.050Z',
+        eventId: 'evt_older',
+      },
+    ];
+
+    await expect(
+      upsertSubscription({
+        mappedStatus: 'active',
+        order: { occurredAt: T1, providerEventId: 'evt_created', processingScopeKey: 'entity:ks' },
+        planState: { planId: 'standard', planKey: null },
+        providerEventId: 'evt_created',
+        sub: { id: 'sub_1', customerId: 'ctm_1', status: 'active' },
+        tenantId: 'tenant_ks',
+        userId: 'user_1',
+      })
+    ).resolves.toEqual({ subscriptionId: 'sub_1', effectsApplied: true });
+
+    expect(hoisted.store.row).toMatchObject({
+      status: 'active',
+      providerEventOccurredAt: T1,
+      providerEventId: 'evt_created',
+    });
+    expect(hoisted.store.events).toEqual([eventIdFor('evt_created')]);
+  });
+
   it('ignores an older event received after a newer verified snapshot', async () => {
     await expect(lifecycleEvent('canceled', T2, 'evt_newer')).resolves.toEqual({
       subscriptionId: 'sub_1',

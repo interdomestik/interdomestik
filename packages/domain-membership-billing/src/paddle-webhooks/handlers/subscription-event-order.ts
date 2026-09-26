@@ -36,6 +36,11 @@ type LockSubscriptionEventOrderArgs = {
   tenantId: string;
 };
 
+type SubscriptionReceiptOrderArgs = Pick<
+  LockSubscriptionEventOrderArgs,
+  'order' | 'providerSubscriptionId' | 'tenantId'
+>;
+
 // Lifecycle receipts whose snapshot may already have been written to the row.
 const SUBSCRIPTION_SNAPSHOT_EVENT_TYPES = [
   'subscription.created',
@@ -128,13 +133,26 @@ export async function lockSubscriptionEventOrder(
 }
 
 /**
+ * Applies the verified receipt floor before the first subscription row is
+ * inserted. A newer receipt makes the incoming initial snapshot stale; equal
+ * timestamps and invalid receipt evidence fail closed in the shared ledger
+ * comparison below.
+ */
+export async function decideInitialSubscriptionEventOrder(
+  tx: DomainEventTx,
+  args: SubscriptionReceiptOrderArgs
+): Promise<'apply' | 'stale'> {
+  return (await compareWithReceiptLedger(tx, args, null)) === 'older' ? 'stale' : 'apply';
+}
+
+/**
  * Rows without a marker predate ordered writes. Their floor is derived from verified
  * receipts of the same entity scope, tenant and provider subscription, so a missing
  * marker never fails open and unrelated scopes never become the floor.
  */
 async function compareWithReceiptLedger(
   tx: DomainEventTx,
-  args: LockSubscriptionEventOrderArgs,
+  args: SubscriptionReceiptOrderArgs,
   markerEventId: string | null
 ): Promise<OrderComparison> {
   if (markerEventId !== null) {

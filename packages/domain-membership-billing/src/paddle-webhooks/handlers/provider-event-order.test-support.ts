@@ -5,6 +5,8 @@ type StoredProviderOrder = {
   providerEventId: string | null;
 };
 
+type StoredReceiptOrder = { occurredAt: string };
+
 /** Mirrors the subscription row-lock projection used by the Drizzle test doubles. */
 export function projectLockedSubscriptionOrder(
   row: StoredProviderOrder,
@@ -29,6 +31,24 @@ export function projectLockedSubscriptionOrder(
     providerEventId: row.providerEventId,
     comparison,
   };
+}
+
+/** Mirrors the verified receipt-floor aggregate used by the Drizzle test doubles. */
+export function projectReceiptLedgerOrder(
+  receipts: StoredReceiptOrder[],
+  comparisonExpression: unknown
+): { hasInvalid: boolean; hasNewer: boolean; hasEqual: boolean } {
+  const incoming = Date.parse(findTimestamp(comparisonExpression)!);
+  let hasInvalid = false;
+  let hasNewer = false;
+  let hasEqual = false;
+  for (const receipt of receipts) {
+    const occurredAt = Date.parse(receipt.occurredAt);
+    if (Number.isNaN(occurredAt)) hasInvalid = true;
+    else if (occurredAt > incoming) hasNewer = true;
+    else if (occurredAt === incoming) hasEqual = true;
+  }
+  return { hasInvalid, hasNewer, hasEqual };
 }
 
 function findTimestamp(value: unknown): string | undefined {

@@ -23,7 +23,25 @@ interface PaddleHandlerMocks {
   and: MockFunction;
   appendEvent: MockFunction;
   asc: MockFunction;
-  subscriptions: { id: string };
+  subscriptions: {
+    id: string;
+    tenantId: string;
+    status: string;
+    providerSubscriptionId: string;
+    providerEventId: string;
+    providerEventOccurredAt: string;
+  };
+  domainEvents: { id: string; tenantId: string };
+  webhookEvents: {
+    eventId: string;
+    eventType: string;
+    payload: string;
+    processingResult: string;
+    processingScopeKey: string;
+    provider: string;
+    signatureValid: string;
+    tenantId: string;
+  };
   user: { id: string };
   membershipPlans: {
     id: string;
@@ -33,7 +51,7 @@ interface PaddleHandlerMocks {
     interval: string;
     isActive: string;
   };
-  tx: { insert: MockFunction; update: MockFunction };
+  tx: { insert: MockFunction; select: MockFunction; update: MockFunction };
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
@@ -57,10 +75,14 @@ interface PaddleDatabaseMockModule {
   appendEvent: MockFunction;
   asc: MockFunction;
   db: PaddleHandlerMocks['db'];
+  domainEvents: PaddleHandlerMocks['domainEvents'];
   eq: MockFunction;
+  inArray: MockFunction;
   membershipPlans: PaddleHandlerMocks['membershipPlans'];
+  sql: MockFunction;
   subscriptions: PaddleHandlerMocks['subscriptions'];
   user: PaddleHandlerMocks['user'];
+  webhookEvents: PaddleHandlerMocks['webhookEvents'];
 }
 
 interface CommissionMockModule {
@@ -95,7 +117,25 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
     and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     asc: vi.fn((value: unknown) => ({ op: 'asc', value })),
-    subscriptions: { id: 'id_col' },
+    subscriptions: {
+      id: 'subscriptions.id',
+      tenantId: 'subscriptions.tenant_id',
+      status: 'subscriptions.status',
+      providerSubscriptionId: 'subscriptions.provider_subscription_id',
+      providerEventId: 'subscriptions.provider_event_id',
+      providerEventOccurredAt: 'subscriptions.provider_event_occurred_at',
+    },
+    domainEvents: { id: 'domain_events.id', tenantId: 'domain_events.tenant_id' },
+    webhookEvents: {
+      eventId: 'webhook_events.event_id',
+      eventType: 'webhook_events.event_type',
+      payload: 'webhook_events.payload',
+      processingResult: 'webhook_events.processing_result',
+      processingScopeKey: 'webhook_events.processing_scope_key',
+      provider: 'webhook_events.provider',
+      signatureValid: 'webhook_events.signature_valid',
+      tenantId: 'webhook_events.tenant_id',
+    },
     user: { id: 'user.id' },
     membershipPlans: {
       id: 'membership_plans.id',
@@ -107,6 +147,7 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
     },
     tx: {
       insert: vi.fn(),
+      select: vi.fn(),
       update: vi.fn(),
     },
     insertedUserValues: vi.fn(),
@@ -127,10 +168,14 @@ export function createPaddleDatabaseMockModule(
     appendEvent: hoisted.appendEvent,
     asc: hoisted.asc,
     db: hoisted.db,
+    domainEvents: hoisted.domainEvents,
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+    inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
     membershipPlans: hoisted.membershipPlans,
+    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
     subscriptions: hoisted.subscriptions,
     user: hoisted.user,
+    webhookEvents: hoisted.webhookEvents,
   };
 }
 
@@ -265,6 +310,15 @@ export function resetPaddleHandlerMocks(
   }));
   hoisted.tx.insert.mockImplementation(() => ({
     values: hoisted.insertedUserValues,
+  }));
+  hoisted.tx.select.mockImplementation(() => ({
+    from: (table: unknown) => ({
+      where: () => {
+        if (table === hoisted.domainEvents) return { limit: async () => [] };
+        if (table === hoisted.subscriptions) return { for: async () => [] };
+        return Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]);
+      },
+    }),
   }));
   hoisted.insertedUserValues.mockReturnValue({
     onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),

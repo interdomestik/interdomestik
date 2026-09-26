@@ -4,6 +4,7 @@ import { findSubscriptionByProviderReference } from '../../subscription';
 import type { InternalSubscriptionStatus } from '../subscription-status';
 import { recordMembershipSubscriptionChangedEvent } from './subscription-event';
 import {
+  decideInitialSubscriptionEventOrder,
   lockSubscriptionEventOrder,
   type PaddleSubscriptionEventOrder,
   type SubscriptionEventOrderDecision,
@@ -81,7 +82,10 @@ export async function upsertSubscription(
   }
 
   try {
-    await persistSubscriptionInsert(writeArgs);
+    const outcome = await persistSubscriptionInsert(writeArgs);
+    if (outcome === 'stale') {
+      return { subscriptionId: sub.id as string, effectsApplied: false, stale: true };
+    }
     return { subscriptionId: sub.id as string, effectsApplied: true };
   } catch (error) {
     return recoverSubscriptionInsert(error, writeArgs);
@@ -127,9 +131,17 @@ export async function resolveSubscriptionForUpsert(args: {
   return args.existingSub ?? findExistingSubscriptionForUser(args.userId, args.tenantId);
 }
 
-async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
+async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'apply' | 'stale'> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
-  await db.transaction(async tx => {
+  return db.transaction(async tx => {
+    if (args.order) {
+      const decision = await decideInitialSubscriptionEventOrder(tx as DomainEventTx, {
+        order: args.order,
+        providerSubscriptionId: args.sub.id,
+        tenantId: args.tenantId,
+      });
+      if (decision === 'stale') return decision;
+    }
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context is inserted.
     await tx.insert(subscriptions).values({
       id: args.sub.id,
@@ -151,6 +163,7 @@ async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
       toStatus: args.values.status,
       tx: tx as DomainEventTx,
     });
+    return 'apply';
   });
 }
 
