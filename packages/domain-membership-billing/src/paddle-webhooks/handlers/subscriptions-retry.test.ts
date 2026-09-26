@@ -140,6 +140,7 @@ describe('handleSubscriptionChanged entity retry', () => {
       text: 'Stored body',
     };
     const membershipConfirmationDelivery = {
+      claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
       claim: vi.fn(async ({ snapshot }) => ({
         kind: 'claimed' as const,
         deliveryId: 'delivery_retry',

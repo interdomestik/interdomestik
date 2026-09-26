@@ -77,16 +77,34 @@ export type MembershipConfirmationSnapshot = {
   emailRequest: PreparedMembershipConfirmationEmail;
 };
 
+export type MembershipConfirmationEvidence = Pick<
+  MembershipConfirmationSnapshot,
+  | 'tenantId'
+  | 'userId'
+  | 'subscriptionId'
+  | 'providerReference'
+  | 'providerEventId'
+  | 'webhookPayloadHash'
+>;
+
+export type MembershipConfirmationClaim =
+  | {
+      kind: 'claimed';
+      deliveryId: string;
+      requiresEffects: boolean;
+      snapshot: MembershipConfirmationSnapshot;
+    }
+  | { kind: 'already_sent' | 'conflict' | 'in_progress' };
+
 export type MembershipConfirmationDeliveryStore = {
-  claim: (params: { idempotencyKey: string; snapshot: MembershipConfirmationSnapshot }) => Promise<
-    | {
-        kind: 'claimed';
-        deliveryId: string;
-        requiresEffects: boolean;
-        snapshot: MembershipConfirmationSnapshot;
-      }
-    | { kind: 'already_sent' | 'conflict' | 'in_progress' }
-  >;
+  claimExisting: (params: {
+    evidence: MembershipConfirmationEvidence;
+    idempotencyKey: string;
+  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' }>;
+  claim: (params: {
+    idempotencyKey: string;
+    snapshot: MembershipConfirmationSnapshot;
+  }) => Promise<MembershipConfirmationClaim>;
   ready: (params: {
     deliveryId: string;
     idempotencyKey: string;

@@ -1,16 +1,19 @@
 import { RetryablePaddleWebhookError } from '../../errors';
 import type {
   CheckoutCustomData,
-  MembershipConfirmationDeliveryStore,
+  MembershipConfirmationEvidence,
   MembershipConfirmationSnapshot,
   PaddleWebhookDeps,
-  SendThankYouLetter,
 } from '../../types';
 import {
   normalizeConfirmationText,
   resolveProviderConfirmation,
 } from './membership-confirmation-values';
 import type { WebhookUserRecord } from './new-membership-ownership';
+import {
+  toMembershipConfirmationJob,
+  type MembershipConfirmationJob,
+} from './membership-confirmation-job';
 
 export const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
@@ -18,15 +21,6 @@ export const redactEmail = (email?: string | null) => {
   if (!domain) return 'unknown';
   const maskedLocal = local.length <= 2 ? `${local[0] ?? ''}*` : `${local[0]}***${local.slice(-1)}`;
   return `${maskedLocal}@${domain}`;
-};
-
-type MembershipConfirmationJob = {
-  deliveryId: string;
-  idempotencyKey: string;
-  requiresEffects: boolean;
-  send: SendThankYouLetter;
-  snapshot: MembershipConfirmationSnapshot;
-  store: MembershipConfirmationDeliveryStore;
 };
 
 type MembershipConfirmationPreparation =
@@ -69,6 +63,61 @@ export async function prepareMembershipConfirmation(
     );
     return { kind: 'continue' };
   }
+  if (
+    !normalizeConfirmationText(userId) ||
+    !normalizeConfirmationText(providerEventId) ||
+    !normalizeConfirmationText(webhookPayloadHash)
+  ) {
+    console.warn(
+      `[Webhook] Membership confirmation not sent for subscription ${sub.id}; immutable provider identity is incomplete`
+    );
+    return { kind: 'continue' };
+  }
+  if (!deps.sendThankYouLetter || !deps.membershipConfirmationDelivery) {
+    throw new RetryablePaddleWebhookError(
+      `Membership confirmation delivery dependencies are unavailable for subscription ${sub.id}`
+    );
+  }
+
+  const idempotencyKey = `membership-confirmation:v1:${tenantId}:${sub.id}`;
+  const evidence: MembershipConfirmationEvidence = {
+    tenantId,
+    userId: userId!,
+    subscriptionId: internalSubscriptionId ?? sub.id,
+    providerReference: sub.id,
+    providerEventId: providerEventId!,
+    webhookPayloadHash: webhookPayloadHash!,
+  };
+  let existingClaim;
+  try {
+    existingClaim = await deps.membershipConfirmationDelivery.claimExisting({
+      evidence,
+      idempotencyKey,
+    });
+  } catch (error) {
+    console.error('[Webhook] Failed to recover membership confirmation claim:', error);
+    throw new RetryablePaddleWebhookError(
+      `Membership confirmation claim recovery failed for subscription ${sub.id}`
+    );
+  }
+  if (existingClaim.kind === 'claimed') {
+    return {
+      kind: 'job',
+      job: toMembershipConfirmationJob({
+        claim: existingClaim,
+        idempotencyKey,
+        send: deps.sendThankYouLetter,
+        store: deps.membershipConfirmationDelivery,
+      }),
+    };
+  }
+  if (existingClaim.kind !== 'not_found') {
+    console.warn(
+      `[Webhook] Membership confirmation not sent for subscription ${sub.id}; delivery claim is ${existingClaim.kind}`
+    );
+    return { kind: 'stop' };
+  }
+
   if (!userRecord) {
     console.warn(
       `[Webhook] Membership confirmation not sent for subscription ${sub.id}; authoritative member is unavailable`
@@ -83,28 +132,12 @@ export async function prepareMembershipConfirmation(
     );
     return { kind: 'continue' };
   }
-
-  if (
-    !normalizeConfirmationText(userId) ||
-    !normalizeConfirmationText(providerEventId) ||
-    !normalizeConfirmationText(webhookPayloadHash)
-  ) {
-    console.warn(
-      `[Webhook] Membership confirmation not sent for subscription ${sub.id}; immutable provider identity is incomplete`
-    );
-    return { kind: 'continue' };
-  }
-  if (
-    !deps.prepareThankYouLetter ||
-    !deps.sendThankYouLetter ||
-    !deps.membershipConfirmationDelivery
-  ) {
+  if (!deps.prepareThankYouLetter) {
     throw new RetryablePaddleWebhookError(
-      `Membership confirmation delivery dependencies are unavailable for subscription ${sub.id}`
+      `Membership confirmation request preparation is unavailable for subscription ${sub.id}`
     );
   }
 
-  const idempotencyKey = `membership-confirmation:v1:${tenantId}:${sub.id}`;
   let emailRequest;
   try {
     emailRequest = deps.prepareThankYouLetter({
@@ -122,12 +155,7 @@ export async function prepareMembershipConfirmation(
     ...confirmation.value,
     memberSince: confirmation.value.memberSince.toISOString(),
     expiresAt: confirmation.value.expiresAt.toISOString(),
-    tenantId,
-    userId: userId!,
-    subscriptionId: internalSubscriptionId ?? sub.id,
-    providerReference: sub.id,
-    providerEventId: providerEventId!,
-    webhookPayloadHash: webhookPayloadHash!,
+    ...evidence,
     providerStatus: 'active',
     eventType: 'subscription.created',
     emailRequest,
@@ -150,14 +178,12 @@ export async function prepareMembershipConfirmation(
 
   return {
     kind: 'job',
-    job: {
-      deliveryId: claim.deliveryId,
+    job: toMembershipConfirmationJob({
+      claim,
       idempotencyKey,
-      requiresEffects: claim.requiresEffects,
       send: deps.sendThankYouLetter,
-      snapshot: claim.snapshot,
       store: deps.membershipConfirmationDelivery,
-    },
+    }),
   };
 }
 

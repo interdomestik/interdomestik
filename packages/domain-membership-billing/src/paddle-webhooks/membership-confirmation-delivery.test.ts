@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MembershipConfirmationSnapshot } from './types';
+import type { MembershipConfirmationEvidence, MembershipConfirmationSnapshot } from './types';
 import {
   createMembershipConfirmationDeliveryStore,
   type MembershipConfirmationDeliveryRepository,
@@ -105,14 +105,22 @@ const snapshot: MembershipConfirmationSnapshot = {
 };
 
 const idempotencyKey = 'membership-confirmation:v1:tenant_mk:sub_provider_1';
+const evidence: MembershipConfirmationEvidence = {
+  tenantId: snapshot.tenantId,
+  userId: snapshot.userId,
+  subscriptionId: snapshot.subscriptionId,
+  providerReference: snapshot.providerReference,
+  providerEventId: snapshot.providerEventId,
+  webhookPayloadHash: snapshot.webhookPayloadHash,
+};
 
 async function expectStoredSnapshotRetry(
   store: ReturnType<typeof createMembershipConfirmationDeliveryStore>
 ) {
   await expect(
-    store.claim({
+    store.claimExisting({
+      evidence,
       idempotencyKey,
-      snapshot: { ...snapshot, email: 'changed@example.test', memberName: 'Changed Member' },
     })
   ).resolves.toEqual({
     kind: 'claimed',
@@ -127,6 +135,9 @@ describe('membership confirmation delivery store', () => {
     const { repository, rows } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
 
+    await expect(store.claimExisting({ evidence, idempotencyKey })).resolves.toEqual({
+      kind: 'not_found',
+    });
     await expect(store.claim({ idempotencyKey, snapshot })).resolves.toEqual({
       kind: 'claimed',
       deliveryId: 'delivery_123',

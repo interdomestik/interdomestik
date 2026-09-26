@@ -2,7 +2,12 @@ import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
 import { databaseMembershipConfirmationDeliveryRepository } from './membership-confirmation-delivery-repository';
-import type { MembershipConfirmationDeliveryStore, MembershipConfirmationSnapshot } from './types';
+import type {
+  MembershipConfirmationClaim,
+  MembershipConfirmationDeliveryStore,
+  MembershipConfirmationEvidence,
+  MembershipConfirmationSnapshot,
+} from './types';
 
 type PendingDeliveryRow = {
   id: string;
@@ -84,7 +89,7 @@ const metadataSchema = z.object({
 
 function sameProviderEvidence(
   stored: MembershipConfirmationSnapshot,
-  proposed: MembershipConfirmationSnapshot
+  proposed: MembershipConfirmationEvidence
 ) {
   return (
     stored.tenantId === proposed.tenantId &&
@@ -96,11 +101,61 @@ function sameProviderEvidence(
   );
 }
 
+async function claimExistingDelivery(
+  repository: MembershipConfirmationDeliveryRepository,
+  idempotencyKey: string,
+  evidence: MembershipConfirmationEvidence
+): Promise<MembershipConfirmationClaim | { kind: 'not_found' }> {
+  const existing = await repository.find(evidence.tenantId, idempotencyKey);
+  if (!existing) return { kind: 'not_found' };
+
+  const parsed = metadataSchema.safeParse(existing.metadata);
+  if (
+    !parsed.success ||
+    existing.userId !== evidence.userId ||
+    !sameProviderEvidence(parsed.data.snapshot, evidence)
+  ) {
+    return { kind: 'conflict' };
+  }
+  if (existing.status === 'sent') return { kind: 'already_sent' };
+  if (existing.status === 'authorized') {
+    return {
+      kind: 'claimed',
+      deliveryId: existing.id,
+      requiresEffects: true,
+      snapshot: parsed.data.snapshot,
+    };
+  }
+  if (existing.status === 'pending') {
+    return {
+      kind: 'claimed',
+      deliveryId: existing.id,
+      requiresEffects: false,
+      snapshot: parsed.data.snapshot,
+    };
+  }
+  if (existing.status !== 'error') return { kind: 'conflict' };
+
+  const reclaimed = await repository.reclaimError(evidence.tenantId, idempotencyKey);
+  return reclaimed
+    ? {
+        kind: 'claimed',
+        deliveryId: existing.id,
+        requiresEffects: false,
+        snapshot: parsed.data.snapshot,
+      }
+    : { kind: 'in_progress' };
+}
+
 export function createMembershipConfirmationDeliveryStore(
   repository: MembershipConfirmationDeliveryRepository,
   generateId: () => string = nanoid
 ): MembershipConfirmationDeliveryStore {
   return {
+    async claimExisting({ evidence, idempotencyKey }) {
+      return claimExistingDelivery(repository, idempotencyKey, evidence);
+    },
+
     async claim({ idempotencyKey, snapshot }) {
       const metadata = { kind: 'membership_confirmation' as const, version: 1 as const, snapshot };
       const inserted = await repository.insertPending({
@@ -115,45 +170,8 @@ export function createMembershipConfirmationDeliveryStore(
       if (inserted) {
         return { kind: 'claimed', deliveryId: inserted.id, requiresEffects: true, snapshot };
       }
-
-      const existing = await repository.find(snapshot.tenantId, idempotencyKey);
-      const parsed = metadataSchema.safeParse(existing?.metadata);
-      if (
-        !existing ||
-        !parsed.success ||
-        existing.userId !== snapshot.userId ||
-        !sameProviderEvidence(parsed.data.snapshot, snapshot)
-      ) {
-        return { kind: 'conflict' };
-      }
-      if (existing.status === 'sent') return { kind: 'already_sent' };
-      if (existing.status === 'authorized') {
-        return {
-          kind: 'claimed',
-          deliveryId: existing.id,
-          requiresEffects: true,
-          snapshot: parsed.data.snapshot,
-        };
-      }
-      if (existing.status === 'pending') {
-        return {
-          kind: 'claimed',
-          deliveryId: existing.id,
-          requiresEffects: false,
-          snapshot: parsed.data.snapshot,
-        };
-      }
-      if (existing.status !== 'error') return { kind: 'conflict' };
-
-      const reclaimed = await repository.reclaimError(snapshot.tenantId, idempotencyKey);
-      return reclaimed
-        ? {
-            kind: 'claimed',
-            deliveryId: existing.id,
-            requiresEffects: false,
-            snapshot: parsed.data.snapshot,
-          }
-        : { kind: 'in_progress' };
+      const existingClaim = await claimExistingDelivery(repository, idempotencyKey, snapshot);
+      return existingClaim.kind === 'not_found' ? { kind: 'conflict' } : existingClaim;
     },
 
     async ready({ deliveryId, idempotencyKey, subscriptionId, tenantId }) {

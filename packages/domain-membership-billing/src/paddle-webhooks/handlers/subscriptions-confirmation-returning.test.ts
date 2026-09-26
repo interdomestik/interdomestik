@@ -27,6 +27,7 @@ describe('returning subscription confirmation', () => {
     text: 'Membership confirmed',
   }));
   const membershipConfirmationDelivery = {
+    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
     claim: vi.fn(async ({ snapshot }) => ({
       kind: 'claimed' as const,
       deliveryId: 'delivery_123',

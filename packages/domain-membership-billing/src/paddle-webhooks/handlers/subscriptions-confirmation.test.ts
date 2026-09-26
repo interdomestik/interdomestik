@@ -10,7 +10,6 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
-
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -29,6 +28,7 @@ describe('subscription confirmation dispatch', () => {
     text: 'Membership confirmed',
   }));
   const membershipConfirmationDelivery = {
+    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
     claim: vi.fn(async ({ snapshot }) => ({
       kind: 'claimed' as const,
       deliveryId: 'delivery_123',

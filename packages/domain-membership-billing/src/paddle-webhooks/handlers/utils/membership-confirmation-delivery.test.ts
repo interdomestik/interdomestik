@@ -11,6 +11,7 @@ describe('membership confirmation delivery failures', () => {
     text: 'Membership confirmed',
   }));
   const deliveryStore = {
+    claimExisting: vi.fn(),
     claim: vi.fn(),
     ready: vi.fn(),
     complete: vi.fn(),
@@ -56,12 +57,61 @@ describe('membership confirmation delivery failures', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    deliveryStore.claimExisting.mockResolvedValue({ kind: 'not_found' });
     deliveryStore.claim.mockImplementation(async ({ snapshot }) => ({
       kind: 'claimed',
       deliveryId: 'delivery_123',
       requiresEffects: true,
       snapshot,
     }));
+  });
+
+  it('retries the stored request before rendering current mutable member data', async () => {
+    const emailRequest = {
+      to: 'original@example.test',
+      subject: 'Original membership confirmation',
+      html: '<p>Original membership confirmation</p>',
+      text: 'Original membership confirmation',
+    };
+    deliveryStore.claimExisting.mockResolvedValue({
+      kind: 'claimed',
+      deliveryId: 'delivery_123',
+      requiresEffects: false,
+      snapshot: {
+        email: 'original@example.test',
+        memberName: 'Original Member',
+        memberNumber: 'MEM-2026-001',
+        planName: 'Annual membership',
+        planPrice: 'EUR 20.00',
+        planInterval: 'year',
+        memberSince: '2026-01-01T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z',
+        locale: 'en',
+        tenantId: 'tenant_mk',
+        userId: 'user_123',
+        subscriptionId: 'sub_provider_1',
+        providerReference: 'sub_provider_1',
+        providerEventId: 'evt_provider_1',
+        webhookPayloadHash: 'payload_hash_1',
+        providerStatus: 'active',
+        eventType: 'subscription.created',
+        emailRequest,
+      },
+    });
+    prepareThankYouLetter.mockImplementationOnce(() => {
+      throw new Error('Current template is unavailable');
+    });
+    sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_retry_123' });
+
+    await expect(processMembershipConfirmation(confirmationArgs())).resolves.toBeUndefined();
+
+    expect(prepareThankYouLetter).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).toHaveBeenCalledWith({
+      request: emailRequest,
+      providerReference: 'sub_provider_1',
+      tenantId: 'tenant_mk',
+      idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
+    });
   });
 
   it('keeps claim-storage failures retryable before any provider request', async () => {

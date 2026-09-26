@@ -6,6 +6,7 @@ describe('processMembershipConfirmation', () => {
   const sendThankYouLetter = vi.fn();
   const prepareThankYouLetter = vi.fn();
   const deliveryStore = {
+    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
     claim: vi.fn(),
     ready: vi.fn(),
     complete: vi.fn(),
