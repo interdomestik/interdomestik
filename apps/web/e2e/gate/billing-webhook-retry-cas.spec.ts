@@ -47,15 +47,21 @@ test('B5 retry compare-and-set admits one concurrent claimant', async ({}, testI
     parsedPayload: payload,
     tenantId: 'tenant_ks',
   };
-  const concurrentClaims = await Promise.all([
+  const concurrentClaims = await Promise.allSettled([
     insertWebhookEvent(replayParams),
     insertWebhookEvent(replayParams),
   ]);
 
   expect(concurrentClaims).toEqual(
     expect.arrayContaining([
-      { inserted: true, webhookEventRowId: receiptId },
-      { inserted: false, webhookEventRowId: null },
+      {
+        status: 'fulfilled',
+        value: { inserted: true, webhookEventRowId: receiptId },
+      },
+      {
+        status: 'rejected',
+        reason: expect.objectContaining({ name: 'RetryablePaddleWebhookError' }),
+      },
     ])
   );
 

@@ -1,7 +1,9 @@
 import { db, webhookEvents } from '@interdomestik/database';
-import { and, eq, isNull, lt, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { RetryablePaddleWebhookError } from './errors';
+import { findActiveSubscriptionCreatedLease, reclaimRetryableWebhookEvent } from './receipt-lease';
 import type { PaddleWebhookAuditDeps } from './types';
 
 export { isRetryablePaddleWebhookError } from './errors';
@@ -115,6 +117,30 @@ export async function insertWebhookEvent(
       return { inserted: true as const, webhookEventRowId: reclaimed.id };
     }
 
+    const activeLease = await findActiveSubscriptionCreatedLease(params);
+    if (activeLease) {
+      if (deps.logAuditEvent) {
+        await deps.logAuditEvent({
+          actorRole: 'system',
+          action: 'webhook.retry_deferred',
+          entityType: 'webhook_event',
+          entityId: activeLease.id,
+          tenantId: params.tenantId ?? undefined,
+          metadata: {
+            provider: 'paddle',
+            dedupeKey: params.dedupeKey,
+            processingScopeKey: params.processingScopeKey,
+            eventType: params.eventType,
+            eventId: params.eventId,
+          },
+          headers: params.headers,
+        });
+      }
+      throw new RetryablePaddleWebhookError(
+        `Paddle webhook ${params.eventId ?? params.dedupeKey} is still processing`
+      );
+    }
+
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
         actorRole: 'system',
@@ -158,45 +184,6 @@ export async function insertWebhookEvent(
   }
 
   return { inserted: true as const, webhookEventRowId };
-}
-
-async function reclaimRetryableWebhookEvent(params: {
-  eventType: string | undefined;
-  processingScopeKey: string;
-  dedupeKey: string;
-  payloadHash: string;
-}) {
-  const leaseStartedAt = new Date();
-  const staleBefore = new Date(leaseStartedAt.getTime() - 5 * 60 * 1000);
-  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale subscription-created lease.
-  const reclaimed = await db
-    .update(webhookEvents)
-    .set({
-      receivedAt: leaseStartedAt,
-      processedAt: null,
-      processingResult: null,
-      error: null,
-    })
-    .where(
-      and(
-        eq(webhookEvents.dedupeKey, params.dedupeKey),
-        eq(webhookEvents.processingScopeKey, params.processingScopeKey),
-        eq(webhookEvents.payloadHash, params.payloadHash),
-        eq(webhookEvents.signatureValid, true),
-        or(
-          eq(webhookEvents.processingResult, 'retryable_error'),
-          and(
-            eq(webhookEvents.eventType, 'subscription.created'),
-            eq(webhookEvents.eventType, params.eventType ?? ''),
-            isNull(webhookEvents.processingResult),
-            lt(webhookEvents.receivedAt, staleBefore)
-          )
-        )
-      )
-    )
-    .returning({ id: webhookEvents.id });
-
-  return reclaimed[0] ?? null;
 }
 
 export async function markWebhookProcessed(

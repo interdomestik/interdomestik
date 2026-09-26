@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
   insert: vi.fn(),
   insertValues: vi.fn(),
   insertReturning: vi.fn(),
+  findFirst: vi.fn(),
   onConflictDoNothing: vi.fn(),
   set: vi.fn(),
   update: vi.fn(),
@@ -27,6 +28,11 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('@interdomestik/database', () => ({
   db: {
     insert: hoisted.insert,
+    query: {
+      webhookEvents: {
+        findFirst: hoisted.findFirst,
+      },
+    },
     update: hoisted.update,
   },
   webhookEvents: {
@@ -46,10 +52,27 @@ vi.mock('@interdomestik/database', () => ({
 
 import { insertWebhookEvent, markWebhookFailed, persistInvalidSignatureAttempt } from './persist';
 
+function subscriptionCreatedReceipt(suffix: string) {
+  return {
+    headers: new Headers(),
+    processingScopeKey: 'tenant:tenant_mk',
+    dedupeKey: `paddle:tenant:tenant_mk:event:evt_${suffix}`,
+    eventType: 'subscription.created',
+    eventId: `evt_${suffix}`,
+    eventTimestamp: new Date('2026-09-25T08:00:00.000Z'),
+    payloadHash: `hash_${suffix}`,
+    parsedPayload: { data: { id: `sub_${suffix}` } },
+    signatureValid: true,
+    signatureBypassed: false,
+    tenantId: 'tenant_mk',
+  };
+}
+
 describe('webhook persistence idempotency', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    hoisted.findFirst.mockResolvedValue(undefined);
     hoisted.insertReturning.mockResolvedValue([{ id: 'we_1' }]);
     hoisted.updateReturning.mockResolvedValue([]);
     hoisted.onConflictDoNothing.mockReturnValue({
@@ -200,16 +223,9 @@ describe('webhook persistence idempotency', () => {
 
     const result = await insertWebhookEvent(
       {
-        headers: new Headers(),
+        ...subscriptionCreatedReceipt('retry'),
         processingScopeKey: 'entity:mk',
         dedupeKey: 'paddle:entity:mk:event:evt_retry',
-        eventType: 'subscription.created',
-        eventId: 'evt_retry',
-        eventTimestamp: new Date('2026-09-25T08:00:00.000Z'),
-        payloadHash: 'hash_retry',
-        parsedPayload: { data: { id: 'sub_retry' } },
-        signatureValid: true,
-        signatureBypassed: false,
         tenantId: null,
       },
       { logAuditEvent }
@@ -236,24 +252,22 @@ describe('webhook persistence idempotency', () => {
     hoisted.insertReturning.mockResolvedValueOnce([]);
     hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_stale' }]);
 
-    const result = await insertWebhookEvent({
-      headers: new Headers(),
-      processingScopeKey: 'tenant:tenant_mk',
-      dedupeKey: 'paddle:tenant:tenant_mk:event:evt_stale',
-      eventType: 'subscription.created',
-      eventId: 'evt_stale',
-      eventTimestamp: new Date('2026-09-25T08:00:00.000Z'),
-      payloadHash: 'hash_stale',
-      parsedPayload: { data: { id: 'sub_stale' } },
-      signatureValid: true,
-      signatureBypassed: false,
-      tenantId: 'tenant_mk',
-    });
+    const result = await insertWebhookEvent(subscriptionCreatedReceipt('stale'));
 
     expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_stale' });
     expect(hoisted.isNull).toHaveBeenCalledWith('processing_result_col');
     expect(hoisted.lt).toHaveBeenCalledWith('received_at_col', expect.any(Date));
     expect(hoisted.eq).toHaveBeenCalledWith('event_type_col', 'subscription.created');
+  });
+
+  it('keeps an exact active subscription-created lease retryable before stale recovery', async () => {
+    hoisted.insertReturning.mockResolvedValueOnce([]);
+    hoisted.updateReturning.mockResolvedValueOnce([]);
+    hoisted.findFirst.mockResolvedValueOnce({ id: 'we_active' });
+
+    await expect(insertWebhookEvent(subscriptionCreatedReceipt('active'))).rejects.toMatchObject({
+      name: 'RetryablePaddleWebhookError',
+    });
   });
 
   it('distinguishes retryable pre-write failures from permanent processing failures', async () => {
