@@ -17,8 +17,12 @@ export function projectLockedSubscriptionOrder(
 } {
   const incoming = Date.parse(findTimestamp(comparisonExpression)!);
   const marker = row.providerEventOccurredAt ? Date.parse(row.providerEventOccurredAt) : null;
-  const comparison =
-    marker === null ? null : incoming > marker ? 'newer' : incoming === marker ? 'equal' : 'older';
+  let comparison: 'newer' | 'equal' | 'older' | null = null;
+  if (marker !== null) {
+    if (incoming > marker) comparison = 'newer';
+    else if (incoming === marker) comparison = 'equal';
+    else comparison = 'older';
+  }
   return {
     status: row.status,
     providerSubscriptionId: row.providerSubscriptionId,
