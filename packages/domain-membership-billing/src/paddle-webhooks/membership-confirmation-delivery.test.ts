@@ -106,6 +106,22 @@ const snapshot: MembershipConfirmationSnapshot = {
 
 const idempotencyKey = 'membership-confirmation:v1:tenant_mk:sub_provider_1';
 
+async function expectStoredSnapshotRetry(
+  store: ReturnType<typeof createMembershipConfirmationDeliveryStore>
+) {
+  await expect(
+    store.claim({
+      idempotencyKey,
+      snapshot: { ...snapshot, email: 'changed@example.test', memberName: 'Changed Member' },
+    })
+  ).resolves.toEqual({
+    kind: 'claimed',
+    deliveryId: 'delivery_123',
+    requiresEffects: false,
+    snapshot,
+  });
+}
+
 describe('membership confirmation delivery store', () => {
   it('records one immutable snapshot and suppresses a delivered replay', async () => {
     const { repository, rows } = createRepository();
@@ -160,17 +176,7 @@ describe('membership confirmation delivery store', () => {
       tenantId: 'tenant_mk',
     });
 
-    await expect(
-      store.claim({
-        idempotencyKey,
-        snapshot: { ...snapshot, email: 'changed@example.test', memberName: 'Changed Member' },
-      })
-    ).resolves.toEqual({
-      kind: 'claimed',
-      deliveryId: 'delivery_123',
-      requiresEffects: false,
-      snapshot,
-    });
+    await expectStoredSnapshotRetry(store);
   });
 
   it('rejects contradictory provider evidence for the same subscription', async () => {
@@ -215,17 +221,7 @@ describe('membership confirmation delivery store', () => {
       subscriptionId: 'subscription_internal_1',
       tenantId: 'tenant_mk',
     });
-    await expect(
-      store.claim({
-        idempotencyKey,
-        snapshot: { ...snapshot, email: 'changed@example.test', memberName: 'Changed Member' },
-      })
-    ).resolves.toEqual({
-      kind: 'claimed',
-      deliveryId: 'delivery_123',
-      requiresEffects: false,
-      snapshot,
-    });
+    await expectStoredSnapshotRetry(store);
   });
 
   it('treats concurrent readiness and completion for the same immutable delivery as idempotent', async () => {
