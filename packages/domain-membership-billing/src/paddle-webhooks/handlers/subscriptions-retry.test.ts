@@ -139,32 +139,42 @@ describe('handleSubscriptionChanged entity retry', () => {
       html: '<p>Stored body</p>',
       text: 'Stored body',
     };
+    const storedSnapshot = {
+      email: 'member@example.test',
+      memberName: 'Stored Member',
+      memberNumber: 'MEM-STORED',
+      planName: 'Stored annual membership',
+      planPrice: '20.00 EUR',
+      planInterval: 'year',
+      memberSince: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2027-01-01T00:00:00.000Z',
+      locale: 'en' as const,
+      tenantId: 'tenant_mk',
+      userId: 'user_1',
+      subscriptionId: 'sub_retry',
+      providerReference: 'sub_retry',
+      providerEventId: 'evt_retry',
+      webhookPayloadHash: 'payload_hash_retry',
+      providerStatus: 'active' as const,
+      eventType: 'subscription.created' as const,
+      emailRequest: storedRequest,
+    };
     const membershipConfirmationDelivery = {
-      claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
-      claim: vi.fn(async ({ snapshot }) => ({
+      claimReadyRetry: vi.fn().mockResolvedValue({
         kind: 'claimed' as const,
         deliveryId: 'delivery_retry',
         requiresEffects: false,
-        snapshot: { ...snapshot, emailRequest: storedRequest },
-      })),
+        snapshot: storedSnapshot,
+      }),
+      claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
+      claim: vi.fn(),
       ready: vi.fn(),
       complete: vi.fn(),
       fail: vi.fn(),
     };
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_retry',
-      tenantId: 'tenant_mk',
-      userId: 'user_1',
-      status: 'active',
-    });
-    hoisted.db.query.user.findFirst.mockResolvedValue({
-      id: 'user_1',
-      tenantId: 'tenant_mk',
-      email: 'member@example.test',
-      name: 'Member One',
-      memberNumber: 'MEM-1',
-      role: 'member',
-    });
+    hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
+      new Error('current subscription context is unavailable')
+    );
     const data = subscriptionData('sub_retry', 'txn_retry');
     data.customData = {
       tenantId: 'tenant_mk',
@@ -178,6 +188,7 @@ describe('handleSubscriptionChanged entity retry', () => {
     await handleSubscriptionChanged(
       {
         eventType: 'subscription.created',
+        tenantId: 'tenant_mk',
         providerEventId: 'evt_retry',
         webhookPayloadHash: 'payload_hash_retry',
         data,
@@ -191,6 +202,10 @@ describe('handleSubscriptionChanged entity retry', () => {
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
+    expect(hoisted.db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(prepareThankYouLetter).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.claimExisting).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.claim).not.toHaveBeenCalled();
     expect(membershipConfirmationDelivery.ready).not.toHaveBeenCalled();
   });
 });

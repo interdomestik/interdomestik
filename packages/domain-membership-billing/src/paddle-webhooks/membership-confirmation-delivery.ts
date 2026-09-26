@@ -6,6 +6,7 @@ import type {
   MembershipConfirmationClaim,
   MembershipConfirmationDeliveryStore,
   MembershipConfirmationEvidence,
+  MembershipConfirmationRetryEvidence,
   MembershipConfirmationSnapshot,
 } from './types';
 
@@ -101,6 +102,60 @@ function sameProviderEvidence(
   );
 }
 
+function sameRetryEvidence(
+  stored: MembershipConfirmationSnapshot,
+  proposed: MembershipConfirmationRetryEvidence
+) {
+  return (
+    stored.tenantId === proposed.tenantId &&
+    stored.providerReference === proposed.providerReference &&
+    stored.providerEventId === proposed.providerEventId &&
+    stored.webhookPayloadHash === proposed.webhookPayloadHash
+  );
+}
+
+async function claimReadyRetry(
+  repository: MembershipConfirmationDeliveryRepository,
+  idempotencyKey: string,
+  evidence: MembershipConfirmationRetryEvidence
+): Promise<MembershipConfirmationClaim | { kind: 'not_found' | 'requires_context' }> {
+  const existing = await repository.find(evidence.tenantId, idempotencyKey);
+  if (!existing) return { kind: 'not_found' };
+
+  const parsed = metadataSchema.safeParse(existing.metadata);
+  if (
+    !parsed.success ||
+    existing.tenantId !== evidence.tenantId ||
+    existing.userId !== parsed.data.snapshot.userId ||
+    (existing.subscriptionId !== null &&
+      existing.subscriptionId !== parsed.data.snapshot.subscriptionId) ||
+    !sameRetryEvidence(parsed.data.snapshot, evidence)
+  ) {
+    return { kind: 'conflict' };
+  }
+  if (existing.status === 'sent') return { kind: 'already_sent' };
+  if (existing.status === 'authorized') return { kind: 'requires_context' };
+  if (existing.status === 'pending') {
+    return {
+      kind: 'claimed',
+      deliveryId: existing.id,
+      requiresEffects: false,
+      snapshot: parsed.data.snapshot,
+    };
+  }
+  if (existing.status !== 'error') return { kind: 'conflict' };
+
+  const reclaimed = await repository.reclaimError(evidence.tenantId, idempotencyKey);
+  return reclaimed
+    ? {
+        kind: 'claimed',
+        deliveryId: existing.id,
+        requiresEffects: false,
+        snapshot: parsed.data.snapshot,
+      }
+    : { kind: 'in_progress' };
+}
+
 async function claimExistingDelivery(
   repository: MembershipConfirmationDeliveryRepository,
   idempotencyKey: string,
@@ -152,6 +207,10 @@ export function createMembershipConfirmationDeliveryStore(
   generateId: () => string = nanoid
 ): MembershipConfirmationDeliveryStore {
   return {
+    async claimReadyRetry({ evidence, idempotencyKey }) {
+      return claimReadyRetry(repository, idempotencyKey, evidence);
+    },
+
     async claimExisting({ evidence, idempotencyKey }) {
       return claimExistingDelivery(repository, idempotencyKey, evidence);
     },

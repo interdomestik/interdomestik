@@ -341,6 +341,7 @@ export async function handlePaddleWebhookCore(args: {
       {
         eventType,
         data,
+        tenantId,
         processingScopeKey,
         providerEventId: normalizedEventId ?? undefined,
         webhookPayloadHash: payloadHash,

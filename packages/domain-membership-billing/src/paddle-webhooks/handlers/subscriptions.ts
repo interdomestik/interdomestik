@@ -11,12 +11,14 @@ import {
   prepareMembershipConfirmation,
   readyMembershipConfirmation,
 } from './utils/membership-confirmation';
+import { prepareStoredMembershipConfirmationRetry } from './utils/membership-confirmation-retry';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
 
 export async function handleSubscriptionChanged(
   params: {
     eventType: string;
     data: unknown;
+    tenantId?: string | null;
     processingScopeKey?: string;
     providerEventId?: string;
     webhookPayloadHash?: string;
@@ -37,6 +39,22 @@ export async function handleSubscriptionChanged(
     return;
   }
   const sub = parseResult.data;
+
+  const storedRetryPreparation =
+    params.eventType === 'subscription.created'
+      ? await prepareStoredMembershipConfirmationRetry({
+          tenantId: params.tenantId,
+          providerEventId: params.providerEventId,
+          webhookPayloadHash: params.webhookPayloadHash,
+          providerReference: sub.id,
+          deps,
+        })
+      : { kind: 'continue' as const };
+  if (storedRetryPreparation.kind === 'stop') return;
+  if (storedRetryPreparation.kind === 'job') {
+    await deliverMembershipConfirmation(storedRetryPreparation.job);
+    return;
+  }
 
   // 1. Resolve Context (User, Tenant, Branch)
   let context = await resolveSubscriptionContext(sub);

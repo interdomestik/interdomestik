@@ -87,6 +87,11 @@ export type MembershipConfirmationEvidence = Pick<
   | 'webhookPayloadHash'
 >;
 
+export type MembershipConfirmationRetryEvidence = Pick<
+  MembershipConfirmationSnapshot,
+  'tenantId' | 'providerReference' | 'providerEventId' | 'webhookPayloadHash'
+>;
+
 export type MembershipConfirmationClaim =
   | {
       kind: 'claimed';
@@ -97,6 +102,10 @@ export type MembershipConfirmationClaim =
   | { kind: 'already_sent' | 'conflict' | 'in_progress' };
 
 export type MembershipConfirmationDeliveryStore = {
+  claimReadyRetry?: (params: {
+    evidence: MembershipConfirmationRetryEvidence;
+    idempotencyKey: string;
+  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' | 'requires_context' }>;
   claimExisting: (params: {
     evidence: MembershipConfirmationEvidence;
     idempotencyKey: string;
