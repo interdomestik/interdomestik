@@ -47,8 +47,7 @@ const SUBSCRIPTION_SNAPSHOT_EVENT_TYPES = [
 ];
 
 // POSIX mirror of parsePaddleEventOccurredAt for stored receipt payloads.
-const RECEIPT_OCCURRED_AT_PATTERN =
-  '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$';
+const RECEIPT_OCCURRED_AT_PATTERN = String.raw`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$`;
 
 /**
  * Entity-scoped lifecycle events must carry signed ordering evidence. Missing or

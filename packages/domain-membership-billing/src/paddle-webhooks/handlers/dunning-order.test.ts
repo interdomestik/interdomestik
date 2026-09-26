@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 import { pastDue, T1, T2 } from './dunning-order.test-support';
+import { projectLockedSubscriptionOrder } from './provider-event-order.test-support';
 
 type StoredRow = {
   id: string;
@@ -33,35 +34,6 @@ const hoisted = vi.hoisted(() => {
   };
   const store = { row: null as StoredRow | null, lock: Promise.resolve() };
 
-  function findTimestamp(value: unknown): string | undefined {
-    if (typeof value === 'string') return /^\d{4}-\d{2}-\d{2}T/.test(value) ? value : undefined;
-    if (!value || typeof value !== 'object') return undefined;
-    for (const nested of Object.values(value)) {
-      const found = findTimestamp(nested);
-      if (found) return found;
-    }
-    return undefined;
-  }
-
-  function lockedProjection(row: StoredRow, shape: Record<string, unknown>) {
-    const incoming = Date.parse(findTimestamp(shape.comparison)!);
-    const marker = row.providerEventOccurredAt ? Date.parse(row.providerEventOccurredAt) : null;
-    const comparison =
-      marker === null
-        ? null
-        : incoming > marker
-          ? 'newer'
-          : incoming === marker
-            ? 'equal'
-            : 'older';
-    return {
-      status: row.status,
-      providerSubscriptionId: row.providerSubscriptionId,
-      providerEventId: row.providerEventId,
-      comparison,
-    };
-  }
-
   async function transaction<T>(callback: (tx: unknown) => Promise<T>): Promise<T> {
     let release = () => {};
     let staged: StoredRow | undefined;
@@ -78,7 +50,9 @@ const hoisted = vi.hoisted(() => {
                   const previous = store.lock;
                   store.lock = new Promise<void>(resolve => (release = resolve));
                   await previous;
-                  return store.row ? [lockedProjection(store.row, shape)] : [];
+                  return store.row
+                    ? [projectLockedSubscriptionOrder(store.row, shape.comparison)]
+                    : [];
                 },
               };
             }

@@ -41,26 +41,26 @@ export async function writeSubscriptionSnapshot(args: {
     planState: canonicalPlanState,
     providerEventId: args.providerEventId,
   });
-  if (result.stale) return result;
+  if (!result.stale) {
+    if (args.deps.logAuditEvent && result.effectsApplied) {
+      await args.deps.logAuditEvent({
+        actorRole: 'system',
+        action: 'subscription.updated',
+        entityType: 'subscription',
+        entityId: args.sub.id,
+        tenantId: args.tenantId,
+        metadata: {
+          eventType: args.eventType,
+          status: mappedStatus,
+          paddleStatus: args.sub.status,
+          userId: args.userId,
+        },
+      });
+    }
 
-  if (args.deps.logAuditEvent && result.effectsApplied) {
-    await args.deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'subscription.updated',
-      entityType: 'subscription',
-      entityId: args.sub.id,
-      tenantId: args.tenantId,
-      metadata: {
-        eventType: args.eventType,
-        status: mappedStatus,
-        paddleStatus: args.sub.status,
-        userId: args.userId,
-      },
-    });
+    console.log(
+      `[Webhook] Updated subscription ${args.sub.id} (status: ${mappedStatus}) for user ${args.userId}`
+    );
   }
-
-  console.log(
-    `[Webhook] Updated subscription ${args.sub.id} (status: ${mappedStatus}) for user ${args.userId}`
-  );
   return result;
 }
