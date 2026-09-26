@@ -68,6 +68,8 @@ const E2E_TREE_SHAS = new Set([
   '03e394a7ced99ecf10c918c6c8e0a9155e5da3eb',
   // S6 synthetic signed-event downstream saved-draft continuation.
   '2dfef30c0d684a6ec18ada2b029280e37837a086',
+  // Same S6 corpus with Playwright-owned conditional runtime selection.
+  'f05c43dc355d7b6c158845be232c047645ea5c77',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
