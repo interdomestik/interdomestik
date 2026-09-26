@@ -24,7 +24,21 @@ type UpsertSubscriptionArgs = {
   userId: string;
 };
 
-export async function upsertSubscription(args: UpsertSubscriptionArgs) {
+type SubscriptionWriteArgs = {
+  agentId?: string | null;
+  branchId?: string;
+  eventId?: string;
+  sub: any;
+  tenantId: string;
+  userId: string;
+  values: ReturnType<typeof mapToSubscriptionValues>;
+};
+
+type UpsertSubscriptionResult = { subscriptionId: string; effectsApplied: boolean };
+
+export async function upsertSubscription(
+  args: UpsertSubscriptionArgs
+): Promise<UpsertSubscriptionResult> {
   const {
     sub,
     tenantId,
@@ -43,54 +57,45 @@ export async function upsertSubscription(args: UpsertSubscriptionArgs) {
     userId,
   });
   const eventId = deterministicSubscriptionEventId(tenantId, providerEventId);
+  const writeArgs = { agentId, branchId, eventId, sub, tenantId, userId, values };
 
   if (existingSubscription) {
-    try {
-      await persistSubscriptionUpdate(existingSubscription, {
-        agentId,
-        branchId,
-        eventId,
-        sub,
-        tenantId,
-        userId,
-        values,
-      });
-      return { subscriptionId: existingSubscription.id, effectsApplied: true };
-    } catch (error) {
-      if (!isDomainEventReplay(error, eventId)) throw error;
-      return { subscriptionId: existingSubscription.id, effectsApplied: false };
-    }
+    return persistExistingSubscription(existingSubscription, writeArgs);
   }
 
   try {
-    await persistSubscriptionInsert({ agentId, branchId, eventId, sub, tenantId, userId, values });
+    await persistSubscriptionInsert(writeArgs);
     return { subscriptionId: sub.id as string, effectsApplied: true };
   } catch (error) {
-    if (isDomainEventReplay(error, eventId)) {
-      const replayedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
-      if (!replayedSubscription) throw error;
-      return { subscriptionId: replayedSubscription.id, effectsApplied: false };
-    }
-    if (!isUniqueViolation(error)) throw error;
+    return recoverSubscriptionInsert(error, writeArgs);
+  }
+}
 
-    const racedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
-    if (!racedSubscription) throw error;
+async function recoverSubscriptionInsert(
+  error: unknown,
+  args: SubscriptionWriteArgs
+): Promise<UpsertSubscriptionResult> {
+  const replay = isDomainEventReplay(error, args.eventId);
+  if (!replay && !isUniqueViolation(error)) throw error;
+  const existing = await findExistingSubscription(args.sub.id, args.userId, args.tenantId);
+  if (replay) {
+    if (!existing) throw error;
+    return { subscriptionId: existing.id, effectsApplied: false };
+  }
+  if (!existing) throw error;
+  return persistExistingSubscription(existing, args);
+}
 
-    try {
-      await persistSubscriptionUpdate(racedSubscription, {
-        agentId,
-        branchId,
-        eventId,
-        sub,
-        tenantId,
-        userId,
-        values,
-      });
-      return { subscriptionId: racedSubscription.id, effectsApplied: true };
-    } catch (updateError) {
-      if (!isDomainEventReplay(updateError, eventId)) throw updateError;
-      return { subscriptionId: racedSubscription.id, effectsApplied: false };
-    }
+async function persistExistingSubscription(
+  subscription: ExistingSubscription,
+  args: SubscriptionWriteArgs
+): Promise<UpsertSubscriptionResult> {
+  try {
+    await persistSubscriptionUpdate(subscription, args);
+    return { subscriptionId: subscription.id, effectsApplied: true };
+  } catch (error) {
+    if (!isDomainEventReplay(error, args.eventId)) throw error;
+    return { subscriptionId: subscription.id, effectsApplied: false };
   }
 }
 
@@ -102,15 +107,7 @@ export async function resolveSubscriptionForUpsert(args: {
   return args.existingSub ?? findExistingSubscriptionForUser(args.userId, args.tenantId);
 }
 
-async function persistSubscriptionInsert(args: {
-  agentId?: string | null;
-  branchId?: string;
-  eventId?: string;
-  sub: any;
-  tenantId: string;
-  userId: string;
-  values: ReturnType<typeof mapToSubscriptionValues>;
-}) {
+async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
   await db.transaction(async tx => {
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context is inserted.
@@ -138,9 +135,7 @@ async function persistSubscriptionInsert(args: {
 
 async function persistSubscriptionUpdate(
   subscription: ExistingSubscription,
-  args: Omit<Parameters<typeof persistSubscriptionInsert>[0], 'values'> & {
-    values: ReturnType<typeof mapToSubscriptionValues>;
-  }
+  args: SubscriptionWriteArgs
 ) {
   assertSubscriptionMatchesContext(subscription, {
     subId: args.sub.id,

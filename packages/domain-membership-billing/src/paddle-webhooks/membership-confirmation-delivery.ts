@@ -118,42 +118,18 @@ async function claimReadyRetry(
   repository: MembershipConfirmationDeliveryRepository,
   idempotencyKey: string,
   evidence: MembershipConfirmationRetryEvidence
-): Promise<MembershipConfirmationClaim | { kind: 'not_found' | 'requires_context' }> {
-  const existing = await repository.find(evidence.tenantId, idempotencyKey);
-  if (!existing) return { kind: 'not_found' };
-
-  const parsed = metadataSchema.safeParse(existing.metadata);
-  if (
-    !parsed.success ||
-    existing.tenantId !== evidence.tenantId ||
-    existing.userId !== parsed.data.snapshot.userId ||
-    (existing.subscriptionId !== null &&
-      existing.subscriptionId !== parsed.data.snapshot.subscriptionId) ||
-    !sameRetryEvidence(parsed.data.snapshot, evidence)
-  ) {
-    return { kind: 'conflict' };
-  }
-  if (existing.status === 'sent') return { kind: 'already_sent' };
-  if (existing.status === 'authorized') return { kind: 'requires_context' };
-  if (existing.status === 'pending') {
-    return {
-      kind: 'claimed',
-      deliveryId: existing.id,
-      requiresEffects: false,
-      snapshot: parsed.data.snapshot,
-    };
-  }
-  if (existing.status !== 'error') return { kind: 'conflict' };
-
-  const reclaimed = await repository.reclaimError(evidence.tenantId, idempotencyKey);
-  return reclaimed
-    ? {
-        kind: 'claimed',
-        deliveryId: existing.id,
-        requiresEffects: false,
-        snapshot: parsed.data.snapshot,
-      }
-    : { kind: 'in_progress' };
+): Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }> {
+  return claimStoredDelivery({
+    repository,
+    idempotencyKey,
+    tenantId: evidence.tenantId,
+    evidenceMatches: (existing, stored) =>
+      existing.tenantId === evidence.tenantId &&
+      existing.userId === stored.userId &&
+      (existing.subscriptionId === null || existing.subscriptionId === stored.subscriptionId) &&
+      sameRetryEvidence(stored, evidence),
+    authorizedClaim: () => ({ kind: 'requires_context' }),
+  });
 }
 
 async function claimExistingDelivery(
@@ -161,45 +137,62 @@ async function claimExistingDelivery(
   idempotencyKey: string,
   evidence: MembershipConfirmationEvidence
 ): Promise<MembershipConfirmationClaim | { kind: 'not_found' }> {
-  const existing = await repository.find(evidence.tenantId, idempotencyKey);
+  const result = await claimStoredDelivery({
+    repository,
+    idempotencyKey,
+    tenantId: evidence.tenantId,
+    evidenceMatches: (existing, stored) =>
+      existing.userId === evidence.userId && sameProviderEvidence(stored, evidence),
+    authorizedClaim: (existing, stored) => ({
+      kind: 'claimed',
+      deliveryId: existing.id,
+      requiresEffects: true,
+      snapshot: stored,
+    }),
+  });
+  return result.kind === 'requires_context' ? { kind: 'conflict' } : result;
+}
+
+async function claimStoredDelivery(args: {
+  repository: MembershipConfirmationDeliveryRepository;
+  idempotencyKey: string;
+  tenantId: string;
+  evidenceMatches: (existing: StoredDeliveryRow, stored: MembershipConfirmationSnapshot) => boolean;
+  authorizedClaim: (
+    existing: StoredDeliveryRow,
+    stored: MembershipConfirmationSnapshot
+  ) => Extract<MembershipConfirmationClaim, { kind: 'claimed' }> | { kind: 'requires_context' };
+}): Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }> {
+  const existing = await args.repository.find(args.tenantId, args.idempotencyKey);
   if (!existing) return { kind: 'not_found' };
 
   const parsed = metadataSchema.safeParse(existing.metadata);
-  if (
-    !parsed.success ||
-    existing.userId !== evidence.userId ||
-    !sameProviderEvidence(parsed.data.snapshot, evidence)
-  ) {
+  if (!parsed.success || !args.evidenceMatches(existing, parsed.data.snapshot)) {
     return { kind: 'conflict' };
   }
   if (existing.status === 'sent') return { kind: 'already_sent' };
   if (existing.status === 'authorized') {
-    return {
-      kind: 'claimed',
-      deliveryId: existing.id,
-      requiresEffects: true,
-      snapshot: parsed.data.snapshot,
-    };
+    return args.authorizedClaim(existing, parsed.data.snapshot);
   }
   if (existing.status === 'pending') {
-    return {
-      kind: 'claimed',
-      deliveryId: existing.id,
-      requiresEffects: false,
-      snapshot: parsed.data.snapshot,
-    };
+    return readyDeliveryClaim(existing, parsed.data.snapshot);
   }
   if (existing.status !== 'error') return { kind: 'conflict' };
 
-  const reclaimed = await repository.reclaimError(evidence.tenantId, idempotencyKey);
-  return reclaimed
-    ? {
-        kind: 'claimed',
-        deliveryId: existing.id,
-        requiresEffects: false,
-        snapshot: parsed.data.snapshot,
-      }
-    : { kind: 'in_progress' };
+  const reclaimed = await args.repository.reclaimError(args.tenantId, args.idempotencyKey);
+  return reclaimed ? readyDeliveryClaim(existing, parsed.data.snapshot) : { kind: 'in_progress' };
+}
+
+function readyDeliveryClaim(
+  existing: StoredDeliveryRow,
+  snapshot: MembershipConfirmationSnapshot
+): Extract<MembershipConfirmationClaim, { kind: 'claimed' }> {
+  return {
+    kind: 'claimed',
+    deliveryId: existing.id,
+    requiresEffects: false,
+    snapshot,
+  };
 }
 
 export function createMembershipConfirmationDeliveryStore(

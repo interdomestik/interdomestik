@@ -105,7 +105,7 @@ export type MembershipConfirmationDeliveryStore = {
   claimReadyRetry?: (params: {
     evidence: MembershipConfirmationRetryEvidence;
     idempotencyKey: string;
-  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' | 'requires_context' }>;
+  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }>;
   claimExisting: (params: {
     evidence: MembershipConfirmationEvidence;
     idempotencyKey: string;

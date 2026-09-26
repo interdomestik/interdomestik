@@ -14,24 +14,28 @@ import {
 import { prepareStoredMembershipConfirmationRetry } from './utils/membership-confirmation-retry';
 import { reconcileCheckoutUser } from './utils/reconcile-checkout-user';
 
+type SubscriptionChangedParams = {
+  eventType: string;
+  data: unknown;
+  tenantId?: string | null;
+  processingScopeKey?: string;
+  providerEventId?: string;
+  webhookPayloadHash?: string;
+};
+
+type SubscriptionChangedDeps = Pick<
+  PaddleWebhookDeps,
+  | 'membershipConfirmationDelivery'
+  | 'prepareThankYouLetter'
+  | 'sendThankYouLetter'
+  | 'requestPasswordResetOnboarding'
+  | 'resolvePaddleCustomer'
+> &
+  PaddleWebhookAuditDeps;
+
 export async function handleSubscriptionChanged(
-  params: {
-    eventType: string;
-    data: unknown;
-    tenantId?: string | null;
-    processingScopeKey?: string;
-    providerEventId?: string;
-    webhookPayloadHash?: string;
-  },
-  deps: Pick<
-    PaddleWebhookDeps,
-    | 'membershipConfirmationDelivery'
-    | 'prepareThankYouLetter'
-    | 'sendThankYouLetter'
-    | 'requestPasswordResetOnboarding'
-    | 'resolvePaddleCustomer'
-  > &
-    PaddleWebhookAuditDeps = {}
+  params: SubscriptionChangedParams,
+  deps: SubscriptionChangedDeps = {}
 ) {
   const parseResult = subscriptionEventDataSchema.safeParse(params.data);
   if (!parseResult.success) {
@@ -40,21 +44,7 @@ export async function handleSubscriptionChanged(
   }
   const sub = parseResult.data;
 
-  const storedRetryPreparation =
-    params.eventType === 'subscription.created'
-      ? await prepareStoredMembershipConfirmationRetry({
-          tenantId: params.tenantId,
-          providerEventId: params.providerEventId,
-          webhookPayloadHash: params.webhookPayloadHash,
-          providerReference: sub.id,
-          deps,
-        })
-      : { kind: 'continue' as const };
-  if (storedRetryPreparation.kind === 'stop') return;
-  if (storedRetryPreparation.kind === 'job') {
-    await deliverMembershipConfirmation(storedRetryPreparation.job);
-    return;
-  }
+  if (await deliverStoredMembershipConfirmationRetry(params, sub.id, deps)) return;
 
   // 1. Resolve Context (User, Tenant, Branch)
   let context = await resolveSubscriptionContext(sub);
@@ -159,6 +149,26 @@ export async function handleSubscriptionChanged(
       await deliverMembershipConfirmation(confirmationPreparation.job);
     }
   }
+}
+
+async function deliverStoredMembershipConfirmationRetry(
+  params: SubscriptionChangedParams,
+  providerReference: string,
+  deps: SubscriptionChangedDeps
+): Promise<boolean> {
+  if (params.eventType !== 'subscription.created') return false;
+  const preparation = await prepareStoredMembershipConfirmationRetry({
+    tenantId: params.tenantId,
+    providerEventId: params.providerEventId,
+    webhookPayloadHash: params.webhookPayloadHash,
+    providerReference,
+    deps,
+  });
+  if (preparation.kind === 'continue') return false;
+  if (preparation.kind === 'job') {
+    await deliverMembershipConfirmation(preparation.job);
+  }
+  return true;
 }
 
 function normalizeAgentId(agentId: string | null | undefined): string | null {

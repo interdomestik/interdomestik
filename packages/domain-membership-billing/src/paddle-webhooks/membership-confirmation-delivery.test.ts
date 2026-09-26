@@ -113,6 +113,12 @@ const evidence: MembershipConfirmationEvidence = {
   providerEventId: snapshot.providerEventId,
   webhookPayloadHash: snapshot.webhookPayloadHash,
 };
+const retryEvidence = {
+  tenantId: snapshot.tenantId,
+  providerReference: snapshot.providerReference,
+  providerEventId: snapshot.providerEventId,
+  webhookPayloadHash: snapshot.webhookPayloadHash,
+};
 
 async function expectStoredSnapshotRetry(
   store: ReturnType<typeof createMembershipConfirmationDeliveryStore>
@@ -144,6 +150,9 @@ describe('membership confirmation delivery store', () => {
       requiresEffects: true,
       snapshot,
     });
+    await expect(
+      store.claimReadyRetry!({ idempotencyKey, evidence: retryEvidence })
+    ).resolves.toEqual({ kind: 'requires_context' });
     await store.ready({
       deliveryId: 'delivery_123',
       idempotencyKey,
@@ -188,6 +197,9 @@ describe('membership confirmation delivery store', () => {
     });
 
     await expectStoredSnapshotRetry(store);
+    await expect(
+      store.claimReadyRetry!({ idempotencyKey, evidence: retryEvidence })
+    ).resolves.toMatchObject({ kind: 'claimed', requiresEffects: false, snapshot });
   });
 
   it('rejects contradictory provider evidence for the same subscription', async () => {
@@ -215,6 +227,12 @@ describe('membership confirmation delivery store', () => {
           providerEventId: 'evt_provider_2',
           webhookPayloadHash: 'payload_hash_2',
         },
+      })
+    ).resolves.toEqual({ kind: 'conflict' });
+    await expect(
+      store.claimReadyRetry!({
+        idempotencyKey,
+        evidence: { ...retryEvidence, providerEventId: 'evt_provider_2' },
       })
     ).resolves.toEqual({ kind: 'conflict' });
   });
