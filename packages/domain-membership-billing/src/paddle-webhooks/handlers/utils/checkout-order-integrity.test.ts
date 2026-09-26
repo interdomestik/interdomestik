@@ -84,6 +84,31 @@ describe('validateCheckoutOrderIntegrity', () => {
     ).toMatchObject({ ok: true });
   });
 
+  it('compares opaque item identifiers by exact code units when collation treats them as equal', () => {
+    const composedPriceId = 'pri_caf\u00e9';
+    const decomposedPriceId = 'pri_cafe\u0301';
+
+    expect(
+      validateCheckoutOrderIntegrity(
+        subscription({
+          items: [
+            { price: { id: composedPriceId }, quantity: 1 },
+            { price: { id: decomposedPriceId }, quantity: 1 },
+          ],
+        }),
+        transaction({
+          details: {
+            totals: { total: '2000', currencyCode: 'EUR' },
+            lineItems: [
+              { priceId: decomposedPriceId, quantity: 1, totals: { total: '1000' } },
+              { priceId: composedPriceId, quantity: 1, totals: { total: '1000' } },
+            ],
+          },
+        })
+      )
+    ).toMatchObject({ ok: true });
+  });
+
   it.each([
     [
       'missing transaction identity',

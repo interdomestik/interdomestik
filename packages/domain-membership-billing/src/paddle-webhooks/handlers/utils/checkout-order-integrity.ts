@@ -77,6 +77,12 @@ function normalizeMinorAmount(value: string | null | undefined): string | null {
   return normalized && /^\d+$/u.test(normalized) ? normalized : null;
 }
 
+function compareOpaqueTokens(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return left.localeCompare(right);
+}
+
 function resolveOrderItems(items: OrderItem[] | null | undefined): string[] | null {
   if (!items || items.length === 0) return null;
 
@@ -88,7 +94,7 @@ function resolveOrderItems(items: OrderItem[] | null | undefined): string[] | nu
   });
 
   return normalized.every((item): item is string => item !== null)
-    ? normalized.sort((left, right) => left.localeCompare(right))
+    ? normalized.sort(compareOpaqueTokens)
     : null;
 }
 
