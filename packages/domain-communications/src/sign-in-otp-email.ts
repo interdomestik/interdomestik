@@ -29,6 +29,7 @@ export type EmailResult = { success: true; id: string } | { success: false; erro
 export type EmailSendOptions = {
   attachments?: { filename: string; content: Buffer | string }[];
   automatedCatcher?: boolean;
+  idempotencyKey?: string;
   telemetryPolicy?: EmailTelemetryPolicy;
 };
 
@@ -96,14 +97,17 @@ export async function sendViaResend(
     };
   };
   try {
-    const response = await client.emails.send({
-      from,
-      to,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-      attachments: options.attachments,
-    });
+    const response = await client.emails.send(
+      {
+        from,
+        to,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        attachments: options.attachments,
+      },
+      options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+    );
     if (response.error) return fail(response.error, 'Email delivery failed');
     if (!response.data?.id) {
       return fail('No email ID returned from Resend', 'No email ID returned from Resend');

@@ -60,6 +60,24 @@ describe('email delivery fallback', () => {
     expect(m.resendConstructor).toHaveBeenCalledWith('re_test_key');
     expect(m.resendSend).toHaveBeenCalledOnce();
   });
+  it('passes a stable idempotency key to Resend', async () => {
+    vi.stubEnv('SMTP_HOST', '');
+    m.resendSend.mockResolvedValueOnce({ data: { id: 'resend-message-id' }, error: null });
+    const { sendEmail } = await import('./email');
+
+    await expect(
+      sendEmail(
+        'member@example.com',
+        { subject: 'Membership confirmed', html: '<p>Confirmed</p>', text: 'Confirmed' },
+        { idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1' }
+      )
+    ).resolves.toEqual({ success: true, id: 'resend-message-id' });
+
+    expect(m.resendSend).toHaveBeenCalledWith(
+      expect.objectContaining({ to: 'member@example.com' }),
+      { idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1' }
+    );
+  });
   it.each(['mock', 'playwright', 'smtp', 'resend', 'fallback'] as const)(
     'keeps %s OTP telemetry content-free',
     async provider => {

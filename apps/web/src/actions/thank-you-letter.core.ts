@@ -22,7 +22,8 @@ export async function sendThankYouLetter(params: {
   providerReference: string;
   tenantId: string;
   locale: 'en' | 'sq' | 'mk' | 'sr';
-}): Promise<{ success: boolean; error?: string }> {
+  idempotencyKey: string;
+}): Promise<{ success: true; id: string } | { success: false; error: string }> {
   return sendThankYouLetterCore(params satisfies SendThankYouLetterParams);
 }
 

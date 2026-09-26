@@ -18,58 +18,96 @@ type UpsertSubscriptionArgs = {
   existingSub?: ExistingSubscription | null;
   mappedStatus: InternalSubscriptionStatus;
   planState: CanonicalMembershipPlanState;
+  providerEventId?: string;
   sub: any;
   tenantId: string;
   userId: string;
 };
 
-export async function upsertSubscription(args: UpsertSubscriptionArgs) {
-  const { sub, tenantId, userId, agentId, branchId, existingSub, mappedStatus, planState } = args;
-  const values = mapToSubscriptionValues(sub, mappedStatus, planState);
-  const existingSubscription =
-    existingSub ?? (await findExistingSubscriptionForUser(userId, tenantId));
-
-  if (existingSubscription) {
-    await persistSubscriptionUpdate(existingSubscription, {
-      agentId,
-      branchId,
-      sub,
-      tenantId,
-      userId,
-      values,
-    });
-    return existingSubscription.id;
-  }
-
-  try {
-    await persistSubscriptionInsert({ agentId, branchId, sub, tenantId, userId, values });
-    return sub.id as string;
-  } catch (error) {
-    if (!isUniqueViolation(error)) throw error;
-
-    const racedSubscription = await findExistingSubscription(sub.id, userId, tenantId);
-    if (!racedSubscription) throw error;
-
-    await persistSubscriptionUpdate(racedSubscription, {
-      agentId,
-      branchId,
-      sub,
-      tenantId,
-      userId,
-      values,
-    });
-    return racedSubscription.id;
-  }
-}
-
-async function persistSubscriptionInsert(args: {
+type SubscriptionWriteArgs = {
   agentId?: string | null;
   branchId?: string;
+  eventId?: string;
   sub: any;
   tenantId: string;
   userId: string;
   values: ReturnType<typeof mapToSubscriptionValues>;
-}) {
+};
+
+type UpsertSubscriptionResult = { subscriptionId: string; effectsApplied: boolean };
+
+export async function upsertSubscription(
+  args: UpsertSubscriptionArgs
+): Promise<UpsertSubscriptionResult> {
+  const {
+    sub,
+    tenantId,
+    userId,
+    agentId,
+    branchId,
+    existingSub,
+    mappedStatus,
+    planState,
+    providerEventId,
+  } = args;
+  const values = mapToSubscriptionValues(sub, mappedStatus, planState);
+  const existingSubscription = await resolveSubscriptionForUpsert({
+    existingSub,
+    tenantId,
+    userId,
+  });
+  const eventId = deterministicSubscriptionEventId(tenantId, providerEventId);
+  const writeArgs = { agentId, branchId, eventId, sub, tenantId, userId, values };
+
+  if (existingSubscription) {
+    return persistExistingSubscription(existingSubscription, writeArgs);
+  }
+
+  try {
+    await persistSubscriptionInsert(writeArgs);
+    return { subscriptionId: sub.id as string, effectsApplied: true };
+  } catch (error) {
+    return recoverSubscriptionInsert(error, writeArgs);
+  }
+}
+
+async function recoverSubscriptionInsert(
+  error: unknown,
+  args: SubscriptionWriteArgs
+): Promise<UpsertSubscriptionResult> {
+  const replay = isDomainEventReplay(error, args.eventId);
+  if (!replay && !isUniqueViolation(error)) throw error;
+  const existing = await findExistingSubscription(args.sub.id, args.userId, args.tenantId);
+  if (replay) {
+    if (!existing) throw error;
+    return { subscriptionId: existing.id, effectsApplied: false };
+  }
+  if (!existing) throw error;
+  return persistExistingSubscription(existing, args);
+}
+
+async function persistExistingSubscription(
+  subscription: ExistingSubscription,
+  args: SubscriptionWriteArgs
+): Promise<UpsertSubscriptionResult> {
+  try {
+    await persistSubscriptionUpdate(subscription, args);
+    return { subscriptionId: subscription.id, effectsApplied: true };
+  } catch (error) {
+    if (!isDomainEventReplay(error, args.eventId)) throw error;
+    return { subscriptionId: subscription.id, effectsApplied: false };
+  }
+}
+
+export async function resolveSubscriptionForUpsert(args: {
+  existingSub?: ExistingSubscription | null;
+  tenantId: string;
+  userId: string;
+}): Promise<ExistingSubscription | null | undefined> {
+  return args.existingSub ?? findExistingSubscriptionForUser(args.userId, args.tenantId);
+}
+
+async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
   await db.transaction(async tx => {
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context is inserted.
@@ -85,6 +123,7 @@ async function persistSubscriptionInsert(args: {
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
       fromStatus: 'none',
+      id: args.eventId,
       now: args.values.updatedAt,
       subscriptionId: args.sub.id,
       tenantId: args.tenantId,
@@ -96,9 +135,7 @@ async function persistSubscriptionInsert(args: {
 
 async function persistSubscriptionUpdate(
   subscription: ExistingSubscription,
-  args: Omit<Parameters<typeof persistSubscriptionInsert>[0], 'values'> & {
-    values: ReturnType<typeof mapToSubscriptionValues>;
-  }
+  args: SubscriptionWriteArgs
 ) {
   assertSubscriptionMatchesContext(subscription, {
     subId: args.sub.id,
@@ -124,6 +161,7 @@ async function persistSubscriptionUpdate(
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
       fromStatus: normalizeExistingStatus(subscription.status),
+      id: args.eventId,
       now: args.values.updatedAt,
       subscriptionId: subscription.id,
       tenantId: args.tenantId,
@@ -147,4 +185,18 @@ async function findExistingSubscriptionForUser(userId: string, tenantId: string)
       andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
     columns: { id: true, status: true, tenantId: true, userId: true },
   });
+}
+
+function deterministicSubscriptionEventId(
+  tenantId: string,
+  providerEventId: string | undefined
+): string | undefined {
+  return providerEventId ? `paddle:${tenantId}:${providerEventId}:subscription-changed` : undefined;
+}
+
+function isDomainEventReplay(error: unknown, eventId: string | undefined): boolean {
+  if (!eventId || !isUniqueViolation(error)) return false;
+  const candidate = error as { constraint?: unknown; constraint_name?: unknown };
+  const constraint = candidate.constraint ?? candidate.constraint_name;
+  return constraint === 'domain_events_pkey' || constraint === 'domain_events_tenant_id_id_uq';
 }

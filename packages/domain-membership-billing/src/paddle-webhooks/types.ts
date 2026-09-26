@@ -25,7 +25,14 @@ export type SendPaymentFailedEmail = (
   }
 ) => unknown;
 
-export type SendThankYouLetter = (params: {
+export type PreparedMembershipConfirmationEmail = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export type PrepareThankYouLetter = (params: {
   email: string;
   memberName: string;
   memberNumber: string;
@@ -37,7 +44,95 @@ export type SendThankYouLetter = (params: {
   providerReference: string;
   tenantId: string;
   locale: 'en' | 'sq' | 'mk' | 'sr';
-}) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
+}) => PreparedMembershipConfirmationEmail;
+
+export type SendThankYouLetter = (params: {
+  request: PreparedMembershipConfirmationEmail;
+  providerReference: string;
+  tenantId: string;
+  idempotencyKey: string;
+}) =>
+  | Promise<{ success: true; id: string } | { success: false; error: string }>
+  | { success: true; id: string }
+  | { success: false; error: string };
+
+export type MembershipConfirmationSnapshot = {
+  email: string;
+  memberName: string;
+  memberNumber: string;
+  planName: string;
+  planPrice: string;
+  planInterval: string;
+  memberSince: string;
+  expiresAt: string;
+  locale: 'en' | 'sq' | 'mk' | 'sr';
+  tenantId: string;
+  userId: string;
+  subscriptionId: string;
+  providerReference: string;
+  providerEventId: string;
+  webhookPayloadHash: string;
+  providerStatus: 'active';
+  eventType: 'subscription.created';
+  emailRequest: PreparedMembershipConfirmationEmail;
+};
+
+export type MembershipConfirmationEvidence = Pick<
+  MembershipConfirmationSnapshot,
+  | 'tenantId'
+  | 'userId'
+  | 'subscriptionId'
+  | 'providerReference'
+  | 'providerEventId'
+  | 'webhookPayloadHash'
+>;
+
+export type MembershipConfirmationRetryEvidence = Pick<
+  MembershipConfirmationSnapshot,
+  'tenantId' | 'providerReference' | 'providerEventId' | 'webhookPayloadHash'
+>;
+
+export type MembershipConfirmationClaim =
+  | {
+      kind: 'claimed';
+      deliveryId: string;
+      requiresEffects: boolean;
+      snapshot: MembershipConfirmationSnapshot;
+    }
+  | { kind: 'already_sent' | 'conflict' | 'in_progress' };
+
+export type MembershipConfirmationDeliveryStore = {
+  claimReadyRetry?: (params: {
+    evidence: MembershipConfirmationRetryEvidence;
+    idempotencyKey: string;
+  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }>;
+  claimExisting: (params: {
+    evidence: MembershipConfirmationEvidence;
+    idempotencyKey: string;
+  }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' }>;
+  claim: (params: {
+    idempotencyKey: string;
+    snapshot: MembershipConfirmationSnapshot;
+  }) => Promise<MembershipConfirmationClaim>;
+  ready: (params: {
+    deliveryId: string;
+    idempotencyKey: string;
+    subscriptionId: string;
+    tenantId: string;
+  }) => Promise<void>;
+  complete: (params: {
+    deliveryId: string;
+    idempotencyKey: string;
+    providerMessageId: string;
+    tenantId: string;
+  }) => Promise<void>;
+  fail: (params: {
+    deliveryId: string;
+    error: string;
+    idempotencyKey: string;
+    tenantId: string;
+  }) => Promise<void>;
+};
 
 export type RequestPasswordResetOnboarding = (params: {
   email: string;
@@ -79,7 +174,9 @@ export type ResolvePaddleCustomer = (
 
 export type PaddleWebhookDeps = {
   sendPaymentFailedEmail?: SendPaymentFailedEmail;
+  prepareThankYouLetter?: PrepareThankYouLetter;
   sendThankYouLetter?: SendThankYouLetter;
+  membershipConfirmationDelivery?: MembershipConfirmationDeliveryStore;
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
   resolvePaddleCustomer?: ResolvePaddleCustomer;
 };

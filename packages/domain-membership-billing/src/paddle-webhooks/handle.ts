@@ -6,7 +6,14 @@ import { handleTransactionCompleted } from './handlers/transaction';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from './types';
 
 export async function handlePaddleEvent(
-  params: { eventType: string | undefined; data: unknown; processingScopeKey?: string },
+  params: {
+    eventType: string | undefined;
+    data: unknown;
+    tenantId?: string | null;
+    processingScopeKey?: string;
+    providerEventId?: string;
+    webhookPayloadHash?: string;
+  },
   deps: PaddleWebhookDeps & PaddleWebhookAuditDeps = {}
 ) {
   const eventType = params.eventType;
@@ -26,7 +33,10 @@ export async function handlePaddleEvent(
         {
           eventType,
           data: params.data,
+          tenantId: params.tenantId,
           processingScopeKey: params.processingScopeKey,
+          providerEventId: params.providerEventId,
+          webhookPayloadHash: params.webhookPayloadHash,
         },
         deps
       );

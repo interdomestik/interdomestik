@@ -124,4 +124,119 @@ describe('handleSubscriptionChanged entity retry', () => {
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
+
+  it('retries a persisted confirmation without replaying completed subscription effects', async () => {
+    const sendThankYouLetter = vi.fn().mockResolvedValue({ success: true, id: 'email_retry' });
+    const prepareThankYouLetter = vi.fn(() => ({
+      to: 'member@example.test',
+      subject: 'Current subject',
+      html: '<p>Current body</p>',
+      text: 'Current body',
+    }));
+    const storedRequest = {
+      to: 'member@example.test',
+      subject: 'Stored subject',
+      html: '<p>Stored body</p>',
+      text: 'Stored body',
+    };
+    const storedSnapshot = {
+      email: 'member@example.test',
+      memberName: 'Stored Member',
+      memberNumber: 'MEM-STORED',
+      planName: 'Stored annual membership',
+      planPrice: '20.00 EUR',
+      planInterval: 'year',
+      memberSince: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2027-01-01T00:00:00.000Z',
+      locale: 'en' as const,
+      tenantId: 'tenant_mk',
+      userId: 'user_1',
+      subscriptionId: 'sub_retry',
+      providerReference: 'sub_retry',
+      providerEventId: 'evt_retry',
+      webhookPayloadHash: 'payload_hash_retry',
+      providerStatus: 'active' as const,
+      eventType: 'subscription.created' as const,
+      emailRequest: storedRequest,
+    };
+    const membershipConfirmationDelivery = {
+      claimReadyRetry: vi.fn().mockResolvedValue({
+        kind: 'claimed' as const,
+        deliveryId: 'delivery_retry',
+        requiresEffects: false,
+        snapshot: storedSnapshot,
+      }),
+      claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
+      claim: vi.fn(),
+      ready: vi.fn(),
+      complete: vi.fn(),
+      fail: vi.fn(),
+    };
+    hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
+      new Error('current subscription context is unavailable')
+    );
+    const data = subscriptionData('sub_retry', 'txn_retry');
+    data.customData = {
+      tenantId: 'tenant_mk',
+      agentId: 'agent_9',
+      userId: 'user_1',
+      locale: 'en',
+    } as typeof data.customData;
+    Object.assign(data.items[0]!.price, { name: 'Annual membership' });
+    Object.assign(data, { billingCycle: { frequency: 1, interval: 'year' } });
+
+    await handleSubscriptionChanged(
+      {
+        eventType: 'subscription.created',
+        tenantId: 'tenant_mk',
+        providerEventId: 'evt_retry',
+        webhookPayloadHash: 'payload_hash_retry',
+        data,
+      },
+      { membershipConfirmationDelivery, prepareThankYouLetter, sendThankYouLetter }
+    );
+
+    expect(sendThankYouLetter).toHaveBeenCalledWith(
+      expect.objectContaining({ request: storedRequest })
+    );
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
+    expect(hoisted.appendEvent).not.toHaveBeenCalled();
+    expect(hoisted.db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(prepareThankYouLetter).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.claimExisting).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.claim).not.toHaveBeenCalled();
+    expect(membershipConfirmationDelivery.ready).not.toHaveBeenCalled();
+  });
+
+  it('keeps the webhook retryable while another worker owns delivery reclamation', async () => {
+    const sendThankYouLetter = vi.fn();
+    const membershipConfirmationDelivery = {
+      claimReadyRetry: vi.fn().mockResolvedValue({ kind: 'in_progress' }),
+      claimExisting: vi.fn(),
+      claim: vi.fn(),
+      ready: vi.fn(),
+      complete: vi.fn(),
+      fail: vi.fn(),
+    };
+    hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
+      new Error('mutable context must not run')
+    );
+
+    await expect(
+      handleSubscriptionChanged(
+        {
+          eventType: 'subscription.created',
+          tenantId: 'tenant_mk',
+          providerEventId: 'evt_in_progress',
+          webhookPayloadHash: 'payload_hash_in_progress',
+          data: subscriptionData('sub_in_progress', 'txn_in_progress'),
+        },
+        { membershipConfirmationDelivery, sendThankYouLetter }
+      )
+    ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
+
+    expect(hoisted.db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
 });

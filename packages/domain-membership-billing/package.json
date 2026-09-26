@@ -18,6 +18,7 @@
     "./paddle-webhooks": "./src/paddle-webhooks/index.ts",
     "./paddle-webhooks/crypto": "./src/paddle-webhooks/crypto.ts",
     "./paddle-webhooks/handle": "./src/paddle-webhooks/handle.ts",
+    "./paddle-webhooks/membership-confirmation-delivery": "./src/paddle-webhooks/membership-confirmation-delivery.ts",
     "./paddle-webhooks/parse": "./src/paddle-webhooks/parse.ts",
     "./paddle-webhooks/persist": "./src/paddle-webhooks/persist.ts",
     "./paddle-webhooks/subscription-status": "./src/paddle-webhooks/subscription-status.ts",

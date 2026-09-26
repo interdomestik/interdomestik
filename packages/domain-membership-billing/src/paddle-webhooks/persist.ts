@@ -1,7 +1,12 @@
 import { db, webhookEvents } from '@interdomestik/database';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { RetryablePaddleWebhookError } from './errors';
+import {
+  findNonTerminalSubscriptionCreatedLease,
+  reclaimRetryableWebhookEvent,
+} from './receipt-lease';
 import type { PaddleWebhookAuditDeps } from './types';
 
 export { isRetryablePaddleWebhookError } from './errors';
@@ -115,6 +120,30 @@ export async function insertWebhookEvent(
       return { inserted: true as const, webhookEventRowId: reclaimed.id };
     }
 
+    const nonTerminalLease = await findNonTerminalSubscriptionCreatedLease(params);
+    if (nonTerminalLease) {
+      if (deps.logAuditEvent) {
+        await deps.logAuditEvent({
+          actorRole: 'system',
+          action: 'webhook.retry_deferred',
+          entityType: 'webhook_event',
+          entityId: nonTerminalLease.id,
+          tenantId: params.tenantId ?? undefined,
+          metadata: {
+            provider: 'paddle',
+            dedupeKey: params.dedupeKey,
+            processingScopeKey: params.processingScopeKey,
+            eventType: params.eventType,
+            eventId: params.eventId,
+          },
+          headers: params.headers,
+        });
+      }
+      throw new RetryablePaddleWebhookError(
+        `Paddle webhook ${params.eventId ?? params.dedupeKey} is still processing`
+      );
+    }
+
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
         actorRole: 'system',
@@ -158,33 +187,6 @@ export async function insertWebhookEvent(
   }
 
   return { inserted: true as const, webhookEventRowId };
-}
-
-async function reclaimRetryableWebhookEvent(params: {
-  processingScopeKey: string;
-  dedupeKey: string;
-  payloadHash: string;
-}) {
-  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed Paddle receipt.
-  const reclaimed = await db
-    .update(webhookEvents)
-    .set({
-      processedAt: null,
-      processingResult: null,
-      error: null,
-    })
-    .where(
-      and(
-        eq(webhookEvents.dedupeKey, params.dedupeKey),
-        eq(webhookEvents.processingScopeKey, params.processingScopeKey),
-        eq(webhookEvents.payloadHash, params.payloadHash),
-        eq(webhookEvents.signatureValid, true),
-        eq(webhookEvents.processingResult, 'retryable_error')
-      )
-    )
-    .returning({ id: webhookEvents.id });
-
-  return reclaimed[0] ?? null;
 }
 
 export async function markWebhookProcessed(

@@ -1,13 +1,9 @@
-import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
-import { logAuditEvent } from '@/lib/audit';
-import { auth } from '@/lib/auth';
-import { sendPaymentFailedEmail } from '@/lib/email';
 import {
-  coerceTenantId,
-  preferredLocaleForTenant,
-  resolveDefaultPublicTenantId,
-  resolveTenantAppOrigin,
-} from '@/lib/tenant/tenant-hosts';
+  prepareThankYouLetterCore,
+  sendPreparedThankYouLetterCore,
+} from '@/actions/thank-you-letter/delivery';
+import { logAuditEvent } from '@/lib/audit';
+import { sendPaymentFailedEmail } from '@/lib/email';
 import { db } from '@interdomestik/database';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
 import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
@@ -22,10 +18,17 @@ import {
   sha256Hex,
   verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
+import { membershipConfirmationDeliveryStore } from '@interdomestik/domain-membership-billing/paddle-webhooks/membership-confirmation-delivery';
 import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
+import { requestPasswordResetOnboarding } from './paddle-onboarding';
 import { resolvePaddleCustomer } from './paddle-customer';
+
+export {
+  buildTenantPasswordResetRedirectUrl,
+  requestPasswordResetOnboarding,
+} from './paddle-onboarding';
 
 export type PaddleWebhookCoreResult = {
   status: 200 | 400 | 401 | 500;
@@ -189,25 +192,6 @@ function resolveProviderTransactionId(params: {
   );
 }
 
-export function buildTenantPasswordResetRedirectUrl(tenantId: string): string {
-  const normalizedTenantId = coerceTenantId(tenantId) ?? resolveDefaultPublicTenantId();
-  const origin = resolveTenantAppOrigin(normalizedTenantId);
-  const locale = preferredLocaleForTenant(normalizedTenantId);
-  return new URL(`/${locale}/reset-password`, origin).toString();
-}
-
-export async function requestPasswordResetOnboarding(params: {
-  email: string;
-  tenantId: string;
-}): Promise<void> {
-  await auth.api.requestPasswordReset({
-    body: {
-      email: params.email,
-      redirectTo: buildTenantPasswordResetRedirectUrl(params.tenantId),
-    },
-  });
-}
-
 async function resolveWebhookTenantId(
   data: unknown,
   subscription: WebhookSubscription | null
@@ -354,10 +338,19 @@ export async function handlePaddleWebhookCore(args: {
     await reconcilePaddleLeadConversion({ eventType, data, tenantId, subscription });
 
     await handlePaddleEvent(
-      { eventType, data, processingScopeKey },
       {
+        eventType,
+        data,
+        tenantId,
+        processingScopeKey,
+        providerEventId: normalizedEventId ?? undefined,
+        webhookPayloadHash: payloadHash,
+      },
+      {
+        membershipConfirmationDelivery: membershipConfirmationDeliveryStore,
+        prepareThankYouLetter: prepareThankYouLetterCore,
         sendPaymentFailedEmail,
-        sendThankYouLetter: sendThankYouLetterCore,
+        sendThankYouLetter: sendPreparedThankYouLetterCore,
         requestPasswordResetOnboarding,
         resolvePaddleCustomer: customerId => resolvePaddleCustomer(paddle, customerId),
         logAuditEvent,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
-import { createCommissionCore } from '../../../commissions/create';
+import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
 
 const databaseMocks = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('../../../../../domain-referrals/src', () => ({ createMemberReferralRewardCore: vi.fn() }));
-vi.mock('../../../commissions/create', () => ({ createCommissionCore: vi.fn() }));
+vi.mock('../../../commissions/create', () => ({ createCommissionWithDispositionCore: vi.fn() }));
 vi.mock('../../../commissions/create-renewal', () => ({ createRenewalCommissionCore: vi.fn() }));
 
 describe('handleNewSubscriptionExtras membership events', () => {
@@ -39,9 +39,9 @@ describe('handleNewSubscriptionExtras membership events', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     databaseMocks.appendEvent.mockResolvedValue({ id: 'event-1' });
-    vi.mocked(createCommissionCore).mockResolvedValue({
+    vi.mocked(createCommissionWithDispositionCore).mockResolvedValue({
       success: true,
-      data: { id: 'commission-1' },
+      data: { id: 'commission-1', created: true },
     });
     vi.mocked(createMemberReferralRewardCore).mockResolvedValue({
       success: true,
@@ -91,5 +91,38 @@ describe('handleNewSubscriptionExtras membership events', () => {
     );
     expect(tx.update).toHaveBeenCalled();
     expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('treats a duplicate provider attribution event as an idempotent replay', async () => {
+    databaseMocks.appendEvent.mockRejectedValue(
+      Object.assign(new Error('duplicate domain event'), {
+        code: '23505',
+        constraint: 'domain_events_pkey',
+      })
+    );
+
+    await expect(
+      handleNewSubscriptionExtras({
+        eventType: 'subscription.created',
+        providerEventId: 'evt_provider_1',
+        customData: { agentId: 'agent_1' },
+        deps,
+        priceId: 'price_1',
+        sub: {
+          id: 'sub_123',
+          items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
+        },
+        tenantId: 'tenant_1',
+        userId: 'user_1',
+        userRecord: { email: 'member@example.invalid', memberNumber: 'M-1', name: 'Member' },
+      })
+    ).resolves.toBeUndefined();
+
+    expect(databaseMocks.appendEvent).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        id: 'paddle:tenant_1:evt_provider_1:agent-attribution-recorded',
+      })
+    );
   });
 });

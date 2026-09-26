@@ -7,8 +7,7 @@ import type { ActionResult, CommissionType } from './types';
 
 const VALID_CURRENCIES = ['EUR', 'USD', 'CHF', 'GBP'] as const;
 
-/** Create a commission record (called from webhook or admin) */
-export async function createCommissionCore(data: {
+type CreateCommissionInput = {
   agentId: string;
   memberId?: string;
   subscriptionId?: string;
@@ -17,7 +16,21 @@ export async function createCommissionCore(data: {
   currency?: string;
   tenantId: string;
   metadata?: Record<string, unknown>;
-}): Promise<ActionResult<{ id: string }>> {
+};
+
+/** Create a commission record while preserving the public action result shape. */
+export async function createCommissionCore(
+  data: CreateCommissionInput
+): Promise<ActionResult<{ id: string }>> {
+  const result = await createCommissionWithDispositionCore(data);
+  if (!result.success) return result;
+  return { success: true, data: { id: result.data!.id } };
+}
+
+/** Create a commission and report whether this call inserted it for webhook audit idempotency. */
+export async function createCommissionWithDispositionCore(
+  data: CreateCommissionInput
+): Promise<ActionResult<{ id: string; created: boolean }>> {
   try {
     // Validate currency
     const currency = data.currency ?? 'EUR';
@@ -54,7 +67,7 @@ export async function createCommissionCore(data: {
         console.log(
           `[Commission] Idempotent: Commission already exists for subscription ${data.subscriptionId} type ${data.type}`
         );
-        return { success: true, data: { id: existing.id } }; // Return existing ID
+        return { success: true, data: { id: existing.id, created: false } }; // Return existing ID
       }
     }
 
@@ -75,7 +88,7 @@ export async function createCommissionCore(data: {
     });
 
     console.log(`[Commission] Created commission ${id} for agent ${data.agentId}`);
-    return { success: true, data: { id } };
+    return { success: true, data: { id, created: true } };
   } catch (error) {
     console.error('Error creating commission:', error);
     return { success: false, error: 'Failed to create commission' };

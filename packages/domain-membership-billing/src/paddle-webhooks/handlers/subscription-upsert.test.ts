@@ -58,4 +58,42 @@ describe('upsertSubscription tenant-scoped update guard', () => {
     expect(hoisted.set).toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
   });
+
+  it('treats a duplicate deterministic provider event as an already-applied effect', async () => {
+    hoisted.returning.mockResolvedValue([{ id: 'sub_existing' }]);
+    hoisted.appendEvent.mockRejectedValue(
+      Object.assign(new Error('duplicate domain event'), {
+        code: '23505',
+        constraint: 'domain_events_pkey',
+      })
+    );
+
+    await expect(
+      upsertSubscription({
+        existingSub: {
+          id: 'sub_existing',
+          status: 'active',
+          tenantId: 'tenant_abc',
+          userId: 'user_123',
+        },
+        mappedStatus: 'active',
+        planState: { planId: 'standard', planKey: 'mk-standard-plan' },
+        providerEventId: 'evt_provider_1',
+        sub: {
+          id: 'sub_paddle_456',
+          customerId: 'ctm_1',
+          currentBillingPeriod: { startsAt: '2026-01-01', endsAt: '2027-01-01' },
+        },
+        tenantId: 'tenant_abc',
+        userId: 'user_123',
+      })
+    ).resolves.toEqual({ subscriptionId: 'sub_existing', effectsApplied: false });
+
+    expect(hoisted.appendEvent).toHaveBeenCalledWith(
+      hoisted.tx,
+      expect.objectContaining({
+        id: 'paddle:tenant_abc:evt_provider_1:subscription-changed',
+      })
+    );
+  });
 });

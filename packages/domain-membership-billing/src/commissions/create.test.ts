@@ -1,7 +1,7 @@
 import { db } from '@interdomestik/database';
 import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createCommissionCore } from './create';
+import { createCommissionCore, createCommissionWithDispositionCore } from './create';
 
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
@@ -81,13 +81,14 @@ describe('createCommissionCore', () => {
       }),
     });
 
-    const result = await createCommissionCore({
+    const result = await createCommissionWithDispositionCore({
       ...validData,
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data?.id).toBe('new-comm-id');
+      expect(result.data?.created).toBe(true);
     }
     expect(db.insert).toHaveBeenCalled();
   });
@@ -102,7 +103,7 @@ describe('createCommissionCore', () => {
       }),
     });
 
-    const result = await createCommissionCore({
+    const result = await createCommissionWithDispositionCore({
       ...validData,
     });
 
@@ -110,6 +111,7 @@ describe('createCommissionCore', () => {
     // Should return existing ID, NOT create new one
     if (result.success) {
       expect(result.data?.id).toBe('existing-id');
+      expect(result.data?.created).toBe(false);
     }
     expect(eq).toHaveBeenCalledWith('tenantId', 'tenant-1');
     expect(and).toHaveBeenCalledWith(

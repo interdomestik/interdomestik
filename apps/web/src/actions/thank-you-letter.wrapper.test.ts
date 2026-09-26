@@ -37,14 +37,15 @@ describe('thank-you-letter action wrappers', () => {
       providerReference: 'sub_123',
       tenantId: 'tenant_ks',
       locale: 'en' as const,
+      idempotencyKey: 'membership-confirmation:v1:tenant_ks:sub_123',
     };
 
-    mocks.sendThankYouLetterCore.mockResolvedValue({ success: true });
+    mocks.sendThankYouLetterCore.mockResolvedValue({ success: true, id: 'email_123' });
 
     const result = await actions.sendThankYouLetter(params);
 
     expect(mocks.sendThankYouLetterCore).toHaveBeenCalledWith(params);
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, id: 'email_123' });
   });
 
   it('previewThankYouLetter delegates to core', async () => {

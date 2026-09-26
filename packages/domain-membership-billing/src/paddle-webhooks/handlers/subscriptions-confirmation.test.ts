@@ -10,7 +10,6 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
-
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -22,10 +21,28 @@ vi.mock('@interdomestik/database/member-number', async () =>
 describe('subscription confirmation dispatch', () => {
   const logAuditEvent = vi.fn();
   const sendThankYouLetter = vi.fn();
+  const prepareThankYouLetter = vi.fn(({ email }) => ({
+    to: email,
+    subject: 'Membership confirmed',
+    html: '<p>Membership confirmed</p>',
+    text: 'Membership confirmed',
+  }));
+  const membershipConfirmationDelivery = {
+    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
+    claim: vi.fn(async ({ snapshot }) => ({
+      kind: 'claimed' as const,
+      deliveryId: 'delivery_123',
+      requiresEffects: true,
+      snapshot,
+    })),
+    ready: vi.fn(),
+    complete: vi.fn(),
+    fail: vi.fn(),
+  };
 
   beforeEach(() => {
     resetPaddleHandlerMocks(hoisted);
-    sendThankYouLetter.mockResolvedValue({ success: true });
+    sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_123' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
@@ -40,6 +57,8 @@ describe('subscription confirmation dispatch', () => {
     await handleSubscriptionChanged(
       {
         eventType: 'subscription.created',
+        providerEventId: 'evt_provider_1',
+        webhookPayloadHash: 'payload_hash_1',
         data: {
           id: 'sub_provider_1',
           status: 'active',
@@ -65,17 +84,17 @@ describe('subscription confirmation dispatch', () => {
           },
         },
       },
-      { sendThankYouLetter }
+      { membershipConfirmationDelivery, prepareThankYouLetter, sendThankYouLetter }
     );
 
     expect(sendThankYouLetter).toHaveBeenCalledWith(
       expect.objectContaining({
-        email: 'member@example.test',
-        locale: 'sr',
-        memberNumber: 'MEM-2026-001',
-        planInterval: 'godina',
-        planName: 'Annual membership',
-        planPrice: expect.stringContaining('EUR'),
+        request: {
+          to: 'member@example.test',
+          subject: 'Membership confirmed',
+          html: '<p>Membership confirmed</p>',
+          text: 'Membership confirmed',
+        },
         providerReference: 'sub_provider_1',
         tenantId: 'tenant_mk',
       })

@@ -2,13 +2,11 @@ import { db } from '@interdomestik/database';
 import { referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
-import { createCommissionCore } from '../../../commissions/create';
+import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
-import { revokeAgentClientReadScope } from '../../../ownership-attribution';
-import type { CheckoutCustomData, PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
-import { processMembershipConfirmation } from './membership-confirmation';
-import { recordMembershipAttributionRecordedEvent } from './membership-attribution-recorded-event';
+import type { CheckoutCustomData, PaddleWebhookAuditDeps } from '../../types';
+import { recordReadOnlyMembershipAttribution } from './membership-attribution';
 import {
   resolveNewMembershipOwnership,
   toOwnershipResolvedFrom,
@@ -43,7 +41,7 @@ async function processCommissions(args: {
   const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
 
   const commissionAmount = calculateCommission('new_membership', transactionTotal, customRates);
-  const commissionResult = await createCommissionCore({
+  const commissionResult = await createCommissionWithDispositionCore({
     agentId,
     memberId: userId,
     subscriptionId: resolvedSubscriptionId,
@@ -64,7 +62,7 @@ async function processCommissions(args: {
     },
   });
 
-  if (deps.logAuditEvent && commissionResult.success) {
+  if (deps.logAuditEvent && commissionResult.success && commissionResult.data?.created === true) {
     await deps.logAuditEvent({
       actorRole: 'system',
       action: 'commission.created',
@@ -142,34 +140,6 @@ async function processMemberReferralRewards(args: {
   }
 }
 
-async function recordReadOnlyMembershipAttribution(args: {
-  tenantId: string;
-  userId: string;
-  customData: CheckoutCustomData | undefined;
-  userRecord?: WebhookUserRecord | null;
-}) {
-  const ownership = resolveNewMembershipOwnership(args);
-  const agentId = ownership.agentId;
-  const ownershipSource = ownership.resolvedFrom;
-  if (!agentId || !ownershipSource) return;
-
-  const now = new Date();
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await db.transaction(async tx => {
-    await revokeAgentClientReadScope(tx, {
-      tenantId: args.tenantId,
-      memberId: args.userId,
-    });
-    await recordMembershipAttributionRecordedEvent({
-      memberId: args.userId,
-      now,
-      ownershipSource,
-      tenantId: args.tenantId,
-      tx,
-    });
-  });
-}
-
 async function processRenewalCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
@@ -245,6 +215,7 @@ async function processRenewalCommissions(args: {
 
 export async function handleNewSubscriptionExtras(args: {
   eventType: string;
+  providerEventId?: string;
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
@@ -252,12 +223,11 @@ export async function handleNewSubscriptionExtras(args: {
   customData: CheckoutCustomData | undefined;
   priceId: string;
   userRecord: WebhookUserRecord | null;
-  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
+  deps: PaddleWebhookAuditDeps;
 }) {
   await processCommissions(args);
   await recordReadOnlyMembershipAttribution(args);
   await processMemberReferralRewards(args);
-  await processMembershipConfirmation(args);
 }
 
 export async function handleRenewalSubscriptionExtras(args: {

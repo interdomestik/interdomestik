@@ -8,6 +8,7 @@ export async function recordMembershipSubscriptionChangedEvent(params: {
   actor?: { id: string; role: string };
   cancelAtPeriodEnd: boolean;
   correlationId?: string;
+  id?: string;
   fromStatus: SubscriptionEventStatus;
   now: Date;
   subscriptionId: string;
@@ -21,6 +22,7 @@ export async function recordMembershipSubscriptionChangedEvent(params: {
     correlationId:
       params.correlationId ??
       `membership:${params.subscriptionId}:subscription-changed:${crypto.randomUUID()}`,
+    ...(params.id ? { id: params.id } : {}),
     createdAt: params.now,
     entity: { id: params.subscriptionId, type: 'subscription' },
     eventName: 'membership.subscription_changed',
