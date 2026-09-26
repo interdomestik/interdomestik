@@ -95,7 +95,9 @@ test.describe('S6 provider-confirmed entitlement continuation', () => {
       await entry.getByTestId(/^free-start-resume-/).click();
       await expect(before.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
       await expect(
-        before.getByText('Active membership is required to submit this saved draft.')
+        before.getByText(
+          'To submit a claim, you need an active membership. You can keep managing this saved draft; saving it does not submit the claim.'
+        )
       ).toBeVisible();
       expect(await journeyClaims(journey), 'browser state creates no entitlement or claim').toEqual(
         []
