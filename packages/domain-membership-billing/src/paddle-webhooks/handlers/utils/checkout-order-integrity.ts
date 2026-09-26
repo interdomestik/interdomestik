@@ -87,7 +87,9 @@ function resolveOrderItems(items: OrderItem[] | null | undefined): string[] | nu
     return `${priceId}:${quantity}`;
   });
 
-  return normalized.every((item): item is string => item !== null) ? normalized.sort() : null;
+  return normalized.every((item): item is string => item !== null)
+    ? normalized.sort((left, right) => left.localeCompare(right))
+    : null;
 }
 
 function lineItemTotal(items: OrderItem[] | null | undefined): string | null {

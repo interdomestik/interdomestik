@@ -35,6 +35,8 @@ type SubscriptionChangedDeps = Pick<
 > &
   PaddleWebhookAuditDeps;
 
+type SubscriptionEventData = Parameters<typeof resolveSubscriptionContext>[0];
+
 export async function handleSubscriptionChanged(
   params: SubscriptionChangedParams,
   deps: SubscriptionChangedDeps = {}
@@ -49,17 +51,7 @@ export async function handleSubscriptionChanged(
   if (await deliverStoredMembershipConfirmationRetry(params, sub.id, deps)) return;
 
   // 1. Resolve Context (User, Tenant, Branch)
-  let context = await resolveSubscriptionContext(sub);
-  let checkoutAuthorityVerified = false;
-  if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
-    context = await reconcileCheckoutUser(sub, deps, params.processingScopeKey ?? '');
-    checkoutAuthorityVerified = Boolean(
-      context && params.processingScopeKey?.startsWith('entity:')
-    );
-  }
-  if (!context) {
-    throw new Error(`Unable to resolve subscription context for ${sub.id}`);
-  }
+  const context = await resolveAuthoritativeSubscriptionContext(params, sub, deps);
 
   const { userId, tenantId, branchId, customData, userRecord, existingSub } = context;
   const canonicalUserRecord = userRecord ?? null;
@@ -72,22 +64,6 @@ export async function handleSubscriptionChanged(
     tenantId,
     userId,
   });
-
-  // A user-scoped fallback row can represent an older subscription. Only an
-  // exact provider-reference match is already authoritative for lifecycle updates.
-  if (params.processingScopeKey?.startsWith('entity:') && !existingSub) {
-    if (params.eventType !== 'subscription.created') {
-      throw new RetryablePaddleWebhookError(
-        `Initial entity subscription requires subscription.created for ${sub.id}`
-      );
-    }
-    if (
-      !checkoutAuthorityVerified &&
-      !(await resolveEntityCheckoutTransactionAuthority(sub, params.processingScopeKey))
-    ) {
-      throw new Error(`Provider order integrity failed for subscription ${sub.id}`);
-    }
-  }
 
   const confirmationPreparation =
     params.eventType === 'subscription.created'
@@ -171,6 +147,54 @@ export async function handleSubscriptionChanged(
       await deliverMembershipConfirmation(confirmationPreparation.job);
     }
   }
+}
+
+async function resolveAuthoritativeSubscriptionContext(
+  params: SubscriptionChangedParams,
+  sub: SubscriptionEventData,
+  deps: SubscriptionChangedDeps
+) {
+  let context = await resolveSubscriptionContext(sub);
+  let checkoutAuthorityVerified = false;
+
+  if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
+    context = await reconcileCheckoutUser(sub, deps, params.processingScopeKey ?? '');
+    checkoutAuthorityVerified = Boolean(
+      context && params.processingScopeKey?.startsWith('entity:')
+    );
+  }
+  if (!context) {
+    throw new Error(`Unable to resolve subscription context for ${sub.id}`);
+  }
+
+  await assertInitialEntityOrderAuthority({
+    params,
+    sub,
+    existingSub: context.existingSub,
+    checkoutAuthorityVerified,
+  });
+  return context;
+}
+
+async function assertInitialEntityOrderAuthority(args: {
+  params: SubscriptionChangedParams;
+  sub: SubscriptionEventData;
+  existingSub: unknown;
+  checkoutAuthorityVerified: boolean;
+}): Promise<void> {
+  // A user-scoped fallback row can represent an older subscription. Only an
+  // exact provider-reference match is already authoritative for lifecycle updates.
+  if (!args.params.processingScopeKey?.startsWith('entity:') || args.existingSub) return;
+  if (args.params.eventType !== 'subscription.created') {
+    throw new RetryablePaddleWebhookError(
+      `Initial entity subscription requires subscription.created for ${args.sub.id}`
+    );
+  }
+  if (args.checkoutAuthorityVerified) return;
+  if (await resolveEntityCheckoutTransactionAuthority(args.sub, args.params.processingScopeKey)) {
+    return;
+  }
+  throw new Error(`Provider order integrity failed for subscription ${args.sub.id}`);
 }
 
 async function deliverStoredMembershipConfirmationRetry(
