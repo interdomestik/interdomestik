@@ -6,7 +6,7 @@ import { validateMigrationLedgerPrefix } from '../src/migration-ledger-prefix';
 import type { OwnedMigration } from '../src/migration-callback-plan-contracts';
 
 const migrations: readonly OwnedMigration[] = Object.freeze(
-  Array.from({ length: 95 }, (_, index) =>
+  Array.from({ length: 96 }, (_, index) =>
     Object.freeze({
       bps: true as const,
       folderMillis: 1_700_000_000_000 + index,
@@ -28,10 +28,10 @@ const rejected = (rows: readonly LedgerRow[], plan = migrations) =>
   });
 
 test('accepts every exact prefix and preserves safe serial gaps', () => {
-  for (const length of [0, 1, 93, 94, 95]) {
+  for (const length of [0, 1, 94, 95, 96]) {
     const result = validateMigrationLedgerPrefix(prefix(length), migrations);
     assert.deepEqual(result, {
-      ledgerState: length === 95 ? 'all_applied' : 'exact_prefix',
+      ledgerState: length === 96 ? 'all_applied' : 'exact_prefix',
       appliedMigrations: length,
     });
     assert(Object.isFrozen(result));
@@ -43,7 +43,7 @@ test('accepts every exact prefix and preserves safe serial gaps', () => {
 });
 
 test('rejects overflow, duplicate, reordered, unknown and missing-middle rows', () => {
-  rejected([...prefix(95), row(0, 96)]);
+  rejected([...prefix(96), row(0, 97)]);
   rejected([row(0, 1), row(1, 1)]);
   rejected([row(1, 1), row(0, 2)]);
   rejected([row(0, 1), row(2, 2)]);

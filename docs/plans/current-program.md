@@ -16,16 +16,24 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-PROVIDER-ORDER-INTEGRITY` is the sole active bounded product increment, selected under the
+`S6-PROVIDER-EVENT-ORDER` is the sole active bounded product increment, selected under the
 owner's standing implementation/merge/staging authorization. Base is protected main
-`d8ba217319d92d48940cfbbbcf4621dd92eeb491`. Fail closed before the first entity-scoped entitlement
-write unless `subscription.created` identifies a same-scope, signature-valid, successfully processed
-`transaction.completed` receipt and the provider transaction, subscription, customer, currency,
-line-item quantities and calculated total agree exactly. Missing or in-flight causal evidence remains
-retryable; contradictory completed evidence is permanent. Existing rows may still follow verified
-lifecycle updates. This advances IDA-CTR-022 and IDA-MEM-006 at the provider-integrity boundary, but
-does not compare the order to an approved effective-dated offer because that commercial authority is
-not present in the repository or owner-held SRS evidence.
+`5e696747a7091e738b174830ec0a474f578af2fd`. On the canonical entity-scoped subscription lifecycle
+path, a delayed or replayed older, signature-valid Paddle event must not overwrite a newer verified
+subscription snapshot or reverse lawful entitlement. The signed top-level `occurred_at` reaches the
+tenant-scoped write boundary; missing or invalid evidence fails closed before side effects. The
+ordering decision, snapshot, ordering marker and `membership.subscription_changed` event commit in
+one row-locked transaction. This advances IDA-CTR-023, IDA-MEM-007 and IDA-MEM-008 at the
+lifecycle-ordering boundary only; it does not broaden lifecycle, renewal or commercial authority.
+
+PR [#1829](https://github.com/interdomestik/interdomestik/pull/1829) delivered first-activation
+provider-order integrity as protected merge `5e696747a7091e738b174830ec0a474f578af2fd`. Automatic CD
+`36247906583` rolled back safely after a transient network failure, then passed exact-main staging
+P0.1/P0.2/P0.3/P0.4/P0.6 on an unchanged-source retry; production jobs were skipped and no charge or
+provider mutation was made. Credit its same-scope causal `transaction.completed` reconciliation,
+exact identity/customer/currency/item/total match, retryable missing evidence and out-of-order
+invoice safety. It does not compare an approved effective-dated offer or prove whole S5/S6,
+IDA-CTR-022/IDA-MEM-006/007, live activation or user acceptance.
 
 PR [#1828](https://github.com/interdomestik/interdomestik/pull/1828) delivered the credited synthetic
 downstream continuation as protected merge `d8ba217319d92d48940cfbbbcf4621dd92eeb491`. Its
@@ -33,7 +41,7 @@ downstream continuation as protected merge `d8ba217319d92d48940cfbbbcf4621dd92ee
 passing protected evidence and automatic staging CD `36235608949`; production jobs were skipped.
 Credit its pre-event denial, signed downstream activation, replay and explicit saved-draft submit
 proof. Its synthetic `subscription.updated` carried no transaction, order, amount or currency, so it
-does not satisfy the active provider-order boundary or whole IDA-CTR-022/IDA-MEM-006.
+does not satisfy the #1829 provider-order boundary or whole IDA-CTR-022/IDA-MEM-006.
 
 PR [#1827](https://github.com/interdomestik/interdomestik/pull/1827) delivered immutable membership
 confirmation storage and safe retry as protected merge
@@ -93,15 +101,16 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Require `subscription.created`, not a later lifecycle update, to establish a first entity-scoped
-   subscription row and bind it to its causal Paddle transaction receipt.
-2. Match transaction/subscription/customer identities, completed status, currency, price/quantity
-   multiset and the sum of provider-calculated line totals before entitlement writes.
-3. Preserve out-of-order delivery: a transaction may post an invoice before the subscription exists
-   without creating a foreign-key dependency, and the later subscription event retries until the
-   exact processed receipt is available.
-4. Keep browser and mail results non-authoritative and exercise the mounted member gate as negative
-   proof. Do not charge a customer, mutate production, or invent approved offer/terms authority.
+1. Order entity-scoped subscription lifecycle writes by the signed top-level Paddle `occurred_at`
+   of the exact provider subscription aggregate in its canonical tenant, never by arrival time,
+   `notification_id` or an undocumented `event_id` tiebreak.
+2. Commit the ordering marker atomically with the snapshot and domain event under a row lock, so a
+   concurrent or delayed older event cannot win and emits no lifecycle, audit, extras or
+   confirmation effect.
+3. Keep exact replay idempotent, fail closed on equal-time distinct events and invalid evidence, and
+   derive a floor from verified receipts for rows that predate the marker.
+4. Preserve #1829 first-activation order integrity, retryable receipts and Paddle-only billing. Do
+   not charge a customer, mutate production or the provider, or broaden renewal/offer authority.
 
 ## Enduring Safety Boundaries
 
@@ -171,8 +180,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-order integrity boundary after credited #1828 continuation, remaining S5 gaps,
-remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1828 chain, S7 staff handling,
+S6 provider-event-order protection after credited #1829 provider-order integrity, remaining S5 gaps,
+remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1829 chain, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -180,7 +189,8 @@ keeps its priority lane when its direct dependencies are ready.
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
 This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review, #1826
-fail-closed confirmation, #1827 immutable delivery/retry and #1828 downstream continuation. Approved effective-dated offer/terms,
+fail-closed confirmation, #1827 immutable delivery/retry, #1828 downstream continuation and #1829
+first-activation provider-order integrity. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -195,7 +205,40 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 provider-order integrity acceptance
+### Current S6 provider-event-order acceptance
+
+- The entity-scoped lifecycle path requires the signed top-level RFC 3339 `occurred_at` (at most
+  microsecond precision) and `event_id`. Missing or invalid evidence is a permanent ordering failure
+  before any subscription, entitlement, event, audit or confirmation side effect; the receipt
+  terminates as a non-retryable error. The unscoped legacy route is unchanged.
+- Order is scoped to the exact provider subscription row in its canonical tenant. A row holding a
+  different provider subscription is never compared against this event's time.
+- The write transaction locks the tenant-scoped row, compares `occurred_at` in Postgres at
+  microsecond precision and commits `provider_event_occurred_at`/`provider_event_id` with the
+  snapshot and deterministic domain event. An older event is a safe no-op whose receipt completes;
+  an older event whose own snapshot already committed is a replay that may finish idempotent effects.
+- A newer event applies normally; exact replay is idempotent; a distinct event at an equal
+  `occurred_at` is ambiguous and fails permanently without choosing a winner or mutating state.
+- Additive migration `0095_subscription_provider_event_order` adds the two nullable marker columns
+  and a both-or-neither check. Rows without a marker derive their floor from signature-valid,
+  processed lifecycle receipts in the exact same entity processing scope, tenant and provider
+  subscription; an unusable or equal receipt fails closed, so deployment creates no fail-open gap
+  and another entity or the unscoped route never becomes the floor.
+- Entity-scoped `subscription.past_due` follows the same contract. It requires the exact existing
+  provider-subscription row in its tenant (missing rows retry; it never creates or replaces a first
+  row), and derives dunning counters from the locked row while committing them with the marker.
+  Stale or replayed `past_due` increments nothing and emits no audit or payment-failed email.
+- The ordering decision precedes any confirmation-store access. Stale events emit no
+  `membership.subscription_changed`, subscription audit, extras, confirmation claim, readiness or
+  send; an applied or exactly replayed `subscription.created` keeps #1827 prepare/recover/deliver
+  behavior. #1829 first-activation order integrity and retryable receipt semantics are preserved.
+- Focused tests, independent current-head review, required verification and protected hosted checks
+  precede merge; exact-main staging is separate evidence. No charge or provider mutation is made.
+- Renewal and dunning operations beyond protecting the existing `past_due` event, approved
+  offer/terms, live provider evidence, whole S5/S6, IDA-CTR-023/IDA-MEM-007/008/009, user acceptance
+  and production deployment remain open. The unscoped legacy route is explicitly out of scope.
+
+### Credited #1829 provider-order integrity acceptance
 
 - A first entity-scoped subscription row requires `subscription.created`; an otherwise valid signed
   `subscription.updated` without an established row remains retryable and grants no access.
@@ -208,13 +251,23 @@ alone is not business or user acceptance.
   that is not yet an internal subscription row. Only a resolved stored row may populate that foreign key.
 - The KS browser gate proves the obsolete synthetic update now leaves the verified member's saved
   draft blocked, creates no subscription/lifecycle event/claim and records a retryable receipt.
-- Focused tests, independent current-head review, required verification and protected hosted checks
-  precede merge; exact-main staging is separate evidence. No charge or provider mutation is made.
+- Protected merge and exact-main staging CD `36247906583` are credited above. No charge or provider
+  mutation was made.
 - Expected-order comparison against an approved effective-dated offer/entity/versioned terms,
   actual paid-service approval, live provider evidence, deployed MK secret/entity-token permission,
   whole IDA-CTR-022/IDA-MEM-006/007, user acceptance and production deployment remain open.
 
 ### Current source check
+
+- Checked 2026-09-26: Paddle's [webhook guide](https://developer.paddle.com/webhooks/about/how-webhooks-work/)
+  and [response guidance](https://developer.paddle.com/webhooks/about/respond-to-webhooks/) state
+  at-least-once delivery, `event_id` as the dedupe key and no guaranteed delivery order. The
+  [notification reference](https://developer.paddle.com/api-reference/notifications/get-notification/)
+  defines `occurred_at` as the RFC 3339 time the event occurred and `data` as the entity snapshot at
+  that time. Adopt signed `occurred_at` per provider subscription as the ordering key. Reject arrival
+  time, `notification_id` and any `event_id` lexicographic tiebreak; equal times stay ambiguous.
+
+### Reused #1829 source check
 
 - Checked 2026-09-26: Paddle documents `transaction_id` on
   [`subscription.created`](https://developer.paddle.com/webhooks/subscriptions/subscription-created/)
@@ -325,8 +378,16 @@ alone is not business or user acceptance.
 
 ## Bounded Research Brief
 
-Checked 2026-09-26 against Paddle's official subscription-created, transaction-completed and access
-provisioning references. Adopt causal transaction linkage, exact provider identities, completed
+Checked 2026-09-26 against Paddle's official webhook, webhook-response and get-notification
+references. Delivery is at least once and unordered; `event_id` deduplicates, and `occurred_at` with
+the `data` snapshot is the documented ordering evidence. Adopt per-aggregate signed-time ordering,
+an atomic row-locked marker, stale no-op termination and permanent equal-time/invalid-evidence
+failure. Reject arrival-order, notification-id or event-id winners. Expected benefit: an unordered or
+replayed older lifecycle event cannot reverse a newer verified entitlement. Test older-after-newer,
+newer-after-older, replay, equal time, invalid evidence, aggregate isolation and interleaving.
+
+#1829 checked 2026-09-26 against Paddle's official subscription-created, transaction-completed
+and access provisioning references. Adopt causal transaction linkage, exact provider identities, completed
 status, currency, price/quantity multiset and calculated total consistency. Reject entitlement from
 an initial lifecycle update, inferred line prices, browser/mail success and any claim that provider
 internal consistency equals approval of the expected commercial offer.

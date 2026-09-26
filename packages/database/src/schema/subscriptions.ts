@@ -61,6 +61,14 @@ export const subscriptions = pgTable(
     governingLawSnapshot: text('governing_law_snapshot'),
     termsVersionAccepted: text('terms_version_accepted'),
     legalEntityId: text('legal_entity_id'),
+    // Provider lifecycle ordering (S6): signed Paddle occurred_at and event_id of
+    // the newest verified snapshot applied for providerSubscriptionId. Written in
+    // the same transaction as the snapshot; null until the entity-scoped path applies one.
+    providerEventOccurredAt: timestamp('provider_event_occurred_at', {
+      withTimezone: true,
+      mode: 'string',
+    }),
+    providerEventId: text('provider_event_id'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
   },
@@ -74,6 +82,10 @@ export const subscriptions = pgTable(
     check(
       'subscriptions_governing_law_snapshot_check',
       sql`${table.governingLawSnapshot} IS NULL OR ${table.governingLawSnapshot} ~ '^[A-Z]{2}$'`
+    ),
+    check(
+      'subscriptions_provider_event_order_check',
+      sql`(${table.providerEventOccurredAt} IS NULL) = (${table.providerEventId} IS NULL)`
     ),
     foreignKey({
       columns: [table.legalEntityId],

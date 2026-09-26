@@ -91,6 +91,8 @@ function subscriptionRecord(
     gracePeriodEndsAt: null,
     dunningAttemptCount: 0,
     lastDunningAt: null,
+    providerEventOccurredAt: null,
+    providerEventId: null,
     referredByAgentId: null,
     referredByMemberId: null,
     referralCode: null,

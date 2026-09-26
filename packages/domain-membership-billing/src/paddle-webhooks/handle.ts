@@ -12,6 +12,7 @@ export async function handlePaddleEvent(
     tenantId?: string | null;
     processingScopeKey?: string;
     providerEventId?: string;
+    providerEventOccurredAt?: string | null;
     webhookPayloadHash?: string;
   },
   deps: PaddleWebhookDeps & PaddleWebhookAuditDeps = {}
@@ -36,6 +37,7 @@ export async function handlePaddleEvent(
           tenantId: params.tenantId,
           processingScopeKey: params.processingScopeKey,
           providerEventId: params.providerEventId,
+          providerEventOccurredAt: params.providerEventOccurredAt,
           webhookPayloadHash: params.webhookPayloadHash,
         },
         deps
@@ -44,7 +46,16 @@ export async function handlePaddleEvent(
     }
 
     case EventName.SubscriptionPastDue: {
-      await handleSubscriptionPastDue({ data: params.data }, deps);
+      await handleSubscriptionPastDue(
+        {
+          data: params.data,
+          tenantId: params.tenantId,
+          processingScopeKey: params.processingScopeKey,
+          providerEventId: params.providerEventId,
+          providerEventOccurredAt: params.providerEventOccurredAt,
+        },
+        deps
+      );
       break;
     }
 

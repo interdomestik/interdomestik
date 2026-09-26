@@ -141,6 +141,6 @@ export async function readMigrationLedgerRows(sql: LedgerSql): Promise<readonly 
       created_at::text AS created_at
     FROM "drizzle"."__drizzle_migrations" AS ledger
     ORDER BY ledger.id ASC
-    LIMIT 96
+    LIMIT 97
   `;
 }
