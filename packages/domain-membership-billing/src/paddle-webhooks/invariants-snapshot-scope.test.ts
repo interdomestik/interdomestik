@@ -45,6 +45,7 @@ function transactionInput(customData?: Record<string, string>) {
     eventType: 'transaction.completed',
     headers: new Headers(),
     providerTransactionId: 'tx_1',
+    storedSubscriptionId: 'sub_1',
     tenantId: 'tenant_ks',
     webhookEventRowId: 'we_1',
   };
@@ -85,12 +86,26 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     expect(hoisted.invoiceValues).toHaveBeenCalledWith(
       expect.objectContaining({
         billingEntity: 'mk',
-        subscriptionId: 'sub_paddle_1',
+        subscriptionId: 'sub_1',
         tenantId: 'tenant_mk',
       })
     );
     expect(hoisted.ledgerValues).toHaveBeenCalledWith(
       expect.objectContaining({ billingEntity: 'mk', tenantId: 'tenant_mk' })
+    );
+  });
+
+  it('does not link an invoice to an out-of-order provider subscription id', async () => {
+    hoisted.subscriptionFindFirst.mockResolvedValue(null);
+
+    await persistInvoiceAndLedgerInvariants({
+      ...transactionInput({ tenantId: 'tenant_mk' }),
+      storedSubscriptionId: undefined,
+      tenantId: 'tenant_mk',
+    });
+
+    expect(hoisted.invoiceValues).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriptionId: null })
     );
   });
 

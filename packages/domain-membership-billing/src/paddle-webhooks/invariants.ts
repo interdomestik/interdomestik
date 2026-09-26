@@ -61,6 +61,7 @@ export async function persistInvoiceAndLedgerInvariants(
     tenantId?: string | null;
     billingEntity?: BillingEntity | null;
     providerTransactionId?: string | null;
+    storedSubscriptionId?: string | null;
     data: unknown;
   },
   deps: PaddleWebhookAuditDeps = {}
@@ -101,7 +102,9 @@ export async function persistInvoiceAndLedgerInvariants(
     );
   }
 
-  const subscriptionId = normalizeText(payload.subscriptionId || payload.subscription_id);
+  // Provider transaction webhooks can arrive before subscription.created. Only an
+  // already-resolved internal row may satisfy the billing invoice foreign key.
+  const subscriptionId = normalizeText(params.storedSubscriptionId);
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   const result = await db.transaction(async tx => {

@@ -319,7 +319,6 @@ export async function handlePaddleWebhookCore(args: {
   }
 
   const webhookEventRowId = insertResult.webhookEventRowId;
-
   try {
     await persistInvoiceAndLedgerInvariants(
       {
@@ -330,6 +329,7 @@ export async function handlePaddleWebhookCore(args: {
         tenantId,
         billingEntity: billingEntity ?? null,
         providerTransactionId,
+        storedSubscriptionId: subscription?.id ?? null,
         data,
       },
       { logAuditEvent }

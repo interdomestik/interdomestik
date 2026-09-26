@@ -1,8 +1,9 @@
 import { db } from '@interdomestik/database';
 import { RetryablePaddleWebhookError } from '../../errors';
 import type { CheckoutCustomData, ResolvePaddleCustomer } from '../../types';
+import type { TransactionOrderPayload } from './checkout-order-integrity';
 
-export type TransactionPayloadLike = {
+export type TransactionPayloadLike = TransactionOrderPayload & {
   customerId?: string | null;
   customer_id?: string | null;
   customerEmail?: string | null;

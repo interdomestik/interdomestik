@@ -171,6 +171,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       eventId: 'evt_1',
       tenantId: 'tenant_ks',
       providerTransactionId: 'tx_1',
+      storedSubscriptionId: 'sub_internal_1',
       data: {
         details: {
           totals: {
@@ -193,6 +194,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         billingEntity: 'ks',
         providerTransactionId: 'tx_1',
         webhookEventId: 'we_1',
+        subscriptionId: 'sub_internal_1',
         currencyCode: 'EUR',
       })
     );
