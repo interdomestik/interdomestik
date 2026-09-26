@@ -34,8 +34,8 @@ import {
   postKsWebhook,
 } from './s6-provider-entitlement.fixture';
 
-test.describe('S6 provider-confirmed entitlement continuation', () => {
-  test('a verified member can submit the saved first case only after signed Paddle activation', async ({
+test.describe('S6 synthetic signed-event downstream continuation', () => {
+  test('a verified member can submit the saved first case only after downstream signed-event processing', async ({
     browser,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical KS run owns activation.');
