@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-25
+last_reviewed: 2026-09-26
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,14 +16,24 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-CONFIRMATION-DELIVERY` is the sole active bounded product increment, selected under the
-owner's standing implementation/merge/staging authorization. Base is protected main
-`d2a37205ca8db13e684228c9288dd7bbcbd667ec`. PR #1826 already made confirmation fail closed unless
-an exact signed Paddle `subscription.created` is active and complete. Preserve that gate while
-recording one immutable tenant/member/subscription/provider snapshot, retrying failed or uncertain
-delivery from that stored snapshot, and suppressing duplicate or contradictory delivery.
-This is bounded IDA-MEM-006/007 delivery reliability, not an approved offer/terms package, automatic
-entitlement, generic mail platform, live activation or whole IDA-MEM-006/007 acceptance.
+`S6-PROVIDER-ENTITLEMENT-CONTINUATION` is the sole active bounded product increment, selected under
+the owner's standing implementation/merge/staging authorization. Base is protected main
+`c9238bfe8cf31421606579533d40ef521473d5d4`. Prove on the existing KS sandbox boundary that an
+email-verified member with a persisted first-case draft remains unable to submit until an exact
+signed Paddle active-subscription event is reconciled to one tenant-scoped entitlement, and can then
+submit that exact draft once. Exact provider-event replay must leave one subscription, one lifecycle
+event and one claim. This is bounded IDA-MEM-006/007 executable evidence, not an approved
+offer/terms package, browser- or mail-granted entitlement, a production charge, live paid activation,
+MK configuration evidence or whole IDA-MEM-006/007 acceptance.
+
+PR [#1827](https://github.com/interdomestik/interdomestik/pull/1827) delivered immutable membership
+confirmation storage and safe retry as protected merge
+`c9238bfe8cf31421606579533d40ef521473d5d4`. Its
+[receipt](https://github.com/interdomestik/interdomestik/pull/1827#issuecomment-5844085799) records
+required local/protected checks and exact-main automatic CD `36224361750`: deterministic
+build/attestation, health, build and canonical-alias provenance, and staging release-gate E2E passed.
+Production jobs were skipped. Credit that delivery reliability; do not rebuild it or infer
+offer/terms approval, live paid activation, whole S6 or user acceptance.
 
 PR [#1826](https://github.com/interdomestik/interdomestik/pull/1826) delivered fail-closed localized
 Paddle confirmation as protected merge `d2a37205ca8db13e684228c9288dd7bbcbd667ec`. Its
@@ -73,17 +83,16 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Reuse #1826's exact active/complete Paddle gate and persist one immutable confirmation snapshot,
-   including rendered recipient/subject/HTML/text, bound to the canonical tenant, member, internal
-   subscription, provider subscription, event ID and signed payload hash before effects. Resolve the
-   existing one-per-user internal subscription before snapshotting a returning provider subscription.
-2. Record authorization before subscription effects, mark it ready only after those effects, and
-   retry failed or uncertain ready attempts from the stored request with one stable provider
-   idempotency key without replaying completed subscription effects.
-3. Suppress successful replay and contradictory or out-of-order events; same-evidence pending retry
-   must reuse the stored request and provider idempotency key rather than reconstructing delivery.
-4. Do not trigger entitlement from mail success or invent benefits, coverage, refunds, offer/terms
-   approval, case submission, generic resend UI, live activation or user acceptance.
+1. Start from the verified, tenant-scoped KS member fixture with no subscription and one persisted
+   preview-ready saved draft; prove browser state alone exposes management but not submission.
+2. Send one raw-body, entity-specific, correctly signed Paddle `subscription.updated` event whose
+   canonical user and tenant evidence resolves to that member, and prove reconciliation records one
+   active subscription, one successful signed receipt and one deterministic lifecycle event.
+3. Replay the exact event and prove the receipt short-circuits without duplicate subscription or
+   lifecycle effects; after reconciliation, prove the same persisted draft creates exactly one claim.
+4. Reuse existing tenant-conflict, role, invalid-signature, retry and concurrency contracts. Do not
+   trigger entitlement from browser continuation or mail success, copy KS secrets into MK, perform a
+   provider charge, or invent offer/terms approval, production readiness or user acceptance.
 
 ## Enduring Safety Boundaries
 
@@ -153,17 +162,18 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-confirmation delivery prerequisite for fresh-account S5 submission, remaining S5 gaps,
-remaining S6 acceptance after the delivered #1815 disclosure and #1825 review, S7 staff handling,
+S6 provider-entitlement continuation proof for fresh-account S5 submission, remaining S5 gaps,
+remaining S6 acceptance after the delivered #1815 disclosure, #1825 review and #1827 delivery, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review and #1826
-fail-closed confirmation. Approved effective-dated offer/terms, delayed-onboarding localization, live
-activation, renewal, invoice and payment-operations acceptance remain open.
+This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review, #1826
+fail-closed confirmation and #1827 immutable delivery/retry. Approved effective-dated offer/terms,
+delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
+acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
 dependent S9; recovery, partner, mandate, consent and billing receipts precede affected S13 promises.
 T-411 keeps its T-401, SVC-CORE and FLIGHT-03 dependency chain. No whole-overlay or stale historical
@@ -176,31 +186,44 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 membership-confirmation delivery acceptance
+### Current S6 provider-entitlement continuation acceptance
 
-- The first exact active/complete #1826 confirmation candidate is stored before effects with its
-  tenant, member, internal/provider subscription, provider event ID/payload hash and exact localized
-  recipient, subject, HTML and text. A retry sends that stored request, not recomputed member,
-  provider, template or tenant-host data.
-- One tenant-scoped dedupe key records `authorized` before domain effects and transitions to `pending`
-  only after those effects. Successful and contradictory replays send nothing; a same-evidence ready
-  retry bypasses completed subscription effects and reuses the stored request and provider
-  idempotency key, while out-of-order non-created events retain #1826's no-send behavior.
-- An explicit provider failure records `error`, throws the established typed retryable webhook error
-  and may be compare-and-set back to `pending` only for the same provider event and payload hash.
-- Successful delivery records the provider message ID and `sent` state. The same stable key reaches
-  Resend's idempotency contract so an uncertain provider retry does not create a different request.
-- Claim/readiness failures are typed retryable, and an exact verified `subscription.created` receipt
-  may atomically reclaim a processing lease after five minutes so worker loss does not strand delivery.
-  Provider-event-stable subscription and attribution event identities, existing commission/referral
-  uniqueness, and idempotent ready/sent transitions fence a resumed original worker from duplicating
-  the reclaimed effects.
-- The existing tenant RLS table, signed webhook receipt and audit trail are reused. No schema, proxy,
-  auth, entitlement, pricing, offer/terms, case or production configuration change is introduced.
-- Focused negative/replay/retry/concurrency/tenant tests, independent current-head review, required
-  verification and protected hosted checks precede merge; exact-main staging is separate evidence.
-- No generic/manual resend, indefinite provider dedupe guarantee, approved offer/terms, live paid
-  activation, whole IDA-MEM-006/007, user acceptance or production claim follows.
+- The canonical KS proof starts with an email-verified `member` who has no subscription and a
+  persisted preview-ready draft. Managing or resuming that draft renders an inert membership gate;
+  no browser success query, email result or client assertion creates entitlement or a claim.
+- Only an exact raw body signed with the KS webhook destination secret reaches the existing
+  entity-routed Paddle boundary. Canonical user lookup and explicit `tenant_ks` custom data must agree
+  before the existing tenant-scoped subscription write can record `active` access.
+- Successful processing leaves one active subscription bound to the member/provider reference, one
+  `entity:ks` receipt with valid signature and `ok` result, and one provider-event-stable
+  `membership.subscription_changed` event. Exact replay returns the duplicate receipt result and
+  creates none of those effects again.
+- A fresh server render after provider reconciliation exposes submission for the same persisted
+  draft, and explicit submit creates exactly one claim for its owner. Task-owned draft, claim,
+  subscription, receipt, event, audit and session state is removed and checked after the proof.
+- Existing automated contracts remain the negative authority for wrong tenant/entity, non-member
+  role, malformed/invalid signature, handler failure, retry and concurrent replay. This increment
+  adds the missing cross-surface happy path and exact replay assertion rather than duplicating them.
+- Focused tests, independent current-head review, required verification and protected hosted checks
+  precede merge; exact-main staging is separate evidence. No charge or provider mutation is made.
+- Approved versioned offer/entity/terms, actual paid-service approval, deployed MK secret,
+  entity-token `customer.read`, live paid activation, whole IDA-MEM-006/007, user acceptance and
+  production deployment remain open.
+
+### Current source check
+
+- Checked 2026-09-26: Paddle's official
+  [signature-verification contract](https://developer.paddle.com/webhooks/about/signature-verification)
+  requires the raw body and `Paddle-Signature` HMAC using the destination's own secret; adopt that
+  exact KS boundary and keep MK configuration separate.
+- Checked 2026-09-26: Paddle documents
+  [`subscription.updated`](https://developer.paddle.com/webhooks/subscriptions/subscription-updated)
+  as the complete subscription object carrying status changes, and recommends
+  [provisioning/adjusting access from webhooks](https://developer.paddle.com/build/subscriptions/provision-access-webhooks)
+  rather than browser continuation. Adopt the existing active-status reconciliation and receipt
+  idempotency; reject any browser-success or email-success entitlement path.
+- The repository manifests remain the dependency-version authority. Executable tests cover raw-body
+  signing, entity scope, canonical user/tenant binding, active lifecycle mapping and replay.
 
 ### Credited #1826 membership-confirmation safety acceptance
 
