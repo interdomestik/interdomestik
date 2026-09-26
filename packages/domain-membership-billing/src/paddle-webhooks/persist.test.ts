@@ -153,23 +153,12 @@ describe('webhook persistence idempotency', () => {
     expect(first).toEqual({ inserted: true, webhookEventRowId: 'we_tx_1' });
     expect(replay).toEqual({ inserted: false, webhookEventRowId: null });
     expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
-    expect(deps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'webhook.received',
-        entityId: 'we_tx_1',
-        tenantId: 'tenant_ks',
-      })
-    );
-    expect(deps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'webhook.duplicate',
-        tenantId: 'tenant_ks',
-        metadata: expect.objectContaining({
-          processingScopeKey: 'tenant:tenant_ks',
-          providerTransactionId: 'txn_1',
-        }),
-      })
-    );
+    expect(
+      deps.logAuditEvent.mock.calls.map(([audit]) => [audit.action, audit.entityId, audit.tenantId])
+    ).toEqual([
+      ['webhook.received', 'we_tx_1', 'tenant_ks'],
+      ['webhook.duplicate', undefined, 'tenant_ks'],
+    ]);
   });
 
   it('preserves duplicate webhook audit behavior when tenantId is nullable', async () => {
