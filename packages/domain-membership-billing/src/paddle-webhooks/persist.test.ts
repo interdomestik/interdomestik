@@ -155,7 +155,15 @@ describe('webhook persistence idempotency', () => {
     expect(hoisted.onConflictDoNothing).toHaveBeenCalledWith();
     expect(deps.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        action: 'webhook.received',
+        entityId: 'we_tx_1',
+        tenantId: 'tenant_ks',
+      })
+    );
+    expect(deps.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
         action: 'webhook.duplicate',
+        tenantId: 'tenant_ks',
         metadata: expect.objectContaining({
           processingScopeKey: 'tenant:tenant_ks',
           providerTransactionId: 'txn_1',
@@ -191,6 +199,7 @@ describe('webhook persistence idempotency', () => {
     expect(deps.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'webhook.duplicate',
+        tenantId: undefined,
         metadata: expect.objectContaining({
           processingScopeKey: 'entity:unknown',
           providerTransactionId: 'txn_dup',

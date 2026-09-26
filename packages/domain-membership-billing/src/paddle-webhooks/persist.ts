@@ -149,6 +149,7 @@ export async function insertWebhookEvent(
         actorRole: 'system',
         action: 'webhook.duplicate',
         entityType: 'webhook_event',
+        tenantId: params.tenantId ?? undefined,
         metadata: {
           provider: 'paddle',
           dedupeKey: params.dedupeKey,
@@ -173,6 +174,7 @@ export async function insertWebhookEvent(
       action: 'webhook.received',
       entityType: 'webhook_event',
       entityId: webhookEventRowId,
+      tenantId: params.tenantId ?? undefined,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,
