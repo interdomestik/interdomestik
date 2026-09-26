@@ -1,6 +1,7 @@
 import { RetryablePaddleWebhookError } from '../../errors';
 import type { PaddleWebhookDeps } from '../../types';
 import {
+  assertMembershipConfirmationClaimSettled,
   toMembershipConfirmationJob,
   type MembershipConfirmationJob,
 } from './membership-confirmation-job';
@@ -47,6 +48,7 @@ export async function prepareStoredMembershipConfirmationRetry(args: {
       `Membership confirmation retry recovery failed for subscription ${args.providerReference}`
     );
   }
+  assertMembershipConfirmationClaimSettled(claim, args.providerReference);
 
   if (claim.kind === 'claimed') {
     return {

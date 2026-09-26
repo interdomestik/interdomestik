@@ -152,7 +152,7 @@ describe('processMembershipConfirmation', () => {
     async kind => {
       deliveryStore.claim.mockResolvedValue({ kind });
 
-      await processMembershipConfirmation({
+      const processing = processMembershipConfirmation({
         eventType: 'subscription.created',
         providerEventId: 'evt_provider_1',
         webhookPayloadHash: 'payload_hash_1',
@@ -167,6 +167,11 @@ describe('processMembershipConfirmation', () => {
           sendThankYouLetter,
         },
       });
+      if (kind === 'in_progress') {
+        await expect(processing).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
+      } else {
+        await processing;
+      }
 
       expect(sendThankYouLetter).not.toHaveBeenCalled();
       expect(deliveryStore.complete).not.toHaveBeenCalled();

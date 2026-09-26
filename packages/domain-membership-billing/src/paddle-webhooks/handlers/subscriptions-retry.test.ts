@@ -208,4 +208,35 @@ describe('handleSubscriptionChanged entity retry', () => {
     expect(membershipConfirmationDelivery.claim).not.toHaveBeenCalled();
     expect(membershipConfirmationDelivery.ready).not.toHaveBeenCalled();
   });
+
+  it('keeps the webhook retryable while another worker owns delivery reclamation', async () => {
+    const sendThankYouLetter = vi.fn();
+    const membershipConfirmationDelivery = {
+      claimReadyRetry: vi.fn().mockResolvedValue({ kind: 'in_progress' }),
+      claimExisting: vi.fn(),
+      claim: vi.fn(),
+      ready: vi.fn(),
+      complete: vi.fn(),
+      fail: vi.fn(),
+    };
+    hoisted.db.query.subscriptions.findFirst.mockRejectedValue(
+      new Error('mutable context must not run')
+    );
+
+    await expect(
+      handleSubscriptionChanged(
+        {
+          eventType: 'subscription.created',
+          tenantId: 'tenant_mk',
+          providerEventId: 'evt_in_progress',
+          webhookPayloadHash: 'payload_hash_in_progress',
+          data: subscriptionData('sub_in_progress', 'txn_in_progress'),
+        },
+        { membershipConfirmationDelivery, sendThankYouLetter }
+      )
+    ).rejects.toBeInstanceOf(RetryablePaddleWebhookError);
+
+    expect(hoisted.db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(sendThankYouLetter).not.toHaveBeenCalled();
+  });
 });

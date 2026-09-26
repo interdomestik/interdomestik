@@ -1,9 +1,21 @@
+import { RetryablePaddleWebhookError } from '../../errors';
 import type {
   MembershipConfirmationClaim,
   MembershipConfirmationDeliveryStore,
   MembershipConfirmationSnapshot,
   SendThankYouLetter,
 } from '../../types';
+
+export function assertMembershipConfirmationClaimSettled(
+  claim: { kind: string },
+  providerReference: string
+): void {
+  if (claim.kind === 'in_progress') {
+    throw new RetryablePaddleWebhookError(
+      `Membership confirmation claim is in progress for subscription ${providerReference}`
+    );
+  }
+}
 
 export type MembershipConfirmationJob = {
   deliveryId: string;

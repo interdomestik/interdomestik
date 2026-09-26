@@ -11,6 +11,7 @@ import {
 } from './membership-confirmation-values';
 import type { WebhookUserRecord } from './new-membership-ownership';
 import {
+  assertMembershipConfirmationClaimSettled,
   toMembershipConfirmationJob,
   type MembershipConfirmationJob,
 } from './membership-confirmation-job';
@@ -100,6 +101,7 @@ export async function prepareMembershipConfirmation(
       `Membership confirmation claim recovery failed for subscription ${sub.id}`
     );
   }
+  assertMembershipConfirmationClaimSettled(existingClaim, sub.id);
   if (existingClaim.kind === 'claimed') {
     return {
       kind: 'job',
@@ -169,6 +171,7 @@ export async function prepareMembershipConfirmation(
       `Membership confirmation claim failed for subscription ${sub.id}`
     );
   }
+  assertMembershipConfirmationClaimSettled(claim, sub.id);
   if (claim.kind !== 'claimed') {
     console.warn(
       `[Webhook] Membership confirmation not sent for subscription ${sub.id}; delivery claim is ${claim.kind}`
