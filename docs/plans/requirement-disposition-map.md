@@ -92,16 +92,20 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S6 work
 
-`S6-MEMBER-CONFIRMATION-DELIVERY` advances only immutable confirmation delivery/retry within
-IDA-MEM-006/007. #1826 already delivered the active/complete/localized provider confirmation gate;
-the current increment must preserve it while binding one rendered delivery request to exact tenant,
-member, resolved one-per-user subscription and provider evidence, with ready-only retry isolated from
-completed effects and provider-event-stable domain effects fencing stale-worker replay.
-No whole-requirement disposition changes. Approved effective-dated
-offer/terms, acceptance evidence and IDA-MEM-002/003 snapshots remain open. #1824's
+`S6-PROVIDER-ENTITLEMENT-CONTINUATION` advances only executable signed-provider entitlement through
+the saved first-case continuation within IDA-MEM-006/007. #1827 delivered immutable confirmation
+delivery/retry; the current increment must preserve it while proving that an email-verified KS member
+without a subscription remains unable to submit until one entity-specific signed Paddle event binds
+the canonical tenant and user to one active entitlement. Exact replay must create no second
+subscription, lifecycle event or claim. No whole-requirement disposition changes. Approved
+effective-dated offer/terms, acceptance evidence and IDA-MEM-002/003 snapshots remain open. #1824's
 [receipt](https://github.com/interdomestik/interdomestik/pull/1824#issuecomment-5831196011) credits
 entity-routed activation retry on main `c020c20` and exact-main automatic staging `36124511981`,
-without whole IDA-MEM-006/007 or live activation claims.
+without whole IDA-MEM-006/007 or live activation claims. #1827's
+[receipt](https://github.com/interdomestik/interdomestik/pull/1827#issuecomment-5844085799) credits
+immutable confirmation delivery/retry on main `c9238bf` and exact-main automatic staging
+`36224361750`, without signed-provider entitlement-to-saved-draft, offer/terms or live activation
+claims.
 
 ## Credited delivery, without whole-requirement overclaim
 
@@ -114,7 +118,8 @@ without whole IDA-MEM-006/007 or live activation claims.
 | Member upload localization         | PR #1778, 81a219608dacf4ee9cfd8ee9f201e8ab156e54d2                                                                                                                                   | IDA-NFR-007; IDA-DOC-012              | EN/SQ/MK/SR upload and consent copy credited; S3/S6/S7 cross-role acceptance remains                       |
 | Request-linked evidence round trip | PR #1814, af191e71da589307a21df2a7fce14380a1fdd625                                                                                                                                   | IDA-DOC/CLM/CAS scoped links          | Upload and assigned-staff acknowledgement credited; fulfilment/lifecycle/SLA remain open                   |
 | Member lifecycle/access disclosure | PR #1815, 966a774028dc113757c298876e442e1ae80c73b5                                                                                                                                   | IDA-MEM-008; IDA-MEM-009; IDA-MEM-012 | Bounded portal disclosure delivered; whole membership family and non-software acceptance remain open       |
-| Membership confirmation safety     | PR #1826, d2a37205ca8db13e684228c9288dd7bbcbd667ec                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Active/complete/localized gate credited; immutable delivery/retry and whole activation remain open         |
+| Membership confirmation safety     | PR #1826, d2a37205ca8db13e684228c9288dd7bbcbd667ec                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Active/complete/localized gate credited; provider entitlement proof and whole activation remain open       |
+| Membership confirmation delivery   | PR #1827, c9238bfe8cf31421606579533d40ef521473d5d4                                                                                                                                   | IDA-MEM-006; IDA-MEM-007              | Immutable delivery/retry credited; provider entitlement proof and whole activation remain open             |
 | New-account OTP secure save        | Protected PR #1803, `12699481a1e1f3e231ca6c13844d4152125d02e4`                                                                                                                       | IDA-CTX/IAM/FST scoped links          | Native-origin verification/save/return/delete increment credited; whole S5 and user acceptance remain open |
 | S1 agent message visibility        | PR #1780, f3d36b2e7781654fe5448fab11da891368d95f19; 13 exact-main checks                                                                                                             | IAM/COM/CRM visibility clauses        | Bounded query/render exclusion only; broader role acceptance remains                                       |
 | S2 branch overview scope           | PR #1781, de15d4cac87d7ba6ce15d98c75069445bb84dcb4; 13 exact-main checks                                                                                                             | TEN/IAM/RPT/KPI scope clauses         | Bounded branch route/query protection only; full oversight remains                                         |
