@@ -96,7 +96,7 @@ test('builder owns and deeply freezes the exact current plan', async () => {
   assert.ok(Object.isFrozen(plan.callbackItems));
   assert.equal(
     plan.callbackPlanSha256,
-    'e3578b4765c59e6ecc54e79c5e6040890087f4979706a80e6fdb1deb2f43a503'
+    '4aa9448b894369232ad1dee063e9ea702b8c9401d4871d6a0d613cd00d7e45d0'
   );
 });
 

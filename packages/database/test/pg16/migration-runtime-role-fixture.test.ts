@@ -16,15 +16,15 @@ test('runs the canonical kernel only as migration owner and emits a redacted man
   for (const run of [result.first, result.second]) {
     assert.equal(run.summary.contract_version, 'canonical_migration_execution_v1');
     assert.equal(run.summary.callback_plan_sha256, CALLBACK_PLAN_SHA256);
-    assert.equal(run.summary.applied_total, 95);
+    assert.equal(run.summary.applied_total, 96);
     assert.equal(run.summary.session_reserved, true);
     assert.equal(run.summary.transaction_committed, true);
     assert.equal(run.summary.session_lock_released, true);
     assert.equal(run.summary.execution_completed, true);
   }
   assert.equal(result.first.summary.applied_before, 0);
-  assert.equal(result.first.summary.applied_now, 95);
-  assert.equal(result.second.summary.applied_before, 95);
+  assert.equal(result.first.summary.applied_now, 96);
+  assert.equal(result.second.summary.applied_before, 96);
   assert.equal(result.second.summary.applied_now, 0);
   assert.equal(result.runtimePreflightCode, 'ADMIN_DB_PREFLIGHT_ROLE_REJECTED');
   assert.equal(result.runtimeCallbackCount, 0);

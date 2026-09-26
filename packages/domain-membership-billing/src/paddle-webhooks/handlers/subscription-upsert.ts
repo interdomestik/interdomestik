@@ -4,6 +4,12 @@ import { findSubscriptionByProviderReference } from '../../subscription';
 import type { InternalSubscriptionStatus } from '../subscription-status';
 import { recordMembershipSubscriptionChangedEvent } from './subscription-event';
 import {
+  decideInitialSubscriptionEventOrder,
+  lockSubscriptionEventOrder,
+  type PaddleSubscriptionEventOrder,
+  type SubscriptionEventOrderDecision,
+} from './subscription-event-order';
+import {
   assertSubscriptionMatchesContext,
   isUniqueViolation,
   mapToSubscriptionValues,
@@ -17,6 +23,8 @@ type UpsertSubscriptionArgs = {
   branchId?: string;
   existingSub?: ExistingSubscription | null;
   mappedStatus: InternalSubscriptionStatus;
+  /** Signed provider ordering evidence; required on the entity-scoped path. */
+  order?: PaddleSubscriptionEventOrder;
   planState: CanonicalMembershipPlanState;
   providerEventId?: string;
   sub: any;
@@ -28,13 +36,19 @@ type SubscriptionWriteArgs = {
   agentId?: string | null;
   branchId?: string;
   eventId?: string;
+  order?: PaddleSubscriptionEventOrder;
   sub: any;
   tenantId: string;
   userId: string;
   values: ReturnType<typeof mapToSubscriptionValues>;
 };
 
-type UpsertSubscriptionResult = { subscriptionId: string; effectsApplied: boolean };
+/** `stale` marks an older provider event that wrote nothing and must emit no effects. */
+export type UpsertSubscriptionResult = {
+  subscriptionId: string;
+  effectsApplied: boolean;
+  stale?: true;
+};
 
 export async function upsertSubscription(
   args: UpsertSubscriptionArgs
@@ -47,6 +61,7 @@ export async function upsertSubscription(
     branchId,
     existingSub,
     mappedStatus,
+    order,
     planState,
     providerEventId,
   } = args;
@@ -56,15 +71,21 @@ export async function upsertSubscription(
     tenantId,
     userId,
   });
-  const eventId = deterministicSubscriptionEventId(tenantId, providerEventId);
-  const writeArgs = { agentId, branchId, eventId, sub, tenantId, userId, values };
+  const eventId = deterministicSubscriptionEventId(
+    tenantId,
+    order?.providerEventId ?? providerEventId
+  );
+  const writeArgs = { agentId, branchId, eventId, order, sub, tenantId, userId, values };
 
   if (existingSubscription) {
     return persistExistingSubscription(existingSubscription, writeArgs);
   }
 
   try {
-    await persistSubscriptionInsert(writeArgs);
+    const outcome = await persistSubscriptionInsert(writeArgs);
+    if (outcome === 'stale') {
+      return { subscriptionId: sub.id as string, effectsApplied: false, stale: true };
+    }
     return { subscriptionId: sub.id as string, effectsApplied: true };
   } catch (error) {
     return recoverSubscriptionInsert(error, writeArgs);
@@ -91,8 +112,11 @@ async function persistExistingSubscription(
   args: SubscriptionWriteArgs
 ): Promise<UpsertSubscriptionResult> {
   try {
-    await persistSubscriptionUpdate(subscription, args);
-    return { subscriptionId: subscription.id, effectsApplied: true };
+    const outcome = await persistSubscriptionUpdate(subscription, args);
+    if (outcome === 'stale') {
+      return { subscriptionId: subscription.id, effectsApplied: false, stale: true };
+    }
+    return { subscriptionId: subscription.id, effectsApplied: outcome === 'apply' };
   } catch (error) {
     if (!isDomainEventReplay(error, args.eventId)) throw error;
     return { subscriptionId: subscription.id, effectsApplied: false };
@@ -107,9 +131,17 @@ export async function resolveSubscriptionForUpsert(args: {
   return args.existingSub ?? findExistingSubscriptionForUser(args.userId, args.tenantId);
 }
 
-async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
+async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'apply' | 'stale'> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
-  await db.transaction(async tx => {
+  return db.transaction(async tx => {
+    if (args.order) {
+      const decision = await decideInitialSubscriptionEventOrder(tx as DomainEventTx, {
+        order: args.order,
+        providerSubscriptionId: args.sub.id,
+        tenantId: args.tenantId,
+      });
+      if (decision === 'stale') return decision;
+    }
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context is inserted.
     await tx.insert(subscriptions).values({
       id: args.sub.id,
@@ -119,6 +151,7 @@ async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
       branchId: args.branchId,
       providerSubscriptionId: args.sub.id,
       ...args.values,
+      ...providerEventOrderValues(args.order),
     });
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
@@ -130,19 +163,34 @@ async function persistSubscriptionInsert(args: SubscriptionWriteArgs) {
       toStatus: args.values.status,
       tx: tx as DomainEventTx,
     });
+    return 'apply';
   });
 }
 
 async function persistSubscriptionUpdate(
   subscription: ExistingSubscription,
   args: SubscriptionWriteArgs
-) {
+): Promise<SubscriptionEventOrderDecision['kind']> {
   assertSubscriptionMatchesContext(subscription, {
     subId: args.sub.id,
     tenantId: args.tenantId,
     userId: args.userId,
   });
-  await db.transaction(async tx => {
+  return db.transaction(async (tx): Promise<SubscriptionEventOrderDecision['kind']> => {
+    let fromStatus = subscription.status;
+    if (args.order) {
+      // The ordering decision, snapshot, marker and domain event commit atomically
+      // under the row lock; an older concurrent event re-reads the newer marker.
+      const decision = await lockSubscriptionEventOrder(tx as DomainEventTx, {
+        domainEventId: subscriptionChangedEventId(args.tenantId, args.order.providerEventId),
+        order: args.order,
+        providerSubscriptionId: args.sub.id,
+        subscriptionId: subscription.id,
+        tenantId: args.tenantId,
+      });
+      if (decision.kind !== 'apply') return decision.kind;
+      fromStatus = decision.fromStatus;
+    }
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains update.
     const updatedRows = await tx
       .update(subscriptions)
@@ -153,6 +201,7 @@ async function persistSubscriptionUpdate(
         branchId: args.branchId,
         providerSubscriptionId: args.sub.id,
         ...args.values,
+        ...providerEventOrderValues(args.order),
       })
       .where(and(eq(subscriptions.id, subscription.id), eq(subscriptions.tenantId, args.tenantId)))
       .returning({ id: subscriptions.id });
@@ -160,7 +209,7 @@ async function persistSubscriptionUpdate(
       throw new Error(`Paddle subscription ${args.sub.id} update matched no tenant-scoped row`);
     await recordMembershipSubscriptionChangedEvent({
       cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
-      fromStatus: normalizeExistingStatus(subscription.status),
+      fromStatus: normalizeExistingStatus(fromStatus),
       id: args.eventId,
       now: args.values.updatedAt,
       subscriptionId: subscription.id,
@@ -168,7 +217,14 @@ async function persistSubscriptionUpdate(
       toStatus: args.values.status,
       tx: tx as DomainEventTx,
     });
+    return 'apply';
   });
+}
+
+function providerEventOrderValues(order: PaddleSubscriptionEventOrder | undefined) {
+  return order
+    ? { providerEventOccurredAt: order.occurredAt, providerEventId: order.providerEventId }
+    : {};
 }
 
 async function findExistingSubscription(subId: string, userId: string, tenantId: string) {
@@ -191,7 +247,11 @@ function deterministicSubscriptionEventId(
   tenantId: string,
   providerEventId: string | undefined
 ): string | undefined {
-  return providerEventId ? `paddle:${tenantId}:${providerEventId}:subscription-changed` : undefined;
+  return providerEventId ? subscriptionChangedEventId(tenantId, providerEventId) : undefined;
+}
+
+function subscriptionChangedEventId(tenantId: string, providerEventId: string): string {
+  return `paddle:${tenantId}:${providerEventId}:subscription-changed`;
 }
 
 function isDomainEventReplay(error: unknown, eventId: string | undefined): boolean {

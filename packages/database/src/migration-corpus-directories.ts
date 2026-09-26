@@ -114,7 +114,7 @@ export async function withCorpusDirectories<T>(
   try {
     const rootDir = await openDirectory(lexicalRoot, '.', ops, opened);
     const metaDir = await openDirectory(metaPath, 'meta', ops, opened);
-    const rootBefore = await snapshot(lexicalRoot, 100, ops);
+    const rootBefore = await snapshot(lexicalRoot, 101, ops);
     const metaBefore = await snapshot(metaPath, 128, ops);
     if (metaBefore.some(entry => !entry.endsWith(':file')))
       throw new CorpusFault('MIGRATION_CORPUS_ROOT_REJECTED');
@@ -133,7 +133,7 @@ export async function withCorpusDirectories<T>(
     } catch (error) {
       fault = error;
     }
-    await postcheck(lexicalRoot, '.', rootBefore, rootDir.before, rootDir.handle, 100, ops);
+    await postcheck(lexicalRoot, '.', rootBefore, rootDir.before, rootDir.handle, 101, ops);
     await postcheck(metaPath, 'meta', metaBefore, metaDir.before, metaDir.handle, 128, ops);
   } catch (error) {
     fault = classifyFault(fault, error, observed);

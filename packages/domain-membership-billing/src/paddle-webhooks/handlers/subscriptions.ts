@@ -1,10 +1,10 @@
-import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
 import { RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
-import { mapPaddleStatus } from '../subscription-status';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
-import { resolveSubscriptionForUpsert, upsertSubscription } from './subscription-upsert';
+import { resolveSubscriptionEventOrder } from './subscription-event-order';
+import { resolveSubscriptionForUpsert, type UpsertSubscriptionResult } from './subscription-upsert';
+import { writeSubscriptionSnapshot } from './subscription-snapshot';
 import { resolveSubscriptionContext } from './utils/context';
 import { handleNewSubscriptionExtras } from './utils/extras';
 import {
@@ -22,6 +22,8 @@ type SubscriptionChangedParams = {
   tenantId?: string | null;
   processingScopeKey?: string;
   providerEventId?: string;
+  /** Signed top-level Paddle `occurred_at`, validated before any side effect. */
+  providerEventOccurredAt?: string | null;
   webhookPayloadHash?: string;
 };
 
@@ -47,8 +49,14 @@ export async function handleSubscriptionChanged(
     return;
   }
   const sub = parseResult.data;
+  const order = resolveSubscriptionEventOrder({
+    processingScopeKey: params.processingScopeKey,
+    providerEventId: params.providerEventId,
+    providerEventOccurredAt: params.providerEventOccurredAt,
+    providerSubscriptionId: sub.id,
+  });
 
-  if (await deliverStoredMembershipConfirmationRetry(params, sub.id, deps)) return;
+  if (!order && (await deliverStoredMembershipConfirmationRetry(params, sub.id, deps))) return;
 
   // 1. Resolve Context (User, Tenant, Branch)
   const context = await resolveAuthoritativeSubscriptionContext(params, sub, deps);
@@ -64,6 +72,35 @@ export async function handleSubscriptionChanged(
     tenantId,
     userId,
   });
+  const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
+  const writeSnapshot = () =>
+    writeSubscriptionSnapshot({
+      eventType: params.eventType,
+      providerEventId: params.providerEventId,
+      sub,
+      tenantId,
+      userId,
+      agentId: resolvedAgentId,
+      branchId,
+      existingSub: subscriptionForUpsert,
+      order,
+      priceId,
+      deps,
+    });
+
+  // Entity-scoped events take the atomic ordering decision before touching the
+  // confirmation store, so a stale event never claims, readies or sends.
+  let subscriptionUpsert: UpsertSubscriptionResult | undefined;
+  if (order) {
+    subscriptionUpsert = await writeSnapshot();
+    if (subscriptionUpsert.stale) {
+      console.warn(
+        `[Webhook] Ignored stale provider event ${params.providerEventId} for subscription ${sub.id}; a newer verified snapshot is applied`
+      );
+      return;
+    }
+    if (await deliverStoredMembershipConfirmationRetry(params, sub.id, deps)) return;
+  }
 
   const confirmationPreparation =
     params.eventType === 'subscription.created'
@@ -71,7 +108,8 @@ export async function handleSubscriptionChanged(
           eventType: params.eventType,
           providerEventId: params.providerEventId,
           webhookPayloadHash: params.webhookPayloadHash,
-          internalSubscriptionId: subscriptionForUpsert?.id ?? sub.id,
+          internalSubscriptionId:
+            subscriptionUpsert?.subscriptionId ?? subscriptionForUpsert?.id ?? sub.id,
           sub,
           userId,
           tenantId,
@@ -86,47 +124,9 @@ export async function handleSubscriptionChanged(
     return;
   }
 
-  const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
-  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId,
-    planId: priceId,
-  });
-  const mappedStatus = mapPaddleStatus(sub.status);
-
-  // 2. Upsert Subscription
-  const subscriptionUpsert = await upsertSubscription({
-    sub,
-    tenantId,
-    userId,
-    agentId: resolvedAgentId,
-    branchId,
-    existingSub: subscriptionForUpsert,
-    mappedStatus,
-    planState: canonicalPlanState,
-    providerEventId: params.providerEventId,
-  });
+  // 2. Upsert Subscription (legacy route order: after the confirmation claim)
+  subscriptionUpsert ??= await writeSnapshot();
   const storedSubscriptionId = subscriptionUpsert.subscriptionId;
-
-  // 3. Audit Log
-  if (deps.logAuditEvent && subscriptionUpsert.effectsApplied) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'subscription.updated',
-      entityType: 'subscription',
-      entityId: sub.id,
-      tenantId,
-      metadata: {
-        eventType: params.eventType,
-        status: mappedStatus,
-        paddleStatus: sub.status,
-        userId,
-      },
-    });
-  }
-
-  console.log(
-    `[Webhook] Updated subscription ${sub.id} (status: ${mappedStatus}) for user ${userId}`
-  );
 
   // 4. Extras (Commission + Email) for new subscriptions
   if (params.eventType === 'subscription.created') {

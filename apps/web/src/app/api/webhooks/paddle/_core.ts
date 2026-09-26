@@ -24,6 +24,8 @@ import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-
 import type { Paddle } from '@paddle/paddle-node-sdk';
 import { requestPasswordResetOnboarding } from './paddle-onboarding';
 import { resolvePaddleCustomer } from './paddle-customer';
+import { buildPaddleEventDispatchParams } from './paddle-event-dispatch';
+import { getPaddleLeadId } from './paddle-lead-id';
 
 export {
   buildTenantPasswordResetRedirectUrl,
@@ -53,19 +55,6 @@ function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
-}
-
-const PADDLE_LEAD_ID_PATTERN = /^[A-Za-z0-9_:-]{1,128}$/;
-
-function normalizePaddleLeadId(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const leadId = normalizeText(value);
-  if (!leadId || !PADDLE_LEAD_ID_PATTERN.test(leadId)) return null;
-  return leadId;
-}
-
-function getPaddleLeadId(data: unknown): string | null {
-  return normalizePaddleLeadId(getPaddleCustomData(data)?.leadId);
 }
 
 function getPaddleCustomData(data: unknown): PaddleWebhookData['customData'] | undefined {
@@ -228,8 +217,9 @@ export async function handlePaddleWebhookCore(args: {
   }
 
   const payloadHash = sha256Hex(bodyText);
+  const parsedBody = parsePaddleWebhookBody(bodyText);
   const { parsedPayload, eventTypeFromPayload, eventIdFromPayload, eventTimestampFromPayload } =
-    parsePaddleWebhookBody(bodyText);
+    parsedBody;
 
   let verified: Awaited<ReturnType<typeof verifyPaddleWebhook>>;
   try {
@@ -338,14 +328,15 @@ export async function handlePaddleWebhookCore(args: {
     await reconcilePaddleLeadConversion({ eventType, data, tenantId, subscription });
 
     await handlePaddleEvent(
-      {
+      buildPaddleEventDispatchParams({
         eventType,
         data,
         tenantId,
         processingScopeKey,
-        providerEventId: normalizedEventId ?? undefined,
+        providerEventId: normalizedEventId,
+        providerEventOccurredAt: parsedBody.eventOccurredAtFromPayload,
         webhookPayloadHash: payloadHash,
-      },
+      }),
       {
         membershipConfirmationDelivery: membershipConfirmationDeliveryStore,
         prepareThankYouLetter: prepareThankYouLetterCore,

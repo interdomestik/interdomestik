@@ -99,6 +99,8 @@ describe('handleSubscriptionChanged entity retry', () => {
       {
         eventType: 'subscription.created',
         processingScopeKey: 'entity:mk',
+        providerEventId: 'evt_new',
+        providerEventOccurredAt: '2026-01-01T00:00:00Z',
         data: subscriptionData('sub_new', 'txn_anon'),
       },
       { requestPasswordResetOnboarding, resolvePaddleCustomer }
@@ -123,6 +125,8 @@ describe('handleSubscriptionChanged entity retry', () => {
         {
           eventType: 'subscription.created',
           processingScopeKey: 'entity:mk',
+          providerEventId: 'evt_waiting',
+          providerEventOccurredAt: '2026-01-01T00:00:00Z',
           data: subscriptionData('sub_waiting', 'txn_waiting'),
         },
         { sendThankYouLetter }

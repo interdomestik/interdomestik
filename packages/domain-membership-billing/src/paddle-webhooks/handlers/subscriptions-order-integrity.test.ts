@@ -24,6 +24,8 @@ function entitySubscriptionCreated() {
   return {
     eventType: 'subscription.created',
     processingScopeKey: 'entity:ks',
+    providerEventId: 'evt_entity_created',
+    providerEventOccurredAt: '2026-01-01T00:00:00.000000Z',
     data: {
       id: 'sub_entity_1',
       status: 'active',
@@ -90,6 +92,8 @@ describe('entity subscription order integrity', () => {
       handleSubscriptionChanged({
         ...createActiveSubscriptionUpdatedEvent(),
         processingScopeKey: 'entity:ks',
+        providerEventId: 'evt_entity_updated',
+        providerEventOccurredAt: '2026-01-02T00:00:00.000000Z',
       })
     ).rejects.toThrow('Initial entity subscription requires subscription.created');
     expect(hoisted.tx.insert).not.toHaveBeenCalled();

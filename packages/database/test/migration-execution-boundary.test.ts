@@ -141,7 +141,7 @@ test('post-commit unlock failure makes exactly one fixed unlock attempt', async 
   assert.deepEqual(await harness.snapshot(), {
     schemaExists: true,
     tableExists: true,
-    ledgerRows: 95,
+    ledgerRows: 96,
   });
   const changed = await harness.run({ finalPid: -1 });
   assert(changed.execution && !changed.execution.ok);
