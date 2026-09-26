@@ -7,7 +7,7 @@ import { inspectRepositoryParity } from './main-e2e-reuse.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const EXPECTED_E2E_TREE = '99bf6e527b2e928d20fcfe639f72f80b7eed99f9';
+const EXPECTED_E2E_TREE = '03e394a7ced99ecf10c918c6c8e0a9155e5da3eb';
 const sourceFiles = {
   ciWorkflow: '.github/workflows/ci.yml',
   laneSource: 'scripts/run-e2e-lane.mjs',
@@ -16,7 +16,7 @@ const sourceFiles = {
   prWorkflow: '.github/workflows/e2e-pr.yml',
 };
 
-test('new-account OTP secure save preserves current corpus parity', () => {
+test('active Paddle receipt retry preserves current corpus parity', () => {
   const e2eTreeSha = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
   const sources = Object.fromEntries(
     Object.entries(sourceFiles).map(([key, file]) => [

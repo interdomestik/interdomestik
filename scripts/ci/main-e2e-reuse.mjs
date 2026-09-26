@@ -64,6 +64,8 @@ const E2E_TREE_SHAS = new Set([
   'ca01b15f7761a1a9eae2c86e9b8f97c99747c444',
   // S6 signed-in plan review, cancellation and explicit Paddle continuation.
   '99bf6e527b2e928d20fcfe639f72f80b7eed99f9',
+  // S6 active Paddle receipt lease remains retryable while one worker owns delivery.
+  '03e394a7ced99ecf10c918c6c8e0a9155e5da3eb',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
