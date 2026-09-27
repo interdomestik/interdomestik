@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  boundedProviderText,
   CANONICAL_STAGING_ALIAS,
   confirmStagingAliasTarget,
   restoreStagingAlias,
@@ -146,6 +147,14 @@ test('provider errors are bounded and redact secrets', async () => {
       return true;
     }
   );
+});
+test('provider error redaction recognizes the Vercel protection bypass header', () => {
+  const secret = 'dummy-bypass-value-never-log';
+  const result = boundedProviderText(
+    `Command failed: curl --header x-vercel-protection-bypass: ${secret} -- https://example.test`
+  );
+  assert.doesNotMatch(result, new RegExp(secret, 'u'));
+  assert.match(result, /x-vercel-protection-bypass=\[redacted\]/u);
 });
 test('confirmation retries provider mapping lag and returns the exact target', async () => {
   const waits = [];
