@@ -77,7 +77,8 @@ test.describe('Member case communication', () => {
           marker: 'member-claim-detail-messaging',
         });
         const panel = page
-          .getByTestId('member-claim-detail-messaging')
+          .locator('[data-testid="member-claim-detail-messaging"]:visible')
+          .last()
           .getByTestId('messaging-panel');
         const text = copy[locale].messaging;
         await expect(panel).toContainText('Your case update is available.');
@@ -92,9 +93,20 @@ test.describe('Member case communication', () => {
         await expect(input).toHaveValue('');
         await expect(panel).toContainText(`Member reply ${locale} ${fixture.claimId}`);
         await page.setViewportSize({ width: 320, height: 740 });
-        expect(
-          await panel.evaluate(element => element.scrollWidth <= element.clientWidth + 1)
-        ).toBe(true);
+        await panel.scrollIntoViewIfNeeded();
+        const layout = await panel.evaluate(element => ({
+          width: element.clientWidth,
+          scroll: element.scrollWidth,
+          overflow: [...element.querySelectorAll<HTMLElement>('*')]
+            .filter(child => child.scrollWidth > child.clientWidth + 1)
+            .map(child => ({
+              tag: child.tagName,
+              text: child.textContent,
+              width: child.clientWidth,
+              scroll: child.scrollWidth,
+            })),
+        }));
+        expect(layout.scroll, JSON.stringify(layout)).toBeLessThanOrEqual(layout.width + 1);
       }
       await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, info), info, {
         marker: 'staff-claim-detail-ready',
@@ -116,19 +128,21 @@ test.describe('Member case communication', () => {
         )
         .toBe(true);
       await page
+        .locator('[data-testid="member-claim-detail-messaging"]:visible')
+        .last()
         .getByTestId('messaging-panel')
         .getByRole('button', { name: copy[locales[1]].messaging.member.refresh, exact: true })
         .click();
-      await expect(page.getByTestId('member-claim-detail-messaging')).toContainText(
-        `Staff reply ${fixture.claimId}`
-      );
-      await expect(page.getByTestId('member-claim-detail-messaging')).not.toContainText(
-        'Private sentinel'
-      );
+      await expect(
+        page.locator('[data-testid="member-claim-detail-messaging"]:visible').last()
+      ).toContainText(`Staff reply ${fixture.claimId}`);
+      await expect(
+        page.locator('[data-testid="member-claim-detail-messaging"]:visible').last()
+      ).not.toContainText('Private sentinel');
       for (const deniedId of fixture.deniedIds) {
-        await page.goto(
-          new URL(routes.memberClaimDetail(deniedId, locales[1]), page.url()).toString()
-        );
+        await gotoApp(page, routes.memberClaimDetail(deniedId, locales[1]), info, {
+          marker: 'body',
+        });
         await expect(page.getByTestId('member-claim-detail-messaging')).toHaveCount(0);
         await expect(page.getByTestId('member-claim-current-state')).toHaveCount(0);
         await expect(page.locator('body')).not.toContainText('Private sentinel');
