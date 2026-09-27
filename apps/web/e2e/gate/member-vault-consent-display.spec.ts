@@ -98,7 +98,7 @@ test.describe('Vault consent', () => {
           await p.setViewportSize({ width: 1440, height: 900 }); await verifyUpload(uploads.last());
           await p.evaluate(() => { const p = Element.prototype, o = p.scrollIntoView; Reflect.set(p, '_memberScroll', o); p.scrollIntoView = function (v) { document.body.dataset.b = typeof v === 'object' ? v?.behavior : undefined; o.call(this, v); }; });
           try {
-            await r.getByRole('button', { name: c.claimsPro.actions.sendMessage, exact: true }).click();
+            await k.getByRole('button', { name: c.claimsPro.actions.sendMessage, exact: true }).click();
             await E(r.locator(`#${M}`)).toBeFocused(); await E(p.locator('body')).toHaveAttribute('data-b', 'auto');
           } finally {
             await p.evaluate(() => { const p = Element.prototype; p.scrollIntoView = Reflect.get(p, '_memberScroll'); Reflect.deleteProperty(p, '_memberScroll'); delete document.body.dataset.b; });

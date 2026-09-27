@@ -141,7 +141,7 @@ test.describe('Member case communication', () => {
       ).not.toContainText('Private sentinel');
       for (const deniedId of fixture.deniedIds) {
         await gotoApp(page, routes.memberClaimDetail(deniedId, locales[1]), info, {
-          marker: 'body',
+          marker: 'not-found-page',
         });
         await expect(page.getByTestId('member-claim-detail-messaging')).toHaveCount(0);
         await expect(page.getByTestId('member-claim-current-state')).toHaveCount(0);
