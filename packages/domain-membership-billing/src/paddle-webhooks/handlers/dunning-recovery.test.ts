@@ -29,9 +29,9 @@ describe('ordered past-due effect recovery', () => {
     async failure => {
       seed('active', T1, 'evt_old');
       hoisted.store[failure] = true;
-      await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps)).rejects.toThrow(
-        'injected'
-      );
+      await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps)).rejects.toMatchObject({
+        name: 'RetryablePaddleWebhookError',
+      });
       expect(hoisted.store.row).toMatchObject({ status: 'active', dunningAttemptCount: 0 });
       expect(hoisted.store.audits).toHaveLength(0);
       expect(hoisted.store.deliveries).toHaveLength(0);
@@ -42,9 +42,10 @@ describe('ordered past-due effect recovery', () => {
   it('recovers an ambiguous provider success with the identical request and key', async () => {
     seed('active', T1, 'evt_old');
     hoisted.store.failAck = true;
-    await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps)).rejects.toThrow(
-      'injected ack failure'
-    );
+    await expect(handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps)).rejects.toMatchObject({
+      name: 'RetryablePaddleWebhookError',
+      message: 'injected ack failure',
+    });
     const original = vi.mocked(deps.sendPreparedPastDueEmail).mock.calls[0];
     hoisted.store.failAck = false;
     hoisted.db.query.user.findFirst.mockResolvedValue({

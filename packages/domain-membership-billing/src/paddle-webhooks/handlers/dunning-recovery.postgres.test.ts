@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { expect, it, vi } from 'vitest';
 
+// Receipt persistence is system-level; tenant effect writes still use the real
+// withTenantContext and its dedicated NOSUPERUSER NOBYPASSRLS connection.
+vi.mock('@interdomestik/database', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database')>();
+  return { ...actual, db: actual.dbAdmin };
+});
+
 // Explicit local integration lane; ordinary unit runs need no database.
 it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
   'commits and recovers ordered effects under a real non-bypass RLS role',
@@ -45,6 +52,8 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       vi.stubEnv('DB_RLS_ROLE', '');
       vi.stubEnv('REQUIRE_RLS_INTEGRATION', '1');
       const { withTenantContext, sql } = await import('@interdomestik/database');
+      const { insertWebhookEvent, markWebhookFailed } = await import('../persist');
+      const { isRetryablePaddleWebhookError } = await import('../errors');
       const { handleOrderedPastDue } = await import('./dunning-ordered-handler');
       const { persistOrderedPastDueSubscription } = await import('./dunning-order');
       const { deliverPastDueEffects } = await import('./dunning-effects');
@@ -95,7 +104,46 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         planName: 'Membership',
         user: { id: userId, tenantId, email: 'b@example.test', name: 'Synthetic' },
       };
-      await expect(handleOrderedPastDue(args)).rejects.toThrow('injected post-commit outage');
+      const receipt = {
+        headers: new Headers(),
+        processingScopeKey: scope.order.processingScopeKey,
+        dedupeKey: `paddle:entity:ks:event:${scope.order.providerEventId}`,
+        eventType: 'subscription.past_due',
+        eventId: scope.order.providerEventId,
+        eventTimestamp: new Date(scope.order.occurredAt),
+        payloadHash: suffix,
+        parsedPayload: { data: { id: subscriptionId } },
+        signatureValid: true,
+        signatureBypassed: false,
+        tenantId,
+      };
+      const admit = (input = receipt) => insertWebhookEvent(input);
+      const first = await admit();
+      expect(first.inserted).toBe(true);
+      await expect(handleOrderedPastDue(args)).rejects.toMatchObject({
+        name: 'RetryablePaddleWebhookError',
+        message: 'injected post-commit outage',
+      });
+      // Simulate process death before the receipt is marked failed: active leases
+      // defer delivery, then the exact abandoned receipt becomes reclaimable.
+      await expect(admit()).rejects.toMatchObject({
+        name: 'RetryablePaddleWebhookError',
+      });
+      await admin`update webhook_events set received_at = now() - interval '6 minutes' where id = ${first.webhookEventRowId!}`;
+      expect(await admit({ ...receipt, payloadHash: 'different' })).toMatchObject({
+        inserted: false,
+      });
+      expect(await admit()).toEqual(first);
+      deps.sendPreparedPastDueEmail.mockRejectedValueOnce(new Error('retryable sender outage'));
+      const failure = await handleOrderedPastDue(args).catch(error => error);
+      expect(isRetryablePaddleWebhookError(failure)).toBe(true);
+      await markWebhookFailed({
+        ...receipt,
+        webhookEventRowId: first.webhookEventRowId!,
+        error: failure,
+        retryable: true,
+      });
+      expect(await admit()).toEqual(first);
       const audit = await admin`select id from audit_log where entity_id = ${subscriptionId}`;
       const pending =
         await admin`select status from engagement_email_sends where subscription_id = ${subscriptionId}`;
@@ -130,8 +178,8 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       await admin`update subscriptions set status = 'active', provider_event_id = 'evt_newer', provider_event_occurred_at = '2026-09-27T10:00:02Z' where id = ${subscriptionId}`;
       await handleOrderedPastDue(args); // Reverse order: newer snapshot suppresses recovery.
 
-      expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledTimes(2);
-      expect(vi.mocked(deps.sendPreparedPastDueEmail).mock.calls[1]).toEqual(
+      expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledTimes(3);
+      expect(vi.mocked(deps.sendPreparedPastDueEmail).mock.calls[2]).toEqual(
         vi.mocked(deps.sendPreparedPastDueEmail).mock.calls[0]
       );
       const [completed] =
@@ -157,6 +205,7 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         ).toHaveLength(0);
       });
     } finally {
+      await admin`delete from webhook_events where event_id = ${scope.order.providerEventId}`;
       await admin`delete from engagement_email_sends where subscription_id = ${subscriptionId}`;
       await admin`delete from audit_log where entity_id = ${subscriptionId}`;
       await admin`delete from subscriptions where id = ${subscriptionId}`;
