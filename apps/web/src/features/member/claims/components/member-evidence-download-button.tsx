@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 type DownloadState = 'idle' | 'preparing' | 'success' | 'error';
 
 type SignedDocument = {
+  credentials: RequestCredentials;
   name: string;
   url: string;
 };
@@ -16,13 +17,24 @@ function readSignedDocument(value: unknown, fallbackName: string): SignedDocumen
     throw new Error('Invalid signed document response');
   }
 
-  const parsedUrl = new URL(value.url);
+  const authenticatedProxy = 'delivery' in value && value.delivery === 'authenticated-proxy';
+  const parsedUrl = authenticatedProxy
+    ? new URL(value.url, window.location.origin)
+    : new URL(value.url);
   if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
     throw new Error('Invalid signed document URL');
   }
 
+  if (authenticatedProxy && parsedUrl.origin !== window.location.origin) {
+    throw new Error('Invalid authenticated document proxy');
+  }
+
   const responseName = 'name' in value && typeof value.name === 'string' ? value.name.trim() : '';
-  return { name: responseName || fallbackName, url: parsedUrl.toString() };
+  return {
+    credentials: authenticatedProxy ? 'same-origin' : 'omit',
+    name: responseName || fallbackName,
+    url: parsedUrl.toString(),
+  };
 }
 
 async function requestSignedDocument(args: {
@@ -61,7 +73,7 @@ async function fetchDocumentBlob(args: {
     const document = await requestSignedDocument(args);
     const response = await fetch(document.url, {
       cache: 'no-store',
-      credentials: 'omit',
+      credentials: document.credentials,
       referrerPolicy: 'no-referrer',
       signal: args.signal,
     });

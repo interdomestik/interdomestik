@@ -9,8 +9,12 @@ import sq from '@/messages/sq/claims.json';
 import sr from '@/messages/sr/claims.json';
 import { MemberEvidenceDownloadButton } from './member-evidence-download-button';
 
-function signedResponse(url: string, name = 'repair-estimate.pdf'): Response {
-  return new Response(JSON.stringify({ url, name, expiresIn: 300 }), {
+function signedResponse(
+  url: string,
+  name = 'repair-estimate.pdf',
+  delivery?: 'authenticated-proxy'
+): Response {
+  return new Response(JSON.stringify({ url, name, expiresIn: 300, delivery }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
@@ -143,6 +147,47 @@ describe('MemberEvidenceDownloadButton', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, expiredUrl, expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(4, renewedUrl, expect.any(Object));
     expect(clickedHrefs).toEqual(['blob:member-evidence']);
+  });
+
+  it('uses the authenticated same-origin proxy only for the deterministic E2E response', async () => {
+    const proxyPath = '/api/documents/document%2Fprivate%201/download';
+    const proxyUrl = `${window.location.origin}/api/documents/document%2Fprivate%201/download`;
+    fetchMock
+      .mockResolvedValueOnce(
+        signedResponse(proxyPath, 'repair-estimate.pdf', 'authenticated-proxy')
+      )
+      .mockResolvedValueOnce(new Response('deterministic bytes', { status: 200 }));
+    renderButton();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started'));
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      proxyUrl,
+      expect.objectContaining({ credentials: 'same-origin', referrerPolicy: 'no-referrer' })
+    );
+  });
+
+  it('rejects an authenticated proxy response for another origin', async () => {
+    fetchMock.mockResolvedValueOnce(
+      signedResponse(
+        'https://attacker.example/api/documents/document-1/download',
+        'repair-estimate.pdf',
+        'authenticated-proxy'
+      )
+    );
+    renderButton();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        en.claims.informationRequests.downloadError
+      )
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(anchorClick).not.toHaveBeenCalled();
   });
 
   it('starts a later activation with a fresh authorization', async () => {

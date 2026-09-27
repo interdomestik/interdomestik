@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { signedUrlResponseInit } from '@/lib/storage/signed-url-exposure';
+import { usesDeterministicE2EStorage } from '@/lib/storage/service-role';
 import { NextResponse } from 'next/server';
 import {
   DOCUMENT_ACCESS_STATUS_BY_CODE,
@@ -54,15 +55,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     );
   }
 
-  const urlResult = await createSignedDownloadUrlCore({
-    bucket: access.document.bucket,
-    downloadName: access.document.name || 'document',
-    filePath: access.document.filePath,
-    expiresInSeconds: 60 * 5,
-    family: access.storageFamily,
-    deps: { db, storage: storageService },
-    tenantId: access.tenantId,
-  });
+  const useAuthenticatedProxy = usesDeterministicE2EStorage();
+  const urlResult = useAuthenticatedProxy
+    ? {
+        ok: true as const,
+        signedUrl: `/api/documents/${encodeURIComponent(id)}/download`,
+      }
+    : await createSignedDownloadUrlCore({
+        bucket: access.document.bucket,
+        downloadName: access.document.name || 'document',
+        filePath: access.document.filePath,
+        expiresInSeconds: 60 * 5,
+        family: access.storageFamily,
+        deps: { db, storage: storageService },
+        tenantId: access.tenantId,
+      });
 
   if (!urlResult.ok) {
     console.error('Failed to create signed download URL');
@@ -83,6 +90,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       type: access.document.fileType,
       size: access.document.fileSize,
       expiresIn: 300,
+      ...(useAuthenticatedProxy ? { delivery: 'authenticated-proxy' } : {}),
     },
     signedUrlResponseInit()
   );
