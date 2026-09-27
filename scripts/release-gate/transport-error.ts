@@ -41,6 +41,8 @@ const KNOWN_CODE_PATTERN = new RegExp(
 function compactSanitizedMessage(raw, maxLength = 180) {
   return String(raw || '')
     .replaceAll(/https?:\/\/[^\s"')]+/giu, '[url]')
+    .replaceAll(/\b(bearer)\s+[^\s,;]+/giu, '$1 [redacted]')
+    .replaceAll(/\b(authorization|cookie|set-cookie)\s*:\s*[^\r\n]+/giu, '$1: [redacted]')
     .replaceAll(
       /\b(token|secret|password|authorization|cookie|api[_-]?key)=([^\s&]+)/giu,
       '$1=[redacted]'

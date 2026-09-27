@@ -57,11 +57,15 @@ test('does not classify a generic fetch wrapper or application failure as transp
 
 test('redacts URLs and credential-like query values from unclassified errors', () => {
   const error = new Error(
-    'request failed https://example.net/path?token=do-not-log password=also-secret'
+    'request failed https://example.net/path?token=do-not-log password=also-secret Bearer jwt-secret'
   );
   const summary = describeUnclassifiedError(error);
 
-  assert.doesNotMatch(summary, /example\.net|do-not-log|also-secret/iu);
+  assert.doesNotMatch(summary, /example\.net|do-not-log|also-secret|jwt-secret/iu);
   assert.match(summary, /\[url\]/u);
   assert.equal(compactSanitizedMessage('token=secret'), 'token=[redacted]');
+  assert.equal(
+    compactSanitizedMessage('Authorization: Bearer header-secret'),
+    'Authorization: [redacted]'
+  );
 });
