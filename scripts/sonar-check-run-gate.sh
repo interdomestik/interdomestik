@@ -53,7 +53,7 @@ check_suite_app_slug="${SONAR_CHECK_APP_SLUG:-sonarqubecloud}"
 check_suite_app_name="${SONAR_CHECK_APP_NAME:-SonarQubeCloud}"
 check_sha="${SONAR_CHECK_SHA}"
 repo="${GITHUB_REPOSITORY}"
-max_retries="${SONAR_CHECK_MAX_RETRIES:-60}"
+max_retries="${SONAR_CHECK_MAX_RETRIES:-181}"
 retry_delay_seconds="${SONAR_CHECK_RETRY_DELAY_SECONDS:-10}"
 pr_number="${SONAR_PR_NUMBER:-}"
 
