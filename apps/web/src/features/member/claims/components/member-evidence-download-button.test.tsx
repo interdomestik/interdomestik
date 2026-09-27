@@ -80,11 +80,12 @@ describe('MemberEvidenceDownloadButton', () => {
       screen.getByRole('button', { name: messages.claims.informationRequests.download })
     );
 
-    expect(screen.getByRole('button')).toBeDisabled();
-    expect(screen.getByRole('button').parentElement).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      messages.claims.informationRequests.downloadPreparing
-    );
+    const button = screen.getByRole('button');
+    const status = screen.getByRole('status');
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(status).toHaveTextContent(messages.claims.informationRequests.downloadPreparing);
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
   });
 
   it.each([

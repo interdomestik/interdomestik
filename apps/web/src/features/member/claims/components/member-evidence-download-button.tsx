@@ -132,11 +132,12 @@ export function MemberEvidenceDownloadButton({
   };
 
   return (
-    <div className="space-y-1" aria-busy={state === 'preparing'}>
+    <div className="space-y-1">
       <Button
         type="button"
         size="sm"
         variant="outline"
+        aria-busy={state === 'preparing'}
         disabled={state === 'preparing'}
         onClick={handleDownload}
       >
