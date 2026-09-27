@@ -60,7 +60,8 @@ function sanitizeTransportError(error, headers) {
   }
   detail = sanitizeHealthBody(detail).trim();
   const code = error?.code === undefined ? '' : ` (exit ${String(error.code)})`;
-  return new Error(`Health request transport failed${code}${detail ? `: ${detail}` : ''}`);
+  const detailSuffix = detail ? `: ${detail}` : '';
+  return new Error(`Health request transport failed${code}${detailSuffix}`);
 }
 
 export async function requestVercelHealth(
