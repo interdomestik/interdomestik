@@ -31,6 +31,30 @@ const mockSelectChain = {
   where: vi.fn().mockResolvedValue([]),
 };
 
+function mockAuthenticatedMember(): void {
+  hoisted.getSession.mockResolvedValue({
+    user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+  });
+}
+
+function mockLegacyDocumentAccess(uploadedBy = 'user-1'): void {
+  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    {
+      doc: {
+        id: 'doc-1',
+        claimId: 'claim-1',
+        bucket: 'claim-evidence',
+        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+        uploadedBy,
+        name: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 123,
+      },
+      claimOwnerId: 'user-1',
+    },
+  ]);
+}
+
 vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
@@ -138,19 +162,8 @@ describe('GET /api/documents/[id]', () => {
   });
 
   it('fails closed without recording issuance when storage signing fails', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'user-1',
-        },
-        claimOwnerId: 'user-1',
-      },
-    ]);
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess();
     hoisted.createSignedUrl.mockResolvedValueOnce({
       data: null,
       error: new Error('signing unavailable'),
@@ -167,26 +180,8 @@ describe('GET /api/documents/[id]', () => {
   });
 
   it('returns 200 with signed url and logs audit when allowed', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
-    // First query (Polymorphic Docs) returns empty
-    // Second query (Legacy ClaimDocs) returns found doc
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'someone-else',
-          name: 'file.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
-        claimOwnerId: 'user-1',
-      },
-    ]);
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess('someone-else');
 
     const request = new Request('http://localhost:3000/api/documents/doc-1');
     const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
@@ -225,24 +220,8 @@ describe('GET /api/documents/[id]', () => {
     vi.stubEnv('VERCEL_ENV', '');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'user-1',
-          name: 'file.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
-        claimOwnerId: 'user-1',
-      },
-    ]);
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess();
 
     const request = new Request('http://localhost:3000/api/documents/doc-1');
     const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
