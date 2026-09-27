@@ -1,7 +1,7 @@
 import { claimMessages, claims, db, user } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import type { TestInfo } from '@playwright/test';
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
@@ -17,15 +17,8 @@ export async function withMemberMessageFixture<T>(
   }) => Promise<T>
 ): Promise<T> {
   const seed = await resolveSeededClaimContext(info);
-  const otherMember = await db.query.user.findFirst({
-    where: and(
-      eq(user.tenantId, seed.tenantId),
-      inArray(user.role, ['member', 'user']),
-      ne(user.id, seed.memberId)
-    ),
-  });
-  if (!otherMember) throw new Error('Expected another seeded member for isolation proof');
   const prefix = `member-comms-${randomUUID()}`;
+  const otherMemberId = `${prefix}-other-member`;
   const claimIds = ['owned', 'other-member', 'other-tenant'].map(name => `${prefix}-${name}`);
   const foreignTenant = seed.tenantId === 'tenant_ks' ? 'tenant_mk' : 'tenant_ks';
   const staff = await db.query.user.findFirst({ where: eq(user.id, seed.staffId) });
@@ -33,11 +26,21 @@ export async function withMemberMessageFixture<T>(
     name => `${prefix}-${name}`
   );
   try {
+    await db.insert(user).values({
+      id: otherMemberId,
+      tenantId: seed.tenantId,
+      name: 'Synthetic other member',
+      email: `${otherMemberId}@example.com`,
+      role: 'member',
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
     await db.insert(claims).values(
       claimIds.map((id, index) => ({
         id,
         tenantId: index === 2 ? foreignTenant : seed.tenantId,
-        userId: index === 1 ? otherMember.id : seed.memberId,
+        userId: index === 1 ? otherMemberId : seed.memberId,
         staffId: seed.staffId,
         branchId: staff?.branchId,
         title: id,
@@ -61,5 +64,6 @@ export async function withMemberMessageFixture<T>(
   } finally {
     await db.delete(claimMessages).where(inArray(claimMessages.claimId, claimIds));
     await db.delete(claims).where(inArray(claims.id, claimIds));
+    await db.delete(user).where(eq(user.id, otherMemberId));
   }
 }

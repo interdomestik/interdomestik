@@ -99,7 +99,10 @@ test.describe('Member case communication', () => {
       await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, info), info, {
         marker: 'staff-claim-detail-ready',
       });
-      const staffPanel = staffPage.getByTestId('messaging-panel');
+      const staffPanel = staffPage
+        .locator('[data-testid="staff-claim-detail-ready"]:visible')
+        .last()
+        .getByTestId('messaging-panel');
       await expect(staffPanel).toContainText(`Member reply ${locales[1]} ${fixture.claimId}`);
       await staffPanel.getByTestId('message-input').fill(`Staff reply ${fixture.claimId}`);
       await staffPanel.getByTestId('send-message-button').click();
