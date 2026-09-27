@@ -456,7 +456,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-DOC-006 | Legal restriction | Target | unresolved | S3/S6/S7 | open | none | U | U | U |
 | IDA-DOC-007 | Versioning | Target | unresolved | S3/S6/S7 | open | none | U | U | U |
 | IDA-DOC-008 | Integrity evidence | Target | unresolved | S3/S6/S7 | open | none | U | U | U |
-| IDA-DOC-009 | Signed URL | Target | pilot-required | S3/S5/S6/S7 | The current S5 candidate mounts the existing five-minute no-store/no-referrer attachment signer for member evidence. Every activation gets a new URL, browser navigation never sends it through instrumented fetch/XHR, and signing failure leaves a retry control. Broader audience binding, revocation and path-minimization acceptance remains open | Current tracker and protected delivery receipt pending | U | U | U |
+| IDA-DOC-009 | Signed URL | Target | pilot-required | S3/S5/S6/S7 | The current S5 candidate mounts the existing five-minute no-store/no-referrer attachment signer for member evidence. Storage fetch omits cookies and referrer, capability values are redacted from Sentry breadcrumbs/spans, a revocable object URL starts the download, and rejected storage authorization is refreshed once. Broader audience binding, revocation and path-minimization acceptance remains open | Current tracker and protected delivery receipt pending | U | U | U |
 | IDA-DOC-010 | Access log | Target | unresolved | S3/S6/S7 | open | none | U | U | U |
 | IDA-DOC-011 | Share pack | Target | unresolved | S3/S6/S7 | open | none | U | U | U |
 | IDA-DOC-012 | Purpose-specific consent | Canonical | unresolved | S3/S6/S7 | open | none | U | U | U |

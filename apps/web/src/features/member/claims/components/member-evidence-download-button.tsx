@@ -52,6 +52,25 @@ function triggerDownload(url: string, fileName: string): void {
   anchor.remove();
 }
 
+async function fetchDocumentBlob(args: {
+  documentId: string;
+  fallbackName: string;
+  signal: AbortSignal;
+}): Promise<{ blob: Blob; name: string }> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const document = await requestSignedDocument(args);
+    const response = await fetch(document.url, {
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      signal: args.signal,
+    });
+    if (response.ok) return { blob: await response.blob(), name: document.name };
+  }
+
+  throw new Error('Document download failed');
+}
+
 export function MemberEvidenceDownloadButton({
   documentId,
   documentName,
@@ -82,15 +101,15 @@ export function MemberEvidenceDownloadButton({
     setState('preparing');
 
     try {
-      const document = await requestSignedDocument({
+      const document = await fetchDocumentBlob({
         documentId,
         fallbackName: documentName,
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      // Navigate directly to the attachment URL. Sending this bearer capability
-      // through instrumented fetch/XHR would expose it to browser telemetry.
-      triggerDownload(document.url, document.name);
+      const objectUrl = URL.createObjectURL(document.blob);
+      triggerDownload(objectUrl, document.name);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
       setState('success');
     } catch {
       if (!controller.signal.aborted) setState('error');

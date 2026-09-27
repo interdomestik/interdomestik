@@ -31,10 +31,14 @@ describe('MemberEvidenceDownloadButton', () => {
   const fetchMock = vi.fn();
   const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click');
   const clickedHrefs: string[] = [];
+  const createObjectURL = vi.spyOn(URL, 'createObjectURL');
+  const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL');
 
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
+    createObjectURL.mockReset().mockReturnValue('blob:member-evidence');
+    revokeObjectURL.mockReset().mockImplementation(() => undefined);
     clickedHrefs.length = 0;
     anchorClick.mockImplementation(function (this: HTMLAnchorElement) {
       clickedHrefs.push(this.href);
@@ -85,11 +89,12 @@ describe('MemberEvidenceDownloadButton', () => {
     ['mk', mk],
     ['sr', sr],
   ])(
-    'downloads through a fresh authorized attachment URL without instrumented storage fetch in %s',
+    'downloads a fresh authorized attachment as a local object URL in %s',
     async (locale, messages) => {
-      fetchMock.mockResolvedValueOnce(
-        signedResponse('https://storage.example/private?token=fresh')
-      );
+      const signedUrl = 'https://storage.example/storage/v1/object/sign/private/file?token=fresh';
+      fetchMock
+        .mockResolvedValueOnce(signedResponse(signedUrl))
+        .mockResolvedValueOnce(new Response('document bytes', { status: 200 }));
       renderButton(locale, messages);
 
       fireEvent.click(
@@ -106,27 +111,82 @@ describe('MemberEvidenceDownloadButton', () => {
         '/api/documents/document%2Fprivate%201',
         expect.objectContaining({ cache: 'no-store', credentials: 'same-origin' })
       );
-      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        signedUrl,
+        expect.objectContaining({
+          cache: 'no-store',
+          credentials: 'omit',
+          referrerPolicy: 'no-referrer',
+        })
+      );
       expect(anchorClick).toHaveBeenCalledOnce();
-      expect(clickedHrefs).toEqual(['https://storage.example/private?token=fresh']);
+      expect(createObjectURL).toHaveBeenCalledOnce();
+      expect(clickedHrefs).toEqual(['blob:member-evidence']);
     }
   );
 
-  it('discards the prior URL and re-authorizes on a later activation', async () => {
+  it('discards a rejected URL and re-authorizes once before downloading', async () => {
+    const expiredUrl = 'https://storage.example/storage/v1/object/sign/private/file?token=expired';
+    const renewedUrl = 'https://storage.example/storage/v1/object/sign/private/file?token=renewed';
     fetchMock
-      .mockResolvedValueOnce(signedResponse('https://storage.example/private?token=expired'))
-      .mockResolvedValueOnce(signedResponse('https://storage.example/private?token=renewed'));
+      .mockResolvedValueOnce(signedResponse(expiredUrl))
+      .mockResolvedValueOnce(new Response('Expired', { status: 403 }))
+      .mockResolvedValueOnce(signedResponse(renewedUrl))
+      .mockResolvedValueOnce(new Response('document bytes', { status: 200 }));
+    renderButton();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started'));
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, expiredUrl, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(4, renewedUrl, expect.any(Object));
+    expect(clickedHrefs).toEqual(['blob:member-evidence']);
+  });
+
+  it('starts a later activation with a fresh authorization', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        signedResponse('https://storage.example/storage/v1/object/sign/private/file?token=first')
+      )
+      .mockResolvedValueOnce(new Response('first bytes', { status: 200 }))
+      .mockResolvedValueOnce(
+        signedResponse('https://storage.example/storage/v1/object/sign/private/file?token=second')
+      )
+      .mockResolvedValueOnce(new Response('second bytes', { status: 200 }));
     renderButton();
 
     fireEvent.click(screen.getByRole('button', { name: 'Download' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download started'));
     fireEvent.click(screen.getByRole('button', { name: 'Download' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(clickedHrefs).toEqual([
-      'https://storage.example/private?token=expired',
-      'https://storage.example/private?token=renewed',
-    ]);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/documents/document%2Fprivate%201');
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/documents/document%2Fprivate%201');
+  });
+
+  it('stops after one rejected-URL re-authorization', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        signedResponse('https://storage.example/storage/v1/object/sign/private/file?token=first')
+      )
+      .mockResolvedValueOnce(new Response('Expired', { status: 403 }))
+      .mockResolvedValueOnce(
+        signedResponse('https://storage.example/storage/v1/object/sign/private/file?token=second')
+      )
+      .mockResolvedValueOnce(new Response('Still forbidden', { status: 403 }));
+    renderButton();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        en.claims.informationRequests.downloadError
+      )
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(anchorClick).not.toHaveBeenCalled();
   });
 
   it.each([

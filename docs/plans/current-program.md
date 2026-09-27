@@ -222,8 +222,9 @@ alone is not business or user acceptance.
 - A member can download their own request-linked evidence after upload. Each activation re-authorizes
   through the existing tenant-scoped signed-URL endpoint; the client does not retain or reuse the URL.
 - The five-minute response remains private/no-store/no-referrer and requests attachment disposition.
-  The bearer URL is used only for browser download navigation, never instrumented client fetch/XHR;
-  a later activation discards any prior URL and requests a fresh one.
+  The browser fetch omits credentials and referrer, does not cache, converts the response to a
+  revocable object URL, and redacts signed-storage capabilities from Sentry breadcrumbs and spans.
+  A rejected storage response is discarded and re-authorized once; later activation always starts fresh.
 - Another member, tenant or unassigned staff/agent cannot obtain the signer or storage object. Failed
   signing does not record a successful issuance. Successful signer issuance invokes the existing
   best-effort audit path; successful storage retrieval is not overstated as audited.
@@ -233,8 +234,8 @@ alone is not business or user acceptance.
   S5/S6/S7, operator redesign, production deployment, charge or user acceptance.
 - Research checked 2026-09-27: Supabase documents private buckets and fixed-duration signed URLs;
   MDN documents `no-referrer`; WCAG 2.2 requires named controls and programmatic status messages.
-  Adopt just-in-time attachment signing and live localized status; reject cached or telemetry-visible
-  browser URLs.
+  Adopt just-in-time attachment signing, capability-redacted telemetry and live localized status;
+  reject cached or telemetry-visible browser URLs.
 - The Sol-high integration owner keeps the single implementation. One independent security review and
   one consolidated heavy verification lane follow focused corrections before protected delivery.
 

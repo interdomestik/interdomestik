@@ -26,8 +26,8 @@ status_command: pnpm plan:status
 - Existing eligible member retrieves only owned request-linked evidence through the authorized
   five-minute signer. Another member/tenant/unassigned role receives no URL or object.
 - Each activation requests a fresh no-store/no-referrer attachment URL and never reuses a prior URL.
-  Signing denial/failure shows localized retry; if browser download does not start, the still-available
-  control obtains another fresh capability without caching the previous one.
+  Storage fetch omits credentials, redacts the capability from Sentry breadcrumbs/spans, and uses a
+  revocable object URL. A rejected storage response is discarded and re-authorized once.
 - Named keyboard control and preparing/success/error status across EN/SQ/MK/SR. Existing staff proxy
   download remains unchanged; no proxy/auth/RLS/schema/storage-policy or operator UI expansion.
 - One Sol-high integration owner. Independent security review and one consolidated heavy lane after corrections.
