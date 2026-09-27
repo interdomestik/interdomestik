@@ -59,33 +59,43 @@ const hoisted = vi.hoisted(() => {
       condition.op === 'and'
         ? condition.conditions.every((item: any) => matches(row, item))
         : row[condition.left.split('.').at(-1)] === condition.right;
+    function selectWhere(table: unknown, shape: Record<string, unknown>, condition: any) {
+      if (table === engagementEmailSends) {
+        return { for: async () => deliveries.filter(row => matches(row, condition)) };
+      }
+      if (table !== subscriptions) {
+        return Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]);
+      }
+      if ('comparison' in shape) {
+        return { for: lockAndProject };
+      }
+      return Promise.resolve(store.row ? [{ ...store.row }] : []);
+
+      async function lockAndProject() {
+        const previous = store.lock;
+        store.lock = new Promise<void>(resolve => (release = resolve));
+        await previous;
+        audits = store.audits;
+        deliveries = store.deliveries;
+        return store.row ? [projectLockedSubscriptionOrder(store.row, shape.comparison)] : [];
+      }
+    }
+    function updateWhere(table: unknown, values: Partial<StoredRow>, condition: any) {
+      if (table === engagementEmailSends) {
+        if (store.failAck) throw new Error('injected ack failure');
+        deliveries = deliveries.map(row => (matches(row, condition) ? { ...row, ...values } : row));
+        return Promise.resolve();
+      }
+      return {
+        returning: async () => {
+          staged = { ...store.row!, ...values };
+          return [{ id: store.row!.id }];
+        },
+      };
+    }
     const tx = {
       select: (shape: Record<string, unknown> = {}) => ({
-        from: (table: unknown) => ({
-          where: (condition: any) => {
-            if (table === engagementEmailSends) {
-              return { for: async () => deliveries.filter(row => matches(row, condition)) };
-            }
-            if (table !== subscriptions) {
-              return Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]);
-            }
-            if ('comparison' in shape) {
-              return {
-                for: async () => {
-                  const previous = store.lock;
-                  store.lock = new Promise<void>(resolve => (release = resolve));
-                  await previous;
-                  audits = store.audits;
-                  deliveries = store.deliveries;
-                  return store.row
-                    ? [projectLockedSubscriptionOrder(store.row, shape.comparison)]
-                    : [];
-                },
-              };
-            }
-            return Promise.resolve(store.row ? [{ ...store.row }] : []);
-          },
-        }),
+        from: (table: unknown) => ({ where: selectWhere.bind(null, table, shape) }),
       }),
       insert: (table: unknown) => ({
         values: async (values: Delivery) => {
@@ -97,23 +107,7 @@ const hoisted = vi.hoisted(() => {
         },
       }),
       update: (table: unknown) => ({
-        set: (values: Partial<StoredRow>) => ({
-          where: (condition: any) => {
-            if (table === engagementEmailSends) {
-              if (store.failAck) throw new Error('injected ack failure');
-              deliveries = deliveries.map(row =>
-                matches(row, condition) ? { ...row, ...values } : row
-              );
-              return Promise.resolve();
-            }
-            return {
-              returning: async () => {
-                staged = { ...store.row!, ...values };
-                return [{ id: store.row!.id }];
-              },
-            };
-          },
-        }),
+        set: (values: Partial<StoredRow>) => ({ where: updateWhere.bind(null, table, values) }),
       }),
     };
     try {
@@ -195,9 +189,14 @@ export function seed(status: string, markerAt: string, markerEventId: string) {
   };
 }
 
-export let deps: Required<Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'>> &
+export const deps: Required<Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'>> &
   Required<PaddleWebhookAuditDeps> &
-  Required<PastDueEmailDeps>;
+  Required<PastDueEmailDeps> = {
+  logAuditEvent: vi.fn(),
+  preparePastDueEmail: vi.fn(),
+  sendPreparedPastDueEmail: vi.fn(),
+  sendPaymentFailedEmail: vi.fn(),
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -217,7 +216,7 @@ beforeEach(() => {
     name: 'Member',
     tenantId: 'tenant_ks',
   });
-  deps = {
+  const freshDeps: typeof deps = {
     logAuditEvent: vi.fn() as Mock,
     preparePastDueEmail: vi.fn((to, params) => ({
       from: 'support@example.com',
@@ -229,6 +228,7 @@ beforeEach(() => {
     sendPreparedPastDueEmail: vi.fn().mockResolvedValue({ success: true, id: 'email-1' }),
     sendPaymentFailedEmail: vi.fn().mockResolvedValue(undefined),
   };
+  Object.assign(deps, freshDeps);
 });
 
 export { hoisted };
