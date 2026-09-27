@@ -15,52 +15,51 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                     | Status        | Owner                   | Work                                                                  | Exit Criteria                                                                                                                                 |
-| ---------------------- | ------------- | ----------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S6-PAST-DUE-RECOVERY` | `in_progress` | Codex integration owner | Recover committed ordered past-due audit/notification effects safely. | Atomic audit/intent; exact pending replay; no extra count/email or stale effects; tenant/lock proof; protected checks and exact-main staging. |
+| ID                             | Status        | Owner                   | Work                                                                     | Exit Criteria                                                                                                      |
+| ------------------------------ | ------------- | ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `S6-MEMBER-CASE-COMMUNICATION` | `in_progress` | Codex integration owner | Truthful member case-thread recovery and public read-receipt protection. | Own-case public exchange; negative isolation; localized accessible retry; protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`.
-- The entity-scoped, signature-valid ordered `subscription.past_due` path commits its existing
-  counter/marker, one deterministic tenant/event audit and immutable Day 0 email intent atomically.
-  Audit or intent persistence failure rolls the entire write back.
-- Exact replay recovers only an existing pending intent; it never increments again, reconstructs
-  a request from changed member data or sends again after a recorded acknowledgement.
-- Recovery locks the canonical tenant/subscription row through send and acknowledgement. A newer
-  lifecycle marker suppresses the pending notification; stale events create no new effect.
-- The full request and provider idempotency key remain fixed. Recoverable delivery uses Resend
-  dedupe, never arbitrary SMTP. A missing sender or negative/ambiguous result remains retryable.
-  Automatic attempts stop at 23 hours from intent creation, within the provider's 24-hour key
-  retention; unresolved acceptance then requires reconciliation and never a fresh key.
-- Preserve existing missing-email/Day 0-only behavior. No reconstruction of pre-fix lost intents,
-  new scheduler, migration, pricing/terms, renewal operations or unscoped legacy-route change.
-- Focused fault injection and actual non-bypass PostgreSQL transaction/tenant proof, one independent
-  review and one consolidated required verification lane precede protected delivery. Exact-main
-  automatic staging is separate evidence; no charge/provider mutation or production deployment.
+- Base: freshly fetched protected main `6d31ea1524be95ba6b70945b73d750dff4658ad9`.
+- Credit #1777 case continuity, #1780 agent visibility and #1814 evidence acknowledgement.
+- Existing eligible member sees only owned case/status/public messages; no other member/tenant,
+  internal or unspecified-visibility content/read receipt. Preserve authorized staff scope.
+- Localized loading/error/empty/retry and named keyboard controls across EN/SQ/MK/SR.
+- Failed send retains draft; confirmed send survives failed refresh; stale case/user responses
+  cannot overwrite new state or draft. No new messaging protocol or operator UI redesign is implied.
+- Two disjoint implementation workers: domain read receipts versus member UI/locales. Integrator
+  handles contract, integrated browser proof/review. One consolidated heavy lane after corrections.
+- Required local/hosted checks, independent current-head review, protected merge and exact-main
+  automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                               |
-| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1829; past-due recovery is selected; credit #1830–#1833; approved offer comparison remains open. |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver bounded past-due recovery; credit #1815 and #1824–#1833; approved offer/terms, live paid activation and renewal remain open.               |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                  |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                               |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                          |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                       |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                 |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                       |
+| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1829; member case communication is selected; credit #1830–#1834; approved offer comparison remains open. |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver bounded member case communication; credit #1815 and #1824–#1834; approved offer/terms, live paid activation and renewal remain open.               |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                          |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                       |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                  |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                               |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                         |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                     | Source Refs                                                                                        | Execution  | Run ID  | Run Root                                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `S6-PAST-DUE-RECOVERY` | owner continuation; IDA-CTR-023/IDA-MEM-007/IDA-MEM-008; protected main `3cb81b15`; PR #1830–#1833 | `scripted` | pending | fault injection, replay and non-bypass PostgreSQL proof | pending | not_applicable | not_applicable | pending  | atomic audit/intent; immutable replay; lock-through-send; 23-hour retry boundary; no duplicate counters/effects |
+| ID                             | Source Refs                                                                  | Execution  | Run ID  | Run Root                                     | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------- | ---------- | ------- | -------------------------------------------- | ------- | -------------- | -------------- | -------- | ------------------------------------------------------------------------------ |
+| `S6-MEMBER-CASE-COMMUNICATION` | owner continuation; IDA-COM-005; protected main `6d31ea1`; #1777/#1780/#1814 | `scripted` | pending | isolated eligible-member communication proof | pending | not_applicable | not_applicable | pending  | public read receipts; thread failure/retry; case isolation; localized controls |
 
 ## Current Facts
+
+- #1834 protected-merged as `6d31ea1524be95ba6b70945b73d750dff4658ad9`; automatic exact-main
+  staging CD `36323164992` attempt 1 passed build, health, provenance and all configured P0 roles.
+  Production was skipped; owned worktree/database retired. Its PR receipt credits local/protected
+  proof and two full-proof attempts (one pre-E2E interruption); do not repeat that delivered proof.
 
 PR [#1830](https://github.com/interdomestik/interdomestik/pull/1830) delivered provider-event
 ordering as protected merge `069099bc1e4628df8f5b87c91bd96245a959f67e`. #1831–#1833 repaired staging
@@ -126,10 +125,9 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded past-due recovery through one protected product PR and exact-main automatic
-staging. Keep expired ambiguous sends and pre-fix lost intent reconciliation distinct from automatic
-recovery. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
-MK secret/provider permissions and whole S5/S6/user acceptance remain open.
+Complete the bounded member communication increment before selecting the next direct S5/S6 gap
+or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
+MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.
 

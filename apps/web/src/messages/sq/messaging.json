@@ -22,6 +22,17 @@
       "docs_request": "Ju lutemi ngarkoni dokumentet e kërkuara.",
       "status_update": "Kërkesa juaj është duke u procesuar.",
       "closing": "Faleminderit që na kontaktuat."
+    },
+    "member": {
+      "refresh": "Rifresko mesazhet",
+      "loading": "Duke ngarkuar mesazhet…",
+      "loadError": "Mesazhet nuk u ngarkuan. Provoni përsëri për përditësime.",
+      "readError": "Mesazhet shfaqen, por statusi i leximit nuk u ruajt. Provoni përsëri.",
+      "sendError": "Mesazhi nuk u dërgua. Drafti ruhet këtu; provoni ta dërgoni përsëri.",
+      "label": "Mesazh për ekipin e rastit tuaj",
+      "hint": "Deri në 2.000 karaktere. Shtypni Ctrl+Enter ose ⌘+Enter për ta dërguar.",
+      "send": "Dërgo mesazhin",
+      "read": "Lexuar"
     }
   }
 }

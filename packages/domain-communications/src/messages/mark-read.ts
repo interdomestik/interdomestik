@@ -1,9 +1,13 @@
 import { claimMessages, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 import type { Session } from '../types';
-import { buildAccessibleClaimIdsSubquery, isFullTenantClaimsRole } from './access';
+import {
+  buildAccessibleClaimIdsSubquery,
+  isFullTenantClaimsRole,
+  isScopedClaimsReadRole,
+} from './access';
 
 /**
  * Mark messages as read.
@@ -27,12 +31,15 @@ export async function markMessagesAsReadCore(params: {
     const tenantId = ensureTenantId(session);
     const userRole = session.user.role || 'user';
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
+    const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
 
-    // Base condition: Message must be in tenant, have the ID, and be unread.
+    // A read receipt must be created by a recipient for a message visible to their role.
     const baseCondition = and(
       eq(claimMessages.tenantId, tenantId),
       inArray(claimMessages.id, messageIds),
-      isNull(claimMessages.readAt)
+      isNull(claimMessages.readAt),
+      ne(claimMessages.senderId, session.user.id),
+      isStaff ? undefined : eq(claimMessages.isInternal, false)
     );
 
     const accessCondition = isPrivilegedStaff

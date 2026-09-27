@@ -22,6 +22,17 @@
       "docs_request": "Molimo otpremite potrebnu dokumentaciju.",
       "status_update": "Vaš zahtev je u obradi.",
       "closing": "Hvala što ste nas kontaktirali."
+    },
+    "member": {
+      "refresh": "Osveži poruke",
+      "loading": "Učitavanje poruka…",
+      "loadError": "Poruke nisu učitane. Pokušajte ponovo da proverite novosti.",
+      "readError": "Poruke su prikazane, ali status čitanja nije sačuvan. Pokušajte ponovo.",
+      "sendError": "Poruka nije poslata. Nacrt je sačuvan ovde; pokušajte ponovo da ga pošaljete.",
+      "label": "Poruka timu za vaš slučaj",
+      "hint": "Do 2.000 znakova. Pritisnite Ctrl+Enter ili ⌘+Enter za slanje.",
+      "send": "Pošalji poruku",
+      "read": "Pročitano"
     }
   }
 }

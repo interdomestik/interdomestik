@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { markMessagesAsReadCore } from './mark-read';
 
-// Mock DB
+type Predicate =
+  | { op: 'and' | 'or'; conditions: Predicate[] }
+  | { op: 'eq' | 'ne'; column: string; value: unknown }
+  | { op: 'inArray'; column: string; values: unknown }
+  | { op: 'isNull'; column: string };
+
+type CompoundPredicate = Extract<Predicate, { conditions: Predicate[] }>;
+
 const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   set: vi.fn(),
-  where: vi.fn(),
+  updateWhere: vi.fn(),
   select: vi.fn(),
   from: vi.fn(),
+  subqueryWhere: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -24,7 +31,9 @@ vi.mock('@interdomestik/database', () => ({
   claimMessages: {
     id: 'claimMessages.id',
     claimId: 'claimMessages.claimId',
+    isInternal: 'claimMessages.isInternal',
     readAt: 'claimMessages.readAt',
+    senderId: 'claimMessages.senderId',
     tenantId: 'claimMessages.tenantId',
   },
   claims: {
@@ -36,101 +45,188 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn((t, col, cond) => cond),
+vi.mock('@interdomestik/shared-auth', () => ({
+  ensureTenantId: vi.fn((session: { user: { tenantId: string } }) => session.user.tenantId),
 }));
 
 vi.mock('drizzle-orm', () => ({
-  eq: vi.fn(val => ({ operator: 'eq', val })),
-  and: vi.fn((...args) => ({ operator: 'and', args })),
-  inArray: vi.fn((col, vals) => ({ operator: 'inArray', col, vals })),
-  isNull: vi.fn(col => ({ operator: 'isNull', col })),
-  or: vi.fn((...args) => ({ operator: 'or', args })),
+  eq: vi.fn((column, value) => ({ op: 'eq', column, value })),
+  ne: vi.fn((column, value) => ({ op: 'ne', column, value })),
+  and: vi.fn((...conditions) => ({
+    op: 'and',
+    conditions: conditions.filter(Boolean),
+  })),
+  inArray: vi.fn((column, values) => ({ op: 'inArray', column, values })),
+  isNull: vi.fn(column => ({ op: 'isNull', column })),
+  or: vi.fn((...conditions) => ({
+    op: 'or',
+    conditions: conditions.filter(Boolean),
+  })),
 }));
+
+import { markMessagesAsReadCore } from './mark-read';
+
+function getUpdatePredicate(): Predicate {
+  return mocks.updateWhere.mock.calls[0]?.[0] as Predicate;
+}
+
+function getBasePredicate(): Predicate {
+  const updatePredicate = getUpdatePredicate();
+  expect(updatePredicate).toMatchObject({ op: 'and' });
+  return (updatePredicate as CompoundPredicate).conditions[0];
+}
+
+function evaluate(predicate: Predicate, row: Record<string, unknown>): boolean {
+  switch (predicate.op) {
+    case 'and':
+      return predicate.conditions.every(condition => evaluate(condition, row));
+    case 'or':
+      return predicate.conditions.some(condition => evaluate(condition, row));
+    case 'eq':
+      return row[predicate.column] === predicate.value;
+    case 'ne':
+      return row[predicate.column] !== predicate.value;
+    case 'inArray':
+      return Array.isArray(predicate.values) && predicate.values.includes(row[predicate.column]);
+    case 'isNull':
+      return row[predicate.column] == null;
+  }
+}
+
+const readableMessage = {
+  'claimMessages.id': 'msg-1',
+  'claimMessages.isInternal': false,
+  'claimMessages.readAt': null,
+  'claimMessages.senderId': 'staff-1',
+  'claimMessages.tenantId': 'tenant-1',
+};
 
 describe('markMessagesAsReadCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.update.mockReturnValue({ set: mocks.set });
-    mocks.set.mockReturnValue({ where: mocks.where });
-    // Mock select chain for subquery
+    mocks.set.mockReturnValue({ where: mocks.updateWhere });
+    mocks.updateWhere.mockResolvedValue(undefined);
     mocks.select.mockReturnValue({ from: mocks.from });
-    mocks.from.mockReturnValue({ where: mocks.where }); // Note: where is reused for select too
+    mocks.from.mockImplementation(table => ({
+      where: (predicate: Predicate) => {
+        mocks.subqueryWhere(predicate);
+        return { kind: 'subquery', table, predicate };
+      },
+    }));
   });
 
-  it('includes a scoped claim filter for staff reads', async () => {
+  it('rejects unauthenticated requests before updating', async () => {
+    await expect(markMessagesAsReadCore({ session: null, messageIds: ['msg-1'] })).resolves.toEqual(
+      { success: false, error: 'Unauthorized' }
+    );
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('applies recipient, tenant, unread, id, and public-visibility predicates for members', async () => {
     await markMessagesAsReadCore({
       session: {
-        user: { id: 'staff-1', role: 'staff', tenantId: 't1', branchId: 'branch-1' },
-      } as any,
+        user: { id: 'member-1', role: 'user', tenantId: 'tenant-1' },
+      } as never,
       messageIds: ['msg-1'],
     });
 
-    expect(mocks.update).toHaveBeenCalled();
+    const predicate = getBasePredicate();
+    expect(evaluate(predicate, readableMessage)).toBe(true);
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.id': 'msg-2' })).toBe(false);
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.tenantId': 'tenant-2' })).toBe(
+      false
+    );
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.readAt': new Date() })).toBe(
+      false
+    );
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.senderId': 'member-1' })).toBe(
+      false
+    );
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.isInternal': true })).toBe(
+      false
+    );
+    expect(evaluate(predicate, { ...readableMessage, 'claimMessages.isInternal': null })).toBe(
+      false
+    );
+
+    const accessCondition = (getUpdatePredicate() as CompoundPredicate).conditions[1];
+    expect(accessCondition).toMatchObject({
+      op: 'inArray',
+      column: 'claimMessages.claimId',
+      values: {
+        predicate: {
+          op: 'and',
+          conditions: expect.arrayContaining([
+            { op: 'eq', column: 'claims.tenantId', value: 'tenant-1' },
+            { op: 'eq', column: 'claims.userId', value: 'member-1' },
+          ]),
+        },
+      },
+    });
+  });
+
+  it('keeps agents on active linked-client claims and public messages', async () => {
+    await markMessagesAsReadCore({
+      session: {
+        user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+      } as never,
+      messageIds: ['msg-1'],
+    });
+
+    expect(evaluate(getBasePredicate(), readableMessage)).toBe(true);
+    expect(
+      evaluate(getBasePredicate(), { ...readableMessage, 'claimMessages.isInternal': true })
+    ).toBe(false);
+    expect(mocks.from).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ memberId: 'agentClients.memberId' })
+    );
+    expect(mocks.subqueryWhere).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        conditions: expect.arrayContaining([
+          { op: 'eq', column: 'agentClients.tenantId', value: 'tenant-1' },
+          { op: 'eq', column: 'agentClients.agentId', value: 'agent-1' },
+          { op: 'eq', column: 'agentClients.status', value: 'active' },
+        ]),
+      })
+    );
+  });
+
+  it.each([
+    ['staff', 'staff-1', 'branch-1'],
+    ['branch_manager', 'manager-1', 'branch-1'],
+  ])('preserves internal-message access for scoped %s reads', async (role, id, branchId) => {
+    await markMessagesAsReadCore({
+      session: { user: { id, role, tenantId: 'tenant-1', branchId } } as never,
+      messageIds: ['msg-1'],
+    });
+
+    expect(
+      evaluate(getBasePredicate(), {
+        ...readableMessage,
+        'claimMessages.isInternal': true,
+        'claimMessages.senderId': 'other-staff',
+      })
+    ).toBe(true);
     expect(mocks.select).toHaveBeenCalledTimes(1);
-    expect(mocks.where).toHaveBeenCalledTimes(2);
-
-    const whereCall = mocks.where.mock.calls[1][0];
-    const accessCondition = whereCall.args[1];
-    expect(accessCondition.operator).toBe('inArray');
-    expect(accessCondition.col).toBe('claimMessages.claimId');
   });
 
-  it('includes a linked-client claim filter for agent reads', async () => {
+  it('preserves full-tenant internal-message access without a claim subquery', async () => {
     await markMessagesAsReadCore({
       session: {
-        user: { id: 'agent-1', role: 'agent', tenantId: 't1' },
-      } as any,
+        user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant-1' },
+      } as never,
       messageIds: ['msg-1'],
     });
 
-    expect(mocks.update).toHaveBeenCalled();
-    expect(mocks.select).toHaveBeenCalledTimes(2);
-    expect(mocks.where).toHaveBeenCalledTimes(3);
-    expect(mocks.from.mock.calls[0][0]).toMatchObject({
-      memberId: 'agentClients.memberId',
-      tenantId: 'agentClients.tenantId',
-    });
-    expect(mocks.from.mock.calls[1][0]).toMatchObject({
-      id: 'claims.id',
-      userId: 'claims.userId',
-    });
-  });
-
-  it('includes ownership check for members', async () => {
-    await markMessagesAsReadCore({
-      session: {
-        user: { id: 'user-1', role: 'user', tenantId: 't1' },
-      } as any,
-      messageIds: ['msg-1'],
-    });
-
-    expect(mocks.update).toHaveBeenCalled();
-    // Called twice: once for subquery (select), once for update
-    expect(mocks.where).toHaveBeenCalledTimes(2);
-
-    // The UPDATE where is likely the second one, as subquery is built before update.
-    const whereCall = mocks.where.mock.calls[1][0];
-
-    // Structure: AND(BaseCondition, AccessCondition)
-    // AccessCondition should be inArray(claimMessages.claimId, subquery)
-    const accessCondition = whereCall.args[1];
-    expect(accessCondition.operator).toBe('inArray');
-    expect(accessCondition.col).toBe('claimMessages.claimId');
-    // Ensure subquery was constructed
-    expect(mocks.select).toHaveBeenCalled();
-  });
-
-  it('uses a branch-scoped claim filter for branch manager reads', async () => {
-    await markMessagesAsReadCore({
-      session: {
-        user: { id: 'manager-1', role: 'branch_manager', tenantId: 't1', branchId: 'branch-1' },
-      } as any,
-      messageIds: ['msg-1'],
-    });
-
-    expect(mocks.update).toHaveBeenCalled();
-    expect(mocks.select).toHaveBeenCalledTimes(1);
-    expect(mocks.where).toHaveBeenCalledTimes(2);
+    expect(
+      evaluate(getBasePredicate(), {
+        ...readableMessage,
+        'claimMessages.isInternal': true,
+      })
+    ).toBe(true);
+    expect(mocks.select).not.toHaveBeenCalled();
   });
 });
