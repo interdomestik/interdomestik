@@ -50,7 +50,9 @@ async function probeReachabilityCandidate(candidate, source, maxAttempts, failur
       failures.push(
         `probe_failed candidate=${candidate} reason=${transport?.summary || describeUnclassifiedError(error)}`
       );
-      if (transport?.retryable && attempt < maxAttempts) {
+      // This catch is the direct fetch boundary. Keep its existing bounded reachability retries;
+      // auth preflight below narrows retries by concrete transport cause.
+      if (attempt < maxAttempts) {
         await sleep(REACHABILITY_RETRY_DELAY_MS);
         continue;
       }

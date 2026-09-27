@@ -395,13 +395,11 @@ async function runAuthEndpointPreflight(runCtx) {
           continue;
         }
 
-        if (transport) {
-          signatures.push(
-            `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${transport.summary}`
-          );
-        } else {
-          signatures.push(`AUTH_PREFLIGHT_EXCEPTION endpoint=${endpointPath} message=${message}`);
-        }
+        signatures.push(
+          transport
+            ? `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${transport.summary}`
+            : `AUTH_PREFLIGHT_EXCEPTION endpoint=${endpointPath} message=${message}`
+        );
         return { status: 'FAIL', evidence, signatures };
       }
     }
