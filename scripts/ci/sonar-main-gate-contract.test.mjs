@@ -15,10 +15,12 @@ test('Sonar main gate tolerates delayed Automatic Analysis within its job timeou
   );
 
   assert.ok(awaitCheck);
+  const retries = Number(awaitCheck.env.SONAR_CHECK_MAX_RETRIES);
+  const retryDelaySeconds = Number(awaitCheck.env.SONAR_CHECK_RETRY_DELAY_SECONDS);
+  // The final attempt exits without sleeping, so only retries - 1 intervals are available.
   const pollBudgetSeconds =
-    Number(awaitCheck.env.SONAR_CHECK_MAX_RETRIES) *
-    Number(awaitCheck.env.SONAR_CHECK_RETRY_DELAY_SECONDS);
+    (retries - 1) * retryDelaySeconds;
   assert.ok(pollBudgetSeconds >= 30 * 60);
   assert.ok(pollBudgetSeconds <= (job['timeout-minutes'] - 10) * 60);
-  assert.match(readRepoText('scripts/sonar-check-run-gate.sh'), /SONAR_CHECK_MAX_RETRIES:-180/);
+  assert.match(readRepoText('scripts/sonar-check-run-gate.sh'), /SONAR_CHECK_MAX_RETRIES:-181/);
 });

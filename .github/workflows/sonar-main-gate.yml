@@ -97,7 +97,7 @@ jobs:
           SONAR_CHECK_SHA: ${{ github.sha }}
           # Automatic Analysis has exceeded the former 10-minute polling window.
           # Reserve 30 minutes of this 45-minute job for the external check.
-          SONAR_CHECK_MAX_RETRIES: '180'
+          SONAR_CHECK_MAX_RETRIES: '181'
           SONAR_CHECK_RETRY_DELAY_SECONDS: '10'
         run: bash scripts/sonar-check-run-gate.sh
 
