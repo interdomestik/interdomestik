@@ -22,6 +22,17 @@
       "docs_request": "Please upload the required documents.",
       "status_update": "Your claim is being processed.",
       "closing": "Thank you for reaching out."
+    },
+    "member": {
+      "refresh": "Refresh messages",
+      "loading": "Loading messages…",
+      "loadError": "Messages could not be loaded. Retry to check for updates.",
+      "readError": "Messages are shown, but their read status could not be saved. Retry to update it.",
+      "sendError": "Your message could not be sent. Your draft is saved here; try sending again.",
+      "label": "Message to your case team",
+      "hint": "Up to 2,000 characters. Press Ctrl+Enter or ⌘+Enter to send.",
+      "send": "Send message",
+      "read": "Read"
     }
   }
 }

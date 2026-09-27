@@ -1,6 +1,6 @@
 'use client';
 
-import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { MemberCaseMessages } from './member-case-messages';
 import { OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
@@ -331,7 +331,7 @@ export function MemberClaimDetailOpsPage({
           data-testid="member-claim-detail-messaging"
           tabIndex={-1}
         >
-          <MessagingPanel claimId={claim.id} currentUser={currentUser} allowInternal={false} />
+          <MemberCaseMessages claimId={claim.id} currentUser={currentUser} />
         </section>
       </div>
     </div>

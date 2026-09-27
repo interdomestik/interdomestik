@@ -16,12 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-PAST-DUE-RECOVERY` is the sole active bounded product increment under the owner's
-continuation/merge/staging authorization, based on freshly fetched protected main
-`3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`. Fault injection reproduced a lost-effect gap: ordered
-past-due state commits, audit fails, and exact replay suppresses both audit and notification.
-Recover those effects without duplicate counters/email or effects from stale events, using existing
-audit and delivery storage. This advances only the affected S6 reliability boundary.
+`S6-MEMBER-CASE-COMMUNICATION` is the sole active bounded member increment before S7,
+selected from freshly fetched protected main `6d31ea1524be95ba6b70945b73d750dff4658ad9`.
+Credit #1777's mounted case/status/public-thread continuity, #1780's agent metadata exclusion and
+#1814's request-linked evidence/acknowledgement. The remaining concrete gaps are truthful member
+thread loading/retry feedback and read-receipt visibility: members must not mark internal or
+unspecified-visibility notes read. Use existing eligible members and existing messaging actions.
+This is member-only acceptance, not full IDA-COM-005 or cross-role acceptance.
+
+PR [#1834](https://github.com/interdomestik/interdomestik/pull/1834) delivered ordered past-due
+recovery as protected merge `6d31ea1524be95ba6b70945b73d750dff4658ad9`. Its ordinary PR receipt
+records passing local/protected evidence and automatic exact-main staging CD `36323164992`,
+attempt 1: build, health, provenance and configured P0 roles passed; production was skipped.
+Its owned worktree/database are retired. Reuse this proof without rerunning the recovery slice.
 
 PR [#1830](https://github.com/interdomestik/interdomestik/pull/1830) delivered provider-event
 ordering as protected merge `069099bc1e4628df8f5b87c91bd96245a959f67e`. #1831–#1833 repaired staging
@@ -105,10 +112,10 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Commit the existing dunning state, audit and immutable email intent together in tenant context.
-2. Recover the exact pending intent on replay while preserving provider ordering and no stale effects.
-3. Bound provider retries so crash recovery cannot duplicate accepted mail after dedupe expiration.
-4. Credit #1830–#1833; preserve Paddle-only billing, auth/RLS/proxy and all commercial boundaries.
+1. Preserve member-owned, tenant-scoped public case communication through existing actions.
+2. Distinguish loading, empty, failure and acknowledged send states with accessible localized retry.
+3. Align read receipts with message visibility and recipient semantics; preserve established staff scope.
+4. Verify member/staff exchange and negative isolation paths without expanding operator UI or billing.
 
 ## Enduring Safety Boundaries
 
@@ -178,7 +185,7 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 past-due effect recovery after credited #1830–#1833 ordering/staging, remaining S5 gaps,
+S6 member case communication after credited #1834 recovery/staging, remaining S5 gaps,
 remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1829 chain, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
@@ -203,7 +210,22 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 past-due recovery acceptance
+### Current member case communication acceptance
+
+- Existing active-member fixtures see their own case status and public thread only; another member,
+  tenant, internal note or unspecified visibility never becomes member content or a read receipt.
+- Member loading failures and rejected requests show localized retry rather than empty success.
+  A failed send retains the draft; an acknowledged send remains visible if refresh fails.
+- Switching cases/users or unmounting cannot let stale fetch/send completions replace a new thread
+  or clear another case's draft. Controls have accessible names and keyboard operation in EN/SQ/MK/SR.
+- Existing authorized staff communication is reused and tested. Shared operator UI remains outside
+  this increment; no whole cross-role, whole S5/S6 or commercial acceptance is claimed.
+- Exactly two disjoint implementation workers own domain read-receipt protection and member UI/
+  locales respectively. The integrator owns contract, integration/browser proof and review.
+  Independent review and consolidated local/hosted proof precede protected merge and automatic
+  exact-main staging. No production deployment, charge or shared/live destructive change.
+
+### Credited #1834 past-due recovery acceptance
 
 - The entity-scoped, signature-valid ordered `subscription.past_due` path commits its existing
   counter/marker, one deterministic tenant/event audit and immutable Day 0 email intent atomically.
@@ -505,3 +527,20 @@ arbitrary SMTP retry and treating a provider timeout as proof of non-delivery. T
 relay has no past-due payload/consumer; reusing email storage avoids a new event/relay framework.
 Expected benefit: recoverable Day 0 notification and exact audit with no duplicate state/effects;
 verify rollback, crash/replay, lock interleavings, tenant isolation and the retry boundary.
+
+### Member communication research and trial
+
+Checked 2026-09-27: [W3C status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+and [name, role, value](https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html). Adopt
+programmatic loading/send/error feedback and named refresh/composer controls. Reuse #1777's member
+case-continuity design and existing case/action contracts; this is a failure-recovery correction,
+not a new operator design. Expected benefit: a failed load cannot masquerade as an empty thread,
+and a confirmed send remains visible during refresh failure. Test rejected/negative results,
+keyboard controls, polling, stale case responses, four locales and mounted exchange/isolation.
+No new framework behavior is assumed; workspace manifests retain version authority.
+
+Trial: two disjoint implementation packages (domain read-receipt predicates/tests; member-only UI,
+hook/tests and messaging catalogs); integrator owns contracts, E2E proof and integrated review.
+Record actual model identities when exposed, elapsed work, heavy attempts and rework in the product
+PR receipt. #1834 baseline: two full-proof attempts (one interrupted before E2E), independent plus
+hosted corrections, no blocker escaped to staging. Do not infer speedup from helper concurrency.

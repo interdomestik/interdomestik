@@ -34,8 +34,8 @@ const hoisted = vi.hoisted(() => ({
   ].flatMap(group => group.split('|')).map(entry => entry.split('='))) as Record<string, string>,
 }));
 
-vi.mock('@/components/messaging/messaging-panel', () => ({
-  MessagingPanel: (props: unknown) => hoisted.messagingPanelMock(props as never),
+vi.mock('./member-case-messages', () => ({
+  MemberCaseMessages: (props: unknown) => hoisted.messagingPanelMock(props as never),
 }));
 vi.mock('./ClaimEvidenceUploadDialog', () => ({
   ClaimEvidenceUploadDialog: (props: unknown) =>
@@ -240,7 +240,7 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(uploads).toHaveLength(2);
     uploads.forEach(upload => expect(upload).toHaveAttribute('data-claim-id', claimId));
     expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(expect.objectContaining({
-      claimId, allowInternal: false, currentUser: expect.objectContaining({ role: 'member' }),
+      claimId, currentUser: expect.objectContaining({ role: 'member' }),
     }));
   });
 

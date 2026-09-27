@@ -79,6 +79,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['diaspora.json', 's5d-diaspora-claim-start-i18n-contract'],
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
   ['claims.json', 'member-evidence-upload-locale-contract'],
+  ['messaging.json', 'member-case-communication-i18n-contract'],
   ['agent-claims.json', 's4-missing-information-request-i18n-contract'],
   ['claims-tracking.json', 't210-member-timeline-i18n-contract'],
   ['notifications.json', 't410-notification-acknowledgement-i18n-contract'],

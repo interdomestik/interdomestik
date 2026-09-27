@@ -8,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const LANE_SHA256 = 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64';
 const CONFIG_SHA256 = '370530c9ba0e55cae0e2e152d723eb0c71d3dfede4d41fe4b582102309c238d0';
 const E2E_TREE_SHAS = new Set([
+  // S6 member case communication and read-receipt isolation proof.
+  '78ced0cc8594ab39fc5584b87d4ca8be80e9daf6',
   // S5 exact saved-draft continuation through unchanged membership access.
   'b6718c699508efb3283f2d4eedff0cfca29329ae',
   // T117C marker compatibility.

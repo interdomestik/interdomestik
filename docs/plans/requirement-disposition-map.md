@@ -92,6 +92,16 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S6 work
 
+`S6-MEMBER-CASE-COMMUNICATION` selects the member subset of IDA-COM-005 on protected main
+`6d31ea1`. #1777 already mounts case/status/public-thread continuity, #1780 excludes internal
+agent metadata, and #1814 delivers request evidence acknowledgement. The current increment
+addresses member thread failure/retry and read-receipt visibility with eligible-member isolation
+proof. Whole-role/operational/business acceptance remains open; no whole-clause satisfaction.
+
+#1834 delivered past-due recovery as `6d31ea1524be95ba6b70945b73d750dff4658ad9`; exact-main
+staging `36323164992` attempt 1 passed configured P0 checks with production skipped. Credit its
+ordinary PR receipt and retired resources; the recovery below is historical delivered behavior.
+
 `S6-PAST-DUE-RECOVERY` follows the credited #1830 provider-event-order delivery and #1833
 exact-main staging `36312718148` attempt 4 (production skipped). The bounded recovery atomically
 stores audit/immutable email intent with ordered state, and retries only the exact current pending
