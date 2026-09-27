@@ -31,6 +31,25 @@ const mockSelectChain = {
   where: vi.fn().mockResolvedValue([]),
 };
 
+function mockAssignedClaimDocument(claimStaffId: string) {
+  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    {
+      doc: {
+        id: 'doc-1',
+        claimId: 'claim-1',
+        bucket: 'claim-evidence',
+        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+        uploadedBy: 'user-1',
+        name: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 123,
+      },
+      claimOwnerId: 'user-1',
+      claimStaffId,
+    },
+  ]);
+}
+
 vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
@@ -133,6 +152,39 @@ describe('GET /api/documents/[id]', () => {
     );
   });
 
+  it('denies an unassigned staff role before issuing a signed URL', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'staff-other', role: 'staff', tenantId: 'tenant_mk' },
+    });
+    mockAssignedClaimDocument('staff-assigned');
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(403);
+    expect(hoisted.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without recording issuance when storage signing fails', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+    mockAssignedClaimDocument('staff-assigned');
+    hoisted.createSignedUrl.mockResolvedValueOnce({
+      data: null,
+      error: new Error('signing unavailable'),
+    });
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: 'Failed to generate download URL' });
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'document.signed_url_issued' })
+    );
+  });
+
   it('returns 200 with signed url and logs audit when allowed', async () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
@@ -169,6 +221,11 @@ describe('GET /api/documents/[id]', () => {
       size: 123,
       expiresIn: 300,
     });
+    expect(hoisted.createSignedUrl).toHaveBeenCalledWith(
+      'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+      300,
+      { download: 'file.pdf' }
+    );
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({

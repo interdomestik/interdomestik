@@ -194,6 +194,26 @@ describe('service-role storage boundary', () => {
     expect(createSignedUrl).not.toHaveBeenCalled();
   });
 
+  it('requests attachment disposition for a named signed download', async () => {
+    const { createTenantSignedDownloadUrl } = await import('./service-role');
+    createSignedUrl.mockResolvedValue({ data: { signedUrl: 'https://signed.example' } });
+
+    await createTenantSignedDownloadUrl({
+      bucket: 'claim-evidence',
+      download: 'repair-estimate.pdf',
+      family: 'claims',
+      operation: 'documentDownload',
+      path: 'pii/tenants/tenant-a/claims/claim-1/estimate.pdf',
+      tenantId: 'tenant-a',
+    });
+
+    expect(createSignedUrl).toHaveBeenCalledWith(
+      'pii/tenants/tenant-a/claims/claim-1/estimate.pdf',
+      300,
+      { download: 'repair-estimate.pdf' }
+    );
+  });
+
   it('allows voice-note previews to use the reviewed ten-minute TTL cap', async () => {
     const { VOICE_NOTE_PREVIEW_TTL_SECONDS, createTenantSignedDownloadUrl } =
       await import('./service-role');

@@ -91,6 +91,7 @@ export async function createTenantSignedUploadUrl(
 
 export async function createTenantSignedDownloadUrl(
   args: TenantStorageTarget & {
+    download?: string | boolean;
     expiresInSeconds?: number;
     operation?: SignedDownloadOperation;
   }
@@ -101,7 +102,10 @@ export async function createTenantSignedDownloadUrl(
     requestedSeconds: args.expiresInSeconds,
   });
 
-  return createAdminClient().storage.from(args.bucket).createSignedUrl(args.path, expiresInSeconds);
+  const storage = createAdminClient().storage.from(args.bucket);
+  return args.download === undefined
+    ? storage.createSignedUrl(args.path, expiresInSeconds)
+    : storage.createSignedUrl(args.path, expiresInSeconds, { download: args.download });
 }
 
 export async function uploadTenantObject(args: UploadTarget) {

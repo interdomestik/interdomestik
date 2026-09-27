@@ -15,47 +15,53 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                             | Status        | Owner                   | Work                                                                     | Exit Criteria                                                                                                      |
-| ------------------------------ | ------------- | ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `S6-MEMBER-CASE-COMMUNICATION` | `in_progress` | Codex integration owner | Truthful member case-thread recovery and public read-receipt protection. | Own-case public exchange; negative isolation; localized accessible retry; protected checks and exact-main staging. |
+| ID                                     | Status        | Owner                   | Work                                                           | Exit Criteria                                                                                                                                                                |
+| -------------------------------------- | ------------- | ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-MEMBER-PRIVATE-DOCUMENT-RETRIEVAL` | `in_progress` | Codex integration owner | Member retrieval of their own request-linked private evidence. | Fresh five-minute attachment signer; cross-member/tenant/role denial; fresh activation after expiry/failure; locales/accessibility; protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `6d31ea1524be95ba6b70945b73d750dff4658ad9`.
-- Credit #1777 case continuity, #1780 agent visibility and #1814 evidence acknowledgement.
-- Existing eligible member sees only owned case/status/public messages; no other member/tenant,
-  internal or unspecified-visibility content/read receipt. Preserve authorized staff scope.
-- Localized loading/error/empty/retry and named keyboard controls across EN/SQ/MK/SR.
-- Failed send retains draft; confirmed send survives failed refresh; stale case/user responses
-  cannot overwrite new state or draft. No new messaging protocol or operator UI redesign is implied.
-- Two disjoint implementation workers: domain read receipts versus member UI/locales. Integrator
-  handles contract, integrated browser proof/review. One consolidated heavy lane after corrections.
+- Base: freshly fetched protected main `392bf2e3527a8cb55242e34ef84223c5e726826c`.
+- Credit #1814 request-linked upload/assigned-staff acknowledgement and #1835 communication.
+- Existing eligible member retrieves only owned request-linked evidence through the authorized
+  five-minute signer. Another member/tenant/unassigned role receives no URL or object.
+- Each activation requests a fresh no-store/no-referrer attachment URL and never reuses a prior URL.
+  Signing denial/failure shows localized retry; if browser download does not start, the still-available
+  control obtains another fresh capability without caching the previous one.
+- Named keyboard control and preparing/success/error status across EN/SQ/MK/SR. Existing staff proxy
+  download remains unchanged; no proxy/auth/RLS/schema/storage-policy or operator UI expansion.
+- One Sol-high integration owner. Independent security review and one consolidated heavy lane after corrections.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                       |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1829; member case communication is selected; credit #1830–#1834; approved offer comparison remains open. |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver bounded member case communication; credit #1815 and #1824–#1834; approved offer/terms, live paid activation and renewal remain open.               |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                          |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                       |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                  |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                               |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                         |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                    |
+| ------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Deliver bounded own-document retrieval; credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; approved offer comparison remains open. |
+| S6 — member continuation/membership         | `active_bounded`      | Credit #1815, #1824–#1835 and this retrieval dependency; approved offer/terms, live paid activation and renewal remain open.            |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                       |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                    |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                               |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                            |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                      |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                             | Source Refs                                                                  | Execution  | Run ID  | Run Root                                     | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------- | ---------- | ------- | -------------------------------------------- | ------- | -------------- | -------------- | -------- | ------------------------------------------------------------------------------ |
-| `S6-MEMBER-CASE-COMMUNICATION` | owner continuation; IDA-COM-005; protected main `6d31ea1`; #1777/#1780/#1814 | `scripted` | pending | isolated eligible-member communication proof | pending | not_applicable | not_applicable | pending  | public read receipts; thread failure/retry; case isolation; localized controls |
+| ID                                     | Source Refs                                                                | Execution  | Run ID  | Run Root                              | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                    |
+| -------------------------------------- | -------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------------------------------- |
+| `S5-MEMBER-PRIVATE-DOCUMENT-RETRIEVAL` | owner continuation; IDA-DOC-001/009; protected main `392bf2e`; #1814/#1835 | `scripted` | pending | isolated member signed-download proof | pending | not_applicable | not_applicable | pending  | own retrieval; denial; fresh activation after expiry/failure; localized controls |
 
 ## Current Facts
 
+- #1835 protected-merged as `392bf2e3527a8cb55242e34ef84223c5e726826c`; its updated receipt records
+  passing local/protected evidence and automatic exact-main staging CD `36329153101` attempt 3 with
+  staging build, health, provenance and P0.1/P0.2/P0.3/P0.4/P0.6 passing. Production was skipped;
+  its owned branch/worktree were retired. Credit its bounded member communication proof without
+  rerunning it or claiming whole S5/S6.
 - #1834 protected-merged as `6d31ea1524be95ba6b70945b73d750dff4658ad9`; automatic exact-main
   staging CD `36323164992` attempt 1 passed build, health, provenance and all configured P0 roles.
   Production was skipped; owned worktree/database retired. Its PR receipt credits local/protected
@@ -125,8 +131,8 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded member communication increment before selecting the next direct S5/S6 gap
-or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
+Complete the bounded member private-document retrieval increment before selecting the next direct
+S5/S6 gap or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.

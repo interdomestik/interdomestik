@@ -16,13 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-CASE-COMMUNICATION` is the sole active bounded member increment before S7,
-selected from freshly fetched protected main `6d31ea1524be95ba6b70945b73d750dff4658ad9`.
-Credit #1777's mounted case/status/public-thread continuity, #1780's agent metadata exclusion and
-#1814's request-linked evidence/acknowledgement. The remaining concrete gaps are truthful member
-thread loading/retry feedback and read-receipt visibility: members must not mark internal or
-unspecified-visibility notes read. Use existing eligible members and existing messaging actions.
-This is member-only acceptance, not full IDA-COM-005 or cross-role acceptance.
+`S5-MEMBER-PRIVATE-DOCUMENT-RETRIEVAL` is the sole active bounded member increment before S7,
+selected from freshly fetched protected main `392bf2e3527a8cb55242e34ef84223c5e726826c`.
+Credit #1814's request-linked upload/assigned-staff acknowledgement and #1835's completed member
+case communication. The selected concrete gap is member retrieval of their own uploaded evidence:
+mount the existing authorized five-minute signed-URL contract with localized retry and negative
+member/tenant/role proof. This is bounded IDA-DOC-001/009 evidence, not whole S5/S6/S7 acceptance.
+
+PR [#1835](https://github.com/interdomestik/interdomestik/pull/1835) delivered member case
+communication as protected merge `392bf2e3527a8cb55242e34ef84223c5e726826c`. Its updated ordinary
+PR receipt records passing local/protected evidence and automatic exact-main staging CD
+`36329153101`, attempt 3: staging build, health, provenance and P0.1/P0.2/P0.3/P0.4/P0.6 passed;
+production was skipped. Its owned branch/worktree are retired. Credit its public-thread/read-receipt,
+loading/retry and send-continuity proof without rerunning it or claiming whole S5/S6.
 
 PR [#1834](https://github.com/interdomestik/interdomestik/pull/1834) delivered ordered past-due
 recovery as protected merge `6d31ea1524be95ba6b70945b73d750dff4658ad9`. Its ordinary PR receipt
@@ -112,10 +118,10 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Preserve member-owned, tenant-scoped public case communication through existing actions.
-2. Distinguish loading, empty, failure and acknowledged send states with accessible localized retry.
-3. Align read receipts with message visibility and recipient semantics; preserve established staff scope.
-4. Verify member/staff exchange and negative isolation paths without expanding operator UI or billing.
+1. Let a member retrieve only their own request-linked evidence through the existing private signer.
+2. Issue a fresh five-minute URL at activation, discard an expired URL and fail closed on denial.
+3. Provide accessible EN/SQ/MK/SR preparing, success and retry feedback without weakening staff scope.
+4. Verify member/tenant/role isolation and successful issuance audit without changing storage policy.
 
 ## Enduring Safety Boundaries
 
@@ -185,17 +191,18 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 member case communication after credited #1834 recovery/staging, remaining S5 gaps,
-remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1829 chain, S7 staff handling,
+S5 member private-document retrieval after credited #1814 upload and #1835 communication,
+remaining S5 gaps, remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1830
+chain, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
 
 Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
-assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
-This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review, #1826
-fail-closed confirmation, #1827 immutable delivery/retry, #1828 downstream continuation and #1829
-first-activation provider-order integrity plus #1830 lifecycle ordering. Approved effective-dated offer/terms,
+assigned-staff acknowledgement; PR #1835 proves bounded member communication; existing document
+access and storage services supply the tenant-authorized five-minute signer. PR #1815 proves the
+bounded member lifecycle/access disclosure. This slice does not reopen #1824–#1830 billing/event
+proof. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -210,20 +217,26 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current member case communication acceptance
+### Current member private-document retrieval acceptance
 
-- Existing active-member fixtures see their own case status and public thread only; another member,
-  tenant, internal note or unspecified visibility never becomes member content or a read receipt.
-- Member loading failures and rejected requests show localized retry rather than empty success.
-  A failed send retains the draft; an acknowledged send remains visible if refresh fails.
-- Switching cases/users or unmounting cannot let stale fetch/send completions replace a new thread
-  or clear another case's draft. Controls have accessible names and keyboard operation in EN/SQ/MK/SR.
-- Existing authorized staff communication is reused and tested. Shared operator UI remains outside
-  this increment; no whole cross-role, whole S5/S6 or commercial acceptance is claimed.
-- Exactly two disjoint implementation workers own domain read-receipt protection and member UI/
-  locales respectively. The integrator owns contract, integration/browser proof and review.
-  Independent review and consolidated local/hosted proof precede protected merge and automatic
-  exact-main staging. No production deployment, charge or shared/live destructive change.
+- A member can download their own request-linked evidence after upload. Each activation re-authorizes
+  through the existing tenant-scoped signed-URL endpoint; the client does not retain or reuse the URL.
+- The five-minute response remains private/no-store/no-referrer and requests attachment disposition.
+  The bearer URL is used only for browser download navigation, never instrumented client fetch/XHR;
+  a later activation discards any prior URL and requests a fresh one.
+- Another member, tenant or unassigned staff/agent cannot obtain the signer or storage object. Failed
+  signing does not record a successful issuance. Successful signer issuance invokes the existing
+  best-effort audit path; successful storage retrieval is not overstated as audited.
+- Preparing, success and failure feedback plus a named keyboard button work in EN/SQ/MK/SR. Existing
+  assigned-staff proxy download remains unchanged. Proxy, auth/RLS, schema and storage policy are read-only.
+- This is bounded software evidence for IDA-DOC-001/009, not whole document governance, revocation,
+  S5/S6/S7, operator redesign, production deployment, charge or user acceptance.
+- Research checked 2026-09-27: Supabase documents private buckets and fixed-duration signed URLs;
+  MDN documents `no-referrer`; WCAG 2.2 requires named controls and programmatic status messages.
+  Adopt just-in-time attachment signing and live localized status; reject cached or telemetry-visible
+  browser URLs.
+- The Sol-high integration owner keeps the single implementation. One independent security review and
+  one consolidated heavy verification lane follow focused corrections before protected delivery.
 
 ### Credited #1834 past-due recovery acceptance
 

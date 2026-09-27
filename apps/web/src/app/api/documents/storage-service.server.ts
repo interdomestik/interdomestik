@@ -10,6 +10,7 @@ export function createDocumentSignedUrlStorageService(): DocumentStorageService 
       const { data, error } = await createTenantSignedDownloadUrl({
         bucket,
         context: 'document signed URL',
+        download: options.downloadName,
         expiresInSeconds: expiresIn,
         family: options.family,
         operation: 'documentDownload',

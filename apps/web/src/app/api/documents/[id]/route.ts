@@ -54,15 +54,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     );
   }
 
-  await logAllowedDocumentAccess({
-    access,
-    headers: request.headers,
-    logAuditEvent,
-    session,
-  });
-
   const urlResult = await createSignedDownloadUrlCore({
     bucket: access.document.bucket,
+    downloadName: access.document.name || 'document',
     filePath: access.document.filePath,
     expiresInSeconds: 60 * 5,
     family: access.storageFamily,
@@ -74,6 +68,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     console.error('Failed to create signed download URL');
     return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
   }
+
+  await logAllowedDocumentAccess({
+    access,
+    headers: request.headers,
+    logAuditEvent,
+    session,
+  });
 
   return NextResponse.json(
     {

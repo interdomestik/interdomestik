@@ -115,6 +115,38 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
       await expect(card).toContainText('request-evidence.pdf', { timeout: 15_000 });
       await expect(card).toContainText('Prova u dorëzua');
 
+      const [submittedEvidence] = await db
+        .select()
+        .from(claimInformationRequestEvidence)
+        .where(eq(claimInformationRequestEvidence.requestId, rows[0].id));
+      expect(submittedEvidence).toMatchObject({
+        tenantId: fixture.tenantId,
+        claimId: fixture.claimId,
+        requestId: rows[0].id,
+        acknowledgedAt: null,
+      });
+
+      const memberDownloadButton = card.getByRole('button', { name: 'Shkarko' });
+      const signedUrlResponsePromise = member.page.waitForResponse(response => {
+        const url = new URL(response.url());
+        return (
+          response.request().method() === 'GET' &&
+          url.pathname === `/api/documents/${submittedEvidence.documentId}`
+        );
+      });
+      const memberDownloadPromise = member.page.waitForEvent('download');
+      await memberDownloadButton.click();
+      const [signedUrlResponse, memberDownload] = await Promise.all([
+        signedUrlResponsePromise,
+        memberDownloadPromise,
+      ]);
+      expect(signedUrlResponse.status()).toBe(200);
+      expect(signedUrlResponse.headers()['cache-control']).toBe('private, no-store, max-age=0');
+      expect(signedUrlResponse.headers()['referrer-policy']).toBe('no-referrer');
+      expect(memberDownload.suggestedFilename()).toBe('request-evidence.pdf');
+      await expect(memberDownload.path()).resolves.toBeTruthy();
+      await expect(card.getByRole('status')).toContainText('Shkarkimi filloi');
+
       await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, testInfo), testInfo, {
         marker: 'staff-claim-detail-ready',
       });
