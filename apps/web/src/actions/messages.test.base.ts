@@ -87,6 +87,7 @@ vi.mock('@/lib/audit', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  ne: vi.fn(),
   and: vi.fn(),
   or: vi.fn(),
   isNull: vi.fn(),
