@@ -8,10 +8,18 @@ type ReceiptEvidence = {
   payloadHash: string;
 };
 
+function hasRecoverableLease(params: ReceiptEvidence): boolean {
+  return (
+    params.eventType === 'subscription.created' ||
+    (params.eventType === 'subscription.past_due' &&
+      params.processingScopeKey.startsWith('entity:'))
+  );
+}
+
 export async function reclaimRetryableWebhookEvent(params: ReceiptEvidence) {
   const leaseStartedAt = new Date();
   const staleBefore = new Date(leaseStartedAt.getTime() - 5 * 60 * 1000);
-  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale subscription-created lease.
+  // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale recoverable subscription lease.
   const reclaimed = await db
     .update(webhookEvents)
     .set({
@@ -28,12 +36,13 @@ export async function reclaimRetryableWebhookEvent(params: ReceiptEvidence) {
         eq(webhookEvents.signatureValid, true),
         or(
           eq(webhookEvents.processingResult, 'retryable_error'),
-          and(
-            eq(webhookEvents.eventType, 'subscription.created'),
-            eq(webhookEvents.eventType, params.eventType ?? ''),
-            isNull(webhookEvents.processingResult),
-            lt(webhookEvents.receivedAt, staleBefore)
-          )
+          hasRecoverableLease(params)
+            ? and(
+                eq(webhookEvents.eventType, params.eventType ?? ''),
+                isNull(webhookEvents.processingResult),
+                lt(webhookEvents.receivedAt, staleBefore)
+              )
+            : undefined
         )
       )
     )
@@ -42,8 +51,8 @@ export async function reclaimRetryableWebhookEvent(params: ReceiptEvidence) {
   return reclaimed[0] ?? null;
 }
 
-export async function findNonTerminalSubscriptionCreatedLease(params: ReceiptEvidence) {
-  if (params.eventType !== 'subscription.created') return null;
+export async function findNonTerminalRecoverableLease(params: ReceiptEvidence) {
+  if (!hasRecoverableLease(params)) return null;
 
   // db-access-guard: system-exempt -- reason: exact verified receipt evidence distinguishes an active lease from a terminal duplicate before tenant processing resumes.
   return db.query.webhookEvents.findFirst({
@@ -52,7 +61,7 @@ export async function findNonTerminalSubscriptionCreatedLease(params: ReceiptEvi
         eq(events.provider, 'paddle'),
         eq(events.processingScopeKey, params.processingScopeKey),
         eq(events.dedupeKey, params.dedupeKey),
-        eq(events.eventType, 'subscription.created'),
+        eq(events.eventType, params.eventType ?? ''),
         eq(events.payloadHash, params.payloadHash),
         eq(events.signatureValid, true),
         or(isNull(events.processingResult), eq(events.processingResult, 'retryable_error'))

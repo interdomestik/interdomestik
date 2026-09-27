@@ -78,6 +78,43 @@ describe('email delivery fallback', () => {
       { idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1' }
     );
   });
+  it('uses the immutable dunning request and provider key without SMTP fallback', async () => {
+    m.resendSend.mockResolvedValue({ data: { id: 'dunning-id' }, error: null });
+    const { preparePastDueEmail, sendPreparedPastDueEmail } = await import('./email');
+    const request = preparePastDueEmail('member@example.com', {
+      memberName: 'Member',
+      planName: 'Membership',
+      gracePeriodDays: 14,
+      gracePeriodEndDate: '2026-10-11',
+    });
+    vi.stubEnv('RESEND_FROM_EMAIL', 'changed@example.com');
+    await expect(sendPreparedPastDueEmail(request, 'dunning-key')).resolves.toEqual({
+      success: true,
+      id: 'dunning-id',
+    });
+    expect(m.resendSend).toHaveBeenCalledWith(expect.objectContaining(request), {
+      idempotencyKey: 'dunning-key',
+    });
+    expect(m.sendMail).not.toHaveBeenCalled();
+  });
+  it('fails recoverable dunning closed when only non-idempotent SMTP is configured', async () => {
+    vi.stubEnv('RESEND_API_KEY', '');
+    const { sendPreparedPastDueEmail } = await import('./email');
+    await expect(
+      sendPreparedPastDueEmail(
+        {
+          from: 'a@example.com',
+          to: 'b@example.com',
+          subject: 'Due',
+          html: '<p>Due</p>',
+          text: 'Due',
+        },
+        'key'
+      )
+    ).resolves.toMatchObject({ success: false });
+    expect(m.sendMail).not.toHaveBeenCalled();
+    expect(m.resendSend).not.toHaveBeenCalled();
+  });
   it.each(['mock', 'playwright', 'smtp', 'resend', 'fallback'] as const)(
     'keeps %s OTP telemetry content-free',
     async provider => {

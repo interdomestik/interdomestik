@@ -6,14 +6,14 @@ import {
 
 import { RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
-import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
+import type { PaddleWebhookAuditDeps, PaddleWebhookDeps, PastDueEmailDeps } from '../types';
 import {
   findExistingPastDueSubscriptionForUser,
   resolvePastDueContext,
   type ExistingSubscriptionRecord,
   type PastDueUserRecord,
 } from './dunning-context';
-import { persistOrderedPastDueSubscription } from './dunning-order';
+import { handleOrderedPastDue } from './dunning-ordered-handler';
 import { resolveSubscriptionEventOrder } from './subscription-event-order';
 
 type SubscriptionEventData = ReturnType<typeof subscriptionEventDataSchema.parse>;
@@ -52,7 +52,9 @@ export async function handleSubscriptionPastDue(
     providerEventId?: string;
     providerEventOccurredAt?: string | null;
   },
-  deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'> & PaddleWebhookAuditDeps = {}
+  deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'> &
+    PaddleWebhookAuditDeps &
+    PastDueEmailDeps = {}
 ) {
   const sub = parsePastDueSubscription(params.data);
   if (!sub) {
@@ -93,20 +95,17 @@ export async function handleSubscriptionPastDue(
 
   let pastDueState: ReturnType<typeof buildPastDueState>;
   if (order && context.existingSub) {
-    const ordered = await persistOrderedPastDueSubscription({
+    await handleOrderedPastDue({
       order,
       providerSubscriptionId: sub.id,
       subscriptionId: context.existingSub.id,
       tenantId: context.userRecord.tenantId,
+      user: context.userRecord,
+      planName: sub.items?.[0]?.price?.description || 'Membership',
       buildState,
+      deps,
     });
-    if (ordered.kind !== 'apply') {
-      console.warn(
-        `[Webhook] Ignored ${ordered.kind} past_due event ${order.providerEventId} for subscription ${sub.id}`
-      );
-      return;
-    }
-    pastDueState = ordered.state;
+    return;
   } else if (order) {
     throw new RetryablePaddleWebhookError(
       `Entity past_due for ${sub.id} requires an existing provider subscription row`

@@ -14,7 +14,6 @@ import {
   renderNpsSurveyEmail,
   renderOnboardingEmail,
   renderPasswordResetEmail,
-  renderPaymentFailedEmail,
   renderPaymentFinalWarningEmail,
   renderPaymentReminderEmail,
   renderSeasonalEmail,
@@ -39,7 +38,7 @@ export type { EmailResult };
 
 let resendClient: Resend | null = null;
 
-function getResendClient(telemetry = createEmailTelemetry()) {
+export function getResendClient(telemetry = createEmailTelemetry()) {
   if (resendClient) return resendClient;
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -87,7 +86,7 @@ function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
   return null;
 }
 
-function getSenderAddress() {
+export function getSenderAddress() {
   return (
     process.env.RESEND_FROM_EMAIL ||
     process.env.RESEND_FROM ||
@@ -219,23 +218,6 @@ export async function sendNewMessageEmail(
 // ============================================================================
 // DUNNING EMAILS
 // ============================================================================
-
-/**
- * Day 0: Send when payment fails (subscription.past_due)
- */
-export async function sendPaymentFailedEmail(
-  to: string,
-  params: {
-    memberName: string;
-    planName: string;
-    gracePeriodDays: number;
-    gracePeriodEndDate: string;
-  }
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  console.log(`[Dunning] Sending Day 0 email to ${to}`);
-  return sendEmail(to, renderPaymentFailedEmail(params));
-}
 
 /**
  * Day 7: Send reminder (7 days remaining)
@@ -404,3 +386,10 @@ export async function sendPaymentVerificationEmail(
     text: `Payment Verification Update for ${props.leadName}. Status: ${statusLabel}. Note: ${props.note || 'None'}. Link: ${props.link}`,
   });
 }
+
+export {
+  sendPaymentFailedEmail,
+  preparePastDueEmail,
+  sendPreparedPastDueEmail,
+  paddleDunningEmailDeps,
+} from './dunning-email';

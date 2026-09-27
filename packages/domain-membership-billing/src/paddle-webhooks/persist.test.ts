@@ -1,79 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const hoisted = vi.hoisted(() => ({
-  and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
-  eq: vi.fn((left: unknown, right: unknown) => ({ left, op: 'eq', right })),
-  isNull: vi.fn(value => ({ op: 'isNull', value })),
-  lt: vi.fn((left: unknown, right: unknown) => ({ left, op: 'lt', right })),
-  or: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'or' })),
-  insert: vi.fn(),
-  insertValues: vi.fn(),
-  insertReturning: vi.fn(),
-  findFirst: vi.fn(),
-  onConflictDoNothing: vi.fn(),
-  set: vi.fn(),
-  update: vi.fn(),
-  updateReturning: vi.fn(),
-  where: vi.fn(),
-}));
-
-vi.mock('drizzle-orm', () => ({
-  and: hoisted.and,
-  eq: hoisted.eq,
-  isNull: hoisted.isNull,
-  lt: hoisted.lt,
-  or: hoisted.or,
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    insert: hoisted.insert,
-    query: {
-      webhookEvents: {
-        findFirst: hoisted.findFirst,
-      },
-    },
-    update: hoisted.update,
-  },
-  webhookEvents: {
-    id: 'id_col',
-    dedupeKey: 'dedupe_key_col',
-    error: 'error_col',
-    eventType: 'event_type_col',
-    payloadHash: 'payload_hash_col',
-    processedAt: 'processed_at_col',
-    processingResult: 'processing_result_col',
-    processingScopeKey: 'processing_scope_key_col',
-    providerTransactionId: 'provider_transaction_id_col',
-    signatureValid: 'signature_valid_col',
-    receivedAt: 'received_at_col',
-  },
-}));
-
+import { describe, expect, it, vi } from 'vitest';
+import { hoisted } from './persist.fixture';
 import { insertWebhookEvent, markWebhookFailed, persistInvalidSignatureAttempt } from './persist';
 import { subscriptionCreatedReceipt } from './persist.test-support';
 
 describe('webhook persistence idempotency', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    hoisted.findFirst.mockResolvedValue(undefined);
-    hoisted.insertReturning.mockResolvedValue([{ id: 'we_1' }]);
-    hoisted.updateReturning.mockResolvedValue([]);
-    hoisted.onConflictDoNothing.mockReturnValue({
-      returning: hoisted.insertReturning,
-    });
-    hoisted.insertValues.mockReturnValue({
-      onConflictDoNothing: hoisted.onConflictDoNothing,
-    });
-    hoisted.insert.mockReturnValue({
-      values: hoisted.insertValues,
-    });
-    hoisted.where.mockReturnValue({ returning: hoisted.updateReturning });
-    hoisted.set.mockReturnValue({ where: hoisted.where });
-    hoisted.update.mockReturnValue({ set: hoisted.set });
-  });
-
   it('persists invalid signature attempts with scope-aware dedupe and DB conflict no-op', async () => {
     await persistInvalidSignatureAttempt({
       headers: new Headers(),
@@ -229,43 +159,59 @@ describe('webhook persistence idempotency', () => {
     );
   });
 
-  it('atomically reclaims a stale verified subscription-created processing lease', async () => {
-    hoisted.insertReturning.mockResolvedValueOnce([]);
-    hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_stale' }]);
+  it.each(['subscription.created', 'subscription.past_due'])(
+    'atomically reclaims a stale verified %s entity lease',
+    async eventType => {
+      hoisted.insertReturning.mockResolvedValueOnce([]);
+      hoisted.updateReturning.mockResolvedValueOnce([{ id: 'we_stale' }]);
 
-    const result = await insertWebhookEvent(subscriptionCreatedReceipt('stale'));
+      const result = await insertWebhookEvent({
+        ...subscriptionCreatedReceipt('stale'),
+        eventType,
+        processingScopeKey: 'entity:mk',
+      });
 
-    expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_stale' });
-    expect(hoisted.isNull).toHaveBeenCalledWith('processing_result_col');
-    expect(hoisted.lt).toHaveBeenCalledWith('received_at_col', expect.any(Date));
-    expect(hoisted.eq).toHaveBeenCalledWith('event_type_col', 'subscription.created');
-  });
+      expect(result).toEqual({ inserted: true, webhookEventRowId: 'we_stale' });
+      expect(hoisted.isNull).toHaveBeenCalledWith('processing_result_col');
+      expect(hoisted.lt).toHaveBeenCalledWith('received_at_col', expect.any(Date));
+      expect(hoisted.eq).toHaveBeenCalledWith('event_type_col', eventType);
+    }
+  );
 
-  it('keeps every exact non-terminal subscription-created lease retryable', async () => {
-    hoisted.insertReturning.mockResolvedValueOnce([]);
-    hoisted.updateReturning.mockResolvedValueOnce([]);
-    hoisted.findFirst.mockImplementationOnce(query => {
-      const queryEq = vi.fn();
-      query.where(
-        {
-          provider: 'provider_col',
-          processingScopeKey: 'processing_scope_key_col',
-          dedupeKey: 'dedupe_key_col',
-          eventType: 'event_type_col',
-          payloadHash: 'payload_hash_col',
-          signatureValid: 'signature_valid_col',
-          processingResult: 'processing_result_col',
-        },
-        { and: vi.fn(), eq: queryEq, isNull: vi.fn(), or: vi.fn() }
-      );
-      expect(queryEq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
-      return { id: 'we_active' };
-    });
+  it.each(['subscription.created', 'subscription.past_due'])(
+    'keeps every exact non-terminal %s entity lease retryable',
+    async eventType => {
+      hoisted.insertReturning.mockResolvedValueOnce([]);
+      hoisted.updateReturning.mockResolvedValueOnce([]);
+      hoisted.findFirst.mockImplementationOnce(query => {
+        const queryEq = vi.fn();
+        query.where(
+          {
+            provider: 'provider_col',
+            processingScopeKey: 'processing_scope_key_col',
+            dedupeKey: 'dedupe_key_col',
+            eventType: 'event_type_col',
+            payloadHash: 'payload_hash_col',
+            signatureValid: 'signature_valid_col',
+            processingResult: 'processing_result_col',
+          },
+          { and: vi.fn(), eq: queryEq, isNull: vi.fn(), or: vi.fn() }
+        );
+        expect(queryEq).toHaveBeenCalledWith('processing_result_col', 'retryable_error');
+        return { id: 'we_active' };
+      });
 
-    await expect(insertWebhookEvent(subscriptionCreatedReceipt('active'))).rejects.toMatchObject({
-      name: 'RetryablePaddleWebhookError',
-    });
-  });
+      await expect(
+        insertWebhookEvent({
+          ...subscriptionCreatedReceipt('active'),
+          eventType,
+          processingScopeKey: 'entity:mk',
+        })
+      ).rejects.toMatchObject({
+        name: 'RetryablePaddleWebhookError',
+      });
+    }
+  );
 
   it('distinguishes retryable pre-write failures from permanent processing failures', async () => {
     await markWebhookFailed({

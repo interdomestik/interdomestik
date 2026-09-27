@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-26
+last_reviewed: 2026-09-27
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,15 +16,19 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-PROVIDER-EVENT-ORDER` is the sole active bounded product increment, selected under the
-owner's standing implementation/merge/staging authorization. Base is protected main
-`5e696747a7091e738b174830ec0a474f578af2fd`. On the canonical entity-scoped subscription lifecycle
-path, a delayed or replayed older, signature-valid Paddle event must not overwrite a newer verified
-subscription snapshot or reverse lawful entitlement. The signed top-level `occurred_at` reaches the
-tenant-scoped write boundary; missing or invalid evidence fails closed before side effects. The
-ordering decision, snapshot, ordering marker and `membership.subscription_changed` event commit in
-one row-locked transaction. This advances IDA-CTR-023, IDA-MEM-007 and IDA-MEM-008 at the
-lifecycle-ordering boundary only; it does not broaden lifecycle, renewal or commercial authority.
+`S6-PAST-DUE-RECOVERY` is the sole active bounded product increment under the owner's
+continuation/merge/staging authorization, based on freshly fetched protected main
+`3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`. Fault injection reproduced a lost-effect gap: ordered
+past-due state commits, audit fails, and exact replay suppresses both audit and notification.
+Recover those effects without duplicate counters/email or effects from stale events, using existing
+audit and delivery storage. This advances only the affected S6 reliability boundary.
+
+PR [#1830](https://github.com/interdomestik/interdomestik/pull/1830) delivered provider-event
+ordering as protected merge `069099bc1e4628df8f5b87c91bd96245a959f67e`. #1831–#1833 repaired staging
+trust, schema and transport. The [#1833 receipt](https://github.com/interdomestik/interdomestik/pull/1833#issuecomment-5855811154)
+credits exact main `3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`, protected checks, Sonar and automatic
+staging CD `36312718148` attempt 4 with full P0 passing. Production was skipped. This closes the
+stale provider-event-order status; its proof is credited, not repeated by this recovery slice.
 
 PR [#1829](https://github.com/interdomestik/interdomestik/pull/1829) delivered first-activation
 provider-order integrity as protected merge `5e696747a7091e738b174830ec0a474f578af2fd`. Automatic CD
@@ -101,16 +105,10 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Order entity-scoped subscription lifecycle writes by the signed top-level Paddle `occurred_at`
-   of the exact provider subscription aggregate in its canonical tenant, never by arrival time,
-   `notification_id` or an undocumented `event_id` tiebreak.
-2. Commit the ordering marker atomically with the snapshot and domain event under a row lock, so a
-   concurrent or delayed older event cannot win and emits no lifecycle, audit, extras or
-   confirmation effect.
-3. Keep exact replay idempotent, fail closed on equal-time distinct events and invalid evidence, and
-   derive a floor from verified receipts for rows that predate the marker.
-4. Preserve #1829 first-activation order integrity, retryable receipts and Paddle-only billing. Do
-   not charge a customer, mutate production or the provider, or broaden renewal/offer authority.
+1. Commit the existing dunning state, audit and immutable email intent together in tenant context.
+2. Recover the exact pending intent on replay while preserving provider ordering and no stale effects.
+3. Bound provider retries so crash recovery cannot duplicate accepted mail after dedupe expiration.
+4. Credit #1830–#1833; preserve Paddle-only billing, auth/RLS/proxy and all commercial boundaries.
 
 ## Enduring Safety Boundaries
 
@@ -180,7 +178,7 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 provider-event-order protection after credited #1829 provider-order integrity, remaining S5 gaps,
+S6 past-due effect recovery after credited #1830–#1833 ordering/staging, remaining S5 gaps,
 remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1829 chain, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
@@ -190,7 +188,7 @@ Direct dependencies remain local to their consumers. PR #1814 proves request-bou
 assigned-staff acknowledgement; PR #1815 proves the bounded member lifecycle/access disclosure.
 This slice reuses #1824 provider-event reconciliation/dedupe, #1825 checkout locale/review, #1826
 fail-closed confirmation, #1827 immutable delivery/retry, #1828 downstream continuation and #1829
-first-activation provider-order integrity. Approved effective-dated offer/terms,
+first-activation provider-order integrity plus #1830 lifecycle ordering. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -205,7 +203,26 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current S6 provider-event-order acceptance
+### Current S6 past-due recovery acceptance
+
+- The entity-scoped, signature-valid ordered `subscription.past_due` path commits its existing
+  counter/marker, one deterministic tenant/event audit and immutable Day 0 email intent atomically.
+  Audit or intent persistence failure rolls the entire write back.
+- Exact replay recovers only an existing pending intent; it never increments again, reconstructs
+  a request from changed member data or sends again after a recorded acknowledgement.
+- Recovery locks the canonical tenant/subscription row through send and acknowledgement. A newer
+  lifecycle marker suppresses the pending notification; stale events create no new effect.
+- The full request and provider idempotency key remain fixed. Recoverable delivery uses Resend
+  dedupe, never arbitrary SMTP. A missing sender or negative/ambiguous result remains retryable.
+  Automatic attempts stop at 23 hours from intent creation, within the provider's 24-hour key
+  retention; unresolved acceptance then requires reconciliation and never a fresh key.
+- Preserve existing missing-email/Day 0-only behavior. No reconstruction of pre-fix lost intents,
+  new scheduler, migration, pricing/terms, renewal operations or unscoped legacy-route change.
+- Focused fault injection and actual non-bypass PostgreSQL transaction/tenant proof, one independent
+  review and one consolidated required verification lane precede protected delivery. Exact-main
+  automatic staging is separate evidence; no charge/provider mutation or production deployment.
+
+### Credited #1830 provider-event-order acceptance
 
 - The entity-scoped lifecycle path requires the signed top-level RFC 3339 `occurred_at` (at most
   microsecond precision) and `event_id`. Missing or invalid evidence is a permanent ordering failure
@@ -227,7 +244,8 @@ alone is not business or user acceptance.
 - Entity-scoped `subscription.past_due` follows the same contract. It requires the exact existing
   provider-subscription row in its tenant (missing rows retry; it never creates or replaces a first
   row), and derives dunning counters from the locked row while committing them with the marker.
-  Stale or replayed `past_due` increments nothing and emits no audit or payment-failed email.
+  Stale or replayed `past_due` increments nothing. The current recovery increment preserves completed
+  effects and recovers only an exact pending notification; stale events emit no new effect.
 - The ordering decision precedes any confirmation-store access. Stale events emit no
   `membership.subscription_changed`, subscription audit, extras, confirmation claim, readiness or
   send; an applied or exactly replayed `subscription.created` keeps #1827 prepare/recover/deliver
@@ -474,3 +492,16 @@ the existing native-origin OTP browser proof. No framework behavior or version c
 
 These records are immutable evidence inputs, not active queues. The retired Lean projection and
 slice runners remain explicit-only and cannot select or block ordinary owner-authorized work.
+
+### Past-due recovery research
+
+Checked 2026-09-27 against the installed manifests and actual handler/receipt/relay implementations.
+[Paddle delivery guidance](https://developer.paddle.com/webhooks/about/respond-to-webhooks/) supports
+idempotent processing of retried notifications; the local fault-injection test proves the concrete
+post-commit gap. [Resend idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys)
+retains a key for 24 hours and requires the same request. Adopt existing `engagement_email_sends`
+with a frozen request/key, atomic audit and a conservative 23-hour automatic retry ceiling. Reject
+arbitrary SMTP retry and treating a provider timeout as proof of non-delivery. The existing domain
+relay has no past-due payload/consumer; reusing email storage avoids a new event/relay framework.
+Expected benefit: recoverable Day 0 notification and exact audit with no duplicate state/effects;
+verify rollback, crash/replay, lock interleavings, tenant isolation and the retry boundary.

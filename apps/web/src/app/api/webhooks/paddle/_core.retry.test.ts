@@ -19,7 +19,9 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/actions/thank-you-letter/send', () => ({ sendThankYouLetterCore: vi.fn() }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ auth: { api: { requestPasswordReset: vi.fn() } } }));
-vi.mock('@/lib/email', () => ({ sendPaymentFailedEmail: vi.fn() }));
+vi.mock('@/lib/email', () => ({
+  paddleDunningEmailDeps: {},
+}));
 vi.mock('@interdomestik/database', () => ({
   db: { query: { user: { findFirst: hoisted.dbUserFindFirst } } },
 }));
@@ -119,20 +121,26 @@ describe('handlePaddleWebhookCore retry contract', () => {
     );
   });
 
-  it('persists typed pre-write deferrals as retryable failures', async () => {
-    hoisted.handlePaddleEvent.mockRejectedValueOnce(new Error('verified dependency not ready'));
-    hoisted.isRetryablePaddleWebhookError.mockReturnValueOnce(true);
+  it.each(['subscription.created', 'subscription.past_due'])(
+    'persists typed %s deferrals as retryable failures',
+    async eventType => {
+      const verified = await hoisted.verifyPaddleWebhook();
+      verified.eventData.eventType = eventType;
+      hoisted.verifyPaddleWebhook.mockResolvedValue(verified);
+      hoisted.handlePaddleEvent.mockRejectedValueOnce(new Error('verified dependency not ready'));
+      hoisted.isRetryablePaddleWebhookError.mockReturnValueOnce(true);
 
-    await expect(callCore()).rejects.toThrow('verified dependency not ready');
-    expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
-      expect.objectContaining({
-        webhookEventRowId: 'webhook_event_1',
-        retryable: true,
-      }),
-      expect.any(Object)
-    );
-    expect(hoisted.markWebhookProcessed).not.toHaveBeenCalled();
-  });
+      await expect(callCore()).rejects.toThrow('verified dependency not ready');
+      expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          webhookEventRowId: 'webhook_event_1',
+          retryable: true,
+        }),
+        expect.any(Object)
+      );
+      expect(hoisted.markWebhookProcessed).not.toHaveBeenCalled();
+    }
+  );
 
   it('keeps unexpected processing failures permanent', async () => {
     hoisted.handlePaddleEvent.mockRejectedValueOnce(new Error('database unavailable'));

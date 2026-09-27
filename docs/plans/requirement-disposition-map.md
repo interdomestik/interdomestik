@@ -92,7 +92,11 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S6 work
 
-`S6-PROVIDER-EVENT-ORDER` advances IDA-CTR-023, IDA-MEM-007 and IDA-MEM-008 at the entity-scoped
+`S6-PAST-DUE-RECOVERY` follows the credited #1830 provider-event-order delivery and #1833
+exact-main staging `36312718148` attempt 4 (production skipped). The bounded recovery atomically
+stores audit/immutable email intent with ordered state, and retries only the exact current pending
+notification within the provider dedupe window. It adds no whole-requirement satisfaction claim.
+The credited `S6-PROVIDER-EVENT-ORDER` advances IDA-CTR-023, IDA-MEM-007 and IDA-MEM-008 at the entity-scoped
 subscription lifecycle write boundary after #1829's credited provider-order integrity. The signed
 top-level Paddle `occurred_at` orders events per provider subscription row in its canonical tenant;
 the row lock, comparison, snapshot, ordering marker and domain event commit atomically. Older events

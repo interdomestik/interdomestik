@@ -3,10 +3,7 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { RetryablePaddleWebhookError } from './errors';
-import {
-  findNonTerminalSubscriptionCreatedLease,
-  reclaimRetryableWebhookEvent,
-} from './receipt-lease';
+import { findNonTerminalRecoverableLease, reclaimRetryableWebhookEvent } from './receipt-lease';
 import type { PaddleWebhookAuditDeps } from './types';
 
 export { isRetryablePaddleWebhookError } from './errors';
@@ -120,7 +117,7 @@ export async function insertWebhookEvent(
       return { inserted: true as const, webhookEventRowId: reclaimed.id };
     }
 
-    const nonTerminalLease = await findNonTerminalSubscriptionCreatedLease(params);
+    const nonTerminalLease = await findNonTerminalRecoverableLease(params);
     if (nonTerminalLease) {
       if (deps.logAuditEvent) {
         await deps.logAuditEvent({
