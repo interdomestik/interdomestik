@@ -1571,7 +1571,12 @@ test('resolveReachableBaseUrl retries the configured base before considering fal
     const url = String(input);
     attempt += 1;
     if (url.includes('interdomestik-web.vercel.app') && attempt < 3) {
-      throw new Error('fetch failed');
+      const cause = Object.assign(new Error('getaddrinfo EAI_AGAIN'), {
+        code: 'EAI_AGAIN',
+        hostname: 'interdomestik-web.vercel.app',
+        syscall: 'getaddrinfo',
+      });
+      throw new TypeError('fetch failed', { cause });
     }
     return new Response('', { status: 307 });
   };

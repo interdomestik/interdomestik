@@ -74,6 +74,7 @@ const {
 } = require('./url-policy.ts');
 const { isTrustedAuthPreflightRedirect } = require('./auth-preflight-redirect.ts');
 const { formatMissingEnvSummary } = require('./env-log-redaction.ts');
+const { describeTransportError, describeUnclassifiedError } = require('./transport-error.ts');
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
 const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
 const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
@@ -383,20 +384,20 @@ async function runAuthEndpointPreflight(runCtx) {
         );
         return { status: 'FAIL', evidence, signatures };
       } catch (error) {
-        const message = compactErrorMessage(error?.message || error);
+        const transport = describeTransportError(error, { hostname: endpoint.hostname });
+        const message = transport?.summary || describeUnclassifiedError(error);
         evidence.push(preflightEvidenceLine({ endpoint: endpoint.href, attempt, message }));
-        const infraMessage = classifyInfraNetworkFailure(message);
 
-        if (infraMessage && attempt < AUTH_PREFLIGHT_MAX_ATTEMPTS) {
+        if (transport?.retryable && attempt < AUTH_PREFLIGHT_MAX_ATTEMPTS) {
           const delay =
             AUTH_PREFLIGHT_BACKOFF_MS[Math.min(attempt - 1, AUTH_PREFLIGHT_BACKOFF_MS.length - 1)];
           await sleep(delay);
           continue;
         }
 
-        if (infraMessage) {
+        if (transport) {
           signatures.push(
-            `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${infraMessage}`
+            `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${transport.summary}`
           );
         } else {
           signatures.push(`AUTH_PREFLIGHT_EXCEPTION endpoint=${endpointPath} message=${message}`);

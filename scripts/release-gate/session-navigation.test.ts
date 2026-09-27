@@ -33,7 +33,12 @@ test('resolveReachableBaseUrl normalizes accepted deployment fallback URLs', asy
   globalThis.fetch = async input => {
     attempt += 1;
     if (String(input).includes('interdomestik-web.vercel.app')) {
-      throw new Error('unreachable');
+      const cause = Object.assign(new Error('getaddrinfo EAI_AGAIN'), {
+        code: 'EAI_AGAIN',
+        hostname: 'interdomestik-web.vercel.app',
+        syscall: 'getaddrinfo',
+      });
+      throw new TypeError('fetch failed', { cause });
     }
     return new Response('', { status: 200 });
   };
@@ -50,6 +55,24 @@ test('resolveReachableBaseUrl normalizes accepted deployment fallback URLs', asy
     buildRoute(resolved.baseUrl, 'en', '/agent'),
     'https://deploy.example.vercel.app/en/agent'
   );
+});
+
+test('resolveReachableBaseUrl does not retry an unclassified fetch wrapper', async () => {
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    throw new TypeError('fetch failed');
+  };
+
+  const resolved = await resolveReachableBaseUrl(
+    'https://interdomestik-web.vercel.app/',
+    { deploymentUrl: 'unknown' },
+    { allowDeploymentFallback: false }
+  );
+
+  assert.equal(attempts, 1);
+  assert.equal(resolved.source, 'configured_unreachable');
+  assert.match(resolved.failures[0], /unclassified name=TYPEERROR message=fetch failed/u);
 });
 
 test('gotoWithSessionRetry settles a navigation race without forcing a fresh login', async () => {

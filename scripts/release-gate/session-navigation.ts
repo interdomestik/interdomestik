@@ -5,15 +5,9 @@ const {
   assertTrustedReleaseGateProbeOrigin,
   normalizeTrustedVercelDeploymentBaseUrl,
 } = require('./url-policy.ts');
+const { describeTransportError, describeUnclassifiedError } = require('./transport-error.ts');
 const REACHABILITY_RETRY_ATTEMPTS = 3;
 const REACHABILITY_RETRY_DELAY_MS = 1_000;
-
-function compactErrorMessage(raw, maxLength = 420) {
-  return String(raw || '')
-    .replaceAll(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
-}
 
 async function probeBaseUrl(candidateBaseUrl, options = {}) {
   const origin = new URL(assertTrustedReleaseGateProbeOrigin(candidateBaseUrl, options));
@@ -50,12 +44,17 @@ async function probeReachabilityCandidate(candidate, source, maxAttempts, failur
       failures.push(`probe_unusable candidate=${candidate} status=${status}`);
       return null;
     } catch (error) {
+      const transport = describeTransportError(error, {
+        hostname: new URL(candidate).hostname,
+      });
       failures.push(
-        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
+        `probe_failed candidate=${candidate} reason=${transport?.summary || describeUnclassifiedError(error)}`
       );
-      if (attempt < maxAttempts) {
+      if (transport?.retryable && attempt < maxAttempts) {
         await sleep(REACHABILITY_RETRY_DELAY_MS);
+        continue;
       }
+      return null;
     }
   }
 
