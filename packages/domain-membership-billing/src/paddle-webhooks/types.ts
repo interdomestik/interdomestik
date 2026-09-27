@@ -25,6 +25,25 @@ export type SendPaymentFailedEmail = (
   }
 ) => unknown;
 
+export type PreparedPastDueEmail = {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+};
+
+export type PastDueEmailDeps = {
+  preparePastDueEmail?: (
+    to: string,
+    params: Parameters<SendPaymentFailedEmail>[1]
+  ) => PreparedPastDueEmail;
+  sendPreparedPastDueEmail?: (
+    request: PreparedPastDueEmail,
+    idempotencyKey: string
+  ) => Promise<{ success: true; id: string } | { success: false; error: string }>;
+};
+
 export type PreparedMembershipConfirmationEmail = {
   to: string;
   subject: string;
@@ -180,7 +199,7 @@ export type ResolvePaddleCustomer = (
   customerId: string
 ) => Promise<PaddleCustomerLookupResult> | PaddleCustomerLookupResult;
 
-export type PaddleWebhookDeps = {
+export type PaddleWebhookDeps = PastDueEmailDeps & {
   sendPaymentFailedEmail?: SendPaymentFailedEmail;
   prepareThankYouLetter?: PrepareThankYouLetter;
   sendThankYouLetter?: SendThankYouLetter;

@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-26
+last_reviewed: 2026-09-27
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,51 +15,59 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                        | Status        | Owner                   | Work                                                                                              | Exit Criteria                                                                                                                                                                        |
-| ------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S6-PROVIDER-EVENT-ORDER` | `in_progress` | Codex integration owner | Stop a delayed or replayed older signed Paddle lifecycle event from overwriting a newer snapshot. | Signed `occurred_at` at the write boundary; row-locked atomic marker; stale no-op; equal-time/invalid evidence fails closed; focused tests; protected checks and exact-main staging. |
+| ID                     | Status        | Owner                   | Work                                                                  | Exit Criteria                                                                                                                                 |
+| ---------------------- | ------------- | ----------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S6-PAST-DUE-RECOVERY` | `in_progress` | Codex integration owner | Recover committed ordered past-due audit/notification effects safely. | Atomic audit/intent; exact pending replay; no extra count/email or stale effects; tenant/lock proof; protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: protected main `5e696747a7091e738b174830ec0a474f578af2fd`; #1829 and staging CD
-  `36247906583` are credited and must not be repeated as lifecycle-ordering proof.
-- The entity-scoped lifecycle path requires the signed top-level `occurred_at` and `event_id`;
-  missing/invalid evidence fails permanently before subscription, entitlement, event or audit effects.
-- Ordering is per provider subscription row in its canonical tenant. The row lock, comparison,
-  snapshot, `provider_event_occurred_at`/`provider_event_id` marker and domain event commit together.
-- Older-after-newer is a stale no-op whose receipt completes; newer applies; exact replay is
-  idempotent; a distinct equal-time event fails permanently without mutation.
-- Rows that predate the marker derive a floor from signature-valid processed receipts of the same
-  entity processing scope, tenant and subscription; invalid or equal receipt evidence fails closed.
-- Entity-scoped `subscription.past_due` uses the same contract on the exact existing provider row;
-  stale/replayed events increment no dunning counter and send no audit or payment-failed email.
-- Ordering precedes confirmation-store access; a stale `subscription.created` claims, readies and
-  sends nothing, while applied/exact-replay confirmation delivery keeps #1827 behavior.
-- Bounded additive schema only (migration 0095). No proxy/auth, tenancy, pricing, renewal
-  operations, legacy unscoped route, production, provider mutation or charge.
+- Base: freshly fetched protected main `3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`.
+- The entity-scoped, signature-valid ordered `subscription.past_due` path commits its existing
+  counter/marker, one deterministic tenant/event audit and immutable Day 0 email intent atomically.
+  Audit or intent persistence failure rolls the entire write back.
+- Exact replay recovers only an existing pending intent; it never increments again, reconstructs
+  a request from changed member data or sends again after a recorded acknowledgement.
+- Recovery locks the canonical tenant/subscription row through send and acknowledgement. A newer
+  lifecycle marker suppresses the pending notification; stale events create no new effect.
+- The full request and provider idempotency key remain fixed. Recoverable delivery uses Resend
+  dedupe, never arbitrary SMTP. A missing sender or negative/ambiguous result remains retryable.
+  Automatic attempts stop at 23 hours from intent creation, within the provider's 24-hour key
+  retention; unresolved acceptance then requires reconciliation and never a fresh key.
+- Preserve existing missing-email/Day 0-only behavior. No reconstruction of pre-fix lost intents,
+  new scheduler, migration, pricing/terms, renewal operations or unscoped legacy-route change.
+- Focused fault injection and actual non-bypass PostgreSQL transaction/tenant proof, one independent
+  review and one consolidated required verification lane precede protected delivery. Exact-main
+  automatic staging is separate evidence; no charge/provider mutation or production deployment.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                   |
-| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1829; provider-event order is selected while approved offer comparison remains open. |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver provider-event order; credit #1815 and #1824–#1829; approved offer/terms, live paid activation and renewal remain open.        |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                      |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                   |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                              |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                           |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                     |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                               |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Credit #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1829; past-due recovery is selected; credit #1830–#1833; approved offer comparison remains open. |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver bounded past-due recovery; credit #1815 and #1824–#1833; approved offer/terms, live paid activation and renewal remain open.               |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                  |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                               |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                          |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                       |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                 |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                        | Source Refs                                                                                 | Execution  | Run ID  | Run Root                                                  | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------- | ---------- | ------- | --------------------------------------------------------- | ------- | -------------- | -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `S6-PROVIDER-EVENT-ORDER` | owner continuation; IDA-CTR-023/IDA-MEM-007/IDA-MEM-008; protected main `5e69674`; PR #1829 | `scripted` | pending | event-order unit, interleaving and migration-corpus tests | pending | not_applicable | not_applicable | pending  | signed occurred_at ordering; atomic row-locked marker; stale no-op; equal-time and invalid evidence fail closed; replay intact |
+| ID                     | Source Refs                                                                                        | Execution  | Run ID  | Run Root                                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `S6-PAST-DUE-RECOVERY` | owner continuation; IDA-CTR-023/IDA-MEM-007/IDA-MEM-008; protected main `3cb81b15`; PR #1830–#1833 | `scripted` | pending | fault injection, replay and non-bypass PostgreSQL proof | pending | not_applicable | not_applicable | pending  | atomic audit/intent; immutable replay; lock-through-send; 23-hour retry boundary; no duplicate counters/effects |
 
 ## Current Facts
+
+PR [#1830](https://github.com/interdomestik/interdomestik/pull/1830) delivered provider-event
+ordering as protected merge `069099bc1e4628df8f5b87c91bd96245a959f67e`. #1831–#1833 repaired staging
+trust, schema and transport. The [#1833 receipt](https://github.com/interdomestik/interdomestik/pull/1833#issuecomment-5855811154)
+credits exact main `3cb81b15a4cd5005efccdd5cd1dfcb1ada9b5864`, protected checks, Sonar and automatic
+staging CD `36312718148` attempt 4 with full P0 passing. Production was skipped. This closes the
+stale provider-event-order status; its proof is credited, not repeated by this recovery slice.
 
 - #1829 protected-merged at `5e696747a7091e738b174830ec0a474f578af2fd`. Automatic CD `36247906583`
   rolled back safely after a transient network failure, then passed exact-main staging
@@ -118,11 +126,10 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Next Selection
 
-Complete this bounded provider-event-order protection through one protected product PR and
-exact-main automatic staging. Hand off renewal/dunning operations beyond the protected `past_due`
-event, approved effective-dated offer/entity/versioned terms, live paid
-activation, MK secret and deployed provider-permission gaps without starting another slice. Browser
-or email success never grants membership; the proof uses signed sandbox receipts and no charge.
+Complete the bounded past-due recovery through one protected product PR and exact-main automatic
+staging. Keep expired ambiguous sends and pre-fix lost intent reconciliation distinct from automatic
+recovery. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
+MK secret/provider permissions and whole S5/S6/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
 no status-only PR is required.
 

@@ -19,7 +19,9 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/actions/thank-you-letter/send', () => ({ sendThankYouLetterCore: vi.fn() }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ auth: { api: { requestPasswordReset: vi.fn() } } }));
-vi.mock('@/lib/email', () => ({ sendPaymentFailedEmail: vi.fn() }));
+vi.mock('@/lib/email', () => ({
+  paddleDunningEmailDeps: {},
+}));
 vi.mock('@interdomestik/database', () => ({
   db: { query: { user: { findFirst: hoisted.dbUserFindFirst } } },
 }));

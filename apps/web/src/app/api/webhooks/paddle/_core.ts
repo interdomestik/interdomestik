@@ -3,7 +3,7 @@ import {
   sendPreparedThankYouLetterCore,
 } from '@/actions/thank-you-letter/delivery';
 import { logAuditEvent } from '@/lib/audit';
-import { sendPaymentFailedEmail } from '@/lib/email';
+import { paddleDunningEmailDeps } from '@/lib/email';
 import { db } from '@interdomestik/database';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
 import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
@@ -340,7 +340,7 @@ export async function handlePaddleWebhookCore(args: {
       {
         membershipConfirmationDelivery: membershipConfirmationDeliveryStore,
         prepareThankYouLetter: prepareThankYouLetterCore,
-        sendPaymentFailedEmail,
+        ...paddleDunningEmailDeps,
         sendThankYouLetter: sendPreparedThankYouLetterCore,
         requestPasswordResetOnboarding,
         resolvePaddleCustomer: customerId => resolvePaddleCustomer(paddle, customerId),
