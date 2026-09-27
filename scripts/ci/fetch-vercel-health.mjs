@@ -1,4 +1,7 @@
 import { execFile as execFileCallback } from 'node:child_process';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
@@ -50,6 +53,16 @@ function sanitizeHealthBody(body) {
     .slice(0, 1_200);
 }
 
+function sanitizeTransportError(error, headers) {
+  let detail = String(error?.stderr || '');
+  for (const value of Object.values(headers)) {
+    if (value) detail = detail.replaceAll(value, '[redacted]');
+  }
+  detail = sanitizeHealthBody(detail).trim();
+  const code = error?.code === undefined ? '' : ` (exit ${String(error.code)})`;
+  return new Error(`Health request transport failed${code}${detail ? `: ${detail}` : ''}`);
+}
+
 export async function requestVercelHealth(
   url,
   headers,
@@ -58,6 +71,7 @@ export async function requestVercelHealth(
   env = process.env
 ) {
   const args = [];
+  let headerDirectory;
   if (env.INTERDOMESTIK_VERCEL_IPV4_ONLY === '1') args.push('--ipv4');
   args.push(
     '--silent',
@@ -67,15 +81,26 @@ export async function requestVercelHealth(
     '--write-out',
     `${STATUS_MARKER}%{http_code}`
   );
-  for (const [name, value] of Object.entries(headers)) {
-    args.push('--header', `${name}: ${value}`);
+  const headerLines = Object.entries(headers).map(([name, value]) => `${name}: ${value}`);
+  if (headerLines.length > 0) {
+    headerDirectory = await mkdtemp(path.join(tmpdir(), 'interdomestik-vercel-health-'));
+    const headerPath = path.join(headerDirectory, 'headers');
+    await writeFile(headerPath, `${headerLines.join('\n')}\n`, { mode: 0o600 });
+    args.push('--header', `@${headerPath}`);
   }
   args.push('--', url.href);
 
-  const { stdout } = await execFileImpl('curl', args, {
-    encoding: 'utf8',
-    maxBuffer: 2 * 1024 * 1024,
-  });
+  let stdout;
+  try {
+    ({ stdout } = await execFileImpl('curl', args, {
+      encoding: 'utf8',
+      maxBuffer: 2 * 1024 * 1024,
+    }));
+  } catch (error) {
+    throw sanitizeTransportError(error, headers);
+  } finally {
+    if (headerDirectory) await rm(headerDirectory, { recursive: true, force: true });
+  }
   const markerIndex = stdout.lastIndexOf(STATUS_MARKER);
   if (markerIndex < 0) throw new Error('Health endpoint response did not include status');
   const status = Number(stdout.slice(markerIndex + STATUS_MARKER.length).trim());

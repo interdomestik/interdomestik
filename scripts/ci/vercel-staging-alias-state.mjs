@@ -39,6 +39,10 @@ function assignmentUrl(hostname) {
 export function boundedProviderText(value) {
   return String(value || '')
     .replace(
+      /x-vercel-protection-bypass(?:["']?\s*[:=]\s*["']?|\s+)[^"',\s}]+/giu,
+      'x-vercel-protection-bypass=[redacted]'
+    )
+    .replace(
       /(token|secret|password|key)(?:["']?\s*[:=]\s*["']?|\s+)[^"',\s}]+/giu,
       '$1=[redacted]'
     )
