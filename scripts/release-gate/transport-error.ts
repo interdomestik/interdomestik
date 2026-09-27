@@ -27,14 +27,14 @@ const TCP_CODES = new Set([
 const TLS_CODE_PATTERN = /^(?:CERT_|DEPTH_ZERO_|ERR_SSL_|ERR_TLS_|SELF_SIGNED_|UNABLE_TO_)/u;
 const SAFE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{1,63}$/u;
 const KNOWN_CODE_PATTERN = new RegExp(
-  `\\b(${[
+  String.raw`\b(${[
     ...TRANSIENT_TRANSPORT_CODES,
     'CERT_HAS_EXPIRED',
     'DEPTH_ZERO_SELF_SIGNED_CERT',
     'ERR_TLS_CERT_ALTNAME_INVALID',
     'SELF_SIGNED_CERT_IN_CHAIN',
     'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-  ].join('|')})\\b`,
+  ].join('|')})\b`,
   'u'
 );
 
@@ -52,21 +52,33 @@ function compactSanitizedMessage(raw, maxLength = 180) {
     .slice(0, maxLength);
 }
 
+function nextUnseenErrorNode(queue, seen) {
+  while (queue.length) {
+    const value = queue.shift();
+    if (!value || (typeof value !== 'object' && typeof value !== 'string')) continue;
+    if (typeof value !== 'object') return value;
+    if (seen.has(value)) continue;
+    seen.add(value);
+    return value;
+  }
+  return null;
+}
+
+function appendNestedErrorNodes(queue, node) {
+  if (typeof node !== 'object') return;
+  if (node.cause) queue.push(node.cause);
+  if (Array.isArray(node.errors)) queue.push(...node.errors);
+}
+
 function errorNodes(root) {
   const nodes = [];
   const queue = [root];
   const seen = new Set();
-  while (queue.length && nodes.length < 8) {
-    const value = queue.shift();
-    if (!value || (typeof value !== 'object' && typeof value !== 'string')) continue;
-    if (typeof value === 'object') {
-      if (seen.has(value)) continue;
-      seen.add(value);
-    }
-    nodes.push(value);
-    if (typeof value !== 'object') continue;
-    if (value.cause) queue.push(value.cause);
-    if (Array.isArray(value.errors)) queue.push(...value.errors);
+  while (nodes.length < 8) {
+    const node = nextUnseenErrorNode(queue, seen);
+    if (!node) break;
+    nodes.push(node);
+    appendNestedErrorNodes(queue, node);
   }
   return nodes;
 }
@@ -75,7 +87,7 @@ function normalizedCode(node) {
   const propertyCode = typeof node === 'object' ? String(node.code || '').toUpperCase() : '';
   if (SAFE_CODE_PATTERN.test(propertyCode)) return propertyCode;
   const message = String(typeof node === 'object' ? node.message || '' : node);
-  return message.toUpperCase().match(KNOWN_CODE_PATTERN)?.[1] || '';
+  return KNOWN_CODE_PATTERN.exec(message.toUpperCase())?.[1] || '';
 }
 
 function transportPhase(node, code) {
