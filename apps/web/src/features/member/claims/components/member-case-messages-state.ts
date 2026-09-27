@@ -43,7 +43,7 @@ export function useMemberCaseMessages(claimId: string, userId: string) {
         setLoadError(true);
         return;
       }
-      const visible = result.messages.filter(publicMessage);
+      const visible = result.messages.filter(message => publicMessage(message));
       const merged = new Map(visible.map(message => [message.id, message]));
       acknowledged.current.forEach((message, id) => {
         if (!merged.has(id)) merged.set(id, message);

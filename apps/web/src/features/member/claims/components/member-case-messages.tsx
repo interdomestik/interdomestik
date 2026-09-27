@@ -22,6 +22,10 @@ function CaseMessages({ claimId, currentUser }: MemberCaseMessagesProps) {
   const inputId = useId();
   const state = useMemberCaseMessages(claimId, currentUser.id);
   const scroll = useMemberCaseMessagesScroll(state.messages, state.sentCount);
+  let statusMessage = '';
+  if (state.sending) statusMessage = t('sending');
+  else if (state.sendStatus === 'sent') statusMessage = t('sent');
+  else if (state.loading) statusMessage = t('member.loading');
 
   return (
     <Card data-testid="messaging-panel" className="min-w-0">
@@ -38,13 +42,7 @@ function CaseMessages({ claimId, currentUser }: MemberCaseMessagesProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
-          {state.sending
-            ? t('sending')
-            : state.sendStatus === 'sent'
-              ? t('sent')
-              : state.loading
-                ? t('member.loading')
-                : ''}
+          {statusMessage}
         </p>
         {state.loadError && <p role="alert">{t('member.loadError')}</p>}
         {state.readError && <p role="alert">{t('member.readError')}</p>}
@@ -59,7 +57,7 @@ function CaseMessages({ claimId, currentUser }: MemberCaseMessagesProps) {
           <ol
             ref={scroll.ref}
             onScroll={scroll.onScroll}
-            tabIndex={0}
+            tabIndex={0 /* NOSONAR: Keyboard access to this named scroll container. */}
             aria-label={t('title')}
             className="max-h-96 space-y-4 overflow-y-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >

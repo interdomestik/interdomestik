@@ -57,7 +57,7 @@ export async function withMemberMessageFixture<T>(
         tenantId: index === 3 ? foreignTenant : seed.tenantId,
         senderId: seed.staffId,
         content: index === 0 ? 'Your case update is available.' : `Private sentinel ${id}`,
-        isInternal: index === 1 ? true : index === 2 ? null : false,
+        isInternal: [false, true, null, false, false][index],
       }))
     );
     return await run({ ...seed, claimId: claimIds[0], deniedIds: claimIds.slice(1), messageIds });
