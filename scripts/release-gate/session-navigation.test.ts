@@ -33,7 +33,12 @@ test('resolveReachableBaseUrl normalizes accepted deployment fallback URLs', asy
   globalThis.fetch = async input => {
     attempt += 1;
     if (String(input).includes('interdomestik-web.vercel.app')) {
-      throw new Error('unreachable');
+      const cause = Object.assign(new Error('getaddrinfo EAI_AGAIN'), {
+        code: 'EAI_AGAIN',
+        hostname: 'interdomestik-web.vercel.app',
+        syscall: 'getaddrinfo',
+      });
+      throw new TypeError('fetch failed', { cause });
     }
     return new Response('', { status: 200 });
   };
