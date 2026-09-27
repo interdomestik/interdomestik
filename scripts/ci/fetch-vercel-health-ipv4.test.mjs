@@ -48,10 +48,54 @@ test('requestVercelHealth keeps the bypass secret out of command errors and remo
     }),
     error => {
       assert.match(error.message, /Health request transport failed.*28/u);
+      assert.equal(error.code, 28);
       assert.doesNotMatch(error.message, new RegExp(secret, 'u'));
       assert.doesNotMatch(error.message, /dummy-byp/u);
       return true;
     }
   );
   await assert.rejects(access(headerPath));
+});
+
+test('requestVercelHealth removes header material when writing the header file fails', async () => {
+  const secret = 'dummy-write-failure-secret';
+  const headerDirectory = '/tmp/interdomestik-vercel-health-write-failure';
+  let removed;
+  const fileOps = {
+    mkdtemp: async prefix => {
+      assert.match(prefix, /interdomestik-vercel-health-$/u);
+      return headerDirectory;
+    },
+    writeFile: async (headerPath, contents, options) => {
+      assert.equal(headerPath, `${headerDirectory}/headers`);
+      assert.equal(contents, `x-vercel-protection-bypass: ${secret}\n`);
+      assert.deepEqual(options, { mode: 0o600 });
+      throw Object.assign(new Error('simulated write failure'), { code: 'ENOSPC' });
+    },
+    rm: async (target, options) => {
+      removed = { target, options };
+    },
+  };
+  const execFileImpl = async () => assert.fail('curl must not run after header-file setup fails');
+  const url = new URL('https://interdomestik-web-git-main-ecohub.vercel.app/api/health');
+
+  await assert.rejects(
+    requestVercelHealth(
+      url,
+      { 'x-vercel-protection-bypass': secret },
+      1_000,
+      execFileImpl,
+      {},
+      fileOps
+    ),
+    error => {
+      assert.equal(error.code, 'ENOSPC');
+      assert.doesNotMatch(error.message, new RegExp(secret, 'u'));
+      return true;
+    }
+  );
+  assert.deepEqual(removed, {
+    target: headerDirectory,
+    options: { recursive: true, force: true },
+  });
 });
