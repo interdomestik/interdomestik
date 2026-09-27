@@ -60,6 +60,10 @@ export function MemberEvidenceDownloadButton({
   const [state, setState] = useState<DownloadState>('idle');
   const controllerRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef(false);
+  let statusMessage: string | null = null;
+  if (state === 'preparing') statusMessage = t('downloadPreparing');
+  if (state === 'success') statusMessage = t('downloadSuccess');
+  if (state === 'error') statusMessage = t('downloadError');
 
   useEffect(
     () => () => {
@@ -107,17 +111,13 @@ export function MemberEvidenceDownloadButton({
       >
         {state === 'preparing' ? t('downloadPreparing') : t('download')}
       </Button>
-      {state !== 'idle' ? (
+      {statusMessage ? (
         <output
           className="block max-w-64 text-sm text-muted-foreground"
           aria-live="polite"
           aria-atomic="true"
         >
-          {state === 'preparing'
-            ? t('downloadPreparing')
-            : state === 'success'
-              ? t('downloadSuccess')
-              : t('downloadError')}
+          {statusMessage}
         </output>
       ) : null}
     </div>

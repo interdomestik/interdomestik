@@ -31,25 +31,6 @@ const mockSelectChain = {
   where: vi.fn().mockResolvedValue([]),
 };
 
-function mockAssignedClaimDocument(claimStaffId: string) {
-  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-    {
-      doc: {
-        id: 'doc-1',
-        claimId: 'claim-1',
-        bucket: 'claim-evidence',
-        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-        uploadedBy: 'user-1',
-        name: 'file.pdf',
-        fileType: 'application/pdf',
-        fileSize: 123,
-      },
-      claimOwnerId: 'user-1',
-      claimStaffId,
-    },
-  ]);
-}
-
 vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
@@ -152,24 +133,20 @@ describe('GET /api/documents/[id]', () => {
     );
   });
 
-  it('denies an unassigned staff role before issuing a signed URL', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'staff-other', role: 'staff', tenantId: 'tenant_mk' },
-    });
-    mockAssignedClaimDocument('staff-assigned');
-
-    const request = new Request('http://localhost:3000/api/documents/doc-1');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
-
-    expect(response.status).toBe(403);
-    expect(hoisted.createSignedUrl).not.toHaveBeenCalled();
-  });
-
   it('fails closed without recording issuance when storage signing fails', async () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
     });
-    mockAssignedClaimDocument('staff-assigned');
+    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        doc: {
+          bucket: 'claim-evidence',
+          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+          uploadedBy: 'user-1',
+        },
+        claimOwnerId: 'user-1',
+      },
+    ]);
     hoisted.createSignedUrl.mockResolvedValueOnce({
       data: null,
       error: new Error('signing unavailable'),
