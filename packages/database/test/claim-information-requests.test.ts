@@ -124,6 +124,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       'requestId',
       'requestedInformation',
       'slaPosture',
+      'status',
     ]);
     assert.equal(visible[0].slaPosture, 'incomplete');
     assert.equal(visible[0].dueAt, input.dueAt);

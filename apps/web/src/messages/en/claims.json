@@ -216,9 +216,21 @@
     "informationRequests": {
       "title": "Information requested",
       "reference": "Request reference",
-      "dueAt": "Requested by",
+      "dueAt": "Recorded due date",
       "owner": "Responsible team",
       "ownerLabel": "Interdomestik case team",
+      "statusLabel": "Request status",
+      "status": {
+        "open": "Open — submitting or acknowledging evidence does not close this request"
+      },
+      "nextActorLabel": "Next to act",
+      "nextActor": { "member": "Member", "assignedStaff": "Assigned case staff" },
+      "nextActionLabel": "Next action",
+      "nextAction": {
+        "uploadEvidence": "Upload the requested evidence",
+        "reviewEvidence": "Review submitted evidence and acknowledge receipt",
+        "reviewRequest": "Continue reviewing the evidence; the request remains open"
+      },
       "incomplete": "Information was missing when this request was created.",
       "loadError": "Information requests could not be loaded. Other case details remain available.",
       "upload": "Upload requested evidence",

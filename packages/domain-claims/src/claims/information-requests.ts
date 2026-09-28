@@ -112,6 +112,7 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
         requestedInformation: claimInformationRequests.requestedInformation,
         explanationForMember: claimInformationRequests.explanationForMember,
         dueAt: claimInformationRequests.dueAt,
+        status: claimInformationRequests.status,
         slaPosture: claimInformationRequests.slaPosture,
         createdAt: claimInformationRequests.createdAt,
         documentId: claimInformationRequestEvidence.documentId,
@@ -170,6 +171,7 @@ export async function getInformationRequests(session: ClaimsSession | null, clai
         requestedInformation: row.requestedInformation,
         explanationForMember: row.explanationForMember,
         dueAt: row.dueAt.toISOString(),
+        status: row.status,
         slaPosture: row.slaPosture,
         createdAt: row.createdAt.toISOString(),
         evidence: [],
@@ -206,6 +208,7 @@ export type PublicInformationRequest = {
   requestedInformation: string;
   explanationForMember: string;
   dueAt: string;
+  status: 'open';
   slaPosture: 'incomplete';
   createdAt: string;
   evidence: InformationRequestEvidence[];

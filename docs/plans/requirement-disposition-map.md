@@ -92,12 +92,17 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S5 work
 
-`S5-FREE-START-SERVICE-BOUNDARY` selects the mounted organizer and generated result on protected
-main `a0928a1`. The verified SRS v0.9 `IDA-FST-014` clause requires Free Start to explain that it
-organizes information without establishing legal representation, claim acceptance, insurer
-submission or professional advice. The current mounted copy already disclaims case creation but
-does not clearly cover every service boundary. This increment supplies bounded four-locale software
-evidence; product/privacy content approval and whole S5 remain open.
+`S5-S7-EVIDENCE-NEXT-ACTION` selects the shared member/assigned-staff evidence-request card on
+protected main `a51fcc8`. The verified SRS v0.9 `IDA-CLM-010` clause requires a specific request,
+due date, responsible owner, member-visible explanation and SLA posture. #1814 already delivered
+request-linked upload and assigned-staff acknowledgement. This increment makes the persisted open
+status and next actor/action visible on both views without treating upload or acknowledgement as
+fulfilment. Whole `IDA-CLM-010`, operational/business and user acceptance remain open.
+
+#1840 delivered the `IDA-FST-014` four-locale Free Start service boundary on exact main `a51fcc8`;
+automatic staging CD `36482936539` passed with production skipped. Product/privacy content review
+and broader Free Start acceptance remain open. #1839 security triage and #1838 period/grace truth
+remain separately credited in the current program/tracker.
 
 ## Current bounded S6 work
 
@@ -299,7 +304,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-FST-011 | Review before handoff | Canonical | pilot-required | S5; #1801 proves active-member exact vehicle review before submit; active continuation increment selects the exact saved draft through existing access decision; fresh-account activation depends on S6 IDA-MEM-006 | open | none | U | U | U |
 | IDA-FST-012 | Owner isolation | Canonical | pilot-required | S5; delivered specs prove same-tenant foreign refusal and forged-submit refusal; protected PR #1803 adds a freshly verified owner and foreign-tenant list/resume `notFound` proof | open | none | bounded #1803 delivered; whole acceptance open; Engineering | U | U |
 | IDA-FST-013 | Draft deletion | Canonical | unresolved | S5; protected PR #1803 proves permanent owner deletion plus scoped create/delete audit evidence and task-owned cleanup | open | none | bounded #1803 delivered; whole acceptance open; Engineering | U | U |
-| IDA-FST-014 | No representation implication | Target | unresolved | S5; active bounded Free Start organizer/result service-boundary disclosure in EN/SQ/MK/SR | Product/privacy content review, broader journey and business acceptance remain open | none | U | U | U |
+| IDA-FST-014 | No representation implication | Target | unresolved | S5; #1840 delivered bounded Free Start organizer/result service-boundary disclosure in EN/SQ/MK/SR on exact main `a51fcc8` | Product/privacy content review, broader journey and business acceptance remain open | #1840; staging CD `36482936539`; production skipped | U | U | U |
 | IDA-MEM-001 | Offer and proof separation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-002 | Entity-of-record snapshot | Canonical | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-003 | No ambient entity recomputation | Canonical | unresolved | S6/S9 | open | none | U | U | U |
@@ -429,7 +434,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Protected delivery includes assigned-owner request creation, explicit due date, safe member explanation/reference, request-local SLA posture and correlation retries. The active request-linked evidence slice adds member upload and assigned-staff acknowledgement while leaving the request open and claim lifecycle/SLA unchanged. Request fulfilment remains open | Current tracker request-linked evidence receipt pending | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Existing protected delivery covers assigned-owner creation, explicit due date, safe explanation/reference, request-local SLA posture and correlation retries; #1814 covers member upload and assigned-staff acknowledgement. Current bounded S5/S7 slice adds shared visible open status and next actor/action without request fulfilment or claim lifecycle/SLA change. Whole requirement remains open | #1814 protected merge `af191e7`; current S5/S7 proof pending | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |

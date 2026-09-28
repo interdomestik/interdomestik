@@ -216,9 +216,19 @@
     "informationRequests": {
       "title": "Informacion i kërkuar",
       "reference": "Referenca e kërkesës",
-      "dueAt": "Afati i kërkuar",
+      "dueAt": "Afati i regjistruar",
       "owner": "Ekipi përgjegjës",
       "ownerLabel": "Ekipi i rasteve Interdomestik",
+      "statusLabel": "Statusi i kërkesës",
+      "status": { "open": "E hapur — dorëzimi ose konfirmimi i provës nuk e mbyll këtë kërkesë" },
+      "nextActorLabel": "Kush vepron më pas",
+      "nextActor": { "member": "Anëtari", "assignedStaff": "Punonjësi i caktuar për rastin" },
+      "nextActionLabel": "Veprimi i radhës",
+      "nextAction": {
+        "uploadEvidence": "Ngarko provën e kërkuar",
+        "reviewEvidence": "Shqyrto provën e dorëzuar dhe konfirmo marrjen",
+        "reviewRequest": "Vazhdo shqyrtimin e provës; kërkesa mbetet e hapur"
+      },
       "incomplete": "Informacioni mungonte kur u krijua kjo kërkesë.",
       "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme.",
       "upload": "Ngarko provën e kërkuar",

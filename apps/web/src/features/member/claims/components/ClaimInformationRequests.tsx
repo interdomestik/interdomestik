@@ -17,6 +17,20 @@ type EvidenceAcknowledgementButtonProps = Readonly<{
   requestId: string;
 }>;
 
+function getOpenRequestNextAction(progress: PublicInformationRequest['progress']): {
+  actor: 'member' | 'assignedStaff';
+  action: 'uploadEvidence' | 'reviewEvidence' | 'reviewRequest';
+} {
+  switch (progress) {
+    case 'awaiting_evidence':
+      return { actor: 'member', action: 'uploadEvidence' };
+    case 'submitted':
+      return { actor: 'assignedStaff', action: 'reviewEvidence' };
+    case 'acknowledged':
+      return { actor: 'assignedStaff', action: 'reviewRequest' };
+  }
+}
+
 function EvidenceAcknowledgementButton({
   claimId,
   documentId,
@@ -118,92 +132,111 @@ export function ClaimInformationRequests({
   if (!displayRequests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">
-      {displayRequests.map(request => (
-        <Card key={request.requestId} data-testid="claim-information-request">
-          <CardHeader>
-            <CardTitle>{t('title')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 break-words">
-            <p className="whitespace-pre-wrap font-medium">{request.requestedInformation}</p>
-            <p className="whitespace-pre-wrap">{request.explanationForMember}</p>
-            <dl className="space-y-2 text-sm">
-              <div>
-                <dt className="text-muted-foreground">{t('reference')}</dt>
-                <dd>{request.requestId}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">{t('dueAt')}</dt>
-                <dd>
-                  <time dateTime={request.dueAt}>
-                    {deadlineFormatter.format(new Date(request.dueAt))} UTC
-                  </time>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">{t('owner')}</dt>
-                <dd>{t('ownerLabel')}</dd>
-              </div>
-            </dl>
-            <p className="text-sm text-muted-foreground">{t('incomplete')}</p>
-            <p className="text-sm font-medium" data-testid="information-request-progress">
-              {t(`progress.${request.progress}`)}
-            </p>
-            {request.evidence.length ? (
-              <ul className="space-y-2" aria-label={t('evidenceList')}>
-                {request.evidence.map(evidence => (
-                  <li
-                    key={evidence.documentId}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
-                  >
-                    <div>
-                      <p className="font-medium">{evidence.documentName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {evidence.acknowledgedAt ? t('acknowledged') : t('submitted')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {audience === 'member' ? (
-                        <MemberEvidenceDownloadButton
-                          documentId={evidence.documentId}
-                          documentName={evidence.documentName}
-                        />
-                      ) : (
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/api/documents/${evidence.documentId}/download`}>
-                            {t('download')}
-                          </Link>
-                        </Button>
-                      )}
-                      {audience === 'staff' && canAcknowledge && !evidence.acknowledgedAt ? (
-                        <EvidenceAcknowledgementButton
-                          claimId={claimId}
-                          documentId={evidence.documentId}
-                          requestId={request.requestId}
-                        />
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {audience === 'member' ? (
-              <ClaimEvidenceUploadDialog
-                claimId={claimId}
-                informationRequestId={request.requestId}
-                onUploadSuccess={evidence => {
-                  setDisplayRequests(current =>
-                    appendRequestEvidence(current, request.requestId, {
-                      ...evidence,
-                      acknowledgedAt: null,
-                    })
-                  );
-                }}
-                trigger={<Button type="button">{t('upload')}</Button>}
-              />
-            ) : null}
-          </CardContent>
-        </Card>
-      ))}
+      {displayRequests.map(request => {
+        const next = getOpenRequestNextAction(request.progress);
+        return (
+          <Card key={request.requestId} data-testid="claim-information-request">
+            <CardHeader>
+              <CardTitle>{t('title')}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 break-words">
+              <p className="whitespace-pre-wrap font-medium">{request.requestedInformation}</p>
+              <p className="whitespace-pre-wrap">{request.explanationForMember}</p>
+              <dl className="space-y-2 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">{t('reference')}</dt>
+                  <dd>{request.requestId}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('dueAt')}</dt>
+                  <dd>
+                    <time dateTime={request.dueAt}>
+                      {deadlineFormatter.format(new Date(request.dueAt))} UTC
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('owner')}</dt>
+                  <dd>{t('ownerLabel')}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('statusLabel')}</dt>
+                  <dd data-testid="information-request-status">{t(`status.${request.status}`)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('nextActorLabel')}</dt>
+                  <dd data-testid="information-request-next-actor">
+                    {t(`nextActor.${next.actor}`)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{t('nextActionLabel')}</dt>
+                  <dd data-testid="information-request-next-action">
+                    {t(`nextAction.${next.action}`)}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-sm text-muted-foreground">{t('incomplete')}</p>
+              <p className="text-sm font-medium" data-testid="information-request-progress">
+                {t(`progress.${request.progress}`)}
+              </p>
+              {request.evidence.length ? (
+                <ul className="space-y-2" aria-label={t('evidenceList')}>
+                  {request.evidence.map(evidence => (
+                    <li
+                      key={evidence.documentId}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{evidence.documentName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {evidence.acknowledgedAt ? t('acknowledged') : t('submitted')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {audience === 'member' ? (
+                          <MemberEvidenceDownloadButton
+                            documentId={evidence.documentId}
+                            documentName={evidence.documentName}
+                          />
+                        ) : (
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/api/documents/${evidence.documentId}/download`}>
+                              {t('download')}
+                            </Link>
+                          </Button>
+                        )}
+                        {audience === 'staff' && canAcknowledge && !evidence.acknowledgedAt ? (
+                          <EvidenceAcknowledgementButton
+                            claimId={claimId}
+                            documentId={evidence.documentId}
+                            requestId={request.requestId}
+                          />
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {audience === 'member' ? (
+                <ClaimEvidenceUploadDialog
+                  claimId={claimId}
+                  informationRequestId={request.requestId}
+                  onUploadSuccess={evidence => {
+                    setDisplayRequests(current =>
+                      appendRequestEvidence(current, request.requestId, {
+                        ...evidence,
+                        acknowledgedAt: null,
+                      })
+                    );
+                  }}
+                  trigger={<Button type="button">{t('upload')}</Button>}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        );
+      })}
     </section>
   );
 }
