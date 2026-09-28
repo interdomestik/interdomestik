@@ -23,7 +23,7 @@ export interface DocumentAccessDeps {
       bucket: string,
       path: string,
       expiresIn: number,
-      options: { family: TenantStorageFamily; tenantId: string }
+      options: { downloadName?: string; family: TenantStorageFamily; tenantId: string }
     ) => Promise<{ signedUrl?: string; error?: unknown }>;
     download: (
       bucket: string,
@@ -402,24 +402,24 @@ export async function getDocumentAccessCore(args: {
 
 export async function createSignedDownloadUrlCore(args: {
   bucket: string;
+  downloadName?: string;
   filePath: string;
   expiresInSeconds: number;
   family: TenantStorageFamily;
   deps: DocumentAccessDeps;
   tenantId: string;
 }): Promise<{ ok: true; signedUrl: string } | { ok: false }> {
-  const { bucket, filePath, expiresInSeconds, family, deps, tenantId } = args;
+  const { bucket, downloadName, filePath, expiresInSeconds, family, deps, tenantId } = args;
   const { signedUrl, error } = await deps.storage.createSignedUrl(
     bucket,
     filePath,
     expiresInSeconds,
-    { family, tenantId }
+    { downloadName, family, tenantId }
   );
 
   if (error || !signedUrl) return { ok: false };
   return { ok: true, signedUrl };
 }
-
 export async function downloadStorageFileCore(args: {
   bucket: string;
   filePath: string;

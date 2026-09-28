@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
@@ -30,6 +30,30 @@ const mockSelectChain = {
   leftJoin: vi.fn().mockReturnThis(),
   where: vi.fn().mockResolvedValue([]),
 };
+
+function mockAuthenticatedMember(): void {
+  hoisted.getSession.mockResolvedValue({
+    user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+  });
+}
+
+function mockLegacyDocumentAccess(uploadedBy = 'user-1'): void {
+  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
+    {
+      doc: {
+        id: 'doc-1',
+        claimId: 'claim-1',
+        bucket: 'claim-evidence',
+        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+        uploadedBy,
+        name: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 123,
+      },
+      claimOwnerId: 'user-1',
+    },
+  ]);
+}
 
 vi.mock('@interdomestik/database', () => ({
   db: {
@@ -71,6 +95,10 @@ describe('GET /api/documents/[id]', () => {
       data: { signedUrl: 'https://signed.example.com/file' },
       error: null,
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -133,27 +161,27 @@ describe('GET /api/documents/[id]', () => {
     );
   });
 
-  it('returns 200 with signed url and logs audit when allowed', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+  it('fails closed without recording issuance when storage signing fails', async () => {
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess();
+    hoisted.createSignedUrl.mockResolvedValueOnce({
+      data: null,
+      error: new Error('signing unavailable'),
     });
-    // First query (Polymorphic Docs) returns empty
-    // Second query (Legacy ClaimDocs) returns found doc
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'someone-else',
-          name: 'file.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
-        claimOwnerId: 'user-1',
-      },
-    ]);
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: 'Failed to generate download URL' });
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'document.signed_url_issued' })
+    );
+  });
+
+  it('returns 200 with signed url and logs audit when allowed', async () => {
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess('someone-else');
 
     const request = new Request('http://localhost:3000/api/documents/doc-1');
     const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
@@ -169,6 +197,11 @@ describe('GET /api/documents/[id]', () => {
       size: 123,
       expiresIn: 300,
     });
+    expect(hoisted.createSignedUrl).toHaveBeenCalledWith(
+      'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+      300,
+      { download: 'file.pdf' }
+    );
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -177,5 +210,29 @@ describe('GET /api/documents/[id]', () => {
         entityId: 'doc-1',
       })
     );
+  });
+
+  it('uses the authenticated download proxy only for deterministic local E2E storage', async () => {
+    vi.stubEnv('INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING', '1');
+    vi.stubEnv('INTERDOMESTIK_LOCAL_E2E', '1');
+    vi.stubEnv('PLAYWRIGHT', '1');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '');
+    vi.stubEnv('VERCEL_ENV', '');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', '');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
+    mockAuthenticatedMember();
+    mockLegacyDocumentAccess();
+
+    const request = new Request('http://localhost:3000/api/documents/doc-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        url: '/api/documents/doc-1/download',
+        delivery: 'authenticated-proxy',
+      })
+    );
+    expect(hoisted.createSignedUrl).not.toHaveBeenCalled();
   });
 });

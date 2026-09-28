@@ -2,6 +2,7 @@
 
 import { acknowledgeClaimInformationRequestEvidence } from '@/actions/staff-claims/information-request';
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
+import { MemberEvidenceDownloadButton } from '@/features/member/claims/components/member-evidence-download-button';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
@@ -161,11 +162,18 @@ export function ClaimInformationRequests({
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/api/documents/${evidence.documentId}/download`}>
-                          {t('download')}
-                        </Link>
-                      </Button>
+                      {audience === 'member' ? (
+                        <MemberEvidenceDownloadButton
+                          documentId={evidence.documentId}
+                          documentName={evidence.documentName}
+                        />
+                      ) : (
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/api/documents/${evidence.documentId}/download`}>
+                            {t('download')}
+                          </Link>
+                        </Button>
+                      )}
                       {audience === 'staff' && canAcknowledge && !evidence.acknowledgedAt ? (
                         <EvidenceAcknowledgementButton
                           claimId={claimId}
