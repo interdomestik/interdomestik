@@ -35,8 +35,6 @@ vi.mock('../paddle-server', () => ({
 }));
 
 const TRUSTED_LINK = 'https://pay.ks.example.test/checkout/default';
-const TRUSTED_ORIGIN = 'https://pay.ks.example.test';
-const OTHER_ORIGIN = 'https://attacker.example.test';
 
 const PROVIDER_SUBSCRIPTION_ID = 'sub_' + 'a'.repeat(26);
 const PROVIDER_CUSTOMER_ID = 'ctm_' + 'b'.repeat(26);

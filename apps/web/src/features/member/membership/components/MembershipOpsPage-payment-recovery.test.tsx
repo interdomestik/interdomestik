@@ -166,6 +166,7 @@ describe('MembershipOpsPage', () => {
             {
               id: 'sub-1',
               status: 'past_due',
+              provider: 'paddle',
               planId: 'plan-family',
               createdAt: '2026-03-01T00:00:00.000Z',
               currentPeriodEnd: '2027-03-01T00:00:00.000Z',

@@ -125,7 +125,12 @@ export function MembershipOpsPage({
                     ← {t('ops.back_to_list')}
                   </button>
                 )}
-                <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+                <DetailView
+                  key={selectedSubscription.id}
+                  subscription={selectedSubscription}
+                  documents={documents}
+                  t={t}
+                />
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">

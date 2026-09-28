@@ -12,7 +12,7 @@ import {
 } from '@/components/ops/adapters/membership';
 import { Link, useRouter } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   activateSponsoredMembership,
   cancelSubscription,
@@ -52,11 +52,31 @@ export function DetailView({
 }) {
   const cancellationKeyRef = useRef<string | null>(null);
   const router = useRouter();
-  const { primary, secondary } = getMembershipActions(subscription, t);
+  const { primary: adapterPrimary, secondary } = getMembershipActions(subscription, t);
+  const isPaddlePaymentUpdate =
+    subscription.provider === 'paddle' &&
+    (subscription.status === 'active' || subscription.status === 'past_due');
+  const primary: OpsActionConfig | undefined = isPaddlePaymentUpdate
+    ? {
+        id: 'update_payment',
+        label: t('dunning.update_payment_button'),
+        variant: 'default',
+      }
+    : adapterPrimary?.id === 'renew' || adapterPrimary?.id === 'update_payment'
+      ? undefined
+      : adapterPrimary;
   const sponsoredState = getSponsoredMembershipState(subscription);
+  const isMountedRef = useRef(true);
   const isPaymentUpdatePendingRef = useRef(false);
   const [isPaymentUpdatePending, setIsPaymentUpdatePending] = useState(false);
   const [paymentUpdateStatus, setPaymentUpdateStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const isPaymentUpdateAction = (id: string) => id === 'renew' || id === 'update_payment';
 
@@ -90,6 +110,7 @@ export function DetailView({
 
       if (isPaymentUpdateAction(id)) {
         const result = await getPaymentUpdateUrl(subscription.id);
+        if (!isMountedRef.current) return;
         if (result.error || !result.url) {
           resetPaymentUpdatePending();
           setPaymentUpdateStatus(t('errors.payment_update_failed'));
@@ -135,6 +156,7 @@ export function DetailView({
 
       console.log('[Membership Action] Unhandled:', id);
     } catch (err) {
+      if (!isMountedRef.current) return;
       cancellationKeyRef.current = null;
       if (isPaymentUpdateAction(id)) {
         // Never log the raw error here: it may originate from provider client
