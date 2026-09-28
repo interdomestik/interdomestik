@@ -216,9 +216,19 @@
     "informationRequests": {
       "title": "Tražene informacije",
       "reference": "Referenca zahteva",
-      "dueAt": "Traženi rok",
+      "dueAt": "Zabeleženi rok",
       "owner": "Odgovorni tim",
       "ownerLabel": "Interdomestik tim za predmete",
+      "statusLabel": "Status zahteva",
+      "status": { "open": "Otvoren — slanje ili potvrda dokaza ne zatvara ovaj zahtev" },
+      "nextActorLabel": "Ko sledeći postupa",
+      "nextActor": { "member": "Član", "assignedStaff": "Dodeljeni službenik za predmet" },
+      "nextActionLabel": "Sledeći korak",
+      "nextAction": {
+        "uploadEvidence": "Pošaljite traženi dokaz",
+        "reviewEvidence": "Pregledajte poslati dokaz i potvrdite prijem",
+        "reviewRequest": "Nastavite pregled dokaza; zahtev ostaje otvoren"
+      },
       "incomplete": "Informacije su nedostajale kada je ovaj zahtev kreiran.",
       "loadError": "Zahtevi za informacije nisu mogli da se učitaju. Ostali detalji predmeta ostaju dostupni.",
       "upload": "Otpremi traženi dokaz",

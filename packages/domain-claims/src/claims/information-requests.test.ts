@@ -166,6 +166,7 @@ describe('information request contract', () => {
           requestedInformation: 'Repair estimate',
           explanationForMember: 'Needed to assess the damage.',
           dueAt: new Date('2026-01-01T10:00:00.000Z'),
+          status: 'open',
           slaPosture: 'incomplete',
           createdAt: new Date('2025-12-01T10:00:00.000Z'),
           documentId: 'document-1',
@@ -187,6 +188,7 @@ describe('information request contract', () => {
         requestedInformation: 'Repair estimate',
         explanationForMember: 'Needed to assess the damage.',
         dueAt: '2026-01-01T10:00:00.000Z',
+        status: 'open',
         slaPosture: 'incomplete',
         createdAt: '2025-12-01T10:00:00.000Z',
         evidence: [

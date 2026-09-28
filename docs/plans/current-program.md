@@ -16,13 +16,25 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-FREE-START-SERVICE-BOUNDARY` is the active bounded Free Start increment selected from
-freshly fetched protected main `a0928a1a276405d597e253de887c5b2fe9a77a1e`. The mounted
-organizer and generated result already explain that they do not open a case, but do not clearly
-state the full `IDA-FST-014` service boundary. Show in EN/SQ/MK/SR that Free Start organizes
-information and does not establish legal representation, claim acceptance, insurer submission or
-professional advice. Preserve the existing organizer and result behavior. This is bounded S5
-software evidence, not legal/content approval, whole S5, production or user acceptance.
+`S5-S7-EVIDENCE-NEXT-ACTION` is the active bounded case evidence-request increment selected from
+freshly fetched protected main `a51fcc86371794fc5ec3eabb62b36efbf457edb5`. The existing
+`IDA-CLM-010` request already has a recorded due date and open status, and #1814 supplies member
+upload and assigned-staff acknowledgement. Show both roles the same request, responsible next
+actor, recorded due date and truthful next action as evidence advances. Upload or acknowledgement
+must not imply fulfilment or change claim lifecycle/SLA. This is bounded S5/S7 software evidence,
+not whole request fulfilment, production or user acceptance.
+
+PR [#1840](https://github.com/interdomestik/interdomestik/pull/1840) delivered the prior
+`S5-FREE-START-SERVICE-BOUNDARY` increment as protected merge
+`a51fcc86371794fc5ec3eabb62b36efbf457edb5`. Automatic exact-main staging
+[CD `36482936539`](https://github.com/interdomestik/interdomestik/actions/runs/36482936539)
+passed on that SHA with production skipped. Credit its four-locale service boundary without
+repeating proof or claiming content approval or whole S5.
+
+PR [#1839](https://github.com/interdomestik/interdomestik/pull/1839) protected-merged historical
+Secret Scan triage as `a0928a1a276405d597e253de887c5b2fe9a77a1e`; automatic exact-main
+staging CD `36459687724` passed with production skipped. Three historical Sonar tokens remain
+unsuppressed pending revocation evidence; the merge did not close that incident.
 
 PR [#1838](https://github.com/interdomestik/interdomestik/pull/1838) delivered the previous
 `S6-MEMBER-PERIOD-GRACE-TRUTH` increment as protected merge
@@ -143,10 +155,12 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Show the Free Start service boundary on the mounted organizer and generated result before either
-   can imply a handoff or professional service.
-2. Explain the information-organizing purpose and the four excluded outcomes in plain EN/SQ/MK/SR.
-3. Preserve the current Free Start draft, result, save and later explicit claim flows.
+1. Show the persisted open request and its recorded UTC due date on member and assigned-staff case
+   detail, with the same reference and responsible next actor on both surfaces.
+2. Move the shared next action from member upload to assigned-staff evidence review and continued
+   review after acknowledgement, with clear EN/SQ/MK/SR wording that the request stays open.
+3. Preserve #1814 upload/acknowledgement, #1835 messaging and #1836 private retrieval without
+   implying that evidence acknowledgement fulfils the request or advances claim lifecycle/SLA.
 
 ## Enduring Safety Boundaries
 
@@ -159,8 +173,7 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
   protections remain mandatory. Authentication must never be bypassed, including in development.
 - Paddle remains the only V3 pilot billing provider. No routing, auth, tenancy, domain, schema,
   billing or deployment expansion is implied by a green check or planning entry.
-- `README.md`, `AGENTS.md` and architecture documents change only on an explicit owner request. This
-  governance repair carries that authorization only for its bounded owned files.
+- `README.md`, `AGENTS.md` and architecture documents change only on an explicit owner request.
 - Framework and dependency versions come from the workspace manifests, especially
   `apps/web/package.json`; prose must not duplicate a hard-coded framework version.
 - Architecture-finalization work is conditional and follows
@@ -241,19 +254,21 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current Free Start service boundary acceptance
+### Current case evidence next-action acceptance
 
-- The mounted organizer and generated result visibly and accessibly explain that Free Start
-  organizes information and does not establish legal representation, claim acceptance, insurer
-  submission or professional advice. Existing no-case/no-payment statements remain truthful.
-- EN/SQ/MK/SR carry the same boundary. Relevant mounted and locale tests prove the disclosure
-  without replacing the existing Free Start draft, result, save or later explicit claim behavior.
-- This is bounded software progress for `IDA-FST-014`. Product/privacy content approval,
-  broader Free Start acceptance, whole S5/S6, production and user acceptance remain open.
-  Proxy, auth/RLS, schema, billing and provider-event writers stay unchanged. German (Deutsch)
-  remains a fifth diaspora language in preparation, not a live locale in this increment.
-- Authenticated Claude Pro Sonnet 5 owns bounded source/test/catalog coding; Codex integrates,
-  reviews and runs one consolidated final verification lane. Record the actually served model.
+- Both mounted case-detail views use the same ownership-scoped request projection, reference,
+  recorded UTC due date and persisted `open` status. A failed read stays an error, not an empty
+  or completed request.
+- The shared visible next actor/action follows existing evidence progress: member/upload before
+  evidence, assigned staff/review and acknowledge after upload, assigned staff/continue evidence
+  review with the request open after acknowledgement. EN/SQ/MK/SR, keyboard controls and retry feedback
+  remain usable.
+- Upload and acknowledgement do not fulfil the request or alter the claim lifecycle/SLA. Existing
+  owner/tenant/RLS, staff authority, private-document retrieval and canonical routes remain intact.
+  Whole `IDA-CLM-010`, S5/S7, operational/business and user acceptance remain open.
+- Codex integrates and runs one consolidated final verification lane. The owner-authorized Claude
+  Sonnet 5 coding trial and Gemini Flash test/locale matrix are recorded only when actually served;
+  neither helper has authority to widen request access or product behavior.
 
 ### Credited #1834 past-due recovery acceptance
 
@@ -447,6 +462,18 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-28: the owner-held SRS v0.9 `IDA-CLM-010` clause requires a specific request,
+due date, responsible owner, member explanation and SLA posture. The mounted #1814 request card
+already shares reference/date/progress, while its open status and next actor are implicit. Reuse
+the still-applicable [W3C status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+and the previously checked member communication brief for visible feedback. Adopt explicit status
+and next action on the shared card; reject automatic fulfilment, a new legal deadline and a new
+staff writer. Expected benefit: both roles can identify who acts next without mistaking upload or
+acknowledgement for completion. Verify four-locale mounted transitions, failed reads, ownership
+isolation and unchanged claim/request state.
+
+### Credited Free Start research
 
 Checked 2026-09-28: the owner-held SRS v0.9 DOCX matched its recorded SHA-256 and its
 `IDA-FST-014` clause requires the information-organizing purpose and four explicit service
