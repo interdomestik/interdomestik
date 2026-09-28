@@ -151,46 +151,15 @@ describe('MembershipOpsPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows scope and referral boundaries alongside membership operations', () => {
-    render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
-
-    expect(screen.getByTestId('membership-commercial-disclaimers')).toBeInTheDocument();
-    expect(screen.getByText('disclaimers.freeStart.title')).toBeInTheDocument();
-    expect(screen.getByText('disclaimers.hotline.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
-  });
-
-  it('shows a choose-plan acquisition CTA when the member has no subscriptions', () => {
-    render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
-
-    const link = screen.getByRole('link', { name: 'ops.choose_plan' });
-    expect(link).toHaveAttribute('href', '/pricing');
-    expect(screen.getByText('ops.no_membership_title')).toBeInTheDocument();
-    expect(screen.getByText('ops.no_membership_body')).toBeInTheDocument();
-  });
-
-  it('routes cancellation through the canonical subscription action', async () => {
+  it('keeps active members on payment-management actions instead of acquisition', () => {
     selectionMocks.selectedId = 'sub-1';
-    actionMocks.cancelSubscription.mockResolvedValue({
-      cancellationTerms: {
-        coolingOffAppliesSeparately: true,
-        currentPeriodEndsAt: '2027-03-01T00:00:00.000Z',
-        effectiveFrom: 'next_billing_period',
-        hasAcceptedEscalation: false,
-        refundStatus: 'eligible',
-        refundWindowEndsAt: '2026-03-31T00:00:00.000Z',
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: {
+        id: 'renew',
+        label: 'Renew',
       },
-      error: undefined,
-      success: true,
+      secondary: [],
     });
-
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true)
-    );
 
     render(
       <MembershipOpsPage
@@ -208,34 +177,25 @@ describe('MembershipOpsPage', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Cancel membership'));
-
-    await waitFor(() => {
-      expect(actionMocks.cancelSubscription).toHaveBeenCalledWith('sub-1', expect.any(String));
-    });
+    expect(
+      screen.getByRole('button', { name: 'dunning.update_payment_button' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Complete membership' })).not.toBeInTheDocument();
   });
 
-  it('does not leak confirm stubs between tests', () => {
-    expect(globalThis.confirm).toBe(originalConfirm);
-  });
-
-  it('routes incomplete memberships back into pricing with the current plan', () => {
+  it('activates paused sponsored memberships from the member ops view', async () => {
     selectionMocks.selectedId = 'sub-1';
-    actionMocks.getMembershipActions.mockReturnValue({
-      primary: {
-        id: 'complete_membership',
-        label: 'Complete membership',
-      },
-      secondary: [],
-    });
+    actionMocks.activateSponsoredMembership.mockResolvedValue({ success: true });
 
     render(
       <MembershipOpsPage
         subscriptions={[
           {
             id: 'sub-1',
-            status: 'canceled',
+            status: 'paused',
             planId: 'standard',
+            provider: 'group_sponsor',
+            acquisitionSource: 'group_roster_import',
             createdAt: '2026-03-01T00:00:00.000Z',
             currentPeriodEnd: null,
             plan: { name: 'Standard' },
@@ -245,8 +205,35 @@ describe('MembershipOpsPage', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Complete membership' }));
+    fireEvent.click(screen.getByText('sponsored.activation.cta'));
 
-    expect(routerMocks.push).toHaveBeenCalledWith('/pricing?plan=standard');
+    await waitFor(() => {
+      expect(actionMocks.activateSponsoredMembership).toHaveBeenCalledWith('sub-1');
+    });
+  });
+
+  it('shows a family self-upgrade CTA for active sponsored standard memberships', () => {
+    selectionMocks.selectedId = 'sub-1';
+
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          {
+            id: 'sub-1',
+            status: 'active',
+            planId: 'standard',
+            provider: 'group_sponsor',
+            acquisitionSource: 'group_roster_import',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            currentPeriodEnd: '2027-03-01T00:00:00.000Z',
+            plan: { name: 'Standard' },
+          } as never,
+        ]}
+        documents={[]}
+      />
+    );
+
+    const link = screen.getByRole('link', { name: 'sponsored.upgrade.cta' });
+    expect(link).toHaveAttribute('href', '/pricing?plan=family');
   });
 });

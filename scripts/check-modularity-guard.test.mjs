@@ -7,6 +7,7 @@ import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 import './modularity-guard-legacy-focused.test.mjs';
 import './modularity-guard-semantic-governance.test.mjs';
 import './modularity-guard-t210-catalogs.test.mjs';
+import './modularity-guard-membership-catalog.test.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
 import {
   FILE_CLASSES,
@@ -226,7 +227,6 @@ test('T117B/member upload catalog ownership', () => {
     'apps/web/src/messages/de/dashboard.json',
     'apps/web/src/messages/en/common.json',
     'apps/web/src/messages/en/portal.json',
-    'apps/web/src/messages/sq/membership.json',
     'apps/web/src/messages/de/claims.json',
   ]) {
     assert.equal(structuredArtifactOwner(denied), null, denied);
