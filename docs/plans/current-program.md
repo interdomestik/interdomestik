@@ -16,14 +16,21 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-PERIOD-GRACE-TRUTH` is the active bounded member increment before S7, selected
-from freshly fetched protected main `5a6c91681149edf74b0ee0e3d6337797fdb34c28`. Credit #1837's
-owner-scoped Paddle payment-method recovery, #1836's own-document retrieval and the earlier
-membership/case chain. The mounted membership detail still presents a stored period end as a
-confirmed renewal and lacks selected-subscription grace-date context. Show the period end and any
-past-due grace deadline as factual EN/SQ/MK/SR information without implying a payment, renewal or
-restored entitlement. This advances bounded IDA-MEM-009/012 member continuation evidence, not
-whole S5/S6, approved commercial terms, live paid activation or user acceptance.
+`S5-FREE-START-SERVICE-BOUNDARY` is the active bounded Free Start increment selected from
+freshly fetched protected main `a0928a1a276405d597e253de887c5b2fe9a77a1e`. The mounted
+organizer and generated result already explain that they do not open a case, but do not clearly
+state the full `IDA-FST-014` service boundary. Show in EN/SQ/MK/SR that Free Start organizes
+information and does not establish legal representation, claim acceptance, insurer submission or
+professional advice. Preserve the existing organizer and result behavior. This is bounded S5
+software evidence, not legal/content approval, whole S5, production or user acceptance.
+
+PR [#1838](https://github.com/interdomestik/interdomestik/pull/1838) delivered the previous
+`S6-MEMBER-PERIOD-GRACE-TRUTH` increment as protected merge
+`667d268afdaa36801dcd1c5217d931820a0e5182`. Its final-head local `pr:verify` and
+`security:guard` passed; automatic exact-main staging [CD `36448107695`](https://github.com/interdomestik/interdomestik/actions/runs/36448107695)
+passed on that SHA with production skipped.
+Credit its factual selected-subscription period/grace display and #1837 action continuity without
+repeating proof or claiming renewal, live provider acceptance or whole S6.
 
 PR [#1837](https://github.com/interdomestik/interdomestik/pull/1837) delivered owner-scoped
 Paddle payment-method recovery as protected merge `5a6c91681149edf74b0ee0e3d6337797fdb34c28`.
@@ -136,12 +143,10 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Show the selected member subscription's stored current-period end as a period end, not a
-   confirmed renewal; handle missing dates truthfully.
-2. Show a past-due grace deadline only when stored for that subscription, distinguishing future and
-   elapsed dates without creating a new grace or entitlement policy.
-3. Keep touched member period/timeline/grace content truthful and accessible in EN/SQ/MK/SR.
-4. Preserve #1837's payment-update recovery and provider-event entitlement authority.
+1. Show the Free Start service boundary on the mounted organizer and generated result before either
+   can imply a handoff or professional service.
+2. Explain the information-organizing purpose and the four excluded outcomes in plain EN/SQ/MK/SR.
+3. Preserve the current Free Start draft, result, save and later explicit claim flows.
 
 ## Enduring Safety Boundaries
 
@@ -211,8 +216,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 member period/grace disclosure after credited #1837 payment-method recovery, #1836 retrieval
-and #1815/#1824–#1835 membership/case work, remaining S5/S6 gaps, S7 staff handling,
+S5 Free Start service boundary after credited #1838 period/grace truth, #1837 payment-method
+recovery, #1836 retrieval and #1815/#1824–#1835 membership/case work, remaining S5/S6 gaps, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -220,8 +225,8 @@ keeps its priority lane when its direct dependencies are ready.
 Direct dependencies remain local to their consumers. PR #1836 proves bounded member document
 retrieval after #1814 upload and #1835 communication. PR #1815 proves bounded lifecycle/access
 disclosure; #1824–#1834 supply credited Paddle activation, provider-order and past-due notification
-proof; #1837 supplies the safe mounted payment update. This slice does not reopen those billing/event
-writers or the payment action. Approved effective-dated offer/terms,
+proof; #1837 supplies the safe mounted payment update and #1838 the factual period/grace display.
+This slice does not reopen those billing/event writers or the payment action. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -236,26 +241,19 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current member period/grace truth acceptance
+### Current Free Start service boundary acceptance
 
-- The mounted member membership detail shows the selected subscription's current-period end as a
-  factual period end, with a localized missing-date fallback. No stored date is called a confirmed
-  renewal. Its timeline makes no automatic-renewal claim from that date.
-- A past-due row shows its own stored grace deadline when available, distinguishing a future deadline
-  from one already passed. A missing deadline creates no grace or access promise. Subscription switch
-  does not retain the prior row's status, date or action feedback.
-- Touched date/timeline/grace content is accessible and localized in EN/SQ/MK/SR. #1837's safe
-  payment-update action and provider-event entitlement boundary remain intact. Proxy, auth/RLS,
-  schema, provider-event writers and commercial configuration stay unchanged.
-- This is bounded software evidence for IDA-MEM-009/012, not renewal/invoice operations,
-  IDA-MEM-016, live provider acceptance, whole S5/S6, production deployment or user acceptance.
-- Reuse #1837's 2026-09-28 checked Paddle payment-update brief: method update and browser navigation
-  do not prove charge or entitlement. Reuse the checked WCAG 2.2 name/status guidance. The observed
-  mounted gap is a misleading `Renews` date and no grace-date context; adopt factual per-row period
-  and grace labels and reject inferred renewal or restoration. Verify visible EN/SQ/MK/SR text,
-  missing/elapsed dates, selected-row isolation and existing recovery action continuity.
-- Claude Pro Sonnet 5 owns bounded source/test/catalog coding; Codex Sol-high integrates and reviews.
-  Independent current-head review and one consolidated heavy lane follow focused corrections.
+- The mounted organizer and generated result visibly and accessibly explain that Free Start
+  organizes information and does not establish legal representation, claim acceptance, insurer
+  submission or professional advice. Existing no-case/no-payment statements remain truthful.
+- EN/SQ/MK/SR carry the same boundary. Relevant mounted and locale tests prove the disclosure
+  without replacing the existing Free Start draft, result, save or later explicit claim behavior.
+- This is bounded software progress for `IDA-FST-014`. Product/privacy content approval,
+  broader Free Start acceptance, whole S5/S6, production and user acceptance remain open.
+  Proxy, auth/RLS, schema, billing and provider-event writers stay unchanged. German (Deutsch)
+  remains a fifth diaspora language in preparation, not a live locale in this increment.
+- Authenticated Claude Pro Sonnet 5 owns bounded source/test/catalog coding; Codex integrates,
+  reviews and runs one consolidated final verification lane. Record the actually served model.
 
 ### Credited #1834 past-due recovery acceptance
 
@@ -449,6 +447,18 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-28: the owner-held SRS v0.9 DOCX matched its recorded SHA-256 and its
+`IDA-FST-014` clause requires the information-organizing purpose and four explicit service
+exclusions. Inspected the mounted Free Start catalogs: no-case and no-payment language exists,
+but representation, claim acceptance, insurer submission and professional advice are not all
+made clear at the organizer and result. [W3C WAI clear visible labels](https://www.w3.org/WAI/WCAG2/supplemental/patterns/o4p06-clear-labels/)
+supports plain visible wording near the relevant action. Adopt a concise visible four-locale
+boundary on the two mounted surfaces; reject a new workflow, automatic handoff or a legal-review
+claim. Expected benefit: a member can distinguish preparation from a professional or insurer
+action. Verify mounted visibility, locale parity and existing result/save continuity.
+
+### Credited payment-method research
 
 Checked 2026-09-28 against Paddle's
 [payment-method transaction endpoint](https://developer.paddle.com/api-reference/subscriptions/get-subscription-update-payment-method-transaction/),
