@@ -1,5 +1,8 @@
+'use client';
+
 import type { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { formatPilotDate } from '@/lib/utils/date';
+import { useEffect, useState } from 'react';
 
 type MembershipPeriodGraceFactsProps = Readonly<{
   subscription: Pick<SubscriptionRecord, 'status' | 'currentPeriodEnd' | 'gracePeriodEndsAt'>;
@@ -12,10 +15,23 @@ export function MembershipPeriodGraceFacts({
   locale,
   t,
 }: MembershipPeriodGraceFactsProps) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const rawGracePeriodEndsAt = subscription.gracePeriodEndsAt;
   const gracePeriodEndsAt = rawGracePeriodEndsAt ? new Date(rawGracePeriodEndsAt) : null;
   const hasGraceDeadline = gracePeriodEndsAt !== null && !Number.isNaN(gracePeriodEndsAt.getTime());
-  const isGraceExpired = hasGraceDeadline ? gracePeriodEndsAt.getTime() <= Date.now() : false;
+  const graceDeadlineMs = hasGraceDeadline ? gracePeriodEndsAt.getTime() : null;
+  const isGraceExpired = graceDeadlineMs !== null && nowMs >= graceDeadlineMs;
+
+  useEffect(() => {
+    if (subscription.status !== 'past_due' || graceDeadlineMs === null || isGraceExpired) return;
+
+    const remainingMs = graceDeadlineMs - Date.now();
+    const timer = window.setTimeout(
+      () => setNowMs(Date.now()),
+      Math.max(1, Math.min(remainingMs, 2_147_483_647))
+    );
+    return () => window.clearTimeout(timer);
+  }, [subscription.status, graceDeadlineMs, isGraceExpired, nowMs]);
 
   return (
     <>

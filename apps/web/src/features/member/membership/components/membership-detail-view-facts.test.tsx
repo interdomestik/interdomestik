@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MembershipOpsPage,
@@ -95,6 +95,28 @@ describe('DetailView current-period and grace facts', () => {
       'dunning.grace_deadline_future_label'
     );
     expect(screen.getByTestId('membership-grace-deadline')).not.toHaveTextContent(
+      'dunning.grace_deadline_passed_label'
+    );
+  });
+
+  it('updates the grace label when the deadline passes while the detail stays open', () => {
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          buildSubscription({
+            status: 'past_due',
+            gracePeriodEndsAt: new Date(baseDate.getTime() + 5000).toISOString(),
+          }),
+        ]}
+        documents={[]}
+      />
+    );
+
+    expect(screen.getByTestId('membership-grace-deadline')).toHaveTextContent(
+      'dunning.grace_deadline_future_label'
+    );
+    act(() => vi.advanceTimersByTime(5000));
+    expect(screen.getByTestId('membership-grace-deadline')).toHaveTextContent(
       'dunning.grace_deadline_passed_label'
     );
   });
