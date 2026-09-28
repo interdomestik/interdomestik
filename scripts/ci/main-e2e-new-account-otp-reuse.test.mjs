@@ -7,7 +7,7 @@ import { inspectRepositoryParity } from './main-e2e-reuse.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const EXPECTED_E2E_TREE = 'a4cdbc8485137385a93cec7a670556608b0fbcf9';
+const EXPECTED_E2E_TREE = 'cb4aff46a2be293e0431490833a14b1de5627bf9';
 const sourceFiles = {
   ciWorkflow: '.github/workflows/ci.yml',
   laneSource: 'scripts/run-e2e-lane.mjs',
@@ -16,7 +16,7 @@ const sourceFiles = {
   prWorkflow: '.github/workflows/e2e-pr.yml',
 };
 
-test('member private-document retrieval preserves current corpus parity', () => {
+test('S5 foreign-submit refusal preserves current corpus parity', () => {
   const e2eTreeSha = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
   const sources = Object.fromEntries(
     Object.entries(sourceFiles).map(([key, file]) => [

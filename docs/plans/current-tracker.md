@@ -15,48 +15,57 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                             | Status        | Owner                   | Work                                                                       | Exit Criteria                                                                                                                                         |
-| ------------------------------ | ------------- | ----------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-PERIOD-GRACE-TRUTH` | `in_progress` | Codex integration owner | Member sees factual selected-subscription period and past-due grace dates. | No inferred renewal/access; missing/elapsed date and switch isolation; EN/SQ/MK/SR; #1837 action continuity; protected checks and exact-main staging. |
+| ID                               | Status        | Owner                   | Work                                                                    | Exit Criteria                                                                                                                                                                           |
+| -------------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S5-FREE-START-SERVICE-BOUNDARY` | `in_progress` | Codex integration owner | Free Start organizer and result show the truthful scope of the service. | Visible EN/SQ/MK/SR information-organizing boundary; no representation, claim acceptance, insurer submission or advice promise; mounted tests, protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `5a6c91681149edf74b0ee0e3d6337797fdb34c28`.
-- Credit #1837 owner-scoped Paddle payment update, #1836 private retrieval and prior S5/S6 work.
-- Mounted selected-subscription current-period end is factual, localized and not described as a
-  completed or promised renewal; missing dates have a localized fallback.
-- Past-due grace deadline is shown only from that selected row, with future/elapsed distinction and
-  no invented grace/access restoration when missing. Switching subscriptions clears stale context.
-- Touched timeline/grace copy works in EN/SQ/MK/SR and preserves #1837's recovery behavior.
-- One authenticated Claude Pro Sonnet 5 coding owner with Codex Sol-high integration and independent
+- Base: freshly fetched protected main `a0928a1a276405d597e253de887c5b2fe9a77a1e`.
+- Credit #1838 selected-subscription period/grace truth, #1837 Paddle payment update, #1836 private
+  retrieval and prior S5/S6 work without repeating their checks.
+- The mounted Free Start organizer and generated result visibly explain that the feature organizes
+  information and does not establish representation, claim acceptance, insurer submission or advice.
+- EN/SQ/MK/SR wording and mounted tests preserve the existing draft, result and explicit later claim
+  flow. German remains in preparation, not a live locale in this increment.
+- One authenticated Claude Pro Sonnet 5 source/test/catalog coding owner with Codex integration and
   current-head review; one consolidated heavy lane after corrections. No proxy/auth/RLS/schema,
-  provider-event writer or commercial configuration change.
+  billing/provider writer or commercial configuration change.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                      |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1836 own-document retrieval and #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; remaining S5 and approved offer comparison remain open.                          |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver truthful period/grace disclosure; credit #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open. |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                         |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                      |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                 |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                              |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                        |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                      |
+| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `active_bounded`      | Deliver the Free Start service boundary; credit #1836 own-document retrieval and #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; remaining S5 and approved offer comparison remain open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                 |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                                         |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                      |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                 |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                              |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                        |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                             | Source Refs                                                          | Execution  | Run ID  | Run Root                                   | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                              |
-| ------------------------------ | -------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------ | ------- | -------------- | -------------- | -------- | -------------------------------------------------------------------------- |
-| `S6-MEMBER-PERIOD-GRACE-TRUTH` | owner continuation; IDA-MEM-009/012; protected main `5a6c916`; #1837 | `scripted` | pending | isolated mounted member period/grace proof | pending | not_applicable | not_applicable | pending  | selected-row facts; no inferred renewal; four locales; recovery continuity |
+| ID                               | Source Refs                                           | Execution  | Run ID  | Run Root                                  | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                              |
+| -------------------------------- | ----------------------------------------------------- | ---------- | ------- | ----------------------------------------- | ------- | -------------- | -------------- | -------- | ---------------------------------------------------------- |
+| `S5-FREE-START-SERVICE-BOUNDARY` | IDA-FST-014; protected main `a0928a1`; #1838 credited | `scripted` | pending | mounted Free Start organizer/result proof | pending | not_applicable | not_applicable | pending  | four-locale service boundary; no implied handoff or advice |
 
 ## Current Facts
 
+- #1838 protected-merged as `667d268afdaa36801dcd1c5217d931820a0e5182`; its final-head
+  `pr:verify` and `security:guard` passed. Automatic exact-main [CD `36448107695`](https://github.com/interdomestik/interdomestik/actions/runs/36448107695)
+  passed on that SHA with
+  production skipped. Credit its bounded period/grace truth without repeating proof or claiming
+  renewal, live paid activation, whole S6 or user acceptance.
+- #1839 historical Secret Scan triage protected-merged as exact main
+  `a0928a1a276405d597e253de887c5b2fe9a77a1e`. Automatic [CD `36459687724`](https://github.com/interdomestik/interdomestik/actions/runs/36459687724)
+  passed staging build, provenance, health and configured P0 gates; production was skipped. Three
+  historical Sonar tokens remain unsuppressed pending revocation evidence; this is not incident closure.
 - #1837 protected-merged as `5a6c91681149edf74b0ee0e3d6337797fdb34c28`; its ordinary PR
   records passing local/protected checks and independent review. Automatic exact-main staging CD
   `36424375788` completed successfully on that SHA; production was skipped. Credit its bounded
@@ -141,7 +150,7 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded member period/grace truth increment before selecting the next direct
+Complete the bounded Free Start service boundary before selecting the next direct
 S5/S6 gap or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;

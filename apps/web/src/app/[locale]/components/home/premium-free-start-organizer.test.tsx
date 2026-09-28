@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import enMessages from '@/messages/en/freeStart.json';
@@ -27,6 +28,7 @@ import { writeAnonymousDraft } from './free-start-intake-shell/anonymous-draft-r
 import { getContinueLabel } from './free-start-intake-shell/helpers';
 import { FreeStartIntakeShell } from './free-start-intake-shell/index';
 import type { FreeStartCopy } from './free-start-intake-shell/types';
+import { createClaimPack } from './claim-pack-result.test-fixtures';
 
 const translate = ((key: string) => {
   return key.split('.').reduce<unknown>((value, segment) => {
@@ -60,8 +62,12 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByText('Personal injury')).toBeInTheDocument();
     expect(screen.queryByTestId('free-start-category-injury')).not.toBeInTheDocument();
     expect(screen.getByLabelText('What happened?')).toBeInTheDocument();
-    expect(screen.getByTestId('free-start-trust-boundary')).toHaveTextContent(
-      'nothing saves automatically'
+    const boundary = screen.getByTestId('free-start-trust-boundary');
+    expect(boundary).toBeVisible();
+    expect(boundary).not.toHaveAttribute('role', 'alert');
+    expect(boundary).toHaveTextContent('nothing saves automatically');
+    expect(boundary).toHaveTextContent(
+      /does not create legal representation, accept a claim, submit anything to an insurer, or give professional advice/i
     );
   });
 
@@ -71,6 +77,50 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByTestId('free-start-category-vehicle')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-property')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-injury')).toBeInTheDocument();
+  });
+
+  it('shows the service boundary before neutral-host secure-save actions', async () => {
+    render(
+      <FreeStartIntakeShell
+        continueHref="/pricing"
+        initialCategory="property"
+        locale="en"
+        neutralOtpHost={globalThis.location.host}
+        tenantId="tenant_public"
+      />
+    );
+
+    const boundary = screen.getByTestId('free-start-trust-boundary');
+    const save = await screen.findByTestId('free-start-save-open');
+    const manage = screen.getByTestId('free-start-manage-open');
+    expect(boundary).toBeVisible();
+    expect(boundary.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(boundary.compareDocumentPosition(manage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it('shows the Free Start service boundary in the mounted generated result', async () => {
+    const user = userEvent.setup();
+    const copy = enMessages.freeStart;
+    hoisted.submit.mockResolvedValue({
+      success: true,
+      data: { claimCategory: 'property', desiredOutcome: 'repair', intakeIssue: 'water_damage' },
+    });
+    hoisted.generate.mockResolvedValue({ success: true, data: createClaimPack('en', 'property') });
+
+    render(<FreeStartIntakeShell continueHref="/pricing" locale="en" tenantId="tenant_public" />);
+    await user.click(screen.getByTestId('free-start-category-property'));
+    await user.click(screen.getByRole('button', { name: copy.choose.continue }));
+    await user.selectOptions(screen.getByLabelText(copy.details.issueType), 'water_damage');
+    await user.type(screen.getByLabelText(copy.details.incidentDate), '2026-03-01');
+    await user.type(screen.getByLabelText(copy.details.counterparty), 'Building insurer');
+    await user.selectOptions(screen.getByLabelText(copy.details.desiredOutcome), 'repair');
+    await user.type(screen.getByLabelText(copy.details.summary), 'Storm damage to two rooms.');
+    await user.click(screen.getByRole('button', { name: copy.details.continue }));
+    await user.click(screen.getByRole('button', { name: copy.preview.finish }));
+
+    expect(await screen.findByTestId('claim-pack-result')).toHaveTextContent(
+      /does not create legal representation, accept a claim, submit anything to an insurer, or give professional advice/i
+    );
   });
 
   it('keeps the generated-pack CTA aligned with high confidence guidance', () => {

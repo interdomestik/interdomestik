@@ -122,12 +122,11 @@ test.describe('S5 saved-draft foreign submission', () => {
           r => r.request().method() === 'POST' && r.request().postData() === forged[0]
         );
         await submit.click();
-        const refused = await response;
+        await response;
         expect(forged).toHaveLength(1);
         expect(forged[0]).toContain(targetDraft.id);
         expect(forged[0]).not.toContain(actorDraft.id);
-        expect(await refused.text()).toContain('Claim submission unavailable.');
-        await expect(intake.getByRole('alert')).toBeVisible();
+        await expect(intake.getByRole('alert')).toContainText('Submission could not be completed.');
         await expect(intake.getByTestId('claim-created-success')).toHaveCount(0);
         await page!.unrouteAll({ behavior: 'wait' });
       });

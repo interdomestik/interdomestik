@@ -57,6 +57,24 @@ describe('premium Free Start copy contract', () => {
     }
   );
 
+  it.each(Object.entries(localeMessages))(
+    'IDA-FST-014 %s clearly states Free Start organizes information without creating representation, claim acceptance, insurer submission, or advice',
+    (_locale, messages) => {
+      const truth = messages.freeStart.trustBoundary.body;
+      const noRecoveryTruth = (
+        JSON.parse(messages.freeStart.secureSaveReviewCopy) as { noRecovery?: string }
+      ).noRecovery;
+
+      for (const text of [truth, noRecoveryTruth]) {
+        expect(text).toMatch(/organiz|организира/i);
+        expect(text).toMatch(/representation|përfaqësim|zastupanj|застапувањ/i);
+        expect(text).toMatch(/\bclaim|kërkesë|zahtev|барање/i);
+        expect(text).toMatch(/insurer|sigurues|osiguravač|осигурувач/i);
+        expect(text).toMatch(/advice|këshillë|savet|совет/i);
+      }
+    }
+  );
+
   it('keeps the same premium organizer keys in every locale', () => {
     const keys = Object.values(localeMessages).map(messages =>
       Object.keys(messages.freeStart.selectedSituation).sort()
