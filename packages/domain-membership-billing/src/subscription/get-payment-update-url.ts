@@ -112,6 +112,56 @@ function resolveTrustedCheckoutUrl(params: {
   return parsed.toString();
 }
 
+function validatePaymentUpdateTransaction(params: {
+  transaction: PaymentUpdateTransaction | null | undefined;
+  providerSubscriptionId: string;
+  providerCustomerId: string;
+  subscriptionStatus: string;
+  trustedLink: TrustedPaymentLink;
+}): PaymentUpdateUrlResult {
+  const {
+    transaction,
+    providerSubscriptionId,
+    providerCustomerId,
+    subscriptionStatus,
+    trustedLink,
+  } = params;
+  const transactionId = normalizeText(transaction?.id);
+  if (!transactionId || !PADDLE_TRANSACTION_ID_PATTERN.test(transactionId)) {
+    return { error: 'No checkout URL generated', url: undefined };
+  }
+
+  if (normalizeText(transaction?.subscriptionId) !== providerSubscriptionId) {
+    return { error: 'Payment update transaction did not match this subscription', url: undefined };
+  }
+
+  if (normalizeText(transaction?.customerId) !== providerCustomerId) {
+    return { error: 'Payment update transaction did not match this member', url: undefined };
+  }
+
+  if (normalizeText(transaction?.collectionMode) !== 'automatic') {
+    return { error: 'Payment update is only available for automatic billing', url: undefined };
+  }
+
+  const isPastDueRecovery = subscriptionStatus === 'past_due' && transaction?.status === 'past_due';
+  const isActiveMethodChange =
+    subscriptionStatus === 'active' &&
+    ACTIVE_METHOD_CHANGE_STATUSES.has(transaction?.status ?? '') &&
+    transaction?.origin === 'subscription_payment_method_change' &&
+    transaction?.details?.totals?.total === '0';
+  if (!isPastDueRecovery && !isActiveMethodChange) {
+    return { error: 'Payment update transaction is not in a usable state', url: undefined };
+  }
+
+  const url = resolveTrustedCheckoutUrl({
+    rawUrl: transaction?.checkout?.url,
+    trustedLink,
+    transactionId,
+  });
+  if (!url) return { error: 'No checkout URL generated', url: undefined };
+  return { url, error: undefined };
+}
+
 export async function getPaymentUpdateUrlCore(params: {
   session: SubscriptionSession | null;
   subscriptionId: string;
@@ -141,7 +191,7 @@ export async function getPaymentUpdateUrlCore(params: {
       return { error: 'Subscription is not managed by the payment provider', url: undefined };
     }
 
-    if (!sub.status || !ELIGIBLE_SUBSCRIPTION_STATUSES.has(sub.status)) {
+    if (!ELIGIBLE_SUBSCRIPTION_STATUSES.has(sub.status ?? '')) {
       return { error: 'Subscription is not eligible for payment method recovery', url: undefined };
     }
 
@@ -176,46 +226,13 @@ export async function getPaymentUpdateUrlCore(params: {
       providerSubscriptionId
     )) as PaymentUpdateTransaction | null | undefined;
 
-    const transactionId = normalizeText(transaction?.id);
-    if (!transactionId || !PADDLE_TRANSACTION_ID_PATTERN.test(transactionId)) {
-      return { error: 'No checkout URL generated', url: undefined };
-    }
-
-    if (normalizeText(transaction?.subscriptionId) !== providerSubscriptionId) {
-      return {
-        error: 'Payment update transaction did not match this subscription',
-        url: undefined,
-      };
-    }
-
-    if (normalizeText(transaction?.customerId) !== providerCustomerId) {
-      return { error: 'Payment update transaction did not match this member', url: undefined };
-    }
-
-    if (normalizeText(transaction?.collectionMode) !== 'automatic') {
-      return { error: 'Payment update is only available for automatic billing', url: undefined };
-    }
-
-    const isPastDueRecovery = sub.status === 'past_due' && transaction?.status === 'past_due';
-    const isActiveMethodChange =
-      sub.status === 'active' &&
-      ACTIVE_METHOD_CHANGE_STATUSES.has(transaction?.status ?? '') &&
-      transaction?.origin === 'subscription_payment_method_change' &&
-      transaction?.details?.totals?.total === '0';
-    if (!isPastDueRecovery && !isActiveMethodChange) {
-      return { error: 'Payment update transaction is not in a usable state', url: undefined };
-    }
-
-    const url = resolveTrustedCheckoutUrl({
-      rawUrl: transaction?.checkout?.url,
+    return validatePaymentUpdateTransaction({
+      transaction,
+      providerSubscriptionId,
+      providerCustomerId,
+      subscriptionStatus: sub.status ?? '',
       trustedLink,
-      transactionId,
     });
-    if (!url) {
-      return { error: 'No checkout URL generated', url: undefined };
-    }
-
-    return { url, error: undefined };
   } catch {
     // Never log the raw error: provider client errors can carry API keys or tokens.
     console.error('[getPaymentUpdateUrlCore] Failed to get payment update URL');

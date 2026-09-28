@@ -41,30 +41,29 @@ function getMembershipPricingHref(planId?: string | null) {
   return normalizedPlanId ? `/pricing?plan=${normalizedPlanId}` : '/pricing';
 }
 
-export function DetailView({
-  subscription,
-  documents,
-  t,
-}: {
+type DetailViewProps = Readonly<{
   subscription: SubscriptionRecord;
   documents: DbDocument[];
   t: TranslationFn;
-}) {
+}>;
+
+export function DetailView({ subscription, documents, t }: DetailViewProps) {
   const cancellationKeyRef = useRef<string | null>(null);
   const router = useRouter();
   const { primary: adapterPrimary, secondary } = getMembershipActions(subscription, t);
   const isPaddlePaymentUpdate =
     subscription.provider === 'paddle' &&
     (subscription.status === 'active' || subscription.status === 'past_due');
-  const primary: OpsActionConfig | undefined = isPaddlePaymentUpdate
-    ? {
-        id: 'update_payment',
-        label: t('dunning.update_payment_button'),
-        variant: 'default',
-      }
-    : adapterPrimary?.id === 'renew' || adapterPrimary?.id === 'update_payment'
-      ? undefined
-      : adapterPrimary;
+  let primary: OpsActionConfig | undefined = adapterPrimary;
+  if (isPaddlePaymentUpdate) {
+    primary = {
+      id: 'update_payment',
+      label: t('dunning.update_payment_button'),
+      variant: 'default',
+    };
+  } else if (adapterPrimary?.id === 'renew' || adapterPrimary?.id === 'update_payment') {
+    primary = undefined;
+  }
   const sponsoredState = getSponsoredMembershipState(subscription);
   const isMountedRef = useRef(true);
   const isPaymentUpdatePendingRef = useRef(false);
@@ -85,17 +84,45 @@ export function DetailView({
     setIsPaymentUpdatePending(false);
   };
 
+  const showPaymentUpdateError = () => {
+    resetPaymentUpdatePending();
+    setPaymentUpdateStatus(t('errors.payment_update_failed'));
+    toast.error(t('errors.payment_update_failed'));
+  };
+
+  const handlePaymentUpdate = async () => {
+    // Ref guard is synchronous (unlike state, which batches), so a second click
+    // fired before this component re-renders is still rejected here.
+    if (isPaymentUpdatePendingRef.current) return;
+    isPaymentUpdatePendingRef.current = true;
+    setIsPaymentUpdatePending(true);
+    setPaymentUpdateStatus(t('actions.payment_update_preparing'));
+
+    try {
+      const result = await getPaymentUpdateUrl(subscription.id);
+      if (!isMountedRef.current) return;
+      if (result.error || !result.url) {
+        showPaymentUpdateError();
+        return;
+      }
+
+      // Redirecting to the provider's approved payment page is not entitlement
+      // or payment success; the status stays truthful until the browser unloads.
+      setPaymentUpdateStatus(t('actions.payment_update_opening'));
+      window.location.href = result.url;
+    } catch {
+      if (!isMountedRef.current) return;
+      // Provider client errors can carry tokens or keys, so log only a static marker.
+      console.error('[Membership Action] Payment update failed');
+      showPaymentUpdateError();
+    }
+  };
+
   const handleAction = async (id: string) => {
     if (isPaymentUpdateAction(id)) {
-      // Ref guard is synchronous (unlike state, which batches), so a second click
-      // fired before this component re-renders is still rejected here.
-      if (isPaymentUpdatePendingRef.current) return;
-      isPaymentUpdatePendingRef.current = true;
-      setIsPaymentUpdatePending(true);
-      // Overwrite any stale status left over from a previous failed attempt.
-      setPaymentUpdateStatus(t('actions.payment_update_preparing'));
+      await handlePaymentUpdate();
+      return;
     }
-
     try {
       if (id === 'activate_sponsored') {
         const result = await activateSponsoredMembership(subscription.id);
@@ -105,30 +132,6 @@ export function DetailView({
         }
 
         toast.success(t('sponsored.activation.success'));
-        return;
-      }
-
-      if (isPaymentUpdateAction(id)) {
-        const result = await getPaymentUpdateUrl(subscription.id);
-        if (!isMountedRef.current) return;
-        if (result.error || !result.url) {
-          resetPaymentUpdatePending();
-          setPaymentUpdateStatus(t('errors.payment_update_failed'));
-          toast.error(t('errors.payment_update_failed'));
-          return;
-        }
-
-        try {
-          // Redirecting to the provider's approved payment page is not entitlement
-          // or payment success; the status stays a truthful "opening" message and
-          // the action stays pending/disabled until the browser unloads.
-          setPaymentUpdateStatus(t('actions.payment_update_opening'));
-          window.location.href = result.url;
-        } catch {
-          resetPaymentUpdatePending();
-          setPaymentUpdateStatus(t('errors.payment_update_failed'));
-          toast.error(t('errors.payment_update_failed'));
-        }
         return;
       }
 
@@ -158,15 +161,6 @@ export function DetailView({
     } catch (err) {
       if (!isMountedRef.current) return;
       cancellationKeyRef.current = null;
-      if (isPaymentUpdateAction(id)) {
-        // Never log the raw error here: it may originate from provider client
-        // failures carrying tokens/keys. A generic marker is enough for debugging.
-        console.error('[Membership Action] Payment update failed');
-        resetPaymentUpdatePending();
-        setPaymentUpdateStatus(t('errors.payment_update_failed'));
-        toast.error(t('errors.payment_update_failed'));
-        return;
-      }
       console.error(err);
       toast.error(t('errors.action_failed'));
     }
