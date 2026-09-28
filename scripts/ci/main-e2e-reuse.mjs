@@ -76,6 +76,8 @@ const E2E_TREE_SHAS = new Set([
   'f05c43dc355d7b6c158845be232c047645ea5c77',
   // S6 provider-order boundary rejects a lifecycle update without causal order authority.
   'e15f6aacf5fa605641978c3594e8c4e57f81f2d0',
+  // S5 foreign-submit gate asserts the visible refusal after the forged server response.
+  'cb4aff46a2be293e0431490833a14b1de5627bf9',
 ]);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 function sourceBlock(source, startMarker, endMarker) {
