@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-27
+last_reviewed: 2026-09-28
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,12 +16,22 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-MEMBER-PRIVATE-DOCUMENT-RETRIEVAL` is the sole active bounded member increment before S7,
-selected from freshly fetched protected main `392bf2e3527a8cb55242e34ef84223c5e726826c`.
-Credit #1814's request-linked upload/assigned-staff acknowledgement and #1835's completed member
-case communication. The selected concrete gap is member retrieval of their own uploaded evidence:
-mount the existing authorized five-minute signed-URL contract with localized retry and negative
-member/tenant/role proof. This is bounded IDA-DOC-001/009 evidence, not whole S5/S6/S7 acceptance.
+`S6-MEMBER-PAYMENT-METHOD-RECOVERY` is the active bounded member increment before S7, selected
+from freshly fetched protected main `feec2f490ff440035de875e97021cd9045abf68c`. Credit #1836's
+completed own-document retrieval and the #1824–#1835 membership/case chain. The concrete gap is
+the mounted payment-method action for an existing past-due or grace-expired member: verify the
+owner-scoped Paddle recovery transaction and exact approved payment-link destination before handing
+it to the browser, with truthful EN/SQ/MK/SR preparing/error/retry feedback. A browser redirect
+never grants entitlement. This advances bounded IDA-MEM-007/009 member recovery evidence, not
+whole S5/S6, approved commercial terms, live paid activation or user acceptance.
+
+PR [#1836](https://github.com/interdomestik/interdomestik/pull/1836) delivered owned private-document
+retrieval as protected merge `feec2f490ff440035de875e97021cd9045abf68c`. Its ordinary PR receipt
+records passing final protected CI/E2E/Pilot checks and automatic exact-main staging CD
+[`36403528530`](https://github.com/interdomestik/interdomestik/actions/runs/36403528530), attempt 2:
+attested build, staging health/provenance and P0.1/P0.2/P0.3/P0.4/P0.6 passed. Production was
+skipped. Credit the bounded five-minute signer, member/tenant/role denial, fresh retry and localized
+control without rerunning it or claiming whole S5/S6.
 
 PR [#1835](https://github.com/interdomestik/interdomestik/pull/1835) delivered member case
 communication as protected merge `392bf2e3527a8cb55242e34ef84223c5e726826c`. Its updated ordinary
@@ -118,10 +128,10 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Let a member retrieve only their own request-linked evidence through the existing private signer.
-2. Issue a fresh five-minute URL at activation, discard an expired URL and fail closed on denial.
-3. Provide accessible EN/SQ/MK/SR preparing, success and retry feedback without weakening staff scope.
-4. Verify member/tenant/role isolation and successful issuance audit without changing storage policy.
+1. Let an eligible member open only their own Paddle payment-method recovery transaction.
+2. Fail closed on wrong member, tenant, role, provider, transaction or unapproved checkout URL.
+3. Keep EN/SQ/MK/SR preparing, opening, error and retry feedback accessible and truthful.
+4. Preserve provider-event entitlement authority: browser navigation does not restore access.
 
 ## Enduring Safety Boundaries
 
@@ -191,18 +201,16 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S5 member private-document retrieval after credited #1814 upload and #1835 communication,
-remaining S5 gaps, remaining S6 acceptance after the delivered #1815 disclosure and #1824–#1830
-chain, S7 staff handling,
+S6 member payment-method recovery after credited #1836 retrieval and #1815/#1824–#1835
+membership/case work, remaining S5/S6 gaps, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
 
-Direct dependencies remain local to their consumers. PR #1814 proves request-bound upload and
-assigned-staff acknowledgement; PR #1835 proves bounded member communication; existing document
-access and storage services supply the tenant-authorized five-minute signer. PR #1815 proves the
-bounded member lifecycle/access disclosure. This slice does not reopen #1824–#1830 billing/event
-proof. Approved effective-dated offer/terms,
+Direct dependencies remain local to their consumers. PR #1836 proves bounded member document
+retrieval after #1814 upload and #1835 communication. PR #1815 proves bounded lifecycle/access
+disclosure; #1824–#1834 supply credited Paddle activation, provider-order and past-due notification
+proof. This slice does not reopen those billing/event writers. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -431,6 +439,20 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-28 against Paddle's
+[payment-method transaction endpoint](https://developer.paddle.com/api-reference/subscriptions/get-subscription-update-payment-method-transaction/),
+[default payment link guidance](https://developer.paddle.com/build/transactions/default-payment-link/)
+and [update-payment guide](https://developer.paddle.com/build/subscriptions/update-payment-details/)
+for the installed Paddle SDK. The endpoint supports automatically collected active/past-due
+subscriptions: past due returns its most recent past-due transaction; active creates a zero-value
+method-change transaction. `checkout.url` uses the approved default payment page and `_ptxn`.
+Adopt exact member/tenant/provider subscription and customer matching, status-consistent transaction
+evidence, exact configured entity payment-page path and transaction ID matching. Reject arbitrary
+HTTPS destinations, redirect/checkout success as entitlement and an invented renewal or grace rule.
+Expected benefit: an eligible member can retry safely without exposure to another transaction or
+misleading access claims. Test owner/tenant/role denial, malformed/mismatched transaction and URL,
+past-due/active states and accessible localized failure/retry.
 
 Checked 2026-09-26 against Paddle's official webhook, webhook-response and get-notification
 references. Delivery is at least once and unordered; `event_id` deduplicates, and `occurred_at` with

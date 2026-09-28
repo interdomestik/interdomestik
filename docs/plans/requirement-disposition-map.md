@@ -92,11 +92,17 @@ this map and the tracker in normal delivery, without another status system or cl
 
 ## Current bounded S6 work
 
-`S6-MEMBER-CASE-COMMUNICATION` selects the member subset of IDA-COM-005 on protected main
-`6d31ea1`. #1777 already mounts case/status/public-thread continuity, #1780 excludes internal
-agent metadata, and #1814 delivers request evidence acknowledgement. The current increment
-addresses member thread failure/retry and read-receipt visibility with eligible-member isolation
-proof. Whole-role/operational/business acceptance remains open; no whole-clause satisfaction.
+#1835 delivered the member subset of IDA-COM-005 after #1777 case/status/public-thread continuity,
+#1780 internal metadata exclusion and #1814 request evidence acknowledgement. Its member thread
+failure/retry and read-receipt proof remains bounded; whole-role/operational/business acceptance
+remains open. #1836 then delivered own private-document retrieval on exact protected main `feec2f4`
+with automatic staging P0 passing and production skipped.
+
+`S6-MEMBER-PAYMENT-METHOD-RECOVERY` selects the existing member Paddle action on protected main
+`feec2f4`. It requires owner/tenant/role and provider transaction identity, status-consistent active
+or past-due evidence, an exact entity-approved payment page, and localized accessible failure/retry.
+Redirect/navigation is not entitlement evidence. This is bounded IDA-MEM-007/009 progress; it does
+not approve an offer, change grace policy, prove live paid activation or close whole S5/S6.
 
 #1834 delivered past-due recovery as `6d31ea1524be95ba6b70945b73d750dff4658ad9`; exact-main
 staging `36323164992` attempt 1 passed configured P0 checks with production skipped. Credit its
@@ -282,9 +288,9 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-MEM-004 | Plan versioning | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-005 | Price disclosure | Target | unresolved | S6/S9; #1825 requires the existing plan/entity review before signed-in checkout but does not approve or snapshot a versioned offer | open | none | bounded #1825 delivered; whole acceptance open; Product + Engineering | U | U |
 | IDA-MEM-006 | Provider confirmation | Target | unresolved | S6/S9; #1826 proves exact active provider/member confirmation values, #1827 immutable delivery, #1828 signed downstream continuation and #1829 first entity entitlement matching its completed causal transaction across provider identities, customer, currency, items and amount | open; approved effective-dated offer/entity/versioned terms and expected order/price comparison, live provider evidence and paid-service approval remain required; browser/mail success grant no entitlement | none | bounded #1826–#1829 delivered; whole acceptance open; Engineering | U | U |
-| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe, #1826 duplicate short-circuiting, #1827 immutable delivery CAS/retry, #1828 exact synthetic replay and #1829 retryable missing/permanent conflicting causal evidence before first entitlement; current candidate stops a reordered or delayed older lifecycle event from overwriting a newer verified snapshot or duplicating its lifecycle event | open; wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; approved commercial authority, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826–#1829 delivered; current provider-event-order candidate pending; whole acceptance open; Engineering | U | U |
-| IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9; current candidate keeps existing lifecycle/entitlement consequences truthful under provider reordering without adding states | PR #1815 renders the existing canonical lifecycle bucket and derives new-case access from the shared lifecycle contract; whole lifecycle/activation acceptance remains open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
-| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9 | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access and preserves existing truthful warning copy; provider dunning operations and business acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
+| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe, #1826 duplicate short-circuiting, #1827 immutable delivery CAS/retry, #1828 exact synthetic replay, #1829 causal first-activation evidence and #1830 ordered lifecycle writes; current member recovery candidate validates the exact Paddle transaction before redirect without writing entitlement | open; wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; approved commercial authority, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826–#1830 delivered; payment-link recovery pending; whole acceptance open; Engineering | U | U |
+| IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9; #1830 keeps existing lifecycle/entitlement consequences truthful under provider reordering without adding states | PR #1815 renders the existing canonical lifecycle bucket and derives new-case access from the shared lifecycle contract; whole lifecycle/activation acceptance remains open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
+| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9; current member recovery candidate verifies the owner-scoped Paddle past-due transaction and approved payment link with localized retry | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access; #1834 delivers ordered dunning notification intent/retry; provider dunning operations and business acceptance remain open | none | bounded #1815/#1834 delivered; payment-link recovery pending; whole acceptance open; Product + Engineering | U | U |
 | IDA-MEM-010 | Cancellation | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-011 | Refund | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-012 | Member proof content | Canonical | unresolved | S6/S9 | PR #1815 discloses lifecycle status, current-period end when present and access consequence without provider, plan, price, score or quota metadata; broader member proof and acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
@@ -702,7 +708,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CTR-020 | Optimistic concurrency | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-021 | Atomic effects | Canonical | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-022 | Provider traffic validation | Canonical | unresolved | S6/S9/S14; #1828 credits raw-body signing/entity routing and synthetic downstream replay; #1829 additionally validates a same-scope successful completed transaction and exact transaction/subscription/customer/currency/item/amount consistency before first entitlement | open; expected order/price comparison requires approved effective-dated offer/entity/versioned terms and live provider evidence; whole provider-traffic acceptance remains open | none | #1828/#1829 bounded proof delivered; whole acceptance open; Product + Engineering | U | U |
-| IDA-CTR-023 | Replay and ordering | Target | unresolved | Affected contract/S14; current candidate orders entity-scoped Paddle subscription lifecycle events by signed `occurred_at` per aggregate with duplicate, late, equal-time and invalid-evidence behavior | open; other aggregates/partitions, poison-message operations and whole contract remain open | none | current provider-event-order candidate pending; whole acceptance open; Engineering | U | U |
+| IDA-CTR-023 | Replay and ordering | Target | unresolved | Affected contract/S14; #1830 orders entity-scoped Paddle subscription lifecycle events by signed `occurred_at` per aggregate with duplicate, late, equal-time and invalid-evidence behavior | open; other aggregates/partitions, poison-message operations and whole contract remain open | none | #1830 bounded provider-event-order proof delivered; whole acceptance open; Engineering | U | U |
 | IDA-CTR-024 | API query bounds | Target | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-025 | Data minimization | Canonical | unresolved | Affected contract/S14 | open | none | U | U | U |
 | IDA-CTR-026 | Contracted manual fallback | Target | unresolved | Affected contract/S14 | open | none | U | U | U |

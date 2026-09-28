@@ -3,57 +3,17 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
-import {
-  OpsActionBar,
-  OpsDocumentsPanel,
-  OpsStatusBadge,
-  OpsTable,
-  OpsTimeline,
-} from '@/components/ops';
-import {
-  DbDocument,
-  getMembershipActions,
-  getSponsoredMembershipState,
-  OpsActionConfig,
-  toOpsDocuments,
-  toOpsStatus,
-  toOpsTimelineEvents,
-} from '@/components/ops/adapters/membership';
+import { OpsStatusBadge, OpsTable } from '@/components/ops';
+import { DbDocument, toOpsStatus } from '@/components/ops/adapters/membership';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
-
-import {
-  activateSponsoredMembership,
-  cancelSubscription,
-  getPaymentUpdateUrl,
-} from '@/actions/subscription.core';
-import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
-import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
-import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
-
-type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
-
-function normalizePricingPlanId(planId: string | null | undefined) {
-  if (!planId) return null;
-
-  const normalized = planId.trim().toLowerCase();
-  if (normalized.includes('family')) return 'family';
-  if (normalized.includes('business')) return 'business';
-  if (normalized.includes('standard')) return 'standard';
-
-  return null;
-}
-
-function getMembershipPricingHref(planId?: string | null) {
-  const normalizedPlanId = normalizePricingPlanId(planId ?? null);
-  return normalizedPlanId ? `/pricing?plan=${normalizedPlanId}` : '/pricing';
-}
+import { DetailView } from './membership-detail-view';
 
 export function MembershipOpsPage({
   subscriptions,
@@ -165,7 +125,12 @@ export function MembershipOpsPage({
                     ← {t('ops.back_to_list')}
                   </button>
                 )}
-                <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+                <DetailView
+                  key={selectedSubscription.id}
+                  subscription={selectedSubscription}
+                  documents={documents}
+                  t={t}
+                />
               </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -175,168 +140,6 @@ export function MembershipOpsPage({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function DetailView({
-  subscription,
-  documents,
-  t,
-}: {
-  subscription: SubscriptionRecord;
-  documents: DbDocument[];
-  t: TranslationFn;
-}) {
-  const cancellationKeyRef = useRef<string | null>(null);
-  const router = useRouter();
-  const { primary, secondary } = getMembershipActions(subscription, t);
-  const sponsoredState = getSponsoredMembershipState(subscription);
-
-  const handleAction = async (id: string) => {
-    try {
-      if (id === 'activate_sponsored') {
-        const result = await activateSponsoredMembership(subscription.id);
-        if ('error' in result) {
-          toast.error(t('errors.action_failed'));
-          return;
-        }
-
-        toast.success(t('sponsored.activation.success'));
-        return;
-      }
-
-      if (id === 'renew' || id === 'update_payment') {
-        const result = await getPaymentUpdateUrl(subscription.id);
-        if (result.error || !result.url) {
-          toast.error(t('errors.action_failed'));
-          return;
-        }
-
-        const { url } = result;
-        window.location.href = url;
-        return;
-      }
-
-      if (id === 'complete_membership') {
-        router.push(getMembershipPricingHref(subscription.planId));
-        return;
-      }
-
-      if (id === 'cancel') {
-        if (!confirm(t('actions.confirm_cancel'))) return;
-
-        const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
-        cancellationKeyRef.current = idempotencyKey;
-        const result = await cancelSubscription(subscription.id, idempotencyKey);
-        if (result.error || !result.success) {
-          cancellationKeyRef.current = null;
-          toast.error(t('errors.action_failed'));
-          return;
-        }
-
-        cancellationKeyRef.current = null;
-        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms));
-        return;
-      }
-
-      console.log('[Membership Action] Unhandled:', id);
-    } catch (err) {
-      cancellationKeyRef.current = null;
-      console.error(err);
-      toast.error(t('errors.action_failed'));
-    }
-  };
-
-  const mapAction = (config: OpsActionConfig) => ({
-    ...config,
-    onClick: () => handleAction(config.id),
-  });
-
-  return (
-    <div className="space-y-4 h-full overflow-y-auto pr-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            {subscription.plan?.name || subscription.planId}
-            <OpsStatusBadge {...toOpsStatus(subscription.status)} />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground">{t('plan.renews_label')}</h4>
-            <p>
-              {subscription.currentPeriodEnd
-                ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
-                : '-'}
-            </p>
-          </div>
-
-          <MembershipEntityDisclosureNotice
-            testId="membership-entity-disclosure"
-            disclosure={subscription.entityDisclosure}
-          />
-
-          <OpsActionBar
-            primary={primary ? mapAction(primary) : undefined}
-            secondary={secondary.map(mapAction)}
-          />
-
-          {primary?.id === 'complete_membership' ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('ops.membership_not_active_title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('ops.membership_not_active_body')}</p>
-            </div>
-          ) : null}
-
-          {sponsoredState === 'activation_required' ? (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('sponsored.activation.title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('sponsored.activation.body')}</p>
-              <button
-                type="button"
-                onClick={() => handleAction('activate_sponsored')}
-                className="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-              >
-                {t('sponsored.activation.cta')}
-              </button>
-            </div>
-          ) : null}
-
-          {sponsoredState === 'eligible_for_family_upgrade' ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('sponsored.upgrade.title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('sponsored.upgrade.body')}</p>
-              <Link
-                href="/pricing?plan=family"
-                className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900"
-              >
-                {t('sponsored.upgrade.cta')}
-              </Link>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        <OpsTimeline
-          title="Timeline"
-          events={toOpsTimelineEvents(subscription)}
-          emptyLabel="No events"
-        />
-        <OpsDocumentsPanel
-          title="Documents"
-          documents={toOpsDocuments(documents)}
-          emptyLabel="No documents"
-          viewLabel="View"
-        />
-      </div>
     </div>
   );
 }

@@ -104,10 +104,13 @@
       "refund_eligible": "Vaš zahtev je i dalje u početnom roku od 30 dana za razmatranje povraćaja i biće proveren prema objavljenim uslovima.",
       "refund_window_closed": "Početni rok od 30 dana za razmatranje povraćaja je istekao, pa otkazivanje utiče samo na buduće obnavljanje.",
       "accepted_escalation_survives": "Prihvaćeni predmeti naplate zadržavaju važeće eskalacione uslove i nakon otkazivanja članstva.",
-      "cooling_off_applies_separately": "Sva zakonska prava na odustanak razmatraju se odvojeno prema objavljenim uslovima."
+      "cooling_off_applies_separately": "Sva zakonska prava na odustanak razmatraju se odvojeno prema objavljenim uslovima.",
+      "payment_update_preparing": "Pripremamo vaš bezbedni link za ažuriranje plaćanja…",
+      "payment_update_opening": "Otvaramo bezbednu stranicu za plaćanje…"
     },
     "errors": {
-      "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo."
+      "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo.",
+      "payment_update_failed": "Nismo mogli da otvorimo link za ažuriranje plaćanja. Pokušajte ponovo."
     },
     "sponsored": {
       "activation": {

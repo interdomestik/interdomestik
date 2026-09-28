@@ -2,12 +2,12 @@ export type SubscriptionSession = {
   user: {
     id: string;
     tenantId?: string | null;
+    role?: string | null;
   };
 };
 
 export type PaymentUpdateUrlResult =
-  | { url: string; error: undefined }
-  | { error: string; url: undefined };
+  { url: string; error: undefined } | { error: string; url: undefined };
 
 export type AuditEvent = {
   actorId?: string | null;

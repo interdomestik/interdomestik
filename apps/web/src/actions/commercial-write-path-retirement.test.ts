@@ -26,8 +26,11 @@ describe('commercial write-path retirement', () => {
     expect(
       readSource('app/[locale]/(app)/member/membership/components/update-payment-button.tsx')
     ).toContain("from '@/actions/subscription.core'");
+    expect(
+      readSource('features/member/membership/components/membership-detail-view.tsx')
+    ).toContain("from '@/actions/subscription.core'");
     expect(readSource('features/member/membership/components/MembershipOpsPage.tsx')).toContain(
-      "from '@/actions/subscription.core'"
+      "from './membership-detail-view'"
     );
   });
 

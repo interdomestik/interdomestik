@@ -104,10 +104,13 @@
       "refund_eligible": "Your request is still within the 30-day launch refund window and will be checked against the published terms.",
       "refund_window_closed": "The 30-day launch refund window has closed, so cancellation only affects future renewal.",
       "accepted_escalation_survives": "Accepted recovery matters keep their surviving escalation terms after membership cancellation.",
-      "cooling_off_applies_separately": "Any statutory cooling-off rights are reviewed separately under the published terms."
+      "cooling_off_applies_separately": "Any statutory cooling-off rights are reviewed separately under the published terms.",
+      "payment_update_preparing": "Preparing your secure payment update link…",
+      "payment_update_opening": "Opening the secure payment page…"
     },
     "errors": {
-      "action_failed": "We could not complete that membership action. Please try again."
+      "action_failed": "We could not complete that membership action. Please try again.",
+      "payment_update_failed": "We could not open the payment update link. Please try again."
     },
     "sponsored": {
       "activation": {
