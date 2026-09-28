@@ -79,6 +79,25 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByTestId('free-start-category-injury')).toBeInTheDocument();
   });
 
+  it('shows the service boundary before neutral-host secure-save actions', async () => {
+    render(
+      <FreeStartIntakeShell
+        continueHref="/pricing"
+        initialCategory="property"
+        locale="en"
+        neutralOtpHost={globalThis.location.host}
+        tenantId="tenant_public"
+      />
+    );
+
+    const boundary = screen.getByTestId('free-start-trust-boundary');
+    const save = await screen.findByTestId('free-start-save-open');
+    const manage = screen.getByTestId('free-start-manage-open');
+    expect(boundary).toBeVisible();
+    expect(boundary.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(boundary.compareDocumentPosition(manage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
   it('shows the Free Start service boundary in the mounted generated result', async () => {
     const user = userEvent.setup();
     const copy = enMessages.freeStart;
