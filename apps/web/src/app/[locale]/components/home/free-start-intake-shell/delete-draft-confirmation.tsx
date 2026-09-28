@@ -31,7 +31,7 @@ export function DeleteDraftConfirmation({ draft, onCancel, onConfirm }: Props) {
       onKeyDown={event => event.key === 'Escape' && onCancel()}
       aria-labelledby="free-start-delete-heading"
       aria-describedby="free-start-delete-body"
-      className="m-0 max-w-none rounded-2xl border-2 border-[#9a4051] bg-[#fff7f8] p-5 text-inherit outline-none focus-visible:ring-3 focus-visible:ring-[#9a4051]"
+      className="static m-0 max-w-none rounded-2xl border-2 border-[#9a4051] bg-[#fff7f8] p-5 text-inherit outline-none focus-visible:ring-3 focus-visible:ring-[#9a4051]"
     >
       <h5 id="free-start-delete-heading" className="text-lg font-bold text-[#6f2636]">
         {copy.delete.heading}
