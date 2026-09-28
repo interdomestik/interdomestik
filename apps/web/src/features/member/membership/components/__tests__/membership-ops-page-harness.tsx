@@ -19,6 +19,14 @@ export const routerMocks = {
   push: vi.fn(),
 };
 
+export const localeMocks = {
+  locale: 'en',
+};
+
+export const timelineMocks = {
+  events: [] as Array<{ id: string; date: string }>,
+};
+
 vi.doMock('@/components/ops', () => ({
   OpsActionBar: ({
     primary,
@@ -43,7 +51,11 @@ vi.doMock('@/components/ops', () => ({
   OpsDocumentsPanel: () => null,
   OpsStatusBadge: () => null,
   OpsTable: ({ emptyLabel }: { emptyLabel: string }) => <div>{emptyLabel}</div>,
-  OpsTimeline: () => null,
+  OpsTimeline: ({ formatTimestamp }: { formatTimestamp?: (value: string) => string }) => (
+    <div data-testid="membership-timeline-date">
+      {timelineMocks.events.map(event => formatTimestamp?.(event.date) ?? event.date).join(', ')}
+    </div>
+  ),
 }));
 
 vi.doMock('@/components/ops/adapters/membership', () => ({
@@ -67,7 +79,7 @@ vi.doMock('@/components/ops/adapters/membership', () => ({
   },
   toOpsDocuments: () => [],
   toOpsStatus: () => ({ label: 'active', variant: 'default' }),
-  toOpsTimelineEvents: () => [],
+  toOpsTimelineEvents: () => timelineMocks.events,
 }));
 
 vi.doMock('@/components/ops/useOpsSelectionParam', () => ({
@@ -89,6 +101,7 @@ vi.doMock('@/actions/subscription.core', () => ({
 
 vi.doMock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => localeMocks.locale,
 }));
 
 vi.doMock('@/i18n/routing', () => ({
@@ -132,6 +145,8 @@ export function setupMembershipOpsPageHarness() {
   beforeEach(() => {
     vi.clearAllMocks();
     selectionMocks.selectedId = null;
+    localeMocks.locale = 'en';
+    timelineMocks.events = [];
     actionMocks.getMembershipActions.mockReturnValue({
       primary: {
         id: 'update_payment',

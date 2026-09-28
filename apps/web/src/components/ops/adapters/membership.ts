@@ -1,5 +1,6 @@
 import { OpsAction, OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
+type TranslateFn = (key: string) => string;
 
 export type DbDocument = {
   id: string;
@@ -22,9 +23,7 @@ type SubscriptionLike = {
 
 export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
 export type SponsoredMembershipState =
-  | 'activation_required'
-  | 'eligible_for_family_upgrade'
-  | 'none';
+  'activation_required' | 'eligible_for_family_upgrade' | 'none';
 
 export function isSponsoredSubscription(sub: SubscriptionLike | undefined) {
   if (!sub) return false;
@@ -67,7 +66,10 @@ export function toOpsDocuments(docs: DbDocument[] | undefined): OpsDocument[] {
   }));
 }
 
-export function toOpsTimelineEvents(sub: SubscriptionLike | undefined): OpsTimelineEvent[] {
+export function toOpsTimelineEvents(
+  sub: SubscriptionLike | undefined,
+  t: TranslateFn
+): OpsTimelineEvent[] {
   if (!sub) return [];
 
   const events: OpsTimelineEvent[] = [];
@@ -76,22 +78,23 @@ export function toOpsTimelineEvents(sub: SubscriptionLike | undefined): OpsTimel
   if (sub.createdAt) {
     events.push({
       id: `${sub.id}-created`,
-      title: 'Membership Created',
-      description: 'Initial subscription created',
-      date: new Date(sub.createdAt).toLocaleString(),
+      title: t('timeline.created_title'),
+      description: t('timeline.created_description'),
+      date: new Date(sub.createdAt).toISOString(),
       tone: 'neutral',
     });
   }
 
-  // Renewal/Expirations
+  // Current billing period end. This is a factual period boundary, never a
+  // confirmed renewal, so the title only distinguishes past from upcoming.
   if (sub.currentPeriodEnd) {
     const isPast = new Date(sub.currentPeriodEnd) < new Date();
-    const title = isPast ? 'Period Ended' : 'Renews On';
+    const title = isPast ? t('timeline.period_ended_title') : t('timeline.period_end_title');
     events.push({
       id: `${sub.id}-cycle`,
       title,
-      description: `Period end date`,
-      date: new Date(sub.currentPeriodEnd).toLocaleString(),
+      description: t('timeline.period_end_description'),
+      date: new Date(sub.currentPeriodEnd).toISOString(),
       tone: isPast ? 'warning' : 'neutral',
     });
   }
@@ -100,9 +103,9 @@ export function toOpsTimelineEvents(sub: SubscriptionLike | undefined): OpsTimel
   if (sub.canceledAt) {
     events.push({
       id: `${sub.id}-canceled`,
-      title: 'Canceled',
-      description: 'Membership canceled',
-      date: new Date(sub.canceledAt).toLocaleString(),
+      title: t('timeline.canceled_title'),
+      description: t('timeline.canceled_description'),
+      date: new Date(sub.canceledAt).toISOString(),
       tone: 'danger',
     });
   }

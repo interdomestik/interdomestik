@@ -67,6 +67,7 @@
       "plan_label": "Paket",
       "status_label": "Stanje",
       "renews_label": "Obnavlja se",
+      "current_period_label": "Trenutni period se završava",
       "na": "Nije primenljivo",
       "no_membership": "Nema aktivnog članstva",
       "manage_button": "Upravljaj pretplatom",
@@ -134,7 +135,22 @@
       "suspended_message": "Vaš grejs period je istekao i članstvo je sada suspendovano. Ažurirajte način plaćanja za vraćanje pristupa.",
       "payment_issue": "Problem sa plaćanjem",
       "days_to_update": "⏳ {daysRemaining} dana za ažuriranje plaćanja",
-      "payment_attempts": "Pokušaji plaćanja: {count}"
+      "payment_attempts": "Pokušaji plaćanja: {count}",
+      "grace_deadline_title": "Rok grejs perioda",
+      "grace_deadline_future_label": "Grejs period se završava",
+      "grace_deadline_passed_label": "Grejs period je istekao",
+      "grace_deadline_unavailable": "Rok grejs perioda još nije dostupan za ovu pretplatu."
+    },
+    "timeline": {
+      "title": "Vremenska linija",
+      "empty": "Nema događaja",
+      "created_title": "Članstvo je kreirano",
+      "created_description": "Početna pretplata je kreirana",
+      "period_end_title": "Trenutni period se završava",
+      "period_ended_title": "Period je završen",
+      "period_end_description": "Datum završetka tekućeg obračunskog perioda",
+      "canceled_title": "Otkazano",
+      "canceled_description": "Članstvo je otkazano"
     },
     "success": {
       "title": "Dobrodošli u Interdomestik!",

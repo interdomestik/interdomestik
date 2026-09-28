@@ -15,48 +15,53 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                                  | Status        | Owner                   | Work                                                              | Exit Criteria                                                                                                                                                              |
-| ----------------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S6-MEMBER-PAYMENT-METHOD-RECOVERY` | `in_progress` | Codex integration owner | Existing member opens an owner-scoped Paddle payment update flow. | Exact approved entity link and provider transaction evidence; cross-member/tenant/role denial; EN/SQ/MK/SR preparing/error/retry; protected checks and exact-main staging. |
+| ID                             | Status        | Owner                   | Work                                                                       | Exit Criteria                                                                                                                                         |
+| ------------------------------ | ------------- | ----------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S6-MEMBER-PERIOD-GRACE-TRUTH` | `in_progress` | Codex integration owner | Member sees factual selected-subscription period and past-due grace dates. | No inferred renewal/access; missing/elapsed date and switch isolation; EN/SQ/MK/SR; #1837 action continuity; protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `feec2f490ff440035de875e97021cd9045abf68c`.
-- Credit #1836 private retrieval and #1815/#1824–#1835 membership/case work.
-- Existing active/past-due Paddle member can request only their own update transaction; no link for
-  another member, tenant, role, provider, mismatched transaction, manual collection or wrong status.
-- The checkout URL must match the exact configured Paddle-approved default payment page for its
-  billing entity and carry only the returned transaction ID. Missing configuration fails closed.
-- Mounted EN/SQ/MK/SR control gives accessible preparing/opening/error feedback, avoids duplicate
-  requests and allows retry. Redirect success never grants entitlement or promises renewal.
-- One Claude Sonnet 5 coding owner with Codex integration and independent security review; one
-  consolidated heavy lane after corrections. No proxy/auth/RLS/schema or provider-event writer change.
+- Base: freshly fetched protected main `5a6c91681149edf74b0ee0e3d6337797fdb34c28`.
+- Credit #1837 owner-scoped Paddle payment update, #1836 private retrieval and prior S5/S6 work.
+- Mounted selected-subscription current-period end is factual, localized and not described as a
+  completed or promised renewal; missing dates have a localized fallback.
+- Past-due grace deadline is shown only from that selected row, with future/elapsed distinction and
+  no invented grace/access restoration when missing. Switching subscriptions clears stale context.
+- Touched timeline/grace copy works in EN/SQ/MK/SR and preserves #1837's recovery behavior.
+- One authenticated Claude Pro Sonnet 5 coding owner with Codex Sol-high integration and independent
+  current-head review; one consolidated heavy lane after corrections. No proxy/auth/RLS/schema,
+  provider-event writer or commercial configuration change.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                             |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1836 own-document retrieval and #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; remaining S5 and approved offer comparison remain open. |
-| S6 — member continuation/membership         | `active_bounded`      | Deliver bounded payment-method recovery; credit #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.           |
-| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                             |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                        |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                     |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                               |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                      |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1836 own-document retrieval and #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; remaining S5 and approved offer comparison remain open.                          |
+| S6 — member continuation/membership         | `active_bounded`      | Deliver truthful period/grace disclosure; credit #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open. |
+| S7 — staff handling                         | `delivered_bounded`   | Credit #1814 assigned-staff acknowledgement; fulfilment and whole S7 remain open.                                                                                         |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                      |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                 |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                              |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                        |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                                          | Execution  | Run ID  | Run Root                                    | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                          |
-| ----------------------------------- | -------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------------------------------------- |
-| `S6-MEMBER-PAYMENT-METHOD-RECOVERY` | owner continuation; IDA-MEM-007/009; protected main `feec2f4`; #1836 | `scripted` | pending | isolated member payment-link recovery proof | pending | not_applicable | not_applicable | pending  | owner scope; exact Paddle link/transaction; localized accessible retry; no entitlement |
+| ID                             | Source Refs                                                          | Execution  | Run ID  | Run Root                                   | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                              |
+| ------------------------------ | -------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------ | ------- | -------------- | -------------- | -------- | -------------------------------------------------------------------------- |
+| `S6-MEMBER-PERIOD-GRACE-TRUTH` | owner continuation; IDA-MEM-009/012; protected main `5a6c916`; #1837 | `scripted` | pending | isolated mounted member period/grace proof | pending | not_applicable | not_applicable | pending  | selected-row facts; no inferred renewal; four locales; recovery continuity |
 
 ## Current Facts
 
+- #1837 protected-merged as `5a6c91681149edf74b0ee0e3d6337797fdb34c28`; its ordinary PR
+  records passing local/protected checks and independent review. Automatic exact-main staging CD
+  `36424375788` completed successfully on that SHA; production was skipped. Credit its bounded
+  owner-scoped Paddle recovery action without repeating it or claiming live recovery, renewal or
+  whole S6.
 - #1836 protected-merged as `feec2f490ff440035de875e97021cd9045abf68c`; its ordinary PR
   receipt records final protected CI/E2E/Pilot passes and automatic exact-main staging CD
   `36403528530` attempt 2 with attested build, health/provenance and configured P0 roles passing.
@@ -136,7 +141,7 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded member payment-method recovery increment before selecting the next direct
+Complete the bounded member period/grace truth increment before selecting the next direct
 S5/S6 gap or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;

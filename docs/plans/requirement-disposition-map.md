@@ -98,11 +98,17 @@ failure/retry and read-receipt proof remains bounded; whole-role/operational/bus
 remains open. #1836 then delivered own private-document retrieval on exact protected main `feec2f4`
 with automatic staging P0 passing and production skipped.
 
-`S6-MEMBER-PAYMENT-METHOD-RECOVERY` selects the existing member Paddle action on protected main
-`feec2f4`. It requires owner/tenant/role and provider transaction identity, status-consistent active
-or past-due evidence, an exact entity-approved payment page, and localized accessible failure/retry.
-Redirect/navigation is not entitlement evidence. This is bounded IDA-MEM-007/009 progress; it does
-not approve an offer, change grace policy, prove live paid activation or close whole S5/S6.
+#1837 delivered `S6-MEMBER-PAYMENT-METHOD-RECOVERY` as protected merge `5a6c916` with automatic
+exact-main staging CD `36424375788` passing and production skipped. Its owner-scoped Paddle action
+requires provider transaction identity, status-consistent active/past-due evidence, exact approved
+entity payment page and localized failure/retry. Redirect/navigation is not entitlement evidence.
+Credit bounded IDA-MEM-007/009 progress without repeating the action or claiming live recovery.
+
+`S6-MEMBER-PERIOD-GRACE-TRUTH` selects the mounted member period/grace disclosure on protected main
+`5a6c916`. It makes selected-row current-period and available past-due grace dates truthful in four
+locales, without treating a stored period end as a confirmed renewal, inventing a missing grace
+deadline or granting access. This is bounded IDA-MEM-009/012 progress; it does not approve an offer,
+prove live paid activation/renewal or close whole S5/S6.
 
 #1834 delivered past-due recovery as `6d31ea1524be95ba6b70945b73d750dff4658ad9`; exact-main
 staging `36323164992` attempt 1 passed configured P0 checks with production skipped. Credit its
@@ -288,12 +294,12 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-MEM-004 | Plan versioning | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-005 | Price disclosure | Target | unresolved | S6/S9; #1825 requires the existing plan/entity review before signed-in checkout but does not approve or snapshot a versioned offer | open | none | bounded #1825 delivered; whole acceptance open; Product + Engineering | U | U |
 | IDA-MEM-006 | Provider confirmation | Target | unresolved | S6/S9; #1826 proves exact active provider/member confirmation values, #1827 immutable delivery, #1828 signed downstream continuation and #1829 first entity entitlement matching its completed causal transaction across provider identities, customer, currency, items and amount | open; approved effective-dated offer/entity/versioned terms and expected order/price comparison, live provider evidence and paid-service approval remain required; browser/mail success grant no entitlement | none | bounded #1826–#1829 delivered; whole acceptance open; Engineering | U | U |
-| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe, #1826 duplicate short-circuiting, #1827 immutable delivery CAS/retry, #1828 exact synthetic replay, #1829 causal first-activation evidence and #1830 ordered lifecycle writes; current member recovery candidate validates the exact Paddle transaction before redirect without writing entitlement | open; wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; approved commercial authority, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826–#1830 delivered; payment-link recovery pending; whole acceptance open; Engineering | U | U |
+| IDA-MEM-007 | Idempotent activation | Canonical | unresolved | S6/S9; #1824 proves exact retry/dedupe, #1826 duplicate short-circuiting, #1827 immutable delivery CAS/retry, #1828 exact synthetic replay, #1829 causal first-activation evidence and #1830 ordered lifecycle writes; #1837 validates the exact owner-scoped Paddle transaction before redirect without writing entitlement | open; wrong-tenant/entity, role, invalid-signature, failure, retry and concurrency contracts remain negative authority; approved commercial authority, live paid activation and whole acceptance remain unresolved | none | bounded #1824/#1826–#1830/#1837 delivered; whole acceptance open; Engineering | U | U |
 | IDA-MEM-008 | Lifecycle states | Canonical | unresolved | S6/S9; #1830 keeps existing lifecycle/entitlement consequences truthful under provider reordering without adding states | PR #1815 renders the existing canonical lifecycle bucket and derives new-case access from the shared lifecycle contract; whole lifecycle/activation acceptance remains open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
-| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9; current member recovery candidate verifies the owner-scoped Paddle past-due transaction and approved payment link with localized retry | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access; #1834 delivers ordered dunning notification intent/retry; provider dunning operations and business acceptance remain open | none | bounded #1815/#1834 delivered; payment-link recovery pending; whole acceptance open; Product + Engineering | U | U |
+| IDA-MEM-009 | Grace and dunning | Target | unresolved | S6/S9; #1837 verifies the owner-scoped Paddle past-due transaction and approved payment link with localized retry; current mounted member candidate discloses only stored selected-row grace dates | PR #1815 distinguishes active-in-grace allowed access from grace-expired denied access; #1834 delivers ordered dunning notification intent/retry; provider dunning operations and business acceptance remain open | none | bounded #1815/#1834/#1837 delivered; period/grace disclosure pending; whole acceptance open; Product + Engineering | U | U |
 | IDA-MEM-010 | Cancellation | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-011 | Refund | Target | unresolved | S6/S9 | open | none | U | U | U |
-| IDA-MEM-012 | Member proof content | Canonical | unresolved | S6/S9 | PR #1815 discloses lifecycle status, current-period end when present and access consequence without provider, plan, price, score or quota metadata; broader member proof and acceptance remain open | none | delivered-bounded; PR #1815 / 966a774028dc113757c298876e442e1ae80c73b5; Product + Engineering | U | U |
+| IDA-MEM-012 | Member proof content | Canonical | unresolved | S6/S9; current mounted member candidate corrects misleading renewal labeling for selected-row period end and localizes the factual date/timeline | PR #1815 discloses lifecycle status, current-period end when present and access consequence without provider, plan, price, score or quota metadata; broader member proof and acceptance remain open | none | #1815 delivered-bounded; mounted period/grace truth pending; whole acceptance open; Product + Engineering | U | U |
 | IDA-MEM-013 | Matter allowance | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-014 | Group privacy | Target | unresolved | S6/S9 | open | none | U | U | U |
 | IDA-MEM-015 | Attribution read-only | Canonical | unresolved | S6/S9 | open | none | U | U | U |

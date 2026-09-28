@@ -67,6 +67,7 @@
       "plan_label": "Plan",
       "status_label": "Status",
       "renews_label": "Renews",
+      "current_period_label": "Current period ends",
       "na": "N/A",
       "no_membership": "No active membership",
       "manage_button": "Manage Subscription",
@@ -134,7 +135,22 @@
       "suspended_message": "Your grace period has expired and your membership is now suspended. Please update your payment method to restore access.",
       "payment_issue": "Payment Issue",
       "days_to_update": "⏳ {daysRemaining} days to update payment",
-      "payment_attempts": "Payment attempts: {count}"
+      "payment_attempts": "Payment attempts: {count}",
+      "grace_deadline_title": "Grace period deadline",
+      "grace_deadline_future_label": "Grace period ends",
+      "grace_deadline_passed_label": "Grace period ended",
+      "grace_deadline_unavailable": "A grace period deadline is not available for this subscription yet."
+    },
+    "timeline": {
+      "title": "Timeline",
+      "empty": "No events",
+      "created_title": "Membership created",
+      "created_description": "Initial subscription created",
+      "period_end_title": "Current period ends",
+      "period_ended_title": "Period ended",
+      "period_end_description": "Current billing period end date",
+      "canceled_title": "Canceled",
+      "canceled_description": "Membership canceled"
     },
     "success": {
       "title": "Welcome to Interdomestik!",

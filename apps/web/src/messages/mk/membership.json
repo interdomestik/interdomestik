@@ -67,6 +67,7 @@
       "plan_label": "План",
       "status_label": "Статус",
       "renews_label": "Се обновува",
+      "current_period_label": "Тековниот период завршува",
       "na": "Н/А",
       "no_membership": "Нема активно членство",
       "manage_button": "Управувај претплата",
@@ -134,7 +135,22 @@
       "suspended_message": "Вашиот грејс период истече и членството сега е суспендирано. Ажурирајте го начинот на плаќање за враќање на пристапот.",
       "payment_issue": "Проблем со плаќање",
       "days_to_update": "⏳ {daysRemaining} дена за ажурирање на плаќањето",
-      "payment_attempts": "Обиди за плаќање: {count}"
+      "payment_attempts": "Обиди за плаќање: {count}",
+      "grace_deadline_title": "Рок на грејс периодот",
+      "grace_deadline_future_label": "Грејс периодот завршува",
+      "grace_deadline_passed_label": "Грејс периодот заврши",
+      "grace_deadline_unavailable": "Сè уште нема достапен рок за грејс периодот за оваа претплата."
+    },
+    "timeline": {
+      "title": "Хронологија",
+      "empty": "Нема настани",
+      "created_title": "Членството е креирано",
+      "created_description": "Почетната претплата е креирана",
+      "period_end_title": "Тековниот период завршува",
+      "period_ended_title": "Периодот заврши",
+      "period_end_description": "Датум на завршување на тековниот период на наплата",
+      "canceled_title": "Откажано",
+      "canceled_description": "Членството е откажано"
     },
     "success": {
       "title": "Добредојдовте во Интердомеstik!",

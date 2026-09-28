@@ -141,12 +141,14 @@ describe('Membership Adapter Policies', () => {
   });
 
   describe('toOpsTimelineEvents', () => {
+    const timelineT = (key: string) => key;
+
     it('should return empty array for undefined subscription', () => {
-      const result = toOpsTimelineEvents(undefined);
+      const result = toOpsTimelineEvents(undefined, timelineT);
       expect(result).toEqual([]);
     });
 
-    it('should create created event from subscription', () => {
+    it('should create a localized created event from subscription', () => {
       const sub = {
         id: 'sub-1',
         status: 'active',
@@ -154,11 +156,11 @@ describe('Membership Adapter Policies', () => {
         currentPeriodEnd: null,
       };
 
-      const result = toOpsTimelineEvents(sub);
-      expect(result.some(e => e.title === 'Membership Created')).toBe(true);
+      const result = toOpsTimelineEvents(sub, timelineT);
+      expect(result.some(e => e.title === 'timeline.created_title')).toBe(true);
     });
 
-    it('should create canceled event if canceledAt exists', () => {
+    it('should create a localized canceled event if canceledAt exists', () => {
       const sub = {
         id: 'sub-1',
         status: 'canceled',
@@ -167,8 +169,49 @@ describe('Membership Adapter Policies', () => {
         canceledAt: new Date('2024-02-01'),
       };
 
-      const result = toOpsTimelineEvents(sub);
-      expect(result.some(e => e.title === 'Canceled')).toBe(true);
+      const result = toOpsTimelineEvents(sub, timelineT);
+      expect(result.some(e => e.title === 'timeline.canceled_title')).toBe(true);
+    });
+
+    it('never labels a future period end as a renewal', () => {
+      const sub = {
+        id: 'sub-1',
+        status: 'active',
+        createdAt: baseDate,
+        currentPeriodEnd: new Date(baseDate.getTime() + 30 * dayMs),
+      };
+
+      const result = toOpsTimelineEvents(sub, timelineT);
+      const cycleEvent = result.find(e => e.id === 'sub-1-cycle');
+      expect(cycleEvent?.title).toBe('timeline.period_end_title');
+      expect(result.some(e => /renew/i.test(e.title))).toBe(false);
+    });
+
+    it('labels a past period end as ended rather than implying a renewal', () => {
+      const sub = {
+        id: 'sub-1',
+        status: 'past_due',
+        createdAt: baseDate,
+        currentPeriodEnd: new Date(baseDate.getTime() - 5 * dayMs),
+      };
+
+      const result = toOpsTimelineEvents(sub, timelineT);
+      const cycleEvent = result.find(e => e.id === 'sub-1-cycle');
+      expect(cycleEvent?.title).toBe('timeline.period_ended_title');
+      expect(cycleEvent?.tone).toBe('warning');
+    });
+
+    it('keeps parseable timestamps so timeline ordering and locale display remain valid', () => {
+      const sub = {
+        id: 'sub-1',
+        status: 'active',
+        createdAt: new Date('2026-03-15T00:00:00.000Z'),
+        currentPeriodEnd: new Date('2026-04-01T00:00:00.000Z'),
+      };
+
+      const result = toOpsTimelineEvents(sub, timelineT);
+      expect(result.map(event => event.id)).toEqual(['sub-1-cycle', 'sub-1-created']);
+      expect(result.every(event => Number.isFinite(Date.parse(event.date)))).toBe(true);
     });
   });
 
