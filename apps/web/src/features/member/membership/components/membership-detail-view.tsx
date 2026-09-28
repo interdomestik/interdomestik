@@ -11,7 +11,9 @@ import {
   toOpsTimelineEvents,
 } from '@/components/ops/adapters/membership';
 import { Link, useRouter } from '@/i18n/routing';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import { useLocale } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import {
   activateSponsoredMembership,
@@ -22,6 +24,7 @@ import { buildCancellationFeedbackMessage } from '@/features/member/membership/c
 import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
+import { MembershipPeriodGraceFacts } from './membership-period-grace-facts';
 
 type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
@@ -50,6 +53,7 @@ type DetailViewProps = Readonly<{
 export function DetailView({ subscription, documents, t }: DetailViewProps) {
   const cancellationKeyRef = useRef<string | null>(null);
   const router = useRouter();
+  const locale = useLocale();
   const { primary: adapterPrimary, secondary } = getMembershipActions(subscription, t);
   const isPaddlePaymentUpdate =
     subscription.provider === 'paddle' &&
@@ -183,14 +187,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground">{t('plan.renews_label')}</h4>
-            <p>
-              {subscription.currentPeriodEnd
-                ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
-                : '-'}
-            </p>
-          </div>
+          <MembershipPeriodGraceFacts subscription={subscription} locale={locale} t={t} />
 
           <MembershipEntityDisclosureNotice
             testId="membership-entity-disclosure"
@@ -257,9 +254,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps) {
 
       <div className="space-y-4">
         <OpsTimeline
-          title="Timeline"
-          events={toOpsTimelineEvents(subscription)}
-          emptyLabel="No events"
+          title={t('timeline.title')}
+          events={toOpsTimelineEvents(subscription, t)}
+          emptyLabel={t('timeline.empty')}
+          formatTimestamp={value => formatPilotDateTime(value, locale, t('plan.na'))}
         />
         <OpsDocumentsPanel
           title="Documents"

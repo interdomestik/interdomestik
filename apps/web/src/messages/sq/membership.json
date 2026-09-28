@@ -67,6 +67,7 @@
       "plan_label": "Plani",
       "status_label": "Statusi",
       "renews_label": "Rinovohet",
+      "current_period_label": "Periudha aktuale përfundon",
       "na": "Nuk aplikohet",
       "no_membership": "Nuk ka anëtarësi aktive",
       "manage_button": "Menaxho Abonimin",
@@ -134,7 +135,22 @@
       "suspended_message": "Periudha e tolerancës ka përfunduar dhe anëtarësia juaj është pezulluar. Ju lutem përditësoni metodën e pagesës për të rikthyer qasjen.",
       "payment_issue": "Problem me Pagesën",
       "days_to_update": "⏳ {daysRemaining} ditë për të përditësuar pagesën",
-      "payment_attempts": "Përpjekje pagese: {count}"
+      "payment_attempts": "Përpjekje pagese: {count}",
+      "grace_deadline_title": "Afati i periudhës së tolerancës",
+      "grace_deadline_future_label": "Periudha e tolerancës përfundon",
+      "grace_deadline_passed_label": "Periudha e tolerancës përfundoi",
+      "grace_deadline_unavailable": "Ende nuk ka një afat të periudhës së tolerancës për këtë abonim."
+    },
+    "timeline": {
+      "title": "Kronologjia",
+      "empty": "Nuk ka ngjarje",
+      "created_title": "Anëtarësia u krijua",
+      "created_description": "Abonimi fillestar u krijua",
+      "period_end_title": "Periudha aktuale përfundon",
+      "period_ended_title": "Periudha përfundoi",
+      "period_end_description": "Data e përfundimit të periudhës aktuale të faturimit",
+      "canceled_title": "Anuluar",
+      "canceled_description": "Anëtarësia u anulua"
     },
     "success": {
       "title": "Mirë se vini në Interdomestik!",

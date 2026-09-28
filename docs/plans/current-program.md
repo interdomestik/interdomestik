@@ -16,14 +16,22 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S6-MEMBER-PAYMENT-METHOD-RECOVERY` is the active bounded member increment before S7, selected
-from freshly fetched protected main `feec2f490ff440035de875e97021cd9045abf68c`. Credit #1836's
-completed own-document retrieval and the #1824–#1835 membership/case chain. The concrete gap is
-the mounted payment-method action for an existing past-due or grace-expired member: verify the
-owner-scoped Paddle recovery transaction and exact approved payment-link destination before handing
-it to the browser, with truthful EN/SQ/MK/SR preparing/error/retry feedback. A browser redirect
-never grants entitlement. This advances bounded IDA-MEM-007/009 member recovery evidence, not
+`S6-MEMBER-PERIOD-GRACE-TRUTH` is the active bounded member increment before S7, selected
+from freshly fetched protected main `5a6c91681149edf74b0ee0e3d6337797fdb34c28`. Credit #1837's
+owner-scoped Paddle payment-method recovery, #1836's own-document retrieval and the earlier
+membership/case chain. The mounted membership detail still presents a stored period end as a
+confirmed renewal and lacks selected-subscription grace-date context. Show the period end and any
+past-due grace deadline as factual EN/SQ/MK/SR information without implying a payment, renewal or
+restored entitlement. This advances bounded IDA-MEM-009/012 member continuation evidence, not
 whole S5/S6, approved commercial terms, live paid activation or user acceptance.
+
+PR [#1837](https://github.com/interdomestik/interdomestik/pull/1837) delivered owner-scoped
+Paddle payment-method recovery as protected merge `5a6c91681149edf74b0ee0e3d6337797fdb34c28`.
+Its ordinary PR receipt records local/protected verification and independent review. Automatic
+exact-main staging [CD `36424375788`](https://github.com/interdomestik/interdomestik/actions/runs/36424375788)
+completed successfully on that merge SHA; production was skipped. Credit its approved per-entity
+transaction link, member/tenant/role denial, localized retry and no-entitlement redirect without
+repeating the action or treating staging as live provider acceptance.
 
 PR [#1836](https://github.com/interdomestik/interdomestik/pull/1836) delivered owned private-document
 retrieval as protected merge `feec2f490ff440035de875e97021cd9045abf68c`. Its ordinary PR receipt
@@ -128,10 +136,12 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Let an eligible member open only their own Paddle payment-method recovery transaction.
-2. Fail closed on wrong member, tenant, role, provider, transaction or unapproved checkout URL.
-3. Keep EN/SQ/MK/SR preparing, opening, error and retry feedback accessible and truthful.
-4. Preserve provider-event entitlement authority: browser navigation does not restore access.
+1. Show the selected member subscription's stored current-period end as a period end, not a
+   confirmed renewal; handle missing dates truthfully.
+2. Show a past-due grace deadline only when stored for that subscription, distinguishing future and
+   elapsed dates without creating a new grace or entitlement policy.
+3. Keep touched member period/timeline/grace content truthful and accessible in EN/SQ/MK/SR.
+4. Preserve #1837's payment-update recovery and provider-event entitlement authority.
 
 ## Enduring Safety Boundaries
 
@@ -201,8 +211,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S6 member payment-method recovery after credited #1836 retrieval and #1815/#1824–#1835
-membership/case work, remaining S5/S6 gaps, S7 staff handling,
+S6 member period/grace disclosure after credited #1837 payment-method recovery, #1836 retrieval
+and #1815/#1824–#1835 membership/case work, remaining S5/S6 gaps, S7 staff handling,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -210,7 +220,8 @@ keeps its priority lane when its direct dependencies are ready.
 Direct dependencies remain local to their consumers. PR #1836 proves bounded member document
 retrieval after #1814 upload and #1835 communication. PR #1815 proves bounded lifecycle/access
 disclosure; #1824–#1834 supply credited Paddle activation, provider-order and past-due notification
-proof. This slice does not reopen those billing/event writers. Approved effective-dated offer/terms,
+proof; #1837 supplies the safe mounted payment update. This slice does not reopen those billing/event
+writers or the payment action. Approved effective-dated offer/terms,
 delayed-onboarding localization, live paid activation, renewal, invoice and payment-operations
 acceptance remain open.
 Reviewed signed/versioned/integrity/expiry contracts precede offline pack readiness; S8 precedes
@@ -225,27 +236,26 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current member private-document retrieval acceptance
+### Current member period/grace truth acceptance
 
-- A member can download their own request-linked evidence after upload. Each activation re-authorizes
-  through the existing tenant-scoped signed-URL endpoint; the client does not retain or reuse the URL.
-- The five-minute response remains private/no-store/no-referrer and requests attachment disposition.
-  The signed-storage fetch omits credentials and referrer, does not cache, converts the response to a
-  revocable object URL, and redacts signed-storage capabilities from Sentry breadcrumbs and spans.
-  A rejected storage response is discarded and re-authorized once; later activation always starts fresh.
-- Another member, tenant or unassigned staff/agent cannot obtain the signer or storage object. Failed
-  signing does not record a successful issuance. Successful signer issuance invokes the existing
-  best-effort audit path; successful storage retrieval is not overstated as audited.
-- Preparing, success and failure feedback plus a named keyboard button work in EN/SQ/MK/SR. Existing
-  assigned-staff proxy download remains unchanged. Proxy, auth/RLS, schema and storage policy are read-only.
-- This is bounded software evidence for IDA-DOC-001/009, not whole document governance, revocation,
-  S5/S6/S7, operator redesign, production deployment, charge or user acceptance.
-- Research checked 2026-09-27: Supabase documents private buckets and fixed-duration signed URLs;
-  MDN documents `no-referrer`; WCAG 2.2 requires named controls and programmatic status messages.
-  Adopt just-in-time attachment signing, capability-redacted telemetry and live localized status;
-  reject cached or telemetry-visible browser URLs.
-- The Sol-high integration owner keeps the single implementation. One independent security review and
-  one consolidated heavy verification lane follow focused corrections before protected delivery.
+- The mounted member membership detail shows the selected subscription's current-period end as a
+  factual period end, with a localized missing-date fallback. No stored date is called a confirmed
+  renewal. Its timeline makes no automatic-renewal claim from that date.
+- A past-due row shows its own stored grace deadline when available, distinguishing a future deadline
+  from one already passed. A missing deadline creates no grace or access promise. Subscription switch
+  does not retain the prior row's status, date or action feedback.
+- Touched date/timeline/grace content is accessible and localized in EN/SQ/MK/SR. #1837's safe
+  payment-update action and provider-event entitlement boundary remain intact. Proxy, auth/RLS,
+  schema, provider-event writers and commercial configuration stay unchanged.
+- This is bounded software evidence for IDA-MEM-009/012, not renewal/invoice operations,
+  IDA-MEM-016, live provider acceptance, whole S5/S6, production deployment or user acceptance.
+- Reuse #1837's 2026-09-28 checked Paddle payment-update brief: method update and browser navigation
+  do not prove charge or entitlement. Reuse the checked WCAG 2.2 name/status guidance. The observed
+  mounted gap is a misleading `Renews` date and no grace-date context; adopt factual per-row period
+  and grace labels and reject inferred renewal or restoration. Verify visible EN/SQ/MK/SR text,
+  missing/elapsed dates, selected-row isolation and existing recovery action continuity.
+- Claude Pro Sonnet 5 owns bounded source/test/catalog coding; Codex Sol-high integrates and reviews.
+  Independent current-head review and one consolidated heavy lane follow focused corrections.
 
 ### Credited #1834 past-due recovery acceptance
 
