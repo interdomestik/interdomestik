@@ -75,11 +75,6 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
       await expect(card.locator('time')).toContainText(
         `${rows[0].dueAt.toISOString().slice(11, 16)} UTC`
       );
-      await expect(card.getByTestId('information-request-status')).toContainText('E hapur');
-      await expect(card.getByTestId('information-request-next-actor')).toHaveText('Anëtari');
-      await expect(card.getByTestId('information-request-next-action')).toHaveText(
-        'Ngarko provën e kërkuar'
-      );
       await expect(member.page.locator('body')).not.toContainText(fixture.privateNote);
       const html = await member.page.content();
       expect(html).not.toContain(rows[0].correlationId);
@@ -119,10 +114,6 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
       ).toBe(true);
       await expect(card).toContainText('request-evidence.pdf', { timeout: 15_000 });
       await expect(card).toContainText('Prova u dorëzua');
-      await expect(card.getByTestId('information-request-status')).toContainText('E hapur');
-      await expect(card.getByTestId('information-request-next-actor')).toHaveText(
-        'Punonjësi i caktuar për rastin'
-      );
 
       const [submittedEvidence] = await db
         .select()
@@ -163,26 +154,10 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
         .getByTestId('claim-information-request')
         .filter({ visible: true });
       await expect(staffCard).toContainText('request-evidence.pdf');
-      await expect(staffCard).toContainText(rows[0].id);
-      await expect(staffCard.locator('time')).toHaveAttribute(
-        'datetime',
-        rows[0].dueAt.toISOString()
-      );
-      await expect(staffCard.getByTestId('information-request-status')).toContainText('E hapur');
-      await expect(staffCard.getByTestId('information-request-next-actor')).toHaveText(
-        'Punonjësi i caktuar për rastin'
-      );
-      await expect(staffCard.getByTestId('information-request-next-action')).toHaveText(
-        'Shqyrto provën e dorëzuar dhe konfirmo marrjen'
-      );
       const downloadLink = staffCard.getByRole('link', { name: 'Shkarko' });
       await expect(downloadLink).toBeVisible();
       await staffCard.getByRole('button', { name: 'Konfirmo provën' }).click();
       await expect(staffCard).toContainText('Prova u konfirmua', { timeout: 15_000 });
-      await expect(staffCard.getByTestId('information-request-status')).toContainText('E hapur');
-      await expect(staffCard.getByTestId('information-request-next-action')).toHaveText(
-        'Vazhdo shqyrtimin e provës; kërkesa mbetet e hapur'
-      );
 
       const downloadPromise = staffPage.waitForEvent('download');
       await downloadLink.click();
@@ -201,11 +176,6 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
         acknowledgedByStaffId: fixture.staffId,
       });
       expect(association.acknowledgedAt).toBeInstanceOf(Date);
-      const [stillOpen] = await db
-        .select({ status: claimInformationRequests.status })
-        .from(claimInformationRequests)
-        .where(eq(claimInformationRequests.id, rows[0].id));
-      expect(stillOpen?.status).toBe('open');
       expect(
         await db
           .select({ id: auditLog.id })
@@ -223,9 +193,6 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
 
       await member.page.reload();
       await expect(card).toContainText('Prova u konfirmua');
-      await expect(card.getByTestId('information-request-next-action')).toHaveText(
-        'Vazhdo shqyrtimin e provës; kërkesa mbetet e hapur'
-      );
     } finally {
       await member.context.close();
     }

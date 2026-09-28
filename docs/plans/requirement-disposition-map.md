@@ -90,7 +90,7 @@ record exact source/test/PR/merge evidence, outstanding UI/operational acceptanc
 decision. Reuse unchanged evidence; reopen only changed or ambiguous contracts. At completion update
 this map and the tracker in normal delivery, without another status system or closeout PR.
 
-## Current bounded S5/S7 work
+## Current bounded S5 work
 
 `S5-S7-EVIDENCE-NEXT-ACTION` selects the shared member/assigned-staff evidence-request card on
 protected main `a51fcc8`. The verified SRS v0.9 `IDA-CLM-010` clause requires a specific request,
