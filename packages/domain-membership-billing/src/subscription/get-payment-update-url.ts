@@ -183,7 +183,11 @@ export async function getPaymentUpdateUrlCore(params: {
       where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
     });
 
-    if (!sub || sub.userId !== session.user.id || sub.tenantId !== tenantId) {
+    if (!sub) {
+      return { error: 'Subscription not found or access denied', url: undefined };
+    }
+
+    if (sub.userId !== session.user.id || sub.tenantId !== tenantId) {
       return { error: 'Subscription not found or access denied', url: undefined };
     }
 
