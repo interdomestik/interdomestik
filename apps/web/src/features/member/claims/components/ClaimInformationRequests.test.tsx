@@ -1,60 +1,17 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { afterEach, expect, it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 vi.unmock('next-intl');
 import en from '@/messages/en/claims.json';
 import sq from '@/messages/sq/claims.json';
 import mk from '@/messages/mk/claims.json';
 import sr from '@/messages/sr/claims.json';
-import { ClaimInformationRequests } from './ClaimInformationRequests';
+import {
+  ClaimInformationRequests,
+  mocks,
+  request,
+} from './information-request-component-test-support';
 
-const mocks = vi.hoisted(() => ({
-  acknowledge: vi.fn(),
-  refresh: vi.fn(),
-  uploadSuccess: undefined as
-    | ((evidence: { documentId: string; documentName: string; submittedAt: string }) => void)
-    | undefined,
-}));
-
-vi.mock('@/actions/staff-claims/information-request', () => ({
-  acknowledgeClaimInformationRequestEvidence: mocks.acknowledge,
-}));
-
-vi.mock('@/features/member/claims/components/ClaimEvidenceUploadDialog', () => ({
-  ClaimEvidenceUploadDialog: ({
-    onUploadSuccess,
-    trigger,
-  }: {
-    onUploadSuccess?: (evidence: {
-      documentId: string;
-      documentName: string;
-      submittedAt: string;
-    }) => void;
-    trigger: React.ReactNode;
-  }) => {
-    mocks.uploadSuccess = onUploadSuccess;
-    return trigger;
-  },
-}));
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ refresh: mocks.refresh }),
-}));
-afterEach(() => {
-  cleanup();
-  vi.unstubAllEnvs();
-});
-const request = {
-  requestId: '12345678-1234-4234-8234-123456789012',
-  requestedInformation: '<script>estimate</script>',
-  explanationForMember: 'Assessment detail',
-  dueAt: '2000-01-01T00:00:00.000Z',
-  status: 'open' as const,
-  slaPosture: 'incomplete' as const,
-  createdAt: '2026-09-16T10:00:00.000Z',
-  evidence: [],
-  progress: 'awaiting_evidence' as const,
-};
 it('reports a failed read without inventing an empty request list', () => {
   render(
     <NextIntlClientProvider locale="en" messages={en}>

@@ -3,6 +3,10 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import postgres from 'postgres';
 import {
+  assertFulfilmentAndEvidenceBoundary,
+  assertOpenRequestProjection,
+} from './claim-information-request-fulfilment.proof';
+import {
   applyRlsTestConnectionEnv,
   quoteIdentifier,
   quoteSqlLiteral,
@@ -54,6 +58,8 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       await import('../../domain-claims/src/claims/information-requests');
     const { acknowledgeInformationRequestEvidence } =
       await import('../../domain-claims/src/claims/information-request-evidence');
+    const { fulfilInformationRequest } =
+      await import('../../domain-claims/src/claims/fulfil-information-request');
     const { persistClaimDocumentMetadata } =
       await import('../../../apps/web/src/features/claims/upload/server/claim-document-write');
     const actor = (id: string, role = 'staff', tenantId = 'tenant_ks') => ({
@@ -114,22 +120,12 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     );
     const visible = await getInformationRequests(actor(member, 'member'), claimId);
     assert.deepEqual(await getInformationRequests(actor(member, 'user'), claimId), visible);
-    assert.equal(visible.length, 1);
-    assert.deepEqual(Object.keys(visible[0]).sort(), [
-      'createdAt',
-      'dueAt',
-      'evidence',
-      'explanationForMember',
-      'progress',
-      'requestId',
-      'requestedInformation',
-      'slaPosture',
-      'status',
-    ]);
-    assert.equal(visible[0].slaPosture, 'incomplete');
-    assert.equal(visible[0].dueAt, input.dueAt);
-    assert.deepEqual(visible[0].evidence, []);
-    assert.equal(visible[0].progress, 'awaiting_evidence');
+    assertOpenRequestProjection(visible, input.dueAt);
+    const fulfilInput = { claimId, requestId, documentId: `s4_${randomUUID()}`, reviewed: true };
+    assert.deepEqual(await fulfilInformationRequest(actor(staff), fulfilInput), {
+      success: false,
+      error: 'conflict',
+    });
     assert.deepEqual(await getInformationRequests(actor(otherMember, 'member'), claimId), []);
     assert.deepEqual(await getInformationRequests(actor(otherStaff), claimId), []);
     assert.deepEqual(
@@ -192,6 +188,11 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
 
     const submitted = await getInformationRequests(actor(member, 'member'), claimId);
     assert.equal(submitted[0]?.progress, 'submitted');
+    assert.deepEqual(
+      await fulfilInformationRequest(actor(staff), { ...fulfilInput, documentId }),
+      { success: false, error: 'conflict' },
+      'receipt acknowledgement must precede fulfilment'
+    );
     assert.deepEqual(submitted[0]?.evidence, [
       {
         documentId,
@@ -236,26 +237,18 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       acknowledged[0]?.evidence[0]?.acknowledgedAt,
       acknowledgement.success ? acknowledgement.acknowledgedAt : null
     );
-    assert.deepEqual(
-      await admin`select * from "claim" where id = ${claimId}`,
+    await assertFulfilmentAndEvidenceBoundary({
+      admin,
+      rls,
+      actor,
       before,
-      'submission and acknowledgement do not mutate claim lifecycle, assignment or timers'
-    );
-    assert.equal(
-      (
-        await rls`select document_id from claim_information_request_evidence where request_id = ${requestId}`
-      ).length,
-      0,
-      'missing tenant context hides request-linked evidence'
-    );
-    await rls.begin(async tx => {
-      await tx`select set_config('app.current_tenant_id', 'tenant_mk', true)`;
-      assert.equal(
-        (
-          await tx`update claim_information_request_evidence set acknowledged_at = now(), acknowledged_by_staff_id = ${otherStaff} where request_id = ${requestId} returning document_id`
-        ).length,
-        0
-      );
+      claimId,
+      documentId,
+      fulfilInput,
+      member,
+      otherStaff,
+      requestId,
+      staff,
     });
     await admin`update "claim" set case_lifecycle_state = 'evaluation' where id = ${claimId}`;
     assert.deepEqual(
@@ -271,9 +264,9 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     try {
       await admin.begin(async tx => {
         await tx`delete from audit_log where entity_id in (select id::text from claim_information_requests where claim_id = any(${claimIds}::text[]))`;
+        await tx`delete from claim_information_requests where claim_id = any(${claimIds}::text[])`;
         await tx`delete from claim_information_request_evidence where claim_id = any(${claimIds}::text[])`;
         await tx`delete from claim_documents where claim_id = any(${claimIds}::text[])`;
-        await tx`delete from claim_information_requests where claim_id = any(${claimIds}::text[])`;
         await tx`delete from "claim" where id = any(${claimIds}::text[])`;
         await tx`delete from "user" where id = any(${ids}::text[])`;
       });

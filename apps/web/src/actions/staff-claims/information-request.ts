@@ -5,6 +5,8 @@ import {
   acknowledgeInformationRequestEvidenceInput,
   acknowledgeInformationRequestEvidence,
   createInformationRequest,
+  fulfilInformationRequest,
+  fulfilInformationRequestInput,
   informationRequestInput,
 } from '@interdomestik/domain-claims';
 import { revalidatePath } from 'next/cache';
@@ -30,6 +32,16 @@ export async function acknowledgeClaimInformationRequestEvidence(input: unknown)
   const { session } = await getActionContext();
   const parsed = acknowledgeInformationRequestEvidenceInput.safeParse(input);
   const result = await acknowledgeInformationRequestEvidence(session, input);
+  if (result.success && parsed.success) {
+    revalidateInformationRequestPaths(parsed.data.claimId);
+  }
+  return result;
+}
+
+export async function fulfilClaimInformationRequest(input: unknown) {
+  const { session } = await getActionContext();
+  const parsed = fulfilInformationRequestInput.safeParse(input);
+  const result = await fulfilInformationRequest(session, input);
   if (result.success && parsed.success) {
     revalidateInformationRequestPaths(parsed.data.claimId);
   }

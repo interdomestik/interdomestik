@@ -11,11 +11,26 @@ import {
   uniqueIndex,
   uuid,
   varchar,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { claimDocuments } from './claim-support-tables';
 import { claims } from './claim-core';
 import { tenants } from './tenants';
+
+function fulfilledEvidenceForeignKey(table: {
+  id: AnyPgColumn;
+  fulfilledDocumentId: AnyPgColumn;
+}): ReturnType<typeof foreignKey> {
+  return foreignKey({
+    name: 'claim_information_requests_fulfilled_evidence_fk',
+    columns: [table.id, table.fulfilledDocumentId],
+    foreignColumns: [
+      claimInformationRequestEvidence.requestId,
+      claimInformationRequestEvidence.documentId,
+    ],
+  });
+}
 
 export const claimInformationRequests = pgTable(
   'claim_information_requests',
@@ -38,7 +53,10 @@ export const claimInformationRequests = pgTable(
       .notNull()
       .references(() => user.id),
     slaPosture: text('sla_posture').$type<'incomplete'>().notNull(),
-    status: text('status').$type<'open'>().notNull().default('open'),
+    status: text('status').$type<'open' | 'fulfilled'>().notNull().default('open'),
+    fulfilledAt: timestamp('fulfilled_at', { withTimezone: true, precision: 3 }),
+    fulfilledByStaffId: text('fulfilled_by_staff_id').references(() => user.id),
+    fulfilledDocumentId: text('fulfilled_document_id'),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
   table => {
@@ -64,8 +82,12 @@ export const claimInformationRequests = pgTable(
       ),
       check(
         'claim_information_requests_posture_check',
-        sql`${table.slaPosture} = 'incomplete' and ${table.status} = 'open'`
+        sql`${table.slaPosture} = 'incomplete' and (
+          (${table.status} = 'open' and ${table.fulfilledAt} is null and ${table.fulfilledByStaffId} is null and ${table.fulfilledDocumentId} is null)
+          or (${table.status} = 'fulfilled' and ${table.fulfilledAt} is not null and ${table.fulfilledByStaffId} is not null and ${table.fulfilledDocumentId} is not null)
+        )`
       ),
+      fulfilledEvidenceForeignKey(table),
       check(
         'claim_information_requests_owner_check',
         sql`${table.responsibleStaffId} = ${table.createdByStaffId}`

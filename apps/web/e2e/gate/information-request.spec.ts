@@ -193,6 +193,51 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
 
       await member.page.reload();
       await expect(card).toContainText('Prova u konfirmua');
+
+      await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, testInfo), testInfo, {
+        marker: 'staff-claim-detail-ready',
+      });
+      await expect(staffCard).toContainText('Konfirmuar nga stafi');
+      await staffCard.getByRole('checkbox', { name: /request-evidence\.pdf/u }).check();
+      await staffCard
+        .getByRole('button', { name: 'Shëno kërkesën të përmbushur me këtë dokument' })
+        .click();
+      await expect(staffCard.getByTestId('information-request-status')).toContainText(
+        'E përmbushur'
+      );
+      await expect(staffCard.getByTestId('information-request-next-action')).toContainText(
+        'Nuk ka veprim tjetër'
+      );
+      const [fulfilledRequest] = await db
+        .select()
+        .from(claimInformationRequests)
+        .where(eq(claimInformationRequests.id, rows[0].id));
+      expect(fulfilledRequest).toMatchObject({
+        status: 'fulfilled',
+        fulfilledByStaffId: fixture.staffId,
+        fulfilledDocumentId: submittedEvidence.documentId,
+      });
+      expect(fulfilledRequest.fulfilledAt).toBeInstanceOf(Date);
+      expect(
+        await db
+          .select({ id: auditLog.id })
+          .from(auditLog)
+          .where(
+            and(
+              eq(auditLog.action, 'claim_information_request.fulfilled'),
+              eq(auditLog.entityId, rows[0].id)
+            )
+          )
+      ).toHaveLength(1);
+      await member.page.reload();
+      await expect(card.getByTestId('information-request-status')).toContainText('E përmbushur');
+      await expect(card.getByTestId('information-request-next-action')).toContainText(
+        'Nuk ka veprim tjetër'
+      );
+      await expect(card.getByRole('button', { name: 'Ngarko provën e kërkuar' })).toHaveCount(0);
+      expect(await db.query.claims.findFirst({ where: eq(claims.id, fixture.claimId) })).toEqual(
+        before
+      );
     } finally {
       await member.context.close();
     }

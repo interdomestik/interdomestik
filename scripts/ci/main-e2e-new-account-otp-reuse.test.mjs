@@ -16,14 +16,21 @@ const sourceFiles = {
   prWorkflow: '.github/workflows/e2e-pr.yml',
 };
 
-test('S5 foreign-submit refusal preserves current corpus parity', () => {
-  const e2eTreeSha = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
+test('S5 foreign-submit refusal remains approved while the new corpus fails closed', () => {
+  const currentE2eTreeSha = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
   const sources = Object.fromEntries(
     Object.entries(sourceFiles).map(([key, file]) => [
       key,
       readFileSync(path.join(root, file), 'utf8'),
     ])
   );
-  assert.equal(e2eTreeSha, EXPECTED_E2E_TREE);
-  assert.equal(inspectRepositoryParity({ ...sources, e2eTreeSha }).commandChain, true);
+  assert.equal(
+    inspectRepositoryParity({ ...sources, e2eTreeSha: EXPECTED_E2E_TREE }).commandChain,
+    true
+  );
+  assert.notEqual(currentE2eTreeSha, EXPECTED_E2E_TREE);
+  assert.equal(
+    inspectRepositoryParity({ ...sources, e2eTreeSha: currentE2eTreeSha }).commandChain,
+    false
+  );
 });

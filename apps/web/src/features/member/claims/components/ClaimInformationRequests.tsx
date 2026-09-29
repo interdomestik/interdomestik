@@ -1,26 +1,24 @@
 'use client';
 
-import { acknowledgeClaimInformationRequestEvidence } from '@/actions/staff-claims/information-request';
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
+import {
+  EvidenceAcknowledgementButton,
+  RequestFulfilmentButton,
+} from '@/features/member/claims/components/information-request-staff-actions';
 import { MemberEvidenceDownloadButton } from '@/features/member/claims/components/member-evidence-download-button';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { resolveDateLocale } from '@/lib/utils/date';
 
-type EvidenceAcknowledgementButtonProps = Readonly<{
-  claimId: string;
-  documentId: string;
-  requestId: string;
-}>;
-
-function getOpenRequestNextAction(progress: PublicInformationRequest['progress']): {
-  actor: 'member' | 'assignedStaff';
-  action: 'uploadEvidence' | 'reviewEvidence' | 'reviewRequest';
+function getRequestNextAction(request: PublicInformationRequest): {
+  actor: 'member' | 'assignedStaff' | 'none';
+  action: 'uploadEvidence' | 'reviewEvidence' | 'reviewRequest' | 'none';
 } {
+  if (request.status === 'fulfilled') return { actor: 'none', action: 'none' };
+  const progress = request.progress;
   switch (progress) {
     case 'awaiting_evidence':
       return { actor: 'member', action: 'uploadEvidence' };
@@ -29,50 +27,6 @@ function getOpenRequestNextAction(progress: PublicInformationRequest['progress']
     case 'acknowledged':
       return { actor: 'assignedStaff', action: 'reviewRequest' };
   }
-}
-
-function EvidenceAcknowledgementButton({
-  claimId,
-  documentId,
-  requestId,
-}: EvidenceAcknowledgementButtonProps) {
-  const t = useTranslations('claims.informationRequests');
-  const router = useRouter();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  return (
-    <div className="space-y-1">
-      <Button
-        type="button"
-        size="sm"
-        disabled={pending}
-        onClick={() => {
-          setMessage(null);
-          startTransition(async () => {
-            try {
-              const result = await acknowledgeClaimInformationRequestEvidence({
-                claimId,
-                documentId,
-                requestId,
-              });
-              setMessage(result.success ? t('acknowledgementSuccess') : t('acknowledgementError'));
-              if (result.success) router.refresh();
-            } catch {
-              setMessage(t('acknowledgementError'));
-            }
-          });
-        }}
-      >
-        {pending ? t('acknowledging') : t('acknowledge')}
-      </Button>
-      {message ? (
-        <output className="block text-sm text-muted-foreground" aria-live="polite">
-          {message}
-        </output>
-      ) : null}
-    </div>
-  );
 }
 
 function appendRequestEvidence(
@@ -98,6 +52,21 @@ function appendRequestEvidence(
   });
 }
 
+function markRequestFulfilled(
+  requests: PublicInformationRequest[] | null,
+  requestId: string,
+  documentId: string,
+  fulfilledAt: string
+): PublicInformationRequest[] | null {
+  return (
+    requests?.map(request =>
+      request.requestId === requestId
+        ? { ...request, status: 'fulfilled', fulfilledAt, fulfilledDocumentId: documentId }
+        : request
+    ) ?? null
+  );
+}
+
 export function ClaimInformationRequests({
   audience,
   canAcknowledge = false,
@@ -112,7 +81,13 @@ export function ClaimInformationRequests({
   const t = useTranslations('claims.informationRequests');
   const locale = useLocale();
   const [displayRequests, setDisplayRequests] = useState(requests);
+  const [announcement, setAnnouncement] = useState<string | null>(null);
+  const [recentFulfilledId, setRecentFulfilledId] = useState<string | null>(null);
+  const fulfilledStatusRef = useRef<HTMLElement | null>(null);
   useEffect(() => setDisplayRequests(requests), [requests]);
+  useEffect(() => {
+    if (recentFulfilledId) fulfilledStatusRef.current?.focus();
+  }, [recentFulfilledId]);
   // Explicit UTC keeps server rendering and browser hydration on the same deadline.
   const deadlineFormatter = new Intl.DateTimeFormat(resolveDateLocale(locale), {
     timeZone: 'UTC',
@@ -132,8 +107,13 @@ export function ClaimInformationRequests({
   if (!displayRequests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">
+      {announcement ? (
+        <output className="block text-sm" aria-live="polite" aria-atomic="true">
+          {announcement}
+        </output>
+      ) : null}
       {displayRequests.map(request => {
-        const next = getOpenRequestNextAction(request.progress);
+        const next = getRequestNextAction(request);
         return (
           <Card key={request.requestId} data-testid="claim-information-request">
             <CardHeader>
@@ -161,8 +141,24 @@ export function ClaimInformationRequests({
                 </div>
                 <div>
                   <dt className="text-muted-foreground">{t('statusLabel')}</dt>
-                  <dd data-testid="information-request-status">{t(`status.${request.status}`)}</dd>
+                  <dd
+                    data-testid="information-request-status"
+                    tabIndex={request.requestId === recentFulfilledId ? -1 : undefined}
+                    ref={request.requestId === recentFulfilledId ? fulfilledStatusRef : undefined}
+                  >
+                    {t(`status.${request.status}`)}
+                  </dd>
                 </div>
+                {request.fulfilledAt && request.fulfilledDocumentId ? (
+                  <div>
+                    <dt className="text-muted-foreground">{t('fulfilledUsing')}</dt>
+                    <dd>
+                      {request.evidence.find(
+                        item => item.documentId === request.fulfilledDocumentId
+                      )?.documentName ?? request.fulfilledDocumentId}
+                    </dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt className="text-muted-foreground">{t('nextActorLabel')}</dt>
                   <dd data-testid="information-request-next-actor">
@@ -177,9 +173,11 @@ export function ClaimInformationRequests({
                 </div>
               </dl>
               <p className="text-sm text-muted-foreground">{t('incomplete')}</p>
-              <p className="text-sm font-medium" data-testid="information-request-progress">
-                {t(`progress.${request.progress}`)}
-              </p>
+              {request.status === 'open' ? (
+                <p className="text-sm font-medium" data-testid="information-request-progress">
+                  {t(`progress.${request.progress}`)}
+                </p>
+              ) : null}
               {request.evidence.length ? (
                 <ul className="space-y-2" aria-label={t('evidenceList')}>
                   {request.evidence.map(evidence => (
@@ -206,11 +204,37 @@ export function ClaimInformationRequests({
                             </Link>
                           </Button>
                         )}
-                        {audience === 'staff' && canAcknowledge && !evidence.acknowledgedAt ? (
+                        {audience === 'staff' &&
+                        canAcknowledge &&
+                        request.status === 'open' &&
+                        !evidence.acknowledgedAt ? (
                           <EvidenceAcknowledgementButton
                             claimId={claimId}
                             documentId={evidence.documentId}
                             requestId={request.requestId}
+                          />
+                        ) : null}
+                        {audience === 'staff' &&
+                        canAcknowledge &&
+                        request.status === 'open' &&
+                        evidence.acknowledgedAt ? (
+                          <RequestFulfilmentButton
+                            claimId={claimId}
+                            documentId={evidence.documentId}
+                            documentName={evidence.documentName}
+                            requestId={request.requestId}
+                            onFulfilled={fulfilledAt => {
+                              setDisplayRequests(current =>
+                                markRequestFulfilled(
+                                  current,
+                                  request.requestId,
+                                  evidence.documentId,
+                                  fulfilledAt
+                                )
+                              );
+                              setRecentFulfilledId(request.requestId);
+                              setAnnouncement(t('fulfilmentSuccess'));
+                            }}
                           />
                         ) : null}
                       </div>
@@ -218,7 +242,7 @@ export function ClaimInformationRequests({
                   ))}
                 </ul>
               ) : null}
-              {audience === 'member' ? (
+              {audience === 'member' && request.status === 'open' ? (
                 <ClaimEvidenceUploadDialog
                   claimId={claimId}
                   informationRequestId={request.requestId}

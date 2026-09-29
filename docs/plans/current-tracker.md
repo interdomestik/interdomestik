@@ -15,48 +15,54 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                             | Status        | Owner                   | Work                                                                                                       | Exit Criteria                                                                                                                |
-| ------------------------------ | ------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `S7-ASSIGNED-STAFF-WORK-QUEUE` | `in_progress` | Codex integration owner | Separate assigned cases awaiting staff review from member evidence; show saved-date operational follow-up. | Owner/tenant-scoped progress, EN/SQ/MK/SR mounted grouping and saved-date boundary, protected checks and exact-main staging. |
+| ID                               | Status        | Owner                   | Work                                                                                                    | Exit Criteria                                                                                                                              |
+| -------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S7-REQUEST-EVIDENCE-FULFILMENT` | `in_progress` | Codex integration owner | Let assigned staff fulfil one open request after reviewing an exact acknowledged, linked member upload. | Owner/tenant denial, persisted document-bound result, four-locale next action, retry/concurrency, protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `333404dc38f66e7371e8fa362c56b6d709d22580`.
-- Credit #1841 shared member/assigned-staff next action and #1814 request-linked upload and
-  acknowledgement without repeating their checks.
-- The existing staff claims page groups assigned cases by persisted open request/evidence progress;
-  cases without an open request and unassigned cases remain separate, and branch managers receive
-  no assigned-staff request progress.
-- A passed recorded request due date prompts operational member follow-up only while evidence is
-  absent. It is not a legal deadline, case SLA breach, automatic escalation or fulfilment.
-- EN/SQ/MK/SR mounted tests, error propagation, tenant/owner scope and unchanged proxy/auth/RLS,
-  claim lifecycle, schema, billing and provider writers. One consolidated heavy lane follows review.
+- Base: freshly fetched protected main `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`.
+- Credit #1842 assigned-staff grouping/follow-up, #1841 shared next action and #1814 request-linked
+  upload/acknowledgement without repeating their checks.
+- The existing case detail lets assigned staff confirm review of one exact acknowledged linked
+  upload before fulfilling its open request. Persist the reviewed document, original timestamp and
+  audit event; deny unrelated/unacknowledged documents and preserve exact retries.
+- Both roles see the fulfilled request and no further action for it. #1842 open-request queue and
+  follow-up then exclude it, while other open requests retain their state. No claim lifecycle/SLA,
+  legal deadline, automatic escalation or provider change follows.
+- EN/SQ/MK/SR mounted tests, error propagation, tenant/owner scope, unchanged proxy/auth/RLS and
+  one consolidated heavy lane after independent review.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                    |
-| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.          |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.               |
-| S7 — staff handling                         | `active_bounded`      | Deliver assigned-staff next-actor grouping and persisted-date operational follow-up; credit #1841 and #1814. Automatic escalation, fulfilment and whole S7 remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                    |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                               |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                            |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                      |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                           |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
+| S7 — staff handling                         | `active_bounded`      | Deliver exact linked-upload request fulfilment; credit #1842 queue, #1841 next action and #1814 upload. Automatic escalation and whole S7 remain open.         |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                             |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                             | Source Refs                                                                   | Execution  | Run ID  | Run Root                                             | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                            |
-| ------------------------------ | ----------------------------------------------------------------------------- | ---------- | ------- | ---------------------------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------- |
-| `S7-ASSIGNED-STAFF-WORK-QUEUE` | IDA-CLM-010/012, IDA-COM-008; protected main `333404dc`; #1841/#1814 credited | `scripted` | pending | mounted assigned-staff queue and saved-date boundary | pending | not_applicable | not_applicable | pending  | four-locale grouping; no invented deadline or escalation |
+| ID                               | Source Refs                                                       | Execution  | Run ID  | Run Root                                    | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                             |
+| -------------------------------- | ----------------------------------------------------------------- | ---------- | ------- | ------------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------- |
+| `S7-REQUEST-EVIDENCE-FULFILMENT` | IDA-CLM-010; protected main `670f8db`; #1842/#1841/#1814 credited | `scripted` | pending | exact acknowledged linked-upload fulfilment | pending | not_applicable | not_applicable | pending  | four-locale next action; no claim lifecycle or SLA change |
 
 ## Current Facts
 
+- #1842 protected-merged as `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. Automatic
+  exact-main [CD `36510619671`](https://github.com/interdomestik/interdomestik/actions/runs/36510619671)
+  passed staging build, provenance, health and P0 gates on that SHA; production was skipped.
+  Credit assigned-staff grouping and saved-date operational follow-up without claiming request
+  fulfilment, escalation, whole S7 or user acceptance.
 - #1841 protected-merged as `333404dc38f66e7371e8fa362c56b6d709d22580`. Its
   [receipt](https://github.com/interdomestik/interdomestik/pull/1841#issuecomment-5880047468)
   records passing final-head local/protected checks and automatic exact-main
@@ -160,7 +166,7 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded assigned-staff queue before selecting another S5/S6 gap or S7 slice.
+Complete the bounded exact linked-upload request fulfilment before selecting another S5/S6 gap or S7 slice.
 Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment.
