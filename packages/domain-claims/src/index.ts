@@ -31,6 +31,9 @@ export { updateClaimStatusCore } from './claims/status';
 export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
+export { getAssignedStaffClaimAttention } from './staff-claims/assigned-claim-attention';
+export type { AssignedClaimAttention } from './staff-claims/assigned-claim-attention';
+export type { StaffClaimsListItem } from './staff-claims/get-staff-claims-list';
 export { getStaffClaimDetail } from './staff-claims/get-staff-claim-detail';
 export {
   buildRecoveryDecisionSnapshot,

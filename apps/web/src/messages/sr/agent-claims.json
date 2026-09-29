@@ -31,6 +31,20 @@
         "all_actionable": "Svi aktivni zahtevi",
         "empty_filtered": "Nijedan zahtev ne odgovara trenutnim filterima",
         "empty_default": "Nema zahteva u redu",
+        "attention": {
+          "group": {
+            "staff": "Čekaju vašu radnju",
+            "member": "Čekaju dokumentaciju od člana",
+            "untracked": "Ostali dodeljeni predmeti",
+            "unassigned": "Nedodeljeni predmeti"
+          },
+          "next_actor": {
+            "staff": "Sledeće: pregled dodeljenog službenika",
+            "member": "Sledeće: član otprema dokumentaciju",
+            "untracked": "Nema evidentiranog otvorenog zahteva za dokumentaciju"
+          },
+          "overdue_follow_up": "Operativno praćenje: evidentirani datum zahteva {date} UTC je prošao. Kontaktirajte člana."
+        },
         "assignment_state": {
           "unassigned": "Nedodeljeno",
           "assigned_to_you": "Dodeljeno vama",

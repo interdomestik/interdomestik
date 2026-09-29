@@ -1,17 +1,17 @@
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
-import { Link } from '@/i18n/routing';
 import {
   ACTIONABLE_CLAIM_STATUSES,
+  getAssignedStaffClaimAttention,
   getStaffClaimsList,
   parseDiasporaOriginFilter,
   type DiasporaOriginFilter,
 } from '@interdomestik/domain-claims';
-import { Button } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { Fragment } from 'react';
 
 import { StaffClaimsControls } from './staff-claims-controls';
+import { StaffClaimsRow } from './staff-claims-row';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -87,27 +87,6 @@ function buildStaffClaimsHref(args: {
   return query ? `/staff/claims?${query}` : '/staff/claims';
 }
 
-function getAssignmentStateLabel(args: {
-  assigneeId: string | null;
-  assigneeName?: string | null;
-  assigneeEmail?: string | null;
-  currentStaffId: string;
-  t: (key: string, values?: Record<string, string | number>) => string;
-}) {
-  if (args.assigneeId == null) {
-    return args.t('staff_queue.assignment_state.unassigned');
-  }
-
-  if (args.assigneeId === args.currentStaffId) {
-    return args.t('staff_queue.assignment_state.assigned_to_you');
-  }
-
-  const assigneeLabel = args.assigneeName || args.assigneeEmail;
-  return assigneeLabel
-    ? args.t('staff_queue.assignment_state.assigned_to_named', { name: assigneeLabel })
-    : args.t('staff_queue.assignment_state.assigned');
-}
-
 export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -141,6 +120,28 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     viewerRole: session.user.role,
   });
 
+  const attention =
+    session.user.role === 'staff'
+      ? await getAssignedStaffClaimAttention(
+          session,
+          claims.filter(claim => claim.staffId === session.user.id).map(claim => claim.id)
+        )
+      : {};
+  const queueGroup = (
+    claim: (typeof claims)[number]
+  ): 'staff' | 'member' | 'untracked' | 'unassigned' | null => {
+    if (session.user.role !== 'staff') return null;
+    if (claim.staffId !== session.user.id) return 'unassigned';
+    return attention[claim.id]?.nextActor ?? 'untracked';
+  };
+  const groupOrder = { staff: 0, member: 1, untracked: 2, unassigned: 3 } as const;
+  const displayedClaims =
+    session.user.role === 'staff'
+      ? [...claims].sort(
+          (left, right) =>
+            (groupOrder[queueGroup(left)!] ?? 3) - (groupOrder[queueGroup(right)!] ?? 3)
+        )
+      : claims;
   const assignmentOptions =
     session.user.role === 'staff'
       ? [
@@ -286,72 +287,33 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
           <span className="text-right">{tClaims('staff_queue.table.action')}</span>
         </div>
         <div className="divide-y" data-testid="staff-claims-list">
-          {claims.map(claim => (
-            <div
-              key={claim.id}
-              className="grid grid-cols-1 items-center gap-4 px-4 py-3 text-sm md:grid-cols-5"
-              data-testid="staff-claims-row"
-            >
-              <div>
-                <div className="font-medium text-slate-900" data-testid="staff-claim-title">
-                  {claim.title || claim.claimNumber || claim.id}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {claim.claimNumber || tClaims('staff_queue.table.no_claim_number')}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {claim.companyName || tClaims('staff_queue.table.no_company')}
-                </div>
-                {claim.isDiasporaOrigin ? (
-                  <div
-                    className="mt-1 inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800"
-                    data-testid="staff-claim-origin-badge"
-                  >
-                    {tClaims('staff_queue.origin_badge')}
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <div className="font-medium text-slate-900">{claim.memberName || '-'}</div>
-                <div className="text-xs text-muted-foreground">
-                  {claim.memberNumber
-                    ? `#${claim.memberNumber}`
-                    : tClaims('staff_queue.table.no_member_number')}
-                </div>
-              </div>
-              <div>
-                <ClaimStatusBadge status={claim.status} />
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {claim.status ? tStatus(claim.status) : claim.stageLabel || '-'}
-                </div>
-                <div
-                  className="mt-1 text-xs font-medium text-slate-700"
-                  data-testid="staff-claim-assignment-state"
+          {displayedClaims.map((claim, index) => (
+            <Fragment key={claim.id}>
+              {queueGroup(claim) &&
+              (index === 0 || queueGroup(displayedClaims[index - 1]) !== queueGroup(claim)) ? (
+                <h2
+                  className="bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900"
+                  data-testid={`staff-claims-group-${queueGroup(claim)}`}
                 >
-                  {getAssignmentStateLabel({
-                    assigneeId: claim.staffId,
-                    assigneeName: claim.assigneeName,
-                    assigneeEmail: claim.assigneeEmail,
-                    currentStaffId: session.user.id,
-                    t: tClaims,
-                  })}
-                </div>
-              </div>
-              <div>
-                {claim.updatedAt ? new Date(claim.updatedAt).toLocaleDateString(locale) : '-'}
-              </div>
-              <div className="text-right">
-                <Button asChild variant="outline" size="sm">
-                  <Link
-                    href={`/staff/claims/${claim.id}`}
-                    prefetch={false}
-                    data-testid="staff-claims-view"
-                  >
-                    {tClaims('actions.open')}
-                  </Link>
-                </Button>
-              </div>
-            </div>
+                  {tClaims(`staff_queue.attention.group.${queueGroup(claim)}`)}
+                </h2>
+              ) : null}
+              <StaffClaimsRow
+                claim={claim}
+                currentStaffId={session.user.id}
+                locale={locale}
+                attention={
+                  session.user.role === 'staff' && claim.staffId === session.user.id
+                    ? (attention[claim.id] ?? {
+                        nextActor: 'untracked',
+                        overdueFollowUpDueAt: null,
+                      })
+                    : null
+                }
+                tClaims={tClaims}
+                tStatus={tStatus}
+              />
+            </Fragment>
           ))}
           {claims.length === 0 && (
             <div

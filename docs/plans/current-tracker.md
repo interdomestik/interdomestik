@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-28
+last_reviewed: 2026-09-29
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,50 +15,54 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                           | Status        | Owner                   | Work                                                                  | Exit Criteria                                                                                                                                           |
-| ---------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S5-S7-EVIDENCE-NEXT-ACTION` | `in_progress` | Codex integration owner | Shared open-request status and next action on member and staff views. | Same request/reference/UTC due date, truthful actor/action through upload and acknowledgement, EN/SQ/MK/SR mounted proof, protected checks and staging. |
+| ID                             | Status        | Owner                   | Work                                                                                                       | Exit Criteria                                                                                                                |
+| ------------------------------ | ------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `S7-ASSIGNED-STAFF-WORK-QUEUE` | `in_progress` | Codex integration owner | Separate assigned cases awaiting staff review from member evidence; show saved-date operational follow-up. | Owner/tenant-scoped progress, EN/SQ/MK/SR mounted grouping and saved-date boundary, protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `a51fcc86371794fc5ec3eabb62b36efbf457edb5`.
-- Credit #1840 Free Start boundary, #1839 security triage, #1838 period/grace truth, #1814
-  request-linked upload/assigned-staff acknowledgement, #1835 messaging and #1836 private
-  retrieval without repeating their checks.
-- Both case-detail views show the same ownership-scoped open request, responsible next actor,
-  recorded UTC due date and next action through no evidence, submitted evidence and acknowledged
-  evidence. Upload/acknowledgement do not fulfil the request or advance claim lifecycle/SLA.
-- EN/SQ/MK/SR mounted tests preserve existing upload, acknowledgement, download, failed-read and
-  retry behavior, with no proxy/auth/RLS/schema/billing/provider writer change.
-- Codex is sole integration owner; the bounded Claude Sonnet 5 coding and Gemini Flash matrix
-  trials are accepted only with actual served-model output and source review. One consolidated
-  heavy lane follows current-head corrections.
+- Base: freshly fetched protected main `333404dc38f66e7371e8fa362c56b6d709d22580`.
+- Credit #1841 shared member/assigned-staff next action and #1814 request-linked upload and
+  acknowledgement without repeating their checks.
+- The existing staff claims page groups assigned cases by persisted open request/evidence progress;
+  cases without an open request and unassigned cases remain separate, and branch managers receive
+  no assigned-staff request progress.
+- A passed recorded request due date prompts operational member follow-up only while evidence is
+  absent. It is not a legal deadline, case SLA breach, automatic escalation or fulfilment.
+- EN/SQ/MK/SR mounted tests, error propagation, tenant/owner scope and unchanged proxy/auth/RLS,
+  claim lifecycle, schema, billing and provider writers. One consolidated heavy lane follows review.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                                           |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S5 — member first-case journey              | `active_bounded`      | Deliver shared evidence-request next-action truth; credit #1840 Free Start boundary, #1836 own-document retrieval and #1801/#1803/#1814/#1817/#1822/#1823/#1825–#1835; remaining S5 and approved offer comparison remain open. |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                                                      |
-| S7 — staff handling                         | `active_bounded`      | Deliver the same open request and staff review next action; credit #1814 assigned-staff acknowledgement. Fulfilment and whole S7 remain open.                                                                                  |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                                                           |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                                                      |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                                                   |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                                             |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                    |
+| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.          |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.               |
+| S7 — staff handling                         | `active_bounded`      | Deliver assigned-staff next-actor grouping and persisted-date operational follow-up; credit #1841 and #1814. Automatic escalation, fulfilment and whole S7 remain open. |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                    |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                               |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                            |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                      |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                           | Source Refs                                                 | Execution  | Run ID  | Run Root                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                            |
-| ---------------------------- | ----------------------------------------------------------- | ---------- | ------- | --------------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------- |
-| `S5-S7-EVIDENCE-NEXT-ACTION` | IDA-CLM-010; protected main `a51fcc8`; #1814/#1840 credited | `scripted` | pending | mounted member/staff request round trip | pending | not_applicable | not_applicable | pending  | four-locale actor/action; request remains open after ack |
+| ID                             | Source Refs                                                                   | Execution  | Run ID  | Run Root                                             | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                            |
+| ------------------------------ | ----------------------------------------------------------------------------- | ---------- | ------- | ---------------------------------------------------- | ------- | -------------- | -------------- | -------- | -------------------------------------------------------- |
+| `S7-ASSIGNED-STAFF-WORK-QUEUE` | IDA-CLM-010/012, IDA-COM-008; protected main `333404dc`; #1841/#1814 credited | `scripted` | pending | mounted assigned-staff queue and saved-date boundary | pending | not_applicable | not_applicable | pending  | four-locale grouping; no invented deadline or escalation |
 
 ## Current Facts
 
+- #1841 protected-merged as `333404dc38f66e7371e8fa362c56b6d709d22580`. Its
+  [receipt](https://github.com/interdomestik/interdomestik/pull/1841#issuecomment-5880047468)
+  records passing final-head local/protected checks and automatic exact-main
+  [CD `36491921295`](https://github.com/interdomestik/interdomestik/actions/runs/36491921295)
+  with staging P0 passed and production skipped. Credit shared open request/next-action truth;
+  fulfilment, whole S5/S7 and user acceptance remain open.
 - #1840 protected-merged as `a51fcc86371794fc5ec3eabb62b36efbf457edb5`. Automatic
   exact-main [CD `36482936539`](https://github.com/interdomestik/interdomestik/actions/runs/36482936539)
   passed on that SHA with production skipped. Credit its bounded four-locale Free Start service
@@ -156,11 +160,10 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded shared evidence-request next action before selecting the next direct
-S5/S6 gap or S7. Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
+Complete the bounded assigned-staff queue before selecting another S5/S6 gap or S7 slice.
+Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
-Final merge/staging facts may be reconciled in the next ordinary authorized product amendment;
-no status-only PR is required.
+Final merge/staging facts may be reconciled in the next ordinary authorized product amendment.
 
 ## Historical Evidence
 

@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-28
+last_reviewed: 2026-09-29
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,13 +16,23 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S5-S7-EVIDENCE-NEXT-ACTION` is the active bounded case evidence-request increment selected from
-freshly fetched protected main `a51fcc86371794fc5ec3eabb62b36efbf457edb5`. The existing
-`IDA-CLM-010` request already has a recorded due date and open status, and #1814 supplies member
-upload and assigned-staff acknowledgement. Show both roles the same request, responsible next
-actor, recorded due date and truthful next action as evidence advances. Upload or acknowledgement
-must not imply fulfilment or change claim lifecycle/SLA. This is bounded S5/S7 software evidence,
-not whole request fulfilment, production or user acceptance.
+`S7-ASSIGNED-STAFF-WORK-QUEUE` is the active bounded staff-handling increment selected from
+freshly fetched protected main `333404dc38f66e7371e8fa362c56b6d709d22580`. On the mounted
+staff claims queue, separate assigned cases awaiting staff review from those awaiting member
+evidence, and flag operational follow-up when a persisted open request's recorded due date has
+passed. The flag is a prompt to check with the member, not a legal deadline, SLA breach, automatic
+escalation or request fulfilment. This is bounded S7 software evidence, not whole S7, production
+or user acceptance.
+
+PR [#1841](https://github.com/interdomestik/interdomestik/pull/1841) delivered the preceding
+shared evidence next-action increment as protected merge `333404dc38f66e7371e8fa362c56b6d709d22580`.
+Its [delivery receipt](https://github.com/interdomestik/interdomestik/pull/1841#issuecomment-5880047468)
+records passing final-head local and protected checks. Automatic exact-main
+[CD `36491921295`](https://github.com/interdomestik/interdomestik/actions/runs/36491921295)
+passed staging build, provenance, health and configured P0 gates on that SHA; production was
+skipped. Credit its persisted open request and four-locale member/staff next action together with
+#1814 upload and acknowledgement. Request fulfilment, lifecycle/SLA, whole S5/S7 and user
+acceptance remain open.
 
 PR [#1840](https://github.com/interdomestik/interdomestik/pull/1840) delivered the prior
 `S5-FREE-START-SERVICE-BOUNDARY` increment as protected merge
@@ -155,12 +165,11 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Show the persisted open request and its recorded UTC due date on member and assigned-staff case
-   detail, with the same reference and responsible next actor on both surfaces.
-2. Move the shared next action from member upload to assigned-staff evidence review and continued
-   review after acknowledgement, with clear EN/SQ/MK/SR wording that the request stays open.
-3. Preserve #1814 upload/acknowledgement, #1835 messaging and #1836 private retrieval without
-   implying that evidence acknowledgement fulfils the request or advances claim lifecycle/SLA.
+1. Show assigned staff their bounded queue grouped by next actor: staff review or member evidence.
+2. Highlight a passed recorded request due date for an operational member follow-up, without
+   treating it as a legal deadline, case SLA breach or automatic escalation.
+3. Preserve #1841 shared next action, #1814 upload/acknowledgement and existing tenant, ownership,
+   document and lifecycle boundaries across EN/SQ/MK/SR.
 
 ## Enduring Safety Boundaries
 
@@ -229,8 +238,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S5 Free Start service boundary after credited #1838 period/grace truth, #1837 payment-method
-recovery, #1836 retrieval and #1815/#1824–#1835 membership/case work, remaining S5/S6 gaps, S7 staff handling,
+S7 staff handling after credited #1841 shared next action and #1814 request evidence round trip,
+with remaining S5/S6 gaps still open,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -254,21 +263,21 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current case evidence next-action acceptance
+### Current assigned-staff work-queue acceptance
 
-- Both mounted case-detail views use the same ownership-scoped request projection, reference,
-  recorded UTC due date and persisted `open` status. A failed read stays an error, not an empty
-  or completed request.
-- The shared visible next actor/action follows existing evidence progress: member/upload before
-  evidence, assigned staff/review and acknowledge after upload, assigned staff/continue evidence
-  review with the request open after acknowledgement. EN/SQ/MK/SR, keyboard controls and retry feedback
-  remain usable.
-- Upload and acknowledgement do not fulfil the request or alter the claim lifecycle/SLA. Existing
-  owner/tenant/RLS, staff authority, private-document retrieval and canonical routes remain intact.
-  Whole `IDA-CLM-010`, S5/S7, operational/business and user acceptance remain open.
-- Codex integrates and runs one consolidated final verification lane. The owner-authorized Claude
-  Sonnet 5 coding trial and Gemini Flash test/locale matrix are recorded only when actually served;
-  neither helper has authority to widen request access or product behavior.
+- The mounted staff claims page groups the bounded assigned list into staff review, member
+  evidence wait and other assigned cases using persisted open request/evidence progress. A case
+  without an open request does not acquire an invented next actor. Unassigned claims stay visibly
+  separate; branch-manager monitoring does not receive assigned-staff request progress.
+- Only a saved open request due date that has passed produces an operational follow-up prompt for
+  still-missing member evidence. Exact-boundary and submitted-evidence cases do not show a false
+  overdue prompt. Mixed requests retain staff review priority and surface any overdue member
+  follow-up; no automatic notice, legal deadline, case SLA or claim mutation is introduced.
+- Four-locale mounted copy, keyboard links, empty/error states, assigned-owner/tenant scope and
+  #1841 case-detail truth remain intact. Whole `IDA-COM-008`, `IDA-CLM-010`, S7, operational/business
+  and user acceptance remain open.
+- Codex integrates and runs one consolidated final verification lane. Subscription helper work is
+  credited only with actual served-model output; no private diff transfer or paid API is authorized.
 
 ### Credited #1834 past-due recovery acceptance
 
@@ -462,6 +471,23 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-29: the owner-held SRS v0.9 source matched SHA-256
+`8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
+`IDA-CLM-010` requires a saved request, date and owner; `IDA-CLM-012` requires uncertainty
+escalation rather than a calculated statutory deadline; `IDA-COM-008` requires a governed overdue
+task escalation path beyond this queue. The [Allianz public claims portal](https://apac.claims.booking.allianz-assistance.com/)
+offers file/complete and track-claim entries, but its public page does not expose a staff queue;
+adopt clear action separation, reject any claim that its staff workflow was inspected.
+The [GOV.UK task-list guidance](https://design-system.service.gov.uk/components/task-list/)
+supports short action/status labels and grouping when useful. Adopt two clear next-actor groups
+within the existing claims list and a saved-date operational follow-up prompt; reject an invented
+timer, legal deadline, automatic escalation or new task writer. Expected benefit: assigned staff
+can distinguish work ready for review from member evidence waits and identify a dated follow-up.
+Verify persisted-state grouping, due-date boundary, mixed requests, tenant/owner denial, four-locale
+mounted labels and unchanged lifecycle.
+
+### Credited #1841 evidence next-action research
 
 Checked 2026-09-28: the owner-held SRS v0.9 `IDA-CLM-010` clause requires a specific request,
 due date, responsible owner, member explanation and SLA posture. The mounted #1814 request card

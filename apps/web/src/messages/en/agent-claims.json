@@ -31,6 +31,20 @@
         "all_actionable": "All actionable",
         "empty_filtered": "No claims match the current filters",
         "empty_default": "No claims in queue",
+        "attention": {
+          "group": {
+            "staff": "Awaiting your action",
+            "member": "Awaiting member evidence",
+            "untracked": "Other assigned cases",
+            "unassigned": "Unassigned cases"
+          },
+          "next_actor": {
+            "staff": "Next: assigned staff review",
+            "member": "Next: member upload",
+            "untracked": "No open evidence request recorded"
+          },
+          "overdue_follow_up": "Operational follow-up: the recorded request due date {date} UTC has passed. Check with the member."
+        },
         "assignment_state": {
           "unassigned": "Unassigned",
           "assigned_to_you": "Assigned to you",
