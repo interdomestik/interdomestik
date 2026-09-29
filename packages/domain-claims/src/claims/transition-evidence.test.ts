@@ -42,9 +42,9 @@ describe('T-002b transition evidence invariants', () => {
       error: 'transition_rejected',
     });
     expect(calls.operations.slice(0, 4)).toEqual([
+      'select:current',
       'lock:agreement',
       'lock:no-fee',
-      'select:current',
       'lock:transition-evidence',
     ]);
     expect(calls.updateValues).toBeUndefined();

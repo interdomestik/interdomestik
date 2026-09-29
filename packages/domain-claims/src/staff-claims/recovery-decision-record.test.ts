@@ -79,7 +79,7 @@ describe('upsertRecoveryDecisionRecord', () => {
         tenantId: 'tenant-1',
       })
     );
-    expect(claimLock).toHaveBeenCalledWith('update');
+    expect(claimLock).toHaveBeenCalledWith('no key update');
     expect(claimLock.mock.invocationCallOrder[0]).toBeLessThan(
       insertValues.mock.invocationCallOrder[0]
     );
@@ -118,7 +118,7 @@ describe('upsertRecoveryDecisionRecord', () => {
     });
 
     expect(tx.insert).not.toHaveBeenCalled();
-    expect(claimLock).toHaveBeenCalledWith('update');
+    expect(claimLock).toHaveBeenCalledWith('no key update');
     expect(updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         decisionReason: 'Accepted after review',

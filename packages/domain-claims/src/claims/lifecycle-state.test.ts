@@ -33,6 +33,9 @@ class FakeSelect {
   where(): this {
     return this;
   }
+  for(): this {
+    return this;
+  }
   async limit(): Promise<Row[]> {
     if (this.joined) {
       return [authorizedRecoveryReadRow(this.state)];

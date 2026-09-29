@@ -31,12 +31,7 @@ describe('member recovery timeline', () => {
       declineReasonCode: 'conflict_or_integrity_concern',
     });
 
-    expect(result.map(item => item.note)).toEqual([
-      safeNote,
-      'Please upload a receipt.',
-      safeNote,
-      null,
-    ]);
+    expect(result.map(item => item.note)).toEqual([safeNote, null, safeNote, null]);
     expect(timeline[0]?.note).toBe('private allegation A');
   });
 
@@ -58,14 +53,33 @@ describe('member recovery timeline', () => {
   });
 
   it('masks old rejection notes when a later decision is ordinary', () => {
-    const timeline = [event('old', 'rejected', 'old sensitive allegation')];
+    const timeline = [
+      event('old', 'rejected', 'old sensitive allegation'),
+      event('follow-up', 'evaluation', 'old sensitive follow-up'),
+    ];
     expect(
       sanitizeMemberRecoveryTimeline(timeline, {
         acceptedAt: new Date('2026-04-02T00:00:00.000Z'),
         decisionType: 'declined',
         declineReasonCode: 'insufficient_evidence',
+      }).map(item => item.note)
+    ).toEqual([safeNote, null]);
+  });
+
+  it('preserves newer progress notes after a proven ordinary decision', () => {
+    expect(
+      sanitizeMemberRecoveryTimeline([event('progress', 'evaluation', 'Upload a receipt.')], {
+        acceptedAt: new Date('2026-03-31T00:00:00.000Z'),
+        decisionType: 'declined',
+        declineReasonCode: 'insufficient_evidence',
       })[0]?.note
-    ).toBe(safeNote);
+    ).toBe('Upload a receipt.');
+  });
+
+  it('preserves ordinary progress when no recovery decision exists', () => {
+    expect(
+      sanitizeMemberRecoveryTimeline([event('progress', 'evaluation', 'Update.')], null)[0]?.note
+    ).toBe('Update.');
   });
 
   it('masks a timestamp tie rather than treating it as proof of an ordinary note', () => {

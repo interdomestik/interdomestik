@@ -88,9 +88,7 @@ export async function loadRecoveryInvariantReadRow(
   tx: TransitionTx,
   params: { claimId: string; readWhere: SQL; tenantId: string }
 ): Promise<RecoveryInvariantReadRow> {
-  // Canonical recovery prerequisite lock order: agreement evidence, then no-fee evidence.
-  const agreement = await lockEscalationAgreementEvidence(tx, params);
-  const noFee = await lockNoFeeEvidence(tx, params);
+  // Claim first, then agreement and no-fee evidence, matching decision and status writers.
   const [current] = await tx
     .select({
       caseLifecycleState: claims.caseLifecycleState,
@@ -100,9 +98,12 @@ export async function loadRecoveryInvariantReadRow(
     })
     .from(claims)
     .where(params.readWhere)
+    .for('no key update')
     .limit(1);
 
   if (!current) return { current: undefined, evidence: null };
+  const agreement = await lockEscalationAgreementEvidence(tx, params);
+  const noFee = await lockNoFeeEvidence(tx, params);
 
   return {
     current: resolveTransitionCurrentState(current),

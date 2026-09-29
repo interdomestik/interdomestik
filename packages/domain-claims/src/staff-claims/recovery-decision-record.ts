@@ -53,7 +53,7 @@ export async function upsertRecoveryDecisionRecord(params: {
     .select({ id: claims.id })
     .from(claims)
     .where(withTenant(params.tenantId, claims.tenantId, eq(claims.id, params.claimId)))
-    .for('update');
+    .for('no key update');
 
   const [existingDecision] = await params.tx
     .select({ id: claimEscalationAgreements.id })

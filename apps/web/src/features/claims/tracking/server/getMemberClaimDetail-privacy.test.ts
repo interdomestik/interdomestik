@@ -69,7 +69,7 @@ vi.mock('./getMemberVaultConsentDisplay', () => ({
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
 describe('member claim detail privacy', () => {
-  it('removes a historic sensitive rejection note from timeline and latest update', async () => {
+  it('removes historic sensitive notes from non-rejection updates and the member payload', async () => {
     const privateNote = 'PRIVATE-INTEGRITY-ALLEGATION';
     mocks.claim.mockResolvedValueOnce({
       id: 'claim-sensitive',
@@ -84,6 +84,15 @@ describe('member claim detail privacy', () => {
       documents: [],
     });
     mocks.timeline.mockResolvedValueOnce([
+      {
+        id: 'later-progress',
+        date: new Date('2026-03-15T00:00:00.000Z'),
+        statusFrom: 'rejected',
+        statusTo: 'evaluation',
+        labelKey: 'claims-tracking.status.evaluation',
+        note: privateNote,
+        isPublic: true,
+      },
       {
         id: 'old-rejection',
         date: new Date('2026-03-14T00:00:00.000Z'),
@@ -108,8 +117,9 @@ describe('member claim detail privacy', () => {
       'claim-sensitive'
     );
 
-    expect(result?.timeline[0]?.note).toBe('We cannot accept this matter for staff-led recovery.');
-    expect(result?.progressSummary.latestUpdateNote).toBe(result?.timeline[0]?.note);
+    expect(result?.timeline[0]?.note).toBeNull();
+    expect(result?.timeline[1]?.note).toBe('We cannot accept this matter for staff-led recovery.');
+    expect(result?.progressSummary.latestUpdateNote).toBeNull();
     expect(JSON.stringify(result)).not.toContain(privateNote);
   });
 });

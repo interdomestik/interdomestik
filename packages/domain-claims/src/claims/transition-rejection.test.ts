@@ -18,7 +18,7 @@ type FakeTxCalls = {
 
 const selectStep = { from: () => selectFromStep };
 const selectFromStep = { leftJoin: () => selectFromStep, where: () => selectWhereStep };
-const selectWhereStep = { limit: limitCurrentClaim };
+const selectWhereStep = { for: () => selectWhereStep, limit: limitCurrentClaim };
 const updateWhereStep = { returning: returnUpdatedClaim };
 
 function limitCurrentClaim() {

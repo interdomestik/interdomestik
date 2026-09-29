@@ -64,6 +64,9 @@ class FakeSelect {
     this.calls.whereConditions.push(condition);
     return this;
   }
+  for(): this {
+    return this;
+  }
   async limit(): Promise<Record<string, unknown>[]> {
     if (!this.options.current) return [];
     this.calls.operations.push('select:current');

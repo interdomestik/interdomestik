@@ -23,16 +23,21 @@ export function sanitizeMemberRecoveryTimeline(
     decision?.decisionType === 'declined' &&
     decision.declineReasonCode !== null &&
     ORDINARY_DECLINE_CODES.has(decision.declineReasonCode);
+  const currentDecisionCanExposeNotes = ordinaryDecline || decision?.decisionType === 'accepted';
 
-  // The decision row can be overwritten; an older rejection cannot inherit its current reason.
-  return timeline.map(event =>
-    event.statusTo === 'rejected' &&
-    event.note !== null &&
-    !(ordinaryDecline && decision?.acceptedAt && event.date > decision.acceptedAt)
-      ? {
-          ...event,
-          note: getRecoveryDeclineMemberDescription('conflict_or_integrity_concern'),
-        }
-      : event
-  );
+  // A current decision cannot classify older notes. Sensitive decisions hide all free-text history.
+  return timeline.map(event => {
+    if (event.note === null) return event;
+    if (currentDecisionCanExposeNotes && decision?.acceptedAt && event.date > decision.acceptedAt) {
+      return event;
+    }
+    if (!decision && event.statusTo !== 'rejected') return event;
+    return {
+      ...event,
+      note:
+        event.statusTo === 'rejected'
+          ? getRecoveryDeclineMemberDescription('conflict_or_integrity_concern')
+          : null,
+    };
+  });
 }
