@@ -60,17 +60,18 @@ function dependencies(overrides = {}) {
     ...overrides,
   };
 }
-test('repository parity recognizes exact PR-head checkout and strict project superset', () => {
+test('repository parity recognizes an approved E2E corpus and rejects the new S7 corpus', () => {
   const current = sources();
   const laneDigest = createHash('sha256').update(current.laneSource).digest('hex');
   assert.equal(laneDigest, 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64');
-  assert.deepEqual(inspectRepositoryParity(current), {
+  assert.deepEqual(inspectRepositoryParity({ ...current, e2eTreeSha: MEMBER_PORTAL_E2E_TREE }), {
     checkoutHead: true,
     projectSuperset: true,
     sharedFlags: true,
     databaseSubstrate: true,
     commandChain: true,
   });
+  assert.equal(inspectRepositoryParity(current).commandChain, false);
 });
 test('T117C nonce assertion correction preserves corpus parity', () => {
   assert.equal(
@@ -173,10 +174,17 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies({ readFile })), SAFE);
   }
 });
-test('CLI resolver emits true only for normalized exact evidence', async () => {
-  const decision = await resolveMainE2eReuse(environment(), dependencies());
+test('CLI resolver emits true only for normalized exact evidence with an approved corpus', async () => {
+  const originalGit = dependencies().git;
+  const decision = await resolveMainE2eReuse(
+    environment(),
+    dependencies({
+      git: value => (value === 'HEAD:apps/web/e2e' ? MEMBER_PORTAL_E2E_TREE : originalGit(value)),
+    })
+  );
   assert.deepEqual(decision, { reuse: true, reason: 'exact_pr_evidence' });
   assert.equal(formatReuseDecision(decision), 'reuse=true\nreason=exact_pr_evidence\n');
+  assert.deepEqual(await resolveMainE2eReuse(environment(), dependencies()), SAFE);
 });
 test('CLI resolver fails closed before GitHub access for an ineligible context', async () => {
   const decision = await resolveMainE2eReuse(
