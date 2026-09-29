@@ -91,6 +91,49 @@ vi.mock('./getMemberVaultConsentDisplay', () => ({
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
 describe('member claim detail privacy', () => {
+  it('scopes timeline reads to the authorized claim and tenant', async () => {
+    const createdAt = new Date('2026-03-10T00:00:00.000Z');
+    const updatedAt = new Date('2026-03-14T00:00:00.000Z');
+    mocks.claim.mockResolvedValueOnce({
+      id: 'claim-scoped',
+      userId: 'member-1',
+      title: 'Recovery request',
+      status: 'rejected',
+      createdAt,
+      updatedAt,
+      description: null,
+      claimAmount: null,
+      currency: 'EUR',
+      documents: [],
+    });
+    mocks.timeline.mockResolvedValueOnce([
+      {
+        id: 'status-scoped',
+        date: updatedAt,
+        statusFrom: 'evaluation',
+        statusTo: 'rejected',
+        labelKey: 'claims-tracking.status.rejected',
+        note: null,
+        isPublic: true,
+      },
+    ]);
+    mocks.decision.mockResolvedValueOnce([]);
+
+    await getMemberClaimDetail(
+      { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      'claim-scoped'
+    );
+
+    expect(mocks.timeline).toHaveBeenCalledWith({
+      claimId: 'claim-scoped',
+      tenantId: 'tenant-1',
+      currentStatus: 'rejected',
+      createdAt,
+      piiStatus: 'available',
+      updatedAt,
+    });
+  });
+
   it('removes historic sensitive notes from non-rejection updates and the member payload', async () => {
     const privateNote = 'PRIVATE-INTEGRITY-ALLEGATION';
     mocks.claim.mockResolvedValueOnce({
