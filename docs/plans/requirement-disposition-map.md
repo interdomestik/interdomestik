@@ -90,19 +90,22 @@ record exact source/test/PR/merge evidence, outstanding UI/operational acceptanc
 decision. Reuse unchanged evidence; reopen only changed or ambiguous contracts. At completion update
 this map and the tracker in normal delivery, without another status system or closeout PR.
 
-## Credited S5/S7 evidence and current S7 work
+## Current bounded S5 work
 
 #1841 delivered shared member/assigned-staff evidence next action on exact protected main
-`333404dc`, after #1814 request-linked upload and acknowledgement. The current
-`S7-ASSIGNED-STAFF-WORK-QUEUE` increment groups assigned cases by persisted request/evidence
-progress and flags a passed saved request due date for operational follow-up. It does not fulfil a
-request, create a legal deadline or implement `IDA-COM-008` escalation. Whole `IDA-CLM-010`,
-operational/business and user acceptance remain open.
+`333404dc`, after #1814 request-linked upload and acknowledgement. Whole `IDA-CLM-010`,
+operational/business and user acceptance remain open. The active selection is S7 below.
 
 #1840 delivered the `IDA-FST-014` four-locale Free Start service boundary on exact main `a51fcc8`;
 automatic staging CD `36482936539` passed with production skipped. Product/privacy content review
 and broader Free Start acceptance remain open. #1839 security triage and #1838 period/grace truth
 remain separately credited in the current program/tracker.
+
+## Current bounded S7 work
+
+`S7-ASSIGNED-STAFF-WORK-QUEUE` groups assigned cases by persisted request/evidence progress and
+flags a passed saved request due date for operational follow-up. It does not fulfil a request,
+create a legal deadline or implement `IDA-COM-008` escalation.
 
 ## Current bounded S6 work
 

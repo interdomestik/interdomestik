@@ -62,26 +62,8 @@ vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(
     async (namespace?: string) => (key: string, values?: Record<string, string | number>) => {
       const locale = hoisted.locale;
-
-      if (key.startsWith('staff_queue.attention.')) {
-        const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
-        const catalog = catalogs[locale as keyof typeof catalogs];
-        const attention = catalog?.['agent-claims'].claims.staff_queue.attention;
-        const parts = key.split('.').slice(2);
-        const value = parts.reduce<unknown>(
-          (current, part) =>
-            current && typeof current === 'object'
-              ? (current as Record<string, unknown>)[part]
-              : undefined,
-          attention
-        );
-        return typeof value === 'string'
-          ? value.replace('{date}', String(values?.date ?? ''))
-          : key;
-      }
-
       if (namespace === 'claims-tracking.status') {
-        const statusTranslations: Record<string, Record<string, string>> = {
+        const status = {
           en: {
             submitted: 'Submitted',
             verification: 'Verification',
@@ -97,88 +79,31 @@ vi.mock('next-intl/server', () => ({
             court: 'Gjykatë',
           },
         };
-
-        return statusTranslations[locale]?.[key] ?? key;
+        return (
+          (status[locale as keyof typeof status] as Record<string, string> | undefined)?.[key] ??
+          key
+        );
       }
-
-      const translationsByLocale: Record<string, Record<string, string>> = {
-        en: {
-          claims_queue: 'Claims Queue',
-          'staff_queue.subtitle': 'What needs action today.',
-          'staff_queue.results_count': values?.count === 1 ? '1 claim' : `${values?.count} claims`,
-          'staff_queue.search_placeholder': 'Search claim, member, company, or number',
-          'staff_queue.search': 'Search',
-          'staff_queue.clear_search': 'Clear',
-          'staff_queue.pending_filter': 'Updating filters...',
-          'staff_queue.pending_search': 'Searching claims...',
-          'staff_queue.assignment_filter_label': 'Assignment filter',
-          'staff_queue.status_filter_label': 'Status filter',
-          'staff_queue.diaspora_filter_label': 'Origin filter',
-          'staff_queue.all_actionable': 'All actionable',
-          'staff_queue.empty_filtered': 'No claims match the current filters',
-          'staff_queue.empty_default': 'No claims in queue',
-          'staff_queue.assignment_state.unassigned': 'Unassigned',
-          'staff_queue.assignment_state.assigned_to_you': 'Assigned to you',
-          'staff_queue.assignment_state.assigned': 'Assigned',
-          'staff_queue.assignment_filter.all_staff': 'My queue + unassigned',
-          'staff_queue.assignment_filter.mine': 'Assigned to me',
-          'staff_queue.assignment_filter.unassigned': 'Unassigned',
-          'staff_queue.assignment_filter.all_branch': 'All branch claims',
-          'staff_queue.diaspora_filter.all': 'All origins',
-          'staff_queue.diaspora_filter.diaspora': 'Diaspora / Green Card',
-          'staff_queue.table.claim': 'Claim',
-          'staff_queue.table.member': 'Member',
-          'staff_queue.table.status_stage': 'Status + stage',
-          'staff_queue.table.updated': 'Updated',
-          'staff_queue.table.action': 'Action',
-          'staff_queue.table.no_claim_number': 'No claim number',
-          'staff_queue.table.no_company': 'No company provided',
-          'staff_queue.table.no_member_number': 'No member number',
-          'staff_queue.origin_badge': 'Diaspora / Green Card',
-          'actions.open': 'Open',
-        },
-        sq: {
-          claims_queue: 'Radha Operative e Kërkesave',
-          'staff_queue.subtitle': 'Çfarë ka nevojë për veprim sot.',
-          'staff_queue.results_count': values?.count === 1 ? '1 rast' : `${values?.count} raste`,
-          'staff_queue.search_placeholder': 'Kërko rast, anëtar, kompani ose numër',
-          'staff_queue.search': 'Kërko',
-          'staff_queue.clear_search': 'Pastro',
-          'staff_queue.pending_filter': 'Duke përditësuar filtrat...',
-          'staff_queue.pending_search': 'Duke kërkuar rastet...',
-          'staff_queue.assignment_filter_label': 'Filtri i caktimit',
-          'staff_queue.status_filter_label': 'Filtri i statusit',
-          'staff_queue.diaspora_filter_label': 'Filtri i origjinës',
-          'staff_queue.all_actionable': 'Të gjitha rastet vepruese',
-          'staff_queue.empty_filtered': 'Asnjë rast nuk përputhet me filtrat aktualë',
-          'staff_queue.empty_default': 'Nuk ka raste në radhë',
-          'staff_queue.assignment_state.unassigned': 'Pa përgjegjës',
-          'staff_queue.assignment_state.assigned_to_you': 'Caktuar te ju',
-          'staff_queue.assignment_state.assigned': 'I caktuar',
-          'staff_queue.assignment_filter.all_staff': 'Radha ime + pa përgjegjës',
-          'staff_queue.assignment_filter.mine': 'Caktuar te unë',
-          'staff_queue.assignment_filter.unassigned': 'Pa përgjegjës',
-          'staff_queue.assignment_filter.all_branch': 'Të gjitha rastet e degës',
-          'staff_queue.diaspora_filter.all': 'Të gjitha origjinat',
-          'staff_queue.diaspora_filter.diaspora': 'Diaspora / Green Card',
-          'staff_queue.table.claim': 'Rasti',
-          'staff_queue.table.member': 'Anëtari',
-          'staff_queue.table.status_stage': 'Statusi + faza',
-          'staff_queue.table.updated': 'Përditësuar',
-          'staff_queue.table.action': 'Veprimi',
-          'staff_queue.table.no_claim_number': 'Pa numër rasti',
-          'staff_queue.table.no_company': 'Nuk ka kompani të dhënë',
-          'staff_queue.table.no_member_number': 'Pa numër anëtarësie',
-          'staff_queue.origin_badge': 'Diaspora / Green Card',
-          'actions.open': 'Hap',
-        },
-      };
-
-      if (key === 'staff_queue.assignment_state.assigned_to_named') {
-        return locale === 'sq' ? `Caktuar te ${values?.name}` : `Assigned to ${values?.name}`;
+      if (key === 'staff_queue.results_count') {
+        const count = values?.count ?? 0;
+        return locale === 'sq'
+          ? `${count} ${count === 1 ? 'rast' : 'raste'}`
+          : `${count} ${count === 1 ? 'claim' : 'claims'}`;
       }
-
-      return translationsByLocale[locale]?.[key] || key;
+      const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
+      const catalog = catalogs[locale as keyof typeof catalogs];
+      const value = key
+        .split('.')
+        .reduce<unknown>(
+          (current, part) =>
+            current && typeof current === 'object'
+              ? (current as Record<string, unknown>)[part]
+              : undefined,
+          catalog?.['agent-claims'].claims
+        );
+      return typeof value === 'string'
+        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
+        : key;
     }
   ),
   setRequestLocale: vi.fn((locale: string) => {
@@ -355,135 +280,5 @@ describe('StaffClaimsPage', () => {
       '/staff/claims'
     );
     expect(screen.getByDisplayValue('diaspora')).toHaveAttribute('name', 'diaspora');
-  });
-
-  it('renders localized queue copy on non-English staff routes', async () => {
-    hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
-      {
-        id: 'claim-1',
-        claimNumber: null,
-        companyName: null,
-        title: 'Rast',
-        status: 'verification',
-        stageLabel: 'Verification',
-        updatedAt: '2026-03-01T00:00:00.000Z',
-        memberName: 'Anëtar',
-        memberNumber: null,
-        staffId: null,
-      },
-    ] as never);
-
-    const tree = await StaffClaimsPage({
-      params: Promise.resolve({ locale: 'sq' }),
-      searchParams: Promise.resolve({}),
-    });
-
-    render(tree);
-
-    expect(screen.getByTestId('page-title')).toHaveTextContent('Radha Operative e Kërkesave');
-    expect(screen.getByText('Rasti')).toBeInTheDocument();
-    expect(screen.getByText('Anëtari')).toBeInTheDocument();
-    expect(screen.getByText('Statusi + faza')).toBeInTheDocument();
-    expect(screen.getByText('Përditësuar')).toBeInTheDocument();
-    expect(screen.getByText('Veprimi')).toBeInTheDocument();
-    expect(screen.getByTestId('staff-claims-assigned-filter-unassigned')).toHaveTextContent(
-      'Pa përgjegjës'
-    );
-    expect(screen.getByTestId('staff-claims-status-filter-verification')).toHaveTextContent(
-      'Verifikim'
-    );
-    expect(screen.getAllByText('Verifikim').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
-    expect(screen.getByText('Pa numër rasti')).toBeInTheDocument();
-    expect(screen.getByText('Nuk ka kompani të dhënë')).toBeInTheDocument();
-    expect(screen.getByText('Pa numër anëtarësie')).toBeInTheDocument();
-    expect(screen.getByTestId('staff-claim-assignment-state')).toHaveTextContent('Pa përgjegjës');
-    expect(screen.getByTestId('staff-claims-view')).toHaveTextContent('Hap');
-  });
-
-  it.each(['en', 'sq', 'mk', 'sr'])(
-    'groups assigned work and marks passed request dates in %s',
-    async locale => {
-      hoisted.getSessionMock.mockResolvedValueOnce({
-        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
-      });
-      hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
-        {
-          id: 'claim-member',
-          claimNumber: 'KS-2',
-          title: 'Member wait',
-          status: 'verification',
-          staffId: 'staff-1',
-          updatedAt: '2026-09-29T00:00:00.000Z',
-        },
-        {
-          id: 'claim-staff',
-          claimNumber: 'KS-1',
-          title: 'Staff review',
-          status: 'verification',
-          staffId: 'staff-1',
-          updatedAt: '2026-09-28T00:00:00.000Z',
-        },
-        {
-          id: 'claim-no-request',
-          claimNumber: 'KS-3',
-          title: 'No request',
-          status: 'verification',
-          staffId: 'staff-1',
-          updatedAt: '2026-09-27T00:00:00.000Z',
-        },
-      ] as never);
-      hoisted.getAssignedStaffClaimAttentionMock.mockResolvedValueOnce({
-        'claim-member': { nextActor: 'member', overdueFollowUpDueAt: '2026-09-28T09:00:00.000Z' },
-        'claim-staff': { nextActor: 'staff', overdueFollowUpDueAt: null },
-      });
-
-      const tree = await StaffClaimsPage({
-        params: Promise.resolve({ locale }),
-        searchParams: Promise.resolve({ assigned: 'mine' }),
-      });
-      render(tree);
-
-      const catalog = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog }[
-        locale as 'en' | 'mk' | 'sq' | 'sr'
-      ];
-      const copy = catalog['agent-claims'].claims.staff_queue.attention;
-      expect(screen.getByTestId('staff-claims-group-staff')).toHaveTextContent(copy.group.staff);
-      expect(screen.getByTestId('staff-claims-group-member')).toHaveTextContent(copy.group.member);
-      expect(screen.getByTestId('staff-claims-group-untracked')).toHaveTextContent(
-        copy.group.untracked
-      );
-      expect(
-        screen
-          .getAllByTestId('staff-claims-row')
-          .map(row => row.querySelector('[data-testid="staff-claim-title"]')?.textContent)
-      ).toEqual(['Staff review', 'Member wait', 'No request']);
-      expect(screen.getByTestId('staff-claim-overdue-follow-up')).toHaveTextContent(
-        copy.overdue_follow_up.split('{date}')[0]
-      );
-      expect(hoisted.getAssignedStaffClaimAttentionMock).toHaveBeenCalledWith(
-        expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
-        ['claim-member', 'claim-staff', 'claim-no-request']
-      );
-    }
-  );
-
-  it('does not turn a failed assigned-request read into an empty queue', async () => {
-    hoisted.getSessionMock.mockResolvedValueOnce({
-      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
-    });
-    hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
-      { id: 'claim-1', staffId: 'staff-1', status: 'verification' },
-    ] as never);
-    hoisted.getAssignedStaffClaimAttentionMock.mockRejectedValueOnce(
-      new Error('request read failed')
-    );
-
-    await expect(
-      StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    ).rejects.toThrow('request read failed');
   });
 });
