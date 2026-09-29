@@ -227,6 +227,7 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
     [[], { ...current, run_attempt: 2 }],
     [[], { ...current, head_sha: sha('b') }],
     [[], { ...current, status: 'completed' }],
+    [[], { ...current, status: 'unrecognized' }],
   ]) {
     assert.throws(
       () =>

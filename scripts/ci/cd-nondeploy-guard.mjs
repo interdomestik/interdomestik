@@ -16,11 +16,11 @@ const CONTROL_PATHS = new Set([
 ]);
 const SHA = /^[a-f0-9]{40}$/u;
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
+const CURRENT_RUN_STATES = new Set(['in_progress', 'pending', 'queued', 'requested', 'waiting']);
 const fail = message => {
   throw new Error(`CD non-deploy guard: ${message}`);
 };
 const digest = value => createHash('sha256').update(value).digest('hex');
-
 export function parseScopeManifest(source) {
   let value;
   try {
@@ -120,7 +120,7 @@ export function assertNoCompetingRuns({ runs, currentRun, runId, runAttempt, sha
     Number(currentRun?.id) !== runId ||
     Number(currentRun?.run_attempt) !== runAttempt ||
     currentRun?.head_sha !== sha ||
-    !isNonterminal(currentRun)
+    !CURRENT_RUN_STATES.has(currentRun?.status)
   )
     fail('exact current run identity is invalid');
   const staleCurrent = runs.find(
