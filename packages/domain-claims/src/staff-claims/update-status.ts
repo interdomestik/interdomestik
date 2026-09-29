@@ -468,10 +468,9 @@ export async function updateClaimStatusCore(
       }
 
       if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
-        const publicDeclineNote = getRecoveryDeclinePublicNote(
-          params.declineReasonCode,
-          trimmedNote
-        );
+        const publicDeclineNote = isPublicChange
+          ? getRecoveryDeclinePublicNote(params.declineReasonCode, trimmedNote)
+          : trimmedNote;
 
         return finalizeClaimStatusChange({
           tx,

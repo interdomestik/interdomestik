@@ -17,12 +17,15 @@ export async function safePublicStatusNote(
   context: StatusNoteContext
 ): Promise<string | null> {
   const note = context.note?.trim() || null;
-  if (!note || !context.isPublicChange || context.currentStatus !== 'rejected') {
+  if (!note || !context.isPublicChange) {
     return note;
   }
 
   const [decision] = await tx
-    .select({ declineReasonCode: claimEscalationAgreements.declineReasonCode })
+    .select({
+      decisionType: claimEscalationAgreements.decisionType,
+      declineReasonCode: claimEscalationAgreements.declineReasonCode,
+    })
     .from(claimEscalationAgreements)
     .where(
       withTenant(
@@ -31,11 +34,13 @@ export async function safePublicStatusNote(
         eq(claimEscalationAgreements.claimId, context.claimId)
       )
     )
-    .limit(1);
+    .limit(1)
+    .for('update');
 
   if (
-    !decision?.declineReasonCode ||
-    decision.declineReasonCode === 'conflict_or_integrity_concern'
+    decision?.declineReasonCode === 'conflict_or_integrity_concern' ||
+    (decision?.decisionType === 'declined' && !decision.declineReasonCode) ||
+    (!decision && context.currentStatus === 'rejected')
   ) {
     return getRecoveryDeclineMemberDescription('conflict_or_integrity_concern');
   }
