@@ -52,6 +52,21 @@ function appendRequestEvidence(
   });
 }
 
+function markRequestFulfilled(
+  requests: PublicInformationRequest[] | null,
+  requestId: string,
+  documentId: string,
+  fulfilledAt: string
+): PublicInformationRequest[] | null {
+  return (
+    requests?.map(request =>
+      request.requestId === requestId
+        ? { ...request, status: 'fulfilled', fulfilledAt, fulfilledDocumentId: documentId }
+        : request
+    ) ?? null
+  );
+}
+
 export function ClaimInformationRequests({
   audience,
   canAcknowledge = false,
@@ -209,18 +224,13 @@ export function ClaimInformationRequests({
                             documentName={evidence.documentName}
                             requestId={request.requestId}
                             onFulfilled={fulfilledAt => {
-                              setDisplayRequests(
-                                current =>
-                                  current?.map(item =>
-                                    item.requestId === request.requestId
-                                      ? {
-                                          ...item,
-                                          status: 'fulfilled',
-                                          fulfilledAt,
-                                          fulfilledDocumentId: evidence.documentId,
-                                        }
-                                      : item
-                                  ) ?? null
+                              setDisplayRequests(current =>
+                                markRequestFulfilled(
+                                  current,
+                                  request.requestId,
+                                  evidence.documentId,
+                                  fulfilledAt
+                                )
                               );
                               setRecentFulfilledId(request.requestId);
                               setAnnouncement(t('fulfilmentSuccess'));

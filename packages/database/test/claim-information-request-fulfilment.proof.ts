@@ -8,19 +8,22 @@ export function assertOpenRequestProjection(
   dueAt: string
 ): void {
   assert.equal(visible.length, 1);
-  assert.deepEqual(Object.keys(visible[0]).sort(), [
-    'createdAt',
-    'dueAt',
-    'evidence',
-    'explanationForMember',
-    'fulfilledAt',
-    'fulfilledDocumentId',
-    'progress',
-    'requestId',
-    'requestedInformation',
-    'slaPosture',
-    'status',
-  ]);
+  assert.deepEqual(
+    Object.keys(visible[0]).sort((a, b) => a.localeCompare(b)),
+    [
+      'createdAt',
+      'dueAt',
+      'evidence',
+      'explanationForMember',
+      'fulfilledAt',
+      'fulfilledDocumentId',
+      'progress',
+      'requestedInformation',
+      'requestId',
+      'slaPosture',
+      'status',
+    ]
+  );
   assert.equal(visible[0].slaPosture, 'incomplete');
   assert.equal(visible[0].dueAt, dueAt);
   assert.deepEqual(visible[0].evidence, []);
