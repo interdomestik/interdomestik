@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildRecoveryDecisionSnapshot,
   getRecoveryDeclineMemberDescription,
+  getRecoveryDeclinePublicNote,
   toMemberSafeRecoveryDecision,
 } from './recovery-decision';
 import {
@@ -74,6 +75,9 @@ describe('recovery decision helpers', () => {
 
   it('forces a generic public note for a sensitive decline and trims an ordinary note', () => {
     expect(toMemberDeclineReasonCode('conflict_or_integrity_concern')).toBe('other');
+    expect(
+      getRecoveryDeclinePublicNote('conflict_or_integrity_concern', 'The member committed fraud')
+    ).toBe('We cannot accept this matter for staff-led recovery.');
     expect(
       selectPublicDeclineNote(
         'conflict_or_integrity_concern',

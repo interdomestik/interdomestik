@@ -782,31 +782,4 @@ describe('staff updateClaimStatusCore', () => {
       tenantId: 'tenant-1',
     });
   });
-
-  it('uses a generic public note for an integrity decline even when a caller supplies an allegation', async () => {
-    mocks.tenantReadSelectChain.limit.mockResolvedValue([claimFixture('negotiation')]);
-    mocks.txSelectChain.limit
-      .mockResolvedValueOnce([transitionClaimFixture('negotiation')])
-      .mockResolvedValueOnce([]);
-
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'rejected',
-      declineReasonCode: 'conflict_or_integrity_concern',
-      note: 'The member committed fraud',
-      decisionExplanation: 'Private allegation requiring review',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result.success).toBe(true);
-    expect(mocks.txInsertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        note: 'We cannot accept this matter for staff-led recovery.',
-        isPublic: true,
-      })
-    );
-    expect(mocks.txInsertValues).not.toHaveBeenCalledWith(
-      expect.objectContaining({ note: 'The member committed fraud' })
-    );
-  });
 });

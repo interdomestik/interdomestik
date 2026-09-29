@@ -25,12 +25,9 @@ import {
   getRecoveryMatterServiceCode,
   hasRecoveryMatterUsageForClaim,
 } from './matter-allowance';
-import {
-  buildRecoveryDecisionSnapshot,
-  getRecoveryDeclineMemberDescription,
-} from './recovery-decision';
-import { selectPublicDeclineNote } from './recovery-decision-public-copy';
+import { buildRecoveryDecisionSnapshot, getRecoveryDeclinePublicNote } from './recovery-decision';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
+import { safePublicStatusNote } from './rejected-claim-public-note';
 import {
   buildScopedStaffClaimWhere,
   resolveScopedStaffClaimAccess,
@@ -353,7 +350,7 @@ async function finalizeClaimStatusChange(
       claimId: rest.claimId,
       hostId: rest.hostId,
       isPublic: rest.isPublicChange,
-      note: rest.note ?? null,
+      note: await safePublicStatusNote(tx, rest),
       requiredWhereCondition: rest.staffScopeWhere,
       tenantId: rest.tenantId,
       toStatus: rest.status,
@@ -471,10 +468,9 @@ export async function updateClaimStatusCore(
       }
 
       if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
-        const publicDeclineNote = selectPublicDeclineNote(
+        const publicDeclineNote = getRecoveryDeclinePublicNote(
           params.declineReasonCode,
-          trimmedNote,
-          getRecoveryDeclineMemberDescription(params.declineReasonCode)
+          trimmedNote
         );
 
         return finalizeClaimStatusChange({

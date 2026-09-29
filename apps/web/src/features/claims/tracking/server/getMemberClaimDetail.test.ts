@@ -389,7 +389,6 @@ describe('getMemberClaimDetail', () => {
       status: 'accepted',
       title: 'Accepted for staff-led recovery',
       description: 'We accepted this matter for staff-led recovery.',
-      declineReasonCode: null,
     });
   });
 

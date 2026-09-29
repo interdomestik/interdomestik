@@ -12,7 +12,6 @@ type Props = Readonly<{
 
 export function MemberRecoveryDecisionCard({ decision, supportHref }: Props) {
   const t = useTranslations('claims.detail.recoveryDecision');
-  const reasonCode = decision.declineReasonCode ?? 'other';
 
   return (
     <Card data-testid="member-claim-recovery-decision">
@@ -27,9 +26,11 @@ export function MemberRecoveryDecisionCard({ decision, supportHref }: Props) {
         ) : (
           <>
             <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-sm font-medium">{t(`reasons.${reasonCode}.title`)}</p>
+              <p className="text-sm font-medium">
+                {t(`reasons.${decision.declineReasonCode}.title`)}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t(`reasons.${reasonCode}.description`)}
+                {t(`reasons.${decision.declineReasonCode}.description`)}
               </p>
             </div>
             <div className="space-y-2">

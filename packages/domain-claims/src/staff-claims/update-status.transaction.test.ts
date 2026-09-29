@@ -76,7 +76,7 @@ vi.mock('./accepted-recovery-prerequisites', () => ({
 }));
 vi.mock('./recovery-decision', () => ({
   buildRecoveryDecisionSnapshot: () => ({ status: 'accepted' }),
-  getRecoveryDeclineMemberDescription: vi.fn(),
+  getRecoveryDeclinePublicNote: vi.fn(),
 }));
 vi.mock('./recovery-decision-record', () => ({ upsertRecoveryDecisionRecord: vi.fn() }));
 vi.mock('./matter-allowance', () => ({

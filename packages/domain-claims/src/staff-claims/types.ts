@@ -47,12 +47,16 @@ export type RecoveryDecisionSnapshot = {
   memberDescription: string | null;
 };
 
-export type MemberSafeRecoveryDecisionSnapshot = {
-  status: RecoveryDecisionType;
+type MemberRecoveryDecisionCopy = {
   title: string;
   description: string | null;
-  declineReasonCode: MemberRecoveryDeclineReasonCode | null;
 };
+export type MemberSafeRecoveryDecisionSnapshot =
+  | (MemberRecoveryDecisionCopy & { status: 'accepted'; declineReasonCode?: null })
+  | (MemberRecoveryDecisionCopy & {
+      status: 'declined';
+      declineReasonCode: MemberRecoveryDeclineReasonCode;
+    });
 
 export type ClaimEscalationAgreementSnapshot = {
   claimId: string;

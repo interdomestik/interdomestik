@@ -4,7 +4,10 @@ import type {
   RecoveryDecisionSnapshot,
   RecoveryDecisionType,
 } from './types';
-import { toMemberDeclineReasonCode } from './recovery-decision-public-copy';
+import {
+  selectPublicDeclineNote,
+  toMemberDeclineReasonCode,
+} from './recovery-decision-public-copy';
 
 type DateLike = Date | string | null | undefined;
 
@@ -81,6 +84,13 @@ export function getRecoveryDeclineMemberDescription(code: RecoveryDeclineReasonC
   return getRecoveryDeclineReasonDetails(code).memberDescription;
 }
 
+export function getRecoveryDeclinePublicNote(
+  code: RecoveryDeclineReasonCode,
+  requestedNote: string | null | undefined
+): string {
+  return selectPublicDeclineNote(code, requestedNote, getRecoveryDeclineMemberDescription(code));
+}
+
 export function buildRecoveryDecisionSnapshot(
   record: RecoveryDecisionRecord | null | undefined
 ): RecoveryDecisionSnapshot {
@@ -129,13 +139,20 @@ export function toMemberSafeRecoveryDecision(
     return null;
   }
 
+  if (snapshot.status === 'accepted') {
+    return {
+      status: 'accepted',
+      title: snapshot.memberLabel,
+      description: snapshot.memberDescription,
+    };
+  }
+
   return {
-    status: snapshot.status,
+    status: 'declined',
     title: snapshot.memberLabel,
     description: snapshot.memberDescription,
-    declineReasonCode:
-      snapshot.status === 'declined'
-        ? toMemberDeclineReasonCode(snapshot.declineReasonCode ?? 'guidance_only_scope')
-        : null,
+    declineReasonCode: toMemberDeclineReasonCode(
+      snapshot.declineReasonCode ?? 'guidance_only_scope'
+    ),
   };
 }
