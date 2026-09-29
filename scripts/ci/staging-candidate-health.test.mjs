@@ -62,7 +62,7 @@ test('canonical health must match the preimage before the alias can move', async
       },
       healthImpl: async params => {
         calls.push(params);
-        if (params.healthUrl.includes('staging.interdomestik.com')) {
+        if (params.healthUrl === 'https://staging.interdomestik.com/api/health') {
           throw new Error('canonical host unavailable');
         }
       },
@@ -108,7 +108,10 @@ test('post-assignment confirmation tolerates bounded canonical transport failure
     snapshotImpl: async () => ({ deploymentHostname: HOST, commitSha: COMMIT }),
     healthImpl: async params => {
       calls.push(params);
-      if (params.healthUrl.includes('staging.interdomestik.com') && ++canonicalAttempts < 3) {
+      if (
+        params.healthUrl === 'https://staging.interdomestik.com/api/health' &&
+        ++canonicalAttempts < 3
+      ) {
         const error = new Error('Could not resolve host');
         error.code = 6;
         throw error;
