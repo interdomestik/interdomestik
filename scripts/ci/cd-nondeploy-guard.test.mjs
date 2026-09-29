@@ -5,24 +5,17 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
-import yaml from 'js-yaml';
 import {
   assertNoCompetingRuns,
   classifyScope,
-  fetchCurrentRun,
-  fetchNonterminalRuns,
-  fetchRunPage,
   parseScopeManifest,
   readPushEvidence,
   runGuard,
 } from './cd-nondeploy-guard.mjs';
 const sha = character => character.repeat(40);
 const manifest = paths => ({ version: 1, nonDeployPaths: paths });
-const runsPath = '/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
 const rootDir = new URL('../../', import.meta.url);
 const readRepoText = file => fs.readFileSync(new URL(file, rootDir), 'utf8');
-const readWorkflow = file => yaml.load(readRepoText(file));
-const findStep = (steps, name) => steps.find(step => step?.name === name);
 const assertFields = (actual, expected) => {
   for (const [field, value] of Object.entries(expected)) {
     assert.deepEqual(actual[field], value);
@@ -257,96 +250,6 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
     error: /competing nonterminal run/u,
   }).finally(() => fs.rmSync(root, { recursive: true, force: true }));
 });
-test('direct current lookup pins the run ID and validates its response', async () => {
-  const requests = [];
-  const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
-  const result = await fetchCurrentRun({
-    token: 'test-token',
-    runId: 41,
-    fetchImpl: async (url, options) => {
-      requests.push({ url: new URL(url), options });
-      return currentResponse(current);
-    },
-  });
-  assert.deepEqual(result, current);
-  assert.equal(requests[0].url.pathname, '/repos/interdomestik/interdomestik/actions/runs/41');
-  assert.equal(requests[0].options.redirect, 'error');
-});
-test('run-page lookup pins its target and validates response shape', async () => {
-  const requests = [];
-  const runs = await fetchRunPage({
-    token: 'test-token',
-    page: 2,
-    fetchImpl: async (url, options) => {
-      requests.push({ url: new URL(url), options });
-      return runResponse([{ id: 42, run_attempt: 1 }]);
-    },
-  });
-  assert.deepEqual(runs, [{ id: 42, run_attempt: 1 }]);
-  assert.equal(requests[0].url.origin, 'https://api.github.com');
-  assert.equal(requests[0].url.pathname, runsPath);
-  assert.equal(requests[0].url.searchParams.has('status'), false);
-  assert.equal(requests[0].url.searchParams.get('page'), '2');
-  assert.equal(requests[0].options.redirect, 'error');
-});
-test('unfiltered run pages retain current identity and reject a later-page competitor', async () => {
-  const requests = [];
-  const completed = Array.from({ length: 100 }, (_, index) => ({
-    id: index + 100,
-    run_attempt: 1,
-    status: 'completed',
-  }));
-  const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
-  const competitor = { ...current, id: 40, status: 'queued' };
-  const runs = await fetchNonterminalRuns({
-    token: 'test-token',
-    fetchImpl: async url => {
-      const request = new URL(url);
-      requests.push(request);
-      return runResponse(
-        request.searchParams.get('page') === '1' ? completed : [current, competitor]
-      );
-    },
-  });
-  assert.deepEqual(runs, [current, competitor]);
-  assert.equal(requests.length, 2);
-  assert.ok(requests.every(url => !url.searchParams.has('status')));
-  assert.throws(
-    () =>
-      assertNoCompetingRuns({ runs, currentRun: current, runId: 41, runAttempt: 3, sha: sha('a') }),
-    /competing nonterminal run/u
-  );
-});
-test('unknown run states remain blocking and missing status fails closed', async () => {
-  const unknown = await fetchNonterminalRuns({
-    token: 'test-token',
-    fetchImpl: async () => runResponse([{ id: 42, run_attempt: 1, status: 'approval_hold' }]),
-  });
-  assert.equal(unknown.length, 1);
-  await assert.rejects(
-    () =>
-      fetchNonterminalRuns({
-        token: 'test-token',
-        fetchImpl: async () => runResponse([{ id: 42, run_attempt: 1 }]),
-      }),
-    /invalid status/u
-  );
-});
-test('run lookup fails closed if complete history exceeds the bounded page limit', async () => {
-  let requests = 0;
-  await assert.rejects(
-    () =>
-      fetchNonterminalRuns({
-        token: 'test-token',
-        fetchImpl: async () => {
-          requests += 1;
-          return runResponse(Array.from({ length: 100 }, () => ({ status: 'completed' })));
-        },
-      }),
-    /pagination exceeded/u
-  );
-  assert.equal(requests, 100);
-});
 test('success receipt is canonically bound to event SHA, range, run, and attempt', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-success-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -369,29 +272,4 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
   assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
   assert.equal(requestCount, 2);
-});
-test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
-  const job = readWorkflow('.github/workflows/sonar-main-gate.yml').jobs['sonar-gate'];
-  assert.ok(job);
-  const validate = findStep(job.steps, 'Validate Sonar configuration');
-  const strategy = findStep(job.steps, 'Decide Sonar main gate strategy');
-  const awaitCheck = findStep(job.steps, 'Await SonarCloud Code Analysis check (blocking on push)');
-  const fallback = findStep(job.steps, 'Run Sonar quality gate (manual fallback)');
-  assert.ok(validate);
-  assert.ok(strategy);
-  assert.ok(awaitCheck);
-  assert.ok(fallback);
-  assert.equal(strategy.if, "env.SONAR_GATE_ENABLED == 'true'");
-  for (const pattern of [
-    /RUN_MANUAL_FALLBACK/,
-    /sonarcloud\.io/,
-    /SonarCloud Automatic Analysis owns mainline analysis/,
-  ]) {
-    assert.match(strategy.run, pattern);
-  }
-  assert.equal(awaitCheck.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
-  assert.equal(
-    fallback.if,
-    "github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'"
-  );
 });

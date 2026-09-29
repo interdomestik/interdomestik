@@ -193,48 +193,35 @@ export async function fetchNonterminalRuns({ token, fetchImpl = fetch }) {
   return [...runs.values()];
 }
 
+function receiptIdentity({ eventName, ref, before, after, sha, runId, runAttempt }) {
+  return { eventName, ref, before, after, sha, runId, runAttempt };
+}
 export function buildScopeReceipt(input) {
-  const { eventName, ref, before, after, sha, runId, runAttempt, decision, manifestSha256 } = input;
+  const { decision, manifestSha256 } = input;
   return {
     version: 1,
-    eventName,
-    ref,
-    before,
-    after,
-    sha,
-    runId,
-    runAttempt,
+    ...receiptIdentity(input),
     deploy: decision.deploy,
     reason: decision.reason,
     changedFiles: decision.changedFiles,
     manifestSha256,
   };
 }
-
 export function buildFailureReceipt(input) {
-  const { eventName, ref, before, after, sha, runId, runAttempt, error } = input;
   return {
     version: 1,
-    eventName,
-    ref,
-    before,
-    after,
-    sha,
-    runId,
-    runAttempt,
+    ...receiptIdentity(input),
     outcome: 'failure',
     deploy: null,
-    error: error instanceof Error ? error.message : String(error),
+    error: input.error instanceof Error ? input.error.message : String(input.error),
   };
 }
-
 function writeReceipt(receiptPath, receipt) {
   const serialized = JSON.stringify(receipt);
   const bytes = `${serialized}\n`;
   fs.writeFileSync(receiptPath, bytes, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   return { bytes, serialized, sha256: digest(bytes) };
 }
-
 function resolveReceiptPath(root, { sha, runId, runAttempt }) {
   const worktreeRoot = path.resolve(root);
   const evidenceRoot = path.resolve(worktreeRoot, 'tmp/cd-evidence');
@@ -273,6 +260,7 @@ export async function runGuard(
     runAttempt <= 0
   )
     fail('event SHA, run ID, or attempt is invalid');
+  const identity = { eventName, ref, before, after, sha, runId, runAttempt };
   const receiptPath = resolveReceiptPath(root, { sha, runId, runAttempt });
 
   let evidence;
@@ -286,21 +274,12 @@ export async function runGuard(
     const runs = await fetchNonterminalRuns({ token: env.GITHUB_TOKEN, fetchImpl });
     assertNoCompetingRuns({ runs, currentRun, runId, runAttempt, sha });
   } catch (error) {
-    writeReceipt(
-      receiptPath,
-      buildFailureReceipt({ eventName, ref, before, after, sha, runId, runAttempt, error })
-    );
+    writeReceipt(receiptPath, buildFailureReceipt({ ...identity, error }));
     throw error;
   }
 
   const receipt = buildScopeReceipt({
-    eventName,
-    ref,
-    before,
-    after,
-    sha,
-    runId,
-    runAttempt,
+    ...identity,
     decision,
     manifestSha256: evidence.manifestSha256,
   });
