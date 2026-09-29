@@ -5,7 +5,9 @@ import type {
   RecoveryDeclineReasonCode,
 } from '@/actions/staff-claims.core';
 import { Button, Textarea } from '@interdomestik/ui';
+import { toMemberDeclineReasonCode } from '@interdomestik/domain-claims/staff-claims/recovery-decision-public-copy';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { useClaimActionPanel } from './context';
 import { getRecoveryDecisionLabel } from './recovery-decision-helpers';
@@ -39,6 +41,8 @@ export function RecoveryDecisionSection({
   setDecisionExplanation,
 }: RecoveryDecisionSectionProps) {
   const { isPending, t } = useClaimActionPanel();
+  const tMemberDecision = useTranslations('claims.detail.recoveryDecision');
+  const memberReasonCode = declineReasonCode ? toMemberDeclineReasonCode(declineReasonCode) : null;
 
   return (
     <div className="space-y-4 border-t pt-6">
@@ -93,12 +97,16 @@ export function RecoveryDecisionSection({
         </label>
         <Textarea
           id="recovery-decision-explanation"
+          aria-describedby="recovery-decision-private-note"
           placeholder={t('staff_actions.recovery_decision.explanation_placeholder')}
           value={decisionExplanation}
           onChange={event => setDecisionExplanation(event.target.value)}
           disabled={isPending}
           className="min-h-[80px]"
         />
+        <p id="recovery-decision-private-note" className="text-xs text-muted-foreground">
+          {t('staff_actions.recovery_decision.private_note')}
+        </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -140,6 +148,36 @@ export function RecoveryDecisionSection({
           </select>
         </div>
       </div>
+
+      <section
+        aria-label={t('staff_actions.recovery_decision.preview_title')}
+        className="space-y-2 rounded-lg border bg-muted/30 p-4"
+        data-testid="staff-member-decline-preview"
+      >
+        <h5 className="text-sm font-medium">
+          {t('staff_actions.recovery_decision.preview_title')}
+        </h5>
+        <p className="text-xs text-muted-foreground">
+          {t('staff_actions.recovery_decision.preview_locale_note')}
+        </p>
+        <div aria-live="polite" className="space-y-2 text-sm">
+          {memberReasonCode ? (
+            <>
+              <p className="font-medium">{tMemberDecision('declinedTitle')}</p>
+              <p className="font-medium">{tMemberDecision(`reasons.${memberReasonCode}.title`)}</p>
+              <p className="text-muted-foreground">
+                {tMemberDecision(`reasons.${memberReasonCode}.description`)}
+              </p>
+              <p className="font-medium">{tMemberDecision('nextAction')}</p>
+              <p>{tMemberDecision('supportCta')}</p>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              {t('staff_actions.recovery_decision.preview_select_category')}
+            </p>
+          )}
+        </div>
+      </section>
 
       <Button
         className="w-full"

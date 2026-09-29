@@ -4,7 +4,7 @@ import { fetchVercelHealth } from './fetch-vercel-health.mjs';
 import { readStagingDeploymentIdentity } from './staging-deployment-identity.mjs';
 import { waitForVercelHealth } from './wait-for-vercel-health.mjs';
 export const CANONICAL_STAGING_ALIAS = 'staging.interdomestik.com';
-const ALIAS_DEFAULTS = { teamSlug: 'ecohub', attempts: 4, retryMs: 5_000 };
+const ALIAS_DEFAULTS = { teamSlug: 'ecohub', attempts: 4, confirmAttempts: 12, retryMs: 5_000 };
 function requireValue(name, value) {
   const result = String(value || '').trim();
   if (!result) throw new Error(`${name} is required`);
@@ -158,7 +158,7 @@ export async function confirmStagingAliasTarget({
   if (!/^[a-f0-9]{40}$/u.test(expectedCommitSha || '')) {
     throw new Error('expected staging commit must be a full lowercase SHA');
   }
-  const attempts = positiveInt(env.STAGING_ALIAS_CONFIRM_ATTEMPTS, ALIAS_DEFAULTS.attempts);
+  const attempts = positiveInt(env.STAGING_ALIAS_CONFIRM_ATTEMPTS, ALIAS_DEFAULTS.confirmAttempts);
   const retryMs = positiveInt(env.STAGING_ALIAS_RETRY_MS, ALIAS_DEFAULTS.retryMs);
   let observed;
   let providerError;
@@ -233,5 +233,11 @@ export async function prepareStagingAlias({
   }
   // stdout is the GitHub output protocol in the deployment caller.
   await healthImpl({ healthUrl: `${baseUrl}/api/health`, expectedCommitSha, log: console.error });
-  return snapshotImpl({ env });
+  const preimage = await snapshotImpl({ env });
+  await healthImpl({
+    healthUrl: `https://${CANONICAL_STAGING_ALIAS}/api/health`,
+    expectedCommitSha: preimage.commitSha,
+    log: console.error,
+  });
+  return preimage;
 }

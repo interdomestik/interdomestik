@@ -31,6 +31,7 @@
     "./staff-claims/save-success-fee-collection": "./src/staff-claims/save-success-fee-collection.ts",
     "./staff-claims/update-status": "./src/staff-claims/update-status.ts",
     "./staff-claims/types": "./src/staff-claims/types.ts",
+    "./staff-claims/recovery-decision-public-copy": "./src/staff-claims/recovery-decision-public-copy.ts",
     "./support-handoffs": "./src/support-handoffs/index.ts",
     "./support-handoffs/acknowledgement": "./src/support-handoffs/acknowledgement.ts",
     "./support-handoffs/advisory": "./src/support-handoffs/advisory.ts",

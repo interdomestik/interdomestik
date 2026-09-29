@@ -34,8 +34,42 @@ test('candidate must pass exact health before any previous-target snapshot or mo
     await assert.rejects(prepareStagingAlias({ ...options, baseUrl }), /exact immutable URL/u);
   }
   calls.length = 0;
-  await prepareStagingAlias({ ...options, healthImpl: async () => calls.push('healthy') });
-  assert.deepEqual(calls, ['healthy', 'snapshot']);
+  await prepareStagingAlias({
+    ...options,
+    healthImpl: async params => calls.push(params),
+  });
+  assert.deepEqual(calls, [
+    { healthUrl: `https://${HOST}/api/health`, expectedCommitSha: COMMIT, log: console.error },
+    'snapshot',
+    {
+      healthUrl: 'https://staging.interdomestik.com/api/health',
+      expectedCommitSha: COMMIT,
+      log: console.error,
+    },
+  ]);
+});
+
+test('canonical health must match the preimage before the alias can move', async () => {
+  const calls = [];
+  await assert.rejects(
+    prepareStagingAlias({
+      baseUrl: `https://${HOST}`,
+      hostname: HOST,
+      expectedCommitSha: COMMIT,
+      snapshotImpl: async () => {
+        calls.push('snapshot');
+        return { commitSha: 'b'.repeat(40) };
+      },
+      healthImpl: async params => {
+        calls.push(params);
+        if (params.healthUrl.includes('staging.interdomestik.com')) {
+          throw new Error('canonical host unavailable');
+        }
+      },
+    }),
+    /canonical host unavailable/u
+  );
+  assert.equal(calls[2].expectedCommitSha, 'b'.repeat(40));
 });
 
 test('post-assignment confirmation requires healthy immutable and canonical exact targets', async () => {
@@ -61,6 +95,55 @@ test('post-assignment confirmation requires healthy immutable and canonical exac
     assert.equal(calls.length, failOn);
     assert.equal(calls[0].expectedCommitSha, COMMIT);
   }
+});
+
+test('post-assignment confirmation tolerates bounded canonical transport failure without relaxing SHA', async () => {
+  const calls = [];
+  let canonicalAttempts = 0;
+  let waits = 0;
+  await confirmStagingAliasTarget({
+    deploymentHostname: HOST,
+    expectedCommitSha: COMMIT,
+    env: { STAGING_ALIAS_CONFIRM_ATTEMPTS: '3', STAGING_ALIAS_RETRY_MS: '1' },
+    snapshotImpl: async () => ({ deploymentHostname: HOST, commitSha: COMMIT }),
+    healthImpl: async params => {
+      calls.push(params);
+      if (params.healthUrl.includes('staging.interdomestik.com') && ++canonicalAttempts < 3) {
+        const error = new Error('Could not resolve host');
+        error.code = 6;
+        throw error;
+      }
+    },
+    waitImpl: async () => {
+      waits += 1;
+    },
+  });
+  assert.equal(canonicalAttempts, 3);
+  assert.equal(waits, 2);
+  assert.equal(calls.length, 6);
+  assert.ok(calls.every(call => call.expectedCommitSha === COMMIT));
+});
+
+test('default confirmation stops after twelve bounded attempts', async () => {
+  let attempts = 0;
+  let waits = 0;
+  await assert.rejects(
+    confirmStagingAliasTarget({
+      deploymentHostname: HOST,
+      expectedCommitSha: COMMIT,
+      env: {},
+      snapshotImpl: async () => {
+        attempts += 1;
+        throw new Error('provider temporarily unavailable');
+      },
+      waitImpl: async () => {
+        waits += 1;
+      },
+    }),
+    /provider temporarily unavailable/u
+  );
+  assert.equal(attempts, 12);
+  assert.equal(waits, 11);
 });
 
 test('deployment calls candidate health preparation before recording or moving the alias', () => {

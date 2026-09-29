@@ -16,12 +16,20 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S7-SAFE-DECLINE-HANDOFF` is the active bounded staff-handling increment selected from freshly
-fetched protected main `28a4f27ff03b4eb57bc098b06df5137bfe292491`. The existing categorized
-staff recovery decline must keep conflict/integrity details private in the member decision and
-public timeline. The member sees a plain-language EN/SQ/MK/SR result and an existing support next
-action. This is bounded S7 software evidence, not a conflict hard stop, whole S7, production or
-user acceptance.
+`S7-STAFF-DECLINE-PREVIEW` is the active bounded staff-handling increment selected from protected
+main `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Staff can preview the localized, safe
+member decision before saving a decline while their private explanation stays visibly separate.
+The same product PR addresses the observed intermittent canonical-host transport failure in the
+staging CD gate without relaxing exact-SHA or rollback checks. This is bounded S7 software and
+delivery evidence, not a conflict hard stop, whole S7, production or user acceptance.
+
+PR [#1846](https://github.com/interdomestik/interdomestik/pull/1846) protected-merged the
+safe-decline handoff as `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Automatic exact-main
+[CD `36587516135`](https://github.com/interdomestik/interdomestik/actions/runs/36587516135)
+failed canonical alias confirmation in attempts 1 and 2 after the immutable candidate passed
+health. The runner's canonical HTTPS request reported curl exit 6; its underlying cause is
+unproven. Attempt 2 restored the prior healthy staging alias target `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
+Credit the merged product behavior, but do not claim #1846 was staged or user-validated.
 
 PR [#1845](https://github.com/interdomestik/interdomestik/pull/1845) delivered exact acknowledged,
 linked-upload request fulfilment as protected merge `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
@@ -182,11 +190,11 @@ They do not establish new-account activation, request fulfilment, whole S5/S6/S7
 
 ## Program Goals
 
-1. Show assigned staff their bounded queue grouped by next actor: staff review or member evidence.
-2. Highlight a passed recorded request due date for an operational member follow-up, without
-   treating it as a legal deadline, case SLA breach or automatic escalation.
-3. Preserve #1841 shared next action, #1814 upload/acknowledgement and existing tenant, ownership,
-   document and lifecycle boundaries across EN/SQ/MK/SR.
+1. Show staff the member-facing decline wording before they save a categorized decision, using
+   the existing member catalog and sensitive-category projection in EN/SQ/MK/SR.
+2. Keep the staff-only explanation outside the preview and identify the displayed locale honestly.
+3. Restore exact-main staging proof through bounded canonical-host health checks while preserving
+   provider mapping, immutable health, exact-SHA and rollback authority.
 
 ## Enduring Safety Boundaries
 
@@ -280,7 +288,24 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current safe-decline handoff acceptance
+### Current staff decline preview and staging recovery acceptance
+
+- The mounted staff decision form shows a read-only member-facing preview after a decline category
+  is selected. Sensitive conflict/integrity selection shows only the generic member reason; the
+  typed staff explanation never enters the preview. The preview uses the current staff interface
+  locale and tells staff the member sees their own selected locale.
+- Empty selection is neutral and leaves decline disabled. The preview is labeled and announces
+  category changes without moving keyboard focus. EN/SQ/MK/SR mounted tests compare preview copy
+  with the existing member catalog. No decision writer, routing, auth, tenant or schema changes.
+- Before alias movement, CD checks canonical health against the attested preimage SHA. After
+  movement, bounded retries still require provider mapping plus immutable and canonical health on
+  the exact candidate SHA. A failed confirmation retains the exact preimage rollback path. Local
+  tests and independent trust review precede one consolidated final verification lane.
+- #1846 remains merged but staging-unproven until the new exact-main CD run passes. Neither a
+  pre-save preview nor a green gate establishes conflict disposition, whole `IDA-CLM-013/015`,
+  whole S7, production or user acceptance.
+
+### Credited #1846 safe-decline handoff acceptance
 
 - A conflict/integrity decline retains its internal category and staff explanation for authorized
   staff, while the member DTO/hydration exposes only a neutral category. A caller-supplied public
