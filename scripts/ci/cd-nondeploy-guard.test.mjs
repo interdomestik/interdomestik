@@ -9,6 +9,8 @@ import yaml from 'js-yaml';
 import {
   assertNoCompetingRuns,
   classifyScope,
+  fetchCurrentRun,
+  fetchNonterminalRuns,
   fetchRunPage,
   parseScopeManifest,
   readPushEvidence,
@@ -33,6 +35,11 @@ const currentRun = env => ({
   status: 'in_progress',
 });
 const runResponse = runs => ({ ok: true, json: async () => ({ workflow_runs: runs }) });
+const currentResponse = run => ({ ok: true, json: async () => run });
+const guardFetch = (current, runs) => async url =>
+  new URL(url).pathname.endsWith(`/runs/${current.id}`)
+    ? currentResponse(current)
+    : runResponse(runs);
 const receiptPath = (root, env) => {
   const fileName = `scope-${env.GITHUB_RUN_ATTEMPT}-${env.GITHUB_SHA}.json`;
   return path.join(root, 'tmp/cd-evidence', env.GITHUB_RUN_ID, fileName);
@@ -211,17 +218,33 @@ test('missing parent manifest fails red even when the after tree adds it', async
 test('only the exact current SHA and attempt may be nonterminal', () => {
   const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
   assert.doesNotThrow(() =>
-    assertNoCompetingRuns({ runs: [current], runId: 41, runAttempt: 3, sha: sha('a') })
+    assertNoCompetingRuns({
+      runs: [],
+      currentRun: current,
+      runId: 41,
+      runAttempt: 3,
+      sha: sha('a'),
+    })
   );
-  for (const runs of [
-    [current, { ...current, id: 40 }],
-    [current, { ...current, id: 42, status: 'pending' }],
-    [{ ...current, run_attempt: 2 }],
-    [{ ...current, head_sha: sha('b') }],
+  for (const [runs, direct] of [
+    [[current, { ...current, id: 40 }], current],
+    [[current, { ...current, id: 42, status: 'pending' }], current],
+    [[{ ...current, run_attempt: 2 }], current],
+    [[{ ...current, head_sha: sha('b') }], current],
+    [[], { ...current, run_attempt: 2 }],
+    [[], { ...current, head_sha: sha('b') }],
+    [[], { ...current, status: 'completed' }],
   ]) {
     assert.throws(
-      () => assertNoCompetingRuns({ runs, runId: 41, runAttempt: 3, sha: sha('a') }),
-      /competing|exact current run/u
+      () =>
+        assertNoCompetingRuns({
+          runs,
+          currentRun: direct,
+          runId: 41,
+          runAttempt: 3,
+          sha: sha('a'),
+        }),
+      /competing|exact current run|run list disagrees/u
     );
   }
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-race-'));
@@ -230,15 +253,29 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
   return assertFailureReceipt({
     env,
     root,
-    fetchImpl: async () => runResponse([currentRun(env), competing]),
+    fetchImpl: guardFetch(currentRun(env), [currentRun(env), competing]),
     error: /competing nonterminal run/u,
   }).finally(() => fs.rmSync(root, { recursive: true, force: true }));
+});
+test('direct current lookup pins the run ID and validates its response', async () => {
+  const requests = [];
+  const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
+  const result = await fetchCurrentRun({
+    token: 'test-token',
+    runId: 41,
+    fetchImpl: async (url, options) => {
+      requests.push({ url: new URL(url), options });
+      return currentResponse(current);
+    },
+  });
+  assert.deepEqual(result, current);
+  assert.equal(requests[0].url.pathname, '/repos/interdomestik/interdomestik/actions/runs/41');
+  assert.equal(requests[0].options.redirect, 'error');
 });
 test('run-page lookup pins its target and validates response shape', async () => {
   const requests = [];
   const runs = await fetchRunPage({
     token: 'test-token',
-    status: 'queued',
     page: 2,
     fetchImpl: async (url, options) => {
       requests.push({ url: new URL(url), options });
@@ -248,9 +285,67 @@ test('run-page lookup pins its target and validates response shape', async () =>
   assert.deepEqual(runs, [{ id: 42, run_attempt: 1 }]);
   assert.equal(requests[0].url.origin, 'https://api.github.com');
   assert.equal(requests[0].url.pathname, runsPath);
-  assert.equal(requests[0].url.searchParams.get('status'), 'queued');
+  assert.equal(requests[0].url.searchParams.has('status'), false);
   assert.equal(requests[0].url.searchParams.get('page'), '2');
   assert.equal(requests[0].options.redirect, 'error');
+});
+test('unfiltered run pages retain current identity and reject a later-page competitor', async () => {
+  const requests = [];
+  const completed = Array.from({ length: 100 }, (_, index) => ({
+    id: index + 100,
+    run_attempt: 1,
+    status: 'completed',
+  }));
+  const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
+  const competitor = { ...current, id: 40, status: 'queued' };
+  const runs = await fetchNonterminalRuns({
+    token: 'test-token',
+    fetchImpl: async url => {
+      const request = new URL(url);
+      requests.push(request);
+      return runResponse(
+        request.searchParams.get('page') === '1' ? completed : [current, competitor]
+      );
+    },
+  });
+  assert.deepEqual(runs, [current, competitor]);
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(url => !url.searchParams.has('status')));
+  assert.throws(
+    () =>
+      assertNoCompetingRuns({ runs, currentRun: current, runId: 41, runAttempt: 3, sha: sha('a') }),
+    /competing nonterminal run/u
+  );
+});
+test('unknown run states remain blocking and missing status fails closed', async () => {
+  const unknown = await fetchNonterminalRuns({
+    token: 'test-token',
+    fetchImpl: async () => runResponse([{ id: 42, run_attempt: 1, status: 'approval_hold' }]),
+  });
+  assert.equal(unknown.length, 1);
+  await assert.rejects(
+    () =>
+      fetchNonterminalRuns({
+        token: 'test-token',
+        fetchImpl: async () => runResponse([{ id: 42, run_attempt: 1 }]),
+      }),
+    /invalid status/u
+  );
+});
+test('run lookup fails closed if complete history exceeds the bounded page limit', async () => {
+  let requests = 0;
+  await assert.rejects(
+    () =>
+      fetchNonterminalRuns({
+        token: 'test-token',
+        fetchImpl: async () => {
+          requests += 1;
+          return runResponse(Array.from({ length: 100 }, () => ({ status: 'completed' })));
+        },
+      }),
+    /pagination exceeded/u
+  );
+  assert.equal(requests, 100);
 });
 test('success receipt is canonically bound to event SHA, range, run, and attempt', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-success-'));
@@ -258,9 +353,11 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   const env = guardEnv(root);
   const outputs = [];
   let requestCount = 0;
-  const fetchImpl = async () => {
+  const fetchImpl = async url => {
     requestCount += 1;
-    return runResponse([currentRun(env)]);
+    return new URL(url).pathname.endsWith(`/runs/${env.GITHUB_RUN_ID}`)
+      ? currentResponse(currentRun(env))
+      : runResponse([currentRun(env)]);
   };
   const receipt = await runGuard(env, fetchImpl, root, value => outputs.push(value));
   const bytes = fs.readFileSync(receiptPath(root, env));
@@ -271,7 +368,7 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   assert.deepEqual(outputs, [expectedOutput]);
   assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
   assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
-  assert.equal(requestCount, 5);
+  assert.equal(requestCount, 2);
 });
 test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
   const job = readWorkflow('.github/workflows/sonar-main-gate.yml').jobs['sonar-gate'];

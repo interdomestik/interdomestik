@@ -8,6 +8,7 @@ const MANIFEST_PATH = 'scripts/ci/cd-nondeploy-scope.json';
 const GIT_BINARY = '/usr/bin/git';
 const GITHUB_RUNS_URL =
   'https://api.github.com/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
+const GITHUB_RUN_URL = 'https://api.github.com/repos/interdomestik/interdomestik/actions/runs';
 const CONTROL_PATHS = new Set([
   '.github/workflows/cd.yml',
   'scripts/ci/cd-nondeploy-guard.mjs',
@@ -15,7 +16,6 @@ const CONTROL_PATHS = new Set([
 ]);
 const SHA = /^[a-f0-9]{40}$/u;
 const POSITIVE_INTEGER = /^[1-9]\d*$/u;
-const NONTERMINAL = new Set(['in_progress', 'pending', 'queued', 'requested', 'waiting']);
 const fail = message => {
   throw new Error(`CD non-deploy guard: ${message}`);
 };
@@ -115,22 +115,49 @@ export function readPushEvidence({ root = process.cwd(), before, after }) {
   };
 }
 
-export function assertNoCompetingRuns({ runs, runId, runAttempt, sha }) {
-  const active = runs.filter(run => NONTERMINAL.has(run.status));
-  const current = active.filter(run => Number(run.id) === runId);
+export function assertNoCompetingRuns({ runs, currentRun, runId, runAttempt, sha }) {
   if (
-    current.length !== 1 ||
-    Number(current[0].run_attempt) !== runAttempt ||
-    current[0].head_sha !== sha
+    Number(currentRun?.id) !== runId ||
+    Number(currentRun?.run_attempt) !== runAttempt ||
+    currentRun?.head_sha !== sha ||
+    !isNonterminal(currentRun)
   )
-    fail('exact current run identity is not the sole matching receipt source');
-  const competing = active.filter(run => Number(run.id) !== runId);
+    fail('exact current run identity is invalid');
+  const staleCurrent = runs.find(
+    run =>
+      Number(run.id) === runId && (Number(run.run_attempt) !== runAttempt || run.head_sha !== sha)
+  );
+  if (staleCurrent) fail('run list disagrees with exact current run identity');
+  const competing = runs.filter(run => Number(run.id) !== runId);
   if (competing.length) fail(`competing nonterminal run detected: ${competing[0].id}`);
 }
 
-export async function fetchRunPage({ token, status, page, fetchImpl = fetch }) {
+function isNonterminal(run) {
+  if (!run || typeof run !== 'object' || typeof run.status !== 'string' || !run.status)
+    fail('GitHub run lookup response has an invalid status');
+  return run.status !== 'completed';
+}
+
+export async function fetchCurrentRun({ token, runId, fetchImpl = fetch }) {
+  if (!token) fail('GitHub run lookup token is unavailable');
+  const response = await fetchImpl(`${GITHUB_RUN_URL}/${runId}`, {
+    redirect: 'error',
+    headers: {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${token}`,
+      'x-github-api-version': '2022-11-28',
+    },
+  });
+  if (!response.ok) fail(`GitHub current run lookup failed with HTTP ${response.status}`);
+  const run = await response.json();
+  if (!run || Array.isArray(run) || typeof run !== 'object')
+    fail('GitHub current run lookup response is invalid');
+  return run;
+}
+
+export async function fetchRunPage({ token, page, fetchImpl = fetch }) {
   const url = new URL(GITHUB_RUNS_URL);
-  url.search = new URLSearchParams({ status, per_page: '100', page: String(page) });
+  url.search = new URLSearchParams({ per_page: '100', page: String(page) });
   const response = await fetchImpl(url, {
     redirect: 'error',
     headers: {
@@ -147,15 +174,22 @@ export async function fetchRunPage({ token, status, page, fetchImpl = fetch }) {
 
 export async function fetchNonterminalRuns({ token, fetchImpl = fetch }) {
   if (!token) fail('GitHub run lookup token is unavailable');
+  // Status-filtered workflow lists can omit a live run; classify complete pages locally.
   const runs = new Map();
-  for (const status of NONTERMINAL) {
-    for (let page = 1; page <= 10; page += 1) {
-      const pageRuns = await fetchRunPage({ token, status, page, fetchImpl });
-      for (const run of pageRuns) runs.set(`${run.id}:${run.run_attempt}`, run);
-      if (pageRuns.length < 100) break;
-      if (page === 10) fail('GitHub run lookup pagination exceeded');
+  async function collect(page) {
+    const pageRuns = await fetchRunPage({ token, page, fetchImpl });
+    for (const run of pageRuns) {
+      if (isNonterminal(run)) {
+        if (!Number.isSafeInteger(Number(run.id)) || Number(run.id) <= 0)
+          fail('GitHub run lookup response has an invalid run ID');
+        runs.set(`${run.id}:${run.run_attempt}`, run);
+      }
     }
+    if (pageRuns.length < 100) return;
+    if (page === 100) fail('GitHub run lookup pagination exceeded');
+    await collect(page + 1);
   }
+  await collect(1);
   return [...runs.values()];
 }
 
@@ -248,8 +282,9 @@ export async function runGuard(
     if (eventName === 'push' && ref === 'refs/heads/main')
       evidence = readPushEvidence({ root, before, after });
     decision = classifyScope({ eventName, ref, ...evidence });
+    const currentRun = await fetchCurrentRun({ token: env.GITHUB_TOKEN, runId, fetchImpl });
     const runs = await fetchNonterminalRuns({ token: env.GITHUB_TOKEN, fetchImpl });
-    assertNoCompetingRuns({ runs, runId, runAttempt, sha });
+    assertNoCompetingRuns({ runs, currentRun, runId, runAttempt, sha });
   } catch (error) {
     writeReceipt(
       receiptPath,
