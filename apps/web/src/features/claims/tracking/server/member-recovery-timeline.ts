@@ -10,10 +10,31 @@ const ORDINARY_DECLINE_CODES: ReadonlySet<string> = new Set([
 ]);
 
 type RecoveryDecisionRow = {
-  acceptedAt: Date | null;
+  decisionRecordedAt: Date | null;
   decisionType: string | null;
   declineReasonCode: string | null;
 };
+
+export type RecoveryDecisionEvidenceRow = {
+  decisionType: string | null;
+  declineReasonCode: string | null;
+  decisionEventAt: Date | null;
+  decisionEventPayload: Record<string, unknown> | null;
+};
+
+export function verifiedRecoveryDecisionAt(rows: RecoveryDecisionEvidenceRow[]): Date | null {
+  const latest = rows[0];
+  const eventAt = latest?.decisionEventAt;
+  const payload = latest?.decisionEventPayload;
+  if (!eventAt || Number.isNaN(eventAt.getTime()) || !payload) return null;
+
+  // Timestamp ties cannot establish which decision was last.
+  if (rows[1]?.decisionEventAt?.getTime() === eventAt.getTime()) return null;
+  if (payload.decisionType !== latest.decisionType) return null;
+  const eventReason = payload.declineReasonCode ?? null;
+  if (eventReason !== latest.declineReasonCode) return null;
+  return eventAt;
+}
 
 export function sanitizeMemberRecoveryTimeline(
   timeline: ClaimTimelineEvent[],
@@ -28,7 +49,11 @@ export function sanitizeMemberRecoveryTimeline(
   // A current decision cannot classify older notes. Sensitive decisions hide all free-text history.
   return timeline.map(event => {
     if (event.note === null) return event;
-    if (currentDecisionCanExposeNotes && decision?.acceptedAt && event.date > decision.acceptedAt) {
+    if (
+      currentDecisionCanExposeNotes &&
+      decision?.decisionRecordedAt &&
+      event.date > decision.decisionRecordedAt
+    ) {
       return event;
     }
     if (!decision && event.statusTo !== 'rejected') return event;

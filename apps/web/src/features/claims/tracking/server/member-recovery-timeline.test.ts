@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { getRecoveryDeclineMemberDescription } from '@interdomestik/domain-claims';
 import type { ClaimTimelineEvent } from '../types';
-import { sanitizeMemberRecoveryTimeline } from './member-recovery-timeline';
+import {
+  sanitizeMemberRecoveryTimeline,
+  verifiedRecoveryDecisionAt,
+} from './member-recovery-timeline';
 
 const safeNote = getRecoveryDeclineMemberDescription('conflict_or_integrity_concern');
 
@@ -18,6 +21,47 @@ function event(id: string, statusTo: string, note: string | null): ClaimTimeline
 }
 
 describe('member recovery timeline', () => {
+  const ordinaryDecisionEvent = {
+    decisionType: 'declined',
+    declineReasonCode: 'insufficient_evidence',
+    decisionEventAt: new Date('2026-03-31T00:00:00.000Z'),
+    decisionEventPayload: {
+      decisionType: 'declined',
+      declineReasonCode: 'insufficient_evidence',
+    },
+  };
+
+  it('uses a matching decision event as the cutoff even after agreement acceptance changes', () => {
+    const recordedAt = verifiedRecoveryDecisionAt([ordinaryDecisionEvent]);
+    expect(recordedAt).toEqual(new Date('2026-03-31T00:00:00.000Z'));
+    expect(
+      sanitizeMemberRecoveryTimeline([event('progress', 'evaluation', 'Upload a receipt.')], {
+        decisionRecordedAt: recordedAt,
+        decisionType: 'declined',
+        declineReasonCode: 'insufficient_evidence',
+      })[0]?.note
+    ).toBe('Upload a receipt.');
+  });
+
+  it('does not trust a stale or ambiguous decision event', () => {
+    expect(
+      verifiedRecoveryDecisionAt([
+        {
+          ...ordinaryDecisionEvent,
+          decisionEventPayload: {
+            decisionType: 'declined',
+            declineReasonCode: 'conflict_or_integrity_concern',
+          },
+        },
+        ordinaryDecisionEvent,
+      ])
+    ).toBeNull();
+    expect(verifiedRecoveryDecisionAt([ordinaryDecisionEvent, ordinaryDecisionEvent])).toBeNull();
+    expect(
+      verifiedRecoveryDecisionAt([{ ...ordinaryDecisionEvent, decisionEventAt: null }])
+    ).toBeNull();
+  });
+
   it('masks every historic rejection note for a sensitive decline without mutating the input', () => {
     const timeline = [
       event('new-rejection', 'rejected', 'private allegation A'),
@@ -26,7 +70,7 @@ describe('member recovery timeline', () => {
       event('no-note', 'rejected', null),
     ];
     const result = sanitizeMemberRecoveryTimeline(timeline, {
-      acceptedAt: new Date('2026-03-31T00:00:00.000Z'),
+      decisionRecordedAt: new Date('2026-03-31T00:00:00.000Z'),
       decisionType: 'declined',
       declineReasonCode: 'conflict_or_integrity_concern',
     });
@@ -45,7 +89,7 @@ describe('member recovery timeline', () => {
     const timeline = [event('rejection', 'rejected', 'Staff explanation')];
     expect(
       sanitizeMemberRecoveryTimeline(timeline, {
-        acceptedAt: new Date('2026-03-31T00:00:00.000Z'),
+        decisionRecordedAt: new Date('2026-03-31T00:00:00.000Z'),
         decisionType: 'declined',
         declineReasonCode,
       })
@@ -59,7 +103,7 @@ describe('member recovery timeline', () => {
     ];
     expect(
       sanitizeMemberRecoveryTimeline(timeline, {
-        acceptedAt: new Date('2026-04-02T00:00:00.000Z'),
+        decisionRecordedAt: new Date('2026-04-02T00:00:00.000Z'),
         decisionType: 'declined',
         declineReasonCode: 'insufficient_evidence',
       }).map(item => item.note)
@@ -69,7 +113,7 @@ describe('member recovery timeline', () => {
   it('preserves newer progress notes after a proven ordinary decision', () => {
     expect(
       sanitizeMemberRecoveryTimeline([event('progress', 'evaluation', 'Upload a receipt.')], {
-        acceptedAt: new Date('2026-03-31T00:00:00.000Z'),
+        decisionRecordedAt: new Date('2026-03-31T00:00:00.000Z'),
         decisionType: 'declined',
         declineReasonCode: 'insufficient_evidence',
       })[0]?.note
@@ -86,7 +130,7 @@ describe('member recovery timeline', () => {
     const timestamp = new Date('2026-04-01T00:00:00.000Z');
     expect(
       sanitizeMemberRecoveryTimeline([event('tie', 'rejected', 'old allegation')], {
-        acceptedAt: timestamp,
+        decisionRecordedAt: timestamp,
         decisionType: 'declined',
         declineReasonCode: 'insufficient_evidence',
       })[0]?.note
@@ -95,9 +139,13 @@ describe('member recovery timeline', () => {
 
   it.each([
     null,
-    { acceptedAt: null, decisionType: 'declined', declineReasonCode: null },
-    { acceptedAt: null, decisionType: 'declined', declineReasonCode: 'future_reason' },
-    { acceptedAt: null, decisionType: 'accepted', declineReasonCode: 'insufficient_evidence' },
+    { decisionRecordedAt: null, decisionType: 'declined', declineReasonCode: null },
+    { decisionRecordedAt: null, decisionType: 'declined', declineReasonCode: 'future_reason' },
+    {
+      decisionRecordedAt: null,
+      decisionType: 'accepted',
+      declineReasonCode: 'insufficient_evidence',
+    },
   ])('masks unproven ordinary declines', decision => {
     expect(
       sanitizeMemberRecoveryTimeline([event('old', 'rejected', 'staff allegation')], decision)[0]
