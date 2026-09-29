@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { safePublicStatusNote } from './rejected-claim-public-note';
 
 const mocks = vi.hoisted(() => ({
+  and: vi.fn((...conditions) => ({ op: 'and', conditions })),
   lock: vi.fn(),
-  withTenant: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: mocks.and,
   claimEscalationAgreements: {
     claimId: 'agreement.claimId',
     decisionType: 'agreement.decisionType',
@@ -16,7 +17,6 @@ vi.mock('@interdomestik/database', () => ({
   },
   eq: vi.fn((column, value) => ({ column, value })),
 }));
-vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
 
 const tx = {
   select: vi.fn(() => ({
@@ -69,10 +69,10 @@ describe('rejected claim public notes', () => {
     );
     expect(mocks.lock).toHaveBeenCalledTimes(1);
     expect(mocks.lock).toHaveBeenCalledWith(1);
-    expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'agreement.tenantId', {
-      column: 'agreement.claimId',
-      value: 'claim-1',
-    });
+    expect(mocks.and).toHaveBeenCalledWith(
+      { column: 'agreement.tenantId', value: 'tenant-1' },
+      { column: 'agreement.claimId', value: 'claim-1' }
+    );
   });
 
   it('keeps a public follow-up note for a non-sensitive decline', async () => {

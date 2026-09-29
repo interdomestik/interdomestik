@@ -10,12 +10,13 @@ function recoveryDecisionTx(tx: unknown): RecoveryDecisionTx {
 }
 
 const mocks = vi.hoisted(() => ({
+  and: vi.fn((...conditions) => ({ op: 'and', conditions })),
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-  withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: mocks.and,
   appendEvent: mocks.appendEvent,
   claimEscalationAgreements: {
     acceptedAt: 'claim_escalation_agreements.accepted_at',
@@ -36,9 +37,6 @@ vi.mock('@interdomestik/database', () => ({
     update: vi.fn(),
   },
   eq: mocks.eq,
-}));
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
 }));
 
 const session = {
@@ -80,6 +78,14 @@ describe('upsertRecoveryDecisionRecord', () => {
       })
     );
     expect(claimLock).toHaveBeenCalledWith('no key update');
+    expect(mocks.and).toHaveBeenCalledWith(
+      { op: 'eq', left: 'claims.tenantId', right: 'tenant-1' },
+      { op: 'eq', left: 'claims.id', right: 'claim-1' }
+    );
+    expect(mocks.and).toHaveBeenCalledWith(
+      { op: 'eq', left: 'claim_escalation_agreements.tenant_id', right: 'tenant-1' },
+      { op: 'eq', left: 'claim_escalation_agreements.claim_id', right: 'claim-1' }
+    );
     expect(claimLock.mock.invocationCallOrder[0]).toBeLessThan(
       insertValues.mock.invocationCallOrder[0]
     );

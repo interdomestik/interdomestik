@@ -1,5 +1,9 @@
-import { claimEscalationAgreements, eq, type TenantTransaction } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
+import {
+  and,
+  claimEscalationAgreements,
+  eq,
+  type TenantTransaction,
+} from '@interdomestik/database';
 
 import { getRecoveryDeclineMemberDescription } from './recovery-decision';
 import type { ClaimStatus } from './types';
@@ -28,9 +32,8 @@ export async function safePublicStatusNote(
     })
     .from(claimEscalationAgreements)
     .where(
-      withTenant(
-        context.tenantId,
-        claimEscalationAgreements.tenantId,
+      and(
+        eq(claimEscalationAgreements.tenantId, context.tenantId),
         eq(claimEscalationAgreements.claimId, context.claimId)
       )
     )
