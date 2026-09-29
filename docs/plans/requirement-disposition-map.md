@@ -90,14 +90,14 @@ record exact source/test/PR/merge evidence, outstanding UI/operational acceptanc
 decision. Reuse unchanged evidence; reopen only changed or ambiguous contracts. At completion update
 this map and the tracker in normal delivery, without another status system or closeout PR.
 
-## Current bounded S5 work
+## Credited S5/S7 evidence and current S7 work
 
-`S5-S7-EVIDENCE-NEXT-ACTION` selects the shared member/assigned-staff evidence-request card on
-protected main `a51fcc8`. The verified SRS v0.9 `IDA-CLM-010` clause requires a specific request,
-due date, responsible owner, member-visible explanation and SLA posture. #1814 already delivered
-request-linked upload and assigned-staff acknowledgement. This increment makes the persisted open
-status and next actor/action visible on both views without treating upload or acknowledgement as
-fulfilment. Whole `IDA-CLM-010`, operational/business and user acceptance remain open.
+#1841 delivered shared member/assigned-staff evidence next action on exact protected main
+`333404dc`, after #1814 request-linked upload and acknowledgement. The current
+`S7-ASSIGNED-STAFF-WORK-QUEUE` increment groups assigned cases by persisted request/evidence
+progress and flags a passed saved request due date for operational follow-up. It does not fulfil a
+request, create a legal deadline or implement `IDA-COM-008` escalation. Whole `IDA-CLM-010`,
+operational/business and user acceptance remain open.
 
 #1840 delivered the `IDA-FST-014` four-locale Free Start service boundary on exact main `a51fcc8`;
 automatic staging CD `36482936539` passed with production skipped. Product/privacy content review
@@ -106,7 +106,7 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S6 work
 
-The S6 increments below are credited deliveries; the active selection is the S5 boundary above.
+The S6 increments below are credited deliveries; the active selection is the S7 queue above.
 
 #1835 delivered the member subset of IDA-COM-005 after #1777 case/status/public-thread continuity,
 #1780 internal metadata exclusion and #1814 request evidence acknowledgement. Its member thread
@@ -434,7 +434,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Existing protected delivery covers assigned-owner creation, explicit due date, safe explanation/reference, request-local SLA posture and correlation retries; #1814 covers member upload and assigned-staff acknowledgement. Current bounded S5/S7 slice adds shared visible open status and next actor/action without request fulfilment or claim lifecycle/SLA change. Whole requirement remains open | #1814 protected merge `af191e7`; current S5/S7 proof pending | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Existing protected delivery covers assigned-owner creation, explicit due date, safe explanation/reference, request-local SLA posture and correlation retries; #1814 covers member upload and assigned-staff acknowledgement; #1841 adds shared open status and next actor/action. Current S7 queue candidate groups assigned cases by request progress and saved-date follow-up without fulfilment or claim lifecycle/SLA change. Whole requirement remains open | #1814 merge `af191e7`; #1841 merge `333404dc`; current S7 queue proof pending | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
@@ -500,7 +500,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-COM-005 | Thread visibility | Target | pilot-required | S1/S3/S6/S7 | open | none | U | U | U |
 | IDA-COM-006 | Task creation | Target | unresolved | S1/S3/S6/S7 | open | none | U | U | U |
 | IDA-COM-007 | Task history | Canonical | unresolved | S1/S3/S6/S7 | open | none | U | U | U |
-| IDA-COM-008 | Overdue escalation | Target | unresolved | S1/S3/S6/S7 | open | none | U | U | U |
+| IDA-COM-008 | Overdue escalation | Target | unresolved | S1/S3/S6/S7 | Current S7 queue candidate highlights passed persisted information-request dates for assigned-staff operational follow-up only; configurable escalation, notifications, manager visibility and operational rehearsal remain open | current S7 queue proof pending | U | U | U |
 | IDA-COM-009 | SLA definition | Target | unresolved | S1/S3/S6/S7 | open | none | U | U | U |
 | IDA-COM-010 | Delivery failure | Target | unresolved | S1/S3/S6/S7 | open | none | U | U | U |
 | IDA-COM-011 | Notification preferences | Target | unresolved | S1/S3/S6/S7 | open | none | U | U | U |

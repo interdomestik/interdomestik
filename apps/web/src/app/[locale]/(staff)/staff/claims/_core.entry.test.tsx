@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import enCatalog from '@/messages/en/agent-claims.json';
+import mkCatalog from '@/messages/mk/agent-claims.json';
+import sqCatalog from '@/messages/sq/agent-claims.json';
+import srCatalog from '@/messages/sr/agent-claims.json';
 
 const hoisted = vi.hoisted(() => ({
   locale: 'en',
@@ -13,6 +17,7 @@ const hoisted = vi.hoisted(() => ({
     },
   })),
   getStaffClaimsListMock: vi.fn(async () => []),
+  getAssignedStaffClaimAttentionMock: vi.fn(async () => ({})),
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -43,6 +48,7 @@ vi.mock('@/components/shell/session', () => ({
 vi.mock('@interdomestik/domain-claims', () => ({
   ACTIONABLE_CLAIM_STATUSES: ['submitted', 'verification', 'evaluation', 'negotiation', 'court'],
   getStaffClaimsList: hoisted.getStaffClaimsListMock,
+  getAssignedStaffClaimAttention: hoisted.getAssignedStaffClaimAttentionMock,
   parseDiasporaOriginFilter: (value?: string | null) => (value === 'diaspora' ? 'diaspora' : 'all'),
 }));
 
@@ -56,6 +62,23 @@ vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(
     async (namespace?: string) => (key: string, values?: Record<string, string | number>) => {
       const locale = hoisted.locale;
+
+      if (key.startsWith('staff_queue.attention.')) {
+        const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
+        const catalog = catalogs[locale as keyof typeof catalogs];
+        const attention = catalog?.['agent-claims'].claims.staff_queue.attention;
+        const parts = key.split('.').slice(2);
+        const value = parts.reduce<unknown>(
+          (current, part) =>
+            current && typeof current === 'object'
+              ? (current as Record<string, unknown>)[part]
+              : undefined,
+          attention
+        );
+        return typeof value === 'string'
+          ? value.replace('{date}', String(values?.date ?? ''))
+          : key;
+      }
 
       if (namespace === 'claims-tracking.status') {
         const statusTranslations: Record<string, Record<string, string>> = {
@@ -177,6 +200,7 @@ describe('StaffClaimsPage', () => {
     hoisted.getSessionMock.mockClear();
     hoisted.getStaffClaimsListMock.mockClear();
     hoisted.getStaffClaimsListMock.mockResolvedValue([]);
+    hoisted.getAssignedStaffClaimAttentionMock.mockReset().mockResolvedValue({});
   });
 
   it('passes branch-aware search filters into the staff queue query', async () => {
@@ -203,6 +227,7 @@ describe('StaffClaimsPage', () => {
       viewerRole: 'branch_manager',
     });
     expect(screen.getByTestId('staff-page-ready')).toBeInTheDocument();
+    expect(hoisted.getAssignedStaffClaimAttentionMock).not.toHaveBeenCalled();
   });
 
   it('shows assignment state labels in the queue for staff operators', async () => {
@@ -374,5 +399,91 @@ describe('StaffClaimsPage', () => {
     expect(screen.getByText('Pa numër anëtarësie')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-assignment-state')).toHaveTextContent('Pa përgjegjës');
     expect(screen.getByTestId('staff-claims-view')).toHaveTextContent('Hap');
+  });
+
+  it.each(['en', 'sq', 'mk', 'sr'])(
+    'groups assigned work and marks passed request dates in %s',
+    async locale => {
+      hoisted.getSessionMock.mockResolvedValueOnce({
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
+      });
+      hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
+        {
+          id: 'claim-member',
+          claimNumber: 'KS-2',
+          title: 'Member wait',
+          status: 'verification',
+          staffId: 'staff-1',
+          updatedAt: '2026-09-29T00:00:00.000Z',
+        },
+        {
+          id: 'claim-staff',
+          claimNumber: 'KS-1',
+          title: 'Staff review',
+          status: 'verification',
+          staffId: 'staff-1',
+          updatedAt: '2026-09-28T00:00:00.000Z',
+        },
+        {
+          id: 'claim-no-request',
+          claimNumber: 'KS-3',
+          title: 'No request',
+          status: 'verification',
+          staffId: 'staff-1',
+          updatedAt: '2026-09-27T00:00:00.000Z',
+        },
+      ] as never);
+      hoisted.getAssignedStaffClaimAttentionMock.mockResolvedValueOnce({
+        'claim-member': { nextActor: 'member', overdueFollowUpDueAt: '2026-09-28T09:00:00.000Z' },
+        'claim-staff': { nextActor: 'staff', overdueFollowUpDueAt: null },
+      });
+
+      const tree = await StaffClaimsPage({
+        params: Promise.resolve({ locale }),
+        searchParams: Promise.resolve({ assigned: 'mine' }),
+      });
+      render(tree);
+
+      const catalog = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog }[
+        locale as 'en' | 'mk' | 'sq' | 'sr'
+      ];
+      const copy = catalog['agent-claims'].claims.staff_queue.attention;
+      expect(screen.getByTestId('staff-claims-group-staff')).toHaveTextContent(copy.group.staff);
+      expect(screen.getByTestId('staff-claims-group-member')).toHaveTextContent(copy.group.member);
+      expect(screen.getByTestId('staff-claims-group-untracked')).toHaveTextContent(
+        copy.group.untracked
+      );
+      expect(
+        screen
+          .getAllByTestId('staff-claims-row')
+          .map(row => row.querySelector('[data-testid="staff-claim-title"]')?.textContent)
+      ).toEqual(['Staff review', 'Member wait', 'No request']);
+      expect(screen.getByTestId('staff-claim-overdue-follow-up')).toHaveTextContent(
+        copy.overdue_follow_up.split('{date}')[0]
+      );
+      expect(hoisted.getAssignedStaffClaimAttentionMock).toHaveBeenCalledWith(
+        expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
+        ['claim-member', 'claim-staff', 'claim-no-request']
+      );
+    }
+  );
+
+  it('does not turn a failed assigned-request read into an empty queue', async () => {
+    hoisted.getSessionMock.mockResolvedValueOnce({
+      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
+    });
+    hoisted.getStaffClaimsListMock.mockResolvedValueOnce([
+      { id: 'claim-1', staffId: 'staff-1', status: 'verification' },
+    ] as never);
+    hoisted.getAssignedStaffClaimAttentionMock.mockRejectedValueOnce(
+      new Error('request read failed')
+    );
+
+    await expect(
+      StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    ).rejects.toThrow('request read failed');
   });
 });

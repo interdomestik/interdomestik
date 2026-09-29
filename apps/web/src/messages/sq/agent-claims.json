@@ -31,6 +31,20 @@
         "all_actionable": "Të gjitha rastet vepruese",
         "empty_filtered": "Asnjë rast nuk përputhet me filtrat aktualë",
         "empty_default": "Nuk ka raste në radhë",
+        "attention": {
+          "group": {
+            "staff": "Në pritje të veprimit tuaj",
+            "member": "Në pritje të dëshmive nga anëtari",
+            "untracked": "Raste të tjera të caktuara",
+            "unassigned": "Raste të pacaktuara"
+          },
+          "next_actor": {
+            "staff": "Më pas: shqyrtim nga punonjësi i caktuar",
+            "member": "Më pas: ngarkim nga anëtari",
+            "untracked": "Nuk ka kërkesë të hapur për dëshmi të regjistruar"
+          },
+          "overdue_follow_up": "Ndjekje operative: data e regjistruar për kërkesën, {date} UTC, ka kaluar. Kontaktoni anëtarin."
+        },
         "assignment_state": {
           "unassigned": "Pa përgjegjës",
           "assigned_to_you": "Caktuar te ju",
