@@ -123,7 +123,7 @@ export function assertNoCompetingRuns({ runs, currentRun, runId, runAttempt, sha
     !CURRENT_RUN_STATES.has(currentRun?.status)
   )
     fail('exact current run identity is invalid');
-  const staleCurrent = runs.find(
+  const staleCurrent = runs.some(
     run =>
       Number(run.id) === runId && (Number(run.run_attempt) !== runAttempt || run.head_sha !== sha)
   );
