@@ -161,6 +161,39 @@
       "view_plans": "Pogledaj Planove"
     },
     "detail": {
+      "recoveryDecision": {
+        "acceptedTitle": "Prihvaćeno za naplatu koju vodi osoblje",
+        "acceptedDescription": "Prihvatili smo ovaj predmet za naplatu koju vodi osoblje.",
+        "declinedTitle": "Naplata koju vodi osoblje nije dostupna",
+        "nextAction": "Sledeći korak",
+        "supportCta": "Kontaktirajte podršku povodom ove odluke",
+        "reasons": {
+          "guidance_only_scope": {
+            "title": "Samo smernice",
+            "description": "Ovaj predmet ostaje samo za smernice ili upućivanje u okviru trenutnog obima usluge."
+          },
+          "insufficient_evidence": {
+            "title": "Potrebno je više dokaza",
+            "description": "Potrebni su nam jači dokazi pre nego što počne naplata koju vodi osoblje."
+          },
+          "no_monetary_recovery_path": {
+            "title": "Nema jasnog puta naplate",
+            "description": "Ovaj predmet trenutno nema jasan put novčane naplate koju vodi osoblje."
+          },
+          "counterparty_unidentified": {
+            "title": "Nedostaju podaci o drugoj strani",
+            "description": "Ne možemo da utvrdimo osiguravača ili drugu stranu potrebnu za naplatu koju vodi osoblje."
+          },
+          "time_limit_risk": {
+            "title": "Neizvesnost u vezi sa rokom",
+            "description": "Neizvesnost u vezi sa rokom sprečava naplatu koju vodi osoblje na osnovu trenutno dostupnih informacija."
+          },
+          "other": {
+            "title": "Odluka nakon pregleda osoblja",
+            "description": "Ne možemo da ponudimo naplatu koju vodi osoblje za ovaj predmet. Kontaktirajte podršku ako vam je potrebno pojašnjenje."
+          }
+        }
+      },
       "evidenceUpload": {
         "description": "Priložite fotografije ili dokumente za ovaj slučaj.",
         "typeLabel": "Vrsta dokumenta",

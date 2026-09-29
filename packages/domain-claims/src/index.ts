@@ -42,6 +42,10 @@ export {
   getRecoveryDeclineReasonDetails,
   toMemberSafeRecoveryDecision,
 } from './staff-claims/recovery-decision';
+export type {
+  MemberRecoveryDeclineReasonCode,
+  MemberSafeRecoveryDecisionSnapshot,
+} from './staff-claims/types';
 export {
   getMatterAllowanceVisibilityForUser,
   type MatterAllowanceVisibility,

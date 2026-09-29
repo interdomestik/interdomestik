@@ -18,6 +18,7 @@ test.describe('Recovery decision visibility', () => {
       tenantId,
     } = await resolveSeededClaimContext(testInfo);
     const internalExplanation = `S08 internal decision ${Date.now()}`;
+    const decisionId = existingDecision?.id ?? `e2e-s08-${randomUUID()}`;
     const now = new Date();
 
     if (existingDecision?.id) {
@@ -34,7 +35,7 @@ test.describe('Recovery decision visibility', () => {
         .where(eq(claimEscalationAgreements.id, existingDecision.id));
     } else {
       await db.insert(claimEscalationAgreements).values({
-        id: `e2e-s08-${randomUUID()}`,
+        id: decisionId,
         tenantId,
         claimId,
         acceptedById: staffId,
@@ -73,6 +74,30 @@ test.describe('Recovery decision visibility', () => {
 
       await expect(staffDecisionSummary).toBeVisible();
       await expect(staffDecisionSummary.getByText('Accepted for staff-led recovery')).toBeVisible();
+      await expect(staffDecisionSummary.getByText(internalExplanation)).toBeVisible();
+
+      await db
+        .update(claimEscalationAgreements)
+        .set({
+          decisionType: 'declined',
+          declineReasonCode: 'conflict_or_integrity_concern',
+          decisionReason: internalExplanation,
+          updatedAt: new Date(),
+        })
+        .where(eq(claimEscalationAgreements.id, decisionId));
+
+      await memberPage.reload();
+      await expect(
+        memberDecisionCard.getByText('Staff-led recovery is not available')
+      ).toBeVisible();
+      await expect(memberDecisionCard.getByText('Decision after staff review')).toBeVisible();
+      await expect(
+        memberDecisionCard.getByRole('link', { name: 'Contact support about this decision' })
+      ).toBeVisible();
+      await expect(memberPage.getByText(internalExplanation)).toHaveCount(0);
+      await expect(memberPage.getByText(/conflict of interest|integrity concern/i)).toHaveCount(0);
+
+      await staffPage.reload();
       await expect(staffDecisionSummary.getByText(internalExplanation)).toBeVisible();
     } finally {
       if (existingDecision?.id) {

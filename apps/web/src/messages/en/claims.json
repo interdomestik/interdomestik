@@ -161,6 +161,39 @@
       "view_plans": "View Plans"
     },
     "detail": {
+      "recoveryDecision": {
+        "acceptedTitle": "Accepted for staff-led recovery",
+        "acceptedDescription": "We accepted this matter for staff-led recovery.",
+        "declinedTitle": "Staff-led recovery is not available",
+        "nextAction": "Next action",
+        "supportCta": "Contact support about this decision",
+        "reasons": {
+          "guidance_only_scope": {
+            "title": "Guidance only",
+            "description": "This matter remains guidance-only or referral-only under the current launch scope."
+          },
+          "insufficient_evidence": {
+            "title": "More evidence is needed",
+            "description": "We need stronger supporting evidence before staff-led recovery can start."
+          },
+          "no_monetary_recovery_path": {
+            "title": "No clear recovery path",
+            "description": "This matter does not currently show a clear monetary recovery path for staff-led recovery."
+          },
+          "counterparty_unidentified": {
+            "title": "Counterparty details are missing",
+            "description": "We cannot identify the insurer or counterparty needed for staff-led recovery."
+          },
+          "time_limit_risk": {
+            "title": "Time-limit concern",
+            "description": "A time-limit concern prevents staff-led recovery based on the information currently available."
+          },
+          "other": {
+            "title": "Decision after staff review",
+            "description": "We cannot offer staff-led recovery for this matter. Contact support if you need clarification."
+          }
+        }
+      },
       "evidenceUpload": {
         "description": "Attach photos or documents to this case.",
         "typeLabel": "Document Type",

@@ -26,6 +26,8 @@ export const RECOVERY_DECLINE_REASON_CODES = [
   'conflict_or_integrity_concern',
 ] as const;
 export type RecoveryDeclineReasonCode = (typeof RECOVERY_DECLINE_REASON_CODES)[number];
+export type MemberRecoveryDeclineReasonCode =
+  Exclude<RecoveryDeclineReasonCode, 'conflict_or_integrity_concern'> | 'other';
 export type CommercialHandlingScopeSnapshot = {
   claimCategory: string | null;
   decisionReason: CommercialEscalationReason;
@@ -49,6 +51,7 @@ export type MemberSafeRecoveryDecisionSnapshot = {
   status: RecoveryDecisionType;
   title: string;
   description: string | null;
+  declineReasonCode: MemberRecoveryDeclineReasonCode | null;
 };
 
 export type ClaimEscalationAgreementSnapshot = {

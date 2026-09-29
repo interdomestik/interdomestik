@@ -43,5 +43,7 @@ export function toMemberSafeRecoveryDecisionMock(
     status: snapshot.status,
     title: snapshot.memberLabel,
     description: snapshot.memberDescription ?? null,
+    declineReasonCode:
+      snapshot.status === 'declined' ? (snapshot.declineReasonCode ?? 'other') : null,
   };
 }

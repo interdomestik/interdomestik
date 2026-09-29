@@ -103,10 +103,11 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S7 work
 
-`S7-REQUEST-EVIDENCE-FULFILMENT` lets assigned staff fulfil an open request after confirming review
-of one exact acknowledged, request-linked member upload. #1842 already delivered the assigned-staff
-queue and passed saved-date operational follow-up. This increment does not change claim lifecycle,
-create a legal deadline or implement `IDA-COM-008` escalation.
+`S7-SAFE-DECLINE-HANDOFF` keeps a sensitive recovery decline's staff category/explanation out of
+member-visible decision and timeline data, then shows a localized plain-language decision and
+existing support next action. #1845 already delivered exact acknowledged linked-upload fulfilment
+after #1842 queue and #1841 next-action work. This increment does not implement a conflict hard
+stop, a legal deadline or `IDA-COM-008` escalation.
 
 ## Current bounded S6 work
 
@@ -438,12 +439,12 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-CLM-007 | No destructive duplicate merge | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-008 | Jurisdiction classification | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-009 | Completeness outcome | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Existing protected delivery covers assigned-owner creation, explicit due date, safe explanation/reference, request-local SLA posture and correlation retries; #1814 covers member upload and assigned-staff acknowledgement; #1841 adds shared open status and next actor/action; #1842 groups assigned cases by open request progress and saved-date follow-up. Current S7 candidate adds exact linked-upload fulfilment without claim lifecycle/SLA change. Whole requirement remains open | #1814 merge `af191e7`; #1841 merge `333404dc`; #1842 merge `670f8db`; current S7 fulfilment proof pending | U | U | U |
+| IDA-CLM-010 | Missing-information request | Target | pilot-required | S3/S4/S5/S7 | Existing protected delivery covers assigned-owner creation, explicit due date, safe explanation/reference, request-local SLA posture and correlation retries; #1814 covers member upload and assigned-staff acknowledgement; #1841 adds shared open status and next actor/action; #1842 groups assigned cases by open request progress and saved-date follow-up; #1845 adds exact acknowledged linked-upload fulfilment. Whole requirement remains open | #1814 merge `af191e7`; #1841 merge `333404dc`; #1842 merge `670f8db`; #1845 merge `28a4f27` and staging CD `36528840781`; live S7 interaction unverified | U | U | U |
 | IDA-CLM-011 | Conflict-of-interest stop | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-012 | Time-limit posture | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
-| IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
+| IDA-CLM-013 | Fraud/integrity signal | Target | unresolved | S3/S5/S7 | Current S7 candidate masks the sensitive decline category in member data and forces a generic public timeline note. Restricted signal capture, human review and whole requirement remain open | S7 safe decline handoff proof pending | U | U | U |
 | IDA-CLM-014 | Acceptance authority | Target | unresolved | S3/S5/S7 | S3 candidate proves authorized staff acceptance of the exact submitted claim into existing `verification` state on the mounted route; whole acceptance policy and role acceptance remain open | none | U | U | U |
-| IDA-CLM-015 | Decline explanation | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
+| IDA-CLM-015 | Decline explanation | Target | unresolved | S3/S5/S7 | Existing staff decision saves a categorized reason; current S7 candidate adds four-locale member decision and existing support next action. Approved referral options and whole requirement remain open | S7 safe decline handoff proof pending | U | U | U |
 | IDA-CLM-016 | Assignment | Target | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-017 | Claim number authority | Canonical | unresolved | S3/S5/S7 | open | none | U | U | U |
 | IDA-CLM-018 | Intake provenance | Target | unresolved | S3/S5/S7 | open | none | U | U | U |

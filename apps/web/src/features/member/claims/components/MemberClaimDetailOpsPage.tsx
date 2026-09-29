@@ -16,6 +16,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRef, type ReactNode } from 'react';
 import { CaseCompanionNextStepCard } from './CaseCompanionNextStepCard';
 import { MemberClaimEvidenceSection } from './MemberClaimEvidenceSection';
+import { MemberRecoveryDecisionCard } from './MemberRecoveryDecisionCard';
 import {
   MEMBER_CLAIM_DETAIL_SECTION_IDS,
   MemberClaimDetailHeader,
@@ -220,16 +221,10 @@ export function MemberClaimDetailOpsPage({
           </Card>
 
           {claim.recoveryDecision ? (
-            <Card data-testid="member-claim-recovery-decision">
-              <CardHeader>
-                <CardTitle>{claim.recoveryDecision.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {claim.recoveryDecision.description}
-                </p>
-              </CardContent>
-            </Card>
+            <MemberRecoveryDecisionCard
+              decision={claim.recoveryDecision}
+              supportHref={claim.memberTrustSummary.supportHref}
+            />
           ) : null}
 
           {claim.matterAllowance ? (

@@ -29,6 +29,7 @@ import {
   buildRecoveryDecisionSnapshot,
   getRecoveryDeclineMemberDescription,
 } from './recovery-decision';
+import { selectPublicDeclineNote } from './recovery-decision-public-copy';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 import {
   buildScopedStaffClaimWhere,
@@ -470,8 +471,11 @@ export async function updateClaimStatusCore(
       }
 
       if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
-        const publicDeclineNote =
-          trimmedNote || getRecoveryDeclineMemberDescription(params.declineReasonCode);
+        const publicDeclineNote = selectPublicDeclineNote(
+          params.declineReasonCode,
+          trimmedNote,
+          getRecoveryDeclineMemberDescription(params.declineReasonCode)
+        );
 
         return finalizeClaimStatusChange({
           tx,
