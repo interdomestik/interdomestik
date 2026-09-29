@@ -15,6 +15,7 @@
     "packages/qa/src/utils/tool-repo-root.ts",
     "scripts/ci/cd-deploy-env-scope.test.mjs",
     "scripts/ci/cd-nondeploy-guard.test.mjs",
+    "scripts/ci/cd-run-lookup.test.mjs",
     "scripts/ci/cd-runner-contract.test.mjs",
     "scripts/ci/cd-trusted-parent-guard.test.mjs",
     "scripts/ci/codex-contracts.test.mjs",

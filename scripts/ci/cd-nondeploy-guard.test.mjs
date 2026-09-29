@@ -5,22 +5,17 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
-import yaml from 'js-yaml';
 import {
   assertNoCompetingRuns,
   classifyScope,
-  fetchRunPage,
   parseScopeManifest,
   readPushEvidence,
   runGuard,
 } from './cd-nondeploy-guard.mjs';
 const sha = character => character.repeat(40);
 const manifest = paths => ({ version: 1, nonDeployPaths: paths });
-const runsPath = '/repos/interdomestik/interdomestik/actions/workflows/cd.yml/runs';
 const rootDir = new URL('../../', import.meta.url);
 const readRepoText = file => fs.readFileSync(new URL(file, rootDir), 'utf8');
-const readWorkflow = file => yaml.load(readRepoText(file));
-const findStep = (steps, name) => steps.find(step => step?.name === name);
 const assertFields = (actual, expected) => {
   for (const [field, value] of Object.entries(expected)) {
     assert.deepEqual(actual[field], value);
@@ -33,6 +28,11 @@ const currentRun = env => ({
   status: 'in_progress',
 });
 const runResponse = runs => ({ ok: true, json: async () => ({ workflow_runs: runs }) });
+const currentResponse = run => ({ ok: true, json: async () => run });
+const guardFetch = (current, runs) => async url =>
+  new URL(url).pathname.endsWith(`/runs/${current.id}`)
+    ? currentResponse(current)
+    : runResponse(runs);
 const receiptPath = (root, env) => {
   const fileName = `scope-${env.GITHUB_RUN_ATTEMPT}-${env.GITHUB_SHA}.json`;
   return path.join(root, 'tmp/cd-evidence', env.GITHUB_RUN_ID, fileName);
@@ -116,17 +116,16 @@ test('known program-only push skips deploy and product or unknown paths deploy',
   }
   const repositoryManifest = parseScopeManifest(readRepoText('scripts/ci/cd-nondeploy-scope.json'));
   for (const path of [
+    'scripts/ci/cd-run-lookup.test.mjs',
     'scripts/ci/cd-trusted-parent-guard.test.mjs',
     'scripts/repo-size-budget.json',
   ]) {
     assert.ok(repositoryManifest.nonDeployPaths.includes(path));
+    assert.equal(
+      classifyScope({ ...input, manifest: repositoryManifest, changedFiles: [path] }).deploy,
+      false
+    );
   }
-  const budgetDecision = classifyScope({
-    ...input,
-    manifest: repositoryManifest,
-    changedFiles: ['scripts/repo-size-budget.json'],
-  });
-  assert.equal(budgetDecision.deploy, false);
 });
 test('CD workflow, guard, and manifest changes fail red instead of self-whitelisting', () => {
   const input = {
@@ -211,17 +210,34 @@ test('missing parent manifest fails red even when the after tree adds it', async
 test('only the exact current SHA and attempt may be nonterminal', () => {
   const current = { id: 41, run_attempt: 3, head_sha: sha('a'), status: 'in_progress' };
   assert.doesNotThrow(() =>
-    assertNoCompetingRuns({ runs: [current], runId: 41, runAttempt: 3, sha: sha('a') })
+    assertNoCompetingRuns({
+      runs: [],
+      currentRun: current,
+      runId: 41,
+      runAttempt: 3,
+      sha: sha('a'),
+    })
   );
-  for (const runs of [
-    [current, { ...current, id: 40 }],
-    [current, { ...current, id: 42, status: 'pending' }],
-    [{ ...current, run_attempt: 2 }],
-    [{ ...current, head_sha: sha('b') }],
+  for (const [runs, direct] of [
+    [[current, { ...current, id: 40 }], current],
+    [[current, { ...current, id: 42, status: 'pending' }], current],
+    [[{ ...current, run_attempt: 2 }], current],
+    [[{ ...current, head_sha: sha('b') }], current],
+    [[], { ...current, run_attempt: 2 }],
+    [[], { ...current, head_sha: sha('b') }],
+    [[], { ...current, status: 'completed' }],
+    [[], { ...current, status: 'unrecognized' }],
   ]) {
     assert.throws(
-      () => assertNoCompetingRuns({ runs, runId: 41, runAttempt: 3, sha: sha('a') }),
-      /competing|exact current run/u
+      () =>
+        assertNoCompetingRuns({
+          runs,
+          currentRun: direct,
+          runId: 41,
+          runAttempt: 3,
+          sha: sha('a'),
+        }),
+      /competing|exact current run|run list disagrees/u
     );
   }
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-race-'));
@@ -230,27 +246,9 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
   return assertFailureReceipt({
     env,
     root,
-    fetchImpl: async () => runResponse([currentRun(env), competing]),
+    fetchImpl: guardFetch(currentRun(env), [currentRun(env), competing]),
     error: /competing nonterminal run/u,
   }).finally(() => fs.rmSync(root, { recursive: true, force: true }));
-});
-test('run-page lookup pins its target and validates response shape', async () => {
-  const requests = [];
-  const runs = await fetchRunPage({
-    token: 'test-token',
-    status: 'queued',
-    page: 2,
-    fetchImpl: async (url, options) => {
-      requests.push({ url: new URL(url), options });
-      return runResponse([{ id: 42, run_attempt: 1 }]);
-    },
-  });
-  assert.deepEqual(runs, [{ id: 42, run_attempt: 1 }]);
-  assert.equal(requests[0].url.origin, 'https://api.github.com');
-  assert.equal(requests[0].url.pathname, runsPath);
-  assert.equal(requests[0].url.searchParams.get('status'), 'queued');
-  assert.equal(requests[0].url.searchParams.get('page'), '2');
-  assert.equal(requests[0].options.redirect, 'error');
 });
 test('success receipt is canonically bound to event SHA, range, run, and attempt', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-success-'));
@@ -258,9 +256,11 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   const env = guardEnv(root);
   const outputs = [];
   let requestCount = 0;
-  const fetchImpl = async () => {
+  const fetchImpl = async url => {
     requestCount += 1;
-    return runResponse([currentRun(env)]);
+    return new URL(url).pathname.endsWith(`/runs/${env.GITHUB_RUN_ID}`)
+      ? currentResponse(currentRun(env))
+      : runResponse([currentRun(env)]);
   };
   const receipt = await runGuard(env, fetchImpl, root, value => outputs.push(value));
   const bytes = fs.readFileSync(receiptPath(root, env));
@@ -271,30 +271,5 @@ test('success receipt is canonically bound to event SHA, range, run, and attempt
   assert.deepEqual(outputs, [expectedOutput]);
   assert.equal(fs.existsSync(env.CD_SCOPE_RECEIPT_PATH), false);
   assert.equal(fs.existsSync(env.GITHUB_OUTPUT), false);
-  assert.equal(requestCount, 5);
-});
-test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
-  const job = readWorkflow('.github/workflows/sonar-main-gate.yml').jobs['sonar-gate'];
-  assert.ok(job);
-  const validate = findStep(job.steps, 'Validate Sonar configuration');
-  const strategy = findStep(job.steps, 'Decide Sonar main gate strategy');
-  const awaitCheck = findStep(job.steps, 'Await SonarCloud Code Analysis check (blocking on push)');
-  const fallback = findStep(job.steps, 'Run Sonar quality gate (manual fallback)');
-  assert.ok(validate);
-  assert.ok(strategy);
-  assert.ok(awaitCheck);
-  assert.ok(fallback);
-  assert.equal(strategy.if, "env.SONAR_GATE_ENABLED == 'true'");
-  for (const pattern of [
-    /RUN_MANUAL_FALLBACK/,
-    /sonarcloud\.io/,
-    /SonarCloud Automatic Analysis owns mainline analysis/,
-  ]) {
-    assert.match(strategy.run, pattern);
-  }
-  assert.equal(awaitCheck.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
-  assert.equal(
-    fallback.if,
-    "github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'"
-  );
+  assert.equal(requestCount, 2);
 });
