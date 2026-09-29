@@ -68,6 +68,17 @@ describe('member recovery timeline', () => {
     ).toBe(safeNote);
   });
 
+  it('masks a timestamp tie rather than treating it as proof of an ordinary note', () => {
+    const timestamp = new Date('2026-04-01T00:00:00.000Z');
+    expect(
+      sanitizeMemberRecoveryTimeline([event('tie', 'rejected', 'old allegation')], {
+        acceptedAt: timestamp,
+        decisionType: 'declined',
+        declineReasonCode: 'insufficient_evidence',
+      })[0]?.note
+    ).toBe(safeNote);
+  });
+
   it.each([
     null,
     { acceptedAt: null, decisionType: 'declined', declineReasonCode: null },

@@ -28,7 +28,7 @@ export function sanitizeMemberRecoveryTimeline(
   return timeline.map(event =>
     event.statusTo === 'rejected' &&
     event.note !== null &&
-    !(ordinaryDecline && decision?.acceptedAt && event.date >= decision.acceptedAt)
+    !(ordinaryDecline && decision?.acceptedAt && event.date > decision.acceptedAt)
       ? {
           ...event,
           note: getRecoveryDeclineMemberDescription('conflict_or_integrity_concern'),
