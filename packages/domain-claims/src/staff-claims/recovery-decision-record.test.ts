@@ -10,12 +10,13 @@ function recoveryDecisionTx(tx: unknown): RecoveryDecisionTx {
 }
 
 const mocks = vi.hoisted(() => ({
+  and: vi.fn((...conditions) => ({ op: 'and', conditions })),
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-  withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: mocks.and,
   appendEvent: mocks.appendEvent,
   claimEscalationAgreements: {
     acceptedAt: 'claim_escalation_agreements.accepted_at',
@@ -29,15 +30,13 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: 'claim_escalation_agreements.tenant_id',
     updatedAt: 'claim_escalation_agreements.updated_at',
   },
+  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
   db: {
     insert: vi.fn(),
     select: vi.fn(),
     update: vi.fn(),
   },
   eq: mocks.eq,
-}));
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
 }));
 
 const session = {
@@ -47,11 +46,13 @@ const session = {
 describe('upsertRecoveryDecisionRecord', () => {
   it('appends the recovery decision event through the passed transaction', async () => {
     const insertValues = vi.fn();
+    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(() => ({ values: insertValues })),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
+            for: claimLock,
             limit: async () => [],
           }),
         }),
@@ -76,6 +77,18 @@ describe('upsertRecoveryDecisionRecord', () => {
         tenantId: 'tenant-1',
       })
     );
+    expect(claimLock).toHaveBeenCalledWith('no key update');
+    expect(mocks.and).toHaveBeenCalledWith(
+      { op: 'eq', left: 'claims.tenantId', right: 'tenant-1' },
+      { op: 'eq', left: 'claims.id', right: 'claim-1' }
+    );
+    expect(mocks.and).toHaveBeenCalledWith(
+      { op: 'eq', left: 'claim_escalation_agreements.tenant_id', right: 'tenant-1' },
+      { op: 'eq', left: 'claim_escalation_agreements.claim_id', right: 'claim-1' }
+    );
+    expect(claimLock.mock.invocationCallOrder[0]).toBeLessThan(
+      insertValues.mock.invocationCallOrder[0]
+    );
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
@@ -87,11 +100,13 @@ describe('upsertRecoveryDecisionRecord', () => {
 
   it('updates an existing recovery decision through the passed transaction', async () => {
     const updateSet = vi.fn(() => ({ where: vi.fn() }));
+    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
+            for: claimLock,
             limit: async () => [{ id: 'agreement-1' }],
           }),
         }),
@@ -109,6 +124,7 @@ describe('upsertRecoveryDecisionRecord', () => {
     });
 
     expect(tx.insert).not.toHaveBeenCalled();
+    expect(claimLock).toHaveBeenCalledWith('no key update');
     expect(updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         decisionReason: 'Accepted after review',

@@ -5,21 +5,6 @@ export const MODULARITY_POLICY = Object.freeze({
   governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 128 * 1024 }),
   workflowYaml: Object.freeze({}),
 });
-const STAFF_CURRENT_CLAIM_LEGACY_TEST =
-  'packages/domain-claims/src/staff-claims/update-status.test.ts';
-const LEGACY_FOCUSED_TEST_CONTRACTS = new Map([
-  [
-    STAFF_CURRENT_CLAIM_LEGACY_TEST,
-    Object.freeze({
-      baseLines: 794,
-      baseBytes: 28150,
-      baseSha256: 'e9e3d69ecc2a5b41c18bfa6282356377e96da5ac082ed9c5b4456264b379dfea',
-    }),
-  ],
-]);
-export function legacyFocusedTestContract(filePath) {
-  return LEGACY_FOCUSED_TEST_CONTRACTS.get(toPolicyPath(filePath)) ?? null;
-}
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
 const SEMANTIC_GOVERNANCE_PATHS = new Set([
   'AGENTS.md',

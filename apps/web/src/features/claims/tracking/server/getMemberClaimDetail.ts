@@ -9,7 +9,12 @@ import {
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
 import { db, ERASURE_REDACTED_VALUE } from '@interdomestik/database';
-import { claimDocuments, claimEscalationAgreements, claims } from '@interdomestik/database/schema';
+import {
+  claimDocuments,
+  claimEscalationAgreements,
+  claims,
+  domainEvents,
+} from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
@@ -18,6 +23,10 @@ import { buildClaimVisibilityWhere } from '../utils';
 import { mapMemberClaimDocuments } from './member-claim-documents';
 import { getMemberTimelineFromDomainEvents } from './member-domain-event-timeline';
 import { buildProgressSummary } from './member-progress-summary';
+import {
+  sanitizeMemberRecoveryTimeline,
+  verifiedRecoveryDecisionAt,
+} from './member-recovery-timeline';
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 export async function getMemberClaimDetail(
@@ -59,17 +68,30 @@ export async function getMemberClaimDetail(
           decisionReason: claimEscalationAgreements.decisionReason,
           decisionType: claimEscalationAgreements.decisionType,
           declineReasonCode: claimEscalationAgreements.declineReasonCode,
+          decisionEventAt: domainEvents.createdAt,
+          decisionEventPayload: domainEvents.payload,
         })
         .from(claimEscalationAgreements)
+        .leftJoin(
+          domainEvents,
+          and(
+            eq(domainEvents.tenantId, tenantId),
+            eq(domainEvents.entityId, claimEscalationAgreements.claimId),
+            eq(domainEvents.entityType, 'claim'),
+            eq(domainEvents.eventName, 'recovery.decision_recorded'),
+            eq(domainEvents.eventVersion, 1)
+          )
+        )
         .where(
           and(
             eq(claimEscalationAgreements.claimId, claimId),
             eq(claimEscalationAgreements.tenantId, tenantId)
           )
         )
-        .limit(1);
+        .orderBy(desc(domainEvents.createdAt), desc(domainEvents.id))
+        .limit(2);
 
-      const [claim, recoveryDecisionRows] = await Promise.all([claimQuery, recoveryDecisionQuery]);
+      const claim = await claimQuery;
 
       if (!claim) {
         return null;
@@ -97,6 +119,19 @@ export async function getMemberClaimDetail(
           piiStatus,
         }),
       ]);
+      // Read status notes before the current decision, so a concurrent sensitive write
+      // cannot add a note after the decision snapshot used to classify it.
+      const recoveryDecisionRows = await recoveryDecisionQuery;
+      const currentDecision = recoveryDecisionRows[0] ?? null;
+      const publicTimeline = sanitizeMemberRecoveryTimeline(
+        timeline,
+        currentDecision
+          ? {
+              ...currentDecision,
+              decisionRecordedAt: verifiedRecoveryDecisionAt(recoveryDecisionRows),
+            }
+          : null
+      );
       const documents = mapMemberClaimDocuments(claim.documents);
 
       const recoveryDecision = toMemberSafeRecoveryDecision(
@@ -111,7 +146,7 @@ export async function getMemberClaimDetail(
       const slaPhase = deriveClaimSlaPhase(claimStatus);
       const progressSummary = buildProgressSummary({
         status: claimStatus,
-        timeline,
+        timeline: publicTimeline,
       });
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
@@ -125,7 +160,7 @@ export async function getMemberClaimDetail(
         amount: claim.claimAmount ? claim.claimAmount.toString() : null,
         currency: claim.currency || 'EUR',
         documents,
-        timeline,
+        timeline: publicTimeline,
         canShare: true, // TODO: Logic for enabling share button
         progressSummary,
         caseCompanionNextStep: deriveCaseCompanionNextStep({

@@ -5,8 +5,11 @@ import { loadRecoveryInvariantReadRow } from './recovery-invariant-evidence';
 import type { TransitionTx } from './transition-side-effects';
 
 describe('loadRecoveryInvariantReadRow', () => {
-  it('locks recovery prerequisite rows in order before loading the current claim', async () => {
-    const calls: { executedSql: string[]; where?: unknown } = { executedSql: [] };
+  it('locks the claim before agreement and no-fee evidence', async () => {
+    const calls: { executedSql: string[]; lockOrder: string[]; where?: unknown } = {
+      executedSql: [],
+      lockOrder: [],
+    };
     const agreement = {
       acceptedAt: new Date('2026-03-11T09:00:00Z'),
       legalActionCapPercentage: 25,
@@ -33,13 +36,21 @@ describe('loadRecoveryInvariantReadRow', () => {
       execute: async (query: unknown) => {
         const rendered = inspect(query, { depth: 20 });
         calls.executedSql.push(rendered);
-        return rendered.includes('claim_escalation_agreements') ? [agreement] : [noFee];
+        const isAgreement = rendered.includes('claim_escalation_agreements');
+        calls.lockOrder.push(isAgreement ? 'agreement' : 'no-fee');
+        return isAgreement ? [agreement] : [noFee];
       },
       select: () => ({
         from: () => ({
           where: (condition: unknown) => {
             calls.where = condition;
-            return { limit: async () => [current] };
+            return {
+              for: (mode: string) => {
+                expect(mode).toBe('no key update');
+                calls.lockOrder.push('claim');
+                return { limit: async () => [current] };
+              },
+            };
           },
         }),
       }),
@@ -64,6 +75,7 @@ describe('loadRecoveryInvariantReadRow', () => {
     });
 
     expect(calls.executedSql).toHaveLength(2);
+    expect(calls.lockOrder).toEqual(['claim', 'agreement', 'no-fee']);
     expect(calls.executedSql[0]).toContain('claim_escalation_agreements');
     expect(calls.executedSql[0].toLowerCase()).toContain('for update');
     expect(calls.executedSql[0].toLowerCase()).toContain('order by');

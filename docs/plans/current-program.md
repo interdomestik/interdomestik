@@ -16,13 +16,22 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S7-REQUEST-EVIDENCE-FULFILMENT` is the active bounded staff-handling increment selected from
-freshly fetched protected main `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. On the mounted
-case, assigned staff can mark an open information request fulfilled only after acknowledging and
-confirming review of the exact linked member upload. The persisted result records the reviewed
-document and changes both roles' request next action without changing claim lifecycle or adding
-automatic escalation. This is bounded S7 software evidence, not whole S7, production or user
-acceptance.
+`S7-SAFE-DECLINE-HANDOFF` is the active bounded staff-handling increment selected from freshly
+fetched protected main `28a4f27ff03b4eb57bc098b06df5137bfe292491`. The existing categorized
+staff recovery decline must keep conflict/integrity details private in the member decision and
+public timeline. The member sees a plain-language EN/SQ/MK/SR result and an existing support next
+action. This is bounded S7 software evidence, not a conflict hard stop, whole S7, production or
+user acceptance.
+
+PR [#1845](https://github.com/interdomestik/interdomestik/pull/1845) delivered exact acknowledged,
+linked-upload request fulfilment as protected merge `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
+Automatic exact-main [CD `36528840781`](https://github.com/interdomestik/interdomestik/actions/runs/36528840781)
+passed staging deployment, health, provenance and configured P0; production was skipped. Migration
+`0096` was subsequently applied and read-only verified on staging Supabase project
+`xjyseqtfuxcuviiankhy` only: 97 ledger rows, exact migration hash, three columns and constraints.
+The production project was untouched. Live S7 interaction remains unverified because the staging
+route requires staff/member authentication and this checkout has no staging credentials. Credit the
+bounded fulfilment without claiming whole `IDA-CLM-010` or user acceptance.
 
 PR [#1842](https://github.com/interdomestik/interdomestik/pull/1842) delivered the preceding
 assigned-staff queue and saved-date operational follow-up as protected merge
@@ -246,8 +255,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S7 staff handling after credited #1842 assigned-staff queue, #1841 shared next action and #1814
-request evidence round trip, with remaining S5/S6 gaps still open,
+S7 staff handling after credited #1845 exact fulfilment, #1842 assigned-staff queue, #1841 shared
+next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -271,23 +280,21 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current request-evidence fulfilment acceptance
+### Current safe-decline handoff acceptance
 
-- The assigned staff member explicitly confirms review of one exact request-linked member upload
-  after acknowledgement before marking its open request fulfilled. A missing, unacknowledged,
-  unrelated or wrong-tenant upload cannot fulfil the request. A retry of the same document returns
-  the original persisted result and does not write a second audit event; a different document
-  cannot replace that result.
-- Member and assigned-staff case detail show the persisted fulfilled status, reviewed document and
-  no further action for that request. Fulfilled requests leave the #1842 open-request queue and
-  saved-date follow-up; other open requests retain their own next actions. Member upload and staff
-  acknowledgement remain available only while the request is open.
-- Four-locale mounted copy, loading/error/retry feedback, current assignee/tenant denial and
-  unchanged proxy/auth/RLS, claim lifecycle, billing and provider writers are required. This does
-  not implement a case SLA, legal deadline, automatic escalation, whole `IDA-COM-008`, whole
-  `IDA-CLM-010`, whole S7 or user acceptance.
-- Codex integrates and runs one consolidated final verification lane. Subscription helper work is
-  credited only with actual served-model output; no private diff transfer or paid API is authorized.
+- A conflict/integrity decline retains its internal category and staff explanation for authorized
+  staff, while the member DTO/hydration exposes only a neutral category. A caller-supplied public
+  note cannot place an accusation on the member timeline; the generic notice is used instead.
+- The mounted member decision shows accepted/declined status and reason in EN/SQ/MK/SR, with the
+  existing support route as the declined next action. Time-limit copy states concern based on
+  available information without declaring a statutory deadline. The staff summary is localized.
+- Focused privacy/projection and four-locale mounted tests, independent review and required final
+  verification are required. Proxy/auth/RLS, claim transition authority, billing and provider
+  writers remain unchanged. This does not implement a conflict hard stop, automatic escalation,
+  whole `IDA-CLM-011/013/015`, whole S7 or user acceptance.
+- Claude Pro Sonnet 5 supplied a source-free TypeScript security helper on the authenticated
+  first-party subscription route; Codex corrected its note-trimming bug and integrates/tests it.
+  No private diff or paid API transfer is authorized.
 
 ### Credited #1834 past-due recovery acceptance
 
@@ -481,6 +488,27 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-29: the owner-held SRS v0.9 source matched SHA-256
+`8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
+`IDA-CLM-013` requires restricted integrity signals without a member accusation, and
+`IDA-CLM-015` calls for a categorized plain-language decline and appropriate next option. The
+mounted recovery decision already saves categories, but its member card uses English domain copy
+and the status writer accepts a caller-supplied public note even for a sensitive category. Reuse
+[W3C status-message guidance](https://www.w3.org/WAI/WCAG21/Understanding/status-messages)
+for a clear decision result and [ICO criminal-offence data guidance](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/criminal-offence-data/)
+as a disclosure-minimization caution where an integrity note could contain an allegation; this is
+an inference for the product, not a classification of every conflict note. Adopt a neutral public
+projection, generic sensitive timeline note, localized decision and existing support path. Reject
+new legal-deadline calculation or a new conflict-disposition workflow. Expected benefit: members
+understand the decline and a next step without seeing restricted staff reasoning. Verify sensitive
+data absence from public DTO/timeline, four locales and unchanged authorized decision behavior.
+The owner's described public/member PWA direction informs the clear next action and restrained card
+hierarchy here; its attached image was unavailable in this checkout and is not claimed as inspected.
+German diaspora-language support remains a design requirement to reconcile with the current
+EN/SQ/MK/SR pilot contract, not a localization delivered by this slice.
+
+### Credited #1845 request fulfilment research
 
 Checked 2026-09-29: the owner-held SRS v0.9 DOCX matched SHA-256
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.

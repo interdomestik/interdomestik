@@ -161,6 +161,39 @@
       "view_plans": "Shiko Planet"
     },
     "detail": {
+      "recoveryDecision": {
+        "acceptedTitle": "Pranuar për rikuperim nga stafi",
+        "acceptedDescription": "E pranuam këtë çështje për rikuperim nga stafi.",
+        "declinedTitle": "Rikuperimi nga stafi nuk është i disponueshëm",
+        "nextAction": "Hapi vijues",
+        "supportCta": "Kontakto mbështetjen për këtë vendim",
+        "reasons": {
+          "guidance_only_scope": {
+            "title": "Vetëm udhëzim",
+            "description": "Kjo çështje mbetet vetëm për udhëzim ose referim sipas fushës aktuale të shërbimit."
+          },
+          "insufficient_evidence": {
+            "title": "Nevojiten më shumë dëshmi",
+            "description": "Na duhen dëshmi më të forta përpara se të fillojë rikuperimi nga stafi."
+          },
+          "no_monetary_recovery_path": {
+            "title": "Nuk ka rrugë të qartë rikuperimi",
+            "description": "Aktualisht kjo çështje nuk tregon një rrugë të qartë rikuperimi monetar nga stafi."
+          },
+          "counterparty_unidentified": {
+            "title": "Mungojnë të dhënat e palës tjetër",
+            "description": "Nuk mund të identifikojmë siguruesin ose palën tjetër që nevojitet për rikuperim nga stafi."
+          },
+          "time_limit_risk": {
+            "title": "Shqetësim për afatin",
+            "description": "Një shqetësim për afatin pengon rikuperimin nga stafi bazuar në informacionin aktual."
+          },
+          "other": {
+            "title": "Vendim pas shqyrtimit nga stafi",
+            "description": "Nuk mund të ofrojmë rikuperim nga stafi për këtë çështje. Kontaktoni mbështetjen nëse keni nevojë për sqarim."
+          }
+        }
+      },
       "evidenceUpload": {
         "description": "Bashkëngjit foto ose dokumente për këtë rast.",
         "typeLabel": "Lloji i dokumentit",

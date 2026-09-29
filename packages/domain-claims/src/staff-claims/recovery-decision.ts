@@ -4,6 +4,10 @@ import type {
   RecoveryDecisionSnapshot,
   RecoveryDecisionType,
 } from './types';
+import {
+  selectPublicDeclineNote,
+  toMemberDeclineReasonCode,
+} from './recovery-decision-public-copy';
 
 type DateLike = Date | string | null | undefined;
 
@@ -53,7 +57,8 @@ const DECLINE_REASON_DETAILS: Record<
   time_limit_risk: {
     staffLabel: 'Time-limit risk blocks staff-led recovery',
     memberLabel: 'Time limit risk',
-    memberDescription: 'This matter appears outside the time limit for staff-led recovery.',
+    memberDescription:
+      'A time-limit concern prevents staff-led recovery based on the information currently available.',
   },
   conflict_or_integrity_concern: {
     staffLabel: 'Conflict of interest or integrity concern',
@@ -77,6 +82,13 @@ export function getRecoveryDeclineReasonDetails(code: RecoveryDeclineReasonCode)
 
 export function getRecoveryDeclineMemberDescription(code: RecoveryDeclineReasonCode) {
   return getRecoveryDeclineReasonDetails(code).memberDescription;
+}
+
+export function getRecoveryDeclinePublicNote(
+  code: RecoveryDeclineReasonCode,
+  requestedNote: string | null | undefined
+): string {
+  return selectPublicDeclineNote(code, requestedNote, getRecoveryDeclineMemberDescription(code));
 }
 
 export function buildRecoveryDecisionSnapshot(
@@ -127,9 +139,20 @@ export function toMemberSafeRecoveryDecision(
     return null;
   }
 
+  if (snapshot.status === 'accepted') {
+    return {
+      status: 'accepted',
+      title: snapshot.memberLabel,
+      description: snapshot.memberDescription,
+    };
+  }
+
   return {
-    status: snapshot.status,
+    status: 'declined',
     title: snapshot.memberLabel,
     description: snapshot.memberDescription,
+    declineReasonCode: toMemberDeclineReasonCode(
+      snapshot.declineReasonCode ?? 'guidance_only_scope'
+    ),
   };
 }

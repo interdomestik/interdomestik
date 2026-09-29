@@ -67,9 +67,9 @@ export function getRecoveryDecisionLabel(snapshot: RecoveryDecisionSnapshot, loc
 
   switch (snapshot.status) {
     case 'accepted':
-      return snapshot.staffLabel;
+      return labels.accepted;
     case 'declined':
-      return snapshot.staffLabel;
+      return labels.declined;
     default:
       return labels.pending;
   }

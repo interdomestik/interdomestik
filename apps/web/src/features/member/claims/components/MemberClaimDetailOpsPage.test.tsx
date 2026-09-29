@@ -29,6 +29,7 @@ const hoisted = vi.hoisted(() => ({
     'claims-tracking.tracking.assurance.body.member_action_required=We need your information before the response timer can continue.|claims-tracking.tracking.assurance.body.active_handling=Your claim is in an active handling stage.',
     'claims.detail.continuity.backToWorkspace=Back to member workspace|claims.detail.continuity.caseLabel=Case|claims.detail.continuity.sectionNavigation=Case sections|claims.detail.continuity.progress=Progress|claims.detail.continuity.evidence=Evidence|claims.detail.continuity.history=History|claims.detail.continuity.messages=Messages',
     'claims.detail.matterAllowance.title=Matter allowance|claims.detail.matterAllowance.used=Used this year|claims.detail.matterAllowance.remaining=Remaining this year|claims.detail.matterAllowance.total=Plan allowance|claims.detail.caseDetails=Case details|claims.detail.evidence=Evidence|claims.detail.documentsEmpty=No documents uploaded yet|claims.detail.viewDocument=View document',
+    'claims.detail.recoveryDecision.acceptedTitle=Accepted for staff-led recovery|claims.detail.recoveryDecision.acceptedDescription=We accepted this matter for staff-led recovery.|claims.detail.recoveryDecision.reasons.other.description=Localized safe decline',
     'claims.timeline.title=Timeline|claims.timeline.empty=No updates yet|claims.claimsPro.actions.uploadEvidence=Upload evidence|claims.claimsPro.actions.sendMessage=Send message|claims.detail.progress.title=Progress summary|claims.detail.progress.currentState=Current state|claims.detail.progress.latestUpdate=Latest update|claims.table.amount=Amount',
     'claims.status.evaluation=Evaluation|claims.status.verification=Verification',
   ].flatMap(group => group.split('|')).map(entry => entry.split('='))) as Record<string, string>,
@@ -207,7 +208,7 @@ describe('MemberClaimDetailOpsPage', () => {
         stateLabelKey: 'claims-tracking.tracking.assurance.state.active_handling', supportHref,
       },
       recoveryDecision: { status: 'accepted', title: 'Accepted for staff-led recovery',
-        description: 'We accepted this matter for staff-led recovery.' },
+        description: 'We accepted this matter for staff-led recovery.', declineReasonCode: null },
       matterAllowance: { allowanceTotal: 2, consumedCount: 1, remainingCount: 1,
         windowStart: '2026-01-01T00:00:00', windowEnd: '2026-12-31T23:59:59' },
     });
@@ -256,8 +257,9 @@ describe('MemberClaimDetailOpsPage', () => {
 
   it('translates claim timeline status keys without using the claims namespace', () => {
     renderPage({ timeline: [timelineItem('t1', testNow, 'submitted', 'evaluation',
-      'claims-tracking.status.evaluation', 'note')] });
+      'claims-tracking.status.evaluation', 'We cannot accept this matter for staff-led recovery.')] });
     expect(screen.getAllByText('Evaluation').length).toBeGreaterThan(0);
+    expect(screen.getByText('Localized safe decline')).toBeVisible();
   });
 
   it('shows member trust and SLA clarity when the claim is waiting on member information', () => {

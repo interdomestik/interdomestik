@@ -4,7 +4,7 @@ import type { ClaimsSession } from '../claims/types';
 import { saveRecoveryDecisionCore } from './save-recovery-decision';
 
 const mocks = vi.hoisted(() => {
-  const chain = () => ({ from: vi.fn(), where: vi.fn(), limit: vi.fn() });
+  const chain = () => ({ from: vi.fn(), where: vi.fn(), limit: vi.fn(), for: vi.fn() });
   const claimSelect = chain();
   const decisionSelect = chain();
   const txInsertValues = vi.fn();
@@ -57,10 +57,14 @@ function session(role = 'staff'): ClaimsSession {
 }
 
 function primeScopeAndDecision(existingDecision: unknown[] = []) {
-  mocks.txSelect.mockReturnValueOnce(mocks.claimSelect).mockReturnValueOnce(mocks.decisionSelect);
+  mocks.txSelect
+    .mockReturnValueOnce(mocks.claimSelect)
+    .mockReturnValueOnce(mocks.claimSelect)
+    .mockReturnValueOnce(mocks.decisionSelect);
   mocks.claimSelect.from.mockReturnValue(mocks.claimSelect);
   mocks.claimSelect.where.mockReturnValue(mocks.claimSelect);
   mocks.claimSelect.limit.mockResolvedValue([{ id: 'claim-1' }]);
+  mocks.claimSelect.for.mockResolvedValue([{ id: 'claim-1' }]);
   mocks.decisionSelect.from.mockReturnValue(mocks.decisionSelect);
   mocks.decisionSelect.where.mockReturnValue(mocks.decisionSelect);
   mocks.decisionSelect.limit.mockResolvedValue(existingDecision);

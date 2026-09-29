@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => {
     subscription: vi.fn(),
     usage: vi.fn(),
     allowance: vi.fn(),
+    publicDeclineNote: vi.fn(),
     withTenantContext: vi.fn(async (_context, action) => {
       try {
         const result = await action(tx);
@@ -76,7 +77,7 @@ vi.mock('./accepted-recovery-prerequisites', () => ({
 }));
 vi.mock('./recovery-decision', () => ({
   buildRecoveryDecisionSnapshot: () => ({ status: 'accepted' }),
-  getRecoveryDeclineMemberDescription: vi.fn(),
+  getRecoveryDeclinePublicNote: mocks.publicDeclineNote,
 }));
 vi.mock('./recovery-decision-record', () => ({ upsertRecoveryDecisionRecord: vi.fn() }));
 vi.mock('./matter-allowance', () => ({
@@ -165,5 +166,34 @@ describe('staff status transaction boundary', () => {
     expect(mocks.rollback).toHaveBeenCalledOnce();
     expect(mocks.project).not.toHaveBeenCalled();
     expect(mocks.notify).not.toHaveBeenCalled();
+  });
+
+  it('preserves an internal note on a sensitive decline', async () => {
+    mocks.load.mockResolvedValue({
+      status: 'found',
+      currentClaim: {
+        status: 'negotiation',
+        category: 'vehicle',
+        userId: 'member-1',
+        staffId: 'staff-1',
+        title: 'C',
+      },
+    });
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'rejected',
+      declineReasonCode: 'conflict_or_integrity_concern',
+      isPublicChange: false,
+      note: 'Private integrity assessment',
+      session: { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as ClaimsSession,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mocks.transition).toHaveBeenCalledWith(
+      mocks.tx,
+      expect.objectContaining({ note: 'Private integrity assessment', isPublic: false })
+    );
+    expect(mocks.publicDeclineNote).not.toHaveBeenCalled();
   });
 });

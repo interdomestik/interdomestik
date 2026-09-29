@@ -1,6 +1,7 @@
 'use client';
 
 import { MemberCaseMessages } from './member-case-messages';
+import { localizeMemberRecoveryPublicNote } from './member-recovery-public-note';
 import { OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
@@ -16,6 +17,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRef, type ReactNode } from 'react';
 import { CaseCompanionNextStepCard } from './CaseCompanionNextStepCard';
 import { MemberClaimEvidenceSection } from './MemberClaimEvidenceSection';
+import { MemberRecoveryDecisionCard } from './MemberRecoveryDecisionCard';
 import {
   MEMBER_CLAIM_DETAIL_SECTION_IDS,
   MemberClaimDetailHeader,
@@ -54,12 +56,10 @@ export function MemberClaimDetailOpsPage({
 
     return tAssurance(labelKey.replace('claims-tracking.tracking.assurance.', ''));
   };
-  // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
-    // claim.timeline labelKey is a fully qualified key (e.g. "claims-tracking.status.evaluation").
-    // Translating it within the "claims" namespace causes missing-message errors in production.
     title: translateTrackingLabel(e.title),
+    description: localizeMemberRecoveryPublicNote(e.description, t) ?? undefined,
   }));
 
   const localizedStatusLabel = (() => {
@@ -148,7 +148,10 @@ export function MemberClaimDetailOpsPage({
                     </p>
                     {claim.progressSummary.latestUpdateNote ? (
                       <p className="mt-2 text-sm" data-testid="member-claim-latest-update-note">
-                        {claim.progressSummary.latestUpdateNote}
+                        {localizeMemberRecoveryPublicNote(
+                          claim.progressSummary.latestUpdateNote,
+                          t
+                        )}
                       </p>
                     ) : null}
                   </div>
@@ -220,16 +223,10 @@ export function MemberClaimDetailOpsPage({
           </Card>
 
           {claim.recoveryDecision ? (
-            <Card data-testid="member-claim-recovery-decision">
-              <CardHeader>
-                <CardTitle>{claim.recoveryDecision.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {claim.recoveryDecision.description}
-                </p>
-              </CardContent>
-            </Card>
+            <MemberRecoveryDecisionCard
+              decision={claim.recoveryDecision}
+              supportHref={claim.memberTrustSummary.supportHref}
+            />
           ) : null}
 
           {claim.matterAllowance ? (

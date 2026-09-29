@@ -15,23 +15,23 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                               | Status        | Owner                   | Work                                                                                                    | Exit Criteria                                                                                                                              |
-| -------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S7-REQUEST-EVIDENCE-FULFILMENT` | `in_progress` | Codex integration owner | Let assigned staff fulfil one open request after reviewing an exact acknowledged, linked member upload. | Owner/tenant denial, persisted document-bound result, four-locale next action, retry/concurrency, protected checks and exact-main staging. |
+| ID                        | Status        | Owner                   | Work                                                                                                                  | Exit Criteria                                                                                                                                 |
+| ------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-SAFE-DECLINE-HANDOFF` | `in_progress` | Codex integration owner | Keep sensitive staff decline details private while giving members a clear localized decision and support next action. | Generic sensitive public note, safe member projection, EN/SQ/MK/SR mounted copy, independent review, protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`.
-- Credit #1842 assigned-staff grouping/follow-up, #1841 shared next action and #1814 request-linked
-  upload/acknowledgement without repeating their checks.
-- The existing case detail lets assigned staff confirm review of one exact acknowledged linked
-  upload before fulfilling its open request. Persist the reviewed document, original timestamp and
-  audit event; deny unrelated/unacknowledged documents and preserve exact retries.
-- Both roles see the fulfilled request and no further action for it. #1842 open-request queue and
-  follow-up then exclude it, while other open requests retain their state. No claim lifecycle/SLA,
-  legal deadline, automatic escalation or provider change follows.
-- EN/SQ/MK/SR mounted tests, error propagation, tenant/owner scope, unchanged proxy/auth/RLS and
-  one consolidated heavy lane after independent review.
+- Base: freshly fetched protected main `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
+- Credit #1845 exact request fulfilment, #1842 assigned-staff grouping/follow-up, #1841 shared next
+  action and #1814 request-linked upload/acknowledgement without repeating their checks.
+- Sensitive conflict/integrity decline keeps its internal category and staff explanation within
+  authorized staff evidence. Its member DTO and public timeline show only generic wording even if
+  a caller supplies a public allegation.
+- The mounted member decision shows a plain-language four-locale status/reason and support next
+  action. Time-limit wording does not claim a definitive legal deadline. The staff summary is
+  localized. Claim transition and decision writers are unchanged beyond public-note selection.
+- EN/SQ/MK/SR mounted tests, privacy projection, unchanged proxy/auth/RLS and one consolidated
+  heavy lane after independent review.
 - Required local/hosted checks, independent current-head review, protected merge and exact-main
   automatic staging; no production, charge or full cross-role/user acceptance claim.
 
@@ -41,7 +41,7 @@ status_command: pnpm plan:status
 | ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
 | S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
-| S7 — staff handling                         | `active_bounded`      | Deliver exact linked-upload request fulfilment; credit #1842 queue, #1841 next action and #1814 upload. Automatic escalation and whole S7 remain open.         |
+| S7 — staff handling                         | `active_bounded`      | Deliver safe decline handoff; credit #1845 fulfilment, #1842 queue, #1841 next action and #1814 upload. Conflict disposition and whole S7 remain open.         |
 | S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
 | S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
 | H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
@@ -52,12 +52,20 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                               | Source Refs                                                       | Execution  | Run ID  | Run Root                                    | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                             |
-| -------------------------------- | ----------------------------------------------------------------- | ---------- | ------- | ------------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------- |
-| `S7-REQUEST-EVIDENCE-FULFILMENT` | IDA-CLM-010; protected main `670f8db`; #1842/#1841/#1814 credited | `scripted` | pending | exact acknowledged linked-upload fulfilment | pending | not_applicable | not_applicable | pending  | four-locale next action; no claim lifecycle or SLA change |
+| ID                        | Source Refs                                                           | Execution  | Run ID  | Run Root                                        | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                         |
+| ------------------------- | --------------------------------------------------------------------- | ---------- | ------- | ----------------------------------------------- | ------- | -------------- | -------------- | -------- | ----------------------------------------------------- |
+| `S7-SAFE-DECLINE-HANDOFF` | IDA-CLM-013/015; protected main `28a4f27`; #1845/#1842/#1841 credited | `scripted` | pending | safe member decline and generic public timeline | pending | not_applicable | not_applicable | pending  | four-locale member next action; no conflict hard stop |
 
 ## Current Facts
 
+- #1845 protected-merged as `28a4f27ff03b4eb57bc098b06df5137bfe292491`. Automatic exact-main
+  [CD `36528840781`](https://github.com/interdomestik/interdomestik/actions/runs/36528840781)
+  passed staging deployment, health, provenance and configured P0; production was skipped.
+  Migration `0096` was subsequently applied and read-only verified on staging Supabase project
+  `xjyseqtfuxcuviiankhy` only (97 ledger rows, exact hash, three columns and constraints); the
+  production project was untouched. Live S7 interaction remains unverified because the staging
+  route redirects to login and this checkout has no staging staff/member credentials. Credit the
+  bounded request fulfilment without claiming whole `IDA-CLM-010`, S7 or user acceptance.
 - #1842 protected-merged as `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. Automatic
   exact-main [CD `36510619671`](https://github.com/interdomestik/interdomestik/actions/runs/36510619671)
   passed staging build, provenance, health and P0 gates on that SHA; production was skipped.
@@ -166,7 +174,7 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded exact linked-upload request fulfilment before selecting another S5/S6 gap or S7 slice.
+Complete the bounded safe decline handoff before selecting another S5/S6 gap or S7 slice.
 Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment.

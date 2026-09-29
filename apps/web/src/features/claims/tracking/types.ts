@@ -1,5 +1,9 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import type { CaseCompanionNextStep, VaultConsentDisplay } from '@interdomestik/domain-claims';
+import type {
+  CaseCompanionNextStep,
+  MemberSafeRecoveryDecisionSnapshot,
+  VaultConsentDisplay,
+} from '@interdomestik/domain-claims';
 import type { ClaimSlaPhase } from '../policy';
 import type { ClaimMemberTrustSummaryDto } from './memberTrustSummary';
 
@@ -11,11 +15,7 @@ export interface ClaimMatterAllowanceDto {
   windowEnd: Date;
 }
 
-export interface ClaimRecoveryDecisionDto {
-  status: 'accepted' | 'declined';
-  title: string;
-  description: string | null;
-}
+export type ClaimRecoveryDecisionDto = MemberSafeRecoveryDecisionSnapshot;
 
 export interface ClaimProgressSummaryDto {
   currentStatusLabelKey: string;

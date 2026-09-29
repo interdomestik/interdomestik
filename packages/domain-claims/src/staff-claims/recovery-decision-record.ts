@@ -1,11 +1,12 @@
 import {
+  and,
   appendEvent,
   claimEscalationAgreements,
+  claims,
   db,
   eq,
   type DomainEventTx,
 } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 
 import type { ClaimsSession } from '../claims/types';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
@@ -47,13 +48,19 @@ export async function upsertRecoveryDecisionRecord(params: {
   const now = new Date();
   const explanation = params.explanation?.trim() || null;
 
+  // db-access-guard: tenant-scoped -- reason: serialize decision writes with public note selection.
+  await params.tx
+    .select({ id: claims.id })
+    .from(claims)
+    .where(and(eq(claims.tenantId, params.tenantId), eq(claims.id, params.claimId)))
+    .for('no key update');
+
   const [existingDecision] = await params.tx
     .select({ id: claimEscalationAgreements.id })
     .from(claimEscalationAgreements)
     .where(
-      withTenant(
-        params.tenantId,
-        claimEscalationAgreements.tenantId,
+      and(
+        eq(claimEscalationAgreements.tenantId, params.tenantId),
         eq(claimEscalationAgreements.claimId, params.claimId)
       )
     )
@@ -75,9 +82,8 @@ export async function upsertRecoveryDecisionRecord(params: {
       .update(claimEscalationAgreements)
       .set(values)
       .where(
-        withTenant(
-          params.tenantId,
-          claimEscalationAgreements.tenantId,
+        and(
+          eq(claimEscalationAgreements.tenantId, params.tenantId),
           eq(claimEscalationAgreements.claimId, params.claimId)
         )
       );

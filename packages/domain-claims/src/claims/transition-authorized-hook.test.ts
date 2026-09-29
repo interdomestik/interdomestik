@@ -49,9 +49,9 @@ describe('transitionClaimStatusInTransaction authorized hook', () => {
     );
 
     expect(calls.operations.slice(0, 5)).toEqual([
+      'select:current',
       'lock:agreement',
       'lock:no-fee',
-      'select:current',
       'hook:authorized',
       'update:claim',
     ]);
