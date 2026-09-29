@@ -6,9 +6,9 @@ import type { ClaimStatus } from './types';
 
 type StatusNoteContext = {
   claimId: string;
-  currentStatus: ClaimStatus | null;
-  isPublicChange: boolean;
-  note?: string;
+  fromStatus: ClaimStatus;
+  isPublic: boolean;
+  note: string | null;
   tenantId: string;
 };
 
@@ -17,7 +17,7 @@ export async function safePublicStatusNote(
   context: StatusNoteContext
 ): Promise<string | null> {
   const note = context.note?.trim() || null;
-  if (!note || !context.isPublicChange) {
+  if (!note || !context.isPublic) {
     return note;
   }
 
@@ -34,13 +34,13 @@ export async function safePublicStatusNote(
         eq(claimEscalationAgreements.claimId, context.claimId)
       )
     )
-    .limit(1)
-    .for('update');
+    .for('update')
+    .limit(1);
 
   if (
     decision?.declineReasonCode === 'conflict_or_integrity_concern' ||
     (decision?.decisionType === 'declined' && !decision.declineReasonCode) ||
-    (!decision && context.currentStatus === 'rejected')
+    (!decision && context.fromStatus === 'rejected')
   ) {
     return getRecoveryDeclineMemberDescription('conflict_or_integrity_concern');
   }

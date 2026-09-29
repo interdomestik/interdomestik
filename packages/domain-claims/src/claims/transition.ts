@@ -30,6 +30,7 @@ export async function persistAuthorizedTransition(
     current,
     isPublic,
     note,
+    resolveNoteAfterStatusWrite,
     readWhere,
     tenantId,
   } = args;
@@ -65,6 +66,16 @@ export async function persistAuthorizedTransition(
   if (updated.length === 0) throw new ClaimTransitionConflictError(claimId);
   const lifecycleVersion = updated[0].lifecycleVersion;
 
+  const safeNote = resolveNoteAfterStatusWrite
+    ? await resolveNoteAfterStatusWrite(tx, {
+        claimId,
+        fromStatus: current.status,
+        isPublic,
+        note,
+        tenantId,
+      })
+    : note;
+
   await recordTransitionSideEffects(tx, {
     actor,
     claimId,
@@ -75,7 +86,7 @@ export async function persistAuthorizedTransition(
     hostId: args.hostId,
     isPublic,
     lifecycleVersion,
-    note,
+    note: safeNote,
     now,
     tenantId,
     toStatus,
@@ -95,6 +106,7 @@ export async function transitionClaimStatusInTransaction(
     correlationId,
     isPublic = true,
     note,
+    resolveNoteAfterStatusWrite,
     requiredWhereCondition,
     tenantId,
     toStatus,
@@ -132,6 +144,7 @@ export async function transitionClaimStatusInTransaction(
     hostId: params.hostId,
     isPublic,
     note: note ?? null,
+    resolveNoteAfterStatusWrite,
     readWhere,
     tenantId,
   });

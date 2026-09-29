@@ -8,6 +8,7 @@ function createSelectChain() {
     from: vi.fn(),
     where: vi.fn(),
     limit: vi.fn(),
+    for: vi.fn(),
   };
 }
 
@@ -117,6 +118,7 @@ describe('saveRecoveryDecisionCore', () => {
     mocks.txSelect.mockReset();
     mocks.claimSelectChain.from.mockReturnValue(mocks.claimSelectChain);
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
+    mocks.claimSelectChain.for.mockResolvedValue([{ id: 'claim-1' }]);
     mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
     mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
   });
@@ -136,6 +138,7 @@ describe('saveRecoveryDecisionCore', () => {
 
   it('creates an accepted recovery-decision snapshot for an in-scope claim', async () => {
     mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
@@ -170,6 +173,7 @@ describe('saveRecoveryDecisionCore', () => {
     const notifyRecoveryDecision = vi.fn().mockResolvedValue({ success: true });
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
@@ -199,6 +203,7 @@ describe('saveRecoveryDecisionCore', () => {
     const notifyRecoveryDecision = vi.fn();
     mocks.db.query.claims.findFirst.mockRejectedValueOnce(new Error('temporary lookup failure'));
     mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1' }]);

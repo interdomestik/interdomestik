@@ -67,6 +67,34 @@ describe('transitionClaimStatusInTransaction', () => {
     const transition = transitionClaimStatusInTransaction(tx, makeParams());
     await expect(transition).rejects.toThrow(ClaimTransitionConflictError);
   });
+  it('resolves the public note after the claim write and before history', async () => {
+    const { calls, tx } = makeTransitionTx({
+      current: { id: 'claim-1', lifecycleVersion: 6, status: 'evaluation' },
+      updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
+    });
+
+    await transitionClaimStatusInTransaction(
+      tx,
+      makeParams({
+        isPublic: true,
+        note: 'staff-only detail',
+        resolveNoteAfterStatusWrite: async (_, context) => {
+          expect(calls.updateValues).toBeDefined();
+          expect(calls.historyValues).toBeUndefined();
+          expect(context).toEqual({
+            claimId: 'claim-1',
+            fromStatus: 'evaluation',
+            isPublic: true,
+            note: 'staff-only detail',
+            tenantId: 'tenant-1',
+          });
+          return 'member-safe note';
+        },
+      })
+    );
+
+    expect(calls.historyValues).toEqual(expect.objectContaining({ note: 'member-safe note' }));
+  });
   it('lets exactly one same-version transition win', async () => {
     let claimed = false;
     const { calls, tx } = makeTransitionTx({

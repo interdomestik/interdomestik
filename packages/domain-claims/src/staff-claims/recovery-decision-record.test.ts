@@ -29,6 +29,7 @@ vi.mock('@interdomestik/database', () => ({
     tenantId: 'claim_escalation_agreements.tenant_id',
     updatedAt: 'claim_escalation_agreements.updated_at',
   },
+  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
   db: {
     insert: vi.fn(),
     select: vi.fn(),
@@ -47,11 +48,13 @@ const session = {
 describe('upsertRecoveryDecisionRecord', () => {
   it('appends the recovery decision event through the passed transaction', async () => {
     const insertValues = vi.fn();
+    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(() => ({ values: insertValues })),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
+            for: claimLock,
             limit: async () => [],
           }),
         }),
@@ -76,6 +79,10 @@ describe('upsertRecoveryDecisionRecord', () => {
         tenantId: 'tenant-1',
       })
     );
+    expect(claimLock).toHaveBeenCalledWith('update');
+    expect(claimLock.mock.invocationCallOrder[0]).toBeLessThan(
+      insertValues.mock.invocationCallOrder[0]
+    );
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
@@ -87,11 +94,13 @@ describe('upsertRecoveryDecisionRecord', () => {
 
   it('updates an existing recovery decision through the passed transaction', async () => {
     const updateSet = vi.fn(() => ({ where: vi.fn() }));
+    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
+            for: claimLock,
             limit: async () => [{ id: 'agreement-1' }],
           }),
         }),
@@ -109,6 +118,7 @@ describe('upsertRecoveryDecisionRecord', () => {
     });
 
     expect(tx.insert).not.toHaveBeenCalled();
+    expect(claimLock).toHaveBeenCalledWith('update');
     expect(updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         decisionReason: 'Accepted after review',

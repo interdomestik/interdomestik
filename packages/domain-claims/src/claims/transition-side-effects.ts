@@ -6,6 +6,13 @@ import type { TransitionCurrentState } from './transition-current-state';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 
 export type TransitionTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type TransitionNoteResolver = (
+  tx: TransitionTx,
+  context: Pick<
+    TransitionSideEffectsArgs,
+    'claimId' | 'fromStatus' | 'isPublic' | 'note' | 'tenantId'
+  >
+) => Promise<string | null>;
 export type AuthorizedTransitionHookTx = Pick<TransitionTx, 'insert' | 'select' | 'update'>;
 export function authorizedTransitionHookTx(tx: TransitionTx): AuthorizedTransitionHookTx {
   return {
@@ -49,6 +56,7 @@ export type TransitionClaimStatusParams = {
   hostId?: string | null;
   isPublic?: boolean;
   note?: string | null;
+  resolveNoteAfterStatusWrite?: TransitionNoteResolver;
   requiredWhereCondition?: SQLWrapper;
   tenantId: string;
   toStatus: ClaimStatus;
@@ -65,6 +73,7 @@ export type PersistAuthorizedTransitionArgs = {
   current: TransitionCurrentState;
   isPublic: boolean;
   note: string | null;
+  resolveNoteAfterStatusWrite?: TransitionNoteResolver;
   readWhere: SQLWrapper;
   tenantId: string;
 };

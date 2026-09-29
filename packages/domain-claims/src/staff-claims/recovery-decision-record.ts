@@ -1,6 +1,7 @@
 import {
   appendEvent,
   claimEscalationAgreements,
+  claims,
   db,
   eq,
   type DomainEventTx,
@@ -46,6 +47,13 @@ export async function upsertRecoveryDecisionRecord(params: {
 }): Promise<RecoveryDecisionSnapshot> {
   const now = new Date();
   const explanation = params.explanation?.trim() || null;
+
+  // db-access-guard: tenant-scoped -- reason: serialize decision writes with public note selection.
+  await params.tx
+    .select({ id: claims.id })
+    .from(claims)
+    .where(withTenant(params.tenantId, claims.tenantId, eq(claims.id, params.claimId)))
+    .for('update');
 
   const [existingDecision] = await params.tx
     .select({ id: claimEscalationAgreements.id })

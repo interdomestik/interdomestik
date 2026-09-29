@@ -21,14 +21,16 @@ vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.wi
 const tx = {
   select: vi.fn(() => ({
     from: vi.fn(() => ({
-      where: vi.fn(() => ({ limit: vi.fn(() => ({ for: mocks.lock })) })),
+      where: vi.fn(() => ({
+        for: vi.fn(() => ({ limit: mocks.lock })),
+      })),
     })),
   })),
 } as unknown as Parameters<typeof safePublicStatusNote>[0];
 const context = {
   claimId: 'claim-1',
-  currentStatus: 'rejected' as const,
-  isPublicChange: true,
+  fromStatus: 'rejected' as const,
+  isPublic: true,
   note: 'The member committed fraud',
   tenantId: 'tenant-1',
 };
@@ -41,31 +43,32 @@ describe('rejected claim public notes', () => {
   it.each([
     {
       label: 'a sensitive decision on a rejected claim',
-      currentStatus: 'rejected' as const,
+      fromStatus: 'rejected' as const,
       rows: [{ decisionType: 'declined', declineReasonCode: 'conflict_or_integrity_concern' }],
     },
     {
       label: 'a sensitive decision before the claim is rejected',
-      currentStatus: 'evaluation' as const,
+      fromStatus: 'evaluation' as const,
       rows: [{ decisionType: 'declined', declineReasonCode: 'conflict_or_integrity_concern' }],
     },
     {
       label: 'a declined decision with no category',
-      currentStatus: 'evaluation' as const,
+      fromStatus: 'evaluation' as const,
       rows: [{ decisionType: 'declined', declineReasonCode: null }],
     },
     {
       label: 'a missing decision on a rejected claim',
-      currentStatus: 'rejected' as const,
+      fromStatus: 'rejected' as const,
       rows: [],
     },
-  ])('keeps $label generic', async ({ currentStatus, rows }) => {
-    mocks.lock.mockResolvedValue(rows);
+  ])('keeps $label generic', async ({ fromStatus, rows }) => {
+    mocks.lock.mockResolvedValueOnce(rows);
 
-    expect(await safePublicStatusNote(tx, { ...context, currentStatus })).toBe(
+    expect(await safePublicStatusNote(tx, { ...context, fromStatus })).toBe(
       'We cannot accept this matter for staff-led recovery.'
     );
-    expect(mocks.lock).toHaveBeenCalledWith('update');
+    expect(mocks.lock).toHaveBeenCalledTimes(1);
+    expect(mocks.lock).toHaveBeenCalledWith(1);
     expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'agreement.tenantId', {
       column: 'agreement.claimId',
       value: 'claim-1',
@@ -73,7 +76,7 @@ describe('rejected claim public notes', () => {
   });
 
   it('keeps a public follow-up note for a non-sensitive decline', async () => {
-    mocks.lock.mockResolvedValue([
+    mocks.lock.mockResolvedValueOnce([
       { decisionType: 'declined', declineReasonCode: 'insufficient_evidence' },
     ]);
 
@@ -83,9 +86,7 @@ describe('rejected claim public notes', () => {
   });
 
   it('does not alter a private staff note', async () => {
-    expect(await safePublicStatusNote(tx, { ...context, isPublicChange: false })).toBe(
-      context.note
-    );
+    expect(await safePublicStatusNote(tx, { ...context, isPublic: false })).toBe(context.note);
     expect(mocks.lock).not.toHaveBeenCalled();
   });
 });
