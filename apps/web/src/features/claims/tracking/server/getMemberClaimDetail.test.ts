@@ -74,6 +74,16 @@ vi.mock('@interdomestik/database/schema', () => ({
   claims: {
     id: 'claims.id',
   },
+  domainEvents: {
+    createdAt: 'domainEvents.createdAt',
+    entityId: 'domainEvents.entityId',
+    entityType: 'domainEvents.entityType',
+    eventName: 'domainEvents.eventName',
+    eventVersion: 'domainEvents.eventVersion',
+    id: 'domainEvents.id',
+    payload: 'domainEvents.payload',
+    tenantId: 'domainEvents.tenantId',
+  },
 }));
 
 vi.mock('@interdomestik/database/constants', () => ({
@@ -117,8 +127,12 @@ const memberSession = {
 function configureSelectMocks() {
   hoisted.select.mockReturnValueOnce({
     from: () => ({
-      where: () => ({
-        limit: () => hoisted.recoveryDecisionRows(),
+      leftJoin: () => ({
+        where: () => ({
+          orderBy: () => ({
+            limit: () => hoisted.recoveryDecisionRows(),
+          }),
+        }),
       }),
     }),
   });
