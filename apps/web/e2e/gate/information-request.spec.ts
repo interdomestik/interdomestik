@@ -194,6 +194,10 @@ test('staff request, member evidence and assigned-staff acknowledgement round tr
       await member.page.reload();
       await expect(card).toContainText('Prova u konfirmua');
 
+      await gotoApp(staffPage, routes.staffClaimDetail(fixture.claimId, testInfo), testInfo, {
+        marker: 'staff-claim-detail-ready',
+      });
+      await expect(staffCard).toContainText('Konfirmuar nga stafi');
       await staffCard.getByRole('checkbox', { name: /request-evidence\.pdf/u }).check();
       await staffCard
         .getByRole('button', { name: 'Shëno kërkesën të përmbushur me këtë dokument' })
