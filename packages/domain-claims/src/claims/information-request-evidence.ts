@@ -2,6 +2,7 @@ import {
   and,
   auditLog,
   claimInformationRequestEvidence,
+  claimInformationRequests,
   claims,
   eq,
   isNull,
@@ -44,6 +45,19 @@ export async function acknowledgeInformationRequestEvidence(
       .where(and(eq(claims.tenantId, tenantId), eq(claims.id, data.claimId)))
       .for('update');
     if (claim?.staffId !== actorId) return { success: false, error: 'access_denied' };
+
+    const [request] = await tx
+      .select({ status: claimInformationRequests.status })
+      .from(claimInformationRequests)
+      .where(
+        and(
+          eq(claimInformationRequests.tenantId, tenantId),
+          eq(claimInformationRequests.claimId, data.claimId),
+          eq(claimInformationRequests.id, data.requestId)
+        )
+      )
+      .for('update');
+    if (request?.status !== 'open') return { success: false, error: 'conflict' };
 
     const scope = and(
       eq(claimInformationRequestEvidence.tenantId, tenantId),

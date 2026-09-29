@@ -220,15 +220,30 @@
       "owner": "Odgovorni tim",
       "ownerLabel": "Interdomestik tim za predmete",
       "statusLabel": "Status zahteva",
-      "status": { "open": "Otvoren — slanje ili potvrda dokaza ne zatvara ovaj zahtev" },
+      "status": {
+        "open": "Otvoren — slanje ili potvrda dokaza ne zatvara ovaj zahtev",
+        "fulfilled": "Ispunjen od strane dodeljenog službenika nakon pregleda dokaza"
+      },
       "nextActorLabel": "Ko sledeći postupa",
-      "nextActor": { "member": "Član", "assignedStaff": "Dodeljeni službenik za predmet" },
+      "nextActor": {
+        "member": "Član",
+        "assignedStaff": "Dodeljeni službenik za predmet",
+        "none": "Niko za ovaj zahtev"
+      },
       "nextActionLabel": "Sledeći korak",
       "nextAction": {
         "uploadEvidence": "Pošaljite traženi dokaz",
         "reviewEvidence": "Pregledajte poslati dokaz i potvrdite prijem",
-        "reviewRequest": "Nastavite pregled dokaza; zahtev ostaje otvoren"
+        "reviewRequest": "Nastavite pregled dokaza; zahtev ostaje otvoren",
+        "none": "Nema daljih radnji za ovaj zahtev"
       },
+      "fulfilledUsing": "Ispunjen na osnovu ovog dokumenta",
+      "reviewConfirmation": "Pregledao/la sam {documentName} za ovaj zahtev",
+      "fulfil": "Označi zahtev kao ispunjen na osnovu ovog dokumenta",
+      "fulfilling": "Označavanje kao ispunjen...",
+      "fulfilmentSuccess": "Zahtev je označen kao ispunjen.",
+      "fulfilmentConflict": "Zahtev ili povezani dokument se promenio. Osvežite i pregledajte ponovo.",
+      "fulfilmentError": "Zahtev nije mogao biti označen kao ispunjen. Pokušajte ponovo.",
       "incomplete": "Informacije su nedostajale kada je ovaj zahtev kreiran.",
       "loadError": "Zahtevi za informacije nisu mogli da se učitaju. Ostali detalji predmeta ostaju dostupni.",
       "upload": "Otpremi traženi dokaz",

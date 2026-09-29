@@ -54,6 +54,8 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       await import('../../domain-claims/src/claims/information-requests');
     const { acknowledgeInformationRequestEvidence } =
       await import('../../domain-claims/src/claims/information-request-evidence');
+    const { fulfilInformationRequest } =
+      await import('../../domain-claims/src/claims/fulfil-information-request');
     const { persistClaimDocumentMetadata } =
       await import('../../../apps/web/src/features/claims/upload/server/claim-document-write');
     const actor = (id: string, role = 'staff', tenantId = 'tenant_ks') => ({
@@ -120,6 +122,8 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       'dueAt',
       'evidence',
       'explanationForMember',
+      'fulfilledAt',
+      'fulfilledDocumentId',
       'progress',
       'requestId',
       'requestedInformation',
@@ -130,6 +134,13 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     assert.equal(visible[0].dueAt, input.dueAt);
     assert.deepEqual(visible[0].evidence, []);
     assert.equal(visible[0].progress, 'awaiting_evidence');
+    assert.equal(visible[0].fulfilledAt, null);
+    assert.equal(visible[0].fulfilledDocumentId, null);
+    const fulfilInput = { claimId, requestId, documentId: `s4_${randomUUID()}`, reviewed: true };
+    assert.deepEqual(await fulfilInformationRequest(actor(staff), fulfilInput), {
+      success: false,
+      error: 'conflict',
+    });
     assert.deepEqual(await getInformationRequests(actor(otherMember, 'member'), claimId), []);
     assert.deepEqual(await getInformationRequests(actor(otherStaff), claimId), []);
     assert.deepEqual(
@@ -192,6 +203,11 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
 
     const submitted = await getInformationRequests(actor(member, 'member'), claimId);
     assert.equal(submitted[0]?.progress, 'submitted');
+    assert.deepEqual(
+      await fulfilInformationRequest(actor(staff), { ...fulfilInput, documentId }),
+      { success: false, error: 'conflict' },
+      'receipt acknowledgement must precede fulfilment'
+    );
     assert.deepEqual(submitted[0]?.evidence, [
       {
         documentId,
@@ -236,10 +252,91 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       acknowledged[0]?.evidence[0]?.acknowledgedAt,
       acknowledgement.success ? acknowledgement.acknowledgedAt : null
     );
+    for (const denied of [
+      actor(otherStaff),
+      actor(member, 'member'),
+      actor(staff, 'branch_manager'),
+      actor(staff, 'staff', 'tenant_mk'),
+    ]) {
+      assert.deepEqual(await fulfilInformationRequest(denied, { ...fulfilInput, documentId }), {
+        success: false,
+        error: 'access_denied',
+      });
+    }
+    assert.deepEqual(
+      await fulfilInformationRequest(actor(staff), { ...fulfilInput, documentId, reviewed: false }),
+      { success: false, error: 'invalid_input' }
+    );
+    assert.deepEqual(
+      await fulfilInformationRequest(actor(staff), fulfilInput),
+      { success: false, error: 'conflict' },
+      'an unrelated document cannot fulfil the request'
+    );
+    await assert.rejects(
+      admin`update claim_information_requests
+        set status = 'fulfilled', fulfilled_at = now(), fulfilled_by_staff_id = ${staff}, fulfilled_document_id = ${fulfilInput.documentId}
+        where id = ${requestId}`,
+      /foreign key constraint/,
+      'direct writes cannot attach an unrelated document to a fulfilled request'
+    );
+    const [fulfilled, repeated] = await Promise.all([
+      fulfilInformationRequest(actor(staff), { ...fulfilInput, documentId }),
+      fulfilInformationRequest(actor(staff), { ...fulfilInput, documentId }),
+    ]);
+    assert.equal(fulfilled.success, true);
+    assert.deepEqual(repeated, fulfilled, 'concurrent retry returns the first durable result');
+    assert.deepEqual(
+      await fulfilInformationRequest(actor(staff), fulfilInput),
+      { success: false, error: 'conflict' },
+      'a different document cannot overwrite fulfilment'
+    );
+    const fulfilledView = await getInformationRequests(actor(member, 'member'), claimId);
+    assert.equal(fulfilledView[0]?.status, 'fulfilled');
+    assert.equal(fulfilledView[0]?.fulfilledDocumentId, documentId);
+    assert.equal(fulfilledView[0]?.fulfilledAt, fulfilled.success ? fulfilled.fulfilledAt : null);
+    assert.equal(fulfilledView[0]?.progress, 'acknowledged');
+    assert.equal(
+      (
+        await admin`select id from audit_log where action = 'claim_information_request.fulfilled' and entity_id = ${requestId}`
+      ).length,
+      1,
+      'concurrent fulfilment writes one audit event'
+    );
+    await assert.rejects(
+      admin`delete from claim_information_request_evidence where request_id = ${requestId} and document_id = ${documentId}`,
+      /foreign key constraint/,
+      'the reviewed evidence association cannot disappear while the fulfilment record exists'
+    );
+    assert.deepEqual(
+      await acknowledgeInformationRequestEvidence(actor(staff), {
+        claimId,
+        requestId,
+        documentId,
+      }),
+      { success: false, error: 'conflict' },
+      'a fulfilled request cannot receive a fresh acknowledgement'
+    );
+    await assert.rejects(
+      persistClaimDocumentMetadata({
+        category: 'evidence',
+        claimId,
+        fileId: `s4_${randomUUID()}`,
+        fileSize: 1024,
+        informationRequestId: requestId,
+        logPrefix: '[S7 fulfilment proof]',
+        mimeType: 'application/pdf',
+        originalName: 'late-estimate.pdf',
+        resolvedBucket: 'claim-evidence',
+        storagePath: `pii/tenants/tenant_ks/claims/${claimId}/late-estimate.pdf`,
+        tenantId: 'tenant_ks',
+        userId: member,
+      }),
+      /Information request changed/
+    );
     assert.deepEqual(
       await admin`select * from "claim" where id = ${claimId}`,
       before,
-      'submission and acknowledgement do not mutate claim lifecycle, assignment or timers'
+      'submission, acknowledgement and fulfilment do not mutate claim lifecycle, assignment or timers'
     );
     assert.equal(
       (
@@ -271,9 +368,9 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     try {
       await admin.begin(async tx => {
         await tx`delete from audit_log where entity_id in (select id::text from claim_information_requests where claim_id = any(${claimIds}::text[]))`;
+        await tx`delete from claim_information_requests where claim_id = any(${claimIds}::text[])`;
         await tx`delete from claim_information_request_evidence where claim_id = any(${claimIds}::text[])`;
         await tx`delete from claim_documents where claim_id = any(${claimIds}::text[])`;
-        await tx`delete from claim_information_requests where claim_id = any(${claimIds}::text[])`;
         await tx`delete from "claim" where id = any(${claimIds}::text[])`;
         await tx`delete from "user" where id = any(${ids}::text[])`;
       });

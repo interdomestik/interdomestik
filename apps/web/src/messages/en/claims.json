@@ -221,16 +221,29 @@
       "ownerLabel": "Interdomestik case team",
       "statusLabel": "Request status",
       "status": {
-        "open": "Open — submitting or acknowledging evidence does not close this request"
+        "open": "Open — submitting or acknowledging evidence does not close this request",
+        "fulfilled": "Fulfilled by assigned staff after evidence review"
       },
       "nextActorLabel": "Next to act",
-      "nextActor": { "member": "Member", "assignedStaff": "Assigned case staff" },
+      "nextActor": {
+        "member": "Member",
+        "assignedStaff": "Assigned case staff",
+        "none": "No one for this request"
+      },
       "nextActionLabel": "Next action",
       "nextAction": {
         "uploadEvidence": "Upload the requested evidence",
         "reviewEvidence": "Review submitted evidence and acknowledge receipt",
-        "reviewRequest": "Continue reviewing the evidence; the request remains open"
+        "reviewRequest": "Continue reviewing the evidence; the request remains open",
+        "none": "No further action for this request"
       },
+      "fulfilledUsing": "Fulfilled using this upload",
+      "reviewConfirmation": "I reviewed {documentName} for this request",
+      "fulfil": "Mark request fulfilled using this upload",
+      "fulfilling": "Marking fulfilled...",
+      "fulfilmentSuccess": "Request marked fulfilled.",
+      "fulfilmentConflict": "The request or linked upload changed. Refresh and review it again.",
+      "fulfilmentError": "The request could not be marked fulfilled. Try again.",
       "incomplete": "Information was missing when this request was created.",
       "loadError": "Information requests could not be loaded. Other case details remain available.",
       "upload": "Upload requested evidence",

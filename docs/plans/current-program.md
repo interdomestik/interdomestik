@@ -16,13 +16,21 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S7-ASSIGNED-STAFF-WORK-QUEUE` is the active bounded staff-handling increment selected from
-freshly fetched protected main `333404dc38f66e7371e8fa362c56b6d709d22580`. On the mounted
-staff claims queue, separate assigned cases awaiting staff review from those awaiting member
-evidence, and flag operational follow-up when a persisted open request's recorded due date has
-passed. The flag is a prompt to check with the member, not a legal deadline, SLA breach, automatic
-escalation or request fulfilment. This is bounded S7 software evidence, not whole S7, production
-or user acceptance.
+`S7-REQUEST-EVIDENCE-FULFILMENT` is the active bounded staff-handling increment selected from
+freshly fetched protected main `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. On the mounted
+case, assigned staff can mark an open information request fulfilled only after acknowledging and
+confirming review of the exact linked member upload. The persisted result records the reviewed
+document and changes both roles' request next action without changing claim lifecycle or adding
+automatic escalation. This is bounded S7 software evidence, not whole S7, production or user
+acceptance.
+
+PR [#1842](https://github.com/interdomestik/interdomestik/pull/1842) delivered the preceding
+assigned-staff queue and saved-date operational follow-up as protected merge
+`670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. Automatic exact-main
+[CD `36510619671`](https://github.com/interdomestik/interdomestik/actions/runs/36510619671)
+passed staging build, provenance, health and configured P0 gates on that SHA; production was
+skipped. Credit its grouping and follow-up together with #1841 next action and #1814 upload and
+acknowledgement. Request fulfilment, lifecycle/SLA, whole S5/S7 and user acceptance remain open.
 
 PR [#1841](https://github.com/interdomestik/interdomestik/pull/1841) delivered the preceding
 shared evidence next-action increment as protected merge `333404dc38f66e7371e8fa362c56b6d709d22580`.
@@ -238,8 +246,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S7 staff handling after credited #1841 shared next action and #1814 request evidence round trip,
-with remaining S5/S6 gaps still open,
+S7 staff handling after credited #1842 assigned-staff queue, #1841 shared next action and #1814
+request evidence round trip, with remaining S5/S6 gaps still open,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
@@ -263,19 +271,21 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current assigned-staff work-queue acceptance
+### Current request-evidence fulfilment acceptance
 
-- The mounted staff claims page groups the bounded assigned list into staff review, member
-  evidence wait and other assigned cases using persisted open request/evidence progress. A case
-  without an open request does not acquire an invented next actor. Unassigned claims stay visibly
-  separate; branch-manager monitoring does not receive assigned-staff request progress.
-- Only a saved open request due date that has passed produces an operational follow-up prompt for
-  still-missing member evidence. Exact-boundary and submitted-evidence cases do not show a false
-  overdue prompt. Mixed requests retain staff review priority and surface any overdue member
-  follow-up; no automatic notice, legal deadline, case SLA or claim mutation is introduced.
-- Four-locale mounted copy, keyboard links, empty/error states, assigned-owner/tenant scope and
-  #1841 case-detail truth remain intact. Whole `IDA-COM-008`, `IDA-CLM-010`, S7, operational/business
-  and user acceptance remain open.
+- The assigned staff member explicitly confirms review of one exact request-linked member upload
+  after acknowledgement before marking its open request fulfilled. A missing, unacknowledged,
+  unrelated or wrong-tenant upload cannot fulfil the request. A retry of the same document returns
+  the original persisted result and does not write a second audit event; a different document
+  cannot replace that result.
+- Member and assigned-staff case detail show the persisted fulfilled status, reviewed document and
+  no further action for that request. Fulfilled requests leave the #1842 open-request queue and
+  saved-date follow-up; other open requests retain their own next actions. Member upload and staff
+  acknowledgement remain available only while the request is open.
+- Four-locale mounted copy, loading/error/retry feedback, current assignee/tenant denial and
+  unchanged proxy/auth/RLS, claim lifecycle, billing and provider writers are required. This does
+  not implement a case SLA, legal deadline, automatic escalation, whole `IDA-COM-008`, whole
+  `IDA-CLM-010`, whole S7 or user acceptance.
 - Codex integrates and runs one consolidated final verification lane. Subscription helper work is
   credited only with actual served-model output; no private diff transfer or paid API is authorized.
 
@@ -471,6 +481,21 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-29: the owner-held SRS v0.9 DOCX matched SHA-256
+`8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
+`IDA-CLM-010` requires a specific request and responsible owner; its acceptance calls for
+authorized, denied, malformed, boundary and retry/concurrency proof. Reuse #1841's applicable
+[W3C status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
+for clear mounted feedback. The #1814 upload association and acknowledgement, #1841 shared next
+action and #1842 queue are already delivered. Adopt an explicit assigned-staff confirmation tied
+to one acknowledged upload and a persisted fulfilled result; reject automatic fulfilment from an
+upload or acknowledgement alone, and reject a claim lifecycle/SLA change. Expected benefit:
+both roles can see when the exact request is complete without losing its evidence trail. Verify
+tenant/owner denial, stale or unrelated document conflict, concurrent retry, four-locale next
+action and unchanged claim lifecycle.
+
+### Credited #1842 assigned-staff queue research
 
 Checked 2026-09-29: the owner-held SRS v0.9 source matched SHA-256
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.

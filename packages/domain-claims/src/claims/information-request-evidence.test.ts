@@ -32,7 +32,7 @@ function query(rows: unknown[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  h.selectRows = [[{ staffId: 'staff-1' }]];
+  h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'open' }]];
   h.updateRows = [[{ acknowledgedAt }]];
   h.transaction.mockImplementation((_context, run) =>
     run({
@@ -82,7 +82,7 @@ describe('information request evidence acknowledgement', () => {
 
   it('returns the original timestamp on retry without adding another audit row', async () => {
     h.updateRows = [[]];
-    h.selectRows = [[{ staffId: 'staff-1' }], [{ acknowledgedAt }]];
+    h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'open' }], [{ acknowledgedAt }]];
 
     await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
       success: true,
@@ -103,8 +103,17 @@ describe('information request evidence acknowledgement', () => {
 
   it('reports a conflict when the evidence association no longer exists', async () => {
     h.updateRows = [[]];
-    h.selectRows = [[{ staffId: 'staff-1' }], []];
+    h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'open' }], []];
 
+    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+      success: false,
+      error: 'conflict',
+    });
+    expect(h.auditValues).not.toHaveBeenCalled();
+  });
+
+  it('does not acknowledge new evidence after the request was fulfilled', async () => {
+    h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'fulfilled' }]];
     await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
       success: false,
       error: 'conflict',

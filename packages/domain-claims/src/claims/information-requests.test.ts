@@ -189,6 +189,8 @@ describe('information request contract', () => {
         explanationForMember: 'Needed to assess the damage.',
         dueAt: '2026-01-01T10:00:00.000Z',
         status: 'open',
+        fulfilledAt: null,
+        fulfilledDocumentId: null,
         slaPosture: 'incomplete',
         createdAt: '2025-12-01T10:00:00.000Z',
         evidence: [

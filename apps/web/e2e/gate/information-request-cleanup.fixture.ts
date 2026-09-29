@@ -52,6 +52,14 @@ export async function cleanupInformationRequest(claimId: string, tenantId: strin
       );
     }
     await tx
+      .delete(claimInformationRequests)
+      .where(
+        and(
+          eq(claimInformationRequests.tenantId, tenantId),
+          eq(claimInformationRequests.claimId, claimId)
+        )
+      );
+    await tx
       .delete(claimInformationRequestEvidence)
       .where(
         and(
@@ -62,14 +70,6 @@ export async function cleanupInformationRequest(claimId: string, tenantId: strin
     await tx
       .delete(claimDocuments)
       .where(and(eq(claimDocuments.tenantId, tenantId), eq(claimDocuments.claimId, claimId)));
-    await tx
-      .delete(claimInformationRequests)
-      .where(
-        and(
-          eq(claimInformationRequests.tenantId, tenantId),
-          eq(claimInformationRequests.claimId, claimId)
-        )
-      );
     await tx
       .delete(claimStageHistory)
       .where(and(eq(claimStageHistory.tenantId, tenantId), eq(claimStageHistory.claimId, claimId)));
