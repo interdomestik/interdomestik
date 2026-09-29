@@ -116,17 +116,16 @@ test('known program-only push skips deploy and product or unknown paths deploy',
   }
   const repositoryManifest = parseScopeManifest(readRepoText('scripts/ci/cd-nondeploy-scope.json'));
   for (const path of [
+    'scripts/ci/cd-run-lookup.test.mjs',
     'scripts/ci/cd-trusted-parent-guard.test.mjs',
     'scripts/repo-size-budget.json',
   ]) {
     assert.ok(repositoryManifest.nonDeployPaths.includes(path));
+    assert.equal(
+      classifyScope({ ...input, manifest: repositoryManifest, changedFiles: [path] }).deploy,
+      false
+    );
   }
-  const budgetDecision = classifyScope({
-    ...input,
-    manifest: repositoryManifest,
-    changedFiles: ['scripts/repo-size-budget.json'],
-  });
-  assert.equal(budgetDecision.deploy, false);
 });
 test('CD workflow, guard, and manifest changes fail red instead of self-whitelisting', () => {
   const input = {
