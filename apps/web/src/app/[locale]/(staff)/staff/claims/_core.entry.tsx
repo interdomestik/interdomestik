@@ -127,12 +127,13 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
           claims.filter(claim => claim.staffId === session.user.id).map(claim => claim.id)
         )
       : {};
-  const queueGroup = (claim: (typeof claims)[number]) =>
-    session.user.role !== 'staff'
-      ? null
-      : claim.staffId !== session.user.id
-        ? 'unassigned'
-        : (attention[claim.id]?.nextActor ?? 'untracked');
+  const queueGroup = (
+    claim: (typeof claims)[number]
+  ): 'staff' | 'member' | 'untracked' | 'unassigned' | null => {
+    if (session.user.role !== 'staff') return null;
+    if (claim.staffId !== session.user.id) return 'unassigned';
+    return attention[claim.id]?.nextActor ?? 'untracked';
+  };
   const groupOrder = { staff: 0, member: 1, untracked: 2, unassigned: 3 } as const;
   const displayedClaims =
     session.user.role === 'staff'

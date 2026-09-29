@@ -7,7 +7,6 @@ import {
   inArray,
   withTenantContext,
 } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import type { ClaimsSession } from '../claims/types';
 
 export type AssignedClaimAttention = {
@@ -22,17 +21,10 @@ type RequestProgressRow = {
   submittedAt: Date | null;
 };
 
-/** A saved request date prompts an operational follow-up, never a legal or case-SLA breach. */
-export function deriveAssignedClaimAttention(
-  claimIds: readonly string[],
-  rows: readonly RequestProgressRow[],
-  now: Date
-): Record<string, AssignedClaimAttention> {
-  const byClaim: Record<string, AssignedClaimAttention> = Object.fromEntries(
-    claimIds.map(id => [id, { nextActor: 'untracked', overdueFollowUpDueAt: null }])
-  );
-  const requests = new Map<string, { claimId: string; dueAt: Date; hasEvidence: boolean }>();
+type RequestProgress = { claimId: string; dueAt: Date; hasEvidence: boolean };
 
+function groupRequestProgress(rows: readonly RequestProgressRow[]): Map<string, RequestProgress> {
+  const requests = new Map<string, RequestProgress>();
   for (const row of rows) {
     const request = requests.get(row.requestId) ?? {
       claimId: row.claimId,
@@ -42,6 +34,27 @@ export function deriveAssignedClaimAttention(
     if (row.submittedAt) request.hasEvidence = true;
     requests.set(row.requestId, request);
   }
+  return requests;
+}
+
+function recordOverdueFollowUp(item: AssignedClaimAttention, dueAt: Date, now: Date): void {
+  if (dueAt.getTime() >= now.getTime()) return;
+  const savedDate = dueAt.toISOString();
+  if (!item.overdueFollowUpDueAt || savedDate < item.overdueFollowUpDueAt) {
+    item.overdueFollowUpDueAt = savedDate;
+  }
+}
+
+/** A saved request date prompts an operational follow-up, never a legal or case-SLA breach. */
+export function deriveAssignedClaimAttention(
+  claimIds: readonly string[],
+  rows: readonly RequestProgressRow[],
+  now: Date
+): Record<string, AssignedClaimAttention> {
+  const byClaim: Record<string, AssignedClaimAttention> = Object.fromEntries(
+    claimIds.map(id => [id, { nextActor: 'untracked', overdueFollowUpDueAt: null }])
+  );
+  const requests = groupRequestProgress(rows);
 
   const hasStaffRequest = new Set<string>();
   const hasMemberRequest = new Set<string>();
@@ -53,12 +66,7 @@ export function deriveAssignedClaimAttention(
       continue;
     }
     hasMemberRequest.add(request.claimId);
-    if (request.dueAt.getTime() < now.getTime()) {
-      const dueAt = request.dueAt.toISOString();
-      if (!item.overdueFollowUpDueAt || dueAt < item.overdueFollowUpDueAt) {
-        item.overdueFollowUpDueAt = dueAt;
-      }
-    }
+    recordOverdueFollowUp(item, request.dueAt, now);
   }
 
   for (const claimId of hasMemberRequest) {
@@ -105,14 +113,11 @@ export async function getAssignedStaffClaimAttention(
         )
       )
       .where(
-        withTenant(
-          tenantId,
-          claimInformationRequests.tenantId,
-          and(
-            inArray(claimInformationRequests.claimId, [...claimIds]),
-            eq(claimInformationRequests.status, 'open'),
-            eq(claims.staffId, staffId)
-          )
+        and(
+          eq(claimInformationRequests.tenantId, tenantId),
+          inArray(claimInformationRequests.claimId, [...claimIds]),
+          eq(claimInformationRequests.status, 'open'),
+          eq(claims.staffId, staffId)
         )
       )
   );

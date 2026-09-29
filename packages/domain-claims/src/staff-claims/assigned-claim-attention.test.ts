@@ -11,7 +11,6 @@ const mocks = vi.hoisted(() => {
   return {
     query,
     select: vi.fn(),
-    withTenant: vi.fn((_tenantId, _column, condition) => condition),
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     inArray: vi.fn((left, values) => ({ op: 'inArray', left, values })),
@@ -41,7 +40,6 @@ vi.mock('@interdomestik/database', () => ({
     action: (tx: { select: typeof mocks.select }) => unknown
   ) => action({ select: mocks.select }),
 }));
-vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
 
 import {
   deriveAssignedClaimAttention,
@@ -118,7 +116,6 @@ describe('getAssignedStaffClaimAttention', () => {
     mocks.query.innerJoin.mockReturnValue(mocks.query);
     mocks.query.leftJoin.mockReturnValue(mocks.query);
     mocks.query.where.mockReset().mockResolvedValue([]);
-    mocks.withTenant.mockClear();
   });
 
   it('denies non-staff and never queries their claim IDs', async () => {
@@ -135,12 +132,11 @@ describe('getAssignedStaffClaimAttention', () => {
     const result = await getAssignedStaffClaimAttention(staffSession, ['claim-1'], now);
 
     expect(result['claim-1']).toEqual({ nextActor: 'untracked', overdueFollowUpDueAt: null });
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-1',
-      'request.tenant_id',
+    expect(mocks.query.where).toHaveBeenCalledWith(
       expect.objectContaining({
         op: 'and',
         conditions: expect.arrayContaining([
+          { op: 'eq', left: 'request.tenant_id', right: 'tenant-1' },
           { op: 'inArray', left: 'request.claim_id', values: ['claim-1'] },
           { op: 'eq', left: 'request.status', right: 'open' },
           { op: 'eq', left: 'claim.staff_id', right: 'staff-1' },
