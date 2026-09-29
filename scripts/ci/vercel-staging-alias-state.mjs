@@ -73,7 +73,7 @@ export async function aliasStagingDeployment(
   const token = requireValue('VERCEL_TOKEN', env.VERCEL_TOKEN);
   const attempts = positiveInt(env.STAGING_ALIAS_ATTEMPTS, ALIAS_DEFAULTS.attempts);
   const retryMs = positiveInt(env.STAGING_ALIAS_RETRY_MS, ALIAS_DEFAULTS.retryMs);
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  async function assign(attempt) {
     const response = await fetchImpl(assignmentUrl(deploymentHostname), {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -87,12 +87,13 @@ export async function aliasStagingDeployment(
       /(cert .*not ready|deployment .*not ready|not READY|can not be aliased)/iu.test(body);
     if (attempt < attempts && transient) {
       await waitImpl(retryMs);
-      continue;
+      return assign(attempt + 1);
     }
     throw new Error(
       `Failed to assign canonical staging alias: ${response.status} ${boundedProviderText(body)}`
     );
   }
+  return assign(1);
 }
 export async function snapshotStagingAlias({
   env = process.env,
@@ -160,9 +161,9 @@ export async function confirmStagingAliasTarget({
   }
   const attempts = positiveInt(env.STAGING_ALIAS_CONFIRM_ATTEMPTS, ALIAS_DEFAULTS.confirmAttempts);
   const retryMs = positiveInt(env.STAGING_ALIAS_RETRY_MS, ALIAS_DEFAULTS.retryMs);
-  let observed;
-  let providerError;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  async function confirm(attempt) {
+    let observed;
+    let providerError;
     try {
       observed = await snapshotImpl({ env });
       providerError = undefined;
@@ -184,18 +185,22 @@ export async function confirmStagingAliasTarget({
       observed = undefined;
       providerError = error;
     }
-    if (attempt < attempts) await waitImpl(retryMs);
-  }
-  if (observed) {
+    if (attempt < attempts) {
+      await waitImpl(retryMs);
+      return confirm(attempt + 1);
+    }
+    if (observed) {
+      throw new Error(
+        'canonical staging alias provider mapping mismatch: ' +
+          `expected ${expectedHostname} ${expectedCommitSha}, ` +
+          `got ${observed.deploymentHostname} ${observed.commitSha}`
+      );
+    }
     throw new Error(
-      'canonical staging alias provider mapping mismatch: ' +
-        `expected ${expectedHostname} ${expectedCommitSha}, ` +
-        `got ${observed.deploymentHostname} ${observed.commitSha}`
+      `canonical staging alias provider confirmation failed: ${boundedProviderText(providerError?.message) || 'unknown'}`
     );
   }
-  throw new Error(
-    `canonical staging alias provider confirmation failed: ${boundedProviderText(providerError?.message) || 'unknown'}`
-  );
+  return confirm(1);
 }
 export async function restoreStagingAlias({
   deploymentHostname,
