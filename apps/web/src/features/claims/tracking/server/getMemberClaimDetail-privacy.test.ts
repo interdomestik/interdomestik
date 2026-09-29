@@ -239,4 +239,48 @@ describe('member claim detail privacy', () => {
       mocks.decision.mock.invocationCallOrder[0]!
     );
   });
+
+  it('keeps ordinary progress in the member payload when the agreement has no decision', async () => {
+    mocks.claim.mockResolvedValueOnce({
+      id: 'claim-agreement-only',
+      userId: 'member-1',
+      title: 'Recovery request',
+      status: 'evaluation',
+      createdAt: new Date('2026-03-10T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-16T00:00:00.000Z'),
+      description: null,
+      claimAmount: null,
+      currency: 'EUR',
+      documents: [],
+    });
+    mocks.timeline.mockResolvedValueOnce([
+      {
+        id: 'ordinary-progress',
+        date: new Date('2026-03-15T00:00:00.000Z'),
+        statusFrom: 'intake',
+        statusTo: 'evaluation',
+        labelKey: 'claims-tracking.status.evaluation',
+        note: 'Please upload the receipt.',
+        isPublic: true,
+      },
+    ]);
+    mocks.decision.mockResolvedValueOnce([
+      {
+        acceptedAt: new Date('2026-03-14T00:00:00.000Z'),
+        decisionReason: null,
+        decisionType: null,
+        declineReasonCode: null,
+        decisionEventAt: null,
+        decisionEventPayload: null,
+      },
+    ]);
+
+    const result = await getMemberClaimDetail(
+      { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      'claim-agreement-only'
+    );
+
+    expect(result?.timeline[0]?.note).toBe('Please upload the receipt.');
+    expect(result?.progressSummary.latestUpdateNote).toBe('Please upload the receipt.');
+  });
 });

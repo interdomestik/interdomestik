@@ -126,6 +126,20 @@ describe('member recovery timeline', () => {
     ).toBe('Update.');
   });
 
+  it('preserves ordinary progress when an agreement has no recovery decision', () => {
+    const timeline = [
+      event('progress', 'evaluation', 'Please upload the receipt.'),
+      event('rejection', 'rejected', 'Unproven rejection note'),
+    ];
+    expect(
+      sanitizeMemberRecoveryTimeline(timeline, {
+        decisionRecordedAt: null,
+        decisionType: null,
+        declineReasonCode: null,
+      }).map(item => item.note)
+    ).toEqual(['Please upload the receipt.', safeNote]);
+  });
+
   it('masks a timestamp tie rather than treating it as proof of an ordinary note', () => {
     const timestamp = new Date('2026-04-01T00:00:00.000Z');
     expect(

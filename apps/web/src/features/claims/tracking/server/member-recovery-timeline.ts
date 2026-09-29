@@ -56,7 +56,7 @@ export function sanitizeMemberRecoveryTimeline(
     ) {
       return event;
     }
-    if (!decision && event.statusTo !== 'rejected') return event;
+    if (!decision?.decisionType && event.statusTo !== 'rejected') return event;
     return {
       ...event,
       note:
