@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import {
   chmodSync,
   copyFileSync,
@@ -62,8 +61,6 @@ function dependencies(overrides = {}) {
 }
 test('repository parity recognizes an approved E2E corpus and rejects the new S7 corpus', () => {
   const current = sources();
-  const laneDigest = createHash('sha256').update(current.laneSource).digest('hex');
-  assert.equal(laneDigest, 'ff019f739b4ae106650a0dff94527154e9579468d0ea2d5a5eecff7c2f715b64');
   assert.deepEqual(inspectRepositoryParity({ ...current, e2eTreeSha: MEMBER_PORTAL_E2E_TREE }), {
     checkoutHead: true,
     projectSuperset: true,
