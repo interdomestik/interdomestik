@@ -1,4 +1,3 @@
-import { inspect } from 'node:util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { claimFixture, transitionClaimFixture } from '../claims/lifecycle-test-support';
 import { mocks, READY_ACCEPTED_RECOVERY_RECORD } from './update-status-test-core';
