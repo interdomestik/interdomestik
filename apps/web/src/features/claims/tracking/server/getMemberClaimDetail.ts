@@ -18,6 +18,7 @@ import { buildClaimVisibilityWhere } from '../utils';
 import { mapMemberClaimDocuments } from './member-claim-documents';
 import { getMemberTimelineFromDomainEvents } from './member-domain-event-timeline';
 import { buildProgressSummary } from './member-progress-summary';
+import { sanitizeMemberRecoveryTimeline } from './member-recovery-timeline';
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 export async function getMemberClaimDetail(
@@ -97,6 +98,10 @@ export async function getMemberClaimDetail(
           piiStatus,
         }),
       ]);
+      const publicTimeline = sanitizeMemberRecoveryTimeline(
+        timeline,
+        recoveryDecisionRows[0] ?? null
+      );
       const documents = mapMemberClaimDocuments(claim.documents);
 
       const recoveryDecision = toMemberSafeRecoveryDecision(
@@ -111,7 +116,7 @@ export async function getMemberClaimDetail(
       const slaPhase = deriveClaimSlaPhase(claimStatus);
       const progressSummary = buildProgressSummary({
         status: claimStatus,
-        timeline,
+        timeline: publicTimeline,
       });
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
@@ -125,7 +130,7 @@ export async function getMemberClaimDetail(
         amount: claim.claimAmount ? claim.claimAmount.toString() : null,
         currency: claim.currency || 'EUR',
         documents,
-        timeline,
+        timeline: publicTimeline,
         canShare: true, // TODO: Logic for enabling share button
         progressSummary,
         caseCompanionNextStep: deriveCaseCompanionNextStep({

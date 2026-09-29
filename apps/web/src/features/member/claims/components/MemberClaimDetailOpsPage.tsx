@@ -59,7 +59,7 @@ export function MemberClaimDetailOpsPage({
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
     title: translateTrackingLabel(e.title),
-    description: localizeMemberRecoveryPublicNote(e.description, t),
+    description: localizeMemberRecoveryPublicNote(e.description, t) ?? undefined,
   }));
 
   const localizedStatusLabel = (() => {
