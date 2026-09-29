@@ -1,6 +1,7 @@
 'use client';
 
 import { MemberCaseMessages } from './member-case-messages';
+import { localizeMemberRecoveryPublicNote } from './member-recovery-public-note';
 import { OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
@@ -55,12 +56,10 @@ export function MemberClaimDetailOpsPage({
 
     return tAssurance(labelKey.replace('claims-tracking.tracking.assurance.', ''));
   };
-  // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
-    // claim.timeline labelKey is a fully qualified key (e.g. "claims-tracking.status.evaluation").
-    // Translating it within the "claims" namespace causes missing-message errors in production.
     title: translateTrackingLabel(e.title),
+    description: localizeMemberRecoveryPublicNote(e.description, t),
   }));
 
   const localizedStatusLabel = (() => {
@@ -149,7 +148,10 @@ export function MemberClaimDetailOpsPage({
                     </p>
                     {claim.progressSummary.latestUpdateNote ? (
                       <p className="mt-2 text-sm" data-testid="member-claim-latest-update-note">
-                        {claim.progressSummary.latestUpdateNote}
+                        {localizeMemberRecoveryPublicNote(
+                          claim.progressSummary.latestUpdateNote,
+                          t
+                        )}
                       </p>
                     ) : null}
                   </div>

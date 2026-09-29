@@ -12,7 +12,6 @@ import {
   classifyModularityFile,
   isSemanticGovernanceDocument,
   isModularityChecked,
-  legacyFocusedTestContract,
   structuredArtifactOwner,
 } from '../modularity-guard-policy.mjs';
 
@@ -187,32 +186,12 @@ function evaluateProduction(entry, className, current, base) {
 }
 
 function evaluateFocused(_root, entry, className, current, base) {
-  const contract = legacyFocusedTestContract(entry.file);
-  const contractBaseMatches =
-    contract !== null &&
-    base?.lines === contract.baseLines &&
-    base.bytes === contract.baseBytes &&
-    base.sha256 === contract.baseSha256;
-  const stableLegacy =
-    contractBaseMatches &&
-    current.lines <= contract.baseLines &&
-    current.bytes <= contract.baseBytes;
-  const legacyBaselineMismatch = contract !== null && !contractBaseMatches;
-  const legacyGrowth =
-    contractBaseMatches &&
-    (current.lines > contract.baseLines || current.bytes > contract.baseBytes);
-  const requiresSplit =
-    legacyBaselineMismatch ||
-    legacyGrowth ||
-    (current.lines > MODULARITY_POLICY.focusedTest.maxLines && !stableLegacy);
   return {
     className,
-    violation: requiresSplit
-      ? finding(entry, className, current, base, 'test-split-required')
-      : null,
-    advisory: stableLegacy
-      ? finding(entry, className, current, base, 'legacy-focused-test-stable')
-      : null,
+    violation:
+      current.lines > MODULARITY_POLICY.focusedTest.maxLines
+        ? finding(entry, className, current, base, 'test-split-required')
+        : null,
   };
 }
 function evaluateStructured(root, entry, className, current, base) {

@@ -3,7 +3,6 @@ import {
   FILE_CLASSES,
   isSemanticGovernanceDocument,
   MODULARITY_POLICY,
-  legacyFocusedTestContract,
   structuredArtifactOwner,
 } from './modularity-guard-policy.mjs';
 import { canonicalJson, normalizeGitHubOrigin, sortedText } from './slice-rehearse-canonical.mjs';
@@ -31,10 +30,7 @@ export function canonicalModularityForPath(path) {
     };
   }
   if (fileClass === FILE_CLASSES.focusedTest) {
-    const legacy = legacyFocusedTestContract(path);
-    return legacy
-      ? { fileClass, maxLines: legacy.baseLines, maxBytes: legacy.baseBytes }
-      : { fileClass, maxLines: MODULARITY_POLICY.focusedTest.maxLines };
+    return { fileClass, maxLines: MODULARITY_POLICY.focusedTest.maxLines };
   }
   if (fileClass === FILE_CLASSES.governanceDoc) {
     return {
@@ -64,10 +60,6 @@ function evaluateWriterPlan(plan, repository, budget, authorityStops, deficits) 
   const semanticGovernance = isSemanticGovernanceDocument(plan.path);
   const actualLines = repository.writerLineCounts[plan.path] ?? 0;
   const delta = repository.writerDeltas[plan.path];
-  const legacy = legacyFocusedTestContract(plan.path);
-  if (legacy && repository.writerFacts?.[plan.path]?.manifestBaseSha256 !== legacy.baseSha256) {
-    authorityStops.push({ code: `modularity:legacy-focused-baseline:${plan.path}` });
-  }
   if (Number.isInteger(modularity.maxLines) && actualLines > plan.maxLines) {
     deficits.push({
       code: `modularity:line-cap:${plan.path}`,

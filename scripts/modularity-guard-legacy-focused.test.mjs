@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { gunzipSync } from 'node:zlib';
 
 import { evaluateModularityGuard } from './lib/modularity-guard.mjs';
 import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
@@ -10,58 +8,24 @@ import { createTempRoot, writeFile } from './plan-test-helpers.mjs';
 const TARGET = 'packages/domain-claims/src/staff-claims/update-status.test.ts';
 const git = (root, args) =>
   execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' }).trim();
-const resultFor = (root, base) => evaluateModularityGuard({ root, baseRef: base });
-const baseline = () =>
-  gunzipSync(
-    readFileSync(new URL('./fixtures/update-status-legacy-baseline.test.ts.gz', import.meta.url))
-  ).toString('utf8');
 
-function repository(prefix, baseline) {
-  const root = createTempRoot(prefix);
+function repository(content) {
+  const root = createTempRoot('focused-test-');
   git(root, ['init', '-q']);
   git(root, ['config', 'user.email', 'tests@example.com']);
   git(root, ['config', 'user.name', 'Tests']);
-  writeFile(root, TARGET, baseline);
+  writeFile(root, TARGET, content);
   git(root, ['add', '.']);
   git(root, ['commit', '-qm', 'seed']);
   return { root, base: git(root, ['rev-parse', 'HEAD']) };
 }
 
-test('admits the pinned baseline only without growth', () => {
-  const content = baseline();
-  const { root, base } = repository('pinned-', content);
+test('a split staff claim test follows the ordinary 300-line focused-test limit', () => {
+  const { root, base } = repository('baseline\n'.repeat(785));
+  writeFile(root, TARGET, 'test case\n'.repeat(299));
+  assert.deepEqual(evaluateModularityGuard({ root, baseRef: base }).violations, []);
 
-  writeFile(root, TARGET, content.replace('inspect', 'inspecT'));
-  let result = resultFor(root, base);
-  assert.deepEqual(result.violations, []);
-  assert.equal(result.advisories[0].reason, 'legacy-focused-test-stable');
-
-  writeFile(root, TARGET, content.split('\n').slice(0, -2).join('\n') + '\n');
-  assert.deepEqual(resultFor(root, base).violations, []);
-
-  for (const candidate of [
-    `${content}extra line\n`,
-    content.replace('inspect', 'inspect-expanded'),
-    `${`${'x'.repeat(100)}\n`.repeat(300)}`,
-  ]) {
-    writeFile(root, TARGET, candidate);
-    assert.equal(resultFor(root, base).violations[0].reason, 'test-split-required');
-  }
-});
-
-test('rejects changed baselines and unrelated oversized tests', () => {
-  const content = baseline();
-  const { root, base } = repository('wrong-', content.replace('inspect', 'inspecT'));
-  writeFile(root, TARGET, content);
-  writeFile(root, 'packages/other/update-status.test.ts', 'line\n'.repeat(804));
-
-  assert.deepEqual(
-    resultFor(root, base)
-      .violations.map(item => item.file)
-      .sort(),
-    [TARGET, 'packages/other/update-status.test.ts'].sort()
-  );
-
-  writeFile(root, TARGET, 'small\n');
-  assert.ok(resultFor(root, base).violations.some(item => item.file === TARGET));
+  writeFile(root, TARGET, 'test case\n'.repeat(301));
+  const result = evaluateModularityGuard({ root, baseRef: base });
+  assert.equal(result.violations[0].reason, 'test-split-required');
 });
