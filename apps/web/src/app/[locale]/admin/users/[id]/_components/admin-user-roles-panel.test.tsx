@@ -240,6 +240,6 @@ describe('AdminUserRolesPanel', () => {
     expect(screen.getAllByText('Улога').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Филијала').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Додели улога' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Дејства' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Акции' })).toBeInTheDocument();
   });
 });

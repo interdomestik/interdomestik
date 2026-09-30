@@ -1,69 +1,15 @@
-export const translationFns = (() => {
-  const mkValues = {
-    title: 'Улоги',
-    description: 'Улоги со опсег на tenant за овој корисник.',
-    missing_tenant:
-      'Недостасува tenant контекст. Повторно отворете го овој профил од листата на корисници за tenant-от.',
-    tenant_wide: 'На ниво на tenant',
-    role_label: 'Улога',
-    branch_label: 'Филијала',
-    role_placeholder: 'Избери улога',
-    new_branch_name: 'Име на нова филијала',
-    new_branch_code: 'Нова шифра на филијала (опционално)',
-    grant_role: 'Додели улога',
-    remove: 'Отстрани',
-    create_branch: 'Креирај филијала',
-    empty: 'Нема доделени улоги',
-    'table.role': 'Улога',
-    'table.branch': 'Филијала',
-    'table.actions': 'Дејства',
-    'toasts.load_branches_error': 'Неуспешно вчитување филијали',
-    'toasts.load_roles_error': 'Неуспешно вчитување улоги',
-    'toasts.tenant_required': 'Потребен е tenant контекст за управување со улоги',
-    'toasts.role_required': 'Улогата е задолжителна',
-    'toasts.branch_required': 'За оваа улога е задолжителна филијала. Изберете филијала.',
-    'toasts.role_granted': 'Улогата е доделена',
-    'toasts.grant_error': 'Неуспешно доделување улога',
-    'toasts.role_revoked': 'Улогата е отповикана',
-    'toasts.revoke_error': 'Неуспешно отповикување улога',
-    'toasts.branch_name_required': 'Името на филијалата е задолжително',
-    'toasts.branch_created': 'Филијалата е креирана',
-    'toasts.branch_create_error': 'Неуспешно креирање филијала',
-  } as const;
+import en from '@/messages/en/admin-users.json';
+import mk from '@/messages/mk/admin-users.json';
 
-  const enValues = {
-    title: 'Roles',
-    description: 'Tenant-scoped roles for this user.',
-    missing_tenant: 'Missing tenant context. Reopen this profile from the tenant user list.',
-    tenant_wide: 'Tenant-wide',
-    role_label: 'Role',
-    branch_label: 'Branch',
-    role_placeholder: 'Select role',
-    new_branch_name: 'New branch name',
-    new_branch_code: 'New branch code (optional)',
-    grant_role: 'Grant role',
-    remove: 'Remove',
-    create_branch: 'Create branch',
-    empty: 'No roles assigned',
-    'table.role': 'Role',
-    'table.branch': 'Branch',
-    'table.actions': 'Actions',
-    'toasts.load_branches_error': 'Failed to load branches',
-    'toasts.load_roles_error': 'Failed to load roles',
-    'toasts.tenant_required': 'Tenant context is required to manage roles',
-    'toasts.role_required': 'Role is required',
-    'toasts.branch_required': 'Branch is required for this role. Please select a branch.',
-    'toasts.role_granted': 'Role granted',
-    'toasts.grant_error': 'Failed to grant role',
-    'toasts.role_revoked': 'Role revoked',
-    'toasts.revoke_error': 'Failed to revoke role',
-    'toasts.branch_name_required': 'Branch name is required',
-    'toasts.branch_created': 'Branch created',
-    'toasts.branch_create_error': 'Failed to create branch',
-  } as const;
+function translate(messages: unknown, key: string): string {
+  const value = key.split('.').reduce<unknown>((current, part) => {
+    if (!current || typeof current !== 'object') return undefined;
+    return (current as Record<string, unknown>)[part];
+  }, messages);
+  return typeof value === 'string' ? value : key;
+}
 
-  return {
-    mk: (key: string) => mkValues[key as keyof typeof mkValues] ?? key,
-    en: (key: string) => enValues[key as keyof typeof enValues] ?? key,
-  };
-})();
+export const translationFns = {
+  en: (key: string) => translate(en.admin.users_page.roles_panel, key),
+  mk: (key: string) => translate(mk.admin.users_page.roles_panel, key),
+};
