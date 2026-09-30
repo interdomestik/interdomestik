@@ -1,4 +1,12 @@
-import { and, claimMessages, claims, db, desc, eq } from '@interdomestik/database';
+import {
+  and,
+  claimMessages,
+  claims,
+  desc,
+  eq,
+  withTenantContext,
+  type TenantTransaction,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter } from '@interdomestik/shared-auth';
 import { isNull, type SQL } from 'drizzle-orm';
@@ -24,30 +32,36 @@ export async function getUsersCore(params: {
     ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
     : undefined;
 
-  const users = await db.query.user.findMany({
-    where: (t, { eq, and }) => withTenant(scope.tenantId, t.tenantId, userConditions),
-    orderBy: (users, { desc }) => [desc(users.createdAt)],
-    with: {
-      agent: true,
+  return withTenantContext(
+    {
+      tenantId: scope.tenantId,
+      accessTenantId: scope.accessTenantId,
+      role: adminSession.user.role,
     },
-  });
+    async tx => {
+      const users = await tx.query.user.findMany({
+        where: (t, { eq, and }) => withTenant(scope.tenantId, t.tenantId, userConditions),
+        orderBy: (users, { desc }) => [desc(users.createdAt)],
+        with: { agent: true },
+      });
 
-  const unreadByUser = await fetchUnreadCounts(scope.tenantId);
+      const unreadByUser = await fetchUnreadCounts(tx, scope.tenantId);
+      const alertBase = '/admin/claims/';
 
-  const alertBase = '/admin/claims/';
-
-  return users.map(userRow => {
-    const unread = unreadByUser.get(userRow.id);
-    return {
-      ...userRow,
-      unreadCount: unread?.count ?? 0,
-      unreadClaimId: unread?.claimId ?? null,
-      alertLink: unread ? `${alertBase}${unread.claimId}` : null,
-    };
-  });
+      return users.map(userRow => {
+        const unread = unreadByUser.get(userRow.id);
+        return {
+          ...userRow,
+          unreadCount: unread?.count ?? 0,
+          unreadClaimId: unread?.claimId ?? null,
+          alertLink: unread ? `${alertBase}${unread.claimId}` : null,
+        };
+      });
+    }
+  );
 }
 
-async function fetchUnreadCounts(tenantId: string) {
+async function fetchUnreadCounts(tx: TenantTransaction, tenantId: string) {
   const unreadByUser = new Map<string, { count: number; claimId: string }>();
 
   const unreadConditions = [
@@ -55,7 +69,7 @@ async function fetchUnreadCounts(tenantId: string) {
     eq(claimMessages.senderId, claims.userId),
   ];
 
-  const unreadRows = await db
+  const unreadRows = await tx
     .select({
       userId: claims.userId,
       claimId: claims.id,
