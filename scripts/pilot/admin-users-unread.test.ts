@@ -10,7 +10,7 @@ import {
 } from '@interdomestik/database';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getUsersCore } from '../../domain-users/src/admin/get-users';
+import { getUsersCore } from '../../packages/domain-users/src/admin/get-users';
 
 // Opt in against an owned, migrated and seeded local database; never a production target.
 test(
