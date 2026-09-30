@@ -39,13 +39,15 @@ it('unlocks a still-pending transition and cancels a timed-out assignment to the
     '/admin/users?tenantId=tenant_ks&role=agent&assignment=assigned&search=ada',
     { scroll: false }
   );
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledTimes(2);
   fireEvent.change(screen.getByTestId('admin-users-search-input'), { target: { value: 'adam' } });
   searchParamsMock.mockReturnValue(
     new URLSearchParams('tenantId=tenant_ks&role=agent&assignment=unassigned&search=ada')
   );
   view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
   expect(screen.getByTestId('admin-users-search-input')).toHaveValue('adam');
-  act(() => vi.advanceTimersByTime(10_000));
   act(() => vi.advanceTimersByTime(300));
   expect(pushMock).toHaveBeenCalledTimes(3);
   expect(pushMock).toHaveBeenLastCalledWith(

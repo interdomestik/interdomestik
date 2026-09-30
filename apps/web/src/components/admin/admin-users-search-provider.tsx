@@ -124,7 +124,8 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       navigationParams.current = nextParams;
       ownNavigations.current.add(nextParams);
       submittedSearch.current = searchValue;
-      updatePending(kind);
+      // Same-URL cancellation still supersedes the old request, but has no params change to await.
+      updatePending(nextParams === paramsString ? null : kind);
       startTransition(() => router.push(href, { scroll: false }));
     },
     [paramsString, searchValue, updatePending, router]
