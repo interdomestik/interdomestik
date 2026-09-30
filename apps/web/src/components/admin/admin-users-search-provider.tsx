@@ -134,7 +134,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       if (historyParams.current !== null || pendingKindRef.current) return;
       const nextParams = href.split('?')[1] || '';
       if (nextParams === paramsString && navigationParams.current === paramsString) return;
-      requestedParams.current = nextParams;
+      requestedParams.current = nextParams === paramsString ? null : nextParams;
       navigationParams.current = nextParams;
       ownNavigations.current.add(nextParams);
       submittedSearch.current = searchValue;

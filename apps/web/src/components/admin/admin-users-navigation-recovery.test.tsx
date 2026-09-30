@@ -48,8 +48,14 @@ it('unlocks a still-pending transition and cancels a timed-out assignment to the
   );
   view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
   expect(screen.getByTestId('admin-users-search-input')).toHaveValue('adam');
-  act(() => vi.advanceTimersByTime(300));
   expect(pushMock).toHaveBeenCalledTimes(3);
+  searchParamsMock.mockReturnValue(
+    new URLSearchParams('tenantId=tenant_ks&role=agent&assignment=assigned&search=ada')
+  );
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(screen.getByTestId('admin-users-search-input')).toHaveValue('adam');
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledTimes(4);
   expect(pushMock).toHaveBeenLastCalledWith(
     '/admin/users?tenantId=tenant_ks&role=agent&assignment=assigned&search=adam',
     { scroll: false }
@@ -207,6 +213,29 @@ it('reasserts the settled latest filter after an older acknowledgement but honor
   view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
   expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
   expect(screen.getByTestId('admin-users-assignment-filter-unassigned')).toBeDisabled();
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledTimes(3);
+});
+
+it('reasserts a locally settled same-URL cancellation after the old target arrives without typing', () => {
+  const applied = 'tenantId=tenant_ks&assignment=assigned&search=ada';
+  searchParamsMock.mockReturnValue(new URLSearchParams(applied));
+  const controls = <UsersFilters hideRole />;
+  const view = render(controls);
+  fireEvent.click(screen.getByTestId('admin-users-assignment-filter-unassigned'));
+  act(() => vi.advanceTimersByTime(10_000));
+  fireEvent.click(screen.getByTestId('admin-users-assignment-filter-assigned'));
+  expect(pushMock).toHaveBeenCalledTimes(2);
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
+  searchParamsMock.mockReturnValue(
+    new URLSearchParams('tenantId=tenant_ks&assignment=unassigned&search=ada')
+  );
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(pushMock).toHaveBeenCalledTimes(3);
+  expect(pushMock).toHaveBeenLastCalledWith(`/admin/users?${applied}`, { scroll: false });
+  searchParamsMock.mockReturnValue(new URLSearchParams(applied));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
   act(() => vi.advanceTimersByTime(300));
   expect(pushMock).toHaveBeenCalledTimes(3);
 });
