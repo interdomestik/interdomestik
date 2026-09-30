@@ -9,6 +9,13 @@ const hoisted = vi.hoisted(() => ({
 
 function makeGrantTx(updatedUsers = [{ id: 'user-1' }]) {
   return {
+    select: vi.fn(() => ({
+      from: () => ({
+        where: () => ({
+          for: vi.fn().mockResolvedValue([{ role: 'member' }]),
+        }),
+      }),
+    })),
     query: { branches: { findFirst: hoisted.branchesFindFirst } },
     update: vi.fn(() => ({
       set: vi.fn(() => ({

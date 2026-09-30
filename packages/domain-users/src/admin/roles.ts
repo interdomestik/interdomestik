@@ -4,7 +4,8 @@ import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/sh
 import { isNull } from 'drizzle-orm';
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { createRoleAssignmentId } from './role-id';
-import { isBranchRequiredRole } from './role-rules';
+import { canManageAssignedRole, isBranchRequiredRole } from './role-rules';
+import { lockRoleMutationTarget } from './role-target';
 import { resolveTenantId } from './utils';
 
 export async function listUserRolesCore(params: {
@@ -81,6 +82,9 @@ export async function grantUserRoleCore(
 
   const role = params.role.trim();
   if (!role) return { error: 'Role is required' };
+  if (!canManageAssignedRole(session.user.role, role)) {
+    return { error: 'Role cannot be granted' };
+  }
 
   let branchId = params.branchId ?? null;
   if (branchId) {
@@ -104,7 +108,11 @@ export async function grantUserRoleCore(
     branchId = null;
   }
 
-  await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+  const granted = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+    if (!(await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role))) {
+      return false;
+    }
+
     const updatedUsers = await tx
       .update(user)
       .set({
@@ -143,7 +151,10 @@ export async function grantUserRoleCore(
     if (insertedRoles.length === 0) {
       throw new Error('Role grant did not persist');
     }
+    return true;
   });
+
+  if (!granted) return { error: 'Role cannot be granted' };
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -177,9 +188,15 @@ export async function revokeUserRoleCore(
 
   const role = params.role.trim();
   if (!role) return { error: 'Role is required' };
+  if (!canManageAssignedRole(session.user.role, role)) {
+    return { error: 'Role cannot be revoked' };
+  }
 
   const branchId = params.branchId ?? null;
-  const deletedRoles = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+  const revokeResult = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+    const target = await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role);
+    if (!target) return { denied: true, deleted: [] };
+
     const roleDeleteScope =
       branchId === null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId);
 
@@ -195,20 +212,11 @@ export async function revokeUserRoleCore(
       .returning({ id: userRoles.id });
 
     if (deleted.length === 0) {
-      return deleted;
-    }
-
-    const targetUser = await tx.query.user.findFirst({
-      where: withTenant(tenantId, user.tenantId, eq(user.id, params.userId)),
-      columns: { role: true },
-    });
-
-    if (!targetUser) {
-      throw new Error('Target user not found');
+      return { denied: false, deleted };
     }
 
     // Keep session-authoritative role fields coherent with role revocations.
-    if (targetUser.role === role) {
+    if (target.role === role) {
       const remainingRoles = await tx.query.userRoles.findMany({
         where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
         columns: { role: true, branchId: true },
@@ -216,6 +224,10 @@ export async function revokeUserRoleCore(
 
       const nextPrimaryRole = remainingRoles.find(r => r.role !== role) ?? null;
       const nextRole = nextPrimaryRole?.role ?? 'member';
+      if (!canManageAssignedRole(session.user.role, nextRole)) {
+        // Throw so the tenant transaction rolls back the preceding assignment delete.
+        throw new Error('Role cannot be revoked');
+      }
       const nextBranchId = isBranchRequiredRole(nextRole)
         ? (nextPrimaryRole?.branchId ?? null)
         : null;
@@ -230,10 +242,11 @@ export async function revokeUserRoleCore(
         .where(withTenant(tenantId, user.tenantId, eq(user.id, params.userId)));
     }
 
-    return deleted;
+    return { denied: false, deleted };
   });
 
-  if (deletedRoles.length === 0) {
+  if (revokeResult.denied) return { error: 'Role cannot be revoked' };
+  if (revokeResult.deleted.length === 0) {
     return { error: 'Role revoke did not persist' };
   }
 

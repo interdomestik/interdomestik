@@ -69,6 +69,13 @@ describe('revokeUserRoleCore', () => {
     mocks.withTenantContext.mockImplementationOnce(
       async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
+          select: vi.fn(() => ({
+            from: () => ({
+              where: () => ({
+                for: vi.fn().mockResolvedValue([{ role: 'agent' }]),
+              }),
+            }),
+          })),
           delete: vi.fn(() => ({ where: deleteWhere })),
           query: {
             user: {
@@ -114,6 +121,13 @@ describe('revokeUserRoleCore', () => {
     mocks.withTenantContext.mockImplementationOnce(
       async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
+          select: vi.fn(() => ({
+            from: () => ({
+              where: () => ({
+                for: vi.fn().mockResolvedValue([{ role: 'member' }]),
+              }),
+            }),
+          })),
           delete: vi.fn(() => ({ where: deleteWhere })),
           query: {
             user: {
