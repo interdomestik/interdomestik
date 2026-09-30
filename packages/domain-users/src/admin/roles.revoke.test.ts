@@ -51,6 +51,21 @@ vi.mock('drizzle-orm', () => ({
 
 import { revokeUserRoleCore } from './roles';
 
+function revokeTransaction(
+  role: string,
+  deleteWhere: ReturnType<typeof vi.fn>,
+  updateWhere = vi.fn()
+) {
+  return {
+    select: () => ({
+      from: () => ({ where: () => ({ for: vi.fn().mockResolvedValue([{ role }]) }) }),
+    }),
+    delete: () => ({ where: deleteWhere }),
+    query: { userRoles: { findMany: vi.fn().mockResolvedValue([]) } },
+    update: () => ({ set: () => ({ where: updateWhere }) }),
+  };
+}
+
 describe('revokeUserRoleCore', () => {
   const session = {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' },
@@ -66,33 +81,8 @@ describe('revokeUserRoleCore', () => {
     });
     const updateWhere = vi.fn().mockResolvedValue([{ id: 'user-1' }]);
 
-    mocks.withTenantContext.mockImplementationOnce(
-      async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          select: vi.fn(() => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([{ role: 'agent' }]),
-              }),
-            }),
-          })),
-          delete: vi.fn(() => ({ where: deleteWhere })),
-          query: {
-            user: {
-              findFirst: vi.fn().mockResolvedValue({ role: 'agent' }),
-            },
-            userRoles: {
-              findMany: vi.fn().mockResolvedValue([]),
-            },
-          },
-          update: vi.fn(() => ({
-            set: vi.fn(() => ({
-              where: updateWhere,
-            })),
-          })),
-        };
-        return fn(tx);
-      }
+    mocks.withTenantContext.mockImplementationOnce(async (_context, fn) =>
+      fn(revokeTransaction('agent', deleteWhere, updateWhere))
     );
 
     const result = await revokeUserRoleCore({
@@ -118,33 +108,8 @@ describe('revokeUserRoleCore', () => {
       returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]),
     });
 
-    mocks.withTenantContext.mockImplementationOnce(
-      async (_context: unknown, fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          select: vi.fn(() => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([{ role: 'member' }]),
-              }),
-            }),
-          })),
-          delete: vi.fn(() => ({ where: deleteWhere })),
-          query: {
-            user: {
-              findFirst: vi.fn().mockResolvedValue({ role: 'member' }),
-            },
-            userRoles: {
-              findMany: vi.fn().mockResolvedValue([]),
-            },
-          },
-          update: vi.fn(() => ({
-            set: vi.fn(() => ({
-              where: vi.fn().mockResolvedValue([{ id: 'user-1' }]),
-            })),
-          })),
-        };
-        return fn(tx);
-      }
+    mocks.withTenantContext.mockImplementationOnce(async (_context, fn) =>
+      fn(revokeTransaction('member', deleteWhere))
     );
 
     const result = await revokeUserRoleCore({

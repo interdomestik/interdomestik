@@ -4,6 +4,7 @@ import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/sh
 import { isNull } from 'drizzle-orm';
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { createRoleAssignmentId } from './role-id';
+import { resolveRoleMutationContext } from './role-mutation-context';
 import { canManageAssignedRole, isBranchRequiredRole } from './role-rules';
 import { lockRoleMutationTarget } from './role-target';
 import { resolveTenantId } from './utils';
@@ -75,16 +76,9 @@ export async function grantUserRoleCore(
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
-  const session = params.session;
-  if (!session) throw new Error('Unauthorized');
-  requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
-
-  const role = params.role.trim();
-  if (!role) return { error: 'Role is required' };
-  if (!canManageAssignedRole(session.user.role, role)) {
-    return { error: 'Role cannot be granted' };
-  }
+  const context = resolveRoleMutationContext(params, 'granted');
+  if ('error' in context) return context;
+  const { session, tenantId, role } = context;
 
   let branchId = params.branchId ?? null;
   if (branchId) {
@@ -181,16 +175,9 @@ export async function revokeUserRoleCore(
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
-  const session = params.session;
-  if (!session) throw new Error('Unauthorized');
-  requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
-
-  const role = params.role.trim();
-  if (!role) return { error: 'Role is required' };
-  if (!canManageAssignedRole(session.user.role, role)) {
-    return { error: 'Role cannot be revoked' };
-  }
+  const context = resolveRoleMutationContext(params, 'revoked');
+  if ('error' in context) return context;
+  const { session, tenantId, role } = context;
 
   const branchId = params.branchId ?? null;
   const revokeResult = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
