@@ -16,6 +16,12 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function getAgentChoicesForRole(role: string) {
+  return role === 'admin,staff'
+    ? Promise.resolve({ success: true as const, data: [] })
+    : getAgents();
+}
+
 export default async function AdminUsersPage({ searchParams }: Props) {
   const params = await searchParams;
 
@@ -47,7 +53,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       role: 'user,member,staff',
       assignment: undefined,
     }),
-    selectedRole === 'user' ? getAgents() : Promise.resolve({ success: true as const, data: [] }),
+    getAgentChoicesForRole(selectedRole),
     listBranches({ includeInactive: false }),
   ]);
 

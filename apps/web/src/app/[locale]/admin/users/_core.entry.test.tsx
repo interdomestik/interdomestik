@@ -79,11 +79,13 @@ describe('AdminUsersPage', () => {
       data: [
         { id: 'staff-1', role: 'staff', name: 'Staff Candidate', email: 'staff@example.com' },
         { id: 'member-1', role: 'member', name: 'Member Candidate', email: 'member@example.com' },
+        { id: 'agent-1', role: 'agent', name: 'Existing Agent', email: 'agent@example.com' },
+        { id: 'admin-1', role: 'admin', name: 'Admin', email: 'admin@example.com' },
       ],
     });
     getAgents.mockResolvedValue({
       success: true,
-      data: [],
+      data: [{ id: 'agent-1', name: 'Existing Agent' }],
     });
     listBranches.mockResolvedValue({
       success: true,
@@ -96,7 +98,10 @@ describe('AdminUsersPage', () => {
       })
     );
 
-    expect(getAgents).not.toHaveBeenCalled();
+    expect(getAgents).toHaveBeenCalledOnce();
+    expect(
+      addAgentDialog.mock.calls.at(-1)?.[0].users.map((user: { id: string }) => user.id)
+    ).toEqual(['staff-1', 'member-1']);
     expect(screen.getByTestId('add-agent-dialog')).toBeInTheDocument();
     expect(getUsers).toHaveBeenNthCalledWith(1, {
       search: undefined,

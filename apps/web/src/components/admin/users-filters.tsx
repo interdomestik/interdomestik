@@ -39,6 +39,7 @@ function buildAdminUsersUrl(
 
 function FilterButtonGroup({
   activeValue,
+  canReselectActive,
   isNavigationPending,
   label,
   onSelect,
@@ -46,6 +47,7 @@ function FilterButtonGroup({
   testIdPrefix,
 }: {
   activeValue: string;
+  canReselectActive: boolean;
   isNavigationPending: boolean;
   label: string;
   onSelect: (value: string) => void;
@@ -59,7 +61,7 @@ function FilterButtonGroup({
       </span>
       {options.map(option => {
         const isActive = activeValue === option.value;
-        const isInert = isNavigationPending || isActive;
+        const isInert = isNavigationPending || (isActive && !canReselectActive);
 
         return (
           <button
@@ -109,6 +111,7 @@ export function UsersFilters({
     submitSearch,
     pendingKind,
     isNavigationPending,
+    hasRetainedFilterTarget,
     navigate,
     withDraftSearch,
   } = search;
@@ -130,8 +133,8 @@ export function UsersFilters({
   const updateParams = (key: 'role' | 'assignment', value: string) => {
     if (
       isNavigationPending ||
-      (key === 'role' && currentRole === value) ||
-      (key === 'assignment' && currentAssignment === value)
+      ((key === 'role' ? currentRole : currentAssignment) === value &&
+        !hasRetainedFilterTarget(key))
     )
       return;
     navigate(
@@ -177,6 +180,7 @@ export function UsersFilters({
         {!hideRole && (
           <FilterButtonGroup
             activeValue={currentRole}
+            canReselectActive={hasRetainedFilterTarget('role')}
             isNavigationPending={isNavigationPending}
             label={t('labels.role')}
             onSelect={value => updateParams('role', value)}
@@ -188,6 +192,7 @@ export function UsersFilters({
         {!hideAssignment && (
           <FilterButtonGroup
             activeValue={currentAssignment}
+            canReselectActive={hasRetainedFilterTarget('assignment')}
             isNavigationPending={isNavigationPending}
             label={t('labels.assignment')}
             onSelect={value => updateParams('assignment', value)}

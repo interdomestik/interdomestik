@@ -43,18 +43,19 @@ export function AdminUsersRoleTabs({ selectedRole, options }: AdminUsersRoleTabs
       <div className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg bg-muted/60 p-1">
         {options.map(option => {
           const isActive = selectedRole === option.value;
-          const isInert = isActive || navigationPending;
+          const isActiveInert = isActive && !search?.hasRetainedFilterTarget('role');
+          const isInert = isActiveInert || navigationPending;
 
           return (
             <Button
               key={option.value}
-              asChild={!isActive}
-              disabled={isActive}
+              asChild={!isActiveInert}
+              disabled={isActiveInert}
               size="sm"
               variant={isActive ? 'default' : 'ghost'}
               className={cn('rounded-md', isInert && !isActive && 'pointer-events-none opacity-70')}
             >
-              {isActive ? (
+              {isActiveInert ? (
                 option.label
               ) : (
                 <Link
@@ -63,7 +64,7 @@ export function AdminUsersRoleTabs({ selectedRole, options }: AdminUsersRoleTabs
                   data-testid={`admin-users-role-tab-${option.value}`}
                   tabIndex={isInert ? -1 : undefined}
                   onClick={event => {
-                    if (navigationPending || pendingHrefRef.current || isActive) {
+                    if (navigationPending || pendingHrefRef.current || isActiveInert) {
                       event.preventDefault();
                       return;
                     }
