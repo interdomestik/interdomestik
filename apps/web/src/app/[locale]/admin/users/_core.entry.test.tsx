@@ -158,9 +158,11 @@ describe('AdminUsersPage', () => {
     getUsers.mockResolvedValue({ success: true, data: [] });
     getUserChoices.mockResolvedValue({ success: true, data: [] });
     listBranches.mockResolvedValue({ success: true, data: [] });
-    await AdminUsersPage({
-      searchParams: Promise.resolve({ role: 'admin,staff', search: 'no-match' }),
-    });
+    render(
+      await AdminUsersPage({
+        searchParams: Promise.resolve({ role: 'admin,staff', search: 'no-match' }),
+      })
+    );
     expect(getUsers).toHaveBeenCalledOnce();
     expect(getUserChoices).not.toHaveBeenCalled();
     expect(listBranches).not.toHaveBeenCalled();

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getUserChoices } from '@/actions/admin-users';
@@ -173,7 +175,11 @@ describe('AddAgentDialog', () => {
         ],
       } as never);
     });
-    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'admin.users_page.select_user_placeholder'
+      )
+    );
     expect(confirm).toBeDisabled();
     await act(async () => {
       fireEvent.submit(confirm.closest('form')!);
@@ -190,4 +196,52 @@ describe('AddAgentDialog', () => {
       })
     );
   });
+  it.each(['users', 'branches'])(
+    'explains an empty %s list and prevents submission',
+    async empty => {
+      mockedGetUserChoices.mockResolvedValue({
+        success: true,
+        data:
+          empty === 'users'
+            ? []
+            : [{ id: '1', name: 'Ana', email: 'ana@example.com', role: 'user' }],
+      } as never);
+      mockedListBranches.mockResolvedValue({
+        success: true,
+        data: empty === 'branches' ? [] : [{ id: 'b1', name: 'Branch One' }],
+      } as never);
+      render(<AddAgentDialog />);
+      fireEvent.click(screen.getByRole('button', { name: 'admin.users_page.add_agent' }));
+      await waitFor(() =>
+        expect(screen.getByRole('status')).toHaveTextContent(
+          empty === 'users' ? 'admin.users_table.no_users' : 'admin.branches.no_branches'
+        )
+      );
+      expect(screen.getByRole('button', { name: 'admin.users_page.confirm' })).toBeDisabled();
+      expect(mockedGrantUserRole).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['en', 'sq', 'mk', 'sr'])(
+    'uses existing nonempty loading, error, retry and empty copy in %s',
+    locale => {
+      const catalog = (file: string) =>
+        JSON.parse(readFileSync(join(process.cwd(), 'src/messages', locale, file), 'utf8'));
+      const common = catalog('common.json').common;
+      const users = catalog('admin-users.json').admin;
+      const branches = catalog('admin-branches.json').admin.branches;
+      for (const text of [
+        common.loading,
+        common.errors.generic,
+        common.tryAgain,
+        users.users_table.no_users,
+        branches.no_branches,
+        users.users_page.select_user_placeholder,
+        users.users_page.select_branch_placeholder,
+      ]) {
+        expect(typeof text).toBe('string');
+        expect(text.trim().length).toBeGreaterThan(0);
+      }
+    }
+  );
 });

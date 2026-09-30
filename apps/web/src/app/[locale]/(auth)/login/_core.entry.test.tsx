@@ -135,11 +135,12 @@ describe('LoginPage tenant selection', () => {
 
       expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
       expect(hoisted.adminSelectMock).toHaveBeenCalledWith({
-        id: expect.anything(),
-        name: expect.anything(),
-        countryCode: expect.anything(),
+        id: tenants.id,
+        name: tenants.name,
+        countryCode: tenants.countryCode,
       });
       expect(hoisted.activeOnlyMock).toHaveBeenCalledExactlyOnceWith(eq(tenants.isActive, true));
+      expect(hoisted.setRequestLocaleMock).toHaveBeenCalledExactlyOnceWith(locale);
       expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
         expect.objectContaining({ tenants: hoisted.tenantRows })
       );
@@ -154,6 +155,35 @@ describe('LoginPage tenant selection', () => {
       );
     }
   );
+
+  it('keeps the login form available when public tenant metadata cannot be loaded', async () => {
+    const failure = new Error('tenant directory unavailable');
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
+        kind: 'public',
+        tenantId: null,
+        source: 'ida_front_door',
+      });
+      hoisted.adminSelectMock.mockImplementationOnce(() => {
+        throw failure;
+      });
+      render(
+        await LoginPage({
+          params: Promise.resolve({ locale: 'sq' }),
+          searchParams: Promise.resolve({}),
+        })
+      );
+      expect(screen.getByText('login-form')).toBeInTheDocument();
+      expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
+        expect.objectContaining({ tenants: [] })
+      );
+      expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
+      expect(errorLog).toHaveBeenCalledWith('Failed to load tenant options for login:', failure);
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
 
   it('keeps portal login copy available in every supported locale', () => {
     const expectedKeys = [
