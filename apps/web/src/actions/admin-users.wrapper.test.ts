@@ -74,6 +74,18 @@ describe('admin-users action wrappers', () => {
     expect(result).toEqual({ success: true });
   });
 
+  it('getUserChoices preserves the authenticated lookup result without unread work', async () => {
+    mocks.getUsersCore.mockResolvedValue([{ id: 'u1' }]);
+    const filters = { search: 'alice', role: 'user,member,staff' };
+    const result = await actions.getUserChoices(filters);
+    expect(mocks.getUsersCore).toHaveBeenCalledWith({
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
+      filters,
+      includeUnreadCounts: false,
+    });
+    expect(result).toEqual({ success: true, data: [{ id: 'u1' }] });
+  });
+
   it('getUsers delegates to core', async () => {
     const filters = { search: 'alice', role: 'user', assignment: 'assigned' };
     mocks.getUsersCore.mockResolvedValue([{ id: 'u1' }]);

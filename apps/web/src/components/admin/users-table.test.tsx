@@ -137,6 +137,10 @@ const mockAgents = [
 const TEST_URL_ORIGIN = 'https://test.local';
 
 describe('UsersTable', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('retains agent choices for Agent rows which also carry member capability', () => {
     render(<UsersSections users={[mockUsers[1]]} agents={mockAgents} />);
     expect(screen.getAllByText('Select Agent')).toHaveLength(2);
@@ -156,10 +160,6 @@ describe('UsersTable', () => {
       expect(screen.queryByText('Agent Smith')).not.toBeInTheDocument();
     }
   );
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it('preserves full users list query params in profile and alert links', () => {
     render(<UsersTable users={mockUsers} agents={mockAgents} />);

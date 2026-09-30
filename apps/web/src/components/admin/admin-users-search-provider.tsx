@@ -52,9 +52,9 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
     if (historyParams.current !== null) {
       if (historyParams.current !== paramsString) return;
       historyParams.current = null;
+      ownNavigations.current.delete(paramsString);
       setIsHistoryPending(false);
       navigationParams.current = paramsString;
-      setSearchValue(currentSearch);
     } else if (ownNavigations.current.has(paramsString)) {
       ownNavigations.current.delete(paramsString);
       // Older acknowledgements retain the draft and cannot settle a newer request.
@@ -72,6 +72,8 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
     const restoreHistory = () => {
       const target = new URLSearchParams(window.location.search).toString();
       const value = new URLSearchParams(target).get('search') || '';
+      if (target !== paramsString) ownNavigations.current.add(target);
+      else ownNavigations.current.delete(target);
       historyParams.current = target === paramsString ? null : target;
       setIsHistoryPending(target !== paramsString);
       requestedParams.current = null;

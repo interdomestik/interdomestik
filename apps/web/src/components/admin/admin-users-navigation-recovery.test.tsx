@@ -1,4 +1,5 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { render, pushMock, searchParamsMock } from './users-filters.test-support';
 import { UsersFilters } from './users-filters';
@@ -117,4 +118,59 @@ it('preserves query parameters without relying on URLSearchParams size', () => {
     '/admin/users?tenantId=tenant_ks&search=ada&assignment=assigned',
     { scroll: false }
   );
+});
+
+it('preserves real typing while history awaits URL publication', async () => {
+  vi.useRealTimers();
+  const user = userEvent.setup();
+  searchParamsMock.mockReturnValue(new URLSearchParams('search=ada'));
+  const controls = <UsersFilters hideRole />;
+  const view = render(controls);
+  act(() => {
+    window.history.replaceState(null, '', '/admin/users?tenantId=tenant_ks&role=agent&search=old');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const input = screen.getByTestId('admin-users-search-input');
+  await user.type(input, 'm');
+  expect(input).toHaveValue('oldm');
+  expect(pushMock).not.toHaveBeenCalled();
+  searchParamsMock.mockReturnValue(new URLSearchParams('tenantId=tenant_ks&role=agent&search=old'));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(input).toHaveValue('oldm');
+  await waitFor(() => expect(pushMock).toHaveBeenCalledOnce());
+  expect(pushMock).toHaveBeenLastCalledWith(
+    '/admin/users?tenantId=tenant_ks&role=agent&search=oldm',
+    { scroll: false }
+  );
+});
+
+it('preserves newer typing across history acknowledgements that arrive after timeout', () => {
+  searchParamsMock.mockReturnValue(new URLSearchParams('search=ada'));
+  const controls = <UsersFilters hideRole />;
+  const view = render(controls);
+  act(() => {
+    window.history.replaceState(null, '', '/admin/users?search=old');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.history.replaceState(null, '', '/admin/users?role=agent&search=new');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const input = screen.getByTestId('admin-users-search-input');
+  fireEvent.change(input, { target: { value: 'newm' } });
+  act(() => vi.advanceTimersByTime(10_000));
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledOnce();
+  expect(pushMock).toHaveBeenLastCalledWith('/admin/users?role=agent&search=newm', {
+    scroll: false,
+  });
+  for (const query of ['search=old', 'role=agent&search=new']) {
+    searchParamsMock.mockReturnValue(new URLSearchParams(query));
+    view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+    expect(input).toHaveValue('newm');
+    act(() => vi.advanceTimersByTime(300));
+    expect(pushMock).toHaveBeenCalledOnce();
+  }
+  searchParamsMock.mockReturnValue(new URLSearchParams('role=agent&search=newm'));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(input).toHaveValue('newm');
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
 });
