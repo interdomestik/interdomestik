@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { LoginForm } from '@/components/auth/login-form';
 import { getSessionSafe } from '@/components/shell/session';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
@@ -107,21 +109,21 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const resolvedTenantId =
     tenantIdFromContext ?? coerceTenantId(resolvedSearchParams?.tenantId ?? undefined);
 
-  const [{ db }, { tenants }, drizzle] = await Promise.all([
-    import('@interdomestik/database/db'),
-    import('@interdomestik/database/schema'),
-    import('drizzle-orm'),
-  ]);
-
   const tenantOptions: TenantOption[] = await loadTenantOptions({
     resolvedTenantId,
-    loadTenants: async () =>
-      // db-access-guard: system-exempt -- reason: public login tenant selector lists active tenant metadata only
-      db
+    loadTenants: async () => {
+      const [{ dbAdmin }, { tenants }, drizzle] = await Promise.all([
+        import('@interdomestik/database/db'),
+        import('@interdomestik/database/schema'),
+        import('drizzle-orm'),
+      ]);
+      // db-access-guard: system-exempt -- reason: public login tenant selector lists active tenant metadata only; runtime RLS denies this directory
+      return dbAdmin
         .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
         .from(tenants)
         .where(drizzle.eq(tenants.isActive, true))
-        .orderBy(drizzle.asc(tenants.name)),
+        .orderBy(drizzle.asc(tenants.name));
+    },
   });
 
   const t = await getTranslations({ locale, namespace: 'auth.login' });
