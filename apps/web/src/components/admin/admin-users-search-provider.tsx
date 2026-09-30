@@ -15,6 +15,7 @@ type PendingKind = 'search' | 'role' | 'assignment';
 type SearchContext = {
   searchValue: string;
   setSearchValue: (value: string) => void;
+  submitSearch: () => void;
   pendingKind: PendingKind | null;
   isNavigationPending: boolean;
   navigate: (href: string, kind: PendingKind) => void;
@@ -115,6 +116,14 @@ export function AdminUsersSearchProvider({ children }: { children: ReactNode }) 
     },
     [paramsString, searchValue, updatePending, router]
   );
+  const submitSearch = useCallback(() => {
+    const nextParams = new URLSearchParams(navigationParams.current);
+    nextParams.delete('page');
+    if (searchValue) nextParams.set('search', searchValue);
+    else nextParams.delete('search');
+    const query = nextParams.toString();
+    navigate(query ? `${pathname}?${query}` : pathname, 'search');
+  }, [navigate, pathname, searchValue]);
   useEffect(() => {
     if (
       isHistoryPending ||
@@ -123,21 +132,15 @@ export function AdminUsersSearchProvider({ children }: { children: ReactNode }) 
       submittedSearch.current === searchValue
     )
       return;
-    const timeout = window.setTimeout(() => {
-      const nextParams = new URLSearchParams(navigationParams.current);
-      nextParams.delete('page');
-      if (searchValue) nextParams.set('search', searchValue);
-      else nextParams.delete('search');
-      const query = nextParams.toString();
-      navigate(query ? `${pathname}?${query}` : pathname, 'search');
-    }, 300);
+    const timeout = window.setTimeout(submitSearch, 300);
     return () => window.clearTimeout(timeout);
-  }, [searchValue, currentSearch, paramsString, pathname, pendingKind, isHistoryPending, navigate]);
+  }, [searchValue, currentSearch, paramsString, pendingKind, isHistoryPending, submitSearch]);
   return (
     <Context.Provider
       value={{
         searchValue,
         setSearchValue,
+        submitSearch,
         pendingKind,
         isNavigationPending: Boolean(isHistoryPending || pendingKind || isTransitionPending),
         navigate,

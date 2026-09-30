@@ -106,6 +106,7 @@ export function UsersFilters({
   const {
     searchValue,
     setSearchValue,
+    submitSearch,
     pendingKind,
     isNavigationPending,
     navigate,
@@ -153,6 +154,11 @@ export function UsersFilters({
           data-testid="admin-users-search-input"
           value={searchValue}
           onChange={e => setSearchValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            submitSearch();
+          }}
         />
       </div>
 

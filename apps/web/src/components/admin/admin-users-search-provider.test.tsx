@@ -210,4 +210,31 @@ describe('Admin users search navigation', () => {
       scroll: false,
     });
   });
+  it('retries the same timed-out draft on Enter with filters and ignores composition/pending submit', () => {
+    searchParamsMock.mockReturnValue(
+      new URLSearchParams('tenantId=tenant_ks&role=agent&assignment=unassigned&page=2')
+    );
+    render(<UsersFilters hideRole hideAssignment />);
+    const input = screen.getByTestId('admin-users-search-input');
+    for (const char of 'ada')
+      fireEvent.change(input, { target: { value: (input as HTMLInputElement).value + char } });
+    act(() => vi.advanceTimersByTime(300));
+    expect(pushMock).toHaveBeenCalledOnce();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(pushMock).toHaveBeenCalledOnce();
+    act(() => vi.advanceTimersByTime(20_000));
+    expect(pushMock).toHaveBeenCalledOnce();
+    expect(input).toHaveValue('ada');
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    expect(pushMock).toHaveBeenCalledOnce();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(pushMock).toHaveBeenCalledTimes(2);
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/admin/users?tenantId=tenant_ks&role=agent&assignment=unassigned&search=ada',
+      { scroll: false }
+    );
+    fireEvent.keyDown(input, { key: 'Enter' });
+    act(() => vi.advanceTimersByTime(20_000));
+    expect(pushMock).toHaveBeenCalledTimes(2);
+  });
 });
