@@ -52,8 +52,9 @@ export async function verifyStatusTransportRecovery(
     await expect(detail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
     await expect(save).toBeDisabled();
     const firstHistory = await inspectHistory();
-    await expect(firstHistory.getByTestId('staff-claim-detail-ready').first()).toBeVisible();
-    await expect(firstHistory.getByTestId('staff-status-history')).not.toContainText(publicNote);
+    const firstDetail = firstHistory.getByTestId('staff-claim-detail-ready').first();
+    await expect(firstDetail).toBeVisible();
+    await expect(firstDetail.getByTestId('staff-status-history')).not.toContainText(publicNote);
     await firstHistory.close();
     await detail.getByTestId('staff-status-history-checked').click();
     await expect(save).toBeEnabled();
@@ -63,12 +64,13 @@ export async function verifyStatusTransportRecovery(
     await expect(save).toBeDisabled();
     const newerNote = await beforeCommittedHistory();
     const committedHistory = await inspectHistory();
-    await expect(committedHistory.getByTestId('staff-claim-detail-note')).toContainText(newerNote);
-    await expect(committedHistory.getByTestId('staff-claim-detail-note')).not.toContainText(
+    const committedDetail = committedHistory.getByTestId('staff-claim-detail-ready').first();
+    await expect(committedDetail.getByTestId('staff-claim-detail-note')).toContainText(newerNote);
+    await expect(committedDetail.getByTestId('staff-claim-detail-note')).not.toContainText(
       publicNote
     );
-    await expect(committedHistory.getByTestId('staff-status-history')).toContainText(publicNote);
-    await expect(committedHistory.getByTestId('staff-status-history')).toContainText(newerNote);
+    await expect(committedDetail.getByTestId('staff-status-history')).toContainText(publicNote);
+    await expect(committedDetail.getByTestId('staff-status-history')).toContainText(newerNote);
     await committedHistory.close();
     await expect(detail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
     await expect(detail.locator('#claim-status-select')).toContainText('Verifikim');
@@ -78,5 +80,20 @@ export async function verifyStatusTransportRecovery(
   } finally {
     await page.context().unroute(pattern, failHistory);
     await page.unroute(pattern, intercept);
+  }
+}
+
+/** Exercise an authenticated staff action in another tab. */
+export async function saveInterveningPublicNote(page: Page, note: string): Promise<void> {
+  const otherStaffTab = await page.context().newPage();
+  try {
+    await otherStaffTab.goto(page.url());
+    const detail = otherStaffTab.getByTestId('staff-claim-detail-ready').first();
+    await expect(detail).toBeVisible();
+    await detail.getByLabel('Shënim statusi').fill(note);
+    await detail.getByTestId('staff-update-claim-button').click();
+    await expect(detail.getByTestId('staff-claim-detail-note')).toContainText(note);
+  } finally {
+    await otherStaffTab.close();
   }
 }

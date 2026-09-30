@@ -16,7 +16,10 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { verifyStatusTransportRecovery } from './staff-status-transport.fixture';
+import {
+  saveInterveningPublicNote,
+  verifyStatusTransportRecovery,
+} from './staff-status-transport.fixture';
 import {
   cleanupJourney,
   expectJourneyClean,
@@ -163,14 +166,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       expect(assignedClaim?.assignedAt?.toISOString()).toBe(
         assignedClaim?.updatedAt?.toISOString()
       );
-      const result = await updateClaimStatusCore({
-        claimId: submitted.claimId,
-        newStatus: 'verification',
-        note: newerNote,
-        isPublicChange: true,
-        session: { user: staffActor },
-      });
-      expect(result.success).toBe(true);
+      await saveInterveningPublicNote(staffPage, newerNote);
       return newerNote;
     });
     const privateResult = await updateClaimStatusCore({
@@ -272,8 +268,9 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     await expect(memberPage.getByTestId('member-claim-current-state').first()).toHaveText(
       'Verifikim'
     );
+    // Member summary reads status-change events; same-status notes only append staff history.
     await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
-      newerNote
+      publicNote
     );
     await expect(
       memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()

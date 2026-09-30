@@ -114,7 +114,7 @@ export async function getStaffClaimDetailsCore(args: {
 }
 
 // Called only after the page's staff/branch and claim-scope authorization succeeds.
-export async function getPublicStatusHistoryCore(args: {
+export function getPublicStatusHistoryCore(args: {
   claimId: string;
   tenantId: string;
 }): Promise<Array<LatestPublicStatusNote & { id: string; toStatus: string | null }>> {
