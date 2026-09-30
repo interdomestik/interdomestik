@@ -87,7 +87,7 @@ describe('handleStatusUpdate transport recovery', () => {
 
     expect(screen.getByTestId('note').textContent).toBe('  raw note  ');
     expect(screen.getByTestId('allowance').textContent).toBe('  raw reason  ');
-    expect(refresh).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
     expect(mockedToastSuccess).not.toHaveBeenCalled();
     expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('status')).toHaveTextContent(INITIAL_STATUS);
@@ -98,6 +98,30 @@ describe('handleStatusUpdate transport recovery', () => {
     for (const call of mockedToastError.mock.calls) {
       expect(call[1]?.description).not.toBe('network transport failure');
     }
+  });
+
+  it('retains the draft and unconfirmed feedback when reconciliation refresh dispatch throws', async () => {
+    mockedUpdateClaimStatus.mockRejectedValueOnce(new Error('response lost'));
+    const refresh = vi.fn(() => {
+      throw new Error('refresh failed');
+    });
+    render(
+      <TestErrorBoundary>
+        <StatusUpdateHarness refresh={refresh} />
+      </TestErrorBoundary>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled());
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(mockedToastError).toHaveBeenCalledWith('staff_actions.error.title', {
+      description: 'staff_actions.error.status_save_unconfirmed',
+    });
+    expect(screen.getByTestId('note')).toHaveTextContent('raw note');
+    expect(screen.getByTestId('allowance')).toHaveTextContent('raw reason');
+    expect(screen.getByTestId('status')).toHaveTextContent(INITIAL_STATUS);
+    expect(screen.queryByTestId('error-boundary-fallback')).toBeNull();
+    expect(mockedToastSuccess).not.toHaveBeenCalled();
+    expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the existing result.error toast and draft on a known negative result, and sends trimmed values', async () => {
@@ -172,7 +196,7 @@ describe('handleStatusUpdate transport recovery', () => {
     );
     expect(screen.getByTestId('note').textContent).toBe('');
     expect(screen.getByTestId('allowance').textContent).toBe('');
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(2);
   });
 
   it('does not report a post-success refresh failure as an unconfirmed save', async () => {

@@ -13,10 +13,10 @@ import {
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
 import { randomUUID } from 'node:crypto';
-import sqAgentClaims from '../../src/messages/sq/agent-claims.json';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { verifyStatusTransportRecovery } from './staff-status-transport.fixture';
 import {
   cleanupJourney,
   expectJourneyClean,
@@ -136,33 +136,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     await staffDetail.locator('#claim-status-select').click();
     await staffPage.getByRole('option', { name: 'Verifikim', exact: true }).click();
     await staffDetail.getByLabel('Shënim statusi').fill(publicNote);
-    // Fail transport before this write reaches the server, then retry only by user action.
-    let statusSaveRequests = 0;
-    await staffPage.route(`**/staff/claims/${submitted.claimId}`, async route => {
-      const request = route.request();
-      if (request.method() !== 'POST' || !request.headers()['next-action']) {
-        await route.continue();
-        return;
-      }
-      statusSaveRequests += 1;
-      if (statusSaveRequests === 1) await route.abort('failed');
-      else await route.continue();
-    });
-    await staffDetail.getByTestId('staff-update-claim-button').click();
-    await expect(
-      staffPage.getByText(
-        sqAgentClaims['agent-claims'].claims.staff_actions.error.status_save_unconfirmed,
-        { exact: true }
-      )
-    ).toBeVisible();
-    await expect(staffDetail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
-    await expect(staffDetail.locator('#claim-status-select')).toContainText('Verifikim');
-    await expect(staffDetail.getByTestId('staff-update-claim-button')).toBeEnabled();
-    expect(statusSaveRequests).toBe(1);
-    await staffDetail.getByTestId('staff-update-claim-button').click();
-    await expect(staffPage.getByText('Statusi i rastit u përditësua')).toBeVisible();
-    expect(statusSaveRequests).toBe(2);
-    await expect(staffDetail.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
+    await verifyStatusTransportRecovery(staffPage, submitted.claimId, publicNote);
     const staffActor = await db.query.user.findFirst({
       where: and(
         eq(user.email, E2E_USERS.KS_STAFF.email),
@@ -256,6 +230,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         }),
       ])
     );
+    expect(histories.filter(row => row.note === publicNote)).toHaveLength(1);
     for (const unauthorizedNote of unauthorizedNotes) {
       expect(histories).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ note: unauthorizedNote })])

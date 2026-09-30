@@ -216,8 +216,18 @@ export function useClaimActionPanelHandlers({
           trimmedAllowanceOverrideReason || undefined
         );
       } catch {
-        toast.error(t('staff_actions.error.title'), {
-          description: t('staff_actions.error.status_save_unconfirmed'),
+        startTransition(() => {
+          try {
+            // The write may have committed; reconcile history without clearing the draft.
+            refresh();
+          } catch {
+            // A failed refresh dispatch must not replace the retained form with a boundary.
+            return;
+          } finally {
+            toast.error(t('staff_actions.error.title'), {
+              description: t('staff_actions.error.status_save_unconfirmed'),
+            });
+          }
         });
         return;
       }
