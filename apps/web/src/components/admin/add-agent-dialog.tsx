@@ -45,7 +45,7 @@ type AddAgentDialogProps = {
   search?: string;
 };
 
-export function AddAgentDialog({ search }: AddAgentDialogProps) {
+export function AddAgentDialog({ search }: Readonly<AddAgentDialogProps>) {
   const t = useTranslations('admin.users_page');
   const tCommon = useTranslations('common');
   const tUsers = useTranslations('admin.users_table');
@@ -131,9 +131,7 @@ export function AddAgentDialog({ search }: AddAgentDialogProps) {
         </DialogHeader>
 
         {status === 'loading' && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {tCommon('loading')}
-          </p>
+          <output className="block text-sm text-muted-foreground">{tCommon('loading')}</output>
         )}
 
         {status === 'error' && (
@@ -146,26 +144,24 @@ export function AddAgentDialog({ search }: AddAgentDialogProps) {
         )}
 
         {optionsReady && users.length === 0 && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {tUsers('no_users')}
-          </p>
+          <output className="block text-sm text-muted-foreground">{tUsers('no_users')}</output>
         )}
         {optionsReady && branches.length === 0 && (
-          <p role="status" className="text-sm text-muted-foreground">
+          <output className="block text-sm text-muted-foreground">
             {tBranches('no_branches')}
-          </p>
+          </output>
         )}
         {optionsReady && selectedUserId && !users.some(user => user.id === selectedUserId) && (
-          <p role="status" className="text-sm text-muted-foreground">
+          <output className="block text-sm text-muted-foreground">
             {t('select_user_placeholder')}
-          </p>
+          </output>
         )}
         {optionsReady &&
           selectedBranchId &&
           !branches.some(branch => branch.id === selectedBranchId) && (
-            <p role="status" className="text-sm text-muted-foreground">
+            <output className="block text-sm text-muted-foreground">
               {t('select_branch_placeholder')}
-            </p>
+            </output>
           )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

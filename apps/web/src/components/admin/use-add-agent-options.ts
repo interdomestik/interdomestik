@@ -40,7 +40,7 @@ const ELIGIBLE_ROLE_FILTER = 'user,member,staff';
 
 function normalizeSearch(search: string | undefined): string | undefined {
   const trimmed = search?.trim();
-  return trimmed ? trimmed : undefined;
+  return trimmed || undefined;
 }
 
 export function useAddAgentOptions(
@@ -107,7 +107,7 @@ export function useAddAgentOptions(
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -119,13 +119,18 @@ export function useAddAgentOptions(
   }, []);
 
   // Hide prior options during the render before the next effect starts its read.
-  const state: AddAgentOptionsState = !open
-    ? IDLE_STATE
-    : loaded.search !== normalizedSearch ||
-        loaded.retryToken !== retryToken ||
-        loaded.value.status === 'idle'
-      ? { status: 'loading', users: [], branches: [], error: null }
-      : loaded.value;
+  let state: AddAgentOptionsState = IDLE_STATE;
+  if (open) {
+    if (
+      loaded.search !== normalizedSearch ||
+      loaded.retryToken !== retryToken ||
+      loaded.value.status === 'idle'
+    ) {
+      state = { status: 'loading', users: [], branches: [], error: null };
+    } else {
+      state = loaded.value;
+    }
+  }
 
   return { ...state, retry };
 }
