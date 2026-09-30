@@ -3,7 +3,7 @@ plan_role: input
 status: active
 source_of_truth: false
 owner: platform
-last_reviewed: 2026-09-23
+last_reviewed: 2026-09-30
 ---
 
 # Requirement disposition map
@@ -284,7 +284,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-IAM-002 | Authentication is not authorization | Canonical | unresolved | S1/S8/S11–S12 | protected PR #1803 separately exercises owner/tenant authorization after authentication; broader authorization acceptance remains open | none | in-progress; isolation proof pending protected receipt; Engineering | U | U |
 | IDA-IAM-003 | Exercised role | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-004 | Role catalogue | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-IAM-005 | Technical admin boundary | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
+| IDA-IAM-005 | Technical admin boundary | Canonical | pilot-required | S1/S8/S11–S12 | PR #1851 denies tenant-admin platform-role mutations and protects platform targets; broader technical-admin acceptance remains open | none | bounded #1851 delivered; full technical-admin acceptance open; Engineering | U | U |
 | IDA-IAM-006 | Governance separation of duties | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-007 | Support read orientation | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-008 | Auditor read orientation | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
@@ -294,7 +294,7 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-IAM-012 | Session security | Target | unresolved | S1/S8/S11–S12 | protected PR #1803 proves an HttpOnly session cookie, fresh-browser reauthentication, untrusted-origin rejection and consumed-code replay refusal; whole session security remains open | none | in-progress; negative-path E2E pending protected receipt; Engineering | U | U |
 | IDA-IAM-013 | Account recovery | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-IAM-014 | Break-glass | Canonical | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
-| IDA-IAM-015 | Unknown role fail-closed | Canonical | pilot-required | S1/S8/S11–S12 | open | none | U | U | U |
+| IDA-IAM-015 | Unknown role fail-closed | Canonical | pilot-required | S1/S8/S11–S12 | PR #1851 rejects unknown grant/revoke inputs in the shared role writer; broader consumer acceptance remains open | none | bounded #1851 delivered; full unknown-role acceptance open; Engineering | U | U |
 | IDA-IAM-016 | Role review | Target | unresolved | S1/S8/S11–S12 | open | none | U | U | U |
 | IDA-FST-001 | Eligible local continuity | Canonical | unresolved | S5 | protected PR #1803 keeps the eligible browser copy before verification and after a refused code; whole-category acceptance remains open; bounded disclosure delivered in #1817 | none | bounded #1803 delivered; whole acceptance open; Engineering | U | U |
 | IDA-FST-002 | Injury exclusion | Canonical | unresolved | S5 | open | none | U | U | U |

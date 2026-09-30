@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-29
+last_reviewed: 2026-09-30
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -43,7 +43,7 @@ status_command: pnpm plan:status
 | S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                            |
 | S7 — staff handling                         | `active_bounded`      | Deliver staff decline preview and exact-main staging recovery; credit merged #1846 safe decline, #1845 fulfilment, #1842 queue and #1841 next action. Conflict disposition and whole S7 remain open. |
 | S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                                 |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                            |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Credit #1851 bounded role-mutation guard; primary/history semantics and full role journeys remain open; no custom-role or impersonation expansion.                                                   |
 | H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                         |
 | S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                   |
 
@@ -58,6 +58,14 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Current Facts
 
+- #1851 completed bounded F1 role-mutation authorization as protected merge
+  `cb64e6783c31c708ce155e3a65d267444d265b96`. Its
+  [receipt](https://github.com/interdomestik/interdomestik/pull/1851#issuecomment-5910283662)
+  records final-head checks and independent review. Automatic exact-main
+  [CD `36706806887`](https://github.com/interdomestik/interdomestik/actions/runs/36706806887)
+  passed staging health, provenance and release gate; production was skipped. Tenant administrators
+  cannot grant platform or unknown roles or mutate protected platform targets. F2 primary/history
+  semantics, full S10–S12 role journeys and search/filter performance remain open; S7 stays active.
 - #1846 protected-merged as `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Automatic
   exact-main [CD `36587516135`](https://github.com/interdomestik/interdomestik/actions/runs/36587516135)
   failed canonical alias confirmation twice after immutable candidate health passed. The deploy

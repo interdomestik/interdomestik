@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-29
+last_reviewed: 2026-09-30
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -22,6 +22,15 @@ member decision before saving a decline while their private explanation stays vi
 The same product PR addresses the observed intermittent canonical-host transport failure in the
 staging CD gate without relaxing exact-SHA or rollback checks. This is bounded S7 software and
 delivery evidence, not a conflict hard stop, whole S7, production or user acceptance.
+
+PR [#1851](https://github.com/interdomestik/interdomestik/pull/1851) completed the bounded F1
+role-mutation authorization repair as protected squash `cb64e6783c31c708ce155e3a65d267444d265b96`.
+Its [delivery receipt](https://github.com/interdomestik/interdomestik/pull/1851#issuecomment-5910283662)
+records passing local, independent review and protected checks; automatic exact-main
+[CD `36706806887`](https://github.com/interdomestik/interdomestik/actions/runs/36706806887)
+passed staging build, deployment, health, provenance and release gate. Production was skipped.
+Credit only the tenant/platform role-mutation boundary. Primary/history role semantics, broader
+role-journey acceptance and search/filter performance remain open. S7 remains the active increment.
 
 PR [#1846](https://github.com/interdomestik/interdomestik/pull/1846) protected-merged the
 safe-decline handoff as `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Automatic exact-main
