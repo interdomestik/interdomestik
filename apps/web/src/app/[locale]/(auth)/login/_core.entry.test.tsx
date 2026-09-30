@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tenants } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +16,7 @@ const hoisted = vi.hoisted(() => ({
   runtimeSelectMock: vi.fn(),
   activeOnlyMock: vi.fn(),
   tenantFromMock: vi.fn(),
+  orderByMock: vi.fn(),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
   savedDraftSignInMock: vi.fn((_: unknown) => <div>saved-draft-sign-in</div>),
   redirectMock: vi.fn(),
@@ -80,8 +81,9 @@ describe('LoginPage tenant selection', () => {
     hoisted.getSessionSafeMock.mockResolvedValue(null);
     hoisted.adminSelectMock.mockReturnValue({ from: hoisted.tenantFromMock });
     hoisted.tenantFromMock.mockReturnValue({ where: hoisted.activeOnlyMock });
+    hoisted.orderByMock.mockResolvedValue(hoisted.tenantRows);
     hoisted.activeOnlyMock.mockReturnValue({
-      orderBy: vi.fn().mockResolvedValue(hoisted.tenantRows),
+      orderBy: hoisted.orderByMock,
     });
     // Staging RLS deliberately makes tenants invisible to the runtime role.
     hoisted.runtimeSelectMock.mockReturnValue({
@@ -140,6 +142,7 @@ describe('LoginPage tenant selection', () => {
         countryCode: tenants.countryCode,
       });
       expect(hoisted.activeOnlyMock).toHaveBeenCalledExactlyOnceWith(eq(tenants.isActive, true));
+      expect(hoisted.orderByMock).toHaveBeenCalledExactlyOnceWith(asc(tenants.name));
       expect(hoisted.setRequestLocaleMock).toHaveBeenCalledExactlyOnceWith(locale);
       expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
         expect.objectContaining({ tenants: hoisted.tenantRows })
