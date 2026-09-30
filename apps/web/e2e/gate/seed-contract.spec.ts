@@ -25,21 +25,34 @@ test.describe('Seed Contract Verification', () => {
     }
   });
 
-  test('KS admin sees tenant staff in every pilot locale', async ({
+  test('Admin user lists stay tenant-scoped in every pilot locale', async ({
     adminPage: page,
   }, testInfo) => {
-    if (!testInfo.project.name.includes('ks')) return;
+    const isKs = testInfo.project.name.includes('ks');
+    const isMk = testInfo.project.name.includes('mk');
+    if (!isKs && !isMk) return;
+
+    const expectedStaff = isKs ? 'staff.ks@interdomestik.com' : 'staff.mk@interdomestik.com';
+    const otherTenantStaff = isKs ? 'staff.mk@interdomestik.com' : 'staff.ks@interdomestik.com';
+    const expectedMember = isKs
+      ? 'member.ks.a1@interdomestik.com'
+      : 'member.mk.1@interdomestik.com';
+    const otherTenantMember = isKs
+      ? 'member.mk.1@interdomestik.com'
+      : 'member.ks.a1@interdomestik.com';
 
     for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
       await gotoApp(page, `${routes.adminUsers(locale)}?role=admin%2Cstaff`, testInfo, {
         marker: 'admin-users-page',
       });
-      await expect(
-        page.getByRole('row').filter({ hasText: 'staff.ks@interdomestik.com' }).first()
-      ).toBeVisible();
-      await expect(
-        page.getByRole('row').filter({ hasText: 'staff.mk@interdomestik.com' })
-      ).toHaveCount(0);
+      expect(new URL(page.url()).pathname).toBe(routes.adminUsers(locale));
+      await expect(page.getByRole('row').filter({ hasText: expectedStaff }).first()).toBeVisible();
+      await expect(page.getByRole('row').filter({ hasText: otherTenantStaff })).toHaveCount(0);
+
+      await gotoApp(page, routes.adminUsers(locale), testInfo, { marker: 'admin-users-page' });
+      expect(new URL(page.url()).pathname).toBe(routes.adminUsers(locale));
+      await expect(page.getByRole('row').filter({ hasText: expectedMember }).first()).toBeVisible();
+      await expect(page.getByRole('row').filter({ hasText: otherTenantMember })).toHaveCount(0);
     }
   });
 
