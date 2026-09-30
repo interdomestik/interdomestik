@@ -35,7 +35,7 @@ type HarnessProps = {
   translate?: TranslateFn;
 };
 
-export function StatusUpdateHarness({ refresh, translate = t }: HarnessProps) {
+export function StatusUpdateHarness({ refresh, translate = t }: Readonly<HarnessProps>) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('  raw note  ');
   const [allowanceOverrideReason, setAllowanceOverrideReason] = useState('  raw reason  ');
