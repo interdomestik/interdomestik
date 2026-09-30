@@ -43,40 +43,41 @@ export function StatusUpdateHarness({ refresh, translate = t }: HarnessProps) {
   const decisionSaveKeyRef = useRef<string | null>(null);
   const agreementSaveKeyRef = useRef<string | null>(null);
 
-  const { handleStatusUpdate } = useClaimActionPanelHandlers({
-    agreementSaveKeyRef,
-    allowanceOverrideReason,
-    assignmentOptions: [],
-    claimId: 'claim-1',
-    decisionExplanation: '',
-    decisionNextStatus: 'negotiation',
-    decisionReason: '',
-    decisionSaveKeyRef,
-    declineReasonCode: '',
-    deductionPath: 'fallback',
-    feePercentage: '',
-    hasValidRecoveredAmount: false,
-    legalActionCapPercentage: '',
-    minimumFee: '',
-    note,
-    parsedRecoveredAmount: 0,
-    paymentAuthorizationState: 'pending',
-    recoveryDecision: stubRecoveryDecision,
-    refresh,
-    selectedAssigneeId: '',
-    setAllowanceOverrideReason,
-    setDeclineReasonCode: () => {},
-    setNote,
-    setSavedAgreement: () => {},
-    setSavedRecoveryDecision: () => {},
-    setSavedSuccessFeeCollection: () => {},
-    setStatus,
-    staffId: 'staff-1',
-    startTransition,
-    status,
-    t: translate,
-    termsVersion: '',
-  });
+  const { handleStatusUpdate, statusSaveUnconfirmed, acknowledgeStatusHistory } =
+    useClaimActionPanelHandlers({
+      agreementSaveKeyRef,
+      allowanceOverrideReason,
+      assignmentOptions: [],
+      claimId: 'claim-1',
+      decisionExplanation: '',
+      decisionNextStatus: 'negotiation',
+      decisionReason: '',
+      decisionSaveKeyRef,
+      declineReasonCode: '',
+      deductionPath: 'fallback',
+      feePercentage: '',
+      hasValidRecoveredAmount: false,
+      legalActionCapPercentage: '',
+      minimumFee: '',
+      note,
+      parsedRecoveredAmount: 0,
+      paymentAuthorizationState: 'pending',
+      recoveryDecision: stubRecoveryDecision,
+      refresh,
+      selectedAssigneeId: '',
+      setAllowanceOverrideReason,
+      setDeclineReasonCode: () => {},
+      setNote,
+      setSavedAgreement: () => {},
+      setSavedRecoveryDecision: () => {},
+      setSavedSuccessFeeCollection: () => {},
+      setStatus,
+      staffId: 'staff-1',
+      startTransition,
+      status,
+      t: translate,
+      termsVersion: '',
+    });
 
   return (
     <>
@@ -84,9 +85,10 @@ export function StatusUpdateHarness({ refresh, translate = t }: HarnessProps) {
       <div data-testid="note">{note}</div>
       <div data-testid="allowance">{allowanceOverrideReason}</div>
       <div data-testid="status">{status}</div>
-      <button disabled={isPending} onClick={handleStatusUpdate}>
+      <button disabled={isPending || statusSaveUnconfirmed} onClick={handleStatusUpdate}>
         save
       </button>
+      {statusSaveUnconfirmed && <button onClick={acknowledgeStatusHistory}>history checked</button>}
     </>
   );
 }

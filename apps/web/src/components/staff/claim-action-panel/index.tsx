@@ -97,6 +97,8 @@ export function ClaimActionPanel(props: ClaimActionPanelProps) {
           resolvedCommercialScope={model.resolvedCommercialScope}
           status={model.status}
           onStatusUpdate={model.handleStatusUpdate}
+          statusSaveUnconfirmed={model.statusSaveUnconfirmed}
+          onHistoryChecked={model.acknowledgeStatusHistory}
           setAllowanceOverrideReason={model.setAllowanceOverrideReason}
           setNote={model.setNote}
           setStatus={model.setStatus}

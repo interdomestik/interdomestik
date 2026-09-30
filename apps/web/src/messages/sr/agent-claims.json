@@ -287,7 +287,10 @@
           "allowance_override_reason": "Razlog za prekoračenje kvote",
           "allowance_override_description": "Ako je član iscrpeo godišnju kvotu predmeta, ovde zabeležite interni razlog za prekoračenje ili unapredite pokriće pre nego što počne naplata koju vodi osoblje.",
           "allowance_override_placeholder": "Objasnite zašto naplata treba da počne uprkos iscrpljenoj kvoti...",
-          "save": "Ažuriraj zahtev"
+          "save": "Ažuriraj zahtev",
+          "check_history_hint": "Otvorite istoriju predmeta u novoj kartici. Ako je ažuriranje već tamo, nemojte ga ponovo sačuvati. U suprotnom, potvrdite da ste proverili pre novog pokušaja. Nacrt ostaje ovde.",
+          "open_history": "Proverite istoriju (nova kartica)",
+          "history_checked": "Proverio/la sam istoriju; dozvoli ponovni pokušaj"
         }
       },
       "triage": {

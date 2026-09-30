@@ -14,7 +14,7 @@ import {
   type SuccessFeeCollectionSnapshot,
   updateClaimStatus,
 } from '@/actions/staff-claims.core';
-import type { MutableRefObject } from 'react';
+import { useState, type MutableRefObject } from 'react';
 import { toast } from 'sonner';
 
 import { getAssignmentSuccessDescription, type AssignmentOption } from './assignment-helpers';
@@ -89,6 +89,7 @@ export function useClaimActionPanelHandlers({
   termsVersion,
   agreementSaveKeyRef,
 }: UseClaimActionPanelHandlersParams) {
+  const [statusSaveUnconfirmed, setStatusSaveUnconfirmed] = useState(false);
   const handleAssign = () => {
     const nextAssigneeId = selectedAssigneeId || null;
     const selectedAssignmentLabel =
@@ -202,6 +203,7 @@ export function useClaimActionPanelHandlers({
   };
 
   const handleStatusUpdate = () => {
+    if (statusSaveUnconfirmed) return;
     startTransition(async () => {
       const trimmedNote = note.trim();
       const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
@@ -216,18 +218,9 @@ export function useClaimActionPanelHandlers({
           trimmedAllowanceOverrideReason || undefined
         );
       } catch {
-        startTransition(() => {
-          try {
-            // The write may have committed; reconcile history without clearing the draft.
-            refresh();
-          } catch {
-            // A failed refresh dispatch must not replace the retained form with a boundary.
-            return;
-          } finally {
-            toast.error(t('staff_actions.error.title'), {
-              description: t('staff_actions.error.status_save_unconfirmed'),
-            });
-          }
+        setStatusSaveUnconfirmed(true);
+        toast.error(t('staff_actions.error.title'), {
+          description: t('staff_actions.error.status_save_unconfirmed'),
         });
         return;
       }
@@ -273,6 +266,8 @@ export function useClaimActionPanelHandlers({
   };
 
   return {
+    statusSaveUnconfirmed,
+    acknowledgeStatusHistory: () => setStatusSaveUnconfirmed(false),
     handleAcceptRecoveryDecision,
     handleAgreementSave,
     handleAssign,

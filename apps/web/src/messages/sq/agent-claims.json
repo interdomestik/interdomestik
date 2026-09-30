@@ -287,7 +287,10 @@
           "allowance_override_reason": "Arsyeja e tejkalimit të kuotës",
           "allowance_override_description": "Nëse anëtari e ka shteruar kuotën vjetore të rasteve, regjistro këtu arsyen e brendshme të tejkalimit ose përmirëso mbulimin përpara se të fillojë rikuperimi i drejtuar nga stafi.",
           "allowance_override_placeholder": "Shpjego pse rikuperimi duhet të fillojë pavarësisht kuotës së shteruar...",
-          "save": "Përditëso rastin"
+          "save": "Përditëso rastin",
+          "check_history_hint": "Hap historikun e rastit në një skedë të re. Nëse përditësimi është aty, mos e ruaj përsëri. Përndryshe, konfirmo se e kontrollove para se të provosh sërish. Drafti mbetet këtu.",
+          "open_history": "Kontrollo historikun (skedë e re)",
+          "history_checked": "E kontrollova historikun; lejo riprovimin"
         }
       },
       "triage": {

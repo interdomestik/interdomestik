@@ -402,7 +402,10 @@
           "allowance_override_reason": "Allowance override reason",
           "allowance_override_description": "If the member has exhausted annual matter allowance, record the internal override reason here or upgrade coverage before staff-led recovery begins.",
           "allowance_override_placeholder": "Explain why recovery should begin despite exhausted allowance...",
-          "save": "Update Claim"
+          "save": "Update Claim",
+          "check_history_hint": "Open case history in a new tab. If the update is already there, do not save it again. Otherwise, confirm you have checked before retrying. Your draft stays here.",
+          "open_history": "Check history (new tab)",
+          "history_checked": "I checked history; allow retry"
         }
       },
       "triage": {

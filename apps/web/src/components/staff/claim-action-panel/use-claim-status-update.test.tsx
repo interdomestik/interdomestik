@@ -87,7 +87,7 @@ describe('handleStatusUpdate transport recovery', () => {
 
     expect(screen.getByTestId('note').textContent).toBe('  raw note  ');
     expect(screen.getByTestId('allowance').textContent).toBe('  raw reason  ');
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     expect(mockedToastSuccess).not.toHaveBeenCalled();
     expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('status')).toHaveTextContent(INITIAL_STATUS);
@@ -100,27 +100,26 @@ describe('handleStatusUpdate transport recovery', () => {
     }
   });
 
-  it('retains the draft and unconfirmed feedback when reconciliation refresh dispatch throws', async () => {
+  it('blocks another save until staff explicitly acknowledge checking history', async () => {
     mockedUpdateClaimStatus.mockRejectedValueOnce(new Error('response lost'));
-    const refresh = vi.fn(() => {
-      throw new Error('refresh failed');
-    });
+    const refresh = vi.fn();
     render(
       <TestErrorBoundary>
         <StatusUpdateHarness refresh={refresh} />
       </TestErrorBoundary>
     );
-    fireEvent.click(screen.getByRole('button', { name: 'save' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled());
-    expect(refresh).toHaveBeenCalledTimes(1);
-    expect(mockedToastError).toHaveBeenCalledWith('staff_actions.error.title', {
-      description: 'staff_actions.error.status_save_unconfirmed',
-    });
+    const save = screen.getByRole('button', { name: 'save' });
+    fireEvent.click(save);
+    await screen.findByRole('button', { name: 'history checked' });
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
     expect(screen.getByTestId('note')).toHaveTextContent('raw note');
     expect(screen.getByTestId('allowance')).toHaveTextContent('raw reason');
     expect(screen.getByTestId('status')).toHaveTextContent(INITIAL_STATUS);
-    expect(screen.queryByTestId('error-boundary-fallback')).toBeNull();
-    expect(mockedToastSuccess).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'history checked' }));
+    expect(save).toBeEnabled();
     expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
   });
 
@@ -177,6 +176,8 @@ describe('handleStatusUpdate transport recovery', () => {
     );
     expect(mockedUpdateClaimStatus).toHaveBeenCalledTimes(1);
 
+    expect(button).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'history checked' }));
     await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
     await waitFor(() =>
@@ -196,7 +197,7 @@ describe('handleStatusUpdate transport recovery', () => {
     );
     expect(screen.getByTestId('note').textContent).toBe('');
     expect(screen.getByTestId('allowance').textContent).toBe('');
-    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('does not report a post-success refresh failure as an unconfirmed save', async () => {
