@@ -58,7 +58,7 @@ export function AdminUsersRoleTabs({ selectedRole, options }: AdminUsersRoleTabs
                 option.label
               ) : (
                 <Link
-                  href={search?.withDraftSearch(option.href) ?? option.href}
+                  href={search?.withDraftSearch(option.href, 'role') ?? option.href}
                   aria-disabled={isInert ? 'true' : undefined}
                   data-testid={`admin-users-role-tab-${option.value}`}
                   tabIndex={isInert ? -1 : undefined}
@@ -70,7 +70,7 @@ export function AdminUsersRoleTabs({ selectedRole, options }: AdminUsersRoleTabs
                     if (search) {
                       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                       event.preventDefault();
-                      search.navigate(search.withDraftSearch(option.href), 'role');
+                      search.navigate(search.withDraftSearch(option.href, 'role'), 'role');
                     } else updatePendingHref(option.href);
                   }}
                 >

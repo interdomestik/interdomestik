@@ -135,7 +135,7 @@ export function UsersFilters({
     )
       return;
     navigate(
-      withDraftSearch(`${pathname}${buildAdminUsersUrl(searchParams, { [key]: value })}`),
+      withDraftSearch(`${pathname}${buildAdminUsersUrl(searchParams, { [key]: value })}`, key),
       key
     );
   };

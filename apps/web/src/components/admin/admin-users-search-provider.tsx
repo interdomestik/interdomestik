@@ -19,7 +19,7 @@ type SearchContext = {
   pendingKind: PendingKind | null;
   isNavigationPending: boolean;
   navigate: (href: string, kind: PendingKind) => void;
-  withDraftSearch: (href: string) => string;
+  withDraftSearch: (href: string, filter?: 'role' | 'assignment') => string;
 };
 const Context = createContext<SearchContext | null>(null);
 export function useAdminUsersSearch() {
@@ -94,9 +94,14 @@ export function AdminUsersSearchProvider({ children }: { children: ReactNode }) 
     return () => window.clearTimeout(timeout);
   }, [pendingKind, isHistoryPending, updatePending]);
 
-  const withDraftSearch = (href: string) => {
+  const withDraftSearch = (href: string, filter?: 'role' | 'assignment') => {
     const [targetPath, query = ''] = href.split('?');
-    const nextParams = new URLSearchParams(query);
+    const nextParams = new URLSearchParams(filter ? navigationParams.current : query);
+    if (filter) {
+      const value = new URLSearchParams(query).get(filter);
+      if (value) nextParams.set(filter, value);
+      else nextParams.delete(filter);
+    }
     nextParams.delete('page');
     if (searchValue) nextParams.set('search', searchValue);
     else nextParams.delete('search');

@@ -237,4 +237,37 @@ describe('Admin users search navigation', () => {
     act(() => vi.advanceTimersByTime(20_000));
     expect(pushMock).toHaveBeenCalledTimes(2);
   });
+  it('preserves timed-out role and assignment targets when another filter changes', () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams('tenantId=tenant_ks'));
+    render(
+      <>
+        <AdminUsersRoleTabs
+          selectedRole="user"
+          options={[
+            { value: 'user', label: 'Members', href: '/admin/users?tenantId=tenant_ks' },
+            { value: 'agent', label: 'Agents', href: '/admin/users?tenantId=tenant_ks&role=agent' },
+          ]}
+        />
+        <UsersFilters hideRole />
+      </>
+    );
+    fireEvent.change(screen.getByTestId('admin-users-search-input'), { target: { value: 'ada' } });
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }));
+    act(() => vi.advanceTimersByTime(10_000));
+    fireEvent.click(screen.getByTestId('admin-users-assignment-filter-assigned'));
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/admin/users?tenantId=tenant_ks&role=agent&search=ada&assignment=assigned',
+      { scroll: false }
+    );
+    act(() => vi.advanceTimersByTime(10_000));
+    fireEvent.click(screen.getByTestId('admin-users-assignment-filter-unassigned'));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(pushMock).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByRole('link', { name: 'Agents' }));
+    expect(pushMock).toHaveBeenCalledTimes(4);
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/admin/users?tenantId=tenant_ks&role=agent&search=ada&assignment=unassigned',
+      { scroll: false }
+    );
+  });
 });
