@@ -14,11 +14,11 @@ overrides:
   bn.js: ^4.12.3
   ajv@^6.12.4: 6.14.0
   lodash: ^4.18.1
-  undici: 7.29.0
+  undici: 7.29.1
   seroval: '>=1.4.1'
   tar: 7.5.11
   '@isaacs/brace-expansion': ^5.0.1
-  brace-expansion: 5.0.9
+  brace-expansion: 5.0.12
   cross-spawn: ^7.0.6
   fast-uri: 3.1.7
   sharp: 0.35.4
@@ -654,8 +654,8 @@ importers:
         specifier: ^5.1.16
         version: 5.1.16
       nodemailer:
-        specifier: ^9.1.0
-        version: 9.1.1
+        specifier: ^10.0.6
+        version: 10.0.13
       resend:
         specifier: ^4.4.0
         version: 4.8.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -7838,10 +7838,10 @@ packages:
         integrity: sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==,
       }
 
-  brace-expansion@5.0.9:
+  brace-expansion@5.0.12:
     resolution:
       {
-        integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==,
+        integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==,
       }
     engines: { node: 20 || >=22 }
 
@@ -11734,12 +11734,12 @@ packages:
       }
     engines: { node: '>=18' }
 
-  nodemailer@9.1.1:
+  nodemailer@10.0.13:
     resolution:
       {
-        integrity: sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==,
+        integrity: sha512-SzG86OlvcW/NNhUFC6uROMwRTL4n7MswfQqC/T8mhkmnY1YVa23zUEMYi4ijSeXSl9GLz9ZeTJDUatEDuY5FeQ==,
       }
-    engines: { node: '>=6.0.0' }
+    engines: { node: '>=20.0.0' }
 
   normalize-package-data@7.0.1:
     resolution:
@@ -13999,10 +13999,10 @@ packages:
         integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==,
       }
 
-  undici@7.29.0:
+  undici@7.29.1:
     resolution:
       {
-        integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==,
+        integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==,
       }
     engines: { node: '>=20.18.1' }
 
@@ -18667,7 +18667,7 @@ snapshots:
       commander: 14.0.3
       express: 5.2.1
       jose: 6.2.12
-      undici: 7.29.0
+      undici: 7.29.1
       zod: 4.6.5
     transitivePeerDependencies:
       - '@cfworker/json-schema'
@@ -19201,7 +19201,7 @@ snapshots:
 
   bowser@2.14.1: {}
 
-  brace-expansion@5.0.9:
+  brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
 
@@ -21284,7 +21284,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.0
-      undici: 7.29.0
+      undici: 7.29.1
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -21657,7 +21657,7 @@ snapshots:
 
   minimatch@10.2.6:
     dependencies:
-      brace-expansion: 5.0.9
+      brace-expansion: 5.0.12
 
   minimist@1.2.8: {}
 
@@ -21835,7 +21835,7 @@ snapshots:
 
   node-releases@2.0.55: {}
 
-  nodemailer@9.1.1: {}
+  nodemailer@10.0.13: {}
 
   normalize-package-data@7.0.1:
     dependencies:
@@ -22511,7 +22511,7 @@ snapshots:
       proxy-agent: 6.5.0
       semver: 7.7.3
       tinyglobby: 0.2.15
-      undici: 7.29.0
+      undici: 7.29.1
       url-join: 5.0.0
       wildcard-match: 5.1.4
       yargs-parser: 21.1.1
@@ -23413,7 +23413,7 @@ snapshots:
   undici-types@8.3.0:
     optional: true
 
-  undici@7.29.0: {}
+  undici@7.29.1: {}
 
   universal-user-agent@7.0.3: {}
 

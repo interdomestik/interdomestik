@@ -25,6 +25,24 @@ test.describe('Seed Contract Verification', () => {
     }
   });
 
+  test('KS admin sees tenant staff in every pilot locale', async ({
+    adminPage: page,
+  }, testInfo) => {
+    if (!testInfo.project.name.includes('ks')) return;
+
+    for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
+      await gotoApp(page, `${routes.adminUsers(locale)}?role=admin%2Cstaff`, testInfo, {
+        marker: 'admin-users-page',
+      });
+      await expect(
+        page.getByRole('row').filter({ hasText: 'staff.ks@interdomestik.com' }).first()
+      ).toBeVisible();
+      await expect(
+        page.getByRole('row').filter({ hasText: 'staff.mk@interdomestik.com' })
+      ).toHaveCount(0);
+    }
+  });
+
   test('Tenant MK has required branch codes', async ({ adminPage: page }, testInfo) => {
     if (!testInfo.project.name.includes('mk')) {
       testInfo.annotations.push({
