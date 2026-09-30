@@ -1,59 +1,19 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, pushMock, searchParamsMock, pathnameMock } from './users-filters.test-support';
 import { UsersFilters } from './users-filters';
-
-const { pushMock, searchParamsMock, pathnameMock } = vi.hoisted(() => ({
-  pushMock: vi.fn(),
-  searchParamsMock: vi.fn(() => new URLSearchParams()),
-  pathnameMock: vi.fn(() => '/admin/users'),
-}));
-
-// Mock router
-vi.mock('@/i18n/routing', () => ({
-  usePathname: () => pathnameMock(),
-  useRouter: () => ({
-    push: pushMock,
-  }),
-}));
-
-// Mock navigation
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => searchParamsMock(),
-}));
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      search: 'Search',
-      search_placeholder: 'Search users...',
-      'roles.all': 'All Roles',
-      'roles.user': 'Members',
-      'roles.agent': 'Agents',
-      'roles.staff': 'Staff',
-      'roles.admin': 'Admins',
-      'assignments.all': 'All',
-      'assignments.assigned': 'Assigned',
-      'assignments.unassigned': 'Company-owned',
-      'labels.role': 'Role',
-      'labels.assignment': 'Assignment',
-      processing: 'Processing...',
-    };
-    return translations[key] || key;
-  },
-}));
-
-// Mock UI components
-vi.mock('@interdomestik/ui', () => ({
-  badgeVariants: () => 'badge',
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
-}));
 
 describe('UsersFilters', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     vi.clearAllMocks();
     pathnameMock.mockReturnValue('/admin/users');
     searchParamsMock.mockReturnValue(new URLSearchParams());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    window.history.replaceState(null, '', '/');
   });
 
   it('renders search input', () => {
@@ -94,7 +54,7 @@ describe('UsersFilters', () => {
     expect(pushMock).toHaveBeenCalledWith('/admin/users?assignment=assigned', { scroll: false });
     expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTestId('admin-users-filters-pending')).toHaveTextContent('Processing...');
-    expect(screen.getByTestId('admin-users-search-input')).toBeDisabled();
+    expect(screen.getByTestId('admin-users-search-input')).not.toBeDisabled();
     expect(screen.getByTestId('admin-users-assignment-filter-unassigned')).toBeDisabled();
 
     fireEvent.click(screen.getByTestId('admin-users-assignment-filter-unassigned'));
@@ -125,6 +85,7 @@ describe('UsersFilters', () => {
       target: { value: 'ada' },
     });
 
+    act(() => vi.advanceTimersByTime(300));
     expect(pushMock).toHaveBeenCalledWith('/admin/users?tenantId=tenant_ks&search=ada', {
       scroll: false,
     });
@@ -141,6 +102,7 @@ describe('UsersFilters', () => {
       target: { value: 'all' },
     });
 
+    act(() => vi.advanceTimersByTime(300));
     expect(pushMock).toHaveBeenCalledWith(
       '/admin/users?tenantId=tenant_ks&assignment=assigned&search=all',
       { scroll: false }

@@ -1,5 +1,6 @@
 import { listBranches } from '@/actions/admin-rbac.core';
-import { getAgents, getUsers } from '@/actions/admin-users';
+import { getAgents, getUserChoices, getUsers } from '@/actions/admin-users';
+import { AdminUsersSearchProvider } from '@/components/admin/admin-users-search-provider';
 import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
 import { AdminUsersRoleTabs } from '@/components/admin/admin-users-role-tabs';
 import { isPromotableToAgentRole } from '@/components/admin/promotable-roles';
@@ -41,12 +42,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
       role: selectedRole === 'user' ? 'user,member' : selectedRole,
       assignment: selectedRole === 'user' ? assignment : undefined,
     }),
-    getUsers({
+    getUserChoices({
       search,
       role: 'user,member,staff',
       assignment: undefined,
     }),
-    getAgents(),
+    selectedRole === 'user' ? getAgents() : Promise.resolve({ success: true as const, data: [] }),
     listBranches({ includeInactive: false }),
   ]);
 
@@ -141,8 +142,10 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         </div>
         <AddAgentDialog users={eligibleUsers} branches={branches} />
       </div>
-      <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />
-      <UsersFilters hideRole hideAssignment={selectedRole !== 'user'} />
+      <AdminUsersSearchProvider>
+        <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />
+        <UsersFilters hideRole hideAssignment={selectedRole !== 'user'} />
+      </AdminUsersSearchProvider>
       <UsersSections users={users} agents={agents} />
     </div>
   );

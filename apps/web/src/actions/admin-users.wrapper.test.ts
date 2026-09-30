@@ -83,6 +83,7 @@ describe('admin-users action wrappers', () => {
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
       filters,
+      includeUnreadCounts: true,
     });
     expect(result).toEqual({ success: true, data: [{ id: 'u1' }] });
   });
@@ -121,6 +122,7 @@ describe('admin-users action wrappers', () => {
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
       filters: { role: 'agent' },
+      includeUnreadCounts: false,
     });
     expect(result).toEqual({ success: true, data: [{ id: 'a1' }] });
   });

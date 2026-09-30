@@ -1,16 +1,13 @@
 'use client';
 
 import { GlassCard } from '@/components/ui/glass-card';
-import { usePathname, useRouter } from '@/i18n/routing';
+import { usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { badgeVariants, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
-import { useAdminUsersPendingValue } from './use-admin-users-pending-value';
-
-type PendingKind = 'search' | 'role' | 'assignment';
+import { useAdminUsersSearch } from './admin-users-search-provider';
 
 type FilterOption = {
   label: string;
@@ -96,7 +93,6 @@ export function UsersFilters({
   hideRole?: boolean;
   hideAssignment?: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations('admin.users_filters');
@@ -104,21 +100,17 @@ export function UsersFilters({
 
   const currentRole = searchParams.get('role') || 'all';
   const currentAssignment = searchParams.get('assignment') || 'all';
-  const currentSearch = searchParams.get('search') || '';
-  const currentParamsString = searchParams.toString();
 
-  const [searchValue, setSearchValue] = useState(currentSearch);
-  const [isTransitionPending, startTransition] = useTransition();
+  const search = useAdminUsersSearch();
+  if (!search) throw new Error('UsersFilters requires AdminUsersSearchProvider');
   const {
-    pendingValue: pendingKind,
-    pendingValueRef: pendingKindRef,
-    updatePendingValue: updatePendingKind,
-  } = useAdminUsersPendingValue<PendingKind>(currentParamsString);
-  const isNavigationPending = Boolean(pendingKind || isTransitionPending);
-
-  useEffect(() => {
-    setSearchValue(currentSearch);
-  }, [currentSearch]);
+    searchValue,
+    setSearchValue,
+    pendingKind,
+    isNavigationPending,
+    navigate,
+    withDraftSearch,
+  } = search;
 
   const roleOptions = [
     { value: 'all', label: t('roles.all') },
@@ -135,49 +127,16 @@ export function UsersFilters({
   ];
 
   const updateParams = (key: 'role' | 'assignment', value: string) => {
-    const pendingKey = key === 'role' ? 'role' : 'assignment';
-
     if (
-      pendingKindRef.current ||
+      isNavigationPending ||
       (key === 'role' && currentRole === value) ||
       (key === 'assignment' && currentAssignment === value)
-    ) {
+    )
       return;
-    }
-
-    const nextUrl = buildAdminUsersUrl(searchParams, { [key]: value });
-    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    updatePendingKind(pendingKey);
-
-    startTransition(() => {
-      router.push(`${pathname}${nextUrl}`, { scroll: false });
-    });
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-
-    if (pendingKindRef.current) {
-      return;
-    }
-
-    const nextUrl = buildAdminUsersUrl(searchParams, { search: value || null });
-    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    updatePendingKind('search');
-
-    startTransition(() => {
-      router.push(`${pathname}${nextUrl}`, { scroll: false });
-    });
+    navigate(
+      withDraftSearch(`${pathname}${buildAdminUsersUrl(searchParams, { [key]: value })}`),
+      key
+    );
   };
 
   return (
@@ -192,9 +151,8 @@ export function UsersFilters({
           placeholder={t('search_placeholder') || `${tCommon('search')}...`}
           className="pl-9 bg-white/5 border-white/10 focus:bg-white/10 transition-colors"
           data-testid="admin-users-search-input"
-          disabled={isNavigationPending}
           value={searchValue}
-          onChange={e => handleSearch(e.target.value)}
+          onChange={e => setSearchValue(e.target.value)}
         />
       </div>
 
