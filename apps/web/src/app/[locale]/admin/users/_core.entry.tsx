@@ -1,9 +1,7 @@
-import { listBranches } from '@/actions/admin-rbac.core';
-import { getAgents, getUserChoices, getUsers } from '@/actions/admin-users';
+import { getAgents, getUsers } from '@/actions/admin-users';
 import { AdminUsersSearchProvider } from '@/components/admin/admin-users-search-provider';
 import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
 import { AdminUsersRoleTabs } from '@/components/admin/admin-users-role-tabs';
-import { isPromotableToAgentRole } from '@/components/admin/promotable-roles';
 import { UsersFilters } from '@/components/admin/users-filters';
 import { UsersSections } from '@/components/admin/users-sections';
 import { getTranslations } from 'next-intl/server';
@@ -41,26 +39,18 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const selectedRole = normalizeRole(roleParam);
 
-  const [usersResult, promotableUsersResult, agentsResult, branchesResult] = await Promise.all([
+  const [usersResult, agentsResult] = await Promise.all([
     getUsers({
       search,
       // Include 'member' role in the User tab so they are visible
       role: selectedRole === 'user' ? 'user,member' : selectedRole,
       assignment: selectedRole === 'user' ? assignment : undefined,
     }),
-    getUserChoices({
-      search,
-      role: 'user,member,staff',
-      assignment: undefined,
-    }),
     getAgentChoicesForRole(selectedRole),
-    listBranches({ includeInactive: false }),
   ]);
 
   const users = usersResult.success ? (usersResult.data ?? []) : [];
-  const promotableUsers = promotableUsersResult.success ? (promotableUsersResult.data ?? []) : [];
   const agents = agentsResult.success ? (agentsResult.data ?? []) : [];
-  const branches = branchesResult.success ? (branchesResult.data ?? []) : [];
 
   if (!usersResult.success) {
     if (
@@ -84,22 +74,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     console.error('Failed to load agents:', agentsResult.error);
   }
 
-  if (!promotableUsersResult.success) {
-    if (
-      promotableUsersResult.code === 'UNAUTHORIZED' ||
-      promotableUsersResult.code === 'FORBIDDEN' ||
-      promotableUsersResult.code?.startsWith('FORBIDDEN')
-    ) {
-      notFound();
-    }
-    console.error('Failed to load promotable users:', promotableUsersResult.error);
-  }
-
   const t = await getTranslations('admin.users_page');
   const tFilters = await getTranslations('admin.users_filters');
-
-  // Filter users eligible for promotion (exclude existing agents/admin roles).
-  const eligibleUsers = promotableUsers.filter(u => isPromotableToAgentRole(u.role));
 
   const buildRoleHref = (role: string) => {
     const nextParams = new URLSearchParams();
@@ -146,7 +122,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <AddAgentDialog users={eligibleUsers} branches={branches} />
+        <AddAgentDialog search={search} />
       </div>
       <AdminUsersSearchProvider>
         <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />

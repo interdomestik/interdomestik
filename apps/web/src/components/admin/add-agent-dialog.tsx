@@ -34,32 +34,25 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
+import { useAddAgentOptions } from './use-add-agent-options';
 
 const addAgentSchema = z.object({
   userId: z.string().min(1, 'User is required'),
   branchId: z.string().min(1, 'Branch is required'),
 });
 
-type User = {
-  id: string;
-  name: string | null;
-  email: string;
-};
-
-type Branch = {
-  id: string;
-  name: string;
-};
-
 type AddAgentDialogProps = {
-  users: User[];
-  branches: Branch[];
+  search?: string;
 };
 
-export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
+export function AddAgentDialog({ search }: AddAgentDialogProps) {
   const t = useTranslations('admin.users_page');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const router = useRouter();
+
+  const { status, users, branches, retry } = useAddAgentOptions(open, search);
+  const optionsReady = status === 'ready';
 
   const form = useForm<z.infer<typeof addAgentSchema>>({
     resolver: zodResolver(addAgentSchema as never),
@@ -73,6 +66,11 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
   const selectedUserId = form.watch('userId');
   const selectedBranchId = form.watch('branchId');
 
+  const selectionReady =
+    optionsReady &&
+    users.some(user => user.id === selectedUserId) &&
+    branches.some(branch => branch.id === selectedBranchId);
+
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     form.reset({
@@ -82,6 +80,14 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
   }
 
   async function onSubmit(values: z.infer<typeof addAgentSchema>) {
+    if (
+      !open ||
+      !optionsReady ||
+      !users.some(user => user.id === values.userId) ||
+      !branches.some(branch => branch.id === values.branchId)
+    ) {
+      return;
+    }
     try {
       const result = await grantUserRole({
         userId: values.userId,
@@ -122,6 +128,21 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
           <DialogDescription>{t('add_agent_description')}</DialogDescription>
         </DialogHeader>
 
+        {status === 'loading' && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {tCommon('loading')}
+          </p>
+        )}
+
+        {status === 'error' && (
+          <div role="alert" className="space-y-2 text-sm text-destructive">
+            <p>{tCommon('errors.generic')}</p>
+            <Button type="button" variant="outline" size="sm" onClick={retry}>
+              {tCommon('tryAgain')}
+            </Button>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -130,7 +151,11 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('select_user')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!optionsReady}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t('select_user_placeholder')} />
@@ -155,7 +180,11 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('select_branch')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!optionsReady}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t('select_branch_placeholder')} />
@@ -178,7 +207,7 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={isSubmitting || !selectedUserId || !selectedBranchId}>
+              <Button type="submit" disabled={isSubmitting || !selectionReady}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('confirm')}
               </Button>
