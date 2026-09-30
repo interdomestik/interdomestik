@@ -15,8 +15,9 @@ export type AccessTenantTable = {
  * Usage in where clause:
  * where: (table, { eq, and }) => withTenant(tenantId, table.tenantId, eq(table.someCol, value))
  *
- * @deprecated Prefer withTenantContext plus withAccessTenant for tables that
- * carry an explicit accessTenantId column.
+ * Use this helper inside withTenantContext for tables with a tenantId column.
+ * For tables carrying an explicit accessTenantId column, prefer withAccessTenant
+ * inside the same transaction boundary instead.
  */
 export function withTenant(
   tenantId: string,

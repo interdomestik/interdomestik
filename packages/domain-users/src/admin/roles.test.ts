@@ -53,6 +53,14 @@ describe('authorized role writer', () => {
       )
       .mockImplementationOnce(async (_scope, run) =>
         run({
+          select: vi.fn(() => ({
+            from: () => ({
+              where: () => ({
+                for: vi.fn().mockResolvedValue([{ role: 'member' }]),
+              }),
+            }),
+          })),
+          query: { userRoles: { findMany: vi.fn().mockResolvedValue([]) } },
           update: vi.fn(() => ({
             set: vi.fn(() => ({
               where: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([{ id: 'user-1' }]) })),

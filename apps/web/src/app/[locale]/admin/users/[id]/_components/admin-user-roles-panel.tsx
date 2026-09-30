@@ -88,7 +88,6 @@ export function AdminUserRolesPanel({
 
   const [grantRole, setGrantRole] = useState<string>(ROLE_MEMBER);
   const [grantBranchId, setGrantBranchId] = useState<string>(TENANT_WIDE_BRANCH);
-  const [customRole, setCustomRole] = useState<string>('');
 
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCode, setNewBranchCode] = useState('');
@@ -96,7 +95,7 @@ export function AdminUserRolesPanel({
   const [isCreateBranchPending, setIsCreateBranchPending] = useState(false);
   const [pendingRevokeRowId, setPendingRevokeRowId] = useState<string | null>(null);
 
-  const effectiveRoleValue = (grantRole === '__custom__' ? customRole : grantRole).trim();
+  const effectiveRoleValue = grantRole.trim();
   const isLegacyTenantWideAgentGrant =
     effectiveRoleValue === ROLE_AGENT &&
     grantBranchId === TENANT_WIDE_BRANCH &&
@@ -187,7 +186,6 @@ export function AdminUserRolesPanel({
       }
 
       toast.success(t('toasts.role_granted'));
-      setCustomRole('');
       setGrantRole(ROLE_MEMBER);
       setGrantBranchId(TENANT_WIDE_BRANCH);
       await refresh();
@@ -293,18 +291,8 @@ export function AdminUserRolesPanel({
                     {getRoleLabel(tCommon, r, r)}
                   </SelectItem>
                 ))}
-                <SelectItem value="__custom__" data-testid="role-option-custom">
-                  {t('custom_role')}
-                </SelectItem>
               </SelectContent>
             </Select>
-            {grantRole === '__custom__' ? (
-              <Input
-                value={customRole}
-                onChange={e => setCustomRole(e.target.value)}
-                placeholder={t('custom_role_placeholder')}
-              />
-            ) : null}
           </div>
 
           <div className="grid gap-2">
