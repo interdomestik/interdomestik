@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UsersTable } from './users-table';
+import { UsersSections } from './users-sections';
 
 // Mock router
 vi.mock('@/i18n/routing', () => ({
@@ -139,6 +140,26 @@ describe('UsersTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  it('retains agent choices for Agent rows which also carry member capability', () => {
+    render(<UsersSections users={[mockUsers[1]]} agents={mockAgents} />);
+    expect(screen.getAllByText('Select Agent')).toHaveLength(2);
+    expect(screen.getAllByText('Agent Smith')).toHaveLength(2);
+  });
+
+  it.each(['staff', 'admin'])(
+    'renders real %s sections identically without agent choices',
+    role => {
+      const users = [{ ...mockUsers[1], role }];
+      const view = render(<UsersSections users={users} agents={mockAgents} />);
+      const baseline = view.container.innerHTML;
+      view.rerender(<UsersSections users={users} agents={[]} />);
+      expect(view.container.innerHTML).toBe(baseline);
+      expect(screen.getByText('Jane Agent')).toBeInTheDocument();
+      expect(screen.queryByText('Select Agent')).not.toBeInTheDocument();
+      expect(screen.queryByText('Agent Smith')).not.toBeInTheDocument();
+    }
+  );
 
   it('preserves full users list query params in profile and alert links', () => {
     render(<UsersTable users={mockUsers} agents={mockAgents} />);

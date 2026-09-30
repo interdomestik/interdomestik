@@ -17,8 +17,18 @@ vi.mock('@interdomestik/database', () => ({
     claimId: 'claimMessages.claimId',
     readAt: 'claimMessages.readAt',
     senderId: 'claimMessages.senderId',
+    createdAt: 'claimMessages.createdAt',
+    id: 'claimMessages.id',
   },
   claims: { id: 'claims.id', tenantId: 'claims.tenantId', userId: 'claims.userId' },
+  sql: Object.assign(
+    (strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      values,
+      mapWith: () => ({ strings, values }),
+    }),
+    {}
+  ),
   desc: vi.fn((column: unknown) => ({ desc: column })),
   eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
   ilike: vi.fn(),
@@ -50,15 +60,16 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('drizzle-orm', () => ({ isNull: vi.fn((column: unknown) => ({ isNull: column })) }));
 vi.mock('./access', () => ({ requireTenantAdminSession: vi.fn(async session => session) }));
 
+import { inArray } from '@interdomestik/database';
 import { getUsersCore } from './get-users';
 
 describe('admin user list RLS context', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findMany.mockResolvedValue([{ id: 'staff-1', role: 'staff' }]);
-    mocks.orderBy.mockResolvedValue([{ userId: 'staff-1', claimId: 'claim-1' }]);
+    mocks.orderBy.mockResolvedValue([{ userId: 'staff-1', claimId: 'claim-1', count: 3 }]);
     mocks.withTenantContext.mockImplementation(async (_context, action) =>
-      action({ query: { user: { findMany: mocks.findMany } }, select: mocks.select })
+      action({ query: { user: { findMany: mocks.findMany } }, selectDistinctOn: mocks.select })
     );
   });
 
@@ -78,10 +89,58 @@ describe('admin user list RLS context', () => {
       {
         id: 'staff-1',
         role: 'staff',
-        unreadCount: 1,
+        unreadCount: 3,
         unreadClaimId: 'claim-1',
         alertLink: '/admin/claims/claim-1',
       },
+    ]);
+  });
+  it('does not query unread messages for an empty result', async () => {
+    mocks.findMany.mockResolvedValue([]);
+    expect(
+      await getUsersCore({
+        session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      })
+    ).toEqual([]);
+    expect(mocks.select).not.toHaveBeenCalled();
+  });
+  it('keeps lookup row shape without querying unread messages', async () => {
+    const users = await getUsersCore({
+      session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      includeUnreadCounts: false,
+    });
+    expect(mocks.select).not.toHaveBeenCalled();
+    expect(users[0]).toMatchObject({
+      id: 'staff-1',
+      unreadCount: 0,
+      unreadClaimId: null,
+      alertLink: null,
+    });
+  });
+  it('bounds unread aggregation to listed IDs and returns one count/latest claim per user', async () => {
+    mocks.findMany.mockResolvedValue([{ id: 'member-1' }, { id: 'member-2' }]);
+    mocks.orderBy.mockResolvedValue([{ userId: 'member-1', claimId: 'latest-claim', count: 5 }]);
+    const users = await getUsersCore({
+      session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+    });
+    expect(inArray).toHaveBeenCalledWith('claims.userId', ['member-1', 'member-2']);
+    expect(mocks.select).toHaveBeenCalledWith(
+      ['claims.userId'],
+      expect.objectContaining({ userId: 'claims.userId', claimId: 'claims.id' })
+    );
+    expect(mocks.orderBy).toHaveBeenCalledWith(
+      'claims.userId',
+      expect.objectContaining({ values: ['claimMessages.createdAt'] }),
+      expect.objectContaining({ values: ['claimMessages.id'] })
+    );
+    expect(users).toEqual([
+      {
+        id: 'member-1',
+        unreadCount: 5,
+        unreadClaimId: 'latest-claim',
+        alertLink: '/admin/claims/latest-claim',
+      },
+      { id: 'member-2', unreadCount: 0, unreadClaimId: null, alertLink: null },
     ]);
   });
 });

@@ -63,6 +63,19 @@ export async function resolveTenantClassification(params: {
 export async function getUsers(
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
+  return getFilteredUsers(filters, true);
+}
+
+export async function getUserChoices(
+  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
+): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
+  return getFilteredUsers(filters, false);
+}
+
+async function getFilteredUsers(
+  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>,
+  includeUnreadCounts: boolean
+): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
     await requireEffectivePortalAccessOrUnauthorized(session, [
       'admin',
@@ -73,7 +86,7 @@ export async function getUsers(
     if (!validation.success) {
       throw new Error('Invalid filters');
     }
-    const data = await getUsersCore({ session, filters: validation.data });
+    const data = await getUsersCore({ session, filters: validation.data, includeUnreadCounts });
     return data;
   });
 }
@@ -88,6 +101,7 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
     const data = await getUsersCore({
       session,
       filters: { role: 'agent' },
+      includeUnreadCounts: false,
     });
     return data;
   });

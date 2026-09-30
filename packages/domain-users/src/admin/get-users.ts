@@ -2,7 +2,8 @@ import {
   and,
   claimMessages,
   claims,
-  desc,
+  inArray,
+  sql,
   eq,
   withTenantContext,
   type TenantTransaction,
@@ -20,8 +21,9 @@ export type { GetUsersFilters } from './user-filters';
 export async function getUsersCore(params: {
   session: UserSession | null;
   filters?: GetUsersFilters;
+  includeUnreadCounts?: boolean;
 }) {
-  const { session, filters } = params;
+  const { session, filters, includeUnreadCounts = true } = params;
   const adminSession = await requireTenantAdminSession(session);
   const scope = scopeFilter(adminSession);
 
@@ -45,7 +47,14 @@ export async function getUsersCore(params: {
         with: { agent: true },
       });
 
-      const unreadByUser = await fetchUnreadCounts(tx, scope.tenantId);
+      const unreadByUser =
+        includeUnreadCounts && users.length
+          ? await fetchUnreadCounts(
+              tx,
+              scope.tenantId,
+              users.map(user => user.id)
+            )
+          : new Map<string, { count: number; claimId: string }>();
       const alertBase = '/admin/claims/';
 
       return users.map(userRow => {
@@ -61,31 +70,28 @@ export async function getUsersCore(params: {
   );
 }
 
-async function fetchUnreadCounts(tx: TenantTransaction, tenantId: string) {
-  const unreadByUser = new Map<string, { count: number; claimId: string }>();
-
-  const unreadConditions = [
-    isNull(claimMessages.readAt),
-    eq(claimMessages.senderId, claims.userId),
-  ];
-
+async function fetchUnreadCounts(tx: TenantTransaction, tenantId: string, userIds: string[]) {
+  // Window aggregation and DISTINCT ON return one row per visible user, preserving
+  // the claim with the newest unread member message without transferring every message.
   const unreadRows = await tx
-    .select({
+    .selectDistinctOn([claims.userId], {
       userId: claims.userId,
       claimId: claims.id,
+      count: sql<number>`count(*) over (partition by ${claims.userId})`.mapWith(Number),
     })
     .from(claimMessages)
     .innerJoin(claims, eq(claimMessages.claimId, claims.id))
-    .where(withTenant(tenantId, claims.tenantId, and(...unreadConditions)))
-    .orderBy(desc(claimMessages.createdAt));
-
-  for (const row of unreadRows) {
-    const existing = unreadByUser.get(row.userId);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      unreadByUser.set(row.userId, { count: 1, claimId: row.claimId });
-    }
-  }
-  return unreadByUser;
+    .where(
+      withTenant(
+        tenantId,
+        claims.tenantId,
+        and(
+          inArray(claims.userId, userIds),
+          isNull(claimMessages.readAt),
+          eq(claimMessages.senderId, claims.userId)
+        )
+      )
+    )
+    .orderBy(claims.userId, sql`${claimMessages.createdAt} desc`, sql`${claimMessages.id} desc`);
+  return new Map(unreadRows.map(row => [row.userId, { count: row.count, claimId: row.claimId }]));
 }
