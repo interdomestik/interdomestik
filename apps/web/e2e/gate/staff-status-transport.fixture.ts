@@ -14,8 +14,8 @@ export async function verifyStatusTransportRecovery(
   let refreshReads = 0;
   let failedHistoryReads = 0;
   const failHistory = async (route: Route) => {
-    failedHistoryReads += 1;
     await route.abort('failed');
+    failedHistoryReads += 1;
   };
   const intercept = async (route: Route) => {
     const request = route.request();
