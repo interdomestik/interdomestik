@@ -148,7 +148,8 @@
         },
         "staff_note": {
           "section_title": "Poslednja statusna beleška",
-          "empty": "Još nema javnih statusnih beleški."
+          "empty": "Još nema javnih statusnih beleški.",
+          "history_title": "Javna istorija statusa"
         }
       },
       "staff_actions": {

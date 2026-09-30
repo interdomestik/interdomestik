@@ -63,6 +63,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     residue = { claimId: null, memberSession: null, ...journey };
     residue.memberSession = await openMemberContext(browser, memberBaseURL);
     const publicNote = `S3 public verification ${randomUUID()}`;
+    const newerNote = `S7 intervening public update ${randomUUID()}`;
     const privateNote = `S3 private staff note ${randomUUID()}`;
     const unauthorizedNotes: string[] = [];
     await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);
@@ -136,7 +137,6 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     await staffDetail.locator('#claim-status-select').click();
     await staffPage.getByRole('option', { name: 'Verifikim', exact: true }).click();
     await staffDetail.getByLabel('Shënim statusi').fill(publicNote);
-    await verifyStatusTransportRecovery(staffPage, submitted.claimId, publicNote);
     const staffActor = await db.query.user.findFirst({
       where: and(
         eq(user.email, E2E_USERS.KS_STAFF.email),
@@ -150,16 +150,29 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: E2E_USERS.KS_STAFF.tenantId,
     });
-    const assignedClaim = await db.query.claims.findFirst({
-      where: and(
-        eq(claims.id, submitted.claimId),
-        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-      ),
-      columns: { assignedAt: true, staffId: true, updatedAt: true },
+    await verifyStatusTransportRecovery(staffPage, submitted.claimId, publicNote, async () => {
+      const assignedClaim = await db.query.claims.findFirst({
+        where: and(
+          eq(claims.id, submitted.claimId),
+          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+        ),
+        columns: { assignedAt: true, staffId: true, updatedAt: true },
+      });
+      expect(assignedClaim?.staffId).toBe(staffActor.id);
+      expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
+      expect(assignedClaim?.assignedAt?.toISOString()).toBe(
+        assignedClaim?.updatedAt?.toISOString()
+      );
+      const result = await updateClaimStatusCore({
+        claimId: submitted.claimId,
+        newStatus: 'verification',
+        note: newerNote,
+        isPublicChange: true,
+        session: { user: staffActor },
+      });
+      expect(result.success).toBe(true);
+      return newerNote;
     });
-    expect(assignedClaim?.staffId).toBe(staffActor.id);
-    expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
-    expect(assignedClaim?.assignedAt?.toISOString()).toBe(assignedClaim?.updatedAt?.toISOString());
     const privateResult = await updateClaimStatusCore({
       claimId: submitted.claimId,
       newStatus: 'verification',
@@ -231,6 +244,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       ])
     );
     expect(histories.filter(row => row.note === publicNote)).toHaveLength(1);
+    expect(histories.filter(row => row.note === newerNote)).toHaveLength(1);
     for (const unauthorizedNote of unauthorizedNotes) {
       expect(histories).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ note: unauthorizedNote })])
@@ -259,7 +273,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       'Verifikim'
     );
     await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
-      publicNote
+      newerNote
     );
     await expect(
       memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()

@@ -263,7 +263,8 @@
         },
         "staff_note": {
           "section_title": "Latest status note",
-          "empty": "No public status notes yet."
+          "empty": "No public status notes yet.",
+          "history_title": "Public status history"
         }
       },
       "staff_actions": {

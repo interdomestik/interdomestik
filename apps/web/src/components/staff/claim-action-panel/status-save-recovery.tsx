@@ -17,7 +17,7 @@ export function StatusSaveRecovery({
     >
       <p className="text-sm">{t('staff_actions.status_update.check_history_hint')}</p>
       <a
-        href={pathname}
+        href={`${pathname}#staff-status-history`}
         target="_blank"
         rel="noopener noreferrer"
         className="block text-sm underline"

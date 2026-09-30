@@ -148,7 +148,8 @@
         },
         "staff_note": {
           "section_title": "Shënimi i fundit i statusit",
-          "empty": "Nuk ka ende shënime publike të statusit."
+          "empty": "Nuk ka ende shënime publike të statusit.",
+          "history_title": "Historiku publik i statusit"
         }
       },
       "staff_actions": {

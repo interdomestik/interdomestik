@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   claimsFindFirst: vi.fn(),
+  historyFindMany: vi.fn(),
   dbSelect: vi.fn(),
 }));
 
@@ -10,6 +11,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },
+      claimStageHistory: { findMany: hoisted.historyFindMany },
     },
     select: hoisted.dbSelect,
   },
@@ -48,7 +50,7 @@ vi.mock('@interdomestik/domain-claims/staff-claims/scope', () => ({
   buildStaffClaimReadScope: vi.fn(() => ({ scope: true })),
 }));
 
-import { getStaffClaimDetailsCore } from './_core';
+import { getStaffClaimDetailsCore, getPublicStatusHistoryCore } from './_core';
 
 function createSelectChain(result: unknown, resolveAt: 'where' | 'orderBy') {
   const chain = {
@@ -135,5 +137,27 @@ describe('getStaffClaimDetailsCore', () => {
     ]);
 
     expect(result.stageHistory).toEqual(historyResult);
+  });
+});
+
+it('reads every public status entry for the authorized tenant and claim, newest first', async () => {
+  const entries = [
+    { id: 'newer', note: 'Later update' },
+    { id: 'original', note: 'Uncertain save' },
+  ];
+  hoisted.historyFindMany.mockResolvedValueOnce(entries);
+  expect(await getPublicStatusHistoryCore({ claimId: 'c1', tenantId: 'tenant_mk' })).toEqual(
+    entries
+  );
+  expect(hoisted.historyFindMany).toHaveBeenCalledWith({
+    where: {
+      and: [
+        { eq: ['claimStageHistory.claimId', 'c1'] },
+        { eq: ['claimStageHistory.tenantId', 'tenant_mk'] },
+        { eq: ['claimStageHistory.isPublic', true] },
+      ],
+    },
+    columns: { id: true, note: true, toStatus: true, createdAt: true },
+    orderBy: [{ desc: 'claimStageHistory.createdAt' }, { desc: 'claimStageHistory.id' }],
   });
 });

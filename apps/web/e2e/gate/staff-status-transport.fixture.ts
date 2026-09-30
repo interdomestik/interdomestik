@@ -4,7 +4,8 @@ import { expect, type Page, type Route } from '@playwright/test';
 export async function verifyStatusTransportRecovery(
   page: Page,
   claimId: string,
-  publicNote: string
+  publicNote: string,
+  beforeCommittedHistory: () => Promise<string>
 ): Promise<void> {
   const detail = page.getByTestId('staff-claim-detail-ready').first();
   const save = detail.getByTestId('staff-update-claim-button');
@@ -52,7 +53,7 @@ export async function verifyStatusTransportRecovery(
     await expect(save).toBeDisabled();
     const firstHistory = await inspectHistory();
     await expect(firstHistory.getByTestId('staff-claim-detail-ready').first()).toBeVisible();
-    await expect(firstHistory.getByTestId('staff-claim-detail-note')).not.toContainText(publicNote);
+    await expect(firstHistory.getByTestId('staff-status-history')).not.toContainText(publicNote);
     await firstHistory.close();
     await detail.getByTestId('staff-status-history-checked').click();
     await expect(save).toBeEnabled();
@@ -60,8 +61,14 @@ export async function verifyStatusTransportRecovery(
     await save.click();
     await expect(detail.getByTestId('staff-status-save-recovery')).toBeVisible();
     await expect(save).toBeDisabled();
+    const newerNote = await beforeCommittedHistory();
     const committedHistory = await inspectHistory();
-    await expect(committedHistory.getByTestId('staff-claim-detail-note')).toContainText(publicNote);
+    await expect(committedHistory.getByTestId('staff-claim-detail-note')).toContainText(newerNote);
+    await expect(committedHistory.getByTestId('staff-claim-detail-note')).not.toContainText(
+      publicNote
+    );
+    await expect(committedHistory.getByTestId('staff-status-history')).toContainText(publicNote);
+    await expect(committedHistory.getByTestId('staff-status-history')).toContainText(newerNote);
     await committedHistory.close();
     await expect(detail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
     await expect(detail.locator('#claim-status-select')).toContainText('Verifikim');
