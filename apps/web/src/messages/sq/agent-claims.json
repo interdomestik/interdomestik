@@ -174,7 +174,8 @@
           "collection_saved": "Mbledhja e tarifës së suksesit u ruajt"
         },
         "error": {
-          "title": "Gabim"
+          "title": "Gabim",
+          "status_save_unconfirmed": "Nuk mund ta konfirmonim ruajtjen. Të dhënat që shkruat janë ende këtu. Kontrolloni historikun e rastit përpara se të provoni përsëri."
         },
         "validation": {
           "recovered_amount_positive": "Shuma e rikuperuar duhet të jetë numër pozitiv."

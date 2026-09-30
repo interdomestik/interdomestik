@@ -205,13 +205,23 @@ export function useClaimActionPanelHandlers({
     startTransition(async () => {
       const trimmedNote = note.trim();
       const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
-      const result = await updateClaimStatus(
-        claimId,
-        status,
-        trimmedNote || undefined,
-        true,
-        trimmedAllowanceOverrideReason || undefined
-      );
+      let result: Awaited<ReturnType<typeof updateClaimStatus>>;
+
+      try {
+        result = await updateClaimStatus(
+          claimId,
+          status,
+          trimmedNote || undefined,
+          true,
+          trimmedAllowanceOverrideReason || undefined
+        );
+      } catch {
+        toast.error(t('staff_actions.error.title'), {
+          description: t('staff_actions.error.status_save_unconfirmed'),
+        });
+        return;
+      }
+
       if (result.success) {
         toast.success(t('staff_actions.success.title'), {
           description: t('staff_actions.success.status_updated'),

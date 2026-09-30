@@ -174,7 +174,8 @@
           "collection_saved": "Naplata success fee je sačuvana"
         },
         "error": {
-          "title": "Greška"
+          "title": "Greška",
+          "status_save_unconfirmed": "Nismo mogli da potvrdimo čuvanje. Vaši unosi su i dalje ovde. Proverite istoriju predmeta pre nego što pokušate ponovo."
         },
         "validation": {
           "recovered_amount_positive": "Naplaćeni iznos mora biti pozitivan broj."

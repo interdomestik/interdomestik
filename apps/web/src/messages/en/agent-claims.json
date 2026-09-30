@@ -289,7 +289,8 @@
           "collection_saved": "Success-fee collection saved"
         },
         "error": {
-          "title": "Error"
+          "title": "Error",
+          "status_save_unconfirmed": "We could not confirm the save. Your entries are still here. Check the case history before trying again."
         },
         "validation": {
           "recovered_amount_positive": "Recovered amount must be a positive number."

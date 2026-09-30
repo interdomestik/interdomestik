@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-29
+last_reviewed: 2026-09-30
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,20 +16,20 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S7-STAFF-DECLINE-PREVIEW` is the active bounded staff-handling increment selected from protected
-main `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Staff can preview the localized, safe
-member decision before saving a decline while their private explanation stays visibly separate.
-The same product PR addresses the observed intermittent canonical-host transport failure in the
-staging CD gate without relaxing exact-SHA or rollback checks. This is bounded S7 software and
-delivery evidence, not a conflict hard stop, whole S7, production or user acceptance.
+`S7-STAFF-STATUS-SAVE-RECOVERY` is the active bounded staff-handling increment selected from
+fresh protected main `b0dfc1858b962f0920e628d1f011fcdc63535bcd`. A rejected status/note save
+currently escapes the mounted panel transition without local feedback. Preserve staff entries and
+show localized confirmation-unknown guidance without automatic retry or new server semantics.
+This is bounded S7 recovery, not a new conflict/role policy or whole-journey acceptance.
 
-PR [#1846](https://github.com/interdomestik/interdomestik/pull/1846) protected-merged the
-safe-decline handoff as `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Automatic exact-main
-[CD `36587516135`](https://github.com/interdomestik/interdomestik/actions/runs/36587516135)
-failed canonical alias confirmation in attempts 1 and 2 after the immutable candidate passed
-health. The runner's canonical HTTPS request reported curl exit 6; its underlying cause is
-unproven. Attempt 2 restored the prior healthy staging alias target `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
-Credit the merged product behavior, but do not claim #1846 was staged or user-validated.
+Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
+[#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
+[#1850](https://github.com/interdomestik/interdomestik/pull/1850) admin-list tenant/RLS,
+[#1851](https://github.com/interdomestik/interdomestik/pull/1851) grantable-role protection and
+[#1853](https://github.com/interdomestik/interdomestik/pull/1853) records search/filter recovery.
+Main `b0dfc1858b962f0920e628d1f011fcdc63535bcd` passed exact-main
+[CD 36744876702](https://github.com/interdomestik/interdomestik/actions/runs/36744876702) staging/P0;
+production was skipped. Do not repeat completed proof or claim staff/member user acceptance.
 
 PR [#1845](https://github.com/interdomestik/interdomestik/pull/1845) delivered exact acknowledged,
 linked-upload request fulfilment as protected merge `28a4f27ff03b4eb57bc098b06df5137bfe292491`.
@@ -263,7 +263,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 ADR authority control until explicitly amended.
 
 Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S7 staff handling after credited #1845 exact fulfilment, #1842 assigned-staff queue, #1841 shared
+S7 staff handling after credited #1847/#1849 decline preview/recovery, #1845 exact fulfilment,
+#1842 assigned-staff queue, #1841 shared
 next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
@@ -288,22 +289,17 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current staff decline preview and staging recovery acceptance
+### Current staff status/note save recovery acceptance
 
-- The mounted staff decision form shows a read-only member-facing preview after a decline category
-  is selected. Sensitive conflict/integrity selection shows only the generic member reason; the
-  typed staff explanation never enters the preview. The preview uses the current staff interface
-  locale and tells staff the member sees their own selected locale.
-- Empty selection is neutral and leaves decline disabled. The preview is labeled and announces
-  category changes without moving keyboard focus. EN/SQ/MK/SR mounted tests compare preview copy
-  with the existing member catalog. No decision writer, routing, auth, tenant or schema changes.
-- Before alias movement, CD checks canonical health against the attested preimage SHA. After
-  movement, bounded retries still require provider mapping plus immutable and canonical health on
-  the exact candidate SHA. A failed confirmation retains the exact preimage rollback path. Local
-  tests and independent trust review precede one consolidated final verification lane.
-- #1846 remains merged but staging-unproven until the new exact-main CD run passes. Neither a
-  pre-save preview nor a green gate establishes conflict disposition, whole `IDA-CLM-013/015`,
-  whole S7, production or user acceptance.
+- Preserve selected status, public note and private allowance reason on rejected save transport.
+- Show EN/SQ/MK/SR confirmation-unknown guidance; check case history before a manual retry.
+- No automatic retry or claim of rollback. Keep existing known-negative and acknowledged-success behavior.
+- Catch only action rejection; do not relabel a later refresh exception as an unconfirmed save.
+- Preserve action arguments, tenant/RLS/auth, proxy, routes and page-ready contracts.
+- Consolidate focused regressions and independent/current-head analysis before one full local lane.
+- Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
+  integrator corrections and defects found after final review in the existing PR receipt.
+- Protected checks and exact-merge staging remain required. Whole S7 and human acceptance stay open.
 
 ### Credited #1846 safe-decline handoff acceptance
 
@@ -513,6 +509,18 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-09-30: [React transition error handling](https://react.dev/reference/react/useTransition#displaying-an-error-to-users-with-error-boundary)
+states that a rejected transition promise reaches an error boundary. The mounted status-save
+handler lacks a local catch; direct callback reproduction confirms escaped rejection and no local
+feedback. Adopt a catch scoped to the action await, preserving drafts and showing confirmation-unknown
+copy. Reject automatic replay: losing a response does not prove whether the write committed.
+Verify real React transitions, known-negative results, manual retry and acknowledged-success refresh
+separation. Reuse IDA-CAS-006/007/008 public/private semantics and IDA-NFR-007/008 localization/usability
+from the [SRS v0.9 disposition](requirement-disposition-map.md); full clauses remain open.
+Carry only reproducible agent/preflight sources, not private packets or raw closeout archives.
+
+### Credited decline research
 
 Checked 2026-09-29: the owner-held SRS v0.9 source matched SHA-256
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`.
