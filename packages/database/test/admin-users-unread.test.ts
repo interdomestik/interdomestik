@@ -8,17 +8,19 @@ import {
   inArray,
   withTenantContext,
 } from '@interdomestik/database';
-import { expect, it } from 'vitest';
-import { getUsersCore } from './get-users';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { getUsersCore } from '../../domain-users/src/admin/get-users';
 
 // Opt in against an owned, migrated and seeded local database; never a production target.
-it.skipIf(process.env.RECORDS_USER_LIST_DB_PROOF !== '1')(
+test(
   'aggregates actual unread SQL with a non-bypass role and two tenants',
+  { skip: process.env.RECORDS_USER_LIST_DB_PROOF !== '1' },
   async () => {
     const target = new URL(process.env.DATABASE_URL!);
-    expect(target.hostname).toBe('127.0.0.1');
-    expect(target.port).toBe('55432');
-    expect(process.env.DB_RLS_ROLE).toBe('records_search_rls');
+    assert.equal(target.hostname, '127.0.0.1');
+    assert.equal(target.port, '55432');
+    assert.equal(process.env.DB_RLS_ROLE, 'records_search_rls');
     await dbAdmin.execute(
       sql`do $$ begin create role records_search_rls nologin nosuperuser nobypassrls; exception when duplicate_object then null; end $$`
     );
@@ -162,31 +164,54 @@ it.skipIf(process.env.RECORDS_USER_LIST_DB_PROOF !== '1')(
             sql`select current_user as role, rolbypassrls as bypass, rolsuper as superuser from pg_roles where rolname=current_user`
           )
       );
-      expect(runtime[0]).toMatchObject({
+      assert.deepEqual(runtime[0], {
         role: 'records_search_rls',
         bypass: false,
         superuser: false,
       });
       const rows = await getUsersCore({ session, filters: { search: prefix, role: 'member' } });
-      expect(rows).toHaveLength(2);
-      expect(rows.find(row => row.id === memberId)).toMatchObject({
-        unreadCount: 3,
-        unreadClaimId: newClaim,
-        alertLink: `/admin/claims/${newClaim}`,
-      });
-      expect(rows.find(row => row.id === emptyId)).toMatchObject({
-        unreadCount: 0,
-        unreadClaimId: null,
-        alertLink: null,
-      });
-      expect(rows.some(row => row.id === foreignId)).toBe(false);
+      assert.equal(rows.length, 2);
+      const member = rows.find(row => row.id === memberId);
+      assert.deepEqual(
+        {
+          unreadCount: member?.unreadCount,
+          unreadClaimId: member?.unreadClaimId,
+          alertLink: member?.alertLink,
+        },
+        {
+          unreadCount: 3,
+          unreadClaimId: newClaim,
+          alertLink: `/admin/claims/${newClaim}`,
+        }
+      );
+      const empty = rows.find(row => row.id === emptyId);
+      assert.deepEqual(
+        {
+          unreadCount: empty?.unreadCount,
+          unreadClaimId: empty?.unreadClaimId,
+          alertLink: empty?.alertLink,
+        },
+        {
+          unreadCount: 0,
+          unreadClaimId: null,
+          alertLink: null,
+        }
+      );
+      assert.equal(
+        rows.some(row => row.id === foreignId),
+        false
+      );
       const choices = await getUsersCore({
         session,
         filters: { search: prefix, role: 'member' },
         includeUnreadCounts: false,
       });
-      expect(choices.every(row => row.unreadCount === 0 && row.unreadClaimId === null)).toBe(true);
-      expect(await getUsersCore({ session, filters: { search: `${prefix}-no-match` } })).toEqual(
+      assert.equal(
+        choices.every(row => row.unreadCount === 0 && row.unreadClaimId === null),
+        true
+      );
+      assert.deepEqual(
+        await getUsersCore({ session, filters: { search: `${prefix}-no-match` } }),
         []
       );
       console.log(
