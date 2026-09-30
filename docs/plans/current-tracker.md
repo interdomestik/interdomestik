@@ -49,9 +49,9 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                              | Source Refs                                            | Execution  | Run ID  | Run Root                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                         |
-| ------------------------------- | ------------------------------------------------------ | ---------- | ------- | --------------------------------------- | ------- | -------------- | -------------- | -------- | ------------------------------------------------------------------------------------- |
-| `S7-STAFF-STATUS-SAVE-RECOVERY` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `b0dfc1858` | `scripted` | pending | localized staff save transport recovery | pending | not_applicable | not_applicable | pending  | [requirement disposition](requirement-disposition-map.md); product PR receipt pending |
+| ID                              | Source Refs                                            | Execution  | Run ID  | Run Root                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------ | ---------- | ------- | --------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-STAFF-STATUS-SAVE-RECOVERY` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `b0dfc1858` | `scripted` | pending | localized staff save transport recovery | pending | not_applicable | not_applicable | pending  | [requirement disposition](requirement-disposition-map.md); [product PR #1854](https://github.com/interdomestik/interdomestik/pull/1854) |
 
 ## Current Facts
 

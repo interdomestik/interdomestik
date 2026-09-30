@@ -104,8 +104,9 @@ Use one supported launch path with the task's local environment loaded BEFORE
 orchestration, for both diagnostics and final proof. On the verified Node runtime:
 node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
 Use the same prefix for a targeted build; never rely on late Playwright env loading.
-Before expensive proof run the companion interdomestik-agent-preflight.mjs from
-the installed guide directory with --expected-port <task-port>. It uses the repo's
+Before expensive proof run docs/guides/interdomestik-agent-preflight.mjs from
+the active repository with --expected-port <task-port>; a personal installed copy
+may be used only after verifying parity with this versioned source. It uses the repo's
 actual Playwright network resolver, rejects missing/conflicting port or DB targets,
 checks loopback DB TCP reachability and that the app port is free, and prints no
 credentials. Its pass is NOT SQL authentication/RLS proof or port reservation.

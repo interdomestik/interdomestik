@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:net';
 import test from 'node:test';
-import { configuration, probe } from './interdomestik-agent-preflight.mjs';
+import { configuration, probe } from '../../docs/guides/interdomestik-agent-preflight.mjs';
 import { resolvePlaywrightNetwork } from '../../apps/web/playwright-network.ts';
 
 const env = {
@@ -69,4 +69,24 @@ test('probes reachability and occupied ports; never claims SQL/RLS proof', async
   assert.equal((await probe(config)).sqlAndRlsVerified, false);
   await new Promise(resolve => db.close(resolve));
   await assert.rejects(probe(config), /DB TCP probe failed/);
+});
+
+test('does not conflate IPv4, IPv6 and localhost database endpoints', () => {
+  for (const host of ['[::1]', 'localhost']) {
+    assert.throws(
+      () =>
+        configuration(
+          { ...env, DATABASE_URL_RLS: `postgresql://rls:test@${host}:55432/test` },
+          '3100',
+          resolvePlaywrightNetwork
+        ),
+      /targets differ/
+    );
+  }
+  const ipv6 = {
+    ...env,
+    DATABASE_URL: 'postgresql://admin:test@[::1]:55432/test',
+    DATABASE_URL_RLS: 'postgresql://rls:test@[::1]:55432/test',
+  };
+  assert.equal(configuration(ipv6, '3100', resolvePlaywrightNetwork).database.host, '::1');
 });

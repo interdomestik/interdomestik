@@ -1,9 +1,6 @@
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { Component, useRef, useState, useTransition } from 'react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClaimStatus, RecoveryDecisionSnapshot } from '@/actions/staff-claims.core';
 import { updateClaimStatus } from '@/actions/staff-claims.core';
 import { toast } from 'sonner';
 import en from '@/messages/en/agent-claims.json';
@@ -13,6 +10,13 @@ import sr from '@/messages/sr/agent-claims.json';
 
 import type { TranslateFn } from './format-helpers';
 import { useClaimActionPanelHandlers } from './use-claim-action-panel-handlers';
+import {
+  INITIAL_STATUS,
+  StatusUpdateHarness,
+  TestErrorBoundary,
+  stubRecoveryDecision,
+  t,
+} from './status-update-test.fixture';
 
 vi.mock('@/actions/staff-claims.core', () => ({
   assignClaim: vi.fn(),
@@ -26,97 +30,9 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-const INITIAL_STATUS: ClaimStatus = 'verification';
-const t: TranslateFn = key => key;
-const stubRecoveryDecision: RecoveryDecisionSnapshot = {
-  status: 'pending',
-  decidedAt: null,
-  explanation: null,
-  declineReasonCode: null,
-  staffLabel: 'Pending',
-  memberLabel: null,
-  memberDescription: null,
-};
-
 const mockedUpdateClaimStatus = vi.mocked(updateClaimStatus);
 const mockedToastSuccess = vi.mocked(toast.success);
 const mockedToastError = vi.mocked(toast.error);
-
-class TestErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <div data-testid="error-boundary-fallback">fallback</div>;
-    }
-    return this.props.children;
-  }
-}
-
-type HarnessProps = {
-  refresh: () => void;
-  translate?: TranslateFn;
-};
-
-function StatusUpdateHarness({ refresh, translate = t }: HarnessProps) {
-  const [isPending, startTransition] = useTransition();
-  const [note, setNote] = useState('  raw note  ');
-  const [allowanceOverrideReason, setAllowanceOverrideReason] = useState('  raw reason  ');
-  const [status, setStatus] = useState<ClaimStatus>(INITIAL_STATUS);
-  const decisionSaveKeyRef = useRef<string | null>(null);
-  const agreementSaveKeyRef = useRef<string | null>(null);
-
-  const { handleStatusUpdate } = useClaimActionPanelHandlers({
-    agreementSaveKeyRef,
-    allowanceOverrideReason,
-    assignmentOptions: [],
-    claimId: 'claim-1',
-    decisionExplanation: '',
-    decisionNextStatus: 'negotiation',
-    decisionReason: '',
-    decisionSaveKeyRef,
-    declineReasonCode: '',
-    deductionPath: 'fallback',
-    feePercentage: '',
-    hasValidRecoveredAmount: false,
-    legalActionCapPercentage: '',
-    minimumFee: '',
-    note,
-    parsedRecoveredAmount: 0,
-    paymentAuthorizationState: 'pending',
-    recoveryDecision: stubRecoveryDecision,
-    refresh,
-    selectedAssigneeId: '',
-    setAllowanceOverrideReason,
-    setDeclineReasonCode: () => {},
-    setNote,
-    setSavedAgreement: () => {},
-    setSavedRecoveryDecision: () => {},
-    setSavedSuccessFeeCollection: () => {},
-    setStatus,
-    staffId: 'staff-1',
-    startTransition,
-    status,
-    t: translate,
-    termsVersion: '',
-  });
-
-  return (
-    <>
-      <div data-testid="pending">{isPending ? 'pending' : 'idle'}</div>
-      <div data-testid="note">{note}</div>
-      <div data-testid="allowance">{allowanceOverrideReason}</div>
-      <div data-testid="status">{status}</div>
-      <button disabled={isPending} onClick={handleStatusUpdate}>
-        save
-      </button>
-    </>
-  );
-}
 
 describe('handleStatusUpdate transport recovery', () => {
   it.each(Object.entries({ en, sq, mk, sr }))(

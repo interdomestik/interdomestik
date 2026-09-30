@@ -41,7 +41,7 @@ export function configuration(env, expectedPort, resolveNetwork) {
       host: url.hostname === '[::1]' ? '::1' : url.hostname,
       port: Number(url.port || 5432),
     };
-    endpoints.push({ ...endpoint, identity: `${endpoint.port}${url.pathname}` });
+    endpoints.push({ ...endpoint, identity: `${endpoint.host}:${endpoint.port}${url.pathname}` });
   }
   assert.ok(
     endpoints.every(x => x.identity === endpoints[0].identity),
