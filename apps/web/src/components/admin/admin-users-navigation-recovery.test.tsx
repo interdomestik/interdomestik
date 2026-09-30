@@ -176,3 +176,37 @@ it('preserves newer typing across history acknowledgements that arrive after tim
   expect(input).toHaveValue('newm');
   expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
 });
+
+it('reasserts the settled latest filter after an older acknowledgement but honors explicit history', () => {
+  searchParamsMock.mockReturnValue(new URLSearchParams('tenantId=tenant_ks&search=ada'));
+  const controls = <UsersFilters hideRole />;
+  const view = render(controls);
+  const older = 'tenantId=tenant_ks&search=ada&assignment=unassigned';
+  const latest = 'tenantId=tenant_ks&search=ada&assignment=assigned';
+  fireEvent.click(screen.getByTestId('admin-users-assignment-filter-unassigned'));
+  act(() => vi.advanceTimersByTime(10_000));
+  fireEvent.click(screen.getByTestId('admin-users-assignment-filter-assigned'));
+  expect(pushMock).toHaveBeenCalledTimes(2);
+  searchParamsMock.mockReturnValue(new URLSearchParams(latest));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
+  searchParamsMock.mockReturnValue(new URLSearchParams(older));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(pushMock).toHaveBeenCalledTimes(3);
+  expect(pushMock).toHaveBeenLastCalledWith(`/admin/users?${latest}`, { scroll: false });
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledTimes(3);
+  searchParamsMock.mockReturnValue(new URLSearchParams(latest));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  act(() => {
+    window.history.replaceState(null, '', `/admin/users?${older}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  searchParamsMock.mockReturnValue(new URLSearchParams(older));
+  view.rerender(<AdminUsersSearchProvider>{controls}</AdminUsersSearchProvider>);
+  expect(screen.getByTestId('admin-users-filter-region')).toHaveAttribute('aria-busy', 'false');
+  expect(screen.getByTestId('admin-users-assignment-filter-unassigned')).toBeDisabled();
+  act(() => vi.advanceTimersByTime(300));
+  expect(pushMock).toHaveBeenCalledTimes(3);
+});

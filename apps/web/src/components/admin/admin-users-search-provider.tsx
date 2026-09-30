@@ -40,6 +40,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
   const ownNavigations = useRef(new Set<string>());
   const submittedSearch = useRef<string | null>(null);
   const historyParams = useRef<string | null>(null);
+  const handledParams = useRef<string | null>(null);
   const pendingKindRef = useRef<PendingKind | null>(null);
   const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
   const [isHistoryPending, setIsHistoryPending] = useState(false);
@@ -49,6 +50,8 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
   }, []);
 
   useEffect(() => {
+    if (handledParams.current === paramsString) return;
+    handledParams.current = paramsString;
     if (historyParams.current !== null) {
       if (historyParams.current !== paramsString) return;
       historyParams.current = null;
@@ -58,7 +61,18 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
     } else if (ownNavigations.current.has(paramsString)) {
       ownNavigations.current.delete(paramsString);
       // Older acknowledgements retain the draft and cannot settle a newer request.
-      if (requestedParams.current !== paramsString) return;
+      if (requestedParams.current !== paramsString) {
+        if (requestedParams.current === null && navigationParams.current !== paramsString) {
+          const target = navigationParams.current;
+          requestedParams.current = target;
+          ownNavigations.current.add(target);
+          updatePending('search');
+          startTransition(() =>
+            router.push(target ? `${pathname}?${target}` : pathname, { scroll: false })
+          );
+        }
+        return;
+      }
     } else {
       navigationParams.current = paramsString;
       setSearchValue(currentSearch);
@@ -66,7 +80,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
     requestedParams.current = null;
     submittedSearch.current = null;
     updatePending(null);
-  }, [paramsString, currentSearch, updatePending]);
+  }, [paramsString, currentSearch, updatePending, pathname, router, startTransition]);
 
   useEffect(() => {
     const restoreHistory = () => {
