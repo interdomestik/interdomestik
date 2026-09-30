@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tenants } from '@interdomestik/database/schema';
+import { eq } from 'drizzle-orm';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +11,11 @@ type MockTenantContext =
 
 const hoisted = vi.hoisted(() => ({
   getSessionSafeMock: vi.fn(async () => null),
-  loadTenantOptionsMock: vi.fn(async () => [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }]),
+  tenantRows: [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }],
+  adminSelectMock: vi.fn(),
+  runtimeSelectMock: vi.fn(),
+  activeOnlyMock: vi.fn(),
+  tenantFromMock: vi.fn(),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
   savedDraftSignInMock: vi.fn((_: unknown) => <div>saved-draft-sign-in</div>),
   redirectMock: vi.fn(),
@@ -51,9 +57,14 @@ vi.mock('@/lib/tenant/tenant-request', () => ({
   resolveTenantContextFromRequest: hoisted.resolveTenantContextFromRequestMock,
 }));
 
-vi.mock('./_core', () => ({
+vi.mock('./_core', async importOriginal => ({
+  ...(await importOriginal<typeof import('./_core')>()),
   getLoginTenantBootstrapRedirect: vi.fn(() => null),
-  loadTenantOptions: () => hoisted.loadTenantOptionsMock(),
+}));
+
+vi.mock('@interdomestik/database/db', () => ({
+  db: { select: hoisted.runtimeSelectMock },
+  dbAdmin: { select: hoisted.adminSelectMock },
 }));
 
 // The server entry has its own host/tenant tests; this renderer mounts its resolved boundary.
@@ -67,9 +78,15 @@ describe('LoginPage tenant selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.getSessionSafeMock.mockResolvedValue(null);
-    hoisted.loadTenantOptionsMock.mockResolvedValue([
-      { id: 'tenant_ks', name: 'KS', countryCode: 'XK' },
-    ]);
+    hoisted.adminSelectMock.mockReturnValue({ from: hoisted.tenantFromMock });
+    hoisted.tenantFromMock.mockReturnValue({ where: hoisted.activeOnlyMock });
+    hoisted.activeOnlyMock.mockReturnValue({
+      orderBy: vi.fn().mockResolvedValue(hoisted.tenantRows),
+    });
+    // Staging RLS deliberately makes tenants invisible to the runtime role.
+    hoisted.runtimeSelectMock.mockReturnValue({
+      from: () => ({ where: () => ({ orderBy: async () => [] }) }),
+    });
     hoisted.resolveTenantContextFromRequestMock.mockResolvedValue({
       kind: 'tenant',
       tenantId: 'tenant_ks',
@@ -91,6 +108,8 @@ describe('LoginPage tenant selection', () => {
     );
     expect(screen.getByTestId('auth-portal-form-region')).toBeInTheDocument();
     expect(screen.queryByText('tenant-selector')).not.toBeInTheDocument();
+    expect(hoisted.adminSelectMock).not.toHaveBeenCalled();
+    expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
     expect(screen.getByText('login-form')).toBeInTheDocument();
     expect(hoisted.savedDraftSignInMock).toHaveBeenCalledWith({ locale: 'en' });
     expect(hoisted.loginFormMock).toHaveBeenCalledWith(
@@ -98,30 +117,43 @@ describe('LoginPage tenant selection', () => {
     );
   });
 
-  it('renders the tenant chooser inside the portal form region for public ida context', async () => {
-    hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
-      kind: 'public',
-      tenantId: null,
-      source: 'ida_front_door',
-    });
+  it.each(['en', 'sq', 'mk', 'sr'])(
+    'renders active public tenant metadata despite runtime RLS denial in %s',
+    async locale => {
+      hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
+        kind: 'public',
+        tenantId: null,
+        source: 'ida_front_door',
+      });
 
-    const tree = await LoginPage({
-      params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({}),
-    });
+      const tree = await LoginPage({
+        params: Promise.resolve({ locale }),
+        searchParams: Promise.resolve({}),
+      });
 
-    render(tree);
+      render(tree);
 
-    expect(screen.getByTestId('auth-portal-form-region')).toContainElement(
-      screen.getByText('tenant-selector')
-    );
-    expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'auth.login.portal.tenantTitle' })
-    );
-    expect(hoisted.loginFormMock).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: undefined })
-    );
-  });
+      expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
+      expect(hoisted.adminSelectMock).toHaveBeenCalledWith({
+        id: expect.anything(),
+        name: expect.anything(),
+        countryCode: expect.anything(),
+      });
+      expect(hoisted.activeOnlyMock).toHaveBeenCalledExactlyOnceWith(eq(tenants.isActive, true));
+      expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
+        expect.objectContaining({ tenants: hoisted.tenantRows })
+      );
+      expect(screen.getByTestId('auth-portal-form-region')).toContainElement(
+        screen.getByText('tenant-selector')
+      );
+      expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'auth.login.portal.tenantTitle' })
+      );
+      expect(hoisted.loginFormMock).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: undefined })
+      );
+    }
+  );
 
   it('keeps portal login copy available in every supported locale', () => {
     const expectedKeys = [
