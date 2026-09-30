@@ -11,6 +11,7 @@ allowBuilds:
   supabase: true
 
 overrides:
+  next: 16.3.6
   axios: ^1.13.5
   body-parser: 2.3.0
   fast-xml-parser: 5.7.0
@@ -34,7 +35,7 @@ overrides:
   '@modelcontextprotocol/sdk': '>=1.27.1'
   got: '>=11.8.5'
   electron: 40.8.5
-  '@grpc/grpc-js': 1.14.4
+  '@grpc/grpc-js': 1.14.5
   flatted: 3.4.2
   rollup: 4.59.0
   express-rate-limit: 8.3.0
@@ -61,4 +62,4 @@ overrides:
   '@opentelemetry/exporter-prometheus': 0.217.0
 
 patchedDependencies:
-  next@16.3.3: patches/next@16.3.3.patch
+  next@16.3.6: patches/next@16.3.6.patch
