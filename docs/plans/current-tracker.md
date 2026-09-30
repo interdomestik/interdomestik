@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-29
+last_reviewed: 2026-09-30
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,55 +15,55 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                         | Status        | Owner                   | Work                                                                                                                                      | Exit Criteria                                                                                                                                          |
-| -------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `S7-STAFF-DECLINE-PREVIEW` | `in_progress` | Codex integration owner | Preview safe member decline wording in staff handling and recover exact-main staging after the observed canonical-host transport failure. | Four-locale preview and private-note separation, bounded canonical pre/post-alias checks, independent review, protected checks and exact-main staging. |
+| ID                              | Status        | Owner                   | Work                                                       | Exit Criteria                                                                                                  |
+| ------------------------------- | ------------- | ----------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `S7-STAFF-STATUS-SAVE-RECOVERY` | `in_progress` | Codex integration owner | Preserve staff entries after unconfirmed status/note save. | Four-locale recovery, unchanged action semantics, independent review, protected checks and exact-main staging. |
 
 ### Current acceptance
 
-- Base: freshly fetched protected main `598bbe27201a89016a8321f083b70f2e0d5e7b25`.
-- Credit merged #1846 safe member decline, #1845 fulfilment, #1842 staff queue, #1841 shared next
-  action and #1814 request evidence without repeating their checks. #1846 staging remains unproven.
-- Staff see the selected decline's member wording before save, using the same four-locale member
-  catalog and sensitive-category projection. The typed staff explanation remains outside the
-  preview; no category selection yields a neutral state and disabled decline action.
-- The canonical alias must answer with the attested old SHA before movement. Post-movement checks
-  retry a bounded interval and still require provider mapping, immutable health and canonical
-  health on the exact new SHA; failure reaches exact-preimage rollback.
-- EN/SQ/MK/SR mounted tests, unchanged proxy/auth/RLS, CI trust tests and one consolidated heavy
-  lane after independent review.
-- Required local/hosted checks, independent current-head review, protected merge and exact-main
-  automatic staging; no production, charge or full cross-role/user acceptance claim.
+- Base: fresh main `b0dfc1858b962f0920e628d1f011fcdc63535bcd`.
+- Preserve selected status, public note and private allowance reason on rejected save transport.
+- Show EN/SQ/MK/SR confirmation-unknown guidance; check case history before a manual retry.
+- No automatic retry or claim of rollback. Keep existing known-negative and acknowledged-success behavior.
+- Catch only action rejection; do not relabel a later refresh exception as an unconfirmed save.
+- Preserve action arguments, tenant/RLS/auth, proxy, routes and page-ready contracts.
+- Consolidate focused regressions and independent/current-head analysis before one full local lane.
+- Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
+  integrator corrections and defects found after final review in the existing PR receipt.
+- Protected checks and exact-merge staging remain required. Whole S7 and human acceptance stay open.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                 |
-| ------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                       |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                            |
-| S7 — staff handling                         | `active_bounded`      | Deliver staff decline preview and exact-main staging recovery; credit merged #1846 safe decline, #1845 fulfilment, #1842 queue and #1841 next action. Conflict disposition and whole S7 remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                                 |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                            |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                         |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                   |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                           |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
+| S7 — staff handling                         | `active_bounded`      | Deliver staff status/note save recovery; credit #1847/#1849 decline preview/recovery and #1853 records search. Conflict disposition and whole S7 remain open.  |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                             |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                         | Source Refs                                                                 | Execution  | Run ID  | Run Root                                                  | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                              |
-| -------------------------- | --------------------------------------------------------------------------- | ---------- | ------- | --------------------------------------------------------- | ------- | -------------- | -------------- | -------- | ------------------------------------------ |
-| `S7-STAFF-DECLINE-PREVIEW` | IDA-CLM-013/015; protected main `598bbe2`; #1846/#1845/#1842/#1841 credited | `scripted` | pending | safe pre-save member wording and bounded staging recovery | pending | not_applicable | not_applicable | pending  | four-locale preview; no conflict hard stop |
+| ID                              | Source Refs                                            | Execution  | Run ID  | Run Root                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------ | ---------- | ------- | --------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-STAFF-STATUS-SAVE-RECOVERY` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `b0dfc1858` | `scripted` | pending | localized staff save transport recovery | pending | not_applicable | not_applicable | pending  | [requirement disposition](requirement-disposition-map.md); [product PR #1854](https://github.com/interdomestik/interdomestik/pull/1854) |
 
 ## Current Facts
 
-- #1846 protected-merged as `598bbe27201a89016a8321f083b70f2e0d5e7b25`. Automatic
-  exact-main [CD `36587516135`](https://github.com/interdomestik/interdomestik/actions/runs/36587516135)
-  failed canonical alias confirmation twice after immutable candidate health passed. The deploy
-  runner reported curl exit 6 for `staging.interdomestik.com`; the underlying cause is unproven.
-  Attempt 2 rollback restored the prior healthy `28a4f27` staging target. #1846 is merged but
-  staging-unproven; production was skipped.
+Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
+[#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
+[#1850](https://github.com/interdomestik/interdomestik/pull/1850) admin-list tenant/RLS,
+[#1851](https://github.com/interdomestik/interdomestik/pull/1851) grantable-role protection and
+[#1853](https://github.com/interdomestik/interdomestik/pull/1853) records search/filter recovery.
+Main `b0dfc1858b962f0920e628d1f011fcdc63535bcd` passed exact-main
+[CD 36744876702](https://github.com/interdomestik/interdomestik/actions/runs/36744876702) staging/P0;
+production was skipped. Do not repeat completed proof or claim staff/member user acceptance.
+
 - #1845 protected-merged as `28a4f27ff03b4eb57bc098b06df5137bfe292491`. Automatic exact-main
   [CD `36528840781`](https://github.com/interdomestik/interdomestik/actions/runs/36528840781)
   passed staging deployment, health, provenance and configured P0; production was skipped.
@@ -180,8 +180,9 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-Complete the bounded staff decline preview and exact-main staging proof before selecting another
-S5/S6 gap or S7 slice.
+Complete bounded staff status/note save recovery and exact-main staging before selecting another
+S7 increment; follow the existing dependent S8–S14 sequence. Single-primary versus multi-role
+business semantics remain unresolved and do not block this independent recovery outcome.
 Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment.

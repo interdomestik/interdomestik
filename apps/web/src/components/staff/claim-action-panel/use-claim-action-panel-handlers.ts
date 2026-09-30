@@ -14,7 +14,7 @@ import {
   type SuccessFeeCollectionSnapshot,
   updateClaimStatus,
 } from '@/actions/staff-claims.core';
-import type { MutableRefObject } from 'react';
+import { useState, type MutableRefObject } from 'react';
 import { toast } from 'sonner';
 
 import { getAssignmentSuccessDescription, type AssignmentOption } from './assignment-helpers';
@@ -89,6 +89,7 @@ export function useClaimActionPanelHandlers({
   termsVersion,
   agreementSaveKeyRef,
 }: UseClaimActionPanelHandlersParams) {
+  const [statusSaveUnconfirmed, setStatusSaveUnconfirmed] = useState(false);
   const handleAssign = () => {
     const nextAssigneeId = selectedAssigneeId || null;
     const selectedAssignmentLabel =
@@ -202,16 +203,28 @@ export function useClaimActionPanelHandlers({
   };
 
   const handleStatusUpdate = () => {
+    if (statusSaveUnconfirmed) return;
     startTransition(async () => {
       const trimmedNote = note.trim();
       const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
-      const result = await updateClaimStatus(
-        claimId,
-        status,
-        trimmedNote || undefined,
-        true,
-        trimmedAllowanceOverrideReason || undefined
-      );
+      let result: Awaited<ReturnType<typeof updateClaimStatus>>;
+
+      try {
+        result = await updateClaimStatus(
+          claimId,
+          status,
+          trimmedNote || undefined,
+          true,
+          trimmedAllowanceOverrideReason || undefined
+        );
+      } catch {
+        setStatusSaveUnconfirmed(true);
+        toast.error(t('staff_actions.error.title'), {
+          description: t('staff_actions.error.status_save_unconfirmed'),
+        });
+        return;
+      }
+
       if (result.success) {
         toast.success(t('staff_actions.success.title'), {
           description: t('staff_actions.success.status_updated'),
@@ -253,6 +266,8 @@ export function useClaimActionPanelHandlers({
   };
 
   return {
+    statusSaveUnconfirmed,
+    acknowledgeStatusHistory: () => setStatusSaveUnconfirmed(false),
     handleAcceptRecoveryDecision,
     handleAgreementSave,
     handleAssign,

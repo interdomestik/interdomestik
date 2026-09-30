@@ -17,6 +17,7 @@ import { Loader2 } from 'lucide-react';
 
 import { useClaimActionPanel } from './context';
 import type { ClaimStatusOption } from './types';
+import { StatusSaveRecovery } from './status-save-recovery';
 
 type StatusUpdateSectionProps = {
   allowanceOverrideReason: string;
@@ -31,6 +32,8 @@ type StatusUpdateSectionProps = {
   resolvedCommercialScope: AcceptedRecoveryPrerequisitesSnapshot['commercialScope'];
   status: ClaimStatus;
   onStatusUpdate: () => void;
+  statusSaveUnconfirmed: boolean;
+  onHistoryChecked: () => void;
   setAllowanceOverrideReason: (value: string) => void;
   setNote: (value: string) => void;
   setStatus: (value: ClaimStatus) => void;
@@ -49,6 +52,8 @@ export function StatusUpdateSection({
   resolvedCommercialScope,
   status,
   onStatusUpdate,
+  statusSaveUnconfirmed,
+  onHistoryChecked,
   setAllowanceOverrideReason,
   setNote,
   setStatus,
@@ -138,11 +143,14 @@ export function StatusUpdateSection({
         </div>
       ) : null}
 
+      {statusSaveUnconfirmed && <StatusSaveRecovery onHistoryChecked={onHistoryChecked} />}
+
       <Button
         className="w-full"
         onClick={onStatusUpdate}
         disabled={
           isPending ||
+          statusSaveUnconfirmed ||
           (!hasStatusChanged && !note.trim()) ||
           requiresCommercialScopeRestriction ||
           requiresAcceptedRecoveryDecision ||

@@ -1,7 +1,7 @@
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
-import { LatestStatusNoteContent } from '@/features/staff/claims/components/LatestStatusNoteContent';
+import { StaffStatusHistory } from '@/features/staff/claims/components/StaffStatusHistory';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -12,7 +12,7 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
-import { getLatestPublicStatusNoteCore } from './_core';
+import { getPublicStatusHistoryCore } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -46,8 +46,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
   if (!detail) return notFound();
 
-  const [latestStatusNote, assignmentOptions, initialMessagesResult] = await Promise.all([
-    getLatestPublicStatusNoteCore({
+  const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
+    getPublicStatusHistoryCore({
       claimId: id,
       tenantId: session.user.tenantId,
     }),
@@ -220,18 +220,14 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-note">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {tClaims('details.staff_note.section_title')}
-        </h2>
-        <div className="mt-3 space-y-1 text-sm">
-          <LatestStatusNoteContent
-            latestStatusNote={latestStatusNote}
-            emptyLabel={tClaims('details.staff_note.empty')}
-            locale={locale}
-          />
-        </div>
-      </section>
+      <StaffStatusHistory
+        statusHistory={statusHistory}
+        locale={locale}
+        latestTitle={tClaims('details.staff_note.section_title')}
+        emptyLabel={tClaims('details.staff_note.empty')}
+        historyTitle={tClaims('details.staff_note.history_title')}
+        statusLabel={status => tStatus(toClaimStatus(status))}
+      />
 
       {session.user.role === 'branch_manager' ? (
         <section

@@ -113,6 +113,22 @@ export async function getStaffClaimDetailsCore(args: {
   };
 }
 
+// Called only after the page's staff/branch and claim-scope authorization succeeds.
+export function getPublicStatusHistoryCore(args: {
+  claimId: string;
+  tenantId: string;
+}): Promise<Array<LatestPublicStatusNote & { id: string; toStatus: string | null }>> {
+  return db.query.claimStageHistory.findMany({
+    where: and(
+      eq(claimStageHistory.claimId, args.claimId),
+      eq(claimStageHistory.tenantId, args.tenantId),
+      eq(claimStageHistory.isPublic, true)
+    ),
+    columns: { id: true, note: true, toStatus: true, createdAt: true },
+    orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
+  });
+}
+
 export async function getLatestPublicStatusNoteCore(args: {
   claimId: string;
   tenantId: string;

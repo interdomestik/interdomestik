@@ -107,7 +107,9 @@ it('requires an explicit exact-upload review confirmation and preserves retry on
   expect(button).toBeEnabled();
   fireEvent.click(button);
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Try again'));
-  await waitFor(() => expect(button).toBeEnabled());
+  // aria-disabled guards the handler while React finishes the failed transition.
+  await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'false'));
+  expect(button).toBeEnabled();
   expect(screen.getByTestId('information-request-status')).toHaveTextContent('Open');
   expect(mocks.refresh).not.toHaveBeenCalled();
   fireEvent.click(button);

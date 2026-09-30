@@ -268,6 +268,8 @@ export function useClaimActionPanelModel({
     handleAssign: handlers.handleAssign,
     handleDeclineRecoveryDecision: handlers.handleDeclineRecoveryDecision,
     handleStatusUpdate: handlers.handleStatusUpdate,
+    statusSaveUnconfirmed: handlers.statusSaveUnconfirmed,
+    acknowledgeStatusHistory: handlers.acknowledgeStatusHistory,
     handleSuccessFeeCollectionSave: handlers.handleSuccessFeeCollectionSave,
     setAllowanceOverrideReason,
     setDecisionExplanation,

@@ -148,7 +148,8 @@
         },
         "staff_note": {
           "section_title": "Poslednja statusna beleška",
-          "empty": "Još nema javnih statusnih beleški."
+          "empty": "Još nema javnih statusnih beleški.",
+          "history_title": "Javna istorija statusa"
         }
       },
       "staff_actions": {
@@ -174,7 +175,8 @@
           "collection_saved": "Naplata success fee je sačuvana"
         },
         "error": {
-          "title": "Greška"
+          "title": "Greška",
+          "status_save_unconfirmed": "Nismo mogli da potvrdimo čuvanje. Vaši unosi su i dalje ovde. Proverite istoriju predmeta pre nego što pokušate ponovo."
         },
         "validation": {
           "recovered_amount_positive": "Naplaćeni iznos mora biti pozitivan broj."
@@ -286,7 +288,10 @@
           "allowance_override_reason": "Razlog za prekoračenje kvote",
           "allowance_override_description": "Ako je član iscrpeo godišnju kvotu predmeta, ovde zabeležite interni razlog za prekoračenje ili unapredite pokriće pre nego što počne naplata koju vodi osoblje.",
           "allowance_override_placeholder": "Objasnite zašto naplata treba da počne uprkos iscrpljenoj kvoti...",
-          "save": "Ažuriraj zahtev"
+          "save": "Ažuriraj zahtev",
+          "check_history_hint": "Otvorite istoriju predmeta u novoj kartici. Ako je ažuriranje već tamo, nemojte ga ponovo sačuvati. U suprotnom, potvrdite da ste proverili pre novog pokušaja. Nacrt ostaje ovde.",
+          "open_history": "Proverite istoriju (nova kartica)",
+          "history_checked": "Proverio/la sam istoriju; dozvoli ponovni pokušaj"
         }
       },
       "triage": {
