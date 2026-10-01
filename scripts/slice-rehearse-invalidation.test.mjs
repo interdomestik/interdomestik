@@ -189,11 +189,8 @@ test('identity-preserving full-gate admission does not invalidate exact-head pro
   assert.equal(requiredEvidenceProofDeficit(final), null);
 });
 
-test('ready-state synchronize requires one-shot exact-head full-gate admission', () => {
-  assert.deepEqual(requiredFullGateDeficit(true, ['docs/example.md']), {
-    code: 'proof:full-gate',
-    coveredBy: 'apply_full_gate_label',
-  });
+test('ready-state synchronize admits source certification without a full-gate label', () => {
+  assert.equal(requiredFullGateDeficit(true, ['docs/example.md']), null);
   assert.equal(requiredFullGateDeficit(true, ['.github/workflows/ci.yml']), null);
   assert.equal(requiredFullGateDeficit(false, ['docs/example.md']), null);
 });
