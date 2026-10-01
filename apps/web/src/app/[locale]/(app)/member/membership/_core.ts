@@ -1,9 +1,5 @@
-import { and, db, eq, isNull, subscriptions } from '@interdomestik/database';
-import {
-  attachMembershipEntityDisclosure,
-  attachMembershipEntityDisclosures,
-  type SubscriptionRecord,
-} from './_entity-disclosure';
+import { and, withTenantContext, eq, isNull, subscriptions } from '@interdomestik/database';
+import { attachMembershipEntityDisclosures, type SubscriptionRecord } from './_entity-disclosure';
 
 export type { SubscriptionRecord } from './_entity-disclosure';
 
@@ -24,22 +20,8 @@ export async function getMembershipPageModelCore(args: {
   tenantId: string | null | undefined;
   now?: Date;
 }): Promise<MembershipPageModel> {
-  const subscriptionResult = args.tenantId
-    ? await db.query.subscriptions.findMany({
-        where: and(
-          eq(subscriptions.userId, args.userId),
-          eq(subscriptions.tenantId, args.tenantId)
-        ),
-        with: {
-          plan: true,
-        },
-        orderBy: (subscriptionTable, { desc }) => [desc(subscriptionTable.createdAt)],
-      })
-    : null;
-
-  const subscription = subscriptionResult?.[0]
-    ? await attachMembershipEntityDisclosure(subscriptionResult[0])
-    : null;
+  const records = await getMemberSubscriptionsCore(args);
+  const subscription = records[0] ?? null;
 
   return {
     subscription,
@@ -54,19 +36,16 @@ export async function getMemberSubscriptionsCore(args: {
   userId: string;
   tenantId: string | null | undefined;
 }) {
-  if (!args.tenantId) {
-    return [];
-  }
-
-  const records = await db.query.subscriptions.findMany({
-    where: and(eq(subscriptions.userId, args.userId), eq(subscriptions.tenantId, args.tenantId)),
-    with: {
-      plan: true,
-    },
-    orderBy: (subscriptions, { desc }) => [desc(subscriptions.createdAt)],
+  const tenantId = args.tenantId;
+  if (!tenantId) return [];
+  return withTenantContext({ tenantId, role: 'member' }, async db => {
+    const records = await db.query.subscriptions.findMany({
+      where: and(eq(subscriptions.userId, args.userId), eq(subscriptions.tenantId, tenantId)),
+      with: { plan: true },
+      orderBy: (table, { desc }) => [desc(table.createdAt)],
+    });
+    return attachMembershipEntityDisclosures(records);
   });
-
-  return attachMembershipEntityDisclosures(records);
 }
 
 export function computeDunningState(args: {
@@ -122,14 +101,16 @@ export async function getMemberDocumentsCore(args: {
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  return db.query.documents.findMany({
-    where: (docs, { and: andFn, eq: eqFn }) =>
-      andFn(
-        eqFn(docs.entityType, 'member'),
-        eqFn(docs.entityId, args.userId),
-        eqFn(docs.tenantId, tenantId),
-        isNull(docs.deletedAt)
-      ),
-    orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
-  });
+  return withTenantContext({ tenantId, role: 'member' }, db =>
+    db.query.documents.findMany({
+      where: (docs, { and: andFn, eq: eqFn }) =>
+        andFn(
+          eqFn(docs.entityType, 'member'),
+          eqFn(docs.entityId, args.userId),
+          eqFn(docs.tenantId, tenantId),
+          isNull(docs.deletedAt)
+        ),
+      orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
+    })
+  );
 }

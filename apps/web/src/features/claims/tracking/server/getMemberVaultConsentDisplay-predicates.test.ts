@@ -1,18 +1,16 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  locale: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
 }));
 
-import {
-  baseParams,
-  orderedRowsChain,
-  tenantChain,
-} from './getMemberVaultConsentDisplay.test-support';
+import { baseParams, orderedRowsChain } from './getMemberVaultConsentDisplay.test-support';
 
 const schema = vi.hoisted(() => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
@@ -37,7 +35,12 @@ const schema = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({ db: { select: hoisted.select } }));
+vi.mock('@interdomestik/database', () => ({
+  db: { select: hoisted.select },
+}));
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: hoisted.locale,
+}));
 vi.mock('@interdomestik/database/schema', () => schema);
 vi.mock('drizzle-orm', () => ({
   and: hoisted.and,
@@ -51,11 +54,25 @@ import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 describe('getMemberVaultConsentDisplay predicates', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('uses administrative metadata but the supplied RLS transaction for documents and consents', async () => {
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
+    const select = vi
+      .fn()
+      .mockReturnValueOnce(
+        orderedRowsChain([{ id: 'document-1', category: 'evidence', createdAt: null }])
+      )
+      .mockReturnValueOnce(orderedRowsChain([]));
+    const tx = { select } as unknown as TenantTransaction;
+    await getMemberVaultConsentDisplay(baseParams, tx);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.select).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledTimes(2);
+  });
+
   it('skips consent reads when no eligible evidence exists', async () => {
     const documents = orderedRowsChain([]);
-    hoisted.select
-      .mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]))
-      .mockReturnValueOnce(documents);
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
+    hoisted.select.mockReturnValueOnce(documents);
 
     await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual({
       kind: 'ready',
@@ -73,17 +90,15 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       { op: 'desc', column: 'documents.createdAt' },
       { op: 'desc', column: 'documents.id' }
     );
-    expect(hoisted.select).toHaveBeenCalledTimes(2);
+    expect(hoisted.select).toHaveBeenCalledTimes(1);
   });
 
   it('uses the full member consent scope and deterministic ordering', async () => {
     const document = { id: 'document-1', category: 'evidence', createdAt: null };
     const documents = orderedRowsChain([document]);
     const consents = orderedRowsChain([]);
-    hoisted.select
-      .mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]))
-      .mockReturnValueOnce(documents)
-      .mockReturnValueOnce(consents);
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
+    hoisted.select.mockReturnValueOnce(documents).mockReturnValueOnce(consents);
 
     await getMemberVaultConsentDisplay(baseParams);
 

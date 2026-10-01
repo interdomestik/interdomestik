@@ -9,16 +9,18 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
-  db: {
-    query: {
-      documents: {
-        findMany: hoisted.findDocumentsMany,
+  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+    callback({
+      query: {
+        documents: {
+          findMany: hoisted.findDocumentsMany,
+        },
+        subscriptions: {
+          findMany: vi.fn(),
+        },
       },
-      subscriptions: {
-        findMany: vi.fn(),
-      },
-    },
-  },
+    })
+  ),
   eq: hoisted.eq,
   isNull: hoisted.isNull,
   subscriptions: {

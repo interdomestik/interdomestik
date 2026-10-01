@@ -1,10 +1,8 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
 import { db } from '@interdomestik/database';
-import {
-  claimDocumentAiExtractionConsents,
-  claimDocuments,
-  tenants,
-} from '@interdomestik/database/schema';
+import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
+import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
 
@@ -17,15 +15,10 @@ export interface GetMemberVaultConsentDisplayParams {
 }
 
 export async function getMemberVaultConsentDisplay(
-  params: GetMemberVaultConsentDisplayParams
+  params: GetMemberVaultConsentDisplayParams,
+  database: TenantTransaction | typeof db = db
 ): Promise<VaultConsentDisplay> {
-  // db-access-guard: tenant-scoped -- reason: tenant identity is resolved by the authorized member claim-detail boundary before this exact tenant gate
-  const tenantRows = await db
-    .select({ code: tenants.code, countryCode: tenants.countryCode })
-    .from(tenants)
-    .where(eq(tenants.id, params.tenantId))
-    .limit(1);
-  const tenant = tenantRows[0];
+  const tenant = await readTenantLocaleMetadata(params.tenantId);
   const gated = buildVaultConsentDisplay({
     tenantCode: tenant?.code ?? null,
     tenantCountryCode: tenant?.countryCode ?? null,
@@ -37,7 +30,7 @@ export async function getMemberVaultConsentDisplay(
   if (gated.kind !== 'ready') return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact MK tenant gate passed and the claim was already resolved through the member-scoped claim-detail query
-  const documents = await db
+  const documents = await database
     .select({
       id: claimDocuments.id,
       category: claimDocuments.category,
@@ -55,7 +48,7 @@ export async function getMemberVaultConsentDisplay(
   if (documents.length === 0) return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact tenant, member, claim, document, consent-type, and purpose predicates bound this read
-  const consents = await db
+  const consents = await database
     .select({
       id: claimDocumentAiExtractionConsents.id,
       documentId: claimDocumentAiExtractionConsents.documentId,
@@ -85,8 +78,8 @@ export async function getMemberVaultConsentDisplay(
     );
 
   return buildVaultConsentDisplay({
-    tenantCode: tenant.code,
-    tenantCountryCode: tenant.countryCode,
+    tenantCode: tenant?.code ?? null,
+    tenantCountryCode: tenant?.countryCode ?? null,
     claimCategory: params.claimCategory,
     piiStatus: params.piiStatus,
     documents,

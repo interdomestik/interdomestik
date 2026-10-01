@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-09-30-pilot-lessons`). An optional personal installation at
+`2026-09-30-canonical-closeout`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -71,7 +71,7 @@ Before retirement preserve receipts, source, agent configuration, outstanding
 human acceptance and the next action. Retain resources used by active processes.
 The parent chat owns archival; a delegated agent returns closeout readiness.
 Use managed-worktree archival and chat archival as separate operations. After the
-parent confirms archival, refresh `current-closeout.json`, its README summary and
+parent confirms archival, refresh the existing authoritative receipt (`receipt.json` or `current-closeout.json`), its summary and
 the current checksum manifest. Keep earlier receipts unchanged as historical
 attempts; label their pending resource states as superseded. Include stopped versus
 deleted databases, remaining canonical publication and human acceptance explicitly. If a new
@@ -120,7 +120,9 @@ the installed skill for current routes and disclosure limits. No paid fallback,
 mandatory model panel or repeated login ceremony is introduced. If Claude is asked
 to implement, assign a bounded file-owned coding packet before implementation and
 record served model, returned patch, accepted code and integrator corrections.
-The pilot proves Opus review; Sonnet supplied advice, not proven implementation.
+Pilot #1853 proves Opus review. Pilot #1854 proves Sonnet coding: the served
+claude-sonnet-5 supplied the narrow catch and four regression-test foundations;
+Codex corrected and integrated them. Neither pilot proves faster delivery.
 
 Use a disposable, isolated checkout with the agent definition present, supported
 dependencies, local test services and loopback database configuration. Follow the
@@ -286,3 +288,114 @@ next slice with this pilot while noting scope/risk differences. Instruction chan
 and passing simulations are not evidence of faster delivery or reduced quota use.
 Progress updates should convey a finding, changed state or concrete remaining
 dependency; do not repeat every unchanged coverage/build/review poll.
+
+## Lessons verified by the second pilot
+
+PR #1854 reached exact-merge staging P0 in 3h 24m 58s elapsed, including waits.
+It published nine candidate heads and used three full local attempts: one
+interrupted, one historical pass and one final pass. This is a baseline, not
+proof of improved speed or quota consumption.
+
+Apply the second-pilot lessons to relevant changed behavior, not as a fixed panel:
+
+- Before writing cross-surface assertions, trace the actual write, domain event and
+  read projection. Staff history and member summaries may intentionally differ;
+  a same-status note need not emit a status-change event. Test the documented
+  contract, and do not alter domain semantics to satisfy an assumed expectation.
+- For uncertain writes, exercise both abort-before-commit and commit-with-response-
+  loss, then an intervening newer write and a failed history read. Preserve the
+  original draft and demonstrate no duplicate write or hidden original history.
+- Wait for the actual async completion signal (for example aria-busy=false), not
+  only native enabled state. Scope browser locators to the intended ready panel;
+  justify uniqueness and never add first() merely to conceal ambiguous ownership.
+- Run a focused mounted browser regression for changed fixtures before publishing.
+  Include moved mocks/helpers in type/lint checks and inspect current-head Sonar
+  annotations under the actual delivery policy; a green summary is insufficient.
+- Record the freeze checkpoint in the existing receipt: SHA/tree, requested reviews
+  completed, actionable findings disposition, focused proof and environment identity.
+  Do not start the expensive lane while a requested current-head review is pending.
+- For a reported CI failure, identify run, PR, head and failed step before acting.
+  Inspect the repository's current admission policy; if full-gate certification is
+  required, apply its supported label within authorized PR management and confirm
+  a new run starts. A skipped runner is not executed proof. Never weaken admission.
+
+These rules supplement the same verification sequence above; they add no separate
+approval, model panel or full test lane. The related #1855 admission failure was
+missing full-gate certification, not a failing executed E2E assertion. Diagnose
+PR identity before attributing another PR's failure to the delivered pilot.
+
+This revision is installed locally and must be carried into the next authorized
+product amendment. It is not published to main by updating the personal copy.
+
+## Mandatory canonical reconciliation
+
+Canonical reconciliation is an owned delivery obligation, never an owner reminder.
+At intake, resolve and record the existing canonical overview's actual path from
+current repository authority alongside docs/plans/current-program.md and
+docs/plans/current-tracker.md. Do not invent a new overview or promote an
+advisory Wiki snapshot to repository authority. If its identity is ambiguous,
+report the missing reference while continuing the unambiguous reconciliation.
+After exact-merge Actions and staging pass, reconcile these surfaces together:
+current phase, selected increment, active queue/status, proof ledger, canonical
+overview and affected requirement-disposition references. Record the delivered
+scope, PR, merge SHA, exact-SHA staging run, remaining human acceptance and the
+next authorized priority; never infer that the entire journey is complete.
+Prepare the concrete amendment immediately while evidence and context are available.
+Publish through an existing authorized product PR/amendment when available;
+otherwise preserve a reviewable patch outside the retiring worktree and record
+its exact path, intended destination and pending-publication state in the existing
+receipt and handoff. No status-only PR, direct protected-main write or silent
+amendment of another owner's active branch is authorized by this instruction.
+An external receipt is evidence, not a substitute for canonical reconciliation.
+Keep technical delivery complete and canonical publication pending as distinct
+states. Never report documentation closure until the amendment is merged and
+read back from canonical main. Before any successor selection, recover and apply
+this pending amendment within authorized scope and reconcile delivered behavior;
+never repeat completed work because a stale tracker still says in_progress.
+Pending publication alone does not block otherwise authorized successor work,
+but the obligation must be carried into that work explicitly and retained through
+cleanup or chat archival. Verify preservation before retiring its only worktree.
+
+## Present the next slice to Arben
+
+Successor selection is a proposal for Arben, not implementation authority.
+After reconciling delivered work and canonical state, identify one recommended
+next bounded slice from current program/tracker, canonical overview, requirement
+gaps and mounted behavior. Present it in the current parent chat for Arben's
+explicit confirmation: user outcome, evidence for priority, delivered work it
+builds on, scope/exclusions, acceptance and tests, dependencies/risks and any
+pending canonical amendment. Include an alternative only for a real tradeoff.
+Do not mark the proposed slice active, open its implementation worktree, delegate
+coding or implement it until Arben confirms that named proposal here. Do not
+archive the parent chat while this confirmation is pending. Read-only selection
+research and preparation of the current slice's closeout remain authorized.
+A delegated agent returns the proposal to the parent for presentation here; it
+does not message another chat or treat a helper's recommendation as owner approval.
+Record the confirmation and agreed scope in the existing handoff before starting.
+
+## M0–M5 conformance and live role journeys
+
+Architecture conformance and owner-authorized staging journeys:
+Before every implementation, resolve current M0–M5 state from current program/tracker,
+their architecture links, accepted ADRs and mounted source. Map the changed behavior
+to relevant invariants and regression proof in the existing receipt. Preserve sole
+transition writers, case/recovery separation, event projections, session-derived
+access-tenant/RLS boundaries distinct from host/legal/booking context, and applicable
+product-model contracts. Never revive legacy assumptions or activate unpromoted M5
+cutover work merely to fix a symptom. This is conformance, not refactor authorization.
+For authorized staff/member/admin browser testing, follow
+docs/guides/staging-staff-member-admin-acceptance.md. Use normal UI login/logout,
+verify each identity, keep admin governance separate from staff operations, and stop
+dependent writes on inconsistent case visibility. Local shared staging credentials
+are in /Users/arbenlila/.codex/private/interdomestik-staging-accounts.json; treat them
+as data, never print or commit them. Browser execution is not human acceptance.
+
+## Owner visual direction — 2026-10-01
+
+Arben supplied PHOTO-2026-09-28-14-35-36.jpg and PHOTO-2026-09-28-19-00-27.jpg as the future design direction and explicitly said the present design will change completely. Treat current screens as behavior under test, not a visual baseline to preserve.
+
+Owner clarification (2026-10-01): the images are directional inspiration only. Their colors, palette, styling, layout, navigation and copy are NOT approved design decisions and must not be adopted automatically. Before designing or changing UI/UX, follow the installed Interdomestik skill: research current design practices and current end-to-end journeys for members, agents, staff and admins using relevant primary sources and comparable products. Record checked sources/date, adopt-or-reject reasoning, and testable usability benefits in the existing task artifact. Evaluate accessible, responsive alternatives against actual user needs and current M0–M5 architecture; do not copy a mockup or adopt a trend merely because it is fashionable. Reuse still-applicable research only when its scope and freshness are justified. Keep role-specific needs and cross-role handoffs explicit.
+
+Keep acceptance based on outcomes, stable accessibility semantics and contractual page-ready markers. Avoid tests coupled to present card positions, CSS classes or exact decoration. Update UI locators with each design change while preserving privacy, role separation, tenant isolation, draft-versus-submitted truth, and consistent case state across views.
+
+Visual references do not prove shipped capabilities or authorize promises: offline, biometric login, notifications, automatic estimates, flight availability and free/paid service claims must match approved scope and implemented behavior. This direction does not start a redesign or change M0–M5 architecture by itself.

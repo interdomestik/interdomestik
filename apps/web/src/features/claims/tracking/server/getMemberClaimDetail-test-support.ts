@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
     renderMode: 'standard',
   },
   claimFindFirst: vi.fn(),
+  context: vi.fn(),
   timelineRows: vi.fn(),
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
@@ -27,7 +28,7 @@ const hoisted = vi.hoisted(() => ({
   toMemberSafeRecoveryDecision: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
-    async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
+    (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
   ),
 }));
 
@@ -52,14 +53,17 @@ vi.mock('../utils', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.claimFindFirst,
+  withTenantContext: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
+    hoisted.context(_context);
+    return callback({
+      query: {
+        claims: {
+          findFirst: hoisted.claimFindFirst,
+        },
       },
-    },
-    select: hoisted.select,
-  },
+      select: hoisted.select,
+    });
+  }),
   ERASURE_REDACTED_VALUE: '[erased]',
 }));
 

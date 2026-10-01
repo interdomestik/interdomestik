@@ -1,3 +1,4 @@
+import { isStaffOrHigher } from '@interdomestik/shared-auth';
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
@@ -76,8 +77,10 @@ export function mapClaimsToDto(
   rows: ClaimsQueryRow[],
   facets: { active: number; draft: number; closed: number; total: number },
   page: number,
-  perPage: number
+  perPage: number,
+  role?: string
 ): ClaimsListV2Dto {
+  const canViewOperations = isStaffOrHigher(role);
   const mappedRows: ClaimsListV2Row[] = rows.map(row => {
     const { claim, claimant, branch, staff, unreadCount } = row;
 
@@ -114,11 +117,11 @@ export function mapClaimsToDto(
       daysInCurrentStage,
       claimantName: claimant?.name || 'Unknown',
       claimantEmail: claimant?.email || '',
-      branchId: branch?.id || null,
-      branchCode: branch?.code || null,
-      branchName: branch?.name || null,
-      staffName: staff?.name || null,
-      staffEmail: staff?.email || null,
+      branchId: canViewOperations ? branch?.id || null : null,
+      branchCode: canViewOperations ? branch?.code || null : null,
+      branchName: canViewOperations ? branch?.name || null : null,
+      staffName: canViewOperations ? staff?.name || null : null,
+      staffEmail: canViewOperations ? staff?.email || null : null,
       assignedAt: claim.assignedAt || null,
       amount: formattedAmount,
       currency: claim.currency || 'EUR',

@@ -117,6 +117,33 @@ describe('allowance visibility', () => {
 });
 
 describe('transaction propagation', () => {
+  it('reads visibility entirely on tx without acquiring the recovery write lock', async () => {
+    const query = createSelectChain();
+    query.limit
+      .mockResolvedValueOnce([
+        { id: 'sub-1', planId: 'standard', currentPeriodStart: NOW, currentPeriodEnd: NOW },
+      ])
+      .mockResolvedValueOnce([{ count: 1 }]);
+    const select = vi.fn(() => query);
+    const execute = vi.fn(() => {
+      throw new Error('Visibility must not lock');
+    });
+    mocks.db.select.mockReset().mockImplementation(() => {
+      throw new Error('Global read forbidden');
+    });
+    const result = await getMatterAllowanceVisibilityForUser({
+      tx: { select, execute } as unknown as TenantTransaction,
+      tenantId: 'tenant-1',
+      userId: 'member-1',
+      now: NOW,
+    });
+    expect(result).toMatchObject({ allowanceTotal: 2, consumedCount: 1, remainingCount: 1 });
+    expect(result).not.toHaveProperty('subscriptionId');
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(execute).not.toHaveBeenCalled();
+    expect(mocks.db.select).not.toHaveBeenCalled();
+  });
+
   it('uses tx for subscription, usage and locked count', async () => {
     const rows = [
       [{ id: 'sub-1', planId: 'standard', currentPeriodStart: NOW, currentPeriodEnd: NOW }],
