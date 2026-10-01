@@ -26,21 +26,22 @@ No deployment, product readiness or user-acceptance claim is made for the curren
 ### Confirmed acceptance slice
 
 `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` — repair and testing active, Codex integration owner.
-Exit: #1855 exact-merge staging, approved synthetic identities/case, real browser login and
-staff/member observations bound to that SHA; technical proof and Arben acceptance separate.
+Exit: protected repair delivery and exact-merge staging, approved synthetic identities/case, real browser login and
+member/staff/admin observations bound to the delivered SHA; technical proof and Arben acceptance separate.
 
 ### Current acceptance
 
-- Base: fresh main `b0dfc1858b962f0920e628d1f011fcdc63535bcd`.
-- Preserve selected status, public note and private allowance reason on rejected save transport.
-- Show EN/SQ/MK/SR confirmation-unknown guidance; check case history before a manual retry.
-- No automatic retry or claim of rollback. Keep existing known-negative and acknowledged-success behavior.
-- Catch only action rejection; do not relabel a later refresh exception as an unconfirmed save.
-- Preserve action arguments, tenant/RLS/auth, proxy, routes and page-ready contracts.
-- Consolidate focused regressions and independent/current-head analysis before one full local lane.
+- Base: main `6405f13a5ca545e646189d0b15c298bb8d589824` (#1855).
+- Restore owned member case continuity across dashboard, list, detail and reload with RLS active.
+- Reuse the authorized tenant transaction for documents, consent, timeline and membership reads.
+- Keep tenant directory access behind fixed metadata projections; no raw privileged client in product modules.
+- Expose the existing account/logout menu at mobile widths and verify protected navigation after logout.
+- Preserve tenant ownership, privacy, auth layering, proxy, canonical routes and page-ready contracts.
+- Execute the [member/staff/admin scenario](../guides/staging-staff-member-admin-acceptance.md)
+  on the delivered staging SHA and record search latency samples separately from correctness.
 - Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
-  integrator corrections and defects found after final review in the existing PR receipt.
-- Protected checks and exact-merge staging passed for #1854. Whole S7 and human acceptance stay open.
+  integrator corrections and defects found after final review in the existing receipt.
+- Prior #1854 save-recovery evidence remains delivered; current repair delivery and human acceptance remain pending.
 
 ## Product Queue
 
@@ -70,7 +71,7 @@ PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
 All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
 passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
 staff history are technically delivered; production was skipped. Whole S7 and human acceptance
-remain open. The worktree is archived; the owned local database is stopped with data preserved.
+remain open. The #1854 worktree is archived. Its preserved local database was restarted for the authorized synthetic acceptance tests.
 
 Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
 [#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
@@ -86,8 +87,8 @@ production was skipped. Do not repeat completed proof or claim staff/member user
   passed staging deployment, health, provenance and configured P0; production was skipped.
   Migration `0096` was subsequently applied and read-only verified on staging Supabase project
   `xjyseqtfuxcuviiankhy` only (97 ledger rows, exact hash, three columns and constraints); the
-  production project was untouched. Live S7 interaction remains unverified because the staging
-  route redirects to login and this checkout has no staging staff/member credentials. Credit the
+  production project was untouched. At that delivery, live S7 interaction was unverified because the staging
+  route required approved staff/member credentials. The current acceptance slice now has those credentials. Credit the
   bounded request fulfilment without claiming whole `IDA-CLM-010`, S7 or user acceptance.
 - #1842 protected-merged as `670f8db1d5323cd5fb9196b7c29b2b3fbc17ac52`. Automatic
   exact-main [CD `36510619671`](https://github.com/interdomestik/interdomestik/actions/runs/36510619671)

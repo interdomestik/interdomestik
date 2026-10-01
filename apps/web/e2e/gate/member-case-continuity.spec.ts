@@ -16,9 +16,13 @@ test('member owned cases remain accessible across dashboard, list and mobile acc
   const detailHref = await links.first().getAttribute('href');
   expect(detailHref).toBeTruthy();
   await links.first().click();
-  await expect(page.getByTestId('member-claim-progress-summary')).toBeVisible();
+  await expect(page.locator('[data-testid="member-claim-progress-summary"]:visible')).toHaveCount(
+    1
+  );
   await page.reload();
-  await expect(page.getByTestId('member-claim-progress-summary')).toBeVisible();
+  await expect(page.locator('[data-testid="member-claim-progress-summary"]:visible')).toHaveCount(
+    1
+  );
   await gotoApp(page, routes.memberClaims(testInfo), testInfo);
   await expect(page.getByTestId('member-claims-table-region')).toBeVisible();
   await expect(page.locator(`a[href="${detailHref}"]`).first()).toBeVisible();

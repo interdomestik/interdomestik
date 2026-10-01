@@ -21,7 +21,7 @@ PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
 All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
 passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
 staff history are technically delivered; production was skipped. Whole S7 and human acceptance
-remain open. The worktree is archived; the owned local database is stopped with data preserved.
+remain open. The #1854 worktree is archived. Its preserved local database was restarted for the authorized synthetic acceptance tests.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
 Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
@@ -47,8 +47,8 @@ Automatic exact-main [CD `36528840781`](https://github.com/interdomestik/interdo
 passed staging deployment, health, provenance and configured P0; production was skipped. Migration
 `0096` was subsequently applied and read-only verified on staging Supabase project
 `xjyseqtfuxcuviiankhy` only: 97 ledger rows, exact migration hash, three columns and constraints.
-The production project was untouched. Live S7 interaction remains unverified because the staging
-route requires staff/member authentication and this checkout has no staging credentials. Credit the
+The production project was untouched. At that delivery, live S7 interaction was unverified because the staging
+route required approved staff/member credentials. The current acceptance slice now has those credentials. Credit the
 bounded fulfilment without claiming whole `IDA-CLM-010` or user acceptance.
 
 PR [#1842](https://github.com/interdomestik/interdomestik/pull/1842) delivered the preceding
