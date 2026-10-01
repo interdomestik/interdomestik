@@ -12,6 +12,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { aliasedTable } from 'drizzle-orm';
 import type { DiasporaOriginFilter } from '../claims/diaspora-origin-filter';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
+import { buildValidDiasporaOriginNoteCondition } from './staff-claims-diaspora-origin-notes';
 import {
   buildStaffClaimsListConditions,
   type StaffClaimsAssignmentFilter,
@@ -85,8 +86,9 @@ export async function getStaffClaimsList(params: {
       const claimIds = rows.map(row => row.id);
       if (claimIds.length === 0) return { rows, historyRows: [] };
 
+      // db-access-guard: tenant-scoped -- reason: scoped by tenant + the page's claim ids under RLS context
       const historyRows = await tx
-        .select({
+        .selectDistinctOn([claimStageHistory.claimId], {
           claimId: claimStageHistory.claimId,
           note: claimStageHistory.note,
         })
@@ -95,10 +97,17 @@ export async function getStaffClaimsList(params: {
           withTenant(
             tenantId,
             claimStageHistory.tenantId,
-            inArray(claimStageHistory.claimId, claimIds)
+            and(
+              inArray(claimStageHistory.claimId, claimIds),
+              buildValidDiasporaOriginNoteCondition(claimStageHistory.note)
+            )
           )
         )
-        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+        .orderBy(
+          claimStageHistory.claimId,
+          desc(claimStageHistory.createdAt),
+          desc(claimStageHistory.id)
+        );
 
       return { rows, historyRows };
     }

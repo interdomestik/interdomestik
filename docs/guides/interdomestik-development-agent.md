@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-01-review-follow-through`). An optional personal installation at
+`2026-10-01-sonnet-next-slice`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -434,3 +434,24 @@ criteria in the existing slice receipt. Do not infer full SRS compliance from a
 bounded implementation or treat planned M0–M5 behavior as shipped. If the source is
 unavailable or conflicts with accepted repo authority, state the precise limitation
 and resolve it before the dependent implementation; do not silently substitute a summary.
+
+## Next slice coding and review lessons
+
+Owner direction for the next slice (2026-10-01): Sonnet 5 is the implementation
+coder; the Interdomestik agent owns integration and verification. Assign one bounded
+coding packet through the approved subscription route, with disjoint files, current
+source, SRS/M0-M5 constraints, acceptance and test expectations. Escalate to Opus for
+concrete unresolved complexity/security/concurrency or failed implementation; record
+why. Verify the actually served model and accepted code. If Sonnet 5 is unavailable,
+report that blocker rather than silently substituting another model. Preserve export
+permissions, subscription-only limits and independent review for high-risk work.
+
+Apply #1858 lessons while preparing the next candidate: put meaningful regressions
+in the required lane, not only behind a manually enabled flag; use focused tests
+before publication and the full lane after review consolidation. Test canonical
+local defaults and fresh CI fixtures without seed assumptions; check changed fixture
+exports against quality rules; keep historical proof in its linked ledger and verify
+tracker links/base SHA.
+Consolidate known review bodies, inline findings and Sonar annotations before a push.
+Follow the PR through verified thread resolution and readiness. Reuse unchanged proof;
+rerun only invalidated evidence. Do not claim efficiency gains without measurements.
