@@ -35,7 +35,7 @@ function bindRunAttempt(result, runAttempt) {
 function isCertificationEvent({ action, draft, labelName }) {
   return (
     action === 'ready_for_review' ||
-    ((action === 'opened' || action === 'reopened') && draft === false) ||
+    (['opened', 'reopened', 'synchronize'].includes(action) && draft === false) ||
     (action === 'labeled' && labelName === 'full-gate')
   );
 }

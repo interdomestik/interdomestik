@@ -4,11 +4,7 @@ import test from 'node:test';
 function expectedGroup(workflow, event) {
   const prefix = `${workflow}-${event.pullNumber}-${event.head}`;
   if (workflow === 'pr-delivery-gate') {
-    const admitted =
-      event.base === 'main' &&
-      event.state === 'open' &&
-      !event.draft &&
-      (event.action !== 'labeled' || event.label === 'full-gate');
+    const admitted = event.base === 'main' && event.state === 'open' && !event.draft;
     if (!admitted) return `${prefix}-deferred-${event.runId}`;
     return `${prefix}-${event.sameRepository ? 'same-repository' : 'fork'}`;
   }
@@ -45,7 +41,7 @@ test('workflow groups combine admission, head, and trust-origin state', () => {
     expectedGroup('pr-delivery-gate', review),
     expectedGroup('pr-delivery-gate', comment)
   );
-  assert.notEqual(
+  assert.equal(
     expectedGroup('pr-delivery-gate', review),
     expectedGroup('pr-delivery-gate', {
       ...lifecycle,
@@ -53,7 +49,7 @@ test('workflow groups combine admission, head, and trust-origin state', () => {
       label: 'bug',
       runId: 13,
     }),
-    'an ordinary label cannot preempt the complete delivery snapshot'
+    'a metadata label refreshes only the complete delivery snapshot'
   );
   assert.equal(
     expectedGroup('pr-delivery-gate', review),

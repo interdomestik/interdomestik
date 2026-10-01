@@ -40,11 +40,11 @@ function pullRequestEvent(overrides = {}) {
   };
 }
 
-test('CLI emits fail-closed outputs for a later ready-head commit', () => {
+test('CLI certifies a later ready-head commit without a label', () => {
   const result = run(pullRequestEvent());
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^run_broad=false$/mu);
-  assert.match(result.stdout, /^certification_required=true$/mu);
+  assert.match(result.stdout, /^run_broad=true$/mu);
+  assert.match(result.stdout, /^certification_required=false$/mu);
   assert.match(result.stdout, /^consume_full_gate=false$/mu);
 });
 
@@ -76,7 +76,7 @@ test('CLI accepts the composite action policy JSON contract', () => {
     }),
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^certification_required=true$/mu);
+  assert.match(result.stdout, /^certification_required=false$/mu);
 });
 
 test('CLI rejects malformed policy evidence', () => {

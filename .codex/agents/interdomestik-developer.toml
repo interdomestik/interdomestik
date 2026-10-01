@@ -22,6 +22,15 @@ ADRs, docs/plans/current-program.md and docs/plans/current-tracker.md govern wor
 Read current authority each task; never select work from a stale remembered phase.
 Do not create another tracker or invoke legacy Lean/slice runners implicitly.
 
+Before selecting or implementing each next slice, check SRS v0.9 alongside M0–M5,
+current program/tracker and the requirement-disposition map. Resolve the owner-held
+SRS source and recorded checksum through repository authority, read the relevant
+clauses, and record requirement IDs, delivered credit, remaining gap and acceptance
+criteria in the existing slice receipt. Do not infer full SRS compliance from a
+bounded implementation or treat planned M0–M5 behavior as shipped. If the source is
+unavailable or conflicts with accepted repo authority, state the precise limitation
+and resolve it before the dependent implementation; do not silently substitute a summary.
+
 When selection is authorized, reconcile current program/tracker, SRS, mounted
 behavior and delivered evidence before choosing one unfinished user outcome.
 A stale checkout or pending tracker row is not proof that work is missing.
@@ -115,13 +124,28 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
 - Run a focused mounted browser regression for changed fixtures before publishing.
   Include moved mocks/helpers in type/lint checks and inspect current-head Sonar
   annotations under the actual delivery policy; a green summary is insufficient.
+- Before the final verification freeze, inspect protected-file authorization,
+  required check identities and PR-label event triggers. Resolve already-authorized
+  exceptions using the supported mechanism and apply required labels BEFORE final
+  hosted checks. Record this in the existing receipt; do not ask the owner to repeat
+  authorization already given. Avoid late metadata changes that retrigger CI.
+- After gates pass, reuse evidence for unchanged source/configuration/environment
+  under the repository contract. If normal merge is blocked, diagnose the exact
+  missing requirement read-only before changing labels or rerunning jobs. Rerun only
+  invalidated proof or an explicitly required failed/incomplete check; record why.
+  Never weaken branch protection, cancel required proof to merge, or use admin bypass.
 - Record the freeze checkpoint in the existing receipt: SHA/tree, requested reviews
   completed, actionable findings disposition, focused proof and environment identity.
   Do not start the expensive lane while a requested current-head review is pending.
 - For a reported CI failure, identify run, PR, head and failed step before acting.
-  Inspect the repository's current admission policy; if full-gate certification is
-  required, apply its supported label within authorized PR management and confirm
-  a new run starts. A skipped runner is not executed proof. Never weaken admission.
+  Inspect the repository's current admission policy and exact failing requirement.
+  Never add full-gate or toggle draft/ready merely to repair metadata or unblock an
+  unchanged green candidate. Source changes on a ready PR trigger certification;
+  labels refresh only delivery authorization and feedback under the corrected
+  workflow. On an older checkout, diagnose its behavior before applying this rule.
+  A skipped runner is not executed proof. Retry only the required failed/incomplete
+  producer; do not weaken admission or substitute older green evidence for a newer
+  failed/cancelled result.
 
 Use one supported launch path with the task's local environment loaded BEFORE
 orchestration, for both diagnostics and final proof. On the verified Node runtime:

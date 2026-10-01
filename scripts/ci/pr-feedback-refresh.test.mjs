@@ -269,3 +269,14 @@ test('changed feedback can refresh a genuine failure but identical failed input 
   fixture.feedback.digest = 'a'.repeat(64);
   assert.equal(planRefresh(fixture), null);
 });
+
+for (const action of ['labeled', 'unlabeled']) {
+  test(`${action} delivery refresh retains exact identity and changed feedback checks`, async () => {
+    const { planRefresh } = await import('./pr-feedback-refresh.mjs');
+    const f = validRefresh();
+    f.run.display_title = `PR delivery gate [supersession:v1:pull_request:${action}:${head}]`;
+    assert.deepEqual(planRefresh(f), { runId: 100, runAttempt: 1, context: 'delivery-gate' });
+    f.feedback.digest = 'a'.repeat(64);
+    assert.equal(planRefresh(f), null);
+  });
+}

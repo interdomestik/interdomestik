@@ -19,6 +19,7 @@ const replacementActions = new Map([
       'ready_for_review',
       'converted_to_draft',
       'labeled',
+      'unlabeled',
       'review_requested',
       'review_request_removed',
       'closed',

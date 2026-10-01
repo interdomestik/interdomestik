@@ -28,7 +28,7 @@ test('ordinary draft synchronization stays focused', () => {
   });
 });
 
-for (const action of ['opened', 'reopened', 'ready_for_review']) {
+for (const action of ['opened', 'reopened', 'ready_for_review', 'synchronize']) {
   test(`${action} certifies a ready same-repository head`, () => {
     const result = evaluate({ action, draft: false, policyRunFull: true });
     assert.equal(result.runBroad, true);
@@ -37,14 +37,14 @@ for (const action of ['opened', 'reopened', 'ready_for_review']) {
   });
 }
 
-test('a later ordinary ready synchronization fails closed until recertified', () => {
+test('a later ordinary ready synchronization certifies its new source', () => {
   assert.deepEqual(
     evaluate({ draft: false, policyRunFull: true, policyReason: 'pull-request-ready' }),
     {
-      runBroad: false,
-      certificationRequired: true,
+      runBroad: true,
+      certificationRequired: false,
       consumeFullGate: false,
-      reason: 'exact-head-certification-required',
+      reason: 'exact-head-certification',
     }
   );
 });
@@ -104,7 +104,7 @@ for (const policyReason of ['high-risk-change', 'changed-files-incomplete']) {
     });
     assert.equal(result.runBroad, true);
     assert.equal(result.certificationRequired, false);
-    assert.equal(result.reason, policyReason);
+    assert.equal(result.reason, 'exact-head-certification');
   });
 }
 

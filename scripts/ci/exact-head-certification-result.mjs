@@ -18,7 +18,7 @@ export function evaluateCertificationResult(input) {
   if (input.certificationRequired) {
     return {
       ok: false,
-      message: 'This exact head requires broad certification. Apply the full-gate label.',
+      message: 'This exact head requires broad certification from a ready same-repository source event.',
     };
   }
   if (!input.runBroad) {

@@ -184,7 +184,7 @@ test('delivery workflow stays exact and default-deny', () => {
   const workflow = yaml.load(source);
   const job = workflow.jobs['delivery-gate'];
   const admission =
-    "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate')";
+    "github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft";
 
   assert.ok(job);
   assert.equal(job['timeout-minutes'], 90);
@@ -206,18 +206,20 @@ test('delivery workflow stays exact and default-deny', () => {
   assert.ok(!workflow.on.pull_request.types.includes('review_request_removed'));
   assert.ok(workflow.on.pull_request.types.includes('closed'));
   assert.ok(workflow.on.pull_request.types.includes('labeled'));
+  assert.ok(workflow.on.pull_request.types.includes('unlabeled'));
+  assert.doesNotMatch(job.if, /event\.label|event\.action/u);
   assert.deepEqual(Object.keys(workflow.jobs), ['delivery-gate']);
   assert.equal(job.needs, undefined);
   assert.equal(job.if, admission);
   assert.equal(
     job.name,
-    "${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && 'delivery-gate' || 'delivery-gate-deferred' }}",
+    "${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && 'delivery-gate' || 'delivery-gate-deferred' }}",
     'a skipped event must not publish the required delivery-gate name'
   );
   assert.match(workflow.concurrency.group, /github\.event\.pull_request\.number/u);
   assert.equal(
     workflow.concurrency.group,
-    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}",
+    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}",
     'the job admission predicate also controls authoritative concurrency admission'
   );
   assert.match(workflow.concurrency.group, /format\('deferred-\{0\}', github\.run_id\)/u);

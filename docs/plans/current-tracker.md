@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-30
+last_reviewed: 2026-10-01
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,54 +15,56 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-Arben confirmed the bounded live acceptance slice below. Repair and testing are active; #1855 is merged and its exact-merge staging proof passed.
-Approved synthetic browser identities are available. Live testing exposed member read and mobile logout defects.
-No deployment, product readiness or user-acceptance claim is made for the current repair before its required evidence.
+#1856 protected-merged as `e15953b9a32b4292f38ed1a8bc11052a3892cb47`; exact-main CI and
+[staging CD 36845871829](https://github.com/interdomestik/interdomestik/actions/runs/36845871829)
+passed with production skipped. Arben then selected the delivery-procedure correction after
+unnecessary label-triggered verification. Full S7 and human acceptance remain open.
 
-| ID                                | Status        | Owner                   | Work                                                                                      | Exit Criteria                                                                                                             |
-| --------------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | `in_progress` | Codex integration owner | Repair member RLS read continuity and mobile account access found during live acceptance. | Focused regressions, independent review, local full proof, protected delivery and live cross-role retest remain required. |
-
-### Confirmed acceptance slice
-
-`S7-LIVE-STAFF-MEMBER-ACCEPTANCE` — repair and testing active, Codex integration owner.
-Exit: protected repair delivery and exact-merge staging, approved synthetic identities/case, real browser login and
-member/staff/admin observations bound to the delivered SHA; technical proof and Arben acceptance separate.
+| ID                                | Status        | Owner                   | Work                                                                                                         | Exit Criteria                                                                                                                               |
+| --------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DELIVERY-METADATA-CHECK-REUSE`   | `in_progress` | Codex integration owner | Separate metadata delivery refresh from expensive source verification; carry agent SRS v0.9 and reuse rules. | Independent review, required local proof, protected hosted checks; observe label events without CI/E2E/Pilot duplication after publication. |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | `blocked`     | Codex integration owner | Credit delivered member reads/mobile logout; retain the live message-panel failure.                          | Resolve/retest message reads before claiming the full public/private cross-role journey; Arben acceptance remains separate.                 |
 
 ### Current acceptance
 
-- Base: main `6405f13a5ca545e646189d0b15c298bb8d589824` (#1855).
-- Restore owned member case continuity across dashboard, list, detail and reload with RLS active.
-- Reuse the authorized tenant transaction for documents, consent, timeline and membership reads.
-- Keep tenant directory access behind fixed metadata projections; no raw privileged client in product modules.
-- Expose the existing account/logout menu at mobile widths and verify protected navigation after logout.
-- Preserve tenant ownership, privacy, auth layering, proxy, canonical routes and page-ready contracts.
-- Execute the [member/staff/admin scenario](../guides/staging-staff-member-admin-acceptance.md)
-  on the delivered staging SHA and record search latency samples separately from correctness.
-- Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
-  integrator corrections and defects found after final review in the existing receipt.
-- Prior #1854 save-recovery evidence remains delivered; current repair delivery and human acceptance remain pending.
+No deployment, product readiness or user-acceptance claim is made for the pending
+`DELIVERY-METADATA-CHECK-REUSE` correction. Its local proof does not replace protected hosted
+checks. The separately delivered #1856 staging evidence remains credited above.
+
+- The procedure correction runs expensive proof for changed ready source, not label metadata.
+- Label addition/removal refreshes the existing delivery gate without bypassing its exact evidence,
+  review or latest-result checks. Older failed/cancelled evidence cannot be replaced by older green proof.
+- Immutable helper pins and reviewed workflow parity remain enforced; fork/draft protections remain.
+- #1856 live browser proof: member.ks.a2 sees the same five cases on dashboard/list; cases 02 and 10
+  load and survive reload; logout reaches login and `/member` no longer exposes the old session.
+- The messages panel fails on cases 02/10 after retry. Live writes were not performed; the full
+  [cross-role scenario](../guides/staging-staff-member-admin-acceptance.md) and human acceptance remain open.
+- Performance remains separately authorized and queued: IDA-NFR-002/003, measured per environment,
+  with M0–M5/RLS/auth/privacy preserved. Current five-sample observations are baseline, not p95 proof.
+- Record elapsed delivery time, full-proof attempts/reasons, actual helper contributions and
+  post-review defects in the existing receipt; do not create a parallel tracker.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                               |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.     |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.          |
-| S7 — staff handling                         | `active_bounded`      | Credit #1854 staff status/note save recovery; credit #1847/#1849 decline preview/recovery and #1853 records search. Conflict disposition and whole S7 remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                               |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                          |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                       |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                 |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                           |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
+| S7 — staff handling                         | `active_bounded`      | Credit #1856 member reads/logout and #1854 save recovery; message reads, cross-role acceptance, conflict disposition and whole S7 remain open.                 |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                             |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                | Source Refs                                            | Execution  | Run ID  | Run Root                           | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
-| --------------------------------- | ------------------------------------------------------ | ---------- | ------- | ---------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `6405f13a5` | `scripted` | pending | local worktree; full proof pending | pending | pending | not_applicable | pending  | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1854](https://github.com/interdomestik/interdomestik/pull/1854) |
+| ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                                                          | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------------------- | ------- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial                                   | pass    | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md) |
+| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | pending     | reviewed code `eb0b8aa3d`: pr:verify/security passed; canonical-only amendment audited separately | pending | pending | not_applicable | pending  | Protected publication and hosted event observation pending                                                                        |
 
 ## Current Facts
 
@@ -218,3 +220,5 @@ Final merge/staging facts may be reconciled in the next ordinary authorized prod
 Historical allocations, projections and receipts retain their original meaning but do not select or
 block ordinary work. Explicit legacy validation remains available for changes to those artifacts or
 their consumers.
+
+Proof-ledger context: #1856 had zero open Sonar findings at its final PR head. The local DB is retained and reused for successor verification; resource retirement remains pending. Label-trigger duplication and the unresolved message-read gap remain recorded findings. For DELIVERY-METADATA-CHECK-REUSE, preventing duplicate expensive verification still needs hosted event observation; hosted verification and publication remain pending.

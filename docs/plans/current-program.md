@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-09-30
+last_reviewed: 2026-10-01
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -20,14 +20,26 @@ Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for del
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
 contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
 
-Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
-Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
-`6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
-[staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
-Now exercise real browser login and the delivered
-staff/member journey using approved staging identities and test cases. Record actual outcomes,
-privacy boundaries and any reproducible gap; do not infer human acceptance from API-login P0.
-No new conflict policy, legal/SLA semantics, billing or architecture change is selected.
+PR [#1856](https://github.com/interdomestik/interdomestik/pull/1856) protected-merged as
+`e15953b9a32b4292f38ed1a8bc11052a3892cb47`. Exact-main CI and
+[staging CD 36845871829](https://github.com/interdomestik/interdomestik/actions/runs/36845871829)
+passed; production was skipped. Credit member tenant-context read continuity and mobile account
+access. Live browser verification found all five owned cases, working details/reloads for cases 02
+and 10, successful logout and protected-navigation redirect. The messages panel still fails on both
+details, including retry; full staff/member acceptance and whole S7 remain open.
+
+Arben selected the bounded delivery-procedure correction on 2026-10-01 after metadata labels
+restarted expensive checks on unchanged #1856 source. `DELIVERY-METADATA-CHECK-REUSE` removes label
+triggers from CI/E2E/Pilot/backstops, certifies changed ready source automatically, and refreshes
+only the lightweight delivery snapshot on label changes. Preserve immutable helper pins, exact
+head/base/tree and provider checks, failed/cancelled-result rejection and independent review.
+No branch-protection weakening, unconditional check success or product architecture change.
+
+Carry the SRS v0.9 + M0–M5 requirement check in the developer agent and guide. This engineering
+maintenance does not complete an SRS clause. The separately authorized performance PR remains
+queued against IDA-NFR-002/003: establish comparable retrieval measurements and address demonstrated
+causes, without claiming p95 or an approved latency budget from five browser observations.
+Retain the newly observed message-read failure as a correctness prerequisite for the full journey.
 
 Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
 [#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,

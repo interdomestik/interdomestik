@@ -23,7 +23,7 @@ test('quick lane passes without a heavy runner', () => {
 test('a stale ready head fails with the recertification action', () => {
   assert.deepEqual(evaluate({ certificationRequired: true }), {
     ok: false,
-    message: 'This exact head requires broad certification. Apply the full-gate label.',
+    message: 'This exact head requires broad certification from a ready same-repository source event.',
   });
 });
 

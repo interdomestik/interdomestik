@@ -80,6 +80,7 @@ test('every configured pull-request snapshot action may supersede another', asyn
     'ready_for_review',
     'converted_to_draft',
     'labeled',
+    'unlabeled',
     'review_requested',
     'review_request_removed',
     'closed',
@@ -111,7 +112,7 @@ test('unsupported pull-request actions cannot supersede a failed producer', asyn
   assert.equal(await hasPendingCheckReplacement(fixture([unsupported]), check, head), false);
 });
 
-test('full-gate label reruns remain eligible replacement producers', async () => {
+test('label refreshes remain eligible delivery replacement producers', async () => {
   const labeled = {
     ...active,
     display_title: runTitle('pull_request', 'labeled'),
@@ -211,7 +212,7 @@ test('native lifecycle runs retain supersession identity without direct feedback
   const gateGroup = gate.match(/ {2}group: (.*)\n/u)[1];
   assert.equal(
     gateGroup,
-    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.action != 'labeled' || github.event.label.name == 'full-gate') && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}"
+    "pr-delivery-gate-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.event.pull_request.base.ref == 'main' && github.event.pull_request.state == 'open' && !github.event.pull_request.draft && (github.event.pull_request.head.repo.full_name == github.repository && 'same-repository' || 'fork') || format('deferred-{0}', github.run_id) }}"
   );
 
   const gateCancel = gate.match(/ {2}cancel-in-progress: (.*)\n/u)[1];
@@ -272,6 +273,21 @@ test('workflow lookup permits exact SHA and rejects unsupported event filters', 
       () =>
         trustedGitHubApiUrl(`repos/interdomestik/interdomestik/actions/workflows/20/runs?${query}`),
       /trusted boundary/
+    );
+  }
+});
+
+test('label removal cannot replace evidence from another head or workflow', async () => {
+  const unlabeled = { ...active, display_title: runTitle('pull_request', 'unlabeled') };
+  for (const override of [
+    { head_sha: 'b'.repeat(40) },
+    { workflow_id: 21 },
+    { display_title: unlabeled.display_title.replace(head, 'b'.repeat(40)) },
+    { status: 'completed', conclusion: 'cancelled' },
+  ]) {
+    assert.equal(
+      await hasPendingCheckReplacement(fixture([{ ...unlabeled, ...override }]), check, head),
+      false
     );
   }
 });

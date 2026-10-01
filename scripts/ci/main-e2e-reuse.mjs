@@ -117,7 +117,7 @@ function lane(source, name) {
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
 // The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
-const PR_WORKFLOW_SHA256 = 'b7a3f47c834e981ea4d76d3cd5ae615bbc4a10fff109da0d1f99e411877f955d';
+const PR_WORKFLOW_SHA256 = 'adc10a0a5378004473712c82af0af059d4fdc75e63fd440b2891261f16aadcd5';
 const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {

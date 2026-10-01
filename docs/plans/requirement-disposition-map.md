@@ -108,7 +108,7 @@ Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-s
 contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
-Live testing exposed member read continuity and mobile logout defects; repair #1856 is in progress. Approved test identities are available. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
+Repair [#1856](https://github.com/interdomestik/interdomestik/pull/1856) delivered member read continuity and mobile logout as `e15953b9a32b4292f38ed1a8bc11052a3892cb47`; exact-main CI and [staging CD 36845871829](https://github.com/interdomestik/interdomestik/actions/runs/36845871829) passed, production skipped. Browser list/detail/reload and logout now pass; message panels still fail and full cross-role/human acceptance remains open. The owner-selected delivery-procedure correction takes current implementation priority; no SRS clause is completed by that maintenance. Performance remains a separate authorized IDA-NFR-002/003 increment. Approved test identities are available. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
 `6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
 [staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
 Now exercise real browser login and the delivered
