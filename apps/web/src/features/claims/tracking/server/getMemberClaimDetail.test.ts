@@ -1,12 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getMemberDetailMocks } from './getMemberClaimDetail-test-support';
 import { getMemberClaimDetail } from './getMemberClaimDetail';
-import {
-  buildRecoveryDecisionSnapshotMock,
-  toMemberSafeRecoveryDecisionMock,
-} from './getMemberClaimDetail-recovery.test-support';
-import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
+import { configureMemberDetailTest } from './getMemberClaimDetail-setup.test-support';
 
 const hoisted = getMemberDetailMocks();
 
@@ -18,40 +14,15 @@ const memberSession = {
   },
 } as const;
 
-function configureSelectMocks() {
-  hoisted.select.mockReturnValueOnce({
-    from: () => ({
-      leftJoin: () => ({
-        where: () => ({
-          orderBy: () => ({
-            limit: () => hoisted.recoveryDecisionRows(),
-          }),
-        }),
-      }),
-    }),
-  });
-}
-
 describe('getMemberClaimDetail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.ensureClaimsAccess.mockReturnValue({
-      tenantId: 'tenant-1',
-      userId: 'member-1',
-      role: 'member',
-      branchId: null,
-    });
-    hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
-    hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
-    hoisted.getMemberVaultConsentDisplay.mockResolvedValue({ kind: 'hidden' });
-    hoisted.buildRecoveryDecisionSnapshot.mockImplementation(buildRecoveryDecisionSnapshotMock);
-    hoisted.toMemberSafeRecoveryDecision.mockImplementation(toMemberSafeRecoveryDecisionMock);
-    hoisted.deriveCaseCompanionNextStep.mockReturnValue(hoisted.caseCompanionNextStep);
-    hoisted.getMemberTimelineFromDomainEvents.mockImplementation(async context => {
-      return normalizeMemberTimelineMockRows(context, await hoisted.timelineRows());
-    });
-    configureSelectMocks();
-    hoisted.recoveryDecisionRows.mockResolvedValue([]);
+  beforeEach(configureMemberDetailTest);
+
+  it('does not read descendant data when the scoped claim is absent', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce(undefined);
+    await expect(getMemberClaimDetail(memberSession, 'not-owned')).resolves.toBeNull();
+    expect(hoisted.getMemberTimelineFromDomainEvents).not.toHaveBeenCalled();
+    expect(hoisted.getMemberVaultConsentDisplay).not.toHaveBeenCalled();
+    expect(hoisted.getMatterAllowanceVisibility).not.toHaveBeenCalled();
   });
 
   it('returns a fallback public timeline event when no stage history rows exist yet', async () => {
@@ -72,6 +43,10 @@ describe('getMemberClaimDetail', () => {
 
     const result = await getMemberClaimDetail(memberSession, 'claim-1');
 
+    expect(hoisted.context).toHaveBeenCalledWith({ tenantId: 'tenant-1', role: 'member' });
+    const tx = hoisted.getMatterAllowanceVisibility.mock.calls[0]![0].tx;
+    expect(hoisted.getMemberTimelineFromDomainEvents.mock.calls[0]![1]).toBe(tx);
+    expect(hoisted.getMemberVaultConsentDisplay.mock.calls[0]![1]).toBe(tx);
     expect(result).not.toBeNull();
     expect(result?.timeline).toHaveLength(1);
     expect(result?.timeline[0]).toMatchObject({
@@ -213,6 +188,7 @@ describe('getMemberClaimDetail', () => {
     expect(hoisted.getMatterAllowanceVisibility).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       userId: 'member-1',
+      tx: expect.objectContaining({ query: { claims: { findFirst: hoisted.claimFindFirst } } }),
     });
     expect((result as { matterAllowance?: unknown } | null)?.matterAllowance).toEqual({
       allowanceTotal: 2,
@@ -271,13 +247,16 @@ describe('getMemberClaimDetail', () => {
     hoisted.timelineRows.mockResolvedValueOnce([]);
     hoisted.getMemberVaultConsentDisplay.mockResolvedValueOnce({ kind: 'ready', items: [] });
     const result = await getMemberClaimDetail(memberSession, 'claim-vault');
-    expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
-      memberId: 'member-1',
-      claimId: 'claim-vault',
-      claimCategory: 'vehicle',
-      piiStatus: 'available',
-    });
+    expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant-1',
+        memberId: 'member-1',
+        claimId: 'claim-vault',
+        claimCategory: 'vehicle',
+        piiStatus: 'available',
+      },
+      expect.objectContaining({ query: { claims: { findFirst: hoisted.claimFindFirst } } })
+    );
     expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });
     const [, sentryOptions] = hoisted.withServerActionInstrumentation.mock.calls[0]!;
     expect(sentryOptions).toEqual({ recordResponse: false });

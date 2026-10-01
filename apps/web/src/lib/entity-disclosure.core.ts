@@ -1,4 +1,4 @@
-import { db, eq, tenants } from '@interdomestik/database';
+import { dbAdmin, eq, tenants } from '@interdomestik/database';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import type { subscriptions } from '@interdomestik/database';
@@ -65,8 +65,8 @@ function normalizeDisclosureValue(value: string | null | undefined): string | nu
 }
 
 async function readTenantEntityRecord(tenantId: string): Promise<TenantEntityRecord | null> {
-  // db-access-guard: tenant-scoped -- reason: tenantId/legalTenantId comes from validated session or already tenant-scoped subscription context
-  const tenant = await db.query.tenants.findFirst({
+  // db-access-guard: system-exempt -- reason: server-only exact-id legalName/governingLaw metadata projection from deny-all tenant directory; no member data or access-scope change
+  const tenant = await dbAdmin.query.tenants.findFirst({
     where: eq(tenants.id, tenantId),
     columns: {
       legalName: true,

@@ -1,3 +1,4 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -37,7 +38,10 @@ const schema = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({ db: { select: hoisted.select } }));
+vi.mock('@interdomestik/database', () => ({
+  db: { select: hoisted.select },
+  dbAdmin: { select: hoisted.select },
+}));
 vi.mock('@interdomestik/database/schema', () => schema);
 vi.mock('drizzle-orm', () => ({
   and: hoisted.and,
@@ -50,6 +54,20 @@ import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 describe('getMemberVaultConsentDisplay predicates', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it('uses administrative metadata but the supplied RLS transaction for documents', async () => {
+    hoisted.select.mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]));
+    const select = vi.fn(() => orderedRowsChain([]));
+    const tx = { select } as unknown as TenantTransaction;
+    await getMemberVaultConsentDisplay(baseParams, tx);
+    expect(hoisted.select).toHaveBeenCalledTimes(1);
+    expect(hoisted.select).toHaveBeenCalledWith({
+      code: schema.tenants.code,
+      countryCode: schema.tenants.countryCode,
+    });
+    expect(hoisted.eq).toHaveBeenCalledWith(schema.tenants.id, baseParams.tenantId);
+    expect(select).toHaveBeenCalledTimes(1);
+  });
 
   it('skips consent reads when no eligible evidence exists', async () => {
     const documents = orderedRowsChain([]);

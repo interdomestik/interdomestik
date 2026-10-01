@@ -27,22 +27,24 @@ vi.mock('@interdomestik/domain-claims', () => ({
   toMemberSafeRecoveryDecision: () => null,
 }));
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: { claims: { findFirst: mocks.claim } },
-    select: () => ({
-      from: () => ({
-        leftJoin: () => ({
-          where: () => ({
-            orderBy: () => ({
-              limit: () => ({
-                then: (resolve: (rows: unknown) => void) => mocks.decision().then(resolve),
+  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+    callback({
+      query: { claims: { findFirst: mocks.claim } },
+      select: () => ({
+        from: () => ({
+          leftJoin: () => ({
+            where: () => ({
+              orderBy: () => ({
+                limit: () => ({
+                  then: (resolve: (rows: unknown) => void) => mocks.decision().then(resolve),
+                }),
               }),
             }),
           }),
         }),
       }),
-    }),
-  },
+    })
+  ),
   ERASURE_REDACTED_VALUE: '[erased]',
 }));
 vi.mock('@interdomestik/database/schema', () => ({
@@ -124,14 +126,17 @@ describe('member claim detail privacy', () => {
       'claim-scoped'
     );
 
-    expect(mocks.timeline).toHaveBeenCalledWith({
-      claimId: 'claim-scoped',
-      tenantId: 'tenant-1',
-      currentStatus: 'rejected',
-      createdAt,
-      piiStatus: 'available',
-      updatedAt,
-    });
+    expect(mocks.timeline).toHaveBeenCalledWith(
+      {
+        claimId: 'claim-scoped',
+        tenantId: 'tenant-1',
+        currentStatus: 'rejected',
+        createdAt,
+        piiStatus: 'available',
+        updatedAt,
+      },
+      expect.objectContaining({ query: { claims: { findFirst: mocks.claim } } })
+    );
   });
 
   it('removes historic sensitive notes from non-rejection updates and the member payload', async () => {

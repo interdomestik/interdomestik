@@ -16,11 +16,21 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-`S7-STAFF-STATUS-SAVE-RECOVERY` is the active bounded staff-handling increment selected from
-fresh protected main `b0dfc1858b962f0920e628d1f011fcdc63535bcd`. A rejected status/note save
-currently escapes the mounted panel transition without local feedback. Preserve staff entries and
-show localized confirmation-unknown guidance without automatic retry or new server semantics.
-This is bounded S7 recovery, not a new conflict/role policy or whole-journey acceptance.
+PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
+`S7-STAFF-STATUS-SAVE-RECOVERY` as protected merge `971ccc6a63b70ffe37b758cc1839d0df2e968eec`.
+All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
+passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
+staff history are technically delivered; production was skipped. Whole S7 and human acceptance
+remain open. The worktree is archived; the owned local database is stopped with data preserved.
+
+Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
+Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
+`6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
+[staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
+Now exercise real browser login and the delivered
+staff/member journey using approved staging identities and test cases. Record actual outcomes,
+privacy boundaries and any reproducible gap; do not infer human acceptance from API-login P0.
+No new conflict policy, legal/SLA semantics, billing or architecture change is selected.
 
 Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
 [#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
@@ -262,8 +272,8 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-Continue the owner-adopted outcome order without rebuilding delivered behavior: the active bounded
-S7 staff handling after credited #1847/#1849 decline preview/recovery, #1845 exact fulfilment,
+Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining
+S7 acceptance after delivered #1854 recovery and credited #1847/#1849 decline preview/recovery, #1845 exact fulfilment,
 #1842 assigned-staff queue, #1841 shared
 next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
 S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
@@ -289,7 +299,7 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Current staff status/note save recovery acceptance
+### Delivered staff status/note save recovery acceptance (#1854)
 
 - Preserve selected status, public note and private allowance reason on rejected save transport.
 - Show EN/SQ/MK/SR confirmation-unknown guidance; check case history before a manual retry.
@@ -299,7 +309,7 @@ alone is not business or user acceptance.
 - Consolidate focused regressions and independent/current-head analysis before one full local lane.
 - Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
   integrator corrections and defects found after final review in the existing PR receipt.
-- Protected checks and exact-merge staging remain required. Whole S7 and human acceptance stay open.
+- Protected checks and exact-merge staging passed for #1854. Whole S7 and human acceptance stay open.
 
 ### Credited #1846 safe-decline handoff acceptance
 

@@ -191,6 +191,7 @@ export async function getMatterAllowanceContextForSubscription(params: {
 }
 
 export async function getMatterAllowanceContextForUser(params: {
+  tx?: TenantTransaction;
   tenantId: string;
   userId: string;
   now?: Date;
@@ -200,6 +201,7 @@ export async function getMatterAllowanceContextForUser(params: {
   if (!subscription) return null;
 
   return getMatterAllowanceContextForSubscription({
+    tx: params.tx,
     now: params.now,
     subscription,
     tenantId: params.tenantId,
@@ -207,6 +209,7 @@ export async function getMatterAllowanceContextForUser(params: {
 }
 
 export async function getMatterAllowanceVisibilityForUser(params: {
+  tx?: TenantTransaction;
   tenantId: string;
   userId: string;
   now?: Date;

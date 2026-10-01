@@ -10,7 +10,10 @@ const hoisted = vi.hoisted(() => ({
 
 import { baseParams, tenantChain } from './getMemberVaultConsentDisplay.test-support';
 
-vi.mock('@interdomestik/database', () => ({ db: { select: hoisted.select } }));
+vi.mock('@interdomestik/database', () => ({
+  db: { select: hoisted.select },
+  dbAdmin: { select: hoisted.select },
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
   claimDocuments: {},

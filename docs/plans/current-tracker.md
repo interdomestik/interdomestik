@@ -15,9 +15,19 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID                              | Status        | Owner                   | Work                                                       | Exit Criteria                                                                                                  |
-| ------------------------------- | ------------- | ----------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `S7-STAFF-STATUS-SAVE-RECOVERY` | `in_progress` | Codex integration owner | Preserve staff entries after unconfirmed status/note save. | Four-locale recovery, unchanged action semantics, independent review, protected checks and exact-main staging. |
+Arben confirmed the bounded live acceptance slice below. Repair and testing are active; #1855 is merged and its exact-merge staging proof passed.
+Approved synthetic browser identities are available. Live testing exposed member read and mobile logout defects.
+No deployment, product readiness or user-acceptance claim is made for the current repair before its required evidence.
+
+| ID                                | Status        | Owner                   | Work                                                                                      | Exit Criteria                                                                                                             |
+| --------------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | `in_progress` | Codex integration owner | Repair member RLS read continuity and mobile account access found during live acceptance. | Focused regressions, independent review, local full proof, protected delivery and live cross-role retest remain required. |
+
+### Confirmed acceptance slice
+
+`S7-LIVE-STAFF-MEMBER-ACCEPTANCE` — repair and testing active, Codex integration owner.
+Exit: #1855 exact-merge staging, approved synthetic identities/case, real browser login and
+staff/member observations bound to that SHA; technical proof and Arben acceptance separate.
 
 ### Current acceptance
 
@@ -30,30 +40,37 @@ status_command: pnpm plan:status
 - Consolidate focused regressions and independent/current-head analysis before one full local lane.
 - Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
   integrator corrections and defects found after final review in the existing PR receipt.
-- Protected checks and exact-merge staging remain required. Whole S7 and human acceptance stay open.
+- Protected checks and exact-merge staging passed for #1854. Whole S7 and human acceptance stay open.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                           |
-| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
-| S7 — staff handling                         | `active_bounded`      | Deliver staff status/note save recovery; credit #1847/#1849 decline preview/recovery and #1853 records search. Conflict disposition and whole S7 remain open.  |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                             |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                               |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.     |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.          |
+| S7 — staff handling                         | `active_bounded`      | Credit #1854 staff status/note save recovery; credit #1847/#1849 decline preview/recovery and #1853 records search. Conflict disposition and whole S7 remain open. |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                               |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                          |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                       |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                 |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                              | Source Refs                                            | Execution  | Run ID  | Run Root                                | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                           |
-| ------------------------------- | ------------------------------------------------------ | ---------- | ------- | --------------------------------------- | ------- | -------------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-STAFF-STATUS-SAVE-RECOVERY` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `b0dfc1858` | `scripted` | pending | localized staff save transport recovery | pending | not_applicable | not_applicable | pending  | [requirement disposition](requirement-disposition-map.md); [product PR #1854](https://github.com/interdomestik/interdomestik/pull/1854) |
+| ID                                | Source Refs                                            | Execution  | Run ID  | Run Root                           | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
+| --------------------------------- | ------------------------------------------------------ | ---------- | ------- | ---------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; base `6405f13a5` | `scripted` | pending | local worktree; full proof pending | pending | pending | not_applicable | pending  | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1854](https://github.com/interdomestik/interdomestik/pull/1854) |
 
 ## Current Facts
+
+PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
+`S7-STAFF-STATUS-SAVE-RECOVERY` as protected merge `971ccc6a63b70ffe37b758cc1839d0df2e968eec`.
+All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
+passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
+staff history are technically delivered; production was skipped. Whole S7 and human acceptance
+remain open. The worktree is archived; the owned local database is stopped with data preserved.
 
 Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
 [#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
@@ -175,14 +192,20 @@ stale provider-event-order status; its proof is credited, not repeated by this r
   Approved versioned offer/entity/terms evidence remains a business dependency for capture.
 - Owner reconfirmed Paddle-only. Provider approval for actual paid services, MK webhook secret and
   deployed entity-token `customer.read` permission remain unresolved/unverified external evidence.
-- Current candidate is not yet verified, merged, staged or user-accepted.
-  No deployment, product readiness or user-acceptance claim follows from preparation. No production changes.
+- #1854 is technically verified, merged and staged; human acceptance remains open.
+  #1855 has separate exact-merge staging proof on `6405f13a5`; human acceptance remains open. No production changes.
 
 ## Next Selection
 
-Complete bounded staff status/note save recovery and exact-main staging before selecting another
-S7 increment; follow the existing dependent S8–S14 sequence. Single-primary versus multi-role
-business semantics remain unresolved and do not block this independent recovery outcome.
+Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
+Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
+`6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
+[staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
+Now exercise real browser login and the delivered
+staff/member journey using approved staging identities and test cases. Record actual outcomes,
+privacy boundaries and any reproducible gap; do not infer human acceptance from API-login P0.
+No new conflict policy, legal/SLA semantics, billing or architecture change is selected.
+
 Approved offer/entity/versioned terms, live paid activation, broader renewal/dunning,
 MK secret/provider permissions and whole S5/S6/cross-role/user acceptance remain open.
 Final merge/staging facts may be reconciled in the next ordinary authorized product amendment.

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { branches, claimMessages, claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import {
@@ -113,38 +113,39 @@ export function buildClaimsQuery(filters: ClaimsListV2Filters) {
 }
 
 export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
-  const { page = 1, perPage = 20 } = filters;
-  const offset = (page - 1) * perPage;
+  return withTenantContext({ tenantId: filters.tenantId, role: filters.role }, async db => {
+    const { page = 1, perPage = 20 } = filters;
+    const offset = (page - 1) * perPage;
 
-  const { where, joinUser, joinBranch } = buildClaimsQuery(filters);
-  const staff = aliasedTable(user, 'staff');
+    const { where, joinUser, joinBranch } = buildClaimsQuery(filters);
+    const staff = aliasedTable(user, 'staff');
 
-  // Main Query
-  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  const dataQuery = db
-    .select({
-      claim: claims,
-      claimant: {
-        name: user.name,
-        email: user.email,
-      },
-      staff: {
-        name: staff.name,
-        email: staff.email,
-      },
-      branch: {
-        id: branches.id,
-        name: branches.name,
-        code: branches.code,
-      },
-      assignedAt: claims.assignedAt, // Add assignedAt to the select
-      // Unread messages count (optional optimization: separate query/lateral join if slow)
-      // For now, let's try a subquery approach if possible or simple separate count?
-      // Simpler for now: fetch basic data, assume unreadCount is 0 or handled separately?
-      // Legacy 'fetchClaims' had unreadCount.
-      // Let's assume we want it.
-      // Subquery for count of unread messages:
-      unreadCount: sql<number>`(
+    // Main Query
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
+    const dataQuery = db
+      .select({
+        claim: claims,
+        claimant: {
+          name: user.name,
+          email: user.email,
+        },
+        staff: {
+          name: staff.name,
+          email: staff.email,
+        },
+        branch: {
+          id: branches.id,
+          name: branches.name,
+          code: branches.code,
+        },
+        assignedAt: claims.assignedAt, // Add assignedAt to the select
+        // Unread messages count (optional optimization: separate query/lateral join if slow)
+        // For now, let's try a subquery approach if possible or simple separate count?
+        // Simpler for now: fetch basic data, assume unreadCount is 0 or handled separately?
+        // Legacy 'fetchClaims' had unreadCount.
+        // Let's assume we want it.
+        // Subquery for count of unread messages:
+        unreadCount: sql<number>`(
         SELECT count(*) FROM ${claimMessages} cm
         WHERE cm.claim_id = ${claims.id}
           AND cm.read_at IS NULL
@@ -153,43 +154,44 @@ export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
           -- Ideally precise logic involves "who is reading".
           -- If I am admin, I see messages from user.
       )::int`,
-    })
-    .from(claims)
-    .leftJoin(user, joinUser)
-    .leftJoin(staff, eq(claims.staffId, staff.id))
-    .leftJoin(branches, joinBranch)
-    .where(where)
-    .orderBy(desc(claims.createdAt), desc(claims.updatedAt)) // Newest first
-    .limit(perPage)
-    .offset(offset);
+      })
+      .from(claims)
+      .leftJoin(user, joinUser)
+      .leftJoin(staff, eq(claims.staffId, staff.id))
+      .leftJoin(branches, joinBranch)
+      .where(where)
+      .orderBy(desc(claims.createdAt), desc(claims.updatedAt)) // Newest first
+      .limit(perPage)
+      .offset(offset);
 
-  // Facet Counts (Total Active/Draft/Closed) for the Tabs
-  // We need to run this *without* the status filter, but *with* scoping & search.
-  // So strict scoping applies, search applies, but status does not.
-  const facetsFilters = { ...filters, statusFilter: undefined };
-  const {
-    where: facetsWhere,
-    joinUser: fJoinUser,
-    joinBranch: fJoinBranch,
-  } = buildClaimsQuery(facetsFilters);
+    // Facet Counts (Total Active/Draft/Closed) for the Tabs
+    // We need to run this *without* the status filter, but *with* scoping & search.
+    // So strict scoping applies, search applies, but status does not.
+    const facetsFilters = { ...filters, statusFilter: undefined };
+    const {
+      where: facetsWhere,
+      joinUser: fJoinUser,
+      joinBranch: fJoinBranch,
+    } = buildClaimsQuery(facetsFilters);
 
-  // Single aggregation query for facets
-  // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  const facetsQuery = db
-    .select({
-      active: count(sql`CASE WHEN ${claimLifecycleStatusIn(IN_PROGRESS_STATUSES)} THEN 1 END`),
-      draft: count(sql`CASE WHEN ${claimLifecycleStatusIn(DRAFT_STATUSES)} THEN 1 END`),
-      closed: count(sql`CASE WHEN ${claimLifecycleStatusIn(CLOSED_STATUSES)} THEN 1 END`),
-      total: count(),
-    })
-    .from(claims)
-    .leftJoin(user, fJoinUser)
-    .leftJoin(branches, fJoinBranch)
-    .where(facetsWhere);
+    // Single aggregation query for facets
+    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
+    const facetsQuery = db
+      .select({
+        active: count(sql`CASE WHEN ${claimLifecycleStatusIn(IN_PROGRESS_STATUSES)} THEN 1 END`),
+        draft: count(sql`CASE WHEN ${claimLifecycleStatusIn(DRAFT_STATUSES)} THEN 1 END`),
+        closed: count(sql`CASE WHEN ${claimLifecycleStatusIn(CLOSED_STATUSES)} THEN 1 END`),
+        total: count(),
+      })
+      .from(claims)
+      .leftJoin(user, fJoinUser)
+      .leftJoin(branches, fJoinBranch)
+      .where(facetsWhere);
 
-  const [rows, [facets]] = await Promise.all([dataQuery, facetsQuery]);
+    const [rows, [facets]] = await Promise.all([dataQuery, facetsQuery]);
 
-  return { rows, facets: facets || { active: 0, draft: 0, closed: 0, total: 0 } };
+    return { rows, facets: facets || { active: 0, draft: 0, closed: 0, total: 0 } };
+  });
 }
 
 export type ClaimsQueryRow = Awaited<ReturnType<typeof getClaimsListQuery>>['rows'][number];

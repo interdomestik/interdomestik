@@ -1,5 +1,6 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
-import { db } from '@interdomestik/database';
+import { db, dbAdmin } from '@interdomestik/database';
 import {
   claimDocumentAiExtractionConsents,
   claimDocuments,
@@ -17,10 +18,11 @@ export interface GetMemberVaultConsentDisplayParams {
 }
 
 export async function getMemberVaultConsentDisplay(
-  params: GetMemberVaultConsentDisplayParams
+  params: GetMemberVaultConsentDisplayParams,
+  database: TenantTransaction | typeof db = db
 ): Promise<VaultConsentDisplay> {
-  // db-access-guard: tenant-scoped -- reason: tenant identity is resolved by the authorized member claim-detail boundary before this exact tenant gate
-  const tenantRows = await db
+  // db-access-guard: system-exempt -- reason: exact authorized tenant code/countryCode metadata only; tenant directory denies runtime RLS reads, documents and consents remain on the supplied transaction
+  const tenantRows = await dbAdmin
     .select({ code: tenants.code, countryCode: tenants.countryCode })
     .from(tenants)
     .where(eq(tenants.id, params.tenantId))
@@ -37,7 +39,7 @@ export async function getMemberVaultConsentDisplay(
   if (gated.kind !== 'ready') return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact MK tenant gate passed and the claim was already resolved through the member-scoped claim-detail query
-  const documents = await db
+  const documents = await database
     .select({
       id: claimDocuments.id,
       category: claimDocuments.category,
@@ -55,7 +57,7 @@ export async function getMemberVaultConsentDisplay(
   if (documents.length === 0) return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact tenant, member, claim, document, consent-type, and purpose predicates bound this read
-  const consents = await db
+  const consents = await database
     .select({
       id: claimDocumentAiExtractionConsents.id,
       documentId: claimDocumentAiExtractionConsents.documentId,

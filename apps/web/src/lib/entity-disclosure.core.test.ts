@@ -10,7 +10,7 @@ vi.mock('@interdomestik/database', () => ({
   tenants: {
     id: 'tenants.id',
   },
-  db: {
+  dbAdmin: {
     query: {
       tenants: {
         findFirst: hoisted.findTenantFirst,
@@ -44,6 +44,10 @@ describe('entity disclosure core', () => {
       governingLaw: 'XK',
       unavailable: false,
       source: 'subscription',
+    });
+    expect(hoisted.findTenantFirst).toHaveBeenCalledWith({
+      where: { op: 'eq', left: 'tenants.id', right: 'tenant_legal' },
+      columns: { legalName: true, governingLaw: true },
     });
   });
 

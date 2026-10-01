@@ -11,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
     renderMode: 'standard',
   },
   claimFindFirst: vi.fn(),
+  context: vi.fn(),
   timelineRows: vi.fn(),
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
@@ -52,14 +53,17 @@ vi.mock('../utils', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.claimFindFirst,
+  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) => {
+    hoisted.context(_context);
+    return callback({
+      query: {
+        claims: {
+          findFirst: hoisted.claimFindFirst,
+        },
       },
-    },
-    select: hoisted.select,
-  },
+      select: hoisted.select,
+    });
+  }),
   ERASURE_REDACTED_VALUE: '[erased]',
 }));
 

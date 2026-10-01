@@ -1,3 +1,4 @@
+import type { TenantTransaction } from '@interdomestik/database';
 import { and, claimStageHistory, db, desc, domainEvents, eq, sql } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
@@ -75,9 +76,10 @@ export function buildMemberTimelineFromDomainEvents(
 }
 
 export async function getMemberTimelineFromDomainEvents(
-  context: AuthorizedClaimTimelineContext
+  context: AuthorizedClaimTimelineContext,
+  database: TenantTransaction | typeof db = db
 ): Promise<ClaimTimelineEvent[]> {
-  const rows = await db
+  const rows = await database
     .select({
       aggregateVersion: domainEvents.aggregateVersion,
       createdAt: domainEvents.createdAt,
