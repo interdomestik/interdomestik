@@ -354,13 +354,9 @@ alone is not business or user acceptance.
 - Consolidate requested review findings and current-head annotations before one expensive final lane.
   Protected merge/staging and human acceptance require their applicable owner authority.
 
-Local synthetic actual-source proof now returns 20 history rows for 20 visible cases,
-versus 50,000 before; the five warm function samples have medians 61.96 ms before
-and 16.55 ms after. The real local RLS role denied foreign-tenant history and preserved
-all 16 note forms, ordering, malformed-note handling, missing origins and empty pages.
-These measurements describe this local workload; staging latency, full protected proof,
-release and human acceptance remain pending. Opus supplied independent findings,
-whose integration and test-hardening dispositions are recorded in the slice receipt.
+The bounded implementation and local focused proof are prepared. Full local/protected
+proof, release and human acceptance remain pending. Completed local evidence and
+review dispositions are linked from the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-local-proof-1859).
 
 ### Delivered staff status/note save recovery acceptance (#1854)
 

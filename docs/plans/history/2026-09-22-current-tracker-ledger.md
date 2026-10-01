@@ -1517,3 +1517,33 @@ receipt; canonical publication follows the next authorized product amendment.
 
 Whole S7, whole SRS requirements and live human staff/member acceptance remain open.
 Performance is separately authorized and no speed improvement is claimed here.
+
+## S7 staff history projection local proof 1859
+
+Prepared candidate [#1859](https://github.com/interdomestik/interdomestik/pull/1859),
+base `9f9d78b0081e080ac081d7dafc0918af1fa41599`; full local/protected proof, merge,
+staging and human acceptance remain pending. This records completed local observations,
+not technical delivery or successor selection.
+
+Sonnet 5 supplied the query/helper/tests; served model `claude-sonnet-5`.
+Opus 5 independently reviewed the bounded source (`claude-opus-5`) and returned findings;
+Codex verified wrapper/types/actual SQL and incorporated its test-hardening recommendations.
+A separate local reviewer inspected the guard recognition and factual agent-read directive.
+
+Actual-source local synthetic proof compared 50,000 history rows over 20 visible cases:
+returned history rows decreased from 50,000 to 20; five warm function samples had medians
+61.96 ms before and 16.55 ms after. The local NOSUPERUSER/NOBYPASSRLS role with row_security=on
+denied foreign-tenant history and preserved all 16 accepted note forms, timestamp/ID ordering,
+newer ordinary/malformed notes, missing origins and empty-query behavior. These are local
+workload measurements, not staging latency, p95/budget conformance or whole-SRS completion.
+Owned randomized synthetic fixtures were cleaned in finally; the shared database is retained.
+
+Focused domain proof passed 22 tests across four files and domain type-check/lint (zero errors).
+Guard contracts passed 24 tests; DB access, modularity, formatting and plan audit passed.
+The guard now recognizes DISTINCT ON. The existing agent-message read's directive documents
+its explicit tenant/case/public predicate; it does not claim runtime RLS validation for that
+raw-client consumer. The guard baseline and admission policy remain unchanged.
+
+The existing `/tmp/interdomestik-pilot-evidence/s7-next-journey/receipt.json` records commands,
+source identity, review dispositions and historical attempts. Active authority retains status
+and this link; full lane and protected current-head proof are still pending.
