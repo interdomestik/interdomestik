@@ -1479,7 +1479,7 @@ review refused deletion. On 2026-10-01 that same synthetic database was restarte
 S7 live-acceptance repair tests; local test-role grants were explicitly authorized. This subsequent
 resource reuse does not change the historical delivery or imply current-repair completion.
 
-## S7 message repair predecessors #1856 / #1857
+## S7 message repair predecessors 1856 1857
 
 Completed predecessor evidence moved from the active tracker on 2026-10-01.
 Message repair and cross-role human acceptance remain separate.
