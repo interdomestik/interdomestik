@@ -1,4 +1,4 @@
-import { agentClients, claims, db } from '@interdomestik/database';
+import { agentClients, claims, db, type TenantTransaction } from '@interdomestik/database';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
@@ -50,8 +50,11 @@ export function hasScopedClaimsReadAccess(args: {
   });
 }
 
-function buildForbiddenClaimIdsSubquery(tenantId: string) {
-  return db
+function buildForbiddenClaimIdsSubquery(
+  tenantId: string,
+  database: Pick<TenantTransaction, 'select'>
+) {
+  return database
     .select({ id: claims.id })
     .from(claims)
     .where(and(eq(claims.tenantId, tenantId), eq(claims.id, '__forbidden__')));
@@ -81,8 +84,9 @@ export async function hasAgentClaimAccess(args: {
   agentId: string;
   memberId: string;
   tenantId: string;
+  tx?: TenantTransaction;
 }): Promise<boolean> {
-  const linkedClient = await db.query.agentClients.findFirst({
+  const linkedClient = await (args.tx ?? db).query.agentClients.findFirst({
     where: (table, { and, eq }) =>
       and(
         eq(table.tenantId, args.tenantId),
@@ -100,12 +104,14 @@ export function buildAccessibleClaimIdsSubquery(args: {
   role: string | null | undefined;
   tenantId: string;
   userId: string;
+  tx?: TenantTransaction;
 }) {
+  const database = args.tx ?? db;
   const branchId = args.branchId ?? null;
 
   if (args.role === 'staff' || args.role === 'branch_manager') {
     if (args.role === 'branch_manager' && branchId === null) {
-      return buildForbiddenClaimIdsSubquery(args.tenantId);
+      return buildForbiddenClaimIdsSubquery(args.tenantId, database);
     }
 
     const scope = buildStaffScopedClaimFilter({
@@ -114,14 +120,14 @@ export function buildAccessibleClaimIdsSubquery(args: {
       userId: args.userId,
     });
 
-    return db
+    return database
       .select({ id: claims.id })
       .from(claims)
       .where(and(eq(claims.tenantId, args.tenantId), scope));
   }
 
   if (args.role === 'agent') {
-    const activeMemberIds = db
+    const activeMemberIds = database
       .select({ memberId: agentClients.memberId })
       .from(agentClients)
       .where(
@@ -132,13 +138,13 @@ export function buildAccessibleClaimIdsSubquery(args: {
         )
       );
 
-    return db
+    return database
       .select({ id: claims.id })
       .from(claims)
       .where(and(eq(claims.tenantId, args.tenantId), inArray(claims.userId, activeMemberIds)));
   }
 
-  return db
+  return database
     .select({ id: claims.id })
     .from(claims)
     .where(and(eq(claims.tenantId, args.tenantId), eq(claims.userId, args.userId)));

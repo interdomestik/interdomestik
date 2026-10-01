@@ -9,6 +9,7 @@ type Predicate =
 type CompoundPredicate = Extract<Predicate, { conditions: Predicate[] }>;
 
 const mocks = vi.hoisted(() => ({
+  context: vi.fn(),
   update: vi.fn(),
   set: vi.fn(),
   updateWhere: vi.fn(),
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.context,
   db: {
     update: mocks.update,
     select: mocks.select,
@@ -104,6 +106,9 @@ const readableMessage = {
 describe('markMessagesAsReadCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.context.mockImplementation((_context, action) =>
+      action({ update: mocks.update, select: mocks.select })
+    );
     mocks.update.mockReturnValue({ set: mocks.set });
     mocks.set.mockReturnValue({ where: mocks.updateWhere });
     mocks.updateWhere.mockResolvedValue(undefined);

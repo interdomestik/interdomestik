@@ -15,34 +15,37 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-#1856 protected-merged as `e15953b9a32b4292f38ed1a8bc11052a3892cb47`; exact-main CI and
-[staging CD 36845871829](https://github.com/interdomestik/interdomestik/actions/runs/36845871829)
-passed with production skipped. Arben then selected the delivery-procedure correction after
-unnecessary label-triggered verification. Full S7 and human acceptance remain open.
+Arben confirmed `S7-MEMBER-MESSAGE-READ-CONTINUITY` on 2026-10-01. Credit #1856 merge
+`e15953b9a` and successful staging CD `36845871829` for member case reads and mobile logout.
+Approved synthetic browser identities are available. Message reads on cases 02/10 still fail after retry.
+PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged as
+`3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-merge staging is pending.
+No deployment, product readiness or user-acceptance claim is made for the current repair before its required evidence.
 
-| ID                                | Status        | Owner                   | Work                                                                                                         | Exit Criteria                                                                                                                               |
-| --------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DELIVERY-METADATA-CHECK-REUSE`   | `in_progress` | Codex integration owner | Separate metadata delivery refresh from expensive source verification; carry agent SRS v0.9 and reuse rules. | Independent review, required local proof, protected hosted checks; observe label events without CI/E2E/Pilot duplication after publication. |
-| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | `blocked`     | Codex integration owner | Credit delivered member reads/mobile logout; retain the live message-panel failure.                          | Resolve/retest message reads before claiming the full public/private cross-role journey; Arben acceptance remains separate.                 |
+| ID                                  | Status        | Owner                   | Work                                                                        | Exit Criteria                                                                                                                               |
+| ----------------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `in_progress` | Codex integration owner | Reproduce and repair owned message reads under existing tenant/RLS context. | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest. |
+
+### Confirmed acceptance slice
+
+`S7-MEMBER-MESSAGE-READ-CONTINUITY` — repair and testing active, Codex integration owner.
+Exit: protected repair delivery and exact-merge staging, approved synthetic identities/case, real browser login and
+member/staff/admin observations bound to the delivered SHA; technical proof and Arben acceptance separate.
 
 ### Current acceptance
 
-No deployment, product readiness or user-acceptance claim is made for the pending
-`DELIVERY-METADATA-CHECK-REUSE` correction. Its local proof does not replace protected hosted
-checks. The separately delivered #1856 staging evidence remains credited above.
-
-- The procedure correction runs expensive proof for changed ready source, not label metadata.
-- Label addition/removal refreshes the existing delivery gate without bypassing its exact evidence,
-  review or latest-result checks. Older failed/cancelled evidence cannot be replaced by older green proof.
-- Immutable helper pins and reviewed workflow parity remain enforced; fork/draft protections remain.
-- #1856 live browser proof: member.ks.a2 sees the same five cases on dashboard/list; cases 02 and 10
-  load and survive reload; logout reaches login and `/member` no longer exposes the old session.
-- The messages panel fails on cases 02/10 after retry. Live writes were not performed; the full
-  [cross-role scenario](../guides/staging-staff-member-admin-acceptance.md) and human acceptance remain open.
-- Performance remains separately authorized and queued: IDA-NFR-002/003, measured per environment,
-  with M0–M5/RLS/auth/privacy preserved. Current five-sample observations are baseline, not p95 proof.
-- Record elapsed delivery time, full-proof attempts/reasons, actual helper contributions and
-  post-review defects in the existing receipt; do not create a parallel tracker.
+- Base: freshly fetched main `e15953b9a32b4292f38ed1a8bc11052a3892cb47` (#1856).
+- Owned public messages load, retry and reload; sender projection and empty state remain usable.
+- Internal notes stay inaccessible to members and agents; cross-member/tenant and operational scope denials hold.
+- Read receipts mutate only authorized visible messages; include dependent fixes only when reproduction proves necessity.
+- SRS v0.9 IDA-COM-005 and IDA-CAS-006/008 guide this bounded repair alongside shipped M0–M5; no whole-clause completion claim.
+- Preserve tenant ownership, privacy, auth layering, proxy, canonical routes and page-ready contracts.
+- Execute the [member/staff/admin scenario](../guides/staging-staff-member-admin-acceptance.md)
+  on the delivered staging SHA and record search latency samples separately from correctness.
+- Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
+  integrator corrections and defects found after final review in the existing receipt.
+- Prior #1854 save recovery and #1856 case-read/logout evidence remain delivered; message repair and human acceptance remain pending.
+- Performance remains separately authorized; this repair does not claim a latency improvement.
 
 ## Product Queue
 
@@ -61,12 +64,19 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
+| ID                                  | Source Refs                                    | Execution  | Run ID  | Run Root                                          | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
+| ----------------------------------- | ---------------------------------------------- | ---------- | ------- | ------------------------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; base `3a9f2b1cb` | `scripted` | pending | isolated worktree; reproduction and proof pending | pending | pending | not_applicable | pending  | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
+
+## Current Facts
+
+Prior delivery proof rows are retained here as historical facts, outside the active proof ledger.
+The message repair is the sole current implementation; #1857 staging remains pending.
+
 | ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                                                          | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                     |
 | --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------------------- | ------- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial                                   | pass    | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md) |
-| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | pending     | reviewed code `eb0b8aa3d`: pr:verify/security passed; canonical-only amendment audited separately | pending | pending | not_applicable | pending  | Protected publication and hosted event observation pending                                                                        |
-
-## Current Facts
+| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | pending     | reviewed code `eb0b8aa3d`: pr:verify/security passed; canonical-only amendment audited separately | pending | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; exact-merge staging pending                 |
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
@@ -221,4 +231,4 @@ Historical allocations, projections and receipts retain their original meaning b
 block ordinary work. Explicit legacy validation remains available for changes to those artifacts or
 their consumers.
 
-Proof-ledger context: #1856 had zero open Sonar findings at its final PR head. The local DB is retained and reused for successor verification; resource retirement remains pending. Label-trigger duplication and the unresolved message-read gap remain recorded findings. For DELIVERY-METADATA-CHECK-REUSE, preventing duplicate expensive verification still needs hosted event observation; hosted verification and publication remain pending.
+Historical proof context: #1856 had zero open Sonar findings at its final PR head. Its worktree is archived; the local DB remains in use by the message-repair successor. Label-trigger duplication and the unresolved message-read gap remain recorded findings. #1857 passed protected checks and merged as `3a9f2b1cb`; exact-merge staging and observation of future label-event behavior remain pending.

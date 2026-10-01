@@ -27,26 +27,8 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  claimMessages: {
-    id: { name: 'id' },
-    claimId: { name: 'claim_id' },
-    senderId: { name: 'sender_id' },
-    content: { name: 'content' },
-    isInternal: { name: 'is_internal' },
-    readAt: { name: 'read_at' },
-    createdAt: { name: 'created_at' },
-    tenantId: { name: 'tenant_id' },
-  },
-  claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
-  user: {
-    id: { name: 'id' },
-    name: { name: 'name' },
-    image: { name: 'image' },
-    role: { name: 'role' },
-    tenantId: { name: 'tenantId' },
-  },
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const database = {
     select: () => mockSelectChain,
     insert: () => ({ values: hoistedMocks.dbInsert }),
     update: () => ({
@@ -62,8 +44,31 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: () => hoistedMocks.dbUserQuery(),
       },
     },
-  },
-}));
+  };
+  return {
+    claimMessages: {
+      id: { name: 'id' },
+      claimId: { name: 'claim_id' },
+      senderId: { name: 'sender_id' },
+      content: { name: 'content' },
+      isInternal: { name: 'is_internal' },
+      readAt: { name: 'read_at' },
+      createdAt: { name: 'created_at' },
+      tenantId: { name: 'tenant_id' },
+    },
+    claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
+    user: {
+      id: { name: 'id' },
+      name: { name: 'name' },
+      image: { name: 'image' },
+      role: { name: 'role' },
+      tenantId: { name: 'tenantId' },
+    },
+    db: database,
+    withTenantContext: (_context: unknown, action: (tx: typeof database) => unknown) =>
+      action(database),
+  };
+});
 
 vi.mock('nanoid', () => ({
   nanoid: () => 'test-message-id',

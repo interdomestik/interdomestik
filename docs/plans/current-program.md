@@ -28,7 +28,9 @@ access. Live browser verification found all five owned cases, working details/re
 and 10, successful logout and protected-navigation redirect. The messages panel still fails on both
 details, including retry; full staff/member acceptance and whole S7 remain open.
 
-Arben selected the bounded delivery-procedure correction on 2026-10-01 after metadata labels
+PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged as
+`3a9f2b1cb04384e692a50da3d513db59255aa098` on 2026-10-01; exact-merge staging is pending.
+Arben selected this bounded delivery-procedure correction after metadata labels
 restarted expensive checks on unchanged #1856 source. `DELIVERY-METADATA-CHECK-REUSE` removes label
 triggers from CI/E2E/Pilot/backstops, certifies changed ready source automatically, and refreshes
 only the lightweight delivery snapshot on label changes. Preserve immutable helper pins, exact
@@ -40,6 +42,21 @@ maintenance does not complete an SRS clause. The separately authorized performan
 queued against IDA-NFR-002/003: establish comparable retrieval measurements and address demonstrated
 causes, without claiming p95 or an approved latency budget from five browser observations.
 Retain the newly observed message-read failure as a correctness prerequisite for the full journey.
+
+Arben confirmed `S7-MEMBER-MESSAGE-READ-CONTINUITY` on 2026-10-01 as the next bounded
+repair within live acceptance. Credit #1856 merge `e15953b9a` and successful exact-main
+staging CD `36845871829` for member case reads and mobile logout. Message reads still fail
+on cases 02/10 after retry. Reproduce and repair the necessary communication operations under
+existing tenant/RLS context, preserving public/private visibility and authorized read receipts.
+SRS v0.9 IDA-COM-005 and IDA-CAS-006/008 guide acceptance alongside shipped M0–M5 and accepted ADRs.
+Whole S7 and human acceptance remain open; performance remains a separate authorized PR.
+Earlier PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
+`6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
+[staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
+Now exercise real browser login and the delivered
+staff/member journey using approved staging identities and test cases. Record actual outcomes,
+privacy boundaries and any reproducible gap; do not infer human acceptance from API-login P0.
+No new conflict policy, legal/SLA semantics, billing or architecture change is selected.
 
 Credit [#1847](https://github.com/interdomestik/interdomestik/pull/1847) decline preview,
 [#1849](https://github.com/interdomestik/interdomestik/pull/1849) staging recovery,
@@ -528,6 +545,18 @@ alone is not business or user acceptance.
   user-acceptance or production-deployment claim follows.
 
 ## Bounded Research Brief
+
+Checked 2026-10-01 for message-read continuity: [PostgreSQL SET LOCAL](https://www.postgresql.org/docs/current/sql-set.html)
+limits settings to the current transaction; [Drizzle transactions](https://orm.drizzle.team/docs/transactions)
+execute related queries through the supplied transaction. The existing repository tenant helper
+already establishes this boundary. Adopt that helper for dependent message operations; reject
+global session settings, privileged read fallbacks and RLS-policy changes. A real local
+NOBYPASSRLS connection reproduces `Claim not found`, while the same claim is visible inside
+the tenant transaction. Verify public/private visibility and recipient receipts with real RLS.
+The owner-held SRS v0.9 checksum matches the recorded baseline; read IDA-COM-005 and
+IDA-CAS-006/008 without claiming their full completion.
+
+### Credited status-save research
 
 Checked 2026-09-30: [React transition error handling](https://react.dev/reference/react/useTransition#displaying-an-error-to-users-with-error-boundary)
 states that a rejected transition promise reaches an error boundary. The mounted status-save
