@@ -19,7 +19,9 @@ Arben confirmed `S7-MEMBER-MESSAGE-READ-CONTINUITY` on 2026-10-01. Credit #1856 
 `e15953b9a` and successful staging CD `36845871829` for member case reads and mobile logout.
 Approved synthetic browser identities are available. Message reads on cases 02/10 still fail after retry.
 PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged as
-`3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-merge staging is pending.
+`3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-main CI `36857125364` and
+[staging CD 36857125345](https://github.com/interdomestik/interdomestik/actions/runs/36857125345)
+passed with production skipped. Its worktree is archived; the shared test DB remains in use.
 No deployment, product readiness or user-acceptance claim is made for the current repair before its required evidence.
 
 | ID                                  | Status        | Owner                   | Work                                                                        | Exit Criteria                                                                                                                               |
@@ -34,6 +36,11 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 
 ### Current acceptance
 
+- Local message repair proof is complete: 6 real RLS regressions, 85 focused web consumers,
+  coverage 80.79%, E2E 283 passed/19 skipped and smoke 13 passed/11 skipped; security guard passed.
+  The initial full command stopped at a standalone test mock; after that test-only correction,
+  unchanged prefix evidence was retained and the remaining coverage/E2E/smoke stages passed.
+  Hosted checks, repair deployment and live cross-role acceptance remain pending.
 - Base: freshly fetched main `e15953b9a32b4292f38ed1a8bc11052a3892cb47` (#1856).
 - Owned public messages load, retry and reload; sender projection and empty state remain usable.
 - Internal notes stay inaccessible to members and agents; cross-member/tenant and operational scope denials hold.
@@ -64,19 +71,19 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                    | Execution  | Run ID  | Run Root                                          | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
-| ----------------------------------- | ---------------------------------------------- | ---------- | ------- | ------------------------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; base `3a9f2b1cb` | `scripted` | pending | isolated worktree; reproduction and proof pending | pending | pending | not_applicable | pending  | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
+| ID                                  | Source Refs                                    | Execution  | Run ID  | Run Root                                                | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
+| ----------------------------------- | ---------------------------------------------- | ---------- | ------- | ------------------------------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; base `3a9f2b1cb` | `scripted` | pending | local composed proof passed; protected delivery pending | pending | pending | not_applicable | pending  | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
 
 ## Current Facts
 
 Prior delivery proof rows are retained here as historical facts, outside the active proof ledger.
-The message repair is the sole current implementation; #1857 staging remains pending.
+The message repair is the sole current implementation; #1857 staging passed on its exact merge.
 
-| ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                                                          | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                     |
-| --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------------------------------- | ------- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial                                   | pass    | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md) |
-| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | pending     | reviewed code `eb0b8aa3d`: pr:verify/security passed; canonical-only amendment audited separately | pending | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; exact-merge staging pending                 |
+| ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                               | Sonar | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                       |
+| --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ---------------------------------------------------------------------- | ----- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial        | pass  | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md)                   |
+| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | 36857125345 | local/protected proof and exact-main staging passed; worktree archived | pass  | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; shared DB retained; future label behavior observation pending |
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
@@ -231,4 +238,4 @@ Historical allocations, projections and receipts retain their original meaning b
 block ordinary work. Explicit legacy validation remains available for changes to those artifacts or
 their consumers.
 
-Historical proof context: #1856 had zero open Sonar findings at its final PR head. Its worktree is archived; the local DB remains in use by the message-repair successor. Label-trigger duplication and the unresolved message-read gap remain recorded findings. #1857 passed protected checks and merged as `3a9f2b1cb`; exact-merge staging and observation of future label-event behavior remain pending.
+Historical proof context: #1856 had zero open Sonar findings at its final PR head. Its worktree is archived; the local DB remains in use by the message-repair successor. Label-trigger duplication and the unresolved live message-read gap remain recorded findings. #1857 passed protected checks and exact-merge staging as `3a9f2b1cb`; its worktree is archived. Observation of future label-event behavior remains pending.

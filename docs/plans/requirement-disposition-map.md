@@ -112,7 +112,7 @@ merge `e15953b9a` and successful staging CD `36845871829` for member reads/mobil
 Messages on cases 02/10 still fail after retry. The next repair covers existing tenant/RLS
 communication operations and public/private isolation under IDA-COM-005 and IDA-CAS-006/008;
 full requirements and human acceptance remain open. Performance is a separate authorized PR.
-PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged the delivery-procedure correction as `3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-merge staging is pending. This engineering maintenance closes no SRS clause.
+PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged the delivery-procedure correction as `3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-main CI `36857125364` and staging CD `36857125345` passed with production skipped. Its worktree is archived. This engineering maintenance closes no SRS clause.
 Approved test identities are available. Earlier PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
 `6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
 [staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.

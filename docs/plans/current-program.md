@@ -29,7 +29,9 @@ and 10, successful logout and protected-navigation redirect. The messages panel 
 details, including retry; full staff/member acceptance and whole S7 remain open.
 
 PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged as
-`3a9f2b1cb04384e692a50da3d513db59255aa098` on 2026-10-01; exact-merge staging is pending.
+`3a9f2b1cb04384e692a50da3d513db59255aa098` on 2026-10-01. Exact-main CI `36857125364`
+and [staging CD 36857125345](https://github.com/interdomestik/interdomestik/actions/runs/36857125345)
+passed, including staging P0; production was skipped. Its worktree is archived and evidence retained.
 Arben selected this bounded delivery-procedure correction after metadata labels
 restarted expensive checks on unchanged #1856 source. `DELIVERY-METADATA-CHECK-REUSE` removes label
 triggers from CI/E2E/Pilot/backstops, certifies changed ready source automatically, and refreshes
