@@ -1,135 +1,55 @@
-import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import postgres from 'postgres';
-import { eq, inArray } from 'drizzle-orm';
-import type { Session } from '../types';
+import { describe, expect, it, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
+import {
+  assertSyntheticMessageDatabaseUrl,
+  database,
+  get,
+  markRead,
+  send,
+  rlsClient,
+  ids,
+  homeTenantId,
+  otherTenantId,
+  session,
+  registerMessageRlsFixture,
+} from './tenant-context.integration-fixture';
+const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 
-const enabled = process.env.MESSAGE_RLS_INTEGRATION === '1';
-const suite = enabled ? describe : describe.skip;
-const suffix = randomUUID();
-const ids = {
-  member: `message_member_${suffix}`,
-  otherMember: `message_other_${suffix}`,
-  staff: `message_staff_${suffix}`,
-  agent: `message_agent_${suffix}`,
-  claim: `message_claim_${suffix}`,
-  link: `message_link_${suffix}`,
-  public: `message_public_${suffix}`,
-  internal: `message_internal_${suffix}`,
-};
-let database: typeof import('@interdomestik/database');
-let get: (typeof import('./get'))['getMessagesForClaimCore'];
-let markRead: (typeof import('./mark-read'))['markMessagesAsReadCore'];
-let send: (typeof import('./send'))['sendMessageDbCore'];
-let rlsClient: ReturnType<typeof postgres>;
-let adminClient: ReturnType<typeof postgres>;
-const session = (id: string, role: string, tenantId = 'tenant_ks') =>
-  ({ user: { id, role, tenantId, branchId: null } }) as NonNullable<Session>;
+describe('message fixture database safety', () => {
+  it('accepts the synthetic CI and task ports without a machine-specific port constraint', () => {
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/interdomestik_test')
+    ).not.toThrow();
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl('postgresql://test:test@localhost:55435/interdomestik_test')
+    ).not.toThrow();
+  });
+  it('rejects remote and non-synthetic databases before creating clients or fixtures', () => {
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl(
+        'postgresql://test:test@db.example.test:5432/interdomestik_test'
+      )
+    ).toThrow();
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/production')
+    ).toThrow();
+  });
+  it('rejects connection-string options that could redirect the approved target', () => {
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl(
+        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?host=db.example.test'
+      )
+    ).toThrow();
+    expect(() =>
+      assertSyntheticMessageDatabaseUrl(
+        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?options=unsafe'
+      )
+    ).toThrow();
+  });
+});
 
 suite('message operations on a real NOBYPASSRLS connection', () => {
-  beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('MESSAGE_RLS_INTEGRATION requires DATABASE_URL');
-    const endpoint = new URL(process.env.DATABASE_URL);
-    if (
-      !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname) ||
-      endpoint.port !== '55435' ||
-      endpoint.pathname !== '/interdomestik_test'
-    ) {
-      throw new Error('Message integration fixtures require the approved loopback synthetic DB');
-    }
-    // Use the preconfigured role, without changing its password, grants or policies.
-    const role = process.env.DB_RLS_ROLE;
-    if (!role || !/^[a-z_][a-z0-9_]*$/u.test(role))
-      throw new Error('A safe existing DB_RLS_ROLE is required');
-    rlsClient = postgres(process.env.DATABASE_URL, {
-      max: 1,
-      connection: { options: `-c role=${role}` },
-    });
-    adminClient = postgres(process.env.DATABASE_URL, { max: 1 });
-    Object.assign(globalThis, { queryClientRls: rlsClient, queryClientAdmin: adminClient });
-    database = await import('@interdomestik/database');
-    ({ getMessagesForClaimCore: get } = await import('./get'));
-    ({ markMessagesAsReadCore: markRead } = await import('./mark-read'));
-    ({ sendMessageDbCore: send } = await import('./send'));
-    const { assertRlsConnectionRoleReady } = await import('@interdomestik/database/db');
-    await assertRlsConnectionRoleReady();
-    const [posture] =
-      await rlsClient`select rolsuper, rolbypassrls from pg_roles where rolname=current_user`;
-    expect(posture).toEqual({ rolsuper: false, rolbypassrls: false });
-    const now = new Date();
-    await database.dbAdmin.insert(database.user).values(
-      [
-        [ids.member, 'member'],
-        [ids.otherMember, 'member'],
-        [ids.staff, 'staff'],
-        [ids.agent, 'agent'],
-      ].map(([id, role]) => ({
-        id,
-        role,
-        tenantId: 'tenant_ks',
-        email: `${id}@example.test`,
-        emailVerified: true,
-        name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',
-        createdAt: now,
-        updatedAt: now,
-      }))
-    );
-    await database.dbAdmin.insert(database.claims).values({
-      id: ids.claim,
-      userId: ids.member,
-      tenantId: 'tenant_ks',
-      staffId: ids.staff,
-      category: 'retail',
-      companyName: 'Synthetic Co',
-      description: 'Isolated message tenant-context regression',
-      origin: 'portal',
-      title: 'Synthetic message case',
-    });
-    await database.dbAdmin.insert(database.agentClients).values({
-      id: ids.link,
-      tenantId: 'tenant_ks',
-      agentId: ids.agent,
-      memberId: ids.member,
-      status: 'active',
-    });
-    await database.dbAdmin.insert(database.claimMessages).values([
-      {
-        id: ids.public,
-        tenantId: 'tenant_ks',
-        claimId: ids.claim,
-        senderId: ids.staff,
-        content: 'Public test update',
-        isInternal: false,
-      },
-      {
-        id: ids.internal,
-        tenantId: 'tenant_ks',
-        claimId: ids.claim,
-        senderId: ids.staff,
-        content: 'Private test note',
-        isInternal: true,
-      },
-    ]);
-  });
-
-  afterAll(async () => {
-    if (database) {
-      await database.dbAdmin
-        .delete(database.claimMessages)
-        .where(eq(database.claimMessages.claimId, ids.claim));
-      await database.dbAdmin
-        .delete(database.agentClients)
-        .where(eq(database.agentClients.id, ids.link));
-      await database.dbAdmin.delete(database.claims).where(eq(database.claims.id, ids.claim));
-      await database.dbAdmin
-        .delete(database.user)
-        .where(inArray(database.user.id, [ids.member, ids.otherMember, ids.staff, ids.agent]));
-    }
-    await Promise.all([rlsClient?.end({ timeout: 2 }), adminClient?.end({ timeout: 2 })]);
-    delete (globalThis as { queryClientRls?: unknown }).queryClientRls;
-    delete (globalThis as { queryClientAdmin?: unknown }).queryClientAdmin;
-  });
-
+  registerMessageRlsFixture();
   it('loads the owned public thread and sender projection across repeated reads', async () => {
     const [unscoped] =
       await rlsClient`select count(*)::int as count from claim where id=${ids.claim}`;
@@ -154,7 +74,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       await get({ session: session(ids.otherMember, 'member'), claimId: ids.claim })
     ).toMatchObject({ success: false });
     expect(
-      await get({ session: session(ids.member, 'member', 'tenant_mk'), claimId: ids.claim })
+      await get({ session: session(ids.member, 'member', otherTenantId), claimId: ids.claim })
     ).toMatchObject({ success: false });
     expect(
       await get({ session: session(ids.otherMember, 'staff'), claimId: ids.claim })
@@ -264,7 +184,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       deps: {
         logAuditEvent: async () => {
           const rows = await database.withTenantContext(
-            { tenantId: 'tenant_ks', role: 'member' },
+            { tenantId: homeTenantId, role: 'member' },
             tx =>
               tx.query.claimMessages.findMany({
                 where: eq(database.claimMessages.claimId, ids.claim),

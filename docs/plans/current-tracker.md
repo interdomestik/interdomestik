@@ -41,7 +41,7 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
   The initial full command stopped at a standalone test mock; after that test-only correction,
   unchanged prefix evidence was retained and the remaining coverage/E2E/smoke stages passed.
   Hosted checks, repair deployment and live cross-role acceptance remain pending.
-- Base: freshly fetched main `e15953b9a32b4292f38ed1a8bc11052a3892cb47` (#1856).
+- Base: freshly fetched main `3a9f2b1cb04384e692a50da3d513db59255aa098` (#1857).
 - Owned public messages load, retry and reload; sender projection and empty state remain usable.
 - Internal notes stay inaccessible to members and agents; cross-member/tenant and operational scope denials hold.
 - Read receipts mutate only authorized visible messages; include dependent fixes only when reproduction proves necessity.
