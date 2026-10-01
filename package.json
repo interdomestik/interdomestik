@@ -24,7 +24,7 @@
     "db:migrate": "pnpm --filter @interdomestik/database migrate",
     "db:migrations:check-journal": "node scripts/check-drizzle-migration-journal.mjs",
     "db:push:local": "node scripts/database-command.mjs push-local",
-    "db:rls:test": "pnpm --filter @interdomestik/database test:rls",
+    "db:rls:test": "pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls",
     "db:rls:test:required": "REQUIRE_RLS_INTEGRATION=1 REQUIRE_RLS_COVERAGE=1 node scripts/run-with-default-db-url.mjs pnpm db:rls:test",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
     "seed:e2e": "pnpm --filter @interdomestik/database seed:e2e",

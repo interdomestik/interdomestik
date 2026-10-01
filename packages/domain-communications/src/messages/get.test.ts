@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  context: vi.fn(),
   findFirst: vi.fn(),
   findAgentClient: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.context,
   db: {
     query: {
       claims: { findFirst: mocks.findFirst },
@@ -60,6 +62,15 @@ import { getMessagesForClaimCore } from './get';
 describe('getMessagesForClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.context.mockImplementation((_context, action) =>
+      action({
+        query: {
+          claims: { findFirst: mocks.findFirst },
+          agentClients: { findFirst: mocks.findAgentClient },
+        },
+        select: vi.fn(() => mocks.selectChain),
+      })
+    );
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.leftJoin.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);

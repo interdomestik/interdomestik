@@ -169,6 +169,8 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     env:
+      # This job owns the synthetic service; never inherit a remote database secret.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5

@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-09-30-canonical-closeout`). An optional personal installation at
+`2026-10-01-review-follow-through`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -159,6 +159,15 @@ defect instead of authorizing arbitrary changes to the active product queue.
 | Review               | Requested current-head review is complete; accepted findings and actionable analysis annotations are resolved before expensive local proof. A local-only draft uses applicable local review. |
 | Verification         | Required commands actually exit successfully on the frozen candidate and environment.                                                                                                        |
 | Handoff              | Reviewable diff and PR draft cite receipts; no unsupported delivery claims.                                                                                                                  |
+
+Opening a PR does not complete authorized preparation. Follow requested reviews and
+hosted checks through; consolidate findings, verify corrections, and resolve their
+GitHub threads. An unresolved-finding delivery failure is a valid block. Once providers
+finish and threads are resolved, refresh only the failed delivery gate for unchanged
+source identity, then run `pnpm pr:review-ready -- <PR>`. Source pushes require current-head
+hosted evidence under the existing admission policy. Merge/deploy still require owner
+authority. Real integration regressions must run in a required repository lane, not
+only through a manually supplied environment flag; record selection and execution.
 
 For remote delivery, wait for requested current-head review and required analysis
 before this expensive local lane. Focused tests/type checks continue during review;

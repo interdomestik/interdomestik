@@ -1,4 +1,4 @@
-import { claimMessages, db } from '@interdomestik/database';
+import { claimMessages, withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 
@@ -28,39 +28,43 @@ export async function markMessagesAsReadCore(params: {
       return { success: true };
     }
 
+    const actor = session.user;
     const tenantId = ensureTenantId(session);
-    const userRole = session.user.role || 'user';
+    const userRole = actor.role || 'user';
     const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
     const isStaff = isPrivilegedStaff || isScopedClaimsReadRole(userRole);
 
-    // A read receipt must be created by a recipient for a message visible to their role.
-    const baseCondition = and(
-      eq(claimMessages.tenantId, tenantId),
-      inArray(claimMessages.id, messageIds),
-      isNull(claimMessages.readAt),
-      ne(claimMessages.senderId, session.user.id),
-      isStaff ? undefined : eq(claimMessages.isInternal, false)
-    );
+    return await withTenantContext({ tenantId, role: userRole }, async tx => {
+      // A read receipt must be created by a recipient for a message visible to their role.
+      const baseCondition = and(
+        eq(claimMessages.tenantId, tenantId),
+        inArray(claimMessages.id, messageIds),
+        isNull(claimMessages.readAt),
+        ne(claimMessages.senderId, actor.id),
+        isStaff ? undefined : eq(claimMessages.isInternal, false)
+      );
 
-    const accessCondition = isPrivilegedStaff
-      ? undefined
-      : inArray(
-          claimMessages.claimId,
-          buildAccessibleClaimIdsSubquery({
-            branchId: session.user.branchId ?? null,
-            role: userRole,
-            tenantId,
-            userId: session.user.id,
-          })
-        );
+      const accessCondition = isPrivilegedStaff
+        ? undefined
+        : inArray(
+            claimMessages.claimId,
+            buildAccessibleClaimIdsSubquery({
+              branchId: actor.branchId ?? null,
+              role: userRole,
+              tenantId,
+              tx,
+              userId: actor.id,
+            })
+          );
 
-    // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-    await db
-      .update(claimMessages)
-      .set({ readAt: new Date() })
-      .where(and(baseCondition, accessCondition));
+      // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
+      await tx
+        .update(claimMessages)
+        .set({ readAt: new Date() })
+        .where(and(baseCondition, accessCondition));
 
-    return { success: true };
+      return { success: true };
+    });
   } catch (error) {
     console.error('Error marking messages as read:', error);
     return { success: false, error: 'Failed to mark messages as read' };

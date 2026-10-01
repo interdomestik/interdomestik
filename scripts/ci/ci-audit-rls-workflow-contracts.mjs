@@ -20,4 +20,21 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   const rls = findStep(workflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
   assert.equal(rls.env.REQUIRE_RLS_INTEGRATION, '1');
   assert.equal(rls.env.REQUIRE_RLS_COVERAGE, '1');
+  assert.equal(rls.run, 'pnpm db:rls:test');
+  assert.equal(
+    workflow.jobs['e2e-gate'].env.DATABASE_URL,
+    'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test'
+  );
+  const rootScripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts;
+  const domainScripts = JSON.parse(
+    fs.readFileSync(path.join(root, 'packages/domain-communications/package.json'), 'utf8')
+  ).scripts;
+  assert.equal(
+    rootScripts['db:rls:test'],
+    'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls'
+  );
+  assert.equal(
+    domainScripts['test:rls'],
+    'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run src/messages/tenant-context.integration.test.ts'
+  );
 });
