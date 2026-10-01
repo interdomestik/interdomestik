@@ -1,4 +1,10 @@
-import { claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
+import {
+  claimEscalationAgreements,
+  claims,
+  eq,
+  user,
+  withTenantContext,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   buildAcceptedRecoveryPrerequisitesSnapshot,
@@ -11,7 +17,11 @@ import { buildRecoveryDecisionSnapshot } from './recovery-decision';
 import { buildScopedStaffClaimWhere } from './scope';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
-import type { AcceptedRecoveryPrerequisitesSnapshot, ClaimEscalationAgreementSnapshot, RecoveryDecisionSnapshot } from './types';
+import type {
+  AcceptedRecoveryPrerequisitesSnapshot,
+  ClaimEscalationAgreementSnapshot,
+  RecoveryDecisionSnapshot,
+} from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -63,144 +73,147 @@ export async function getStaffClaimDetail(params: {
   claimId: string;
 }): Promise<StaffClaimDetail | null> {
   const { branchId = null, tenantId, claimId } = params;
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const rows = await db
-    .select({
-      claimId: claims.id,
-      claimCategory: claims.category,
-      claimNumber: claims.claimNumber,
-      status: claimLifecycleStatusSql(),
-      caseLifecycleState: claims.caseLifecycleState,
-      recoveryLifecycleState: claims.recoveryLifecycleState,
-      staffId: claims.staffId,
-      updatedAt: claims.updatedAt,
-      createdAt: claims.createdAt,
-      agentId: claims.agentId,
-      memberId: user.id,
-      memberName: user.name,
-      memberNumber: user.memberNumber,
-      agreementDecisionType: claimEscalationAgreements.decisionType,
-      agreementDeclineReasonCode: claimEscalationAgreements.declineReasonCode,
-      agreementDecisionNextStatus: claimEscalationAgreements.decisionNextStatus,
-      agreementDecisionReason: claimEscalationAgreements.decisionReason,
-      agreementFeePercentage: claimEscalationAgreements.feePercentage,
-      agreementMinimumFee: claimEscalationAgreements.minimumFee,
-      agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
-      agreementPaymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
-      agreementSuccessFeeRecoveredAmount: claimEscalationAgreements.successFeeRecoveredAmount,
-      agreementSuccessFeeCurrencyCode: claimEscalationAgreements.successFeeCurrencyCode,
-      agreementSuccessFeeAmount: claimEscalationAgreements.successFeeAmount,
-      agreementSuccessFeeCollectionMethod: claimEscalationAgreements.successFeeCollectionMethod,
-      agreementSuccessFeeDeductionAllowed: claimEscalationAgreements.successFeeDeductionAllowed,
-      agreementSuccessFeeHasStoredPaymentMethod:
-        claimEscalationAgreements.successFeeHasStoredPaymentMethod,
-      agreementSuccessFeeInvoiceDueAt: claimEscalationAgreements.successFeeInvoiceDueAt,
-      agreementSuccessFeeResolvedAt: claimEscalationAgreements.successFeeResolvedAt,
-      agreementSuccessFeeSubscriptionId: claimEscalationAgreements.successFeeSubscriptionId,
-      agreementTermsVersion: claimEscalationAgreements.termsVersion,
-      agreementSignedAt: claimEscalationAgreements.signedAt,
-      agreementAcceptedAt: claimEscalationAgreements.acceptedAt,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .leftJoin(claimEscalationAgreements, eq(claims.id, claimEscalationAgreements.claimId))
-    .where(
-      buildScopedStaffClaimWhere({
-        branchId,
-        claimId,
-        tenantId,
-        userId: params.staffId,
-      })
-    )
-    .limit(1);
 
-  const row = rows[0];
-  if (!row || !row.memberId || !row.memberName) return null;
-  const { status } = resolveClaimLifecycleReadProjection(row);
-  let agent: StaffClaimDetail['agent'];
-  if (row.agentId) {
-    const agentRows = await db
-      .select({ id: user.id, name: user.name })
-      .from(user)
-      .where(withTenant(tenantId, user.tenantId, eq(user.id, row.agentId)))
+  return withTenantContext({ tenantId }, async tx => {
+    const rows = await tx
+      .select({
+        claimId: claims.id,
+        claimCategory: claims.category,
+        claimNumber: claims.claimNumber,
+        status: claimLifecycleStatusSql(),
+        caseLifecycleState: claims.caseLifecycleState,
+        recoveryLifecycleState: claims.recoveryLifecycleState,
+        staffId: claims.staffId,
+        updatedAt: claims.updatedAt,
+        createdAt: claims.createdAt,
+        agentId: claims.agentId,
+        memberId: user.id,
+        memberName: user.name,
+        memberNumber: user.memberNumber,
+        agreementDecisionType: claimEscalationAgreements.decisionType,
+        agreementDeclineReasonCode: claimEscalationAgreements.declineReasonCode,
+        agreementDecisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+        agreementDecisionReason: claimEscalationAgreements.decisionReason,
+        agreementFeePercentage: claimEscalationAgreements.feePercentage,
+        agreementMinimumFee: claimEscalationAgreements.minimumFee,
+        agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
+        agreementPaymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+        agreementSuccessFeeRecoveredAmount: claimEscalationAgreements.successFeeRecoveredAmount,
+        agreementSuccessFeeCurrencyCode: claimEscalationAgreements.successFeeCurrencyCode,
+        agreementSuccessFeeAmount: claimEscalationAgreements.successFeeAmount,
+        agreementSuccessFeeCollectionMethod: claimEscalationAgreements.successFeeCollectionMethod,
+        agreementSuccessFeeDeductionAllowed: claimEscalationAgreements.successFeeDeductionAllowed,
+        agreementSuccessFeeHasStoredPaymentMethod:
+          claimEscalationAgreements.successFeeHasStoredPaymentMethod,
+        agreementSuccessFeeInvoiceDueAt: claimEscalationAgreements.successFeeInvoiceDueAt,
+        agreementSuccessFeeResolvedAt: claimEscalationAgreements.successFeeResolvedAt,
+        agreementSuccessFeeSubscriptionId: claimEscalationAgreements.successFeeSubscriptionId,
+        agreementTermsVersion: claimEscalationAgreements.termsVersion,
+        agreementSignedAt: claimEscalationAgreements.signedAt,
+        agreementAcceptedAt: claimEscalationAgreements.acceptedAt,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id))
+      .leftJoin(claimEscalationAgreements, eq(claims.id, claimEscalationAgreements.claimId))
+      .where(
+        buildScopedStaffClaimWhere({
+          branchId,
+          claimId,
+          tenantId,
+          userId: params.staffId,
+        })
+      )
       .limit(1);
-    const agentRow = agentRows[0];
-    if (agentRow?.id && agentRow.name) {
-      agent = { id: agentRow.id, name: agentRow.name };
+
+    const row = rows[0];
+    if (!row || !row.memberId || !row.memberName) return null;
+    const { status } = resolveClaimLifecycleReadProjection(row);
+    let agent: StaffClaimDetail['agent'];
+    if (row.agentId) {
+      const agentRows = await tx
+        .select({ id: user.id, name: user.name })
+        .from(user)
+        .where(withTenant(tenantId, user.tenantId, eq(user.id, row.agentId)))
+        .limit(1);
+      const agentRow = agentRows[0];
+      if (agentRow?.id && agentRow.name) {
+        agent = { id: agentRow.id, name: agentRow.name };
+      }
     }
-  }
-  const matterAllowance = await getMatterAllowanceVisibilityForUser({
-    tenantId,
-    userId: row.memberId,
+    const matterAllowance = await getMatterAllowanceVisibilityForUser({
+      tx,
+      tenantId,
+      userId: row.memberId,
+    });
+    const recoveryDecision = buildRecoveryDecisionSnapshot({
+      decidedAt: row.agreementAcceptedAt,
+      declineReasonCode: row.agreementDeclineReasonCode ?? null,
+      decisionType: row.agreementDecisionType ?? null,
+      explanation: row.agreementDecisionReason ?? null,
+    });
+    const commercialAgreement = buildCommercialAgreementSnapshot({
+      acceptedAt: row.agreementAcceptedAt,
+      claimId: row.claimId,
+      decisionNextStatus: row.agreementDecisionNextStatus ?? null,
+      decisionReason: row.agreementDecisionReason ?? null,
+      feePercentage: row.agreementFeePercentage,
+      legalActionCapPercentage: row.agreementLegalActionCapPercentage,
+      minimumFee: row.agreementMinimumFee,
+      paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+      signedAt: row.agreementSignedAt,
+      termsVersion: row.agreementTermsVersion,
+    });
+    const successFeeCollection = buildSuccessFeeCollectionSnapshot({
+      claimId: row.claimId,
+      collectionMethod: row.agreementSuccessFeeCollectionMethod,
+      currencyCode: row.agreementSuccessFeeCurrencyCode,
+      deductionAllowed: row.agreementSuccessFeeDeductionAllowed,
+      feeAmount: row.agreementSuccessFeeAmount,
+      hasStoredPaymentMethod: row.agreementSuccessFeeHasStoredPaymentMethod,
+      invoiceDueAt: row.agreementSuccessFeeInvoiceDueAt,
+      paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+      recoveredAmount: row.agreementSuccessFeeRecoveredAmount,
+      resolvedAt: row.agreementSuccessFeeResolvedAt,
+      subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
+    });
+    const commercialScope = buildCommercialHandlingScopeSnapshot({
+      claimCategory: row.claimCategory,
+    });
+    const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
+      commercialAgreement,
+      commercialScope,
+      recoveryDecisionStatus: recoveryDecision.status,
+      successFeeCollection,
+    });
+    return {
+      claim: {
+        id: row.claimId,
+        claimNumber: row.claimNumber,
+        status,
+        staffId: row.staffId ?? null,
+        stageLabel: formatStageLabel(status),
+        submittedAt: normalizeDate(row.createdAt),
+        updatedAt: normalizeDate(row.updatedAt ?? row.createdAt),
+      },
+      member: {
+        id: row.memberId,
+        fullName: row.memberName,
+        membershipNumber: row.memberNumber ?? null,
+      },
+      matterAllowance: matterAllowance
+        ? {
+            allowanceTotal: matterAllowance.allowanceTotal,
+            consumedCount: matterAllowance.consumedCount,
+            remainingCount: matterAllowance.remainingCount,
+            windowStart: matterAllowance.windowStart.toISOString(),
+            windowEnd: matterAllowance.windowEnd.toISOString(),
+          }
+        : null,
+      agent,
+      acceptedRecoveryPrerequisites,
+      recoveryDecision,
+      commercialAgreement,
+      successFeeCollection,
+    };
   });
-  const recoveryDecision = buildRecoveryDecisionSnapshot({
-    decidedAt: row.agreementAcceptedAt,
-    declineReasonCode: row.agreementDeclineReasonCode ?? null,
-    decisionType: row.agreementDecisionType ?? null,
-    explanation: row.agreementDecisionReason ?? null,
-  });
-  const commercialAgreement = buildCommercialAgreementSnapshot({
-    acceptedAt: row.agreementAcceptedAt,
-    claimId: row.claimId,
-    decisionNextStatus: row.agreementDecisionNextStatus ?? null,
-    decisionReason: row.agreementDecisionReason ?? null,
-    feePercentage: row.agreementFeePercentage,
-    legalActionCapPercentage: row.agreementLegalActionCapPercentage,
-    minimumFee: row.agreementMinimumFee,
-    paymentAuthorizationState: row.agreementPaymentAuthorizationState,
-    signedAt: row.agreementSignedAt,
-    termsVersion: row.agreementTermsVersion,
-  });
-  const successFeeCollection = buildSuccessFeeCollectionSnapshot({
-    claimId: row.claimId,
-    collectionMethod: row.agreementSuccessFeeCollectionMethod,
-    currencyCode: row.agreementSuccessFeeCurrencyCode,
-    deductionAllowed: row.agreementSuccessFeeDeductionAllowed,
-    feeAmount: row.agreementSuccessFeeAmount,
-    hasStoredPaymentMethod: row.agreementSuccessFeeHasStoredPaymentMethod,
-    invoiceDueAt: row.agreementSuccessFeeInvoiceDueAt,
-    paymentAuthorizationState: row.agreementPaymentAuthorizationState,
-    recoveredAmount: row.agreementSuccessFeeRecoveredAmount,
-    resolvedAt: row.agreementSuccessFeeResolvedAt,
-    subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
-  });
-  const commercialScope = buildCommercialHandlingScopeSnapshot({
-    claimCategory: row.claimCategory,
-  });
-  const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
-    commercialAgreement,
-    commercialScope,
-    recoveryDecisionStatus: recoveryDecision.status,
-    successFeeCollection,
-  });
-  return {
-    claim: {
-      id: row.claimId,
-      claimNumber: row.claimNumber,
-      status,
-      staffId: row.staffId ?? null,
-      stageLabel: formatStageLabel(status),
-      submittedAt: normalizeDate(row.createdAt),
-      updatedAt: normalizeDate(row.updatedAt ?? row.createdAt),
-    },
-    member: {
-      id: row.memberId,
-      fullName: row.memberName,
-      membershipNumber: row.memberNumber ?? null,
-    },
-    matterAllowance: matterAllowance
-      ? {
-          allowanceTotal: matterAllowance.allowanceTotal,
-          consumedCount: matterAllowance.consumedCount,
-          remainingCount: matterAllowance.remainingCount,
-          windowStart: matterAllowance.windowStart.toISOString(),
-          windowEnd: matterAllowance.windowEnd.toISOString(),
-        }
-      : null,
-    agent,
-    acceptedRecoveryPrerequisites,
-    recoveryDecision,
-    commercialAgreement,
-    successFeeCollection,
-  };
 }

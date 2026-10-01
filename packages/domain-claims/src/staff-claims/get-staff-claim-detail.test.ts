@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
+import { createClaimRow } from './get-staff-claim-detail.test-support';
 
-const mocks = vi.hoisted(() => {
+const mocks = await vi.hoisted(async () => {
+  const { agreementColumns, claimsColumns, userColumns } =
+    await import('./get-staff-claim-detail.test-support');
   const claimChain = {
     from: vi.fn(),
     leftJoin: vi.fn(),
@@ -21,48 +24,12 @@ const mocks = vi.hoisted(() => {
     agentChain,
     db: { select: vi.fn() },
     getMatterAllowanceVisibility: vi.fn(),
-    claims: {
-      id: 'claims.id',
-      tenantId: 'claims.tenant_id',
-      branchId: 'claims.branch_id',
-      category: 'claims.category',
-      claimNumber: 'claims.claim_number',
-      status: 'claims.status',
-      updatedAt: 'claims.updated_at',
-      createdAt: 'claims.created_at',
-      staffId: 'claims.staff_id',
-      userId: 'claims.user_id',
-      agentId: 'claims.agent_id',
-    },
-    claimEscalationAgreements: {
-      claimId: 'claim_escalation_agreements.claim_id',
-      decisionType: 'claim_escalation_agreements.decision_type',
-      declineReasonCode: 'claim_escalation_agreements.decline_reason_code',
-      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
-      decisionReason: 'claim_escalation_agreements.decision_reason',
-      feePercentage: 'claim_escalation_agreements.fee_percentage',
-      minimumFee: 'claim_escalation_agreements.minimum_fee',
-      legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
-      paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
-      successFeeRecoveredAmount: 'claim_escalation_agreements.success_fee_recovered_amount',
-      successFeeCurrencyCode: 'claim_escalation_agreements.success_fee_currency_code',
-      successFeeAmount: 'claim_escalation_agreements.success_fee_amount',
-      successFeeCollectionMethod: 'claim_escalation_agreements.success_fee_collection_method',
-      successFeeDeductionAllowed: 'claim_escalation_agreements.success_fee_deduction_allowed',
-      successFeeHasStoredPaymentMethod:
-        'claim_escalation_agreements.success_fee_has_stored_payment_method',
-      successFeeInvoiceDueAt: 'claim_escalation_agreements.success_fee_invoice_due_at',
-      successFeeResolvedAt: 'claim_escalation_agreements.success_fee_resolved_at',
-      successFeeSubscriptionId: 'claim_escalation_agreements.success_fee_subscription_id',
-      termsVersion: 'claim_escalation_agreements.terms_version',
-      signedAt: 'claim_escalation_agreements.signed_at',
-      acceptedAt: 'claim_escalation_agreements.accepted_at',
-    },
-    user: {
-      id: 'user.id',
-      name: 'user.name',
-      memberNumber: 'user.member_number',
-    },
+    withTenantContext: vi.fn((_context: unknown, action: (tx: unknown) => unknown) =>
+      action(mocks.db)
+    ),
+    claims: claimsColumns,
+    claimEscalationAgreements: agreementColumns,
+    user: userColumns,
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
@@ -76,6 +43,7 @@ vi.mock('@interdomestik/database', () => ({
   user: mocks.user,
   eq: mocks.eq,
   and: mocks.and,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -87,42 +55,6 @@ vi.mock('./matter-allowance', () => ({
 }));
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
-
-function createClaimRow(overrides: Record<string, unknown> = {}) {
-  return {
-    claimId: 'claim-1',
-    claimCategory: 'vehicle',
-    claimNumber: 'KS-0001',
-    status: 'evaluation',
-    updatedAt: new Date('2026-03-14T00:00:00Z'),
-    createdAt: new Date('2026-03-10T00:00:00Z'),
-    memberId: 'member-1',
-    memberName: 'Member One',
-    memberNumber: 'MEM-001',
-    agentId: null,
-    agreementDecisionType: 'accepted',
-    agreementDeclineReasonCode: null,
-    agreementDecisionNextStatus: 'negotiation',
-    agreementDecisionReason: 'Clear insurer path and viable monetary recovery.',
-    agreementFeePercentage: 20,
-    agreementMinimumFee: '25.00',
-    agreementLegalActionCapPercentage: 35,
-    agreementPaymentAuthorizationState: 'authorized',
-    agreementSuccessFeeRecoveredAmount: null,
-    agreementSuccessFeeCurrencyCode: null,
-    agreementSuccessFeeAmount: null,
-    agreementSuccessFeeCollectionMethod: null,
-    agreementSuccessFeeDeductionAllowed: null,
-    agreementSuccessFeeHasStoredPaymentMethod: null,
-    agreementSuccessFeeInvoiceDueAt: null,
-    agreementSuccessFeeResolvedAt: null,
-    agreementSuccessFeeSubscriptionId: null,
-    agreementTermsVersion: '2026-03-v1',
-    agreementSignedAt: null,
-    agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
-    ...overrides,
-  };
-}
 
 describe('getStaffClaimDetail', () => {
   beforeEach(() => {
@@ -185,6 +117,7 @@ describe('getStaffClaimDetail', () => {
     expect(result?.member.membershipNumber).toBe('MEM-001');
     expect(result?.agent?.name).toBe('Agent One');
     expect(mocks.getMatterAllowanceVisibility).toHaveBeenCalledWith({
+      tx: mocks.db,
       tenantId: 'tenant-ks',
       userId: 'member-1',
     });
