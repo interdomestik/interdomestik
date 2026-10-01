@@ -24,12 +24,29 @@ export const ids = {
   public: `message_public_${suffix}`,
   internal: `message_internal_${suffix}`,
 };
-export let database: typeof import('@interdomestik/database');
-export let get: (typeof import('./get'))['getMessagesForClaimCore'];
-export let markRead: (typeof import('./mark-read'))['markMessagesAsReadCore'];
-export let send: (typeof import('./send'))['sendMessageDbCore'];
-export let rlsClient: ReturnType<typeof postgres>;
+let database: typeof import('@interdomestik/database');
+let get: (typeof import('./get'))['getMessagesForClaimCore'];
+let markRead: (typeof import('./mark-read'))['markMessagesAsReadCore'];
+let send: (typeof import('./send'))['sendMessageDbCore'];
+let rlsClient: ReturnType<typeof postgres>;
 let adminClient: ReturnType<typeof postgres>;
+export const fixture = {
+  get database() {
+    return database;
+  },
+  get get() {
+    return get;
+  },
+  get markRead() {
+    return markRead;
+  },
+  get send() {
+    return send;
+  },
+  get rlsClient() {
+    return rlsClient;
+  },
+};
 export const session = (id: string, role: string, tenantId = homeTenantId) =>
   ({ user: { id, role, tenantId, branchId: null } }) as NonNullable<Session>;
 

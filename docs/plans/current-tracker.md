@@ -77,13 +77,9 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Current Facts
 
-Prior delivery proof rows are retained here as historical facts, outside the active proof ledger.
-The message repair is the sole current implementation; #1857 staging passed on its exact merge.
-
-| ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                               | Sonar | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                       |
-| --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ---------------------------------------------------------------------- | ----- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial        | pass  | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md)                   |
-| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | 36857125345 | local/protected proof and exact-main staging passed; worktree archived | pass  | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; shared DB retained; future label behavior observation pending |
+Completed #1856/#1857 delivery proof is preserved in the
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-repair-predecessors-1856-1857).
+The message repair remains the sole current implementation.
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)

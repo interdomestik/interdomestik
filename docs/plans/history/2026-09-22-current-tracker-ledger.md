@@ -1478,3 +1478,13 @@ The #1854 worktree was archived. Its local database was stopped with data preser
 review refused deletion. On 2026-10-01 that same synthetic database was restarted for the owner's
 S7 live-acceptance repair tests; local test-role grants were explicitly authorized. This subsequent
 resource reuse does not change the historical delivery or imply current-repair completion.
+
+## S7 message repair predecessors #1856 / #1857
+
+Completed predecessor evidence moved from the active tracker on 2026-10-01.
+Message repair and cross-role human acceptance remain separate.
+
+| ID                                | Source Refs                                             | Execution  | Run ID      | Run Root                                                               | Sonar | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                       |
+| --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ---------------------------------------------------------------------- | ----- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial        | pass  | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md)                   |
+| `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | 36857125345 | local/protected proof and exact-main staging passed; worktree archived | pass  | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; shared DB retained; future label behavior observation pending |
