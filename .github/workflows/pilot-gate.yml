@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     # Protected checks must always materialize on PRs; the validation-surface
     # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch:
@@ -56,7 +56,7 @@ jobs:
 
       - name: Resolve exact-head certification admission
         id: certification
-        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+        uses: interdomestik/interdomestik/.github/actions/exact-head-certification@fa46372b729016d992e6c198a3c7511fd7816815
         with:
           policy-json: ${{ toJSON(steps.gate_policy.outputs) }}
 

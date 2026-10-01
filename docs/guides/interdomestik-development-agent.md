@@ -311,17 +311,32 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
 - Run a focused mounted browser regression for changed fixtures before publishing.
   Include moved mocks/helpers in type/lint checks and inspect current-head Sonar
   annotations under the actual delivery policy; a green summary is insufficient.
+- Before the final verification freeze, inspect protected-file authorization,
+  required check identities and PR-label event triggers. Resolve already-authorized
+  exceptions using the supported mechanism and apply required labels BEFORE final
+  hosted checks. Record this in the existing receipt; do not ask the owner to repeat
+  authorization already given. Avoid late metadata changes that retrigger CI.
+- After gates pass, reuse evidence for unchanged source/configuration/environment
+  under the repository contract. If normal merge is blocked, diagnose the exact
+  missing requirement read-only before changing labels or rerunning jobs. Rerun only
+  invalidated proof or an explicitly required failed/incomplete check; record why.
+  Never weaken branch protection, cancel required proof to merge, or use admin bypass.
 - Record the freeze checkpoint in the existing receipt: SHA/tree, requested reviews
   completed, actionable findings disposition, focused proof and environment identity.
   Do not start the expensive lane while a requested current-head review is pending.
 - For a reported CI failure, identify run, PR, head and failed step before acting.
-  Inspect the repository's current admission policy; if full-gate certification is
-  required, apply its supported label within authorized PR management and confirm
-  a new run starts. A skipped runner is not executed proof. Never weaken admission.
+  Inspect the repository's current admission policy and exact failing requirement.
+  Never add full-gate or toggle draft/ready merely to repair metadata or unblock an
+  unchanged green candidate. Source changes on a ready PR trigger certification;
+  labels refresh only delivery authorization and feedback under the corrected
+  workflow. On an older checkout, diagnose its behavior before applying this rule.
+  A skipped runner is not executed proof. Retry only the required failed/incomplete
+  producer; do not weaken admission or substitute older green evidence for a newer
+  failed/cancelled result.
 
 These rules supplement the same verification sequence above; they add no separate
 approval, model panel or full test lane. The related #1855 admission failure was
-missing full-gate certification, not a failing executed E2E assertion. Diagnose
+missing source certification, not a failing executed E2E assertion. Diagnose
 PR identity before attributing another PR's failure to the delivered pilot.
 
 This revision is installed locally and must be carried into the next authorized
@@ -399,3 +414,14 @@ Owner clarification (2026-10-01): the images are directional inspiration only. T
 Keep acceptance based on outcomes, stable accessibility semantics and contractual page-ready markers. Avoid tests coupled to present card positions, CSS classes or exact decoration. Update UI locators with each design change while preserving privacy, role separation, tenant isolation, draft-versus-submitted truth, and consistent case state across views.
 
 Visual references do not prove shipped capabilities or authorize promises: offline, biometric login, notifications, automatic estimates, flight availability and free/paid service claims must match approved scope and implemented behavior. This direction does not start a redesign or change M0–M5 architecture by itself.
+
+## SRS v0.9 requirement check for every successor
+
+Before selecting or implementing each next slice, check SRS v0.9 alongside M0–M5,
+current program/tracker and the requirement-disposition map. Resolve the owner-held
+SRS source and recorded checksum through repository authority, read the relevant
+clauses, and record requirement IDs, delivered credit, remaining gap and acceptance
+criteria in the existing slice receipt. Do not infer full SRS compliance from a
+bounded implementation or treat planned M0–M5 behavior as shipped. If the source is
+unavailable or conflicts with accepted repo authority, state the precise limitation
+and resolve it before the dependent implementation; do not silently substitute a summary.

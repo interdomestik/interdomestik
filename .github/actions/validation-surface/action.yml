@@ -76,6 +76,6 @@ runs:
         >> "$GITHUB_OUTPUT"
     - name: Resolve exact-head certification admission
       id: certification
-      uses: interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b
+      uses: interdomestik/interdomestik/.github/actions/exact-head-certification@fa46372b729016d992e6c198a3c7511fd7816815
       with:
         policy-json: ${{ toJSON(steps.gate_policy.outputs) }}

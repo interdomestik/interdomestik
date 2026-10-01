@@ -5,7 +5,7 @@ on:
     paths-ignore: ['docs/**', 'scripts/repo-size-budget.json']
   pull_request:
     branches: ['**']
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, labeled]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

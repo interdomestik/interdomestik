@@ -116,9 +116,14 @@ export function planRefresh({ pull, workflow, run, jobs, permission, feedback, n
     !sameRepository(run.head_repository)
   )
     return null;
-  const titles = ['opened', 'synchronize', 'reopened', 'ready_for_review', 'labeled'].map(
-    action => `${rule.title} [supersession:v1:pull_request:${action}:${identity.head}]`
-  );
+  const titles = [
+    'opened',
+    'synchronize',
+    'reopened',
+    'ready_for_review',
+    'labeled',
+    'unlabeled',
+  ].map(action => `${rule.title} [supersession:v1:pull_request:${action}:${identity.head}]`);
   if (
     !titles.includes(run.display_title) ||
     !Array.isArray(run.pull_requests) ||

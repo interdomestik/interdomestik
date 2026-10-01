@@ -7,14 +7,7 @@ import './pr-e2e-evidence-workflow-contracts.mjs';
 
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';
-const EVENT_TYPES = [
-  'opened',
-  'synchronize',
-  'reopened',
-  'ready_for_review',
-  'converted_to_draft',
-  'labeled',
-];
+const EVENT_TYPES = ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'];
 
 function readYaml(...parts) {
   const url = new URL(`../../.github/${parts.join('/')}`, import.meta.url);
@@ -27,14 +20,8 @@ const readAction = name => readYaml('actions', name, 'action.yml');
 const findStep = (job, name) => job.steps.find(step => step?.name === name);
 const needs = (job, dependency) => [job.needs].flat().includes(dependency);
 
-test('draft-aware workflows react to lifecycle and full-gate label events', () => {
-  for (const name of [
-    'ci.yml',
-    'e2e-pr.yml',
-    'pilot-gate.yml',
-    'pr-deterministic-backstops.yml',
-    'pr-finalizer.yml',
-  ]) {
+test('expensive workflows react only to source and lifecycle events', () => {
+  for (const name of ['ci.yml', 'e2e-pr.yml', 'pilot-gate.yml', 'pr-deterministic-backstops.yml']) {
     assert.deepEqual(readWorkflow(name).on.pull_request.types, EVENT_TYPES, name);
   }
 });

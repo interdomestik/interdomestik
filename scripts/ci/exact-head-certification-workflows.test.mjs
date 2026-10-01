@@ -53,7 +53,7 @@ test('result enforcement receives only explicit certification evidence', () => {
 });
 
 const trustedBootstrap =
-  'interdomestik/interdomestik/.github/actions/exact-head-certification@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b';
+  'interdomestik/interdomestik/.github/actions/exact-head-certification@fa46372b729016d992e6c198a3c7511fd7816815';
 
 test('all authoritative admission callers pin exact-head admission to the bootstrap SHA', () => {
   for (const name of ['ci.yml', 'e2e-pr.yml', 'pilot-gate.yml', 'pr-deterministic-backstops.yml']) {
@@ -68,7 +68,7 @@ test('PR E2E pins result authority and removes its colliding manual trigger', ()
   const source = workflow('e2e-pr.yml');
   assert.match(
     source,
-    /interdomestik\/interdomestik\/\.github\/actions\/exact-head-certification-result@ecd31cf47a5d2fbd6c164aea0c0c6fcfb686011b/u
+    /interdomestik\/interdomestik\/\.github\/actions\/exact-head-certification-result@fa46372b729016d992e6c198a3c7511fd7816815/u
   );
   assert.doesNotMatch(source, /^  workflow_dispatch:/mu);
   assert.match(source, /if: needs\.e2e-preflight\.outputs\.run_broad == 'true'/u);
