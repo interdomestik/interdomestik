@@ -269,6 +269,7 @@ test('capacity stops combine with exact-head proof', () => {
     baselineBudgetBytes: baselineBytes,
   });
   assert.ok(report.authorityStops.some(item => item.code === 'capacity:writer-owner-overlap'));
-  assert.ok(report.deficits.some(item => item.code === 'proof:full-gate'));
+  // Ready same-repository synchronize admits the lane; proof is still required below.
+  assert.equal(report.deficits.some(item => item.code === 'proof:full-gate'), false);
   assert.ok(report.deficits.some(item => item.code === 'evidence:heavy-proof-required'));
 });
