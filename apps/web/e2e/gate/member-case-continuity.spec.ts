@@ -23,7 +23,9 @@ test('member owned cases remain accessible across dashboard, list and mobile acc
   await expect(page.locator('[data-testid="member-claim-progress-summary"]:visible')).toHaveCount(
     1
   );
-  await gotoApp(page, routes.memberClaims(testInfo), testInfo);
+  await gotoApp(page, routes.memberClaims(testInfo), testInfo, {
+    marker: 'member-claims-table-region',
+  });
   await expect(page.getByTestId('member-claims-table-region')).toBeVisible();
   await expect(page.locator(`a[href="${detailHref}"]`).first()).toBeVisible();
   const account = page.getByTestId('user-nav');
@@ -33,6 +35,6 @@ test('member owned cases remain accessible across dashboard, list and mobile acc
   // Logout is the final action in the existing shared account menu.
   await page.getByRole('menuitem').last().click();
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
-  await page.goto(routes.member(testInfo));
+  await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'auth-ready' });
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
