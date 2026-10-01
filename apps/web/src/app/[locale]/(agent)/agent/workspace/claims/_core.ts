@@ -267,7 +267,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
     unreadCounts.forEach((row: Record<string, unknown>) =>
       unreadMap.set(row.claimId as string, Number(row.count))
     );
-
+    // db-access-guard: tenant-scoped -- reason: buildVisibleMessagesWhere enforces tenant, visible claim ids and public messages
     const lastMessages = await db
       .selectDistinctOn([claimMessages.claimId], {
         claimId: claimMessages.claimId,

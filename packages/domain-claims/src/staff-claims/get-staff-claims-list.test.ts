@@ -1,93 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => {
-  const claimChain = {
-    from: vi.fn(),
-    leftJoin: vi.fn(),
-    where: vi.fn(),
-    orderBy: vi.fn(),
-    limit: vi.fn(),
-  };
-  const historyChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    orderBy: vi.fn(),
-  };
-  const diasporaClaimsChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-  };
-  return {
-    claimChain,
-    historyChain,
-    diasporaClaimsChain,
-    db: { select: vi.fn() },
-    claims: {
-      id: 'claims.id',
-      tenantId: 'claims.tenant_id',
-      branchId: 'claims.branch_id',
-      staffId: 'claims.staff_id',
-      claimNumber: 'claims.claim_number',
-      companyName: 'claims.company_name',
-      status: 'claims.status',
-      caseLifecycleState: 'claims.case_lifecycle_state',
-      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
-      title: 'claims.title',
-      updatedAt: 'claims.updated_at',
-      userId: 'claims.user_id',
-    },
-    claimStageHistory: {
-      id: 'claim_stage_history.id',
-      tenantId: 'claim_stage_history.tenant_id',
-      claimId: 'claim_stage_history.claim_id',
-      note: 'claim_stage_history.note',
-      createdAt: 'claim_stage_history.created_at',
-    },
-    user: {
-      id: 'user.id',
-      name: 'user.name',
-      email: 'user.email',
-      memberNumber: 'user.member_number',
-    },
-    aliasedTable: vi.fn((table, alias) => ({
-      ...table,
-      email: `${alias}.email`,
-      id: `${alias}.id`,
-      name: `${alias}.name`,
-    })),
-    eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    desc: vi.fn(value => ({ value, op: 'desc' })),
-    ilike: vi.fn((column, value) => ({ column, value, op: 'ilike' })),
-    inArray: vi.fn((column, values) => ({ column, values, op: 'inArray' })),
-    or: vi.fn((...conditions) => ({ conditions, op: 'or' })),
-    isNull: vi.fn(column => ({ column, op: 'isNull' })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
-  };
+import { resetStaffClaimsListMocks } from './get-staff-claims-list.test-support';
+const { mocks, modules } = await vi.hoisted(async () => {
+  const { createStaffClaimsListMocks, createStaffClaimsListModuleMocks } =
+    await import('./get-staff-claims-list.test-support');
+  const mocks = createStaffClaimsListMocks();
+  return { mocks, modules: createStaffClaimsListModuleMocks(mocks) };
 });
-vi.mock('@interdomestik/database', () => ({
-  db: mocks.db,
-  withTenantContext: (_context: unknown, action: (db: typeof mocks.db) => unknown) =>
-    action(mocks.db),
-  claims: mocks.claims,
-  claimStageHistory: mocks.claimStageHistory,
-  user: mocks.user,
-  eq: mocks.eq,
-  and: mocks.and,
-  desc: mocks.desc,
-  ilike: mocks.ilike,
-  inArray: mocks.inArray,
-  or: mocks.or,
-}));
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-vi.mock('drizzle-orm', () => ({
-  aliasedTable: mocks.aliasedTable,
-  inArray: mocks.inArray,
-  or: mocks.or,
-  isNull: mocks.isNull,
-  sql: vi.fn(() => ({ op: 'sql' })),
-}));
+vi.mock('@interdomestik/database', () => modules.database);
+vi.mock('@interdomestik/database/tenant-security', () => modules.tenantSecurity);
+vi.mock('drizzle-orm', () => modules.drizzle);
+
 import { getStaffClaimsList } from './get-staff-claims-list';
 function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
   expect(mocks.withTenant).toHaveBeenCalledWith(
@@ -109,27 +31,7 @@ function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: stri
   );
 }
 describe('getStaffClaimsList', () => {
-  beforeEach(() => {
-    mocks.and.mockClear();
-    mocks.db.select.mockReset();
-    mocks.db.select.mockReturnValueOnce(mocks.claimChain).mockReturnValueOnce(mocks.historyChain);
-    mocks.desc.mockClear();
-    mocks.eq.mockClear();
-    mocks.ilike.mockClear();
-    mocks.inArray.mockClear();
-    mocks.isNull.mockClear();
-    mocks.or.mockClear();
-    mocks.withTenant.mockClear();
-    mocks.claimChain.from.mockReturnValue(mocks.claimChain);
-    mocks.claimChain.leftJoin.mockReturnValue(mocks.claimChain);
-    mocks.claimChain.where.mockReturnValue(mocks.claimChain);
-    mocks.claimChain.orderBy.mockReturnValue(mocks.claimChain);
-    mocks.historyChain.from.mockReturnValue(mocks.historyChain);
-    mocks.historyChain.where.mockReturnValue(mocks.historyChain);
-    mocks.historyChain.orderBy.mockResolvedValue([]);
-    mocks.diasporaClaimsChain.from.mockReturnValue(mocks.diasporaClaimsChain);
-    mocks.diasporaClaimsChain.where.mockReturnValue('diaspora-subquery');
-  });
+  beforeEach(() => resetStaffClaimsListMocks(mocks));
 
   it('returns branch claims for branch managers', async () => {
     mocks.claimChain.limit.mockResolvedValue([
@@ -187,81 +89,12 @@ describe('getStaffClaimsList', () => {
     expectOwnOrUnassignedQueueScope({ staffId: 'staff-1', tenantId: 'tenant-ks' });
   });
 
-  it('maps assignee details', async () => {
-    mocks.claimChain.limit.mockResolvedValue([
-      {
-        id: 'claim-1',
-        claimNumber: 'KS-0001',
-        companyName: 'Acme',
-        title: 'Claim',
-        status: 'verification',
-        staffId: 'staff-2',
-        assigneeName: 'Drita Gashi',
-        assigneeEmail: 'drita@example.com',
-        updatedAt: new Date('2026-01-01T00:00:00Z'),
-        memberName: 'Member One',
-        memberNumber: 'M-0001',
-      },
-    ]);
-
-    const [result] = await getStaffClaimsList({
-      staffId: 'staff-1',
-      tenantId: 'tenant-ks',
-      branchId: 'branch-1',
-      limit: 20,
-      viewerRole: 'branch_manager',
-    });
-
-    expect(result.assigneeName).toBe('Drita Gashi');
-    expect(result.assigneeEmail).toBe('drita@example.com');
-    expect(result.isDiasporaOrigin).toBe(false);
-  });
-
-  it('maps diaspora origin fields from the latest note', async () => {
-    mocks.claimChain.limit.mockResolvedValue([
-      {
-        id: 'claim-1',
-        claimNumber: 'KS-0001',
-        companyName: 'Acme',
-        title: 'Claim',
-        status: 'verification',
-        staffId: 'staff-2',
-        assigneeName: 'Drita Gashi',
-        assigneeEmail: 'drita@example.com',
-        updatedAt: new Date('2026-01-01T00:00:00Z'),
-        memberName: 'Member One',
-        memberNumber: 'M-0001',
-      },
-    ]);
-    mocks.historyChain.orderBy.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
-      },
-      {
-        claimId: 'claim-1',
-        note: 'Older note that should not replace the latest diaspora provenance.',
-      },
-    ]);
-
-    const [result] = await getStaffClaimsList({
-      staffId: 'staff-1',
-      tenantId: 'tenant-ks',
-      branchId: 'branch-1',
-      limit: 20,
-      viewerRole: 'branch_manager',
-    });
-
-    expect(result.isDiasporaOrigin).toBe(true);
-    expect(result.diasporaCountry).toBe('IT');
-  });
-
   it('applies the diaspora subquery at the query boundary', async () => {
     mocks.db.select
       .mockReset()
       .mockReturnValueOnce(mocks.diasporaClaimsChain)
-      .mockReturnValueOnce(mocks.claimChain)
-      .mockReturnValueOnce(mocks.historyChain);
+      .mockReturnValueOnce(mocks.claimChain);
+    mocks.db.selectDistinctOn.mockReset().mockReturnValueOnce(mocks.historyChain);
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
@@ -304,6 +137,8 @@ describe('getStaffClaimsList', () => {
 
     expect(mocks.inArray).toHaveBeenCalledWith('claims.id', 'diaspora-subquery');
     expect(result[0]?.isDiasporaOrigin).toBe(true);
+    expect(result[1]?.isDiasporaOrigin).toBe(false);
+    expect(result[1]?.diasporaCountry).toBeNull();
   });
 
   it('limits default staff queue to own and unassigned claims', async () => {

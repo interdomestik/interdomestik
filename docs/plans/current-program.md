@@ -16,6 +16,17 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
+Arben authorized selection and implementation of the next bounded slice on 2026-10-01,
+with Sonnet 5 coding, Opus independent input/escalation, and Codex integration and verification.
+Selected `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: preserve the mounted staff queue's latest
+valid Diaspora origin while retrieving at most one matching history row per visible case.
+The existing queue reads all history for up to 20 cases only to produce that projection.
+Keep the existing tenant transaction, predicates, role/branch/assignment filters and tie order.
+No shared tenant-wrapper, auth, schema, routing, lifecycle or UI refactor is selected.
+Comparable synthetic local SQL proof will measure returned rows and executor timing; it does
+not establish staging user latency, p95 or whole IDA-NFR-002/003 acceptance. Live staff/member
+acceptance of delivered #1858 remains open and separate.
+
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
 contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
@@ -25,7 +36,7 @@ PR [#1856](https://github.com/interdomestik/interdomestik/pull/1856) protected-m
 [staging CD 36845871829](https://github.com/interdomestik/interdomestik/actions/runs/36845871829)
 passed; production was skipped. Credit member tenant-context read continuity and mobile account
 access. Live browser verification found all five owned cases, working details/reloads for cases 02
-and 10, successful logout and protected-navigation redirect. The messages panel still fails on both
+and 10, successful logout and protected-navigation redirect. Before #1858, the messages panel failed on both
 details, including retry; full staff/member acceptance and whole S7 remain open.
 
 PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged as
@@ -40,18 +51,19 @@ head/base/tree and provider checks, failed/cancelled-result rejection and indepe
 No branch-protection weakening, unconditional check success or product architecture change.
 
 Carry the SRS v0.9 + M0–M5 requirement check in the developer agent and guide. This engineering
-maintenance does not complete an SRS clause. The separately authorized performance PR remains
-queued against IDA-NFR-002/003: establish comparable retrieval measurements and address demonstrated
-causes, without claiming p95 or an approved latency budget from five browser observations.
-Retain the newly observed message-read failure as a correctness prerequisite for the full journey.
+maintenance does not complete an SRS clause. The separately authorized performance PR is now bounded to the selected staff-history projection
+against IDA-NFR-002/003. Establish comparable retrieval measurements and address demonstrated
+waste without claiming p95 or an approved latency budget from five browser observations.
+The message-read correctness prerequisite is technically delivered by #1858; live journey acceptance remains.
 
-Arben confirmed `S7-MEMBER-MESSAGE-READ-CONTINUITY` on 2026-10-01 as the next bounded
-repair within live acceptance. Credit #1856 merge `e15953b9a` and successful exact-main
-staging CD `36845871829` for member case reads and mobile logout. Message reads still fail
-on cases 02/10 after retry. Reproduce and repair the necessary communication operations under
-existing tenant/RLS context, preserving public/private visibility and authorized read receipts.
-SRS v0.9 IDA-COM-005 and IDA-CAS-006/008 guide acceptance alongside shipped M0–M5 and accepted ADRs.
-Whole S7 and human acceptance remain open; performance remains a separate authorized PR.
+`S7-MEMBER-MESSAGE-READ-CONTINUITY` was delivered through protected PR
+[#1858](https://github.com/interdomestik/interdomestik/pull/1858), merge `9f9d78b0081e080ac081d7dafc0918af1fa41599`.
+Exact-merge CI and staging/P0 passed; production was skipped. The
+[historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858)
+contains detailed proof. Credit existing tenant/RLS communication reads, writes and receipts;
+public/private visibility and denied access remain enforced. Next, complete live cross-role
+acceptance on the delivered SHA. Whole S7 and SRS v0.9 IDA-COM-005/CAS-006/008 remain open;
+performance is separately authorized, not claimed improved by this repair.
 Earlier PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
 `6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
 [staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
@@ -326,6 +338,29 @@ operational ownership, incident/restore evidence and explicit release authorizat
 alone is not business or user acceptance.
 
 ## Current Repair Acceptance
+
+### Selected staff-history projection performance
+
+- Sonnet 5 owns the bounded query/helper/test implementation; Codex inspects and executes it.
+  Opus reviews concrete projection, privacy and query-scope risks; record actually served models.
+- Return at most one valid Diaspora origin history row per visible case inside the existing
+  tenant transaction. Preserve tenant and visible-case predicates; skip history when no cases match.
+- Match the current parser's full accepted language, including prefix/suffix cross-combinations.
+  A newer unrelated or malformed note must not suppress an older valid origin.
+- Preserve latest-match ordering by descending timestamp and ID, unchanged queue DTO, search,
+  assignment/branch/role/status filters, page-ready markers and error propagation.
+- Execute focused semantic/query regressions and comparable local synthetic before/after proof.
+  Record returned-row counts separately from executor timing and user-perceived staging latency.
+- Consolidate requested review findings and current-head annotations before one expensive final lane.
+  Protected merge/staging and human acceptance require their applicable owner authority.
+
+Local synthetic actual-source proof now returns 20 history rows for 20 visible cases,
+versus 50,000 before; the five warm function samples have medians 61.96 ms before
+and 16.55 ms after. The real local RLS role denied foreign-tenant history and preserved
+all 16 note forms, ordering, malformed-note handling, missing origins and empty pages.
+These measurements describe this local workload; staging latency, full protected proof,
+release and human acceptance remain pending. Opus supplied independent findings,
+whose integration and test-hardening dispositions are recorded in the slice receipt.
 
 ### Delivered staff status/note save recovery acceptance (#1854)
 

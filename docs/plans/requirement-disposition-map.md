@@ -103,15 +103,23 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S7 work
 
+Arben authorized `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE` on 2026-10-01 through bounded
+selection and implementation. The selected mounted staff-queue projection removes unbounded
+history transfer while preserving latest valid Diaspora origin, tenant/RLS and existing role/scope
+semantics. Sonnet 5 codes; Codex verifies; Opus supplies independent risk review. Local synthetic
+row-count and executor measurements are separate from staging latency and human acceptance.
+IDA-NFR-002/003 remain unresolved; no whole requirement or numeric budget is declared met.
+
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
 contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
 
-Arben confirmed `S7-MEMBER-MESSAGE-READ-CONTINUITY` on 2026-10-01. Credit #1856
-merge `e15953b9a` and successful staging CD `36845871829` for member reads/mobile logout.
-Messages on cases 02/10 still fail after retry. The next repair covers existing tenant/RLS
-communication operations and public/private isolation under IDA-COM-005 and IDA-CAS-006/008;
-full requirements and human acceptance remain open. Performance is a separate authorized PR.
+`S7-MEMBER-MESSAGE-READ-CONTINUITY` is technically delivered by [#1858](https://github.com/interdomestik/interdomestik/pull/1858),
+merge `9f9d78b0081e080ac081d7dafc0918af1fa41599`; exact-merge CI and staging/P0 passed.
+Credit existing tenant/RLS communication operations with preserved public/private visibility
+and read receipts. IDA-COM-005 and IDA-CAS-006/008 remain open for full requirements and human
+cross-role acceptance. Performance remains a separate authorized PR. See the
+[historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858).
 PR [#1857](https://github.com/interdomestik/interdomestik/pull/1857) protected-merged the delivery-procedure correction as `3a9f2b1cb04384e692a50da3d513db59255aa098`; exact-main CI `36857125364` and staging CD `36857125345` passed with production skipped. Its worktree is archived. This engineering maintenance closes no SRS clause.
 Approved test identities are available. Earlier PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
 `6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
@@ -603,8 +611,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-SEC-019 | Production access | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-SEC-020 | Vulnerability response | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-NFR-001 | Availability objective | Target | unresolved | All journeys/S14 | open | none | U | U | U |
-| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | open | none | U | U | U |
-| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | open | none | U | U | U |
+| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | Selected staff-history projection successor targets demonstrated excess row transfer; comparable local proof pending, whole interactive performance and approved budget remain open | Current program/tracker; technical delivery pending | U | U | U |
+| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | Staff-history projection successor measures local retrieval separately; staging request/render latency and human acceptance remain open | Current program/tracker; technical delivery pending | U | U | U |
 | IDA-NFR-004 | Scalability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-005 | Reliability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-006 | Accessibility | Target | pilot-required | All journeys/S14 | open | none | U | U | U |

@@ -1488,3 +1488,32 @@ Message repair and cross-role human acceptance remain separate.
 | --------------------------------- | ------------------------------------------------------- | ---------- | ----------- | ---------------------------------------------------------------------- | ----- | ------- | -------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` | IDA-CAS-006/007/008; IDA-NFR-007/008; merge `e15953b9a` | `scripted` | 36845871829 | #1856 local/protected proof and staging passed; browser partial        | pass  | pending | not_applicable | pending  | [#1856](https://github.com/interdomestik/interdomestik/pull/1856); [scenario](../guides/staging-staff-member-admin-acceptance.md)                   |
 | `DELIVERY-METADATA-CHECK-REUSE`   | Owner direction 2026-10-01; no whole-SRS completion     | `scripted` | 36857125345 | local/protected proof and exact-main staging passed; worktree archived | pass  | pending | not_applicable | pending  | [#1857](https://github.com/interdomestik/interdomestik/pull/1857) merged `3a9f2b1cb`; shared DB retained; future label behavior observation pending |
+
+## S7 message read continuity 1858
+
+PR [#1858](https://github.com/interdomestik/interdomestik/pull/1858) protected-squash-merged
+on 2026-10-01 as `9f9d78b0081e080ac081d7dafc0918af1fa41599`, from reviewed head
+`46f20adf9a40f793b151c49891561ad200c20b4b`. Required PR checks and strict readiness passed;
+Sonar had zero annotations and all review threads were resolved. Exact-merge CI
+[36896119552](https://github.com/interdomestik/interdomestik/actions/runs/36896119552)
+and staging CD [36896119780](https://github.com/interdomestik/interdomestik/actions/runs/36896119780)
+passed, including health, source/alias provenance and P0. Production and rollback were skipped.
+The first CD attempt stopped before build/deploy on a GitHub API HTTP502; only the failed path
+was retried. No PR checks were repeated for that infrastructure error.
+
+Claim authorization, message reads/writes and receipts use the existing tenant transaction.
+Required RLS tests now execute the communications regression on self-contained fixtures;
+CI pins its synthetic database, and the canonical local Supabase default remains accepted.
+Public/private visibility, recipient-only receipts and projection-failure rollback hold.
+Message/audit persistence is not atomic; existing post-commit audit semantics remain.
+
+Local proof is composed: the initial full lane stopped at a test adapter; unchanged passing
+prefix evidence was retained and coverage/E2E/smoke completed after the adapter correction.
+Coverage was 80.79%; E2E 283 passed/19 skipped; smoke 13 passed/11 skipped. Subsequent test/CI
+corrections passed the required RLS chain, nine message/safety tests, types, security guard
+and relevant contracts. Runtime product source stayed unchanged after the initial proof.
+Resource retirement, detailed attempts and next-slice instruction patch are in the preserved
+receipt; canonical publication follows the next authorized product amendment.
+
+Whole S7, whole SRS requirements and live human staff/member acceptance remain open.
+Performance is separately authorized and no speed improvement is claimed here.

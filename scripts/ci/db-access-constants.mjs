@@ -1,6 +1,7 @@
 export const DIRECT_DB_METHODS = [
   'query',
   'select',
+  'selectDistinctOn',
   'insert',
   'update',
   'delete',
