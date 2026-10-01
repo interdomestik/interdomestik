@@ -139,6 +139,8 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
   Do not start the expensive lane while a requested current-head review is pending.
 - For a reported CI failure, identify run, PR, head and failed step before acting.
   Inspect the repository's current admission policy and exact failing requirement.
+  Read its resolved ready-PR decision before adding labels: when that decision already
+  certifies the current head, perceived risk alone does not require full-gate.
   Never add full-gate or toggle draft/ready merely to repair metadata or unblock an
   unchanged green candidate. Source changes on a ready PR trigger certification;
   labels refresh only delivery authorization and feedback under the corrected
@@ -277,6 +279,10 @@ transition writers, case/recovery separation, event projections, session-derived
 access-tenant/RLS boundaries distinct from host/legal/booking context, and applicable
 product-model contracts. Never revive legacy assumptions or activate unpromoted M5
 cutover work merely to fix a symptom. This is conformance, not refactor authorization.
+Before accepting an RLS diagnosis, trace the complete current migration/policy chain,
+including dynamic policy builders and permissive/restrictive composition. An added
+restrictive synthetic policy proves a hypothetical, not the actual target posture.
+Verify effective role/policy evidence before proposing a privileged boundary change.
 For authorized staff/member/admin browser testing, follow
  docs/guides/staging-staff-member-admin-acceptance.md. Use normal UI login/logout,
 verify each identity, keep admin governance separate from staff operations, and stop

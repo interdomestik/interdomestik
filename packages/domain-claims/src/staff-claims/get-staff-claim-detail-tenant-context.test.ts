@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
 const mocks = await vi.hoisted(async () => {
-  const { agreementColumns, claimsColumns, userColumns } =
+  const { agreementColumns, claimsColumns, createDatabaseMock, userColumns } =
     await import('./get-staff-claim-detail.test-support');
   const claimChain = { from: vi.fn(), leftJoin: vi.fn(), where: vi.fn(), limit: vi.fn() };
   const agentChain = { from: vi.fn(), where: vi.fn(), limit: vi.fn() };
@@ -11,6 +11,7 @@ const mocks = await vi.hoisted(async () => {
   return {
     claimChain,
     agentChain,
+    databaseMock: () => createDatabaseMock({ select: mocks.rawDbSelect }, mocks),
     tx: { select: vi.fn() },
     rawDbSelect: vi.fn(() => {
       throw new Error('raw db must not be used for tenant-scoped staff claim detail reads');
@@ -30,15 +31,7 @@ const mocks = await vi.hoisted(async () => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  db: { select: mocks.rawDbSelect },
-  claimEscalationAgreements: mocks.claimEscalationAgreements,
-  claims: mocks.claims,
-  user: mocks.user,
-  eq: mocks.eq,
-  and: mocks.and,
-  withTenantContext: mocks.withTenantContext,
-}));
+vi.mock('@interdomestik/database', () => mocks.databaseMock());
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,

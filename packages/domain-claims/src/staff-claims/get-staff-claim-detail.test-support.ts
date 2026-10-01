@@ -81,3 +81,18 @@ export function createClaimRow(overrides: StaffClaimRowOverrides = {}) {
     ...overrides,
   };
 }
+
+export function createDatabaseMock(
+  db: unknown,
+  operators: { eq: unknown; and: unknown; withTenantContext: unknown }
+) {
+  return {
+    db,
+    claimEscalationAgreements: agreementColumns,
+    claims: claimsColumns,
+    user: userColumns,
+    eq: operators.eq,
+    and: operators.and,
+    withTenantContext: operators.withTenantContext,
+  };
+}

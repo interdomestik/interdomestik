@@ -1603,3 +1603,15 @@ as tenant-context. Findings are dispositioned, not relabeled as a formal reviewe
 Current-head remote analysis and final local/protected proof remain pending.
 The existing task receipt records attempts, provider output and environment failures; no
 merge, deployment, full journey or human acceptance is claimed for this candidate.
+
+Current-head review reconciliation: a deny-all inference based on migration `0016` and
+a historical July runtime check was rejected. Current migration `0035` creates the
+permissive tenant policy for every tenant-column table, `0075` explicitly includes
+`user`, and `0083` rewrites these policies to access-tenant scope. The older permissive
+false policy does not override the tenant policy. A separately added restrictive
+synthetic policy demonstrated a hypothetical denial, not current production posture.
+No privileged auth adapter or policy change was integrated. Independent local review
+confirmed the current chain and retained tenant-context boundary. The Sonar correction
+extracts duplicated database mock projection setup while preserving all assertions.
+The receipt retains the rejected diagnosis, helper attempt and approval-review denial
+as historical evidence; final local/protected proof remains pending.

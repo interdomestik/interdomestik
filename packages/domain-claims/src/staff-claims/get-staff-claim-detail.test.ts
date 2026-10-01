@@ -4,7 +4,7 @@ import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scop
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
 const mocks = await vi.hoisted(async () => {
-  const { agreementColumns, claimsColumns, userColumns } =
+  const { agreementColumns, claimsColumns, createDatabaseMock, userColumns } =
     await import('./get-staff-claim-detail.test-support');
   const claimChain = {
     from: vi.fn(),
@@ -22,6 +22,7 @@ const mocks = await vi.hoisted(async () => {
   return {
     claimChain,
     agentChain,
+    databaseMock: () => createDatabaseMock(mocks.db, mocks),
     db: { select: vi.fn() },
     getMatterAllowanceVisibility: vi.fn(),
     withTenantContext: vi.fn((_context: unknown, action: (tx: unknown) => unknown) =>
@@ -36,15 +37,7 @@ const mocks = await vi.hoisted(async () => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  db: mocks.db,
-  claimEscalationAgreements: mocks.claimEscalationAgreements,
-  claims: mocks.claims,
-  user: mocks.user,
-  eq: mocks.eq,
-  and: mocks.and,
-  withTenantContext: mocks.withTenantContext,
-}));
+vi.mock('@interdomestik/database', () => mocks.databaseMock());
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
