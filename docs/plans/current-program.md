@@ -16,12 +16,9 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
-`S7-STAFF-STATUS-SAVE-RECOVERY` as protected merge `971ccc6a63b70ffe37b758cc1839d0df2e968eec`.
-All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
-passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
-staff history are technically delivered; production was skipped. Whole S7 and human acceptance
-remain open. The #1854 worktree is archived. Its preserved local database was restarted for the authorized synthetic acceptance tests.
+Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
+Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
+contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
 Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as

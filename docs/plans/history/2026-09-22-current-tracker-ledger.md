@@ -1460,3 +1460,21 @@ The next active governed implementation goal is resolved only by the repo-owned 
 Pre-compaction history through Rev 243: [manifest](./history/current-authority/2026-08-16-through-rev-243.manifest.json),
 SHA-256 `355229c5d24a6fa5f0986b6ce41423cbdc5caea16b291f1335a7264b2be5fc78`. WF01 stays
 closed/non-activating; OD17 and CI01/A1 remain separate and unpromoted.
+
+## S7 staff status save recovery #1854
+
+Historical receipt appended 2026-10-01; not an active queue or successor selection.
+PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
+`S7-STAFF-STATUS-SAVE-RECOVERY` as protected merge `971ccc6a63b70ffe37b758cc1839d0df2e968eec`.
+All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
+passed on 2026-09-30; production was skipped. The bounded delivery preserves selected status,
+public note and private allowance reason after rejected save transport; it provides EN/SQ/MK/SR
+confirmation-unknown guidance and an explicit history check before manual retry, without automatic
+retry or rollback claims. A later refresh exception is not relabelled as an unconfirmed save.
+Ordered public staff history is technically delivered. Whole IDA-CAS-006/007/008, IDA-NFR-007/008,
+S7 and human acceptance remain open.
+
+The #1854 worktree was archived. Its local database was stopped with data preserved after automatic
+review refused deletion. On 2026-10-01 that same synthetic database was restarted for the owner's
+S7 live-acceptance repair tests; local test-role grants were explicitly authorized. This subsequent
+resource reuse does not change the historical delivery or imply current-repair completion.

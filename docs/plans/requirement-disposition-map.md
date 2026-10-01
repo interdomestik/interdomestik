@@ -103,27 +103,18 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S7 work
 
-PR [#1854](https://github.com/interdomestik/interdomestik/pull/1854) delivered
-`S7-STAFF-STATUS-SAVE-RECOVERY` as protected merge `971ccc6a63b70ffe37b758cc1839d0df2e968eec`.
-All exact-merge Actions and [staging P0](https://github.com/interdomestik/interdomestik/actions/runs/36774591620)
-passed on 2026-09-30. Draft retention, explicit history-check recovery and complete ordered public
-staff history are technically delivered; production was skipped. Whole S7 and human acceptance
-remain open. The worktree is archived; the owned local database is stopped with data preserved.
+Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
+Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
+contains merge, staging and resource-retirement proof. Whole S7 and human acceptance remain open.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
-Preparation is active; live execution remains dependent on #1855 staging and approved test identities. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
+Live testing exposed member read continuity and mobile logout defects; repair #1856 is in progress. Approved test identities are available. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as
 `6405f13a5ca545e646189d0b15c298bb8d589824`; exact-merge
 [staging CD 36780409189](https://github.com/interdomestik/interdomestik/actions/runs/36780409189) passed.
 Now exercise real browser login and the delivered
 staff/member journey using approved staging identities and test cases. Record actual outcomes,
 privacy boundaries and any reproducible gap; do not infer human acceptance from API-login P0.
 No new conflict policy, legal/SLA semantics, billing or architecture change is selected.
-
-`S7-STAFF-STATUS-SAVE-RECOVERY` preserves staff status/note entries after an unconfirmed
-transport response, with four-locale guidance and explicit manual retry only. This is bounded
-recovery evidence for IDA-CAS-006/007/008 and IDA-NFR-007/008; full clauses and user acceptance remain open.
-See [current acceptance](current-program.md#current-repair-acceptance) and
-[the product PR](https://github.com/interdomestik/interdomestik/pull/1854) for final technical proof.
 
 Credit #1846 safe decline, #1847 preview, #1849 staging recovery and #1853 records search;
 exact main `b0dfc1858` passed [staging CD 36744876702](https://github.com/interdomestik/interdomestik/actions/runs/36744876702).
