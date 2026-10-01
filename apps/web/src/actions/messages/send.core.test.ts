@@ -19,34 +19,39 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: mocks.logAuditEvent,
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  claimMessages: {
-    id: 'claimMessages.id',
-    claimId: 'claimMessages.claimId',
-    senderId: 'claimMessages.senderId',
-    content: 'claimMessages.content',
-    isInternal: 'claimMessages.isInternal',
-    readAt: 'claimMessages.readAt',
-    createdAt: 'claimMessages.createdAt',
-  },
-  claims: {
-    id: 'claims.id',
-  },
-  user: {
-    id: 'user.id',
-    name: 'user.name',
-    image: 'user.image',
-    role: 'user.role',
-  },
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const database = {
     query: {
       claims: { findFirst: mocks.claimsFindFirst },
       user: { findFirst: mocks.userFindFirst },
     },
     insert: () => ({ values: mocks.insertValues }),
     select: mocks.select,
-  },
-}));
+  };
+  return {
+    claimMessages: {
+      id: 'claimMessages.id',
+      claimId: 'claimMessages.claimId',
+      senderId: 'claimMessages.senderId',
+      content: 'claimMessages.content',
+      isInternal: 'claimMessages.isInternal',
+      readAt: 'claimMessages.readAt',
+      createdAt: 'claimMessages.createdAt',
+    },
+    claims: {
+      id: 'claims.id',
+    },
+    user: {
+      id: 'user.id',
+      name: 'user.name',
+      image: 'user.image',
+      role: 'user.role',
+    },
+    db: database,
+    withTenantContext: (_context: unknown, action: (tx: typeof database) => unknown) =>
+      action(database),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn(() => ({ scoped: true })),
