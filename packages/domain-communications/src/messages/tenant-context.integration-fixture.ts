@@ -52,15 +52,17 @@ export const session = (id: string, role: string, tenantId = homeTenantId) =>
 
 export function assertSyntheticMessageDatabaseUrl(value: string): void {
   const endpoint = new URL(value);
+  const isTestDatabase = endpoint.pathname === '/interdomestik_test';
+  const isDefaultLocalSupabase = endpoint.port === '54322' && endpoint.pathname === '/postgres';
   if (
     !['postgres:', 'postgresql:'].includes(endpoint.protocol) ||
     !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname) ||
-    endpoint.pathname !== '/interdomestik_test' ||
+    (!isTestDatabase && !isDefaultLocalSupabase) ||
     [...endpoint.searchParams.keys()].some(key =>
       ['host', 'hostaddr', 'port', 'dbname', 'service', 'options'].includes(key.toLowerCase())
     )
   ) {
-    throw new Error('Message integration fixtures require a loopback interdomestik_test database');
+    throw new Error('Message fixtures require a loopback test DB or the default local Supabase DB');
   }
 }
 
