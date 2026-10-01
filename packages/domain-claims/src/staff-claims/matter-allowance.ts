@@ -103,15 +103,17 @@ export async function hasRecoveryMatterUsageForClaim(params: {
 }
 
 export async function countRecoveryMatterUsageInWindow(params: {
+  lockUsage?: boolean;
   tx?: TenantTransaction;
   end: Date;
   start: Date;
   subscriptionId: string;
   tenantId: string;
 }) {
-  await params.tx?.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify(['recovery', params.tenantId, params.subscriptionId])}, 0))`
-  );
+  if (params.lockUsage !== false)
+    await params.tx?.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify(['recovery', params.tenantId, params.subscriptionId])}, 0))`
+    );
   const endBoundary = params.end.toISOString();
   const startBoundary = params.start.toISOString();
   const [usageCount] = await (params.tx ?? db)
@@ -159,6 +161,7 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
 }
 
 export async function getMatterAllowanceContextForSubscription(params: {
+  lockUsage?: boolean;
   tx?: TenantTransaction;
   now?: Date;
   subscription: MatterAllowanceSubscriptionContext;
@@ -173,6 +176,7 @@ export async function getMatterAllowanceContextForSubscription(params: {
   });
   const allowanceTotal = resolveMatterAllowance(subscription.planId);
   const consumedCount = await countRecoveryMatterUsageInWindow({
+    lockUsage: params.lockUsage,
     tx: params.tx,
     end: allowanceWindow.end,
     start: allowanceWindow.start,
@@ -191,6 +195,7 @@ export async function getMatterAllowanceContextForSubscription(params: {
 }
 
 export async function getMatterAllowanceContextForUser(params: {
+  lockUsage?: boolean;
   tx?: TenantTransaction;
   tenantId: string;
   userId: string;
@@ -201,6 +206,7 @@ export async function getMatterAllowanceContextForUser(params: {
   if (!subscription) return null;
 
   return getMatterAllowanceContextForSubscription({
+    lockUsage: params.lockUsage,
     tx: params.tx,
     now: params.now,
     subscription,
@@ -214,7 +220,8 @@ export async function getMatterAllowanceVisibilityForUser(params: {
   userId: string;
   now?: Date;
 }): Promise<MatterAllowanceVisibility | null> {
-  const context = await getMatterAllowanceContextForUser(params);
+  // Visibility is advisory; only allowance-consuming workflows need the write lock.
+  const context = await getMatterAllowanceContextForUser({ ...params, lockUsage: false });
 
   if (!context) return null;
 

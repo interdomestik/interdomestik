@@ -7,17 +7,11 @@ import {
 import { normalizeMemberTimelineMockRows } from './member-domain-event-timeline.test-support';
 const hoisted = getMemberDetailMocks();
 function configureSelectMocks() {
-  hoisted.select.mockReturnValueOnce({
-    from: () => ({
-      leftJoin: () => ({
-        where: () => ({
-          orderBy: () => ({
-            limit: () => hoisted.recoveryDecisionRows(),
-          }),
-        }),
-      }),
-    }),
-  });
+  const ordered = { limit: () => hoisted.recoveryDecisionRows() };
+  const filtered = { orderBy: () => ordered };
+  const joined = { where: () => filtered };
+  const source = { leftJoin: () => joined };
+  hoisted.select.mockReturnValueOnce({ from: () => source });
 }
 
 export function configureMemberDetailTest() {

@@ -28,7 +28,7 @@ const hoisted = vi.hoisted(() => ({
   toMemberSafeRecoveryDecision: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
-    async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
+    (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
   ),
 }));
 
@@ -53,7 +53,7 @@ vi.mock('../utils', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) => {
+  withTenantContext: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
     hoisted.context(_context);
     return callback({
       query: {

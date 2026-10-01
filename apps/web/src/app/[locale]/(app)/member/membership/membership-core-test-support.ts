@@ -14,7 +14,7 @@ const hoisted = vi.hoisted(() => {
     eq,
     findSubscriptionMany: vi.fn(),
     findDocumentsMany: vi.fn(),
-    getSubscriptionEntityDisclosureCore: vi.fn(async () => disclosure),
+    getSubscriptionEntityDisclosureCore: vi.fn().mockResolvedValue(disclosure),
     isNull,
   };
 });
@@ -26,7 +26,7 @@ vi.mock('@interdomestik/database', () => ({
     userId: 'subscriptions.user_id',
     tenantId: 'subscriptions.tenant_id',
   },
-  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+  withTenantContext: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) =>
     callback({
       query: {
         subscriptions: {

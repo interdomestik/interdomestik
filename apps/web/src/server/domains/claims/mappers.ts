@@ -1,3 +1,4 @@
+import { isStaffOrHigher } from '@interdomestik/shared-auth';
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
@@ -79,13 +80,7 @@ export function mapClaimsToDto(
   perPage: number,
   role?: string
 ): ClaimsListV2Dto {
-  const canViewOperations = [
-    'admin',
-    'tenant_admin',
-    'super_admin',
-    'staff',
-    'branch_manager',
-  ].includes(role ?? '');
+  const canViewOperations = isStaffOrHigher(role);
   const mappedRows: ClaimsListV2Row[] = rows.map(row => {
     const { claim, claimant, branch, staff, unreadCount } = row;
 
