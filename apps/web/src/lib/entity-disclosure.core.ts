@@ -1,4 +1,4 @@
-import { dbAdmin, eq, tenants } from '@interdomestik/database';
+import { readTenantLegalMetadata } from '@interdomestik/database/tenant-directory';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import type { subscriptions } from '@interdomestik/database';
@@ -16,8 +16,6 @@ type SubscriptionEntityInput = Pick<
   InferSelectModel<typeof subscriptions>,
   'tenantId' | 'legalTenantId' | 'governingLawSnapshot'
 >;
-
-type TenantEntityRecord = Pick<InferSelectModel<typeof tenants>, 'legalName' | 'governingLaw'>;
 
 export function buildEntityDisclosureModel(args: {
   contractingCompany?: string | null;
@@ -38,7 +36,7 @@ export function buildEntityDisclosureModel(args: {
 export async function getTenantEntityDisclosureCore(
   tenantId: string | null | undefined
 ): Promise<EntityDisclosureModel> {
-  const tenant = tenantId ? await readTenantEntityRecord(tenantId) : null;
+  const tenant = tenantId ? await readTenantLegalMetadata(tenantId) : null;
   return buildEntityDisclosureModel({
     contractingCompany: tenant?.legalName,
     governingLaw: tenant?.governingLaw,
@@ -50,7 +48,7 @@ export async function getSubscriptionEntityDisclosureCore(
   subscription: SubscriptionEntityInput | null | undefined
 ): Promise<EntityDisclosureModel> {
   const legalTenantId = subscription?.legalTenantId ?? subscription?.tenantId ?? null;
-  const tenant = legalTenantId ? await readTenantEntityRecord(legalTenantId) : null;
+  const tenant = legalTenantId ? await readTenantLegalMetadata(legalTenantId) : null;
 
   return buildEntityDisclosureModel({
     contractingCompany: tenant?.legalName,
@@ -62,16 +60,4 @@ export async function getSubscriptionEntityDisclosureCore(
 function normalizeDisclosureValue(value: string | null | undefined): string | null {
   const normalized = value?.trim();
   return normalized || null;
-}
-
-async function readTenantEntityRecord(tenantId: string): Promise<TenantEntityRecord | null> {
-  // db-access-guard: system-exempt -- reason: server-only exact-id legalName/governingLaw metadata projection from deny-all tenant directory; no member data or access-scope change
-  const tenant = await dbAdmin.query.tenants.findFirst({
-    where: eq(tenants.id, tenantId),
-    columns: {
-      legalName: true,
-      governingLaw: true,
-    },
-  });
-  return tenant ?? null;
 }

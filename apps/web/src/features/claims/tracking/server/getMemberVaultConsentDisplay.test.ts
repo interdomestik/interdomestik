@@ -2,17 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  locale: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
 }));
 
-import { baseParams, tenantChain } from './getMemberVaultConsentDisplay.test-support';
+import { baseParams } from './getMemberVaultConsentDisplay.test-support';
 
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
-  dbAdmin: { select: hoisted.select },
+}));
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: hoisted.locale,
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
@@ -36,23 +39,25 @@ describe('getMemberVaultConsentDisplay gates', () => {
     [[{ code: 'KS', countryCode: 'KS' }], { kind: 'hidden' }],
     [[{ code: 'MK', countryCode: 'AL' }], { kind: 'hidden' }],
   ])('fails closed before document reads for tenant row %j', async (tenantRows, expected) => {
-    hoisted.select.mockReturnValueOnce(tenantChain(tenantRows));
+    hoisted.locale.mockResolvedValueOnce(tenantRows[0] ?? null);
 
     await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual(expected);
-    expect(hoisted.select).toHaveBeenCalledTimes(1);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.select).not.toHaveBeenCalled();
   });
 
   it('stops an ineligible claim before document reads', async () => {
-    hoisted.select.mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]));
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
     await expect(
       getMemberVaultConsentDisplay({ ...baseParams, claimCategory: 'injury' })
     ).resolves.toEqual({ kind: 'hidden' });
-    expect(hoisted.select).toHaveBeenCalledTimes(1);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.select).not.toHaveBeenCalled();
   });
 
   it('returns an item-free erased state before document reads', async () => {
-    hoisted.select.mockReturnValueOnce(tenantChain([{ code: 'MK', countryCode: 'MK' }]));
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
     const result = await getMemberVaultConsentDisplay({
       ...baseParams,
@@ -60,6 +65,7 @@ describe('getMemberVaultConsentDisplay gates', () => {
     });
     expect(result).toEqual({ kind: 'subject_erased' });
     expect('items' in result).toBe(false);
-    expect(hoisted.select).toHaveBeenCalledTimes(1);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    expect(hoisted.select).not.toHaveBeenCalled();
   });
 });

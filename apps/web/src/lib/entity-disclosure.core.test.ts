@@ -5,18 +5,8 @@ const hoisted = vi.hoisted(() => ({
   findTenantFirst: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  eq: hoisted.eq,
-  tenants: {
-    id: 'tenants.id',
-  },
-  dbAdmin: {
-    query: {
-      tenants: {
-        findFirst: hoisted.findTenantFirst,
-      },
-    },
-  },
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLegalMetadata: hoisted.findTenantFirst,
 }));
 
 import { getSubscriptionEntityDisclosureCore } from './entity-disclosure.core';
@@ -45,10 +35,7 @@ describe('entity disclosure core', () => {
       unavailable: false,
       source: 'subscription',
     });
-    expect(hoisted.findTenantFirst).toHaveBeenCalledWith({
-      where: { op: 'eq', left: 'tenants.id', right: 'tenant_legal' },
-      columns: { legalName: true, governingLaw: true },
-    });
+    expect(hoisted.findTenantFirst).toHaveBeenCalledWith('tenant_legal');
   });
 
   it('returns a bounded unavailable model when legal data is missing', async () => {

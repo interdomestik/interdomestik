@@ -1,11 +1,8 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
-import { db, dbAdmin } from '@interdomestik/database';
-import {
-  claimDocumentAiExtractionConsents,
-  claimDocuments,
-  tenants,
-} from '@interdomestik/database/schema';
+import { db } from '@interdomestik/database';
+import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
+import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
 
@@ -21,13 +18,7 @@ export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
   database: TenantTransaction | typeof db = db
 ): Promise<VaultConsentDisplay> {
-  // db-access-guard: system-exempt -- reason: exact authorized tenant code/countryCode metadata only; tenant directory denies runtime RLS reads, documents and consents remain on the supplied transaction
-  const tenantRows = await dbAdmin
-    .select({ code: tenants.code, countryCode: tenants.countryCode })
-    .from(tenants)
-    .where(eq(tenants.id, params.tenantId))
-    .limit(1);
-  const tenant = tenantRows[0];
+  const tenant = await readTenantLocaleMetadata(params.tenantId);
   const gated = buildVaultConsentDisplay({
     tenantCode: tenant?.code ?? null,
     tenantCountryCode: tenant?.countryCode ?? null,
@@ -87,8 +78,8 @@ export async function getMemberVaultConsentDisplay(
     );
 
   return buildVaultConsentDisplay({
-    tenantCode: tenant.code,
-    tenantCountryCode: tenant.countryCode,
+    tenantCode: tenant?.code ?? null,
+    tenantCountryCode: tenant?.countryCode ?? null,
     claimCategory: params.claimCategory,
     piiStatus: params.piiStatus,
     documents,
