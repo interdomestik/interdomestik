@@ -4,8 +4,15 @@ import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scop
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
 const mocks = await vi.hoisted(async () => {
-  const { agreementColumns, claimsColumns, createDatabaseMock, userColumns } =
-    await import('./get-staff-claim-detail.test-support');
+  const {
+    agreementColumns,
+    claimsColumns,
+    createDatabaseMock,
+    createDatabaseOperators,
+    createTenantSecurityMock,
+    createMatterAllowanceMock,
+    userColumns,
+  } = await import('./get-staff-claim-detail.test-support');
   const claimChain = {
     from: vi.fn(),
     leftJoin: vi.fn(),
@@ -23,6 +30,8 @@ const mocks = await vi.hoisted(async () => {
     claimChain,
     agentChain,
     databaseMock: () => createDatabaseMock(mocks.db, mocks),
+    tenantSecurityMock: () => createTenantSecurityMock(mocks.withTenant),
+    matterAllowanceMock: () => createMatterAllowanceMock(mocks.getMatterAllowanceVisibility),
     db: { select: vi.fn() },
     getMatterAllowanceVisibility: vi.fn(),
     withTenantContext: vi.fn((_context: unknown, action: (tx: unknown) => unknown) =>
@@ -31,21 +40,15 @@ const mocks = await vi.hoisted(async () => {
     claims: claimsColumns,
     claimEscalationAgreements: agreementColumns,
     user: userColumns,
-    eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
+    ...createDatabaseOperators(vi.fn),
   };
 });
 
-vi.mock('@interdomestik/database', () => mocks.databaseMock());
+vi.mock('@interdomestik/database', mocks.databaseMock);
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
+vi.mock('@interdomestik/database/tenant-security', mocks.tenantSecurityMock);
 
-vi.mock('./matter-allowance', () => ({
-  getMatterAllowanceVisibilityForUser: mocks.getMatterAllowanceVisibility,
-}));
+vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 

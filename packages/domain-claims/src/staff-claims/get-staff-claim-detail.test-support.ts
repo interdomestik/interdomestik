@@ -1,3 +1,5 @@
+import type { vi } from 'vitest';
+
 export type StaffClaimRowOverrides = Record<string, unknown>;
 
 export const claimsColumns = {
@@ -95,4 +97,23 @@ export function createDatabaseMock(
     and: operators.and,
     withTenantContext: operators.withTenantContext,
   };
+}
+
+export function createDatabaseOperators(mockFn: typeof vi.fn) {
+  return {
+    eq: mockFn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
+    and: mockFn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
+    withTenant: mockFn((_tenantId: unknown, _column: unknown, condition: unknown) => ({
+      scoped: true,
+      condition,
+    })),
+  };
+}
+
+export function createTenantSecurityMock(withTenant: unknown) {
+  return { withTenant };
+}
+
+export function createMatterAllowanceMock(getMatterAllowanceVisibilityForUser: unknown) {
+  return { getMatterAllowanceVisibilityForUser };
 }

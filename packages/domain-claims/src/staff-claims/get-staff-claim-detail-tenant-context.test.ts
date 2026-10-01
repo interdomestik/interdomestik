@@ -3,8 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
 const mocks = await vi.hoisted(async () => {
-  const { agreementColumns, claimsColumns, createDatabaseMock, userColumns } =
-    await import('./get-staff-claim-detail.test-support');
+  const {
+    agreementColumns,
+    claimsColumns,
+    createDatabaseMock,
+    createDatabaseOperators,
+    createTenantSecurityMock,
+    createMatterAllowanceMock,
+    userColumns,
+  } = await import('./get-staff-claim-detail.test-support');
   const claimChain = { from: vi.fn(), leftJoin: vi.fn(), where: vi.fn(), limit: vi.fn() };
   const agentChain = { from: vi.fn(), where: vi.fn(), limit: vi.fn() };
 
@@ -12,6 +19,8 @@ const mocks = await vi.hoisted(async () => {
     claimChain,
     agentChain,
     databaseMock: () => createDatabaseMock({ select: mocks.rawDbSelect }, mocks),
+    tenantSecurityMock: () => createTenantSecurityMock(mocks.withTenant),
+    matterAllowanceMock: () => createMatterAllowanceMock(mocks.getMatterAllowanceVisibility),
     tx: { select: vi.fn() },
     rawDbSelect: vi.fn(() => {
       throw new Error('raw db must not be used for tenant-scoped staff claim detail reads');
@@ -25,21 +34,15 @@ const mocks = await vi.hoisted(async () => {
     claims: claimsColumns,
     claimEscalationAgreements: agreementColumns,
     user: userColumns,
-    eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
+    ...createDatabaseOperators(vi.fn),
   };
 });
 
-vi.mock('@interdomestik/database', () => mocks.databaseMock());
+vi.mock('@interdomestik/database', mocks.databaseMock);
 
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
+vi.mock('@interdomestik/database/tenant-security', mocks.tenantSecurityMock);
 
-vi.mock('./matter-allowance', () => ({
-  getMatterAllowanceVisibilityForUser: mocks.getMatterAllowanceVisibility,
-}));
+vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 
