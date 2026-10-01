@@ -32,7 +32,13 @@ export async function getClaimsListV2(
         const { rows, facets } = await getTenantSafeClaimsListQuery(filters, accessConfig.tenantId);
 
         // 3. Map
-        const dto = mapClaimsToDto(rows, facets, params.page || 1, params.perPage || 20);
+        const dto = mapClaimsToDto(
+          rows,
+          facets,
+          params.page || 1,
+          params.perPage || 20,
+          accessConfig.role
+        );
 
         return dto;
       } catch (error) {
