@@ -27,6 +27,10 @@ unnecessary label-triggered verification. Full S7 and human acceptance remain op
 
 ### Current acceptance
 
+No deployment, product readiness or user-acceptance claim is made for the pending
+`DELIVERY-METADATA-CHECK-REUSE` correction. Its local proof does not replace protected hosted
+checks. The separately delivered #1856 staging evidence remains credited above.
+
 - The procedure correction runs expensive proof for changed ready source, not label metadata.
 - Label addition/removal refreshes the existing delivery gate without bypassing its exact evidence,
   review or latest-result checks. Older failed/cancelled evidence cannot be replaced by older green proof.
