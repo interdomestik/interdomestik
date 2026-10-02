@@ -39,12 +39,14 @@
         "supportCta": "Kontakto mbështetjen",
         "state": {
           "member_action_required": "Në pritje të veprimit tuaj",
+          "verification_in_progress": "Verifikimi i rastit",
           "active_handling": "Afati i përgjigjes është aktiv",
           "completed": "Rezultati final është publikuar",
           "outside_operational_sla": "Nuk ka afat aktiv përgjigjeje"
         },
         "body": {
           "member_action_required": "Na duhet informacioni juaj para se afati i përgjigjes të vazhdojë. Ngarkoni provat e kërkuara ose kontaktoni mbështetjen nëse jeni të bllokuar.",
+          "verification_in_progress": "Rasti juaj është në verifikim. Shikoni detajet dhe përditësimet në këtë faqe dhe kontrolloni kërkesat specifike për informacion për detyrat që vlejnë për ju. Kontaktoni mbështetjen nëse ju duhet ndihmë.",
           "active_handling": "Kërkesa juaj është në një fazë aktive trajtimi. Afati i përgjigjes është aktiv dhe përditësimet publike shfaqen këtu ndërsa ekipi e çon rastin përpara.",
           "completed": "Kjo kërkesë ka një rezultat final. Shikoni kohështrirjen për atë që ndodhi ose kontaktoni mbështetjen nëse keni nevojë për ndihmë me rezultatin.",
           "outside_operational_sla": "Kjo fazë nuk ka afat aktiv operacional përgjigjeje. Kohështrirja ende tregon përditësime publike që mund të ndahen në mënyrë të sigurt."

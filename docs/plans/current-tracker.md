@@ -21,10 +21,10 @@ human staff/member validation; technical delivery is complete. Live acceptance r
 completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858).
 No deployment, product readiness or user-acceptance claim extends beyond that bounded technical evidence.
 
-| ID                                  | Status        | Owner                                         | Work                                                                                                         | Exit Criteria                                                                                                                                                                             |
-| ----------------------------------- | ------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner                       | Validate the delivered message repair in the live cross-role journey.                                        | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest.                                               |
-| `S7-MEMBER-DETAIL-GUIDANCE-TRUTH`   | `in_progress` | Codex integration owner / Opus implementation | Neutral verification detail guidance; request-specific obligations remain in the authoritative request card. | Actual projection/four-locale mounted request-state regressions, unchanged other states/erasure/SLA/query/writers, independent/current-head review and required local/protected delivery. |
+| ID                                  | Status      | Owner                                            | Work                                                                                          | Exit Criteria                                                                                                                                                                   |
+| ----------------------------------- | ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`   | Codex integration owner                          | Validate the delivered message repair in the live cross-role journey.                         | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest.                                     |
+| S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH  | in_progress | Codex integration / Opus implementation-delivery | Neutral verification handling-assurance presentation; specific requests remain authoritative. | Real production projection/four-locale mounted request-state regressions, unchanged other states/SLA/risk/query/writers, independent/current-head review and one required lane. |
 
 ### Confirmed acceptance slice
 
@@ -85,7 +85,7 @@ frontier. Unresolved rows are neither automatic features nor blanket blockers.
 | ID                                  | Source Refs                                      | Execution  | Run ID      | Run Root                                               | Sonar   | Docker         | Sentry         | Learning | Evidence Refs                                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------ | ---------- | ----------- | ------------------------------------------------------ | ------- | -------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; merge `9f9d78b008` | `scripted` | 36896119780 | exact-merge staging/P0 passed; live acceptance pending | pass    | pass           | not_applicable | pass     | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
-| `S7-MEMBER-DETAIL-GUIDANCE-TRUTH`   | IDA-CAS-006/008; IDA-COM-005                     | `pending`  | pending     | Required final proof pending                           | pending | not_applicable | not_applicable | pending  | [candidate evidence](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-candidate)                                          |
+| S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH  | IDA-CAS-002/007; IDA-COM-005 privacy boundary    | pending    | pending     | Required final proof pending                           | pending | not_applicable | not_applicable | pending  | [candidate evidence](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-candidate)                                       |
 
 ## Current Facts
 
@@ -226,16 +226,11 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 
 ## Next Selection
 
-#1862 is technically delivered; #1861 canonical closeout and earlier agent lessons are published
-and read back from merge `d2ddf7049aaff9b0ad488d8e08d32de7cc321eb3`.
-Arben confirmed `S7-MEMBER-DETAIL-GUIDANCE-TRUTH` and delegated its bounded implementation
-and protected completion to Opus. Neutral generic verification detail guidance must not invent
-an outstanding request or awaiting-member date; retain the authoritative request card, other
-states, erased-subject behavior, SLA and all query/writer/privacy boundaries. The scope is active;
-Arben explicitly approved the bounded private source packet and corrective diffs/tests to Claude Pro.
-Live browser retake is blocked by the trusted Node REPL browser service; whole S7 and human
-acceptance remain open. This #1862 closeout/lesson amendment must publish through the next
-authorized product PR, not a status-only PR.
+Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card. #1862 canonical closeout and earlier lessons are published/read back through #1863.
+
+Arben confirmed S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH and the bounded source packet to Claude Pro Opus through protected completion. This presentation-only scope is active. It changes only the handling-assurance presentation DTO/copy, retaining request-specific authority, other states, support links, erasure and query/writer/privacy boundaries. Operational SLA/risk/timer policy is excluded; the separate legacy SLA status display remains outside this proposal.
+
+This #1863 four-surface closeout and compact lesson patch are prepared in this confirmed product amendment; publication remains pending until merge/readback. No status-only PR or protected-main write is authorized. Watched browser retake is blocked by trusted service availability. Whole S7, human acceptance and public notifications remain open.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
 Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as

@@ -3,6 +3,7 @@ import type { ClaimSlaPhase } from '../policy';
 
 export type ClaimMemberTrustState =
   | 'member_action_required'
+  | 'verification_in_progress'
   | 'active_handling'
   | 'completed'
   | 'outside_operational_sla';
@@ -26,7 +27,17 @@ function toMemberTrustState(args: BuildMemberTrustSummaryInput): ClaimMemberTrus
     return 'completed';
   }
 
-  if (args.status === 'draft' || args.slaPhase === 'incomplete') {
+  if (args.status === 'draft') {
+    return 'member_action_required';
+  }
+
+  // Verification alone does not prove an outstanding member task; concrete
+  // duties are supplied by the information-request card, not the lifecycle.
+  if (args.status === 'verification' && args.slaPhase === 'incomplete') {
+    return 'verification_in_progress';
+  }
+
+  if (args.slaPhase === 'incomplete') {
     return 'member_action_required';
   }
 

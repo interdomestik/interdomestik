@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { deriveClaimSlaPhase } from '../policy';
 import { buildMemberClaimTrustSummary } from './memberTrustSummary';
 
 describe('buildMemberClaimTrustSummary', () => {
-  it('marks draft and incomplete SLA states as requiring member action', () => {
+  it('marks draft and non-verification incomplete SLA states as requiring member action', () => {
     expect(
       buildMemberClaimTrustSummary({
         status: 'draft',
@@ -12,10 +13,39 @@ describe('buildMemberClaimTrustSummary', () => {
 
     expect(
       buildMemberClaimTrustSummary({
-        status: 'verification',
+        status: 'submitted',
         slaPhase: 'incomplete',
       }).state
     ).toBe('member_action_required');
+  });
+
+  it('describes verification as a neutral handling stage instead of a member task', () => {
+    expect(
+      buildMemberClaimTrustSummary({
+        claimId: 'claim 900/v',
+        status: 'verification',
+        slaPhase: 'incomplete',
+      })
+    ).toEqual({
+      state: 'verification_in_progress',
+      titleKey: 'claims-tracking.tracking.assurance.title',
+      bodyKey: 'claims-tracking.tracking.assurance.body.verification_in_progress',
+      stateLabelKey: 'claims-tracking.tracking.assurance.state.verification_in_progress',
+      supportHref: '/member/help?claimId=claim%20900%2Fv&source=member_claim_detail',
+    });
+  });
+
+  it('keeps the neutral verification state for the real production SLA phase', () => {
+    const slaPhase = deriveClaimSlaPhase('verification');
+
+    expect(slaPhase).toBe('incomplete');
+    expect(
+      buildMemberClaimTrustSummary({
+        claimId: 'claim-901',
+        status: 'verification',
+        slaPhase,
+      }).state
+    ).toBe('verification_in_progress');
   });
 
   it('marks active SLA stages as active handling', () => {

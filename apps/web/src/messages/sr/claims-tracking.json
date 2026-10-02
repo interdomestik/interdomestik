@@ -39,12 +39,14 @@
         "supportCta": "Kontaktiraj podršku",
         "state": {
           "member_action_required": "Čeka se vaša radnja",
+          "verification_in_progress": "Verifikacija predmeta",
           "active_handling": "Rok za odgovor je aktivan",
           "completed": "Konačan ishod je objavljen",
           "outside_operational_sla": "Nema aktivnog roka za odgovor"
         },
         "body": {
           "member_action_required": "Potrebne su nam vaše informacije pre nego što rok za odgovor može da se nastavi. Otpremite tražene dokaze ili kontaktirajte podršku ako ste blokirani.",
+          "verification_in_progress": "Vaš predmet je u verifikaciji. Pregledajte detalje i ažuriranja na ovoj stranici i proverite konkretne zahteve za informacije radi zadataka koji se odnose na vas. Kontaktirajte podršku ako vam je potrebna pomoć.",
           "active_handling": "Vaš zahtev je u aktivnoj fazi obrade. Rok za odgovor je aktivan, a javna ažuriranja se ovde prikazuju dok tim pomera slučaj napred.",
           "completed": "Ovaj zahtev ima konačan ishod. Pogledajte vremensku liniju za ono što se dogodilo ili kontaktirajte podršku ako vam treba pomoć oko rezultata.",
           "outside_operational_sla": "Ova faza nema aktivan operativni rok za odgovor. Vremenska linija i dalje prikazuje javna ažuriranja koja su bezbedna za deljenje."
