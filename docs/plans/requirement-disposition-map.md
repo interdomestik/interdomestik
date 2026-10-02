@@ -109,11 +109,13 @@ queue-to-detail/reload continuity under the existing tenant/RLS boundary. Its
 Credit [#1861](https://github.com/interdomestik/interdomestik/pull/1861) for delivered member
 amount/currency projection under the unchanged shared-client/privacy contract. Exact-merge
 Actions/staging and agent EUR list/detail retake passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
-IDA-NFR-008, IDA-CAS-006/008, whole S7 and human acceptance remain open. The next-action
-truth repair is confirmed: show neutral verification detail/update navigation, since request
-fulfilment leaves lifecycle unchanged. The initial companion-parity assumption was insufficient
-and is superseded; preserve draft guidance and the authoritative request card. No new request-aware
-projection/writer is selected and no additional SRS clause is marked complete.
+Credit [#1862](https://github.com/interdomestik/interdomestik/pull/1862) for delivered neutral
+verification overview detail/update navigation; exact-merge Actions/staging passed. See the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
+IDA-NFR-008, IDA-CAS-006/008, whole S7 and human acceptance remain open. Lifecycle status
+cannot establish an outstanding request; the initial companion-parity assumption was insufficient.
+Draft guidance and the authoritative request card are preserved. Legacy generic detail guidance
+remains the confirmed `S7-MEMBER-DETAIL-GUIDANCE-TRUTH` repair: neutral generic verification
+detail guidance, with the existing request card authoritative for specific obligations. No new request-aware projection/writer or SRS clause completion is selected.
 
 Credit [#1859](https://github.com/interdomestik/interdomestik/pull/1859) for delivered
 `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: the mounted staff queue transfers at most one

@@ -48,4 +48,44 @@ describe('deriveCaseCompanionNextStep', () => {
     expect(nextStep.nextStepDate).toBeNull();
     expect(nextStep.awaitingDateReason).toBe('outcome_recorded');
   });
+
+  it('keeps verification guidance neutral instead of asserting an open member request', () => {
+    const nextStep = deriveCaseCompanionNextStep({
+      status: 'verification',
+      latestUpdateAt: new Date('2026-07-09T08:00:00.000Z'),
+    });
+
+    expect(nextStep).toEqual({
+      owner: 'interdomestik',
+      statusSentenceKey: 'claims-tracking.case_companion.status_sentence.verification',
+      actionKind: 'action',
+      actionKey: 'claims-tracking.case_companion.action.review_case_details',
+      nextStepDate: null,
+      awaitingDateReason: 'not_recorded',
+      renderMode: 'standard',
+    });
+  });
+
+  it('preserves the other lifecycle templates while verification stays neutral', () => {
+    const ownerByStatus = Object.fromEntries(
+      CLAIM_STATUSES.map(status => [status, deriveCaseCompanionNextStep({ status }).owner])
+    );
+
+    expect(ownerByStatus).toEqual({
+      draft: 'member',
+      submitted: 'interdomestik',
+      submitted_to_airline: 'insurer',
+      verification: 'interdomestik',
+      evaluation: 'interdomestik',
+      negotiation: 'insurer',
+      court: 'court',
+      resolved: 'interdomestik',
+      rejected: 'interdomestik',
+    });
+    expect(
+      CLAIM_STATUSES.filter(status =>
+        deriveCaseCompanionNextStep({ status }).actionKey.endsWith('.upload_evidence')
+      )
+    ).toEqual([]);
+  });
 });

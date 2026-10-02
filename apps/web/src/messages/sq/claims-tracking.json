@@ -67,7 +67,7 @@
         "draft": "Kërkesa juaj ende nuk është dorëzuar.",
         "submitted": "Ekipi i rastit po kontrollon kërkesën e dorëzuar.",
         "submitted_to_airline": "Paketa e rastit është te pala e jashtme.",
-        "verification": "Na duhet informacioni i kërkuar para se rasti të ecë përpara.",
+        "verification": "Ekipi i rastit po kryen verifikimin e këtij rasti.",
         "evaluation": "Ekipi i rastit po shqyrton detajet e sigurta të rastit.",
         "negotiation": "Përgjigjja e palës së jashtme po ndiqet.",
         "court": "Përditësimi i radhës varet nga orari i gjykatës.",
@@ -78,6 +78,7 @@
       "action": {
         "submit_claim": "Dorëzo kërkesën kur informacioni juaj është gati.",
         "upload_evidence": "Ngarko provat e kërkuara kur janë të disponueshme.",
+        "review_case_details": "Shqyrtoni detajet dhe përditësimet e rastit tuaj në këtë faqe.",
         "no_action": "Nuk kërkohet veprim nga ju tani.",
         "complete": "Shqyrto përditësimin final dhe kontakto mbështetjen nëse diçka duket gabim."
       },
@@ -87,6 +88,7 @@
         "external_party": "Data pret përgjigjen e palës së jashtme.",
         "court_schedule": "Data pret orarin e gjykatës.",
         "outcome_recorded": "Rezultati përfundimtar është regjistruar; nuk nevojitet datë për hap tjetër.",
+        "not_recorded": "Nuk është regjistruar datë për hapin e radhës.",
         "erased_subject": "Data është fshehur sepse të dhënat e subjektit janë fshirë."
       }
     },

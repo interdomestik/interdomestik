@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-02-post1860-lessons`). An optional personal installation at
+`2026-10-02-post1862-lessons`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -316,6 +316,8 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
   read projection. Staff history and member summaries may intentionally differ;
   a same-status note need not emit a status-change event. Test the documented
   contract, and do not alter domain semantics to satisfy an assumed expectation.
+  Matching another read surface is not proof of product truth: trace request
+  creation/fulfilment independently before claiming an outstanding member action.
 - For uncertain writes, exercise both abort-before-commit and commit-with-response-
   loss, then an intervening newer write and a failed history read. Preserve the
   original draft and demonstrate no duplicate write or hidden original history.
@@ -473,7 +475,7 @@ a static tooling prediction is not execution evidence, and explicit tenant predi
 alone do not prove a tenant transaction or runtime RLS. Opus findings require verified
 dispositions, not a fabricated formal approval. Do not claim efficiency gains without measurements.
 
-Freeze delegated delivery tooling before execution; inventory workflow event provenance including dynamic events. Claim the actual merge executor only from its tool transcript. If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.
+Freeze delegated delivery tooling before execution; reuse the final evidenced version rather than a superseded bridge. Before dispatch, execute bounded monitor fixtures from observed push/dynamic producer metadata, including missing, pending, failed and wrong-SHA/branch cases. Claim the actual merge executor only from its tool transcript. If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.
 
 Inspect the complete paginated current-head check inventory before diagnosing a missing
 producer. Before strict readiness, preserve any generated tracked-file diff and restore
