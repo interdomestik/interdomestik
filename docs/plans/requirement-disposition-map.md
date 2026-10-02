@@ -103,12 +103,18 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S7 work
 
-Arben authorized `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE` on 2026-10-01 through bounded
-selection and implementation. The selected mounted staff-queue projection removes unbounded
-history transfer while preserving latest valid Diaspora origin, tenant/RLS and existing role/scope
-semantics. Sonnet 5 codes; Codex verifies; Opus supplies independent risk review. Local synthetic
-row-count and executor measurements are separate from staging latency and human acceptance.
-IDA-NFR-002/003 remain unresolved; no whole requirement or numeric budget is declared met.
+Current confirmed `S7-STAFF-DETAIL-READ-CONTINUITY` restores an authorized staff
+queue-to-detail/reload read under the existing tenant/RLS boundary. It preserves the
+case/thread privacy contract and supports remaining S7 cross-role acceptance; no whole
+IDA-COM-005, IDA-CAS-006/008 or other SRS clause is marked complete by this repair.
+
+Credit [#1859](https://github.com/interdomestik/interdomestik/pull/1859) for delivered
+`S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: the mounted staff queue transfers at most one
+latest valid origin row per visible case while preserving parser, ordering and tenant/RLS
+semantics. Exact-merge Actions/staging and completed proof are linked from the
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
+IDA-NFR-002/003 remain unresolved; local synthetic observations are separate from staging
+latency and human acceptance. No whole requirement or numeric budget is declared met.
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)

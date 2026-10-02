@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-01-sonnet-next-slice`). An optional personal installation at
+`2026-10-01-post1859-lessons`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -305,6 +305,11 @@ It published nine candidate heads and used three full local attempts: one
 interrupted, one historical pass and one final pass. This is a baseline, not
 proof of improved speed or quota consumption.
 
+PR #1859 used Sonnet 5 implementation, Opus 5 findings with verified dispositions,
+and one final local lane after requested reviews and analysis: 13m 17s, no full reruns.
+This records one observed attempt, not a comparable delivery-speed or quota claim.
+Its local synthetic query measurements do not establish staging or journey latency.
+
 Apply the second-pilot lessons to relevant changed behavior, not as a fixed panel:
 
 - Before writing cross-surface assertions, trace the actual write, domain event and
@@ -335,6 +340,8 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
   Do not start the expensive lane while a requested current-head review is pending.
 - For a reported CI failure, identify run, PR, head and failed step before acting.
   Inspect the repository's current admission policy and exact failing requirement.
+  Read its resolved ready-PR decision before adding labels: when that decision already
+  certifies the current head, perceived risk alone does not require full-gate.
   Never add full-gate or toggle draft/ready merely to repair metadata or unblock an
   unchanged green candidate. Source changes on a ready PR trigger certification;
   labels refresh only delivery authorization and feedback under the corrected
@@ -407,6 +414,10 @@ transition writers, case/recovery separation, event projections, session-derived
 access-tenant/RLS boundaries distinct from host/legal/booking context, and applicable
 product-model contracts. Never revive legacy assumptions or activate unpromoted M5
 cutover work merely to fix a symptom. This is conformance, not refactor authorization.
+Before accepting an RLS diagnosis, trace the complete current migration/policy chain,
+including dynamic policy builders and permissive/restrictive composition. An added
+restrictive synthetic policy proves a hypothetical, not the actual target posture.
+Verify effective role/policy evidence before proposing a privileged boundary change.
 For authorized staff/member/admin browser testing, follow
 docs/guides/staging-staff-member-admin-acceptance.md. Use normal UI login/logout,
 verify each identity, keep admin governance separate from staff operations, and stop
@@ -446,12 +457,18 @@ why. Verify the actually served model and accepted code. If Sonnet 5 is unavaila
 report that blocker rather than silently substituting another model. Preserve export
 permissions, subscription-only limits and independent review for high-risk work.
 
-Apply #1858 lessons while preparing the next candidate: put meaningful regressions
+Apply #1858/#1859 lessons while preparing the next candidate: put meaningful regressions
 in the required lane, not only behind a manually enabled flag; use focused tests
-before publication and the full lane after review consolidation. Test canonical
-local defaults and fresh CI fixtures without seed assumptions; check changed fixture
-exports against quality rules; keep historical proof in its linked ledger and verify
-tracker links/base SHA.
+before publication and one final lane after review consolidation. Check file modularity
+and introduced ORM methods against executable query inventories early. Compare the full
+parser language with SQL predicates, including cross-combinations, rather than assuming
+a reusable helper has identical semantics. Test canonical local defaults and fresh CI
+fixtures without seed assumptions; check changed fixture exports against quality rules.
+Before publication, move completed metrics and proof into the linked historical ledger;
+keep active authority to current status/links and verify tracker links/base SHA.
 Consolidate known review bodies, inline findings and Sonar annotations before a push.
 Follow the PR through verified thread resolution and readiness. Reuse unchanged proof;
-rerun only invalidated evidence. Do not claim efficiency gains without measurements.
+rerun only invalidated evidence. Record observed builds, models and actual accepted code;
+a static tooling prediction is not execution evidence, and explicit tenant predicates
+alone do not prove a tenant transaction or runtime RLS. Opus findings require verified
+dispositions, not a fabricated formal approval. Do not claim efficiency gains without measurements.

@@ -21,24 +21,30 @@ human staff/member validation; technical delivery is complete. Live acceptance r
 completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858).
 No deployment, product readiness or user-acceptance claim extends beyond that bounded technical evidence.
 
-| ID                                        | Status        | Owner                   | Work                                                                            | Exit Criteria                                                                                                                               |
-| ----------------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY`       | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.           | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest. |
-| `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE` | `in_progress` | Codex integration owner | Sonnet 5 implements bounded latest-origin retrieval in the mounted staff queue. | Parser/order/scope regressions, comparable local row-count/timing evidence, independent Opus review and required local/protected proof.     |
+| ID                                  | Status        | Owner                   | Work                                                                                 | Exit Criteria                                                                                                                                     |
+| ----------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.                | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest.       |
+| `S7-STAFF-DETAIL-READ-CONTINUITY`   | `in_progress` | Codex integration owner | Restore queue-to-detail/reload for authorized staff through existing tenant context. | Existing projection/scope regressions, distinct client boundary test, constrained SQL/RLS, independent review and required local/protected proof. |
 
 ### Confirmed acceptance slice
 
-Arben authorized next selection and implementation on 2026-10-01 through Sonnet 5 coding,
-Opus independent input/escalation and Codex verification. Selected
-`S7-STAFF-HISTORY-PROJECTION-PERFORMANCE` starts from freshly fetched main `9f9d78b008`.
-Bound history retrieval to the latest valid Diaspora origin for each visible staff case,
-with unchanged tenant/RLS transaction and queue semantics. Technical delivery is pending.
+Staff-history projection performance is technically delivered by
+[#1859](https://github.com/interdomestik/interdomestik/pull/1859); completed proof is in the
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
+Arben authorized source-backed successor selection and Sonnet 5 implementation with Opus
+risk review after exact-merge Actions/staging passed. The live journey established the
+confirmed gap `S7-STAFF-DETAIL-READ-CONTINUITY`: a queue-visible assigned case returns 404
+on detail open and reload. Arben approved this bounded implementation.
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` — technical delivery complete; live acceptance pending, Codex integration owner.
 Exit: protected repair delivery and exact-merge staging, approved synthetic identities/case, real browser login and
 member/staff/admin observations bound to the delivered SHA; technical proof and Arben acceptance separate.
 
 ### Current acceptance
+
+- Current repair: authorized staff queue-to-detail/reload continuity; same existing tenant transaction serves claim/member/agreement, optional agent and allowance reads.
+- Preserve scope/DTO/lifecycle semantics and fail-closed missing/denied behavior; no proxy/auth/schema/tenant-wrapper changes.
+- Model contribution and completed focused proof are recorded in the [candidate receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-candidate); independent review and final local/protected proof remain pending.
 
 - Protected merge `9f9d78b0081e080ac081d7dafc0918af1fa41599` and exact-merge staging/P0 passed.
   Detailed local, hosted, review and retry evidence is in the linked historical ledger.
@@ -53,36 +59,38 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 - Record elapsed start-to-staging, full verification attempts/reasons, actual Claude coding/model,
   integrator corrections and defects found after final review in the existing receipt.
 - Prior #1854 save recovery and #1856 case-read/logout evidence remain delivered; message repair is technically delivered; human acceptance remains pending.
-- Staff-history projection performance is now the separately authorized successor. #1858 does not claim a latency improvement.
+- Staff-history projection performance is delivered by #1859. Its local synthetic evidence
+  does not establish staging or whole-journey latency; #1858 remains a correctness repair.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                             |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                   |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                        |
-| S7 — staff handling                         | `active_bounded`      | Credit #1858 message continuity, #1856 member reads/logout and #1854 save recovery; staff-history performance is selected; cross-role acceptance, conflict disposition and whole S7 remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                             |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                        |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                     |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                               |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                              |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                    |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                         |
+| S7 — staff handling                         | `active_bounded`      | Credit #1858 message continuity, #1856 member reads/logout and #1854 save recovery; staff-history performance is delivered; cross-role acceptance, conflict disposition and whole S7 remain open. |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                              |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                         |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                      |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                        | Source Refs                                      | Execution  | Run ID      | Run Root                                                                                                      | Sonar   | Docker | Sentry         | Learning | Evidence Refs                                                                                                                                         |
-| ----------------------------------------- | ------------------------------------------------ | ---------- | ----------- | ------------------------------------------------------------------------------------------------------------- | ------- | ------ | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY`       | IDA-COM-005; IDA-CAS-006/008; merge `9f9d78b008` | `scripted` | 36896119780 | exact-merge staging/P0 passed; live acceptance pending                                                        | pass    | pass   | not_applicable | pass     | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
-| `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE` | IDA-NFR-002/003; base `9f9d78b008`               | `scripted` | pending     | bounded query implemented; focused and actual-source local SQL/RLS proof passed; protected/full proof pending | pending | pass   | not_applicable | pending  | [completed local proof](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-local-proof-1859); full/protected proof pending      |
+| ID                                  | Source Refs                                      | Execution  | Run ID      | Run Root                                                            | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------ | ---------- | ----------- | ------------------------------------------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; merge `9f9d78b008` | `scripted` | 36896119780 | exact-merge staging/P0 passed; live acceptance pending              | pass    | pass    | not_applicable | pass     | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
+| `S7-STAFF-DETAIL-READ-CONTINUITY`   | IDA-COM-005; IDA-CAS-006/008; base `2acdc89cc`   | `pending`  | pending     | bounded staff detail candidate; final local/protected proof pending | pending | pending | not_applicable | pending  | [candidate receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-candidate)                                           |
 
 ## Current Facts
 
 Completed #1856/#1857 delivery proof is preserved in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-repair-predecessors-1856-1857).
-The message repair is technically delivered. Staff-history projection performance is the sole
-current implementation; live message-journey human acceptance remains pending.
+The message repair and staff-history projection performance are technically delivered.
+Live message-journey human acceptance remains pending. The confirmed successor repairs
+staff detail read continuity through the existing tenant/RLS boundary.
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)

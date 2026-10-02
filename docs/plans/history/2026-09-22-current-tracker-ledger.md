@@ -1547,3 +1547,71 @@ raw-client consumer. The guard baseline and admission policy remain unchanged.
 The existing `/tmp/interdomestik-pilot-evidence/s7-next-journey/receipt.json` records commands,
 source identity, review dispositions and historical attempts. Active authority retains status
 and this link; full lane and protected current-head proof are still pending.
+
+## S7 staff history projection delivery 1859
+
+Protected PR [#1859](https://github.com/interdomestik/interdomestik/pull/1859) merged as
+`2acdc89cc35c4d6ae0987119b25242c77e4ce323` on 2026-10-01. All six exact-merge Actions passed,
+including [CI 36915051618](https://github.com/interdomestik/interdomestik/actions/runs/36915051618)
+and [CD 36915051626](https://github.com/interdomestik/interdomestik/actions/runs/36915051626).
+CD verified staging health, exact build and canonical alias provenance, then configured
+staging P0; production and rollback were skipped. Technical delivery is complete.
+
+Final candidate `94089662e4608d510e175aab2beb9f4719fd047c` passed focused 22-test domain and
+24-test guard regressions, actual SQL/RLS projection checks, security guard, protected
+current-head checks and strict review readiness. One final local lane passed in 13m 17s:
+coverage 80.68%, browser gate 283 passed/19 configured skips, P0 2 passed and smoke 13
+passed/11 configured skips. No full rerun occurred; one build was observed. This is not a
+comparable whole-delivery speed or quota claim. Sonnet 5 supplied accepted implementation;
+Codex corrected parser/guard/test integration and Opus 5 findings were verified and dispositioned.
+
+The earlier local-proof entry above is a historical prepared-state observation, superseded
+for delivery status by this entry and the final receipt at
+`/Users/arbenlila/.codex/evidence/interdomestik/s7-next-journey/receipt.json`.
+Owned worktree archival and resource state are recorded in that receipt. Local synthetic
+measurements remain distinct from staging latency; whole IDA-NFR-002/003, whole S7 and
+Arben's human cross-role acceptance remain open. The prior #1858 closeout was published
+and read back from canonical main by #1859. This #1859 closeout is carried into the next
+authorized product amendment; no status-only PR or direct main write is implied.
+
+## S7 staff detail read continuity candidate
+
+Current bounded candidate starts from canonical main `2acdc89cc35c4d6ae0987119b25242c77e4ce323`.
+After #1859 staging passed, the agent live journey reproduced an assigned queue-visible staff
+case returning 404 on open and reload; no staff fixture write occurred. This is agent evidence,
+not Arben's human acceptance.
+
+Actual production list/detail functions under a local non-superuser, non-bypass RLS role
+reproduced visible list → null detail; the same join in the existing tenant context was visible.
+The bounded candidate uses that existing context for claim/member/agreement, optional agent
+and allowance reads, preserving all existing scope and projection semantics. Actual-source
+constrained SQL now reads the same assigned detail/agent, denies the foreign tenant and resets
+the context after commit. Owned randomized fixtures were cleaned in finally. This does not
+introspect staging database provider configuration or establish staging latency.
+
+Claude Pro actually served `claude-sonnet-5` and returned the four allowed source/test files.
+Codex corrected imported mock-column initialization inside `vi.hoisted`, reset the distinct
+transaction mock and formatted the bounded diff. The original six projection/scope tests remain;
+four new distinct raw-client/tenant-transaction tests and two missing-member cases pass. The permanent new tests reject the
+original raw-client implementation. Domain TypeScript and the existing DB-access guard pass.
+Claude Pro actually served `claude-opus-5` for independent review and returned FINDINGS.
+Codex added the two missing-member regressions; populated constrained SQL fixtures verify
+member/agent/agreement/success-fee/allowance projections for staff and branch-manager actors
+with `app.user_role` unset, plus foreign/other-branch denials and context reset. Existing
+allowance helpers forward the same transaction; the unchanged guard recognizes both reads
+as tenant-context. Findings are dispositioned, not relabeled as a formal reviewer PASS.
+Current-head remote analysis and final local/protected proof remain pending.
+The existing task receipt records attempts, provider output and environment failures; no
+merge, deployment, full journey or human acceptance is claimed for this candidate.
+
+Current-head review reconciliation: a deny-all inference based on migration `0016` and
+a historical July runtime check was rejected. Current migration `0035` creates the
+permissive tenant policy for every tenant-column table, `0075` explicitly includes
+`user`, and `0083` rewrites these policies to access-tenant scope. The older permissive
+false policy does not override the tenant policy. A separately added restrictive
+synthetic policy demonstrated a hypothetical denial, not current production posture.
+No privileged auth adapter or policy change was integrated. Independent local review
+confirmed the current chain and retained tenant-context boundary. The Sonar correction
+extracts duplicated database mock projection setup while preserving all assertions.
+The receipt retains the rejected diagnosis, helper attempt and approval-review denial
+as historical evidence; final local/protected proof remains pending.

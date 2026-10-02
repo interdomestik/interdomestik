@@ -16,16 +16,17 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Arben authorized selection and implementation of the next bounded slice on 2026-10-01,
-with Sonnet 5 coding, Opus independent input/escalation, and Codex integration and verification.
-Selected `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: preserve the mounted staff queue's latest
-valid Diaspora origin while retrieving at most one matching history row per visible case.
-The existing queue reads all history for up to 20 cases only to produce that projection.
-Keep the existing tenant transaction, predicates, role/branch/assignment filters and tie order.
-No shared tenant-wrapper, auth, schema, routing, lifecycle or UI refactor is selected.
-Comparable synthetic local SQL proof will measure returned rows and executor timing; it does
-not establish staging user latency, p95 or whole IDA-NFR-002/003 acceptance. Live staff/member
-acceptance of delivered #1858 remains open and separate.
+The bounded staff-history projection performance repair is technically delivered by
+[#1859](https://github.com/interdomestik/interdomestik/pull/1859). Exact-merge Actions and
+staging/P0 passed; completed proof is in the
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
+Current bounded increment is `S7-STAFF-DETAIL-READ-CONTINUITY`, confirmed by Arben
+after the live journey found an assigned case visible in the staff queue but returning 404
+on open and reload. Restore that authorized detail read through the existing tenant/RLS
+transaction boundary, preserving scope and projections. Sonnet 5 implements the bounded
+source/tests; Codex integrates and verifies, with Opus independent boundary review.
+Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
+remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
@@ -51,9 +52,9 @@ head/base/tree and provider checks, failed/cancelled-result rejection and indepe
 No branch-protection weakening, unconditional check success or product architecture change.
 
 Carry the SRS v0.9 + M0–M5 requirement check in the developer agent and guide. This engineering
-maintenance does not complete an SRS clause. The separately authorized performance PR is now bounded to the selected staff-history projection
-against IDA-NFR-002/003. Establish comparable retrieval measurements and address demonstrated
-waste without claiming p95 or an approved latency budget from five browser observations.
+maintenance does not complete an SRS clause. The separately authorized staff-history projection repair is delivered by #1859 against
+a bounded IDA-NFR-002/003 concern. Its historical receipt records local synthetic retrieval
+measurements without establishing staging p95 or an approved latency budget.
 The message-read correctness prerequisite is technically delivered by #1858; live journey acceptance remains.
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` was delivered through protected PR
@@ -339,24 +340,21 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Selected staff-history projection performance
+### Staff detail read continuity
 
-- Sonnet 5 owns the bounded query/helper/test implementation; Codex inspects and executes it.
-  Opus reviews concrete projection, privacy and query-scope risks; record actually served models.
-- Return at most one valid Diaspora origin history row per visible case inside the existing
-  tenant transaction. Preserve tenant and visible-case predicates; skip history when no cases match.
-- Match the current parser's full accepted language, including prefix/suffix cross-combinations.
-  A newer unrelated or malformed note must not suppress an older valid origin.
-- Preserve latest-match ordering by descending timestamp and ID, unchanged queue DTO, search,
-  assignment/branch/role/status filters, page-ready markers and error propagation.
-- Execute focused semantic/query regressions and comparable local synthetic before/after proof.
-  Record returned-row counts separately from executor timing and user-perceived staging latency.
-- Consolidate requested review findings and current-head annotations before one expensive final lane.
-  Protected merge/staging and human acceptance require their applicable owner authority.
+- A normally authenticated staff actor can open and reload the same authorized case shown by the queue.
+- Claim/member/agreement, optional agent and allowance reads use the same existing tenant transaction.
+- Tenant, branch and assignment predicates, missing/denied results, lifecycle projections and DTO fields remain unchanged.
+- Preserve canonical routes, page-ready markers, auth layering and public/private isolation; no schema or wrapper refactor.
+- Retain existing projection assertions, add distinct raw-client/tenant-transaction regression proof and verify actual constrained SQL.
+- Consolidate independent/current-head findings before one required local lane; protected checks remain separate.
+- Live cross-role human acceptance remains open until separately recorded.
 
-The bounded implementation and local focused proof are prepared. Full local/protected
-proof, release and human acceptance remain pending. Completed local evidence and
-review dispositions are linked from the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-local-proof-1859).
+### Delivered staff-history projection performance (#1859)
+
+The bounded query, parser/order/scope regressions and local/protected delivery passed.
+See the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
+Staging latency, whole IDA-NFR-002/003 and live human acceptance remain open.
 
 ### Delivered staff status/note save recovery acceptance (#1854)
 
