@@ -79,7 +79,14 @@ function leafPaths(value: unknown, prefix = ''): string[] {
   });
 }
 const PATHS =
-  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|membership_status.access_allowed|membership_status.access_denied|membership_status.access_label|membership_status.current_period_end_label|membership_status.retry|membership_status.status_label|membership_status.statuses.active|membership_status.statuses.active_in_grace|membership_status.statuses.canceled|membership_status.statuses.grace_expired|membership_status.statuses.none|membership_status.statuses.scheduled_cancel|membership_status.statuses.trialing|membership_status.unavailable|navigation.cases|navigation.documents|navigation.help_now|navigation.label|navigation.membership|next_steps.court_schedule|next_steps.external_response|next_steps.member_action|next_steps.team_review|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title|warnings.active_in_grace|warnings.grace_expired|warnings.scheduled_cancel';
+  'actions.active|actions.active_in_grace|actions.canceled|actions.grace_expired|actions.none|actions.scheduled_cancel|actions.trialing|description|disclaimer|membership_status.access_allowed|membership_status.access_denied|membership_status.access_label|membership_status.current_period_end_label|membership_status.retry|membership_status.status_label|membership_status.statuses.active|membership_status.statuses.active_in_grace|membership_status.statuses.canceled|membership_status.statuses.grace_expired|membership_status.statuses.none|membership_status.statuses.scheduled_cancel|membership_status.statuses.trialing|membership_status.unavailable|navigation.cases|navigation.documents|navigation.help_now|navigation.label|navigation.membership|next_steps.court_schedule|next_steps.external_response|next_steps.member_action|next_steps.review_case|next_steps.team_review|regions.actions.empty|regions.actions.error|regions.actions.label|regions.actions.loading|regions.case.empty|regions.case.error|regions.case.label|regions.case.loading|regions.updates.empty|regions.updates.error|regions.updates.label|regions.updates.loading|title|warnings.active_in_grace|warnings.grace_expired|warnings.scheduled_cancel';
+type NextStepCatalog = Record<Exclude<CaseSummary['nextStep'], 'complete'>, string>;
+const NEXT_STEP_CATALOGS: ReadonlyArray<readonly [string, NextStepCatalog]> = [
+  ['en', enMessages.dashboard.portal.next_steps],
+  ['mk', mkMessages.dashboard.portal.next_steps],
+  ['sq', sqMessages.dashboard.portal.next_steps],
+  ['sr', srMessages.dashboard.portal.next_steps],
+];
 
 describe('Member portal', () => {
   it('renders safe summaries', async () => {
@@ -248,10 +255,37 @@ describe('Member portal', () => {
       'Vidi slučaj',
     ]);
     expect(new Set(portals.map(portal => portal.title))).toHaveLength(4);
+    expect(new Set(portals.map(portal => portal.next_steps.review_case))).toHaveLength(4);
     for (const portal of portals) {
       expect(portal.warnings.active_in_grace).not.toBe(portal.actions.active_in_grace);
       expect(portal.warnings.grace_expired).not.toBe(portal.actions.grace_expired);
       expect(portal.warnings.scheduled_cancel).not.toBe(portal.actions.scheduled_cancel);
+      expect(portal.next_steps.review_case).not.toBe(portal.next_steps.member_action);
+    }
+  });
+
+  it('keeps verification navigation neutral in four locales', async () => {
+    const verification: CaseSummary = {
+      caseKind: 'generic',
+      documentCount: 1,
+      id: 'claim-9',
+      nextStep: 'review_case',
+      occurredAt: null,
+      reference: 'CLM-009',
+      status: 'verification',
+    };
+    for (const [locale, steps] of NEXT_STEP_CATALOGS) {
+      // prettier-ignore
+      const localized: MemberPortalCopy = { ...copy, caseLabels: summary => ({ ...copy.caseLabels(summary), nextStepValue: summary.nextStep === 'complete' ? copy.status(summary.status) : steps[summary.nextStep] }) };
+      const view = render(
+        await PortalCasesRegion({ copy: localized, promise: Promise.resolve([verification]) })
+      );
+      const article = screen.getByRole('article', { name: 'CLM-009' });
+      expect(article, locale).toHaveTextContent(steps.review_case);
+      expect(article, locale).not.toHaveTextContent(steps.member_action);
+      expect(article, locale).not.toHaveTextContent('review_case');
+      expect(article.querySelectorAll('a')).toHaveLength(1);
+      view.unmount();
     }
   });
 });

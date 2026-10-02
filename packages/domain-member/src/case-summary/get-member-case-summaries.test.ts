@@ -1,4 +1,7 @@
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { deriveCaseCompanionNextStep } from '../../../domain-claims/src/claims/case-companion-next-step';
 
 const h = vi.hoisted(() => ({
   rows: [] as Array<Record<string, unknown>>,
@@ -115,6 +118,42 @@ describe('getMemberCaseSummaries', () => {
     ]);
     expect(result[0].documentCount).toBe(0);
     expect(JSON.stringify(result)).not.toMatch(/property|travel|category|price|proof/u);
+  });
+
+  it('aligns overview actors with the detail companion except neutral verification', async () => {
+    h.rows = CLAIM_STATUSES.map(status =>
+      row({ id: status, ...claimLifecycleFieldsForStatus(status) })
+    );
+    const summaries = await get();
+    expect(summaries.map(summary => summary.status)).toEqual(CLAIM_STATUSES);
+    const stepByOwner = {
+      member: 'member_action',
+      interdomestik: 'team_review',
+      insurer: 'external_response',
+      court: 'court_schedule',
+    } as const;
+    for (const summary of summaries) {
+      const companion = deriveCaseCompanionNextStep({ status: summary.status });
+      if (summary.status === 'verification') {
+        // The shared companion assumes an open member request; that assumption is not
+        // product truth once a request is absent or already fulfilled, so the overview
+        // must not inherit it.
+        expect([companion.owner, summary.nextStep]).toEqual(['member', 'review_case']);
+        continue;
+      }
+      const expected =
+        summary.status === 'resolved' || summary.status === 'rejected'
+          ? 'complete'
+          : stepByOwner[companion.owner];
+      expect(summary.nextStep, summary.status).toBe(expected);
+    }
+  });
+
+  it('offers neutral verification review instead of claiming an open request', async () => {
+    h.rows = [row({ caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started' })];
+    const result = await get();
+    expect([result[0].status, result[0].nextStep]).toEqual(['verification', 'review_case']);
+    expect(result[0].nextStep).not.toBe('member_action');
   });
 
   it('keeps undated cases and propagates errors', async () => {

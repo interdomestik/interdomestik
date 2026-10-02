@@ -27,6 +27,7 @@
       },
       "next_steps": {
         "member_action": "Add requested case details",
+        "review_case": "Review your case details and updates",
         "team_review": "Your case is under review",
         "external_response": "Awaiting external response",
         "court_schedule": "Review court schedule"

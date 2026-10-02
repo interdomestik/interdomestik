@@ -22,11 +22,14 @@ staging/P0 passed; completed proof is in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
 Staff detail continuity is technically delivered by [#1860](https://github.com/interdomestik/interdomestik/pull/1860).
 Exact-merge Actions/staging and the partial agent public/internal journey passed; completed proof
-is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Current bounded increment is
-`S7-MEMBER-CASE-AMOUNT-CONTINUITY`, confirmed by Arben's continuation after that
-prerequisite passed: reconcile V2 amount with the shared client and format the stored member
-amount in its actual currency. Sonnet 5 implements the client/tests; Codex integrates and
-verifies with Opus review of shared-consumer and currency behavior.
+is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Member case amount/currency continuity is technically delivered by
+[#1861](https://github.com/interdomestik/interdomestik/pull/1861). Exact-merge Actions/staging
+and the agent real EUR list/detail retake passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
+Arben confirmed `S7-MEMBER-NEXT-ACTION-TRUTH` with Opus implementation. The bounded repair
+gives verification cases neutral navigation to their details and updates, without asserting an
+outstanding request from lifecycle status. A valid review corrected the initial companion-parity
+assumption; no new information-request reads, precedence or writers are selected. Current acceptance is below;
+completed helper/baseline evidence belongs to the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
 
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
 remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
@@ -343,14 +346,22 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Member case amount continuity
+### Member next-action consistency
 
-- Actual V2 wire data feeds the mounted member list with the stored amount and declared currency.
-- Show zero; handle absent or malformed values safely without NaN or an invented EUR currency.
-- Preserve the shared agent client contract, operational metadata, pagination and existing async/error/retry behavior.
-- Keep company projection, count interpretation, server queries, auth/RLS, writers, billing and redesign outside this repair.
-- Retain a permanent wire-to-mounted regression plus currency/null/zero/shared-consumer tests.
-- Consolidate current-head review and Sonar findings before one required local lane.
+- Verification overview guidance offers neutral case-detail/update navigation in EN/SQ/MK/SR; it must not claim a pending request from status alone.
+- Keep the draft action unchanged. Actual request-progress is authoritative for request-specific work; legacy generic detail guidance and erased-subject overrides remain separate.
+- Preserve all other lifecycle tokens, one tenant/member-scoped query and safe summary fields.
+- Preserve the delivered request-specific progress/fulfilment contract; do not invent a persisted request.
+- Keep writers, schema, auth/RLS, proxy, routes, SLA, billing, notifications and redesign unchanged.
+- Retain actual projection and rendered four-locale copy regressions; verify neutral guidance without request metadata, unchanged other states/query/privacy and unchanged draft copy.
+- Consolidate current-head reviews/Sonar before one required final lane; human acceptance remains separate.
+
+### Delivered member case amount continuity (#1861)
+
+The actual wire amount and declared currency now reach the member list. Bounded technical
+delivery and agent staging retake passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
+Human acceptance, whole S7 and staff public notifications remain open. The next-action repair
+is the current bounded increment.
 
 Staff detail continuity is delivered by #1860; completed proof is in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.

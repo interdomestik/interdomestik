@@ -473,6 +473,8 @@ a static tooling prediction is not execution evidence, and explicit tenant predi
 alone do not prove a tenant transaction or runtime RLS. Opus findings require verified
 dispositions, not a fabricated formal approval. Do not claim efficiency gains without measurements.
 
+Freeze delegated delivery tooling before execution; inventory workflow event provenance including dynamic events. Claim the actual merge executor only from its tool transcript. If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.
+
 Inspect the complete paginated current-head check inventory before diagnosing a missing
 producer. Before strict readiness, preserve any generated tracked-file diff and restore
 only owned reproducible artifacts when runtime inputs stay unchanged; do not repeat the

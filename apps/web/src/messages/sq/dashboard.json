@@ -27,6 +27,7 @@
       },
       "next_steps": {
         "member_action": "Plotësoni të dhënat e kërkuara të rastit",
+        "review_case": "Shikoni të dhënat dhe përditësimet e rastit tuaj",
         "team_review": "Ekipi ynë po shqyrton rastin tuaj",
         "external_response": "Po pritet një përgjigje e jashtme",
         "court_schedule": "Kontrolloni orarin e gjykatës"

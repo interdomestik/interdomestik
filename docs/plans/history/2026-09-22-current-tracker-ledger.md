@@ -1644,8 +1644,7 @@ investigation and partial Sonar corrections remain recorded, not claimed as effi
 
 Installed agent/guide hash parity passed with GPT-6.1 Sol/high unchanged; fresh named-role
 reload remains unverified. #1859 canonical closeout carried by #1860 is published/read back.
-This #1860 closeout is carried by the authorized member amount product amendment; its canonical
-publication remains pending until merge and readback.
+The #1860 closeout was published by #1861 and read back on canonical `42ca39272993e0e9644bde845139c24f4220f9b0`.
 
 Agent browser testing on deployed `eb1aadc8b` verified staff detail open/reload, normal staff/member
 login/logout, five owned member cases, detail/reload for cases 02 and 10, and denied member
@@ -1658,7 +1657,7 @@ continuity. Final evidence authority:
 `/Users/arbenlila/.codex/evidence/interdomestik/s7-staff-detail-continuity/receipt.json`.
 Owned archival/resource state, model outputs, logs and checksums are retained in that receipt.
 
-## S7 member case amount continuity candidate
+## S7 member case amount continuity delivery (#1861)
 
 The confirmed bounded successor starts from canonical `eb1aadc8ba9e6abfb241b24f77f135942eebac24`
 after #1860 exact-merge staging and partial cross-role journey passed. Owned detail has a stored
@@ -1689,7 +1688,90 @@ This is not proof of SQ-specific browser formatting on a fully localized engine.
 attempts caught NBSP, test-helper import and async consent setup errors; the receipt retains them.
 The owned dev server was stopped and Next-generated artifacts preserved outside the worktree.
 
-Current-head remote reviews/Sonar, one required final local lane and protected delivery remain
-pending. #1860 canonical closeout is carried in this product amendment; publication is not claimed.
-Human acceptance and staff public-notification/email/push remain separate and open. Receipt:
+Current-head Codex/Sonar and actionable annotations were consolidated before one final local
+`pr:verify` lane (764.239 seconds), with security guard and strict readiness passed. Protected
+head `d187432697f7b652c0cda143f9ef3c9f4ef9d013` had 30 success and four intentional skips.
+No full-lane rerun or post-authorization costly proof was performed.
+
+Actual Sonnet 5 merged #1861 through a normal protected squash pinned to that head:
+`42ca39272993e0e9644bde845139c24f4220f9b0`, 2026-10-02 12:48:34 UTC. All six exact-main
+workflows succeeded: CI `37008948220`, CD `37008948236`, Secret Scan `37008948188`, Sonar Main
+`37008948233`, Code Quality push `37008947716`, Push main `37008947722`. CD verified staging
+health, build/canonical alias provenance and the staging release gate; production was skipped.
+Sonnet's merge transcript and a separate read-only Sonnet completion session prove executor/model.
+The first session stopped after a monitoring bridge changed during execution; a read-only session
+using fixed direct gh commands completed monitoring. The receipt preserves that integrity stop,
+the push/dynamic event inventory correction and an integrator transcript-parser error honestly.
+
+Parent agent browser retake on deployed `42ca3927` used normal member login/navigation and five
+existing owned cases: all five list cells showed EUR 1200, details 02/10 showed 1200 EUR, and
+revisiting the list preserved all five amounts. No interception or fixture writes occurred.
+One direct navigation timed out before normal-link navigation passed; cause and latency are
+unestablished. Zero/null/MKD remain local regression proof only. This is agent observation,
+not Arben's human acceptance, whole S7, or a performance improvement claim.
+
+#1860 canonical closeout and versioned agent lessons are published/read back on this merge.
+This #1861 closeout amendment is prepared outside the retiring worktree for the next authorized
+product amendment; canonical publication remains pending. Human acceptance and staff public
+notification/email/push remain separate and open. Receipt and current owned-resource state:
 `/Users/arbenlila/.codex/evidence/interdomestik/s7-member-case-amount/receipt.json`.
+
+## S7 member next-action truth candidate
+
+Arben confirmed sending the prepared packet to Claude Pro and explicitly requested Opus
+implementation on 2026-10-02. This successor starts from canonical
+`42ca39272993e0e9644bde845139c24f4220f9b0` after #1861 exact-merge Actions/staging and real
+EUR list/detail retake passed. Its four-surface canonical closeout and compact delivery lesson
+are carried in this product amendment, pending publication/merge/readback.
+
+Source comparison identified two generic lifecycle mappings: overview verification said team
+review, while the accepted owned-detail companion says member action/upload evidence. The
+request-specific card already derives awaiting/submitted/acknowledged/fulfilled progress and
+remains separate. No actual open request on the earlier live case10 was established. The
+initial repair aligned the generic overview verification actor; a later valid P2 review supersedes
+that assumption because lifecycle alone cannot establish an outstanding request. No request-aware query,
+precedence, writer, SLA, schema, auth/RLS, proxy, billing, notification or redesign is added.
+Current M0 sole writers, M2 case/recovery distinction and session-derived tenant query boundaries
+are preserved; no conditional architecture promotion is inferred. SRSv0.9 IDA-NFR-008,
+IDA-CAS-007 and IDA-COM-005 guide acceptance without whole-clause closure.
+
+Claude Pro actually served Opus 5 for the coding assignment (162.189 seconds) and returned a
+two-file implementation. Codex accepted its verification-to-member-action correction and
+direct behavioral regression. The unnecessary map export/transcribed-map test was replaced
+with actual nine-state projection compared to the real detail companion. Opus incorrectly
+attributed the generic companion mapping to #1841; #1841 is the separate request-specific
+guidance, so that attribution is rejected. The provider returned exit0/is_error=false with code;
+the reused reviewer wrapper's missing-verdict failure is not a coding-provider failure or a
+formal review PASS. No helper execution of tests is claimed.
+
+Executed baseline: the new real projection/companion and verification assertions failed on the
+old source (two failures, four passes), then all six projection tests and member TypeScript
+passed after the one-entry correction. Existing query-shape/predicate/tenant/privacy/date/error
+assertions remain intact. The environment-loaded normal-host preflight passed after a missed
+environment prefix and restricted TCP diagnostic failure; the retained loopback synthetic DB
+is running. That diagnostic is not SQL/RLS proof. At initial publication, current-head independent review, hosted analysis and final local proof
+were pending. Later current-head P2 review correctly found requested-information copy invalid
+without request state, even though the existing companion makes the same assumption. #1845
+fulfilment deliberately leaves claim lifecycle unchanged. The bounded correction is neutral
+verification navigation, preserving draft copy and authoritative request-specific guidance;
+Arben subsequently authorized the exact corrective packet and Claude continuation through green checks, protected merge and staging. The first served Opus 5 response supplied no patch and simulated reads; no code was accepted. One clarification on the unchanged packet returned the bounded neutral token/catalog/test correction (303.561 seconds). Codex integrated those nine paths, correcting only nominal excerpt patch positions; helper tests are not claimed. The corrected implementation removes the universal verification actor-parity assumption. Current-head analysis and fresh required runtime proof remain pending.
+
+The first full `pr:verify` attempt exited1 after592.03s in the existing Free Start accessibility
+presentation guard; a retained-build E2E attempt failed the same guard in MK. Failure-only
+structured diagnostics preserve its predicate/setup/timing. The measured third actual gate
+passed283tests with19skips(307.629s); smoke passed13with11skips and security guard passed.
+Passed contracts/coverage/build were reused on unchanged application inputs. The failed aggregate
+and both E2E failures remain evidence, and the underlying presentation cause is unestablished.
+No full command pass, runtime flake fix, readiness, merge, staging or human acceptance is claimed.
+
+Current primary-source UX guidance checked 2026-10-02:
+[GOV.UK task lists](https://design-system.service.gov.uk/components/task-list/) supports clear
+remaining-task guidance; [W3C consistent identification](https://www.w3.org/WAI/WCAG22/Understanding/consistent-identification.html)
+supports consistent functional identification. Adopt truthful guidance in the existing member
+overview/detail handoff; reject a new task-list/redesign for this bounded repair. Legacy detail companion copy remains a separate limitation; no whole-surface request truth is claimed. Staff request
+progress/writers, agent member-surface session scoping and admin governance remain unchanged.
+No palette adoption or whole accessibility/user-acceptance claim is made.
+
+Final evidence authority when delivered:
+`/Users/arbenlila/.codex/evidence/interdomestik/s7-member-next-action/receipt.json`.
+Human acceptance, broader S7 and staff public notification remain separate and open.

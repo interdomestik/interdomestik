@@ -16,7 +16,7 @@ import { getMemberDashboardCore } from '../_core';
 import { resolveMemberActorRoleOnSession } from '../actor-role-on-session';
 
 // prettier-ignore
-type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseEntryLabel' | 'caseLabels' | 'membershipStatus' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; membership_status: { access_allowed: string; access_denied: string; access_label: string; current_period_end_label: string; retry: string; status_label: string; statuses: MemberPortalCopy['membershipStatus']['statuses']; unavailable: string }; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
+type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseEntryLabel' | 'caseLabels' | 'membershipStatus' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; membership_status: { access_allowed: string; access_denied: string; access_label: string; current_period_end_label: string; retry: string; status_label: string; statuses: MemberPortalCopy['membershipStatus']['statuses']; unavailable: string }; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'review_case' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
 
 // prettier-ignore
 export const getMemberPortalContext = cache(async (requestedLocale: string) => {
