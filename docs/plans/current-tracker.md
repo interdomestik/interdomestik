@@ -21,10 +21,10 @@ human staff/member validation; technical delivery is complete. Live acceptance r
 completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858).
 No deployment, product readiness or user-acceptance claim extends beyond that bounded technical evidence.
 
-| ID                                  | Status        | Owner                   | Work                                                                                    | Exit Criteria                                                                                                                               |
-| ----------------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.                   | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest. |
-| `S7-MEMBER-NEXT-ACTION-TRUTH`       | `in_progress` | Codex integration owner | Align overview verification actor with accepted owned-detail guidance; Opus implements. | Actual projection/companion regression, unchanged query/privacy contracts, current-head review and required local/protected proof.          |
+| ID                                  | Status        | Owner                   | Work                                                                                                    | Exit Criteria                                                                                                                                       |
+| ----------------------------------- | ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.                                   | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest.         |
+| `S7-MEMBER-NEXT-ACTION-TRUTH`       | `in_progress` | Codex integration owner | Show neutral verification detail/update navigation without claiming a pending request; Opus implements. | Actual projection/rendered locale regressions, unchanged query/privacy and draft contracts, current-head review and required local/protected proof. |
 
 ### Confirmed acceptance slice
 
@@ -43,7 +43,7 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 ### Current acceptance
 
 - #1861 amount/currency continuity is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
-- Current bounded repair: overview verification next actor follows the existing owned-detail companion.
+- Current bounded repair: verification overview offers neutral detail/update navigation; lifecycle status does not establish an outstanding request.
 - Preserve all other generic lifecycle states and request-specific progress; no new queries or writers.
 - Human acceptance and broader S7 remain open; completed baseline/helper facts are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
 - #1860 staff-detail technical delivery and partial agent public/internal journey passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.
@@ -225,8 +225,9 @@ stale provider-event-order status; its proof is credited, not repeated by this r
 ## Next Selection
 
 Arben confirmed `S7-MEMBER-NEXT-ACTION-TRUTH` and sending the prepared packet to Claude Pro
-with Opus implementing. The resolved bounded scope aligns only the generic verification actor
-with accepted detail guidance; no new request-aware read, precedence or writer is selected.
+with Opus implementing. Review corrected the initial companion-parity assumption: the bounded
+verification guidance must be neutral and must not claim outstanding requested data. Preserve
+draft guidance; no new request-aware read, precedence or writer is selected.
 #1861 closeout is carried in this product amendment; publication awaits its merge/readback.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.

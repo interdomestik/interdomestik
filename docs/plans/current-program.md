@@ -26,8 +26,9 @@ is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-st
 [#1861](https://github.com/interdomestik/interdomestik/pull/1861). Exact-merge Actions/staging
 and the agent real EUR list/detail retake passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
 Arben confirmed `S7-MEMBER-NEXT-ACTION-TRUTH` with Opus implementation. The bounded repair
-aligns the overview verification actor with the existing owned-detail companion contract,
-without new information-request reads, precedence or writers. Current acceptance is below;
+gives verification cases neutral navigation to their details and updates, without asserting an
+outstanding request from lifecycle status. A valid review corrected the initial companion-parity
+assumption; no new information-request reads, precedence or writers are selected. Current acceptance is below;
 completed helper/baseline evidence belongs to the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
 
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
@@ -347,12 +348,12 @@ alone is not business or user acceptance.
 
 ### Member next-action consistency
 
-- Standard overview verification guidance agrees with the existing owned-detail companion member action.
-- Request-progress and erased-subject detail overrides remain separate; no blanket next-action equivalence is claimed.
+- Verification overview guidance offers neutral case-detail/update navigation in EN/SQ/MK/SR; it must not claim a pending request from status alone.
+- Keep the draft action unchanged. Actual request-progress is authoritative for request-specific work; legacy generic detail guidance and erased-subject overrides remain separate.
 - Preserve all other lifecycle tokens, one tenant/member-scoped query and safe summary fields.
 - Preserve the delivered request-specific progress/fulfilment contract; do not invent a persisted request.
 - Keep writers, schema, auth/RLS, proxy, routes, SLA, billing, notifications and redesign unchanged.
-- Retain an actual projection/detail-companion regression and direct verification acceptance.
+- Retain actual projection and rendered four-locale copy regressions; verify neutral guidance without request metadata, unchanged other states/query/privacy and unchanged draft copy.
 - Consolidate current-head reviews/Sonar before one required final lane; human acceptance remains separate.
 
 ### Delivered member case amount continuity (#1861)

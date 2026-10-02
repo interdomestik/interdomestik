@@ -10,7 +10,12 @@ export type CaseLifecycleStatus =
   | 'rejected';
 
 export type NextStepToken =
-  'member_action' | 'team_review' | 'external_response' | 'court_schedule' | 'complete';
+  | 'member_action'
+  | 'review_case'
+  | 'team_review'
+  | 'external_response'
+  | 'court_schedule'
+  | 'complete';
 
 export type AccidentSummary = {
   caseKind: 'accident';

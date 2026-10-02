@@ -120,7 +120,7 @@ describe('getMemberCaseSummaries', () => {
     expect(JSON.stringify(result)).not.toMatch(/property|travel|category|price|proof/u);
   });
 
-  it('keeps every overview lifecycle actor aligned with the owned detail companion', async () => {
+  it('aligns overview actors with the detail companion except neutral verification', async () => {
     h.rows = CLAIM_STATUSES.map(status =>
       row({ id: status, ...claimLifecycleFieldsForStatus(status) })
     );
@@ -134,6 +134,13 @@ describe('getMemberCaseSummaries', () => {
     } as const;
     for (const summary of summaries) {
       const companion = deriveCaseCompanionNextStep({ status: summary.status });
+      if (summary.status === 'verification') {
+        // The shared companion assumes an open member request; that assumption is not
+        // product truth once a request is absent or already fulfilled, so the overview
+        // must not inherit it.
+        expect([companion.owner, summary.nextStep]).toEqual(['member', 'review_case']);
+        continue;
+      }
       const expected =
         summary.status === 'resolved' || summary.status === 'rejected'
           ? 'complete'
@@ -142,10 +149,11 @@ describe('getMemberCaseSummaries', () => {
     }
   });
 
-  it('points verification cases at the member instead of the case team', async () => {
+  it('offers neutral verification review instead of claiming an open request', async () => {
     h.rows = [row({ caseLifecycleState: 'verification', recoveryLifecycleState: 'not_started' })];
     const result = await get();
-    expect([result[0].status, result[0].nextStep]).toEqual(['verification', 'member_action']);
+    expect([result[0].status, result[0].nextStep]).toEqual(['verification', 'review_case']);
+    expect(result[0].nextStep).not.toBe('member_action');
   });
 
   it('keeps undated cases and propagates errors', async () => {

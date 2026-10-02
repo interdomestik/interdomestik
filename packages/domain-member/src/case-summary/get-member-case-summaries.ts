@@ -9,7 +9,9 @@ const NEXT_STEP = {
   draft: 'member_action',
   submitted: 'team_review',
   submitted_to_airline: 'external_response',
-  verification: 'member_action',
+  // Fulfilling an information request never changes the lifecycle, so a verification
+  // status alone cannot be presented as an outstanding member request.
+  verification: 'review_case',
   evaluation: 'team_review',
   negotiation: 'external_response',
   court: 'court_schedule',

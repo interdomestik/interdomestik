@@ -1728,7 +1728,8 @@ Source comparison identified two generic lifecycle mappings: overview verificati
 review, while the accepted owned-detail companion says member action/upload evidence. The
 request-specific card already derives awaiting/submitted/acknowledged/fulfilled progress and
 remains separate. No actual open request on the earlier live case10 was established. The
-resolved repair aligns only the generic overview verification actor; no request-aware query,
+initial repair aligned the generic overview verification actor; a later valid P2 review supersedes
+that assumption because lifecycle alone cannot establish an outstanding request. No request-aware query,
 precedence, writer, SLA, schema, auth/RLS, proxy, billing, notification or redesign is added.
 Current M0 sole writers, M2 case/recovery distinction and session-derived tenant query boundaries
 are preserved; no conditional architecture promotion is inferred. SRSv0.9 IDA-NFR-008,
@@ -1748,14 +1749,26 @@ old source (two failures, four passes), then all six projection tests and member
 passed after the one-entry correction. Existing query-shape/predicate/tenant/privacy/date/error
 assertions remain intact. The environment-loaded normal-host preflight passed after a missed
 environment prefix and restricted TCP diagnostic failure; the retained loopback synthetic DB
-is running. That diagnostic is not SQL/RLS proof. Current-head independent review, hosted
-analysis and one final required local lane remain pending.
+is running. That diagnostic is not SQL/RLS proof. At initial publication, current-head independent review, hosted analysis and final local proof
+were pending. Later current-head P2 review correctly found requested-information copy invalid
+without request state, even though the existing companion makes the same assumption. #1845
+fulfilment deliberately leaves claim lifecycle unchanged. The bounded correction is neutral
+verification navigation, preserving draft copy and authoritative request-specific guidance;
+Arben subsequently authorized the exact corrective packet and Claude continuation through green checks, protected merge and staging. The first served Opus 5 response supplied no patch and simulated reads; no code was accepted. One clarification on the unchanged packet returned the bounded neutral token/catalog/test correction (303.561 seconds). Codex integrated those nine paths, correcting only nominal excerpt patch positions; helper tests are not claimed. The corrected implementation removes the universal verification actor-parity assumption. Current-head analysis and fresh required runtime proof remain pending.
+
+The first full `pr:verify` attempt exited1 after592.03s in the existing Free Start accessibility
+presentation guard; a retained-build E2E attempt failed the same guard in MK. Failure-only
+structured diagnostics preserve its predicate/setup/timing. The measured third actual gate
+passed283tests with19skips(307.629s); smoke passed13with11skips and security guard passed.
+Passed contracts/coverage/build were reused on unchanged application inputs. The failed aggregate
+and both E2E failures remain evidence, and the underlying presentation cause is unestablished.
+No full command pass, runtime flake fix, readiness, merge, staging or human acceptance is claimed.
 
 Current primary-source UX guidance checked 2026-10-02:
 [GOV.UK task lists](https://design-system.service.gov.uk/components/task-list/) supports clear
 remaining-task guidance; [W3C consistent identification](https://www.w3.org/WAI/WCAG22/Understanding/consistent-identification.html)
-supports consistent functional identification. Adopt consistency in the existing member
-overview/detail handoff; reject a new task-list/redesign for this one-entry repair. Staff request
+supports consistent functional identification. Adopt truthful guidance in the existing member
+overview/detail handoff; reject a new task-list/redesign for this bounded repair. Legacy detail companion copy remains a separate limitation; no whole-surface request truth is claimed. Staff request
 progress/writers, agent member-surface session scoping and admin governance remain unchanged.
 No palette adoption or whole accessibility/user-acceptance claim is made.
 

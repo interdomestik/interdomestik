@@ -27,6 +27,7 @@
       },
       "next_steps": {
         "member_action": "Dodajte tražene podatke o slučaju",
+        "review_case": "Pregledajte podatke i ažuriranja vašeg slučaja",
         "team_review": "Naš tim pregleda vaš slučaj",
         "external_response": "Čeka se spoljni odgovor",
         "court_schedule": "Proverite raspored suda"
