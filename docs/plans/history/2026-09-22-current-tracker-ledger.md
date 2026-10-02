@@ -1615,3 +1615,81 @@ confirmed the current chain and retained tenant-context boundary. The Sonar corr
 extracts duplicated database mock projection setup while preserving all assertions.
 The receipt retains the rejected diagnosis, helper attempt and approval-review denial
 as historical evidence; final local/protected proof remains pending.
+
+## S7 staff detail read continuity delivery (#1860)
+
+This final entry supersedes the candidate's pending state above; earlier observations and
+rejected diagnosis remain historical. PR [#1860](https://github.com/interdomestik/interdomestik/pull/1860)
+protected-merged on 2026-10-02 as `eb1aadc8ba9e6abfb241b24f77f135942eebac24`, preserving
+tested tree `df91c2a4c057296e819d7bd74a39781eb553a05c`. All six exact-merge Actions succeeded;
+[staging CD 36987869166](https://github.com/interdomestik/interdomestik/actions/runs/36987869166)
+verified build/canonical-host provenance and P0.1/P0.2/P0.3/P0.4/P0.6. Production was skipped;
+no manual dispatch or repeated local full gate was used.
+
+One final `pnpm pr:verify` lane passed on head `def23f40e51f9269c3cf401478cadf4acc5ef78b`
+in 782.72 seconds: coverage 80.69%, selected E2E 283 passed/19 configured skips, smoke
+13 passed/11 configured skips, and one observed production build. Security guard and strict
+readiness passed; 34 hosted checks were 30 successes and four configured skips. Current-head
+Codex review and Sonar had no remaining actionable blockers; the verified P1 thread was
+resolved. Independent local review retained the original tenant-context boundary.
+
+Claude Pro served Sonnet 5 for the accepted four-file implementation and Opus 5 for findings.
+Codex corrected hoisted mock initialization/reset/types and added missing-member regressions;
+all twelve focused tests retain projection/scope assertions. Constrained local SQL/RLS verified
+populated staff/branch-manager reads, foreign/branch denials and context reset, not staging policy
+introspection. The deny-all premise was incorrect against migrations 0035/0075/0083: the
+restrictive fixture was hypothetical; no privileged adapter/policy change was integrated.
+The later Sonnet correction returned no code and Opus escalation output was unused. Avoidable
+investigation and partial Sonar corrections remain recorded, not claimed as efficiency savings.
+
+Installed agent/guide hash parity passed with GPT-6.1 Sol/high unchanged; fresh named-role
+reload remains unverified. #1859 canonical closeout carried by #1860 is published/read back.
+This #1860 closeout is carried by the authorized member amount product amendment; its canonical
+publication remains pending until merge and readback.
+
+Agent browser testing on deployed `eb1aadc8b` verified staff detail open/reload, normal staff/member
+login/logout, five owned member cases, detail/reload for cases 02 and 10, and denied member
+staff/admin routes. Exactly one synthetic member-public and one staff-internal message were
+written: staff saw both; the relogged member saw public once, no internal note or staff controls.
+No status/billing/assignment changed. Staff public notification was intentionally untested because
+it sends email/push; admin governance was not needed. This is agent evidence, not Arben's human
+acceptance or whole S7/SRS completion. The next confirmed repair is member list amount/currency
+continuity. Final evidence authority:
+`/Users/arbenlila/.codex/evidence/interdomestik/s7-staff-detail-continuity/receipt.json`.
+Owned archival/resource state, model outputs, logs and checksums are retained in that receipt.
+
+## S7 member case amount continuity candidate
+
+The confirmed bounded successor starts from canonical `eb1aadc8ba9e6abfb241b24f77f135942eebac24`
+after #1860 exact-merge staging and partial cross-role journey passed. Owned detail has a stored
+amount absent from the list: the mounted V2 endpoint emits `amount`, while the client assumed
+`claimAmount`. An executed pre-change synthetic response through the actual client reproduced
+that missing property. The candidate adapts the wire field onto the existing client contract,
+preserves existing wire metadata additively, and displays the stored amount using its declared
+currency and current locale. Zero remains visible; null/malformed values are not invented money.
+No server/query, auth/RLS, proxy, writer, schema, company/count semantics, billing or redesign changes.
+
+Claude Pro actually served Sonnet 5 for six proposed source/test files (420.07 seconds), then
+Opus 5 for independent findings (243.016 seconds). Codex corrected malformed required
+identity/pagination handling, decimal/currency safety and meaningful locale/retry assertions;
+Opus prompted additive metadata preservation, pure test-fixture placement and ICU-compatible
+exact expectations. The suggested bigint pagination/unread and format blockers were rejected
+against the sole current mapper's explicit numeric totals, unread SQL `::int`, actual consumer
+inventory and passing Prettier. Optional arbitrary precision/title changes remain outside scope.
+No formal Opus PASS is claimed; findings are verified and dispositioned in the task receipt.
+
+Executed focused proof: 52 tests across four files, strict web TypeScript, scoped ESLint,
+Prettier, size/modularity policy and plan audit passed. The permanent regression exercises actual
+fetchClaims, QueryClient and locale provider, including mounted SQ locale and actual retry.
+MCP-first browser observation and a deterministic local browser scenario then used normal UI
+login, the real authenticated V2 endpoint, and read-only synthetic EUR/zero/MKD/null/malformed
+rows: all five mounted cases passed, with no fixture writes. Playwright Chromium lacks SQ Intl
+locale data and resolves to en-US, unlike Node; browser expectations used its own native runtime.
+This is not proof of SQ-specific browser formatting on a fully localized engine. Initial focused
+attempts caught NBSP, test-helper import and async consent setup errors; the receipt retains them.
+The owned dev server was stopped and Next-generated artifacts preserved outside the worktree.
+
+Current-head remote reviews/Sonar, one required final local lane and protected delivery remain
+pending. #1860 canonical closeout is carried in this product amendment; publication is not claimed.
+Human acceptance and staff public-notification/email/push remain separate and open. Receipt:
+`/Users/arbenlila/.codex/evidence/interdomestik/s7-member-case-amount/receipt.json`.

@@ -3,6 +3,7 @@
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { fetchClaims } from '@/lib/api/claims';
+import { formatClaimAmount } from '@/lib/utils/currency';
 import { formatPilotDate } from '@/lib/utils/date';
 import {
   Button,
@@ -186,40 +187,42 @@ export function MemberClaimsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.claims.map(claim => (
-              <TableRow key={claim.id} className="hover:bg-muted/50 cursor-pointer">
-                <TableCell className="font-medium">
-                  <Link
-                    href={`/member/claims/${claim.id}`}
-                    className="hover:underline underline-offset-4 block max-w-[240px] truncate"
-                    title={claim.title}
-                  >
-                    {claim.title}
-                  </Link>
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={claim.companyName || ''}>
-                  {claim.companyName}
-                </TableCell>
-                <TableCell className="capitalize text-sm text-muted-foreground">
-                  {formatCategory(claim.category)}
-                </TableCell>
-                <TableCell>
-                  <ClaimStatusBadge status={claim.status} />
-                </TableCell>
-                <TableCell>
-                  {claim.claimAmount ? (
-                    <span className="font-medium">
-                      €{Number.parseFloat(claim.claimAmount).toFixed(2)}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right text-sm" suppressHydrationWarning>
-                  {formatPilotDate(claim.createdAt, locale, '-')}
-                </TableCell>
-              </TableRow>
-            ))}
+            {data.claims.map(claim => {
+              const formattedAmount = formatClaimAmount(claim.claimAmount, claim.currency, locale);
+
+              return (
+                <TableRow key={claim.id} className="hover:bg-muted/50 cursor-pointer">
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/member/claims/${claim.id}`}
+                      className="hover:underline underline-offset-4 block max-w-[240px] truncate"
+                      title={claim.title}
+                    >
+                      {claim.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={claim.companyName || ''}>
+                    {claim.companyName}
+                  </TableCell>
+                  <TableCell className="capitalize text-sm text-muted-foreground">
+                    {formatCategory(claim.category)}
+                  </TableCell>
+                  <TableCell>
+                    <ClaimStatusBadge status={claim.status} />
+                  </TableCell>
+                  <TableCell>
+                    {formattedAmount ? (
+                      <span className="font-medium">{formattedAmount}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right text-sm" suppressHydrationWarning>
+                    {formatPilotDate(claim.createdAt, locale, '-')}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
