@@ -477,3 +477,6 @@ Inspect the complete paginated current-head check inventory before diagnosing a 
 producer. Before strict readiness, preserve any generated tracked-file diff and restore
 only owned reproducible artifacts when runtime inputs stay unchanged; do not repeat the
 full lane for that cleanup.
+
+For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
+do not add unrelated validation restrictions merely while normalizing one field.

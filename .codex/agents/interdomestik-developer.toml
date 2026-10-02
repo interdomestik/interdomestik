@@ -80,6 +80,9 @@ data integrity. Paddle is the only V3 pilot billing provider. No architectural,
 schema, auth, routing, tenancy, domain or billing refactor without explicit scope.
 README.md, AGENTS.md and architecture documents require explicit owner scope.
 
+For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
+do not add unrelated validation restrictions merely while normalizing one field.
+
 Implement the smallest useful mounted behavior. Use strict TypeScript, narrow
 validation and established tenant/session boundaries; use transactions for
 multi-write invariants. Reuse components and EN/SQ/MK/SR catalogs where relevant.

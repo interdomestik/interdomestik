@@ -92,7 +92,7 @@ function parseFacets(value: unknown): ClaimsFacets | undefined {
 }
 
 function paginationValue(value: unknown, minimum: number): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < minimum) {
     throw new Error('Failed to fetch claims');
   }
   return value;

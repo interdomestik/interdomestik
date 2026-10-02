@@ -100,13 +100,23 @@ describe('fetchClaims', () => {
     await expect(fetchClaims({ scope: 'member' })).rejects.toThrow('Failed to fetch claims');
   });
 
-  it.each([{ claims: null }, { totalCount: undefined }, { totalPages: -1 }, { page: 1.5 }])(
+  it.each([
+    { claims: null },
+    { totalCount: undefined },
+    { totalPages: -1 },
+    { page: Number.POSITIVE_INFINITY },
+  ])(
     'rejects malformed collection or pagination instead of inventing a successful result: %j',
     async overrides => {
       mockFetch({ ...wireResponse([wireRow()]), ...overrides });
       await expect(fetchClaims({ scope: 'member' })).rejects.toThrow('Failed to fetch claims');
     }
   );
+
+  it('preserves finite numeric pagination from the existing API contract', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), page: 1.5 });
+    expect(await fetchClaims({ scope: 'member', page: 1.5 })).toMatchObject({ page: 1.5 });
+  });
 
   it('preserves the actual empty-list zero totalPages', async () => {
     mockFetch({ ...wireResponse([]), totalPages: 0 });

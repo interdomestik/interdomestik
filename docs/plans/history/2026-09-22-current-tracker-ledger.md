@@ -1678,7 +1678,7 @@ against the sole current mapper's explicit numeric totals, unread SQL `::int`, a
 inventory and passing Prettier. Optional arbitrary precision/title changes remain outside scope.
 No formal Opus PASS is claimed; findings are verified and dispositioned in the task receipt.
 
-Executed focused proof: 52 tests across four files, strict web TypeScript, scoped ESLint,
+Executed focused proof: 53 tests across four files, strict web TypeScript, scoped ESLint,
 Prettier, size/modularity policy and plan audit passed. The permanent regression exercises actual
 fetchClaims, QueryClient and locale provider, including mounted SQ locale and actual retry.
 MCP-first browser observation and a deterministic local browser scenario then used normal UI
