@@ -99,10 +99,10 @@ describe('getMemberClaimDetail', () => {
         status: 'verification',
         slaPhase: 'incomplete',
         memberTrustSummary: {
-          state: 'member_action_required',
+          state: 'verification_in_progress',
           titleKey: 'claims-tracking.tracking.assurance.title',
-          bodyKey: 'claims-tracking.tracking.assurance.body.member_action_required',
-          stateLabelKey: 'claims-tracking.tracking.assurance.state.member_action_required',
+          bodyKey: 'claims-tracking.tracking.assurance.body.verification_in_progress',
+          stateLabelKey: 'claims-tracking.tracking.assurance.state.verification_in_progress',
           supportHref: '/member/help?claimId=claim_1&source=member_claim_detail',
         },
       })

@@ -113,9 +113,7 @@ Credit [#1862](https://github.com/interdomestik/interdomestik/pull/1862) for del
 verification overview detail/update navigation; exact-merge Actions/staging passed. See the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
 IDA-NFR-008, IDA-CAS-006/008, whole S7 and human acceptance remain open. Lifecycle status
 cannot establish an outstanding request; the initial companion-parity assumption was insufficient.
-Draft guidance and the authoritative request card are preserved. Legacy generic detail guidance
-remains the confirmed `S7-MEMBER-DETAIL-GUIDANCE-TRUTH` repair: neutral generic verification
-detail guidance, with the existing request card authoritative for specific obligations. No new request-aware projection/writer or SRS clause completion is selected.
+Draft guidance and the authoritative request card are preserved. Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card. Arben confirmed S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH and the bounded source packet to Claude Pro Opus through protected completion. This presentation-only scope is active. It changes only the handling-assurance presentation DTO/copy, retaining request-specific authority, other states, support links, erasure and query/writer/privacy boundaries. Operational SLA/risk/timer policy is excluded; the separate legacy SLA status display remains outside this proposal. No whole S7/SRS or human acceptance is completed.
 
 Credit [#1859](https://github.com/interdomestik/interdomestik/pull/1859) for delivered
 `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: the mounted staff queue transfers at most one

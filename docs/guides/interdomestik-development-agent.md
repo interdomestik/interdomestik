@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-02-post1862-lessons`). An optional personal installation at
+`2026-10-02-post1863-lessons`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -476,6 +476,8 @@ alone do not prove a tenant transaction or runtime RLS. Opus findings require ve
 dispositions, not a fabricated formal approval. Do not claim efficiency gains without measurements.
 
 Freeze delegated delivery tooling before execution; reuse the final evidenced version rather than a superseded bridge. Before dispatch, execute bounded monitor fixtures from observed push/dynamic producer metadata, including missing, pending, failed and wrong-SHA/branch cases. Claim the actual merge executor only from its tool transcript. If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.
+
+Prefer transparent standard git/gh commands for delegated delivery instead of exporting private helper/manifest internals. If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery; do not repeat permission-format calls or claim Claude ran those tests. Verify monitor identity against both actual API run-name and gh name/workflowName payloads, preserving push and dynamic events; workflowName alone can rename CodeQL producers. Execute missing/pending/failed/wrong-SHA/branch and both-shape fixtures before dispatch, and record any recurrence honestly rather than claiming the prior incomplete fixture set prevented it.
 
 Inspect the complete paginated current-head check inventory before diagnosing a missing
 producer. Before strict readiness, preserve any generated tracked-file diff and restore

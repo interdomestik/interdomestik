@@ -28,10 +28,8 @@ and the agent real EUR list/detail retake passed; completed proof is in the [his
 Member overview next-action truth is technically delivered by [#1862](https://github.com/interdomestik/interdomestik/pull/1862).
 Verification cases offer neutral detail/update navigation without asserting an outstanding request.
 Exact-merge Actions/staging passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
-Legacy generic detail companion guidance remains a separate source-backed gap. The recommended
-`S7-MEMBER-DETAIL-GUIDANCE-TRUTH` successor is confirmed by Arben with Opus implementation
-and protected delivery through exact-merge Actions/staging.
-No new request-aware query, precedence or writer is selected.
+Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card.
+Arben confirmed S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH and the bounded source packet to Claude Pro Opus through protected completion. This presentation-only scope is active. It changes only the handling-assurance presentation DTO/copy, retaining request-specific authority, other states, support links, erasure and query/writer/privacy boundaries. Operational SLA/risk/timer policy is excluded; the separate legacy SLA status display remains outside this proposal.
 
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
 remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
@@ -352,28 +350,20 @@ alone is not business or user acceptance.
 
 Verification overview guidance is neutral in EN/SQ/MK/SR; draft, other states, request-specific
 progress and query/privacy boundaries are preserved. Technical delivery passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
-Human acceptance and legacy detail guidance remain open. Arben confirmed the successor scope: neutral generic verification detail guidance while retaining authoritative request
-progress, all other states, erasure, SLA and query/writer contracts.
+Human acceptance remains open. The confirmed neutral generic detail successor is technically delivered by #1863; the distinct assurance-card successor is now confirmed.
 
-### Member detail guidance truth
+### Delivered member detail guidance truth (#1863)
 
-Arben confirmed `S7-MEMBER-DETAIL-GUIDANCE-TRUTH` and delegated bounded implementation and
-protected completion to Opus. Generic verification detail guidance identifies case-team handling,
-describes verification neutrally, invites reviewing details/updates without asserting requested
-upload or no outstanding work, and reports no recorded next-step date. The existing request card
-alone remains authoritative for specific member/staff request obligations. Preserve all other
-lifecycle states, erased-subject behavior, outcome dates, SLA, request/transition writers and
-query/privacy boundaries; no request-aware lookup or architecture change is selected. Actual
-projection and four-locale mounted absent/open/fulfilled-request regressions, independent review,
-current-head comments/Sonar and one consolidated required verification lane precede delivery.
-Detailed completed proof belongs in the historical ledger; human acceptance remains separate.
+Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card. Human acceptance remains open.
+
+Arben confirmed S7-MEMBER-ASSURANCE-GUIDANCE-TRUTH and the bounded source packet to Claude Pro Opus through protected completion. This presentation-only scope is active. It changes only the handling-assurance presentation DTO/copy, retaining request-specific authority, other states, support links, erasure and query/writer/privacy boundaries. Operational SLA/risk/timer policy is excluded; the separate legacy SLA status display remains outside this proposal.
 
 ### Delivered member case amount continuity (#1861)
 
 The actual wire amount and declared currency now reach the member list. Bounded technical
 delivery and agent staging retake passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
 Human acceptance, whole S7 and staff public notifications remain open. #1862 also delivers the
-bounded overview next-action repair; its detail-guidance successor is confirmed.
+bounded overview next-action repair; its detail-guidance successor is delivered by #1863.
 
 Staff detail continuity is delivered by #1860; completed proof is in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.
