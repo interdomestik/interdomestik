@@ -25,11 +25,13 @@ Exact-merge Actions/staging and the partial agent public/internal journey passed
 is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Member case amount/currency continuity is technically delivered by
 [#1861](https://github.com/interdomestik/interdomestik/pull/1861). Exact-merge Actions/staging
 and the agent real EUR list/detail retake passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
-Arben confirmed `S7-MEMBER-NEXT-ACTION-TRUTH` with Opus implementation. The bounded repair
-gives verification cases neutral navigation to their details and updates, without asserting an
-outstanding request from lifecycle status. A valid review corrected the initial companion-parity
-assumption; no new information-request reads, precedence or writers are selected. Current acceptance is below;
-completed helper/baseline evidence belongs to the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
+Member overview next-action truth is technically delivered by [#1862](https://github.com/interdomestik/interdomestik/pull/1862).
+Verification cases offer neutral detail/update navigation without asserting an outstanding request.
+Exact-merge Actions/staging passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
+Legacy generic detail companion guidance remains a separate source-backed gap. The recommended
+`S7-MEMBER-DETAIL-GUIDANCE-TRUTH` successor is confirmed by Arben with Opus implementation
+and protected delivery through exact-merge Actions/staging.
+No new request-aware query, precedence or writer is selected.
 
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
 remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
@@ -346,22 +348,32 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Member next-action consistency
+### Delivered member overview next-action truth (#1862)
 
-- Verification overview guidance offers neutral case-detail/update navigation in EN/SQ/MK/SR; it must not claim a pending request from status alone.
-- Keep the draft action unchanged. Actual request-progress is authoritative for request-specific work; legacy generic detail guidance and erased-subject overrides remain separate.
-- Preserve all other lifecycle tokens, one tenant/member-scoped query and safe summary fields.
-- Preserve the delivered request-specific progress/fulfilment contract; do not invent a persisted request.
-- Keep writers, schema, auth/RLS, proxy, routes, SLA, billing, notifications and redesign unchanged.
-- Retain actual projection and rendered four-locale copy regressions; verify neutral guidance without request metadata, unchanged other states/query/privacy and unchanged draft copy.
-- Consolidate current-head reviews/Sonar before one required final lane; human acceptance remains separate.
+Verification overview guidance is neutral in EN/SQ/MK/SR; draft, other states, request-specific
+progress and query/privacy boundaries are preserved. Technical delivery passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
+Human acceptance and legacy detail guidance remain open. Arben confirmed the successor scope: neutral generic verification detail guidance while retaining authoritative request
+progress, all other states, erasure, SLA and query/writer contracts.
+
+### Member detail guidance truth
+
+Arben confirmed `S7-MEMBER-DETAIL-GUIDANCE-TRUTH` and delegated bounded implementation and
+protected completion to Opus. Generic verification detail guidance identifies case-team handling,
+describes verification neutrally, invites reviewing details/updates without asserting requested
+upload or no outstanding work, and reports no recorded next-step date. The existing request card
+alone remains authoritative for specific member/staff request obligations. Preserve all other
+lifecycle states, erased-subject behavior, outcome dates, SLA, request/transition writers and
+query/privacy boundaries; no request-aware lookup or architecture change is selected. Actual
+projection and four-locale mounted absent/open/fulfilled-request regressions, independent review,
+current-head comments/Sonar and one consolidated required verification lane precede delivery.
+Detailed completed proof belongs in the historical ledger; human acceptance remains separate.
 
 ### Delivered member case amount continuity (#1861)
 
 The actual wire amount and declared currency now reach the member list. Bounded technical
 delivery and agent staging retake passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
-Human acceptance, whole S7 and staff public notifications remain open. The next-action repair
-is the current bounded increment.
+Human acceptance, whole S7 and staff public notifications remain open. #1862 also delivers the
+bounded overview next-action repair; its detail-guidance successor is confirmed.
 
 Staff detail continuity is delivered by #1860; completed proof is in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.

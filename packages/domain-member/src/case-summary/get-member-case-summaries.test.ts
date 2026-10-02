@@ -135,10 +135,10 @@ describe('getMemberCaseSummaries', () => {
     for (const summary of summaries) {
       const companion = deriveCaseCompanionNextStep({ status: summary.status });
       if (summary.status === 'verification') {
-        // The shared companion assumes an open member request; that assumption is not
-        // product truth once a request is absent or already fulfilled, so the overview
-        // must not inherit it.
-        expect([companion.owner, summary.nextStep]).toEqual(['member', 'review_case']);
+        // Verification handling belongs to the Interdomestik case team, while request-specific
+        // member duties stay with ClaimInformationRequests, so the overview keeps its own
+        // neutral review step instead of inheriting the companion owner mapping.
+        expect([companion.owner, summary.nextStep]).toEqual(['interdomestik', 'review_case']);
         continue;
       }
       const expected =

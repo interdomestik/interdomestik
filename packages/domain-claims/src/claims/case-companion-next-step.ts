@@ -8,6 +8,7 @@ export type CaseCompanionAwaitingDateReason =
   | 'external_party'
   | 'court_schedule'
   | 'outcome_recorded'
+  | 'not_recorded'
   | 'erased_subject';
 
 export type CaseCompanionNextStep = {
@@ -49,12 +50,14 @@ const NEXT_STEP_BY_STATUS = {
     actionKey: 'claims-tracking.case_companion.action.no_action',
     awaitingDateReason: 'external_party',
   },
+  // Lifecycle state alone cannot prove an open information request, so verification
+  // guidance stays neutral; ClaimInformationRequests owns request-specific duties.
   verification: {
-    owner: 'member',
+    owner: 'interdomestik',
     statusSentenceKey: 'claims-tracking.case_companion.status_sentence.verification',
     actionKind: 'action',
-    actionKey: 'claims-tracking.case_companion.action.upload_evidence',
-    awaitingDateReason: 'member_action_required',
+    actionKey: 'claims-tracking.case_companion.action.review_case_details',
+    awaitingDateReason: 'not_recorded',
   },
   evaluation: {
     owner: 'interdomestik',

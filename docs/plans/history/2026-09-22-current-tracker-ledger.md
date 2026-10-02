@@ -1711,12 +1711,15 @@ unestablished. Zero/null/MKD remain local regression proof only. This is agent o
 not Arben's human acceptance, whole S7, or a performance improvement claim.
 
 #1860 canonical closeout and versioned agent lessons are published/read back on this merge.
-This #1861 closeout amendment is prepared outside the retiring worktree for the next authorized
-product amendment; canonical publication remains pending. Human acceptance and staff public
+This #1861 closeout amendment is published and read back through #1862 merge
+`d2ddf7049aaff9b0ad488d8e08d32de7cc321eb3`. Human acceptance and staff public
 notification/email/push remain separate and open. Receipt and current owned-resource state:
 `/Users/arbenlila/.codex/evidence/interdomestik/s7-member-case-amount/receipt.json`.
 
 ## S7 member next-action truth candidate
+
+Historical candidate/failed-attempt record below; final delivery supersedes pending status in
+this record without relabeling failed attempts. See the final delivery section below.
 
 Arben confirmed sending the prepared packet to Claude Pro and explicitly requested Opus
 implementation on 2026-10-02. This successor starts from canonical
@@ -1775,3 +1778,72 @@ No palette adoption or whole accessibility/user-acceptance claim is made.
 Final evidence authority when delivered:
 `/Users/arbenlila/.codex/evidence/interdomestik/s7-member-next-action/receipt.json`.
 Human acceptance, broader S7 and staff public notification remain separate and open.
+
+## S7 member next-action truth delivery (#1862)
+
+Arben explicitly authorized the corrective packet, Opus continuation, protected merge/staging
+and next selection. Actual Claude Pro Opus 5 implemented the bounded neutral review_case token,
+four catalogs and regressions; one unchanged-packet clarification returned a nine-path patch
+(303.561s) after an unusable simulated-read response. Codex integrated excerpt-position corrections.
+Independent integrated review and final current-head Codex review found no blockers; valid P2
+was verified fixed and resolved. Exact-head Sonar passed with no new issues/hotspots/duplication
+or annotations; no imported coverage claim. Final 34 protected contexts passed or were applicable
+skips before protected merge. No proxy/auth/RLS/query/writer/SLA or billing change occurred.
+
+Corrective source ebeb339de6564285949e62d1c8c78665db7c8584 passed fresh environment-loaded
+pr:verify (853.944s) and security:guard (2.284s): 80.68% repository coverage, required gate
+283 pass/19 skip and smoke13 pass/11 skip. Six projection and37 mounted/context regressions,
+affected types/lint/catalog/modularity and plan checks passed. The earlier failed aggregate,
+two Free Start presentation-guard failures and third measured gate PASS remain historical;
+the CSS cause is unknown. Two full aggregate attempts covered distinct runtime candidates;
+no unchanged-source full aggregate rerun was made. Valid P2 runtime correction required fresh proof.
+
+Actual Opus 5 protected-merged #1862 as d2ddf7049aaff9b0ad488d8e08d32de7cc321eb3 at
+2026-10-02T17:54:02Z. All six exact-SHA workflows succeeded: CI37043838457, CD37043838895,
+SecretScan37043838668, SonarMain37043838722, CodeQualityPush37043832035 and PushMain37043831966.
+CD health/build/canonical alias provenance passed and staging release gate passed at18:14:13Z;
+CD completed18:14:14Z. Production and rollback were skipped. No workflow rerun was required.
+
+The delivery monitor mistakenly reused a superseded push-only bridge despite the already
+recorded #1861 dynamic-event lesson. It was stopped, preserved and replaced by a new immutable
+read-only monitor validated against actual six-producer metadata and seven positive/negative
+fixtures. Actual Opus 5 completed monitoring (650.375s). A wrapper string-message parser then
+failed; existing immutable JSONL was parsed offline, without provider retry or bridge mutation.
+One helper pipeline outside the exact tool allowlist was denied and not executed; bare permitted
+commands completed. This recurrence is not presented as a measured procedure improvement.
+
+#1861 closeout is now published/read back. This #1862 four-surface closeout and compact semantic/
+monitor lessons are prepared for the next authorized product amendment; publication is pending.
+Installed model remains GPT6.1Sol/high with backed-up verified lesson parity; fresh named-role
+reload is unverified. Parent live browser retake is blocked by trusted Node REPL browser service
+availability, so no #1862 live UI/human acceptance is claimed. Legacy detail companion still
+assumes requested information from verification; next proposal is S7-MEMBER-DETAIL-GUIDANCE-TRUTH,
+not active. Whole S7/SRS and staff public notification acceptance remain open.
+
+Final receipt authority: /Users/arbenlila/.codex/evidence/interdomestik/s7-member-next-action/receipt.json.
+Worktree archival and shared DB retention are recorded there after parent confirmation.
+
+## S7 member detail guidance truth candidate
+
+Arben confirmed the named successor and actual Opus implementation/completion after #1862
+technical delivery. Fresh canonical base d2ddf7049aaff9b0ad488d8e08d32de7cc321eb3 preserves
+#1862 neutral overview guidance; its pending four-surface closeout/agent lessons are carried here.
+The generic detail projection takes no request input yet still assigns member upload/date-awaiting
+claims from verification; #1845 exact request fulfilment leaves claim lifecycle unchanged. The
+bounded repair uses neutral case-team verification/update guidance and no-recorded-date language;
+the existing request card remains authoritative for open/submitted/acknowledged/fulfilled work.
+Other states, erased-subject privacy, dates, SLA, queries and writers are excluded from change.
+The first actual supported Opus dispatch was rejected because this new private packet's exact
+Claude Pro disclosure lacked explicit payload consent; no export, helper coding or workaround
+occurred in that attempt. Arben then explicitly approved the exact packet and bounded corrective
+diffs/tests through completion. Actual Claude Pro `claude-opus-5` returned an eight-path implementation
+(360.915s). Its local Write allowlist denied the canonical `/private/tmp` spelling of the intended
+`/tmp` artifact; no alternate Write or shell bypass occurred. Codex preserved the real tool-input
+diff, corrected isolated JSON excerpt context and applied it. The served model supplied the code;
+Codex performed integration and focused checks. Five domain-claims, six domain-member and thirty
+web regressions passed, including twelve real-catalog request-state compositions. Scoped lint and
+all three affected package type checks passed. Independent integrated read-only review found no
+blockers; upload dialogs/actions are mocked, so this is display composition proof, not persisted
+upload or full-route acceptance. Actual old/current pure projection comparison preserved fifty-one
+other-state/privacy/date combinations and changed only three standard verification outcomes.
+Current-head hosted review/analysis and the required full local lane remain pending.

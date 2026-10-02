@@ -67,7 +67,7 @@
         "draft": "Your claim is not submitted yet.",
         "submitted": "The case team is checking the submitted claim.",
         "submitted_to_airline": "The case package is with the external party.",
-        "verification": "We need the requested information before the case can move forward.",
+        "verification": "The case team is handling verification for this case.",
         "evaluation": "The case team is reviewing the safe case details.",
         "negotiation": "The external party response is being followed through.",
         "court": "The next update depends on the court schedule.",
@@ -78,6 +78,7 @@
       "action": {
         "submit_claim": "Submit the claim when your information is ready.",
         "upload_evidence": "Upload the requested evidence when available.",
+        "review_case_details": "Review your case details and recent updates on this page.",
         "no_action": "No action is needed from you right now.",
         "complete": "Review the final update and contact support if something looks wrong."
       },
@@ -87,6 +88,7 @@
         "external_party": "Date awaiting the external party response.",
         "court_schedule": "Date awaiting the court schedule.",
         "outcome_recorded": "Final outcome recorded; no next-step date is needed.",
+        "not_recorded": "No next-step date is recorded yet.",
         "erased_subject": "Date hidden because the subject data is erased."
       }
     },

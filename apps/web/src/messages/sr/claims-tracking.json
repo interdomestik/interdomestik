@@ -67,7 +67,7 @@
         "draft": "Vaš zahtev još nije podnet.",
         "submitted": "Tim za slučaj proverava podneti zahtev.",
         "submitted_to_airline": "Paket slučaja je kod spoljne strane.",
-        "verification": "Potrebne su nam tražene informacije pre nego što slučaj može dalje.",
+        "verification": "Tim za slučaj sprovodi verifikaciju ovog slučaja.",
         "evaluation": "Tim za slučaj pregleda bezbedne detalje slučaja.",
         "negotiation": "Prati se odgovor spoljne strane.",
         "court": "Sledeće ažuriranje zavisi od rasporeda suda.",
@@ -78,6 +78,7 @@
       "action": {
         "submit_claim": "Podnesite zahtev kada su vaše informacije spremne.",
         "upload_evidence": "Otpremite tražene dokaze kada budu dostupni.",
+        "review_case_details": "Pregledajte detalje i ažuriranja vašeg slučaja na ovoj stranici.",
         "no_action": "Trenutno nije potrebna vaša radnja.",
         "complete": "Pregledajte konačno ažuriranje i kontaktirajte podršku ako nešto izgleda pogrešno."
       },
@@ -87,6 +88,7 @@
         "external_party": "Datum čeka odgovor spoljne strane.",
         "court_schedule": "Datum čeka raspored suda.",
         "outcome_recorded": "Konačni ishod je evidentiran; datum za sledeći korak nije potreban.",
+        "not_recorded": "Nije evidentiran datum za sledeći korak.",
         "erased_subject": "Datum je skriven jer su podaci subjekta izbrisani."
       }
     },
