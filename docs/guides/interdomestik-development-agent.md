@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-01-post1859-lessons`). An optional personal installation at
+`2026-10-02-post1860-lessons`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -472,3 +472,11 @@ rerun only invalidated evidence. Record observed builds, models and actual accep
 a static tooling prediction is not execution evidence, and explicit tenant predicates
 alone do not prove a tenant transaction or runtime RLS. Opus findings require verified
 dispositions, not a fabricated formal approval. Do not claim efficiency gains without measurements.
+
+Inspect the complete paginated current-head check inventory before diagnosing a missing
+producer. Before strict readiness, preserve any generated tracked-file diff and restore
+only owned reproducible artifacts when runtime inputs stay unchanged; do not repeat the
+full lane for that cleanup.
+
+For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
+do not add unrelated validation restrictions merely while normalizing one field.

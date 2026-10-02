@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-01
+last_reviewed: 2026-10-02
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -20,11 +20,14 @@ The bounded staff-history projection performance repair is technically delivered
 [#1859](https://github.com/interdomestik/interdomestik/pull/1859). Exact-merge Actions and
 staging/P0 passed; completed proof is in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
-Current bounded increment is `S7-STAFF-DETAIL-READ-CONTINUITY`, confirmed by Arben
-after the live journey found an assigned case visible in the staff queue but returning 404
-on open and reload. Restore that authorized detail read through the existing tenant/RLS
-transaction boundary, preserving scope and projections. Sonnet 5 implements the bounded
-source/tests; Codex integrates and verifies, with Opus independent boundary review.
+Staff detail continuity is technically delivered by [#1860](https://github.com/interdomestik/interdomestik/pull/1860).
+Exact-merge Actions/staging and the partial agent public/internal journey passed; completed proof
+is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Current bounded increment is
+`S7-MEMBER-CASE-AMOUNT-CONTINUITY`, confirmed by Arben's continuation after that
+prerequisite passed: reconcile V2 amount with the shared client and format the stored member
+amount in its actual currency. Sonnet 5 implements the client/tests; Codex integrates and
+verifies with Opus review of shared-consumer and currency behavior.
+
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
 remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
 
@@ -340,15 +343,17 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Staff detail read continuity
+### Member case amount continuity
 
-- A normally authenticated staff actor can open and reload the same authorized case shown by the queue.
-- Claim/member/agreement, optional agent and allowance reads use the same existing tenant transaction.
-- Tenant, branch and assignment predicates, missing/denied results, lifecycle projections and DTO fields remain unchanged.
-- Preserve canonical routes, page-ready markers, auth layering and public/private isolation; no schema or wrapper refactor.
-- Retain existing projection assertions, add distinct raw-client/tenant-transaction regression proof and verify actual constrained SQL.
-- Consolidate independent/current-head findings before one required local lane; protected checks remain separate.
-- Live cross-role human acceptance remains open until separately recorded.
+- Actual V2 wire data feeds the mounted member list with the stored amount and declared currency.
+- Show zero; handle absent or malformed values safely without NaN or an invented EUR currency.
+- Preserve the shared agent client contract, operational metadata, pagination and existing async/error/retry behavior.
+- Keep company projection, count interpretation, server queries, auth/RLS, writers, billing and redesign outside this repair.
+- Retain a permanent wire-to-mounted regression plus currency/null/zero/shared-consumer tests.
+- Consolidate current-head review and Sonar findings before one required local lane.
+
+Staff detail continuity is delivered by #1860; completed proof is in the
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.
 
 ### Delivered staff-history projection performance (#1859)
 

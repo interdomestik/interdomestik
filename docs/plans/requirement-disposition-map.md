@@ -103,10 +103,13 @@ remain separately credited in the current program/tracker.
 
 ## Current bounded S7 work
 
-Current confirmed `S7-STAFF-DETAIL-READ-CONTINUITY` restores an authorized staff
-queue-to-detail/reload read under the existing tenant/RLS boundary. It preserves the
-case/thread privacy contract and supports remaining S7 cross-role acceptance; no whole
-IDA-COM-005, IDA-CAS-006/008 or other SRS clause is marked complete by this repair.
+Credit [#1860](https://github.com/interdomestik/interdomestik/pull/1860) for delivered staff
+queue-to-detail/reload continuity under the existing tenant/RLS boundary. Its
+[historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860) records staging and partial agent journey proof.
+Current confirmed `S7-MEMBER-CASE-AMOUNT-CONTINUITY` restores the member amount/currency
+projection while preserving the shared client and case/thread privacy contracts. Check the
+bounded usability repair against IDA-NFR-008 and IDA-CAS-006/008; no whole IDA-COM-005,
+IDA-CAS-006/008 or other SRS clause is marked complete.
 
 Credit [#1859](https://github.com/interdomestik/interdomestik/pull/1859) for delivered
 `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: the mounted staff queue transfers at most one
