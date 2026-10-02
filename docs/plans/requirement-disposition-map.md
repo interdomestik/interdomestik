@@ -106,10 +106,13 @@ remain separately credited in the current program/tracker.
 Credit [#1860](https://github.com/interdomestik/interdomestik/pull/1860) for delivered staff
 queue-to-detail/reload continuity under the existing tenant/RLS boundary. Its
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860) records staging and partial agent journey proof.
-Current confirmed `S7-MEMBER-CASE-AMOUNT-CONTINUITY` restores the member amount/currency
-projection while preserving the shared client and case/thread privacy contracts. Check the
-bounded usability repair against IDA-NFR-008 and IDA-CAS-006/008; no whole IDA-COM-005,
-IDA-CAS-006/008 or other SRS clause is marked complete.
+Credit [#1861](https://github.com/interdomestik/interdomestik/pull/1861) for delivered member
+amount/currency projection under the unchanged shared-client/privacy contract. Exact-merge
+Actions/staging and agent EUR list/detail retake passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
+IDA-NFR-008, IDA-CAS-006/008, whole S7 and human acceptance remain open. The next-action
+consistency repair is confirmed: align only the overview verification actor with the existing
+companion guidance. No new request-aware projection/writer is selected and no additional SRS
+clause is marked complete.
 
 Credit [#1859](https://github.com/interdomestik/interdomestik/pull/1859) for delivered
 `S7-STAFF-HISTORY-PROJECTION-PERFORMANCE`: the mounted staff queue transfers at most one

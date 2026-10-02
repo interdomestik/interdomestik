@@ -21,10 +21,10 @@ human staff/member validation; technical delivery is complete. Live acceptance r
 completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-read-continuity-1858).
 No deployment, product readiness or user-acceptance claim extends beyond that bounded technical evidence.
 
-| ID                                  | Status        | Owner                   | Work                                                                          | Exit Criteria                                                                                                                               |
-| ----------------------------------- | ------------- | ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.         | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest. |
-| `S7-MEMBER-CASE-AMOUNT-CONTINUITY`  | `in_progress` | Codex integration owner | Adapt V2 amount and display actual currency; preserve shared client metadata. | Permanent wire-to-mounted, zero/null/currency/shared-consumer tests, independent review and required local/protected proof.                 |
+| ID                                  | Status        | Owner                   | Work                                                                                    | Exit Criteria                                                                                                                               |
+| ----------------------------------- | ------------- | ----------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | `blocked`     | Codex integration owner | Validate the delivered message repair in the live cross-role journey.                   | Real RLS regression, public/private and denied-access tests, independent review, required local/protected proof and live cross-role retest. |
+| `S7-MEMBER-NEXT-ACTION-TRUTH`       | `in_progress` | Codex integration owner | Align overview verification actor with accepted owned-detail guidance; Opus implements. | Actual projection/companion regression, unchanged query/privacy contracts, current-head review and required local/protected proof.          |
 
 ### Confirmed acceptance slice
 
@@ -33,8 +33,8 @@ Staff-history projection performance is technically delivered by
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-history-projection-delivery-1859).
 Staff detail continuity is delivered by [#1860](https://github.com/interdomestik/interdomestik/pull/1860);
 its [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860) records staging and partial agent journey proof.
-Arben confirmed continuing with Sonnet/Opus for `S7-MEMBER-CASE-AMOUNT-CONTINUITY`
-after that prerequisite passed: the member list omits an amount present in owned detail.
+Member amount continuity is technically delivered by [#1861](https://github.com/interdomestik/interdomestik/pull/1861);
+exact-merge staging and the agent real EUR retake passed. Completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` — technical delivery complete; live acceptance pending, Codex integration owner.
 Exit: protected repair delivery and exact-merge staging, approved synthetic identities/case, real browser login and
@@ -42,9 +42,10 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 
 ### Current acceptance
 
-- Current repair: adapt V2 amount into the existing shared client view model and display actual currency.
-- Preserve zero/null handling, agent metadata, pagination and existing async/error/retry contracts; no company/count semantics or server/auth/schema/writer changes.
-- Retain permanent actual-wire-to-mounted and currency/shared-consumer regressions; actual Sonnet/Opus contributions belong to this candidate.
+- #1861 amount/currency continuity is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
+- Current bounded repair: overview verification next actor follows the existing owned-detail companion.
+- Preserve all other generic lifecycle states and request-specific progress; no new queries or writers.
+- Human acceptance and broader S7 remain open; completed baseline/helper facts are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
 - #1860 staff-detail technical delivery and partial agent public/internal journey passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.
 
 - Protected merge `9f9d78b0081e080ac081d7dafc0918af1fa41599` and exact-merge staging/P0 passed.
@@ -65,25 +66,25 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                            |
-| ------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                  |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                       |
-| S7 — staff handling                         | `active_bounded`      | Credit #1860 staff detail, #1859 staff-history performance, #1858 messages, #1856 reads/logout and #1854 save recovery; amount continuity is active; human acceptance and whole S7 remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                            |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                       |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                    |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                              |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                           |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open. |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.      |
+| S7 — staff handling                         | `active_bounded`      | Credit #1861 amount continuity, #1860 staff detail and earlier bounded repairs; next-action alignment is active; human acceptance and whole S7 remain open.    |
+| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                           |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                      |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                   |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                             |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
 
-| ID                                  | Source Refs                                      | Execution  | Run ID      | Run Root                                               | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
-| ----------------------------------- | ------------------------------------------------ | ---------- | ----------- | ------------------------------------------------------ | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; merge `9f9d78b008` | `scripted` | 36896119780 | exact-merge staging/P0 passed; live acceptance pending | pass    | pass    | not_applicable | pass     | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
-| `S7-MEMBER-CASE-AMOUNT-CONTINUITY`  | IDA-NFR-008; IDA-CAS-006/008; base `eb1aadc8b`   | `pending`  | pending     | bounded client amount candidate; proof pending         | pending | pending | not_applicable | pending  | #1860 completed proof: [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860)                |
+| ID                                  | Source Refs                                            | Execution  | Run ID      | Run Root                                                         | Sonar   | Docker  | Sentry         | Learning | Evidence Refs                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------ | ---------- | ----------- | ---------------------------------------------------------------- | ------- | ------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S7-MEMBER-MESSAGE-READ-CONTINUITY` | IDA-COM-005; IDA-CAS-006/008; merge `9f9d78b008`       | `scripted` | 36896119780 | exact-merge staging/P0 passed; live acceptance pending           | pass    | pass    | not_applicable | pass     | [test scenario](../guides/staging-staff-member-admin-acceptance.md); prior delivery [#1856](https://github.com/interdomestik/interdomestik/pull/1856) |
+| `S7-MEMBER-NEXT-ACTION-TRUTH`       | IDA-NFR-008; IDA-CAS-007; IDA-COM-005; base `42ca3927` | `pending`  | pending     | bounded generic verification actor alignment; full proof pending | pending | pending | not_applicable | pending  | [candidate evidence](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate)                                              |
 
 ## Current Facts
 
@@ -91,7 +92,8 @@ Completed #1856/#1857 delivery proof is preserved in the
 [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-message-repair-predecessors-1856-1857).
 The message repair, staff-history performance and staff-detail repair are technically delivered.
 The partial agent journey verified public/internal visibility; human acceptance and staff public
-notification remain open. The confirmed successor repairs member list amount/currency continuity.
+notification remain open. #1861 amount continuity is technically delivered; the next-action
+consistency repair is confirmed with Opus implementation under the existing accepted contract.
 
 Credit [#1854](https://github.com/interdomestik/interdomestik/pull/1854) for delivered staff status/note save recovery.
 Its [historical receipt](history/2026-09-22-current-tracker-ledger.md#s7-staff-status-save-recovery-1854)
@@ -221,6 +223,11 @@ stale provider-event-order status; its proof is credited, not repeated by this r
   #1855 has separate exact-merge staging proof on `6405f13a5`; human acceptance remains open. No production changes.
 
 ## Next Selection
+
+Arben confirmed `S7-MEMBER-NEXT-ACTION-TRUTH` and sending the prepared packet to Claude Pro
+with Opus implementing. The resolved bounded scope aligns only the generic verification actor
+with accepted detail guidance; no new request-aware read, precedence or writer is selected.
+#1861 closeout is carried in this product amendment; publication awaits its merge/readback.
 
 Arben confirmed `S7-LIVE-STAFF-MEMBER-ACCEPTANCE` in the owner chat on 2026-09-30.
 Live acceptance started on 2026-10-01. The owner authorized repair and retesting of missing member case reads and mobile account access. No completion or live acceptance is claimed. PR [#1855](https://github.com/interdomestik/interdomestik/pull/1855) merged as

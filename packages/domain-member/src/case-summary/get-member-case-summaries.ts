@@ -9,7 +9,7 @@ const NEXT_STEP = {
   draft: 'member_action',
   submitted: 'team_review',
   submitted_to_airline: 'external_response',
-  verification: 'team_review',
+  verification: 'member_action',
   evaluation: 'team_review',
   negotiation: 'external_response',
   court: 'court_schedule',
