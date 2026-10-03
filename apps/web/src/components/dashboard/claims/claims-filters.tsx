@@ -1,154 +1,62 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { usePathname, useRouter } from '@/i18n/routing';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { badgeVariants, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useReducer, useRef, useTransition } from 'react';
-
-const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
-
-type PendingKind = 'filter' | 'search';
-
-type FilterUiState = {
-  pendingKind: PendingKind | null;
-  searchValue: string;
-};
-
-type FilterUiAction =
-  | { type: 'pending-changed'; pendingKind: PendingKind | null }
-  | { type: 'search-edited'; searchValue: string };
-
-function filterUiReducer(state: FilterUiState, action: FilterUiAction): FilterUiState {
-  switch (action.type) {
-    case 'pending-changed':
-      if (state.pendingKind === action.pendingKind) {
-        return state;
-      }
-      return { ...state, pendingKind: action.pendingKind };
-    case 'search-edited':
-      if (state.searchValue === action.searchValue) {
-        return state;
-      }
-      return { ...state, searchValue: action.searchValue };
-  }
-}
-
-function buildMemberClaimsUrl(
-  currentParams: URLSearchParams,
-  updates: Record<string, string | null>
-): string {
-  const params = new URLSearchParams(currentParams.toString());
-
-  params.delete('page');
-
-  Object.entries(updates).forEach(([key, value]) => {
-    const shouldDelete = value === null || value === '' || (key === 'status' && value === 'all');
-
-    if (shouldDelete) {
-      params.delete(key);
-      return;
-    }
-
-    params.set(key, value);
-  });
-
-  const query = params.toString();
-  return query ? `?${query}` : '';
-}
+import { useEffect } from 'react';
+import { useMemberClaimsSearch } from './use-member-claims-search';
 
 export function ClaimsFilters() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const tCommon = useTranslations('common');
   const tStatus = useTranslations('claims.status');
-
-  const currentStatus = searchParams.get('status') || 'all';
-  const currentSearch = searchParams.get('search') || '';
-  const currentParamsString = searchParams.toString();
-
-  const [filterUi, dispatchFilterUi] = useReducer(filterUiReducer, {
-    pendingKind: null,
-    searchValue: currentSearch,
-  });
-  const pendingKindRef = useRef<PendingKind | null>(null);
-  const [isTransitionPending, startTransition] = useTransition();
-  const { pendingKind, searchValue } = filterUi;
-  const isNavigationPending = Boolean(pendingKind || isTransitionPending);
-
-  const updatePendingKind = useCallback((nextPendingKind: PendingKind | null) => {
-    pendingKindRef.current = nextPendingKind;
-    dispatchFilterUi({ type: 'pending-changed', pendingKind: nextPendingKind });
-  }, []);
+  const {
+    currentStatus,
+    searchValue,
+    pendingKind,
+    isNavigationPending,
+    handleSearch,
+    handleStatusChange,
+    cancelSearchForNavigation,
+  } = useMemberClaimsSearch();
 
   useEffect(() => {
-    dispatchFilterUi({ type: 'search-edited', searchValue: currentSearch });
-  }, [currentSearch]);
-
-  useEffect(() => {
-    updatePendingKind(null);
-  }, [currentParamsString, updatePendingKind]);
-
-  useEffect(() => {
-    if (!pendingKind) {
-      return undefined;
-    }
-
-    const timeout = globalThis.setTimeout(
-      () => updatePendingKind(null),
-      PENDING_FEEDBACK_TIMEOUT_MS
-    );
-    return () => globalThis.clearTimeout(timeout);
-  }, [pendingKind, updatePendingKind]);
+    const cancelForLink = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.hasAttribute('download') ||
+        anchor.hasAttribute('disabled') ||
+        anchor.getAttribute('aria-disabled') === 'true' ||
+        (anchor.target && anchor.target !== '_self')
+      )
+        return;
+      const current = new URL(window.location.href);
+      const next = new URL(anchor.href, current);
+      if (
+        next.origin === current.origin &&
+        (next.pathname !== current.pathname || next.search !== current.search)
+      )
+        cancelSearchForNavigation();
+    };
+    document.addEventListener('click', cancelForLink, true);
+    return () => document.removeEventListener('click', cancelForLink, true);
+  }, [cancelSearchForNavigation]);
 
   const statusOptions = [
     { value: 'all', label: tCommon('all') },
     ...CLAIM_STATUSES.map(status => ({ value: status, label: tStatus(status) })),
   ];
-
-  const handleStatusChange = (status: string) => {
-    if (pendingKindRef.current || currentStatus === status) {
-      return;
-    }
-
-    const nextUrl = buildMemberClaimsUrl(searchParams, { status });
-    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    updatePendingKind('filter');
-
-    startTransition(() => {
-      router.push(`${pathname}${nextUrl}`, { scroll: false });
-    });
-  };
-
-  const handleSearch = (value: string) => {
-    dispatchFilterUi({ type: 'search-edited', searchValue: value });
-
-    if (pendingKindRef.current === 'filter') {
-      return;
-    }
-
-    const nextUrl = buildMemberClaimsUrl(searchParams, { search: value || null });
-    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    updatePendingKind('search');
-
-    startTransition(() => {
-      router.push(`${pathname}${nextUrl}`, { scroll: false });
-    });
-  };
 
   return (
     <div
