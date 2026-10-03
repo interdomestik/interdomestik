@@ -173,7 +173,7 @@ export async function mockClaimOnce({
 export function sectionLinks(): string[] {
   return screen
     .queryAllByTestId('staff-claim-workspace-nav-link')
-    .map(link => link.getAttribute('data-section') ?? '');
+    .map(link => link.dataset.section ?? '');
 }
 
 /** The route owns these section ids; panel markers inside them are the shipped data-testids. */

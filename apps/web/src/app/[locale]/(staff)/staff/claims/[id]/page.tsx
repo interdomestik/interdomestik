@@ -1,14 +1,20 @@
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
+import { StaffClaimContext } from '@/features/staff/claims/components/StaffClaimContext';
+import { StaffClaimWorkspaceHeader } from '@/features/staff/claims/components/StaffClaimWorkspaceHeader';
 import {
-  StaffClaimContext,
-  type StaffClaimContextGroup,
-} from '@/features/staff/claims/components/StaffClaimContext';
-import {
-  StaffClaimWorkspaceHeader,
-  type StaffClaimSectionLink,
-} from '@/features/staff/claims/components/StaffClaimWorkspaceHeader';
+  SECTION_CONTEXT,
+  SECTION_HANDLING,
+  SECTION_HEADING,
+  SECTION_MESSAGES,
+  SECTION_REQUESTS,
+  buildStaffClaimContextGroups,
+  buildStaffClaimSections,
+  findAssigneeLabel,
+  isVerificationGuidancePhase,
+  readInitialMessages,
+} from '@/features/staff/claims/components/staff-claim-workspace-view';
 import { StaffStatusHistory } from '@/features/staff/claims/components/StaffStatusHistory';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
@@ -22,14 +28,6 @@ import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getPublicStatusHistoryCore } from './_core';
 
-const SECTION_HANDLING = 'staff-claim-handling';
-const SECTION_REQUESTS = 'staff-claim-requests';
-const SECTION_MESSAGES = 'staff-claim-messages';
-const SECTION_CONTEXT = 'staff-claim-context';
-// StaffStatusHistory owns this anchor; the workspace only links to it.
-const SECTION_HISTORY = 'staff-status-history';
-const SECTION_HEADING = 'text-sm font-semibold uppercase tracking-wide text-muted-foreground';
-
 interface PageProps {
   params: Promise<{
     locale: string;
@@ -39,11 +37,6 @@ interface PageProps {
 
 function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
-}
-
-function formatDate(value: unknown, locale: string): string {
-  if (!value) return '-';
-  return (value instanceof Date ? value : new Date(String(value))).toLocaleDateString(locale);
 }
 
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
@@ -86,11 +79,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
       : Promise.resolve({ success: true as const, messages: [] }),
   ]);
 
-  const currentAssigneeLabel =
-    assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
-  const initialMessages = initialMessagesResult.success
-    ? (initialMessagesResult.messages ?? [])
-    : [];
+  const currentAssigneeLabel = findAssigneeLabel(assignmentOptions, detail.claim.staffId);
+  const initialMessages = readInitialMessages(initialMessagesResult);
   const claimStatus = toClaimStatus(detail.claim.status);
   const slaPhase = deriveClaimSlaPhase(claimStatus);
   const informationRequests = await getInformationRequests(session, id).catch(() => null);
@@ -99,88 +89,55 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const isAssignedStaff = isStaff && detail.claim.staffId === session.user.id;
   // Phase derivation stays operative; only this route's generic verification copy is neutral so it
   // never implies an outstanding member duty. The request card remains the source of real duties.
-  const slaPhaseLabel =
-    claimStatus === 'verification' && slaPhase === 'incomplete'
-      ? tClaims('details.verification_guidance')
-      : tClaims(`details.sla_phase.${slaPhase}`);
+  const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
+    ? tClaims('details.verification_guidance')
+    : tClaims(`details.sla_phase.${slaPhase}`);
 
-  const sections: readonly StaffClaimSectionLink[] = [
-    ...(isStaff ? [{ id: SECTION_HANDLING, label: tClaims('details.workspace.handling') }] : []),
-    { id: SECTION_REQUESTS, label: tClaims('details.workspace.requests') },
-    ...(isStaff ? [{ id: SECTION_MESSAGES, label: tClaims('details.messages') }] : []),
-    { id: SECTION_CONTEXT, label: tClaims('details.workspace.context') },
-    { id: SECTION_HISTORY, label: tClaims('details.workspace.history') },
-  ];
+  const sections = buildStaffClaimSections(isStaff, {
+    context: tClaims('details.workspace.context'),
+    handling: tClaims('details.workspace.handling'),
+    history: tClaims('details.workspace.history'),
+    messages: tClaims('details.messages'),
+    requests: tClaims('details.workspace.requests'),
+  });
 
-  const contextGroups: readonly (StaffClaimContextGroup | null)[] = [
-    {
-      testId: 'staff-claim-detail-claim',
-      title: tClaims('details.staff_claim.section_title'),
-      fields: [
-        { label: tClaims('details.staff_claim.status'), value: tStatus(claimStatus) },
-        {
-          label: tClaims('details.staff_claim.updated'),
-          value: formatDate(detail.claim.updatedAt, locale),
-        },
-        {
-          label: tClaims('details.staff_claim.submitted'),
-          value: formatDate(detail.claim.submittedAt, locale),
-        },
-      ],
+  const contextGroups = buildStaffClaimContextGroups({
+    agent: detail.agent,
+    labels: {
+      agentTitle: tClaims('details.staff_agent.section_title'),
+      agentUnassigned: tClaims('staff_queue.assignment_state.unassigned'),
+      allowanceRemaining: tClaims('details.staff_matter_allowance.remaining_this_year'),
+      allowanceTitle: tClaims('details.staff_matter_allowance.section_title'),
+      allowanceTotal: tClaims('details.staff_matter_allowance.plan_allowance'),
+      allowanceUsed: tClaims('details.staff_matter_allowance.used_this_year'),
+      claimTitle: tClaims('details.staff_claim.section_title'),
+      memberTitle: tClaims('details.staff_member.section_title'),
+      membershipField: tClaims('details.staff_member.membership_number'),
+      nameField: tClaims('details.name'),
+      slaTitle: tClaims('details.sla_status_label'),
+      statusField: tClaims('details.staff_claim.status'),
+      submittedField: tClaims('details.staff_claim.submitted'),
+      updatedField: tClaims('details.staff_claim.updated'),
     },
-    {
-      testId: 'staff-claim-detail-member',
-      title: tClaims('details.staff_member.section_title'),
-      fields: [
-        { label: tClaims('details.name'), value: detail.member.fullName },
-        {
-          label: tClaims('details.staff_member.membership_number'),
-          value: detail.member.membershipNumber || '-',
-        },
-      ],
-    },
-    detail.matterAllowance
-      ? {
-          columns: 'md:grid-cols-3',
-          testId: 'staff-claim-detail-matter-allowance',
-          title: tClaims('details.staff_matter_allowance.section_title'),
-          fields: [
-            {
-              label: tClaims('details.staff_matter_allowance.used_this_year'),
-              testId: 'staff-claim-detail-matter-allowance-used',
-              value: String(detail.matterAllowance.consumedCount),
-            },
-            {
-              label: tClaims('details.staff_matter_allowance.remaining_this_year'),
-              testId: 'staff-claim-detail-matter-allowance-remaining',
-              value: String(detail.matterAllowance.remainingCount),
-            },
-            {
-              label: tClaims('details.staff_matter_allowance.plan_allowance'),
-              testId: 'staff-claim-detail-matter-allowance-total',
-              value: String(detail.matterAllowance.allowanceTotal),
-            },
-          ],
-        }
-      : null,
-    slaPhase !== 'not_applicable'
-      ? {
-          note: { testId: 'staff-claim-detail-sla-phase', value: slaPhaseLabel },
-          testId: 'staff-claim-detail-sla',
-          title: tClaims('details.sla_status_label'),
-        }
-      : null,
-    {
-      note: detail.agent
-        ? { value: detail.agent.name }
-        : { muted: true, value: tClaims('staff_queue.assignment_state.unassigned') },
-      testId: 'staff-claim-detail-agent',
-      title: tClaims('details.staff_agent.section_title'),
-    },
-  ];
+    locale,
+    matterAllowance: detail.matterAllowance,
+    memberFullName: detail.member.fullName,
+    membershipNumber: detail.member.membershipNumber,
+    slaPhase,
+    slaPhaseLabel,
+    statusValue: tStatus(claimStatus),
+    submittedAt: detail.claim.submittedAt,
+    updatedAt: detail.claim.updatedAt,
+  });
 
   return (
-    <div className="space-y-6" data-testid="staff-claim-detail-ready">
+    // Workspace-scoped scroll margin: every fragment destination inside this route (including
+    // the context and history sections owned by their own components) clears the sticky shared
+    // header, which is taller when it wraps at 320 CSS px or with enlarged root text.
+    <div
+      className="space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
+      data-testid="staff-claim-detail-ready"
+    >
       <StaffClaimWorkspaceHeader
         backHref={`/${locale}/staff/claims`}
         backLabel={tClaims('details.workspace.back')}

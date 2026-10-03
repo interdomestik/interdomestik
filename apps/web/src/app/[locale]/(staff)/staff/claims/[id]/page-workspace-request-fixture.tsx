@@ -52,13 +52,16 @@ export function readMessagePath(locale: string, path: readonly string[]): unknow
 export function message(locale: string, path: string): string {
   const value = readMessagePath(locale, path.split('.'));
   if (typeof value !== 'string') {
-    throw new Error(`Missing ${path} in the real ${locale} catalog`);
+    throw new TypeError(`Missing ${path} in the real ${locale} catalog`);
   }
   return value;
 }
 
 /** Mounts the route under the real client provider so client copy is translated, not echoed. */
-export function IntlHarness({ locale, children }: { locale: string; children: ReactNode }) {
+export function IntlHarness({
+  locale,
+  children,
+}: Readonly<{ locale: string; children: ReactNode }>) {
   return (
     <NextIntlClientProvider
       locale={locale}
