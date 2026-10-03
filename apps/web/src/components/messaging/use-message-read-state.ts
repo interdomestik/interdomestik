@@ -47,10 +47,25 @@ export function useMessageReadState({
   const [isReading, setIsReading] = useState(false);
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
-  // How many retrievals are still outstanding, so the automatic poll can stay out of their way. A
-  // count rather than a flag: an explicit refresh may overlap an older read, and the first of them
-  // to settle must not hand the poll a conversation that is still loading.
-  const pendingReadsRef = useRef(0);
+  // How much work is still outstanding - retrievals and the read receipts they start - so the
+  // automatic poll can stay out of its way. A count rather than a flag: an explicit refresh may
+  // overlap an older operation, and the first of them to settle must not hand the poll a
+  // conversation that is still loading or a receipt that has not reported yet.
+  const pendingOperationsRef = useRef(0);
+
+  // One claim per outstanding operation, released exactly once by its own owner. A supersession
+  // therefore never resets the shared count while older operations are still in flight, and a
+  // repeated release cannot switch the poll back on behind one that is still running.
+  const claimPending = useCallback(() => {
+    pendingOperationsRef.current += 1;
+    let released = false;
+
+    return () => {
+      if (released) return;
+      released = true;
+      pendingOperationsRef.current -= 1;
+    };
+  }, []);
 
   // A response may only write state, or start read receipts, while it is still the newest read of
   // a mounted panel. Stale generations (out-of-order, changed scope, unmount) are dropped.
@@ -79,6 +94,11 @@ export function useMessageReadState({
 
       if (unreadIds.length === 0) return;
 
+      // A receipt keeps the automatic poll waiting until it has reported: a tick taking a new
+      // generation while it is in flight would hide its eventual failure and let the next
+      // retrieval acknowledge the very same messages again. The claim is taken synchronously, so
+      // the retrieval - or the server re-render - that starts the receipt hands over without a gap.
+      const release = claimPending();
       try {
         const result = await markMessagesAsRead(unreadIds);
         // A started receipt cannot be cancelled, so only its reported status is dropped here.
@@ -87,14 +107,18 @@ export function useMessageReadState({
       } catch {
         if (!isCurrent(generation)) return;
         setReadStatusFailed(true);
+      } finally {
+        // Released on every path - reported, superseded, failed, unmounted - so neither a
+        // rejection nor a supersession can leave the automatic poll switched off.
+        release();
       }
     },
-    [currentUserId, isCurrent]
+    [claimPending, currentUserId, isCurrent]
   );
 
   const read = useCallback(async () => {
     const generation = nextGeneration();
-    pendingReadsRef.current += 1;
+    const release = claimPending();
     setIsReading(true);
 
     let loaded: MessageWithSender[] | null = null;
@@ -103,29 +127,34 @@ export function useMessageReadState({
       loaded = result.success === true && Array.isArray(result.messages) ? result.messages : null;
     } catch {
       loaded = null;
+    }
+
+    try {
+      // Stale reads neither render nor initiate new read receipts.
+      if (!isCurrent(generation)) return;
+
+      if (loaded) {
+        setMessages(loaded);
+        setHasLoadedHistory(true);
+        setRetrievalFailed(false);
+        setReadStatusFailed(false);
+      } else {
+        // Retrieval failed: the last successfully loaded history is kept as-is.
+        setRetrievalFailed(true);
+      }
+      setIsFirstLoad(false);
+      setIsReading(false);
+
+      // Awaited while this claim is still held, so the receipt it starts continues the same
+      // uninterrupted stretch of outstanding work as far as the automatic poll is concerned.
+      if (loaded) await markRead(loaded, generation);
     } finally {
-      // Released on every path - rendered, stale, failed, unmounted - and before anything below can
-      // return early, so a settled read can never leave the automatic poll switched off.
-      pendingReadsRef.current -= 1;
+      // Released on every path - rendered, stale, failed, unmounted - and after the receipt it
+      // may have started took a claim of its own, so a settled read can never leave the automatic
+      // poll switched off and never releases it too early either.
+      release();
     }
-
-    // Stale reads neither render nor initiate new read receipts.
-    if (!isCurrent(generation)) return;
-
-    if (loaded) {
-      setMessages(loaded);
-      setHasLoadedHistory(true);
-      setRetrievalFailed(false);
-      setReadStatusFailed(false);
-    } else {
-      // Retrieval failed: the last successfully loaded history is kept as-is.
-      setRetrievalFailed(true);
-    }
-    setIsFirstLoad(false);
-    setIsReading(false);
-
-    if (loaded) await markRead(loaded, generation);
-  }, [claimId, isCurrent, markRead, nextGeneration]);
+  }, [claimId, claimPending, isCurrent, markRead, nextGeneration]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -133,12 +162,14 @@ export function useMessageReadState({
     if (fetchOnMount) void read();
 
     const interval = setInterval(() => {
-      // The automatic poll never supersedes a retrieval that is still outstanding: taking a new
-      // generation every tick would invalidate a read slower than the interval before it could
-      // commit, so the first spinner would never clear and the requests would only pile up. The
-      // 30s cadence is unchanged and still polls on the next tick once nothing is in flight; an
-      // explicit refresh keeps superseding the older read.
-      if (pendingReadsRef.current > 0) return;
+      // The automatic poll never supersedes work that is still outstanding, neither a retrieval
+      // nor the receipt it started - the receipt of a server-rendered history included: taking a
+      // new generation every tick would invalidate anything slower than the interval before it
+      // could commit or report, so the first spinner would never clear, a receipt failure would
+      // stay invisible and the same messages would be acknowledged twice. The 30s cadence is
+      // unchanged and still polls on the next tick once nothing is in flight; an explicit refresh
+      // keeps superseding the older read.
+      if (pendingOperationsRef.current > 0) return;
       void read();
     }, MESSAGE_POLL_INTERVAL_MS);
 
@@ -170,7 +201,8 @@ export function useMessageReadState({
       return;
     }
 
-    // Server-rendered history needs no extra query; only its receipt is still outstanding.
+    // Server-rendered history needs no extra query; only its receipt is still outstanding, and
+    // that receipt holds the automatic poll off by itself until it has reported.
     setMessages(initialMessages);
     setHasLoadedHistory(true);
     setRetrievalFailed(false);
