@@ -33,6 +33,13 @@
       "hint": "Do 2.000 znakova. Pritisnite Ctrl+Enter ili ⌘+Enter za slanje.",
       "send": "Pošalji poruku",
       "read": "Pročitano"
+    },
+    "read": {
+      "refresh": "Osveži poruke",
+      "loading": "Učitavanje poruka…",
+      "loadError": "Poruke nisu učitane zbog problema sa uslugom. Tekst koji ste napisali ovde nije izgubljen.",
+      "retry": "Pokušaj ponovo da učitaš poruke",
+      "statusError": "Poruke su prikazane, ali status čitanja nije ažuriran."
     }
   }
 }

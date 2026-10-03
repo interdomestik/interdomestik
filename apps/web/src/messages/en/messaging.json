@@ -33,6 +33,13 @@
       "hint": "Up to 2,000 characters. Press Ctrl+Enter or ⌘+Enter to send.",
       "send": "Send message",
       "read": "Read"
+    },
+    "read": {
+      "refresh": "Refresh messages",
+      "loading": "Loading messages…",
+      "loadError": "Messages could not be loaded because of a service problem. Nothing you have written here has been lost.",
+      "retry": "Try loading messages again",
+      "statusError": "Messages are shown, but their read status could not be updated."
     }
   }
 }

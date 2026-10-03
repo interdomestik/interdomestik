@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-02
+last_reviewed: 2026-10-03
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,7 +16,7 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Arben confirmed `S7-STAFF-CASE-WORKSPACE` as the second of three preauthorized bounded Opus successors. Existing authorized staff handling actions and the authoritative information-request card move immediately after case identity; messages, public history and context gain discoverable permitted section destinations. Branch managers remain explicitly read-only with no mutation controls or mutation-only navigation. This mounted route alone receives neutral verification/incomplete display in EN/SQ/MK/SR; specific duties remain in the real request card, and other phases retain existing copy. No query, writer, role/auth/proxy/schema, operative SLA/risk/timer or architecture change is selected. This is a bounded task-first redesign increment inspired by owner mockups, not an approved palette or full-app redesign. Implementation, protected delivery and human acceptance for this candidate remain pending.
+Arben preauthorized three bounded Opus successors and their additional packets through protected completion. Member case workspace (#1865) and staff case workspace (#1866) are technically delivered; whole S7 and human acceptance remain open. The third selected outcome is `S7-STAFF-MESSAGE-READ-RECOVERY-TRUTH`: a failed message read must display a localized recoverable service error rather than an empty conversation, preserve last successfully loaded history and the current draft during a failed refresh, and ignore stale/inactive read completions. Optional failed-initial-read metadata connects the existing staff server read to the shared panel without adding queries. Existing public/internal/read-only permissions, message and read-receipt writers, auth/proxy/routes, tenant/RLS, billing/schema and operative SLA/risk/timers remain unchanged. This is a bounded communication-flow improvement, not full redesign or an approved palette. Implementation and current-slice local/protected/staging proof remain pending.
 
 #1865 member case workspace is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Whole S7 and human acceptance remain open.
 
@@ -360,9 +360,13 @@ alone is not business or user acceptance.
 - Consolidate actual current-head review/comments/Sonar and affected consumers before one required local pr:verify/security lane; protected merge and exact-six Actions/staging remain separate proof.
 - No query/writer/auth/proxy/schema/billing/architecture or operative SLA/risk/timer changes, no full-redesign/palette or whole S7/SRS completion claim.
 
+### Delivered staff case workspace (#1866)
+
+Staff case workspace #1866 is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-staff-case-workspace-delivery-1866). Human acceptance remains open; third-slice evidence is separate.
+
 ### Delivered member case workspace (#1865)
 
-Member case workspace #1865 is technically delivered; see [completed acceptance and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Human acceptance remains open; current staff-workspace proof is separate.
+Member case workspace #1865 is technically delivered; see [completed acceptance and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Human acceptance remains open; current shared-message proof is separate.
 
 ### Delivered member overview next-action truth (#1862)
 

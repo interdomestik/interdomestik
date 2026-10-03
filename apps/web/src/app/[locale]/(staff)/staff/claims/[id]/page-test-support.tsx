@@ -77,17 +77,20 @@ const hoisted = vi.hoisted(() => ({
       claimId,
       currentUser,
       fetchOnMount,
+      initialReadFailed,
     }: Readonly<{
       allowInternal?: boolean;
       claimId: string;
       currentUser: { role: string };
       fetchOnMount?: boolean;
+      initialReadFailed?: boolean;
     }>) => (
       <div
         data-testid="staff-claim-messaging-panel"
         data-allow-internal={String(Boolean(allowInternal))}
         data-claim-id={claimId}
         data-fetch-on-mount={String(fetchOnMount ?? true)}
+        data-initial-read-failed={String(Boolean(initialReadFailed))}
         data-role={currentUser.role}
       />
     )

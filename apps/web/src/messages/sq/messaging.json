@@ -33,6 +33,13 @@
       "hint": "Deri në 2.000 karaktere. Shtypni Ctrl+Enter ose ⌘+Enter për ta dërguar.",
       "send": "Dërgo mesazhin",
       "read": "Lexuar"
+    },
+    "read": {
+      "refresh": "Rifresko mesazhet",
+      "loading": "Duke ngarkuar mesazhet…",
+      "loadError": "Mesazhet nuk u ngarkuan për shkak të një problemi të shërbimit. Teksti që keni shkruar këtu nuk u humb.",
+      "retry": "Provo përsëri të ngarkosh mesazhet",
+      "statusError": "Mesazhet shfaqen, por statusi i leximit nuk u përditësua."
     }
   }
 }
