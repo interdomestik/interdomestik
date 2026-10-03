@@ -62,6 +62,10 @@ export function AdminUsersRoleTabs({ selectedRole, options }: AdminUsersRoleTabs
                   href={search?.withDraftSearch(option.href, 'role') ?? option.href}
                   aria-disabled={isInert ? 'true' : undefined}
                   data-testid={`admin-users-role-tab-${option.value}`}
+                  // Provider owned tabs preventDefault and drive their own
+                  // navigate below, which cancels queued search work itself, so
+                  // the capture phase sibling listener must not act for them.
+                  data-manual-navigation={search ? 'true' : undefined}
                   tabIndex={isInert ? -1 : undefined}
                   onClick={event => {
                     if (navigationPending || pendingHrefRef.current || isActiveInert) {

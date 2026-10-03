@@ -128,7 +128,7 @@ describe('AdminUsersPage', () => {
       })
     );
 
-    expect(getAgents).toHaveBeenCalledOnce();
+    expect(getAgents).not.toHaveBeenCalled();
     expect(screen.getByTestId('add-agent-dialog')).toBeInTheDocument();
     expect(getUserChoices).not.toHaveBeenCalled();
     expect(listBranches).not.toHaveBeenCalled();
@@ -191,7 +191,7 @@ describe('AdminUsersPage search critical path', () => {
       });
       expect(getUserChoices).not.toHaveBeenCalled();
       expect(listBranches).not.toHaveBeenCalled();
-      expect(getAgents).toHaveBeenCalledTimes(role === 'admin,staff' ? 0 : 1);
+      expect(getAgents).toHaveBeenCalledTimes(role === 'user' ? 1 : 0);
       expect(addAgentDialog).toHaveBeenCalledWith({ search: 'Tracking' });
       expect(screen.getByTestId('users-sections')).toBeInTheDocument();
     }

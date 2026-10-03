@@ -1,32 +1,32 @@
 'use client';
+import {
+  normalizeRoutePath,
+  PENDING_FEEDBACK_TIMEOUT_MS,
+  routeKey,
+  SEARCH_COMMIT_DELAY_MS,
+} from '@/hooks/responsive-search-policy';
+import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
 import { usePathname, useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import {
-  createContext,
-  useContext,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useMemo,
   useTransition,
   type ReactNode,
 } from 'react';
-type PendingKind = 'search' | 'role' | 'assignment';
-type SearchContext = {
-  searchValue: string;
-  setSearchValue: (value: string) => void;
-  submitSearch: () => void;
-  pendingKind: PendingKind | null;
-  isNavigationPending: boolean;
-  hasRetainedFilterTarget: (filter: 'role' | 'assignment') => boolean;
-  navigate: (href: string, kind: PendingKind) => void;
-  withDraftSearch: (href: string, filter?: 'role' | 'assignment') => string;
-};
-const Context = createContext<SearchContext | null>(null);
-export function useAdminUsersSearch() {
-  return useContext(Context);
-}
+import {
+  AdminUsersSearchContext,
+  type AdminUsersFilterKey,
+  type AdminUsersPendingKind,
+  type AdminUsersSearchValue,
+} from './admin-users-search-context';
+import { buildDraftSearchHref, buildSearchQuery } from './admin-users-search-query';
+
+export { useAdminUsersSearch } from './admin-users-search-context';
+
 export function AdminUsersSearchProvider({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -41,17 +41,89 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
   const submittedSearch = useRef<string | null>(null);
   const historyParams = useRef<string | null>(null);
   const handledParams = useRef<string | null>(null);
-  const pendingKindRef = useRef<PendingKind | null>(null);
-  const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
+  const pendingKindRef = useRef<AdminUsersPendingKind | null>(null);
+  const draft = useRef(searchValue);
+  // Draft that must not reach the url again: a real navigation already
+  // superseded it. Cleared as soon as the user edits the field.
+  const suppressedDraft = useRef<string | null>(null);
+  const supersededExternally = useRef(false);
+  const searchTimer = useRef<number | null>(null);
+  const routePath = useRef(pathname);
+  const committedParams = useRef(paramsString);
+  const committedRoute = useRef(routeKey(pathname, paramsString));
+  const wasSuspended = useRef(false);
+  // Monotonic owner identity, claimed synchronously by every ownership change,
+  // so an already queued recovery callback can see it owns nothing any more.
+  const owner = useRef(0);
+  const [pendingKind, setPendingKind] = useState<AdminUsersPendingKind | null>(null);
+  const [ownerEpoch, setOwnerEpoch] = useState(0);
   const [isHistoryPending, setIsHistoryPending] = useState(false);
-  const updatePending = useCallback((kind: PendingKind | null) => {
+  const updatePending = useCallback((kind: AdminUsersPendingKind | null) => {
     pendingKindRef.current = kind;
     setPendingKind(kind);
+    // Ownership changes on every new request, including a newer one of the same
+    // kind, and on every settlement, so queued recovery work is invalidated.
+    owner.current += 1;
+    setOwnerEpoch(owner.current);
   }, []);
+  const clearSearchTimer = useCallback(() => {
+    if (searchTimer.current === null) return;
+    window.clearTimeout(searchTimer.current);
+    searchTimer.current = null;
+  }, []);
+  const syncDraft = useCallback((value: string) => {
+    draft.current = value;
+    setSearchValue(value);
+  }, []);
+  const setDraft = useCallback(
+    (value: string) => {
+      if (suppressedDraft.current !== value) suppressedDraft.current = null;
+      syncDraft(value);
+    },
+    [syncDraft]
+  );
+  // Adopts a real external query - explicit history, or the window url a hidden
+  // tree resumed onto - as the owner of the draft, of the retained target and of
+  // any queued work, then awaits its publication the way history already does.
+  const adoptExternalQuery = useCallback(
+    (query: string, isResume = false) => {
+      const value = new URLSearchParams(query).get('search') || '';
+      const isPending = query !== committedParams.current;
+      if (isResume) ownNavigations.current.clear();
+      if (isPending) ownNavigations.current.add(query);
+      else ownNavigations.current.delete(query);
+      clearSearchTimer();
+      supersededExternally.current = false;
+      historyParams.current = isPending ? query : null;
+      setIsHistoryPending(isPending);
+      requestedParams.current = null;
+      navigationParams.current = query;
+      submittedSearch.current = value;
+      updatePending(null);
+      syncDraft(value);
+      // A resumed url may not be retyped into the url by its own adopted value.
+      suppressedDraft.current = isResume ? value : null;
+    },
+    [clearSearchTimer, syncDraft, updatePending]
+  );
+
+  useEffect(() => {
+    routePath.current = pathname;
+    committedParams.current = paramsString;
+    committedRoute.current = routeKey(pathname, paramsString);
+  }, [pathname, paramsString]);
 
   useEffect(() => {
     if (handledParams.current === paramsString) return;
     handledParams.current = paramsString;
+    if (supersededExternally.current && historyParams.current === null) {
+      // A real sibling navigation took over: a late echo of our own obsolete
+      // request may neither reassert itself nor roll that navigation back.
+      if (ownNavigations.current.delete(paramsString)) return;
+      supersededExternally.current = false;
+      ownNavigations.current.clear();
+      requestedParams.current = null;
+    }
     if (historyParams.current !== null) {
       if (historyParams.current !== paramsString) return;
       historyParams.current = null;
@@ -75,65 +147,51 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       }
     } else {
       navigationParams.current = paramsString;
-      setSearchValue(currentSearch);
+      syncDraft(currentSearch);
     }
     requestedParams.current = null;
     submittedSearch.current = null;
     updatePending(null);
-  }, [paramsString, currentSearch, updatePending, pathname, router, startTransition]);
+  }, [paramsString, currentSearch, updatePending, syncDraft, pathname, router, startTransition]);
 
   useEffect(() => {
-    const restoreHistory = () => {
-      const target = new URLSearchParams(window.location.search).toString();
-      const value = new URLSearchParams(target).get('search') || '';
-      if (target !== paramsString) ownNavigations.current.add(target);
-      else ownNavigations.current.delete(target);
-      historyParams.current = target === paramsString ? null : target;
-      setIsHistoryPending(target !== paramsString);
-      requestedParams.current = null;
-      navigationParams.current = target;
-      submittedSearch.current = value;
-      updatePending(null);
-      setSearchValue(value);
-    };
+    const restoreHistory = () =>
+      adoptExternalQuery(new URLSearchParams(window.location.search).toString());
     window.addEventListener('popstate', restoreHistory);
     return () => window.removeEventListener('popstate', restoreHistory);
-  }, [paramsString, updatePending]);
+  }, [adoptExternalQuery]);
 
   useEffect(() => {
     if (!pendingKind && !isHistoryPending) return;
+    const armedBy = owner.current;
     const timeout = window.setTimeout(() => {
-      // Recover controls after failed/cancelled navigation, retaining request identities
-      // so a late acknowledgement still cannot overwrite newer typing.
+      // Recover controls after failed/cancelled navigation, but only for the
+      // owner that armed this callback: a newer owner has its own window.
+      if (owner.current !== armedBy) return;
       updatePending(null);
       historyParams.current = null;
       setIsHistoryPending(false);
-    }, 10_000);
+    }, PENDING_FEEDBACK_TIMEOUT_MS);
     return () => window.clearTimeout(timeout);
-  }, [pendingKind, isHistoryPending, updatePending]);
+  }, [pendingKind, ownerEpoch, isHistoryPending, updatePending]);
 
   const withDraftSearch = useCallback(
-    (href: string, filter?: 'role' | 'assignment') => {
-      const [targetPath, query = ''] = href.split('?');
-      const nextParams = new URLSearchParams(filter ? navigationParams.current : query);
-      if (filter) {
-        const value = new URLSearchParams(query).get(filter);
-        if (value) nextParams.set(filter, value);
-        else nextParams.delete(filter);
-      }
-      nextParams.delete('page');
-      if (searchValue) nextParams.set('search', searchValue);
-      else nextParams.delete('search');
-      const nextQuery = nextParams.toString();
-      return nextQuery ? `${targetPath}?${nextQuery}` : targetPath;
-    },
+    (href: string, filter?: AdminUsersFilterKey) =>
+      buildDraftSearchHref(href, searchValue, navigationParams.current, filter),
     [searchValue]
   );
   const navigate = useCallback(
-    (href: string, kind: PendingKind) => {
-      if (historyParams.current !== null || pendingKindRef.current) return;
+    (href: string, kind: AdminUsersPendingKind) => {
+      if (historyParams.current !== null) return;
+      // A newer search may overtake an older self-issued search; filters still
+      // wait for their own acknowledgement.
+      if (pendingKindRef.current && !(kind === 'search' && pendingKindRef.current === 'search'))
+        return;
       const nextParams = href.split('?')[1] || '';
       if (nextParams === paramsString && navigationParams.current === paramsString) return;
+      // Our own navigation supersedes queued search work synchronously.
+      clearSearchTimer();
+      suppressedDraft.current = null;
       requestedParams.current = nextParams === paramsString ? null : nextParams;
       navigationParams.current = nextParams;
       ownNavigations.current.add(nextParams);
@@ -142,36 +200,81 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       updatePending(nextParams === paramsString ? null : kind);
       startTransition(() => router.push(href, { scroll: false }));
     },
-    [paramsString, searchValue, updatePending, router]
+    [paramsString, searchValue, updatePending, clearSearchTimer, router]
   );
   const submitSearch = useCallback(() => {
-    const nextParams = new URLSearchParams(navigationParams.current);
-    nextParams.delete('page');
-    if (searchValue) nextParams.set('search', searchValue);
-    else nextParams.delete('search');
-    const query = nextParams.toString();
+    // Duplicate or already awaited explicit submits stay no-ops.
+    if (pendingKindRef.current === 'search' && submittedSearch.current === searchValue) return;
+    const query = buildSearchQuery(navigationParams.current, searchValue);
     navigate(query ? `${pathname}?${query}` : pathname, 'search');
   }, [navigate, pathname, searchValue]);
   useEffect(() => {
     if (
       isHistoryPending ||
-      pendingKind ||
+      (pendingKind && pendingKind !== 'search') ||
       searchValue === currentSearch ||
-      submittedSearch.current === searchValue
+      submittedSearch.current === searchValue ||
+      suppressedDraft.current === searchValue
     )
       return;
-    const timeout = window.setTimeout(submitSearch, 300);
-    return () => window.clearTimeout(timeout);
-  }, [searchValue, currentSearch, paramsString, pendingKind, isHistoryPending, submitSearch]);
+    searchTimer.current = window.setTimeout(() => {
+      searchTimer.current = null;
+      submitSearch();
+    }, SEARCH_COMMIT_DELAY_MS);
+    return clearSearchTimer;
+  }, [
+    searchValue,
+    currentSearch,
+    paramsString,
+    pendingKind,
+    isHistoryPending,
+    submitSearch,
+    clearSearchTimer,
+  ]);
+
+  const cancelForSiblingNavigation = useCallback(() => {
+    // An actual sibling navigation starts now, before any queued search: drop
+    // that work and stop owning feedback this route will never see settled.
+    clearSearchTimer();
+    suppressedDraft.current = draft.current;
+    supersededExternally.current = true;
+    requestedParams.current = null;
+    historyParams.current = null;
+    setIsHistoryPending(false);
+    updatePending(null);
+  }, [clearSearchTimer, updatePending]);
+  useSiblingNavigationCancel(cancelForSiblingNavigation);
+
+  useEffect(() => {
+    // Retained under React.Activity: the cleanup runs while hidden, so this
+    // body runs again on resume and reconciles with the real window url.
+    if (wasSuspended.current) {
+      wasSuspended.current = false;
+      const query = new URLSearchParams(window.location.search).toString();
+      const isSameRoute =
+        normalizeRoutePath(window.location.pathname) === normalizeRoutePath(routePath.current);
+      // A real same-route window change is external truth; so is an unchanged
+      // url whose draft a sibling navigation already superseded before hiding,
+      // because that draft never owned the field this route resumes onto.
+      const isExternalQuery = routeKey(routePath.current, query) !== committedRoute.current;
+      if (isSameRoute && (isExternalQuery || supersededExternally.current))
+        adoptExternalQuery(query, true);
+    }
+    return () => {
+      wasSuspended.current = true;
+      clearSearchTimer();
+    };
+  }, [adoptExternalQuery, clearSearchTimer]);
+
   const hasRetainedFilterTarget = useCallback(
-    (filter: 'role' | 'assignment') =>
+    (filter: AdminUsersFilterKey) =>
       new URLSearchParams(navigationParams.current).get(filter) !== params.get(filter),
     [params]
   );
-  const value = useMemo<SearchContext>(
+  const value = useMemo<AdminUsersSearchValue>(
     () => ({
       searchValue,
-      setSearchValue,
+      setSearchValue: setDraft,
       submitSearch,
       pendingKind,
       isNavigationPending: Boolean(isHistoryPending || pendingKind),
@@ -181,6 +284,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
     }),
     [
       searchValue,
+      setDraft,
       submitSearch,
       pendingKind,
       isHistoryPending,
@@ -189,5 +293,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       withDraftSearch,
     ]
   );
-  return <Context.Provider value={value}>{children}</Context.Provider>;
+  return (
+    <AdminUsersSearchContext.Provider value={value}>{children}</AdminUsersSearchContext.Provider>
+  );
 }

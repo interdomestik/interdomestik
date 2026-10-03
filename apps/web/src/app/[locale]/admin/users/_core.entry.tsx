@@ -15,9 +15,7 @@ type Props = {
 };
 
 function getAgentChoicesForRole(role: string) {
-  return role === 'admin,staff'
-    ? Promise.resolve({ success: true as const, data: [] })
-    : getAgents();
+  return role === 'user' ? getAgents() : Promise.resolve({ success: true as const, data: [] });
 }
 
 export default async function AdminUsersPage({ searchParams }: Props) {
