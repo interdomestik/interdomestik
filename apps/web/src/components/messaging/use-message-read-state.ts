@@ -47,23 +47,21 @@ export function useMessageReadState({
   const [isReading, setIsReading] = useState(false);
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
-  // How much work is still outstanding - retrievals and the read receipts they start - so the
-  // automatic poll can stay out of its way. A count rather than a flag: an explicit refresh may
-  // overlap an older operation, and the first of them to settle must not hand the poll a
-  // conversation that is still loading or a receipt that has not reported yet.
-  const pendingOperationsRef = useRef(0);
+  // Only the current generation holds automatic polling. A manual refresh or server seed retires
+  // older work without claiming to cancel its transport or an already-started receipt write.
+  const pendingOperationsRef = useRef({ count: 0 });
 
-  // One claim per outstanding operation, released exactly once by its own owner. A supersession
-  // therefore never resets the shared count while older operations are still in flight, and a
-  // repeated release cannot switch the poll back on behind one that is still running.
   const claimPending = useCallback(() => {
-    pendingOperationsRef.current += 1;
+    const operations = pendingOperationsRef.current;
+    operations.count += 1;
     let released = false;
 
     return () => {
       if (released) return;
       released = true;
-      pendingOperationsRef.current -= 1;
+      // This claim belongs to the captured generation. Settling stale work cannot release a newer
+      // generation's guard, and hung superseded work cannot pause its automatic updates forever.
+      operations.count -= 1;
     };
   }, []);
 
@@ -80,6 +78,7 @@ export function useMessageReadState({
   const nextGeneration = useCallback(() => {
     const generation = generationRef.current + 1;
     generationRef.current = generation;
+    pendingOperationsRef.current = { count: 0 };
     return generation;
   }, []);
 
@@ -162,14 +161,14 @@ export function useMessageReadState({
     if (fetchOnMount) void read();
 
     const interval = setInterval(() => {
-      // The automatic poll never supersedes work that is still outstanding, neither a retrieval
+      // The automatic poll never supersedes current-generation work, neither a retrieval
       // nor the receipt it started - the receipt of a server-rendered history included: taking a
       // new generation every tick would invalidate anything slower than the interval before it
       // could commit or report, so the first spinner would never clear, a receipt failure would
       // stay invisible and the same messages would be acknowledged twice. The 30s cadence is
-      // unchanged and still polls on the next tick once nothing is in flight; an explicit refresh
+      // unchanged and polls when current work settles; an explicit refresh retires older work and
       // keeps superseding the older read.
-      if (pendingOperationsRef.current > 0) return;
+      if (pendingOperationsRef.current.count > 0) return;
       void read();
     }, MESSAGE_POLL_INTERVAL_MS);
 
