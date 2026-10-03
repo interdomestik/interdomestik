@@ -11,6 +11,10 @@ import {
   UserPlus,
 } from 'lucide-react';
 
+import {
+  MANUAL_NAVIGATION_ATTRIBUTE,
+  notifySiblingNavigation,
+} from '@/hooks/use-sibling-navigation-cancel';
 import { Link, useRouter } from '@/i18n/routing';
 import { normalizeNotificationActionHref } from './notification-action-href';
 
@@ -132,6 +136,11 @@ export function NotificationItem({
                 href={actionHref}
                 aria-disabled={blocked}
                 tabIndex={blocked ? -1 : undefined}
+                // An unread action defers its navigation to the acknowledgement
+                // below, so sibling listeners must not treat the click itself as
+                // a navigation; the push announces itself when it happens. A read
+                // action is an ordinary link and stays observable as usual.
+                {...(isRead ? {} : { [MANUAL_NAVIGATION_ATTRIBUTE]: 'true' })}
                 onClick={async event => {
                   if (blocked) {
                     event.preventDefault();
@@ -148,6 +157,7 @@ export function NotificationItem({
                   if (!acknowledged) return;
 
                   onClose();
+                  notifySiblingNavigation(actionHref);
                   router.push(actionHref);
                 }}
                 className={cn(

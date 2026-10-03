@@ -1,5 +1,6 @@
 'use client';
 
+import { notifySiblingNavigation } from '@/hooks/use-sibling-navigation-cancel';
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -46,7 +47,11 @@ export function CommandMenuTrigger() {
       params.delete(searchKey);
     }
     const next = params.toString();
-    router.push(next ? `${pathname}?${next}` : pathname);
+    const href = next ? `${pathname}?${next}` : pathname;
+    // This submit is explicit and immediate: announce it before the push so
+    // coalesced list search work cannot supersede it afterwards.
+    notifySiblingNavigation(href);
+    router.push(href);
     setOpen(false);
   };
 

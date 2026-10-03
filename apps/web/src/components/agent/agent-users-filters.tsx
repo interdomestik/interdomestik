@@ -1,97 +1,39 @@
 'use client';
 
+import { useResponsiveSearch } from '@/hooks/use-responsive-search';
+import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
 import { usePathname, useRouter } from '@/i18n/routing';
 import { Input } from '@interdomestik/ui';
 import { Loader2, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback } from 'react';
 
-const SEARCH_DEBOUNCE_MS = 200;
-const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
-
-function buildAgentClientsSearchUrl(currentParams: URLSearchParams, search: string): string {
-  const params = new URLSearchParams(currentParams.toString());
-
-  if (search) {
-    params.set('search', search);
-  } else {
-    params.delete('search');
-  }
-
-  const query = params.toString();
-  return query ? `?${query}` : '';
-}
-
+// Agent clients search on the shared responsive policy: the input stays
+// editable while its own navigation runs, one typing burst commits once, and
+// the param rules are unchanged - the search param only, no page reset and no
+// other query context touched.
 export function AgentUsersFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tCommon = useTranslations('common');
   const t = useTranslations('agent-members.members.filters');
-  const [isPending, startTransition] = useTransition();
-  const currentSearch = searchParams.get('search') || '';
-  const currentParamsString = searchParams.toString();
-  const [searchTerm, setSearchTerm] = useState(currentSearch);
-  const [isSearchNavigationPending, setIsSearchNavigationPending] = useState(false);
-  const isSearchNavigationPendingRef = useRef(false);
-  const isNavigationPending = isSearchNavigationPending || isPending;
 
-  const updateSearchNavigationPending = useCallback((nextPending: boolean) => {
-    isSearchNavigationPendingRef.current = nextPending;
-    setIsSearchNavigationPending(nextPending);
-  }, []);
+  const navigate = useCallback(
+    (query: string) => router.push(pathname + (query ? `?${query}` : ''), { scroll: false }),
+    [pathname, router]
+  );
 
-  useEffect(() => {
-    setSearchTerm(currentSearch);
-  }, [currentSearch]);
+  const { draft, pendingKind, isNavigationPending, editDraft, cancelScheduledSearch } =
+    useResponsiveSearch({
+      searchParams,
+      pathname,
+      searchKey: 'search',
+      navigate,
+    });
 
-  useEffect(() => {
-    updateSearchNavigationPending(false);
-  }, [currentParamsString, updateSearchNavigationPending]);
-
-  useEffect(() => {
-    if (!isSearchNavigationPending) {
-      return undefined;
-    }
-
-    const timeout = globalThis.setTimeout(
-      () => updateSearchNavigationPending(false),
-      PENDING_FEEDBACK_TIMEOUT_MS
-    );
-    return () => globalThis.clearTimeout(timeout);
-  }, [isSearchNavigationPending, updateSearchNavigationPending]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (isSearchNavigationPendingRef.current) {
-        return;
-      }
-
-      const nextUrl = buildAgentClientsSearchUrl(searchParams, searchTerm);
-      const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-      if (nextUrl === currentUrl) {
-        return;
-      }
-
-      updateSearchNavigationPending(true);
-
-      startTransition(() => {
-        router.push(`${pathname}${nextUrl}`, { scroll: false });
-      });
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [
-    currentParamsString,
-    pathname,
-    router,
-    searchParams,
-    searchTerm,
-    startTransition,
-    updateSearchNavigationPending,
-  ]);
+  useSiblingNavigationCancel(cancelScheduledSearch);
 
   return (
     <div
@@ -110,14 +52,14 @@ export function AgentUsersFilters() {
           aria-label={t('search_label') || tCommon('search') || 'Search users'}
           className="pl-9 h-11 border-2 focus-visible:ring-primary shadow-sm"
           data-testid="agent-clients-search-input"
-          disabled={isNavigationPending}
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          disabled={pendingKind === 'filter'}
+          value={draft}
+          onChange={e => editDraft(e.target.value)}
           autoFocus
         />
       </div>
 
-      {isSearchNavigationPending ? (
+      {pendingKind ? (
         <div
           data-testid="agent-clients-search-pending"
           role="status"

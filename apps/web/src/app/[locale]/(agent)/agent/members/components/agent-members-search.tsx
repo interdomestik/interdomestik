@@ -1,53 +1,49 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useResponsiveSearch } from '@/hooks/use-responsive-search';
+import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
+import { usePathname, useRouter } from '@/i18n/routing';
 import { Input } from '@interdomestik/ui';
-import { useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
+import { useCallback } from 'react';
 
 type AgentMembersSearchProps = {
   initialQuery?: string;
 };
 
+// Agent members search on the shared responsive policy. The param rules are
+// unchanged: the trimmed term under 'q', every other param preserved, no page
+// reset, and a relative replace so typing never grows the back stack.
 export function AgentMembersSearch({ initialQuery = '' }: AgentMembersSearchProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const [searchTerm, setSearchTerm] = useState(initialQuery);
 
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      const trimmed = searchTerm.trim();
+  const navigate = useCallback(
+    (query: string) => router.replace(query ? `?${query}` : '?'),
+    [router]
+  );
 
-      if (trimmed) {
-        params.set('q', trimmed);
-      } else {
-        params.delete('q');
-      }
+  const { draft, pendingKind, editDraft, cancelScheduledSearch } = useResponsiveSearch({
+    searchParams,
+    pathname,
+    searchKey: 'q',
+    initialDraft: initialQuery,
+    normalizeTerm: value => value.trim(),
+    navigate,
+  });
 
-      const nextQuery = params.toString();
-      const currentQuery = searchParams.toString();
-
-      if (nextQuery !== currentQuery) {
-        startTransition(() => {
-          router.replace(nextQuery ? `?${nextQuery}` : '?');
-        });
-      }
-    }, 300);
-
-    return () => clearTimeout(delay);
-  }, [router, searchParams, searchTerm]);
+  useSiblingNavigationCancel(cancelScheduledSearch);
 
   return (
     <Input
       className="w-full border border-border bg-background px-3 py-2 text-sm sm:max-w-xs"
       data-testid="agent-members-search-input"
-      disabled={isPending}
+      disabled={pendingKind === 'filter'}
       placeholder="Search members"
       type="search"
-      value={searchTerm}
-      onChange={event => setSearchTerm(event.target.value)}
+      value={draft}
+      onChange={event => editDraft(event.target.value)}
     />
   );
 }
