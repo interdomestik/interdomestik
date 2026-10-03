@@ -32,6 +32,35 @@ const locales = [
   { locale: 'sr', tracking: trackingSr, claims: claimsSr },
 ] as const;
 
+// Task-first reading order of the member case workspace.
+const READING_ORDER_SELECTORS = [
+  '#member-claim-detail-progress',
+  '[data-testid="member-claim-help-summary"]',
+  '#member-claim-detail-messaging',
+  '#member-claim-detail-evidence',
+  '#member-claim-detail-history',
+];
+
+function requiredNode(selector: string): HTMLElement {
+  const node = document.querySelector<HTMLElement>(selector);
+  if (!node) {
+    throw new Error(`Expected the mounted member case workspace to render ${selector}`);
+  }
+  return node;
+}
+
+function expectDocumentOrder(nodes: ReadonlyArray<Element>) {
+  nodes.slice(0, -1).forEach((node, index) => {
+    expect(
+      node.compareDocumentPosition(nodes[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+}
+
+function expectTaskFirstReadingOrder() {
+  expectDocumentOrder(READING_ORDER_SELECTORS.map(selector => requiredNode(selector)));
+}
+
 type TestClaim = Parameters<typeof MemberClaimDetailOpsPage>[0]['claim'];
 type Requests = Parameters<typeof ClaimInformationRequests>[0]['requests'];
 const requestCases: { name: string; requests: Requests; hasUpload: boolean }[] = [
@@ -60,7 +89,27 @@ const requestCases: { name: string; requests: Requests; hasUpload: boolean }[] =
   },
 ];
 
-function claim(status: TestClaim['status'] = 'verification'): TestClaim {
+// Secondary case content that must stay below the member tasks, help and messages.
+const secondaryCaseContent: Partial<TestClaim> = {
+  recoveryDecision: {
+    status: 'accepted',
+    title: 'Accepted for staff-led recovery',
+    description: 'We accepted this matter for staff-led recovery.',
+    declineReasonCode: null,
+  },
+  matterAllowance: {
+    allowanceTotal: 2,
+    consumedCount: 1,
+    remainingCount: 1,
+    windowStart: '2026-01-01T00:00:00',
+    windowEnd: '2026-12-31T23:59:59',
+  },
+};
+
+function claim(
+  status: TestClaim['status'] = 'verification',
+  overrides: Partial<TestClaim> = {}
+): TestClaim {
   const id = 'claim-verify/1';
   const slaPhase = deriveClaimSlaPhase(status);
   return {
@@ -87,6 +136,7 @@ function claim(status: TestClaim['status'] = 'verification'): TestClaim {
     },
     caseCompanionNextStep: deriveCaseCompanionNextStep({ status }),
     vaultConsentDisplay: { kind: 'hidden' },
+    ...overrides,
   };
 }
 
@@ -94,9 +144,10 @@ const memberUser = { id: 'member-1', name: 'Member One', image: null, role: 'mem
 function renderAssurance(
   locale: (typeof locales)[number],
   requests: Requests,
-  status?: TestClaim['status']
+  status?: TestClaim['status'],
+  overrides: Partial<TestClaim> = {}
 ) {
-  const detail = claim(status);
+  const detail = claim(status, overrides);
   return render(
     <NextIntlClientProvider
       locale={locale.locale}
@@ -135,6 +186,15 @@ describe('neutral mounted verification handling assurance', () => {
       '/member/help?claimId=claim-verify%2F1&source=member_claim_detail'
     );
 
+    const slaCopy = locale.tracking['claims-tracking'].tracking.sla;
+    const slaCard = screen.getByTestId('member-claim-sla-status');
+    expect(within(slaCard).getByTestId('member-claim-sla-status-phase')).toHaveTextContent(
+      slaCopy.verification
+    );
+    expect(slaCard).not.toHaveTextContent(slaCopy.incomplete);
+
+    expectTaskFirstReadingOrder();
+
     const requestCopy = locale.claims.claims.informationRequests;
     if (locale.hasUpload) {
       const requestCard = screen.getByTestId('claim-information-request');
@@ -167,5 +227,42 @@ describe('neutral mounted verification handling assurance', () => {
     expect(within(panel).getByTestId('member-claim-trust-sla-body')).toHaveTextContent(
       copy.body.member_action_required
     );
+    // Draft carries no SLA threshold, so policy derives not_applicable and the page omits the card.
+    expect(deriveClaimSlaPhase('draft')).toBe('not_applicable');
+    expect(screen.queryByTestId('member-claim-sla-status')).not.toBeInTheDocument();
+  });
+});
+
+describe('real member case workspace composition', () => {
+  it('reads tasks, help and messages before secondary case detail', () => {
+    renderAssurance(locales[0], [], 'verification', secondaryCaseContent);
+    const progress = requiredNode('#member-claim-detail-progress');
+    const help = screen.getByTestId('member-claim-help-summary');
+    expectDocumentOrder([
+      within(progress).getByTestId('member-claim-progress-summary'),
+      within(progress).getByTestId('member-claim-case-companion-next-step'),
+      help,
+      requiredNode('#member-claim-detail-messaging'),
+      screen.getByTestId('member-claim-recovery-decision'),
+      screen.getByTestId('member-claim-matter-allowance'),
+      screen.getByTestId('member-claim-case-details'),
+      requiredNode('#member-claim-detail-evidence'),
+      requiredNode('#member-claim-detail-history'),
+    ]);
+    expectDocumentOrder([
+      within(help).getByTestId('member-claim-sla-status'),
+      within(help).getByTestId('member-claim-trust-sla-panel'),
+    ]);
+    expect(within(help).getByTestId('member-claim-trust-sla-support-link')).toBeVisible();
+  });
+
+  it('keeps requested information below case identity inside the progress section', () => {
+    renderAssurance(locales[0], [request]);
+    const progress = requiredNode('#member-claim-detail-progress');
+    expectDocumentOrder([
+      screen.getByTestId('ops-status-badge'),
+      within(progress).getByTestId('member-claim-progress-summary'),
+      within(progress).getByTestId('claim-information-request'),
+    ]);
   });
 });

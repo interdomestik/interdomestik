@@ -37,11 +37,12 @@ export function MemberClaimDetailHeader({
 }: Readonly<MemberClaimDetailHeaderProps>) {
   const t = useTranslations('claims.detail.continuity');
   const statusPresentation = toOpsStatus(status);
+  // Section links follow the task-first page reading order.
   const sectionLinks = [
     { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.progress, label: t('progress') },
+    { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging, label: t('messages') },
     { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.evidence, label: t('evidence') },
     { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.history, label: t('history') },
-    { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging, label: t('messages') },
   ];
 
   return (

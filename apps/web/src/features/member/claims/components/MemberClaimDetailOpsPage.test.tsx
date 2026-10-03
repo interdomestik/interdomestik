@@ -23,7 +23,7 @@ const hoisted = vi.hoisted(() => ({
   caseCompanionNextStepCardMock: vi.fn(() => <div data-testid="member-claim-case-companion-next-step" />),
   translations: Object.fromEntries([
     'claims-tracking.status.evaluation=Evaluation|claims-tracking.status.verification=Verification',
-    'claims-tracking.tracking.sla.title=SLA Status|claims-tracking.tracking.sla.running=Response timer is running.|claims-tracking.tracking.sla.incomplete=Waiting for your information before the SLA starts.',
+    'claims-tracking.tracking.sla.title=SLA Status|claims-tracking.tracking.sla.running=Response timer is running.|claims-tracking.tracking.sla.incomplete=Waiting for your information before the SLA starts.|claims-tracking.tracking.sla.verification=Your case is in verification. If we need anything from you, it appears as a specific information request on this page.',
     'claims-tracking.tracking.assurance.title=Handling assurance|claims-tracking.tracking.assurance.stateLabel=SLA state|claims-tracking.tracking.assurance.latestUpdateLabel=Latest public update|claims-tracking.tracking.assurance.supportLabel=Need help?|claims-tracking.tracking.assurance.supportCta=Contact support',
     'claims-tracking.tracking.assurance.state.member_action_required=Waiting for your action|claims-tracking.tracking.assurance.state.active_handling=Response timer active',
     'claims-tracking.tracking.assurance.body.member_action_required=We need your information before the response timer can continue.|claims-tracking.tracking.assurance.body.active_handling=Your claim is in an active handling stage.',
@@ -101,22 +101,15 @@ function buildClaim(overrides: Partial<TestClaim> = {}): TestClaim {
 function renderPage(overrides: Partial<TestClaim> = {}) {
   render(<MemberClaimDetailOpsPage currentUser={memberUser} claim={buildClaim(overrides)} />);
 }
-it('keeps requested information below case identity inside the progress section', () => {
-  render(
-    <MemberClaimDetailOpsPage
-      currentUser={memberUser}
-      claim={buildClaim()}
-      informationRequests={<p>Requested repair estimate</p>}
-    />
-  );
-  const request = within(screen.getByRole('region', { name: 'Progress' })).getByText(
-    'Requested repair estimate'
-  );
-  const back = screen.getByRole('link', { name: 'Back to member workspace' });
-  expect(back.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-});
 function expectTestIdText(contracts: ReadonlyArray<readonly [string, string]>) {
   contracts.forEach(([id, text]) => expect(screen.getByTestId(id)).toHaveTextContent(text));
+}
+function expectDocumentOrder(nodes: ReadonlyArray<Element>) {
+  nodes.slice(0, -1).forEach((node, index) => {
+    expect(
+      node.compareDocumentPosition(nodes[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
 }
 function restoreProperty(target: object, key: PropertyKey, descriptor?: PropertyDescriptor) {
   if (descriptor) Object.defineProperty(target, key, descriptor);
@@ -157,9 +150,9 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByText('Case')).toBeInTheDocument();
     const contracts = [
       ['member-claim-detail-progress', 'Progress', 'region'],
+      ['member-claim-detail-messaging', 'Messages', 'region'],
       ['member-claim-detail-evidence', 'Evidence', 'region'],
       ['member-claim-detail-history', 'History', 'complementary'],
-      ['member-claim-detail-messaging', 'Messages', 'region'],
     ] as const;
     const targets = contracts.map(([id, name, role]) => {
       const target = screen.getByRole(role, { name });
@@ -174,6 +167,7 @@ describe('MemberClaimDetailOpsPage', () => {
     targets.slice(0, -1).forEach((target, index) => {
       expect(target.compareDocumentPosition(targets[index + 1])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     });
+    expectDocumentOrder([targets[0], screen.getByTestId('member-claim-help-summary'), targets[1]]);
     const progress = targets[0];
     const summary = within(progress).getByTestId('member-claim-progress-summary');
     const companion = within(progress).getByTestId('member-claim-case-companion-next-step');
@@ -262,7 +256,7 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByText('Localized safe decline')).toBeVisible();
   });
 
-  it('shows member trust and SLA clarity when the claim is waiting on member information', () => {
+  it('keeps the supplied trust copy while showing neutral verification SLA copy', () => {
     renderPage({
       id: 'claim-2', title: 'Verification Claim', status: 'verification', slaPhase: 'incomplete',
       statusLabelKey: 'claims-tracking.status.verification', description: 'Need more documents',
@@ -278,11 +272,20 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByText('SLA Status')).toBeInTheDocument();
     expect(screen.getByText('Handling assurance')).toBeInTheDocument();
     expectTestIdText([
-      ['member-claim-sla-status-phase', 'Waiting for your information before the SLA starts.'],
+      ['member-claim-sla-status-phase', 'Your case is in verification. If we need anything from you, it appears as a specific information request on this page.'],
       ['member-claim-trust-sla-state', 'Waiting for your action'],
       ['member-claim-trust-sla-body', 'We need your information before the response timer can continue.'],
     ]);
+    expect(screen.getByTestId('member-claim-sla-status')).not.toHaveTextContent(
+      'Waiting for your information before the SLA starts.');
     expect(screen.getByRole('link', { name: /Contact support/ })).toHaveAttribute('href', '/member/help');
+  });
+
+  it('keeps the member information SLA phase copy for incomplete claims outside verification', () => {
+    renderPage({ status: 'draft' as never, slaPhase: 'incomplete' });
+    expectTestIdText([
+      ['member-claim-sla-status-phase', 'Waiting for your information before the SLA starts.'],
+    ]);
   });
 
   it('scrolls to the existing messaging panel when the header send message action is used', async () => {

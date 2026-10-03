@@ -94,9 +94,9 @@ describe('MemberClaimDetailHeader', () => {
     const sectionLinks = within(navigation).getAllByRole('link');
     const expectedSectionLinks = [
       ['Progress', '#member-claim-detail-progress'],
+      ['Messages', '#member-claim-detail-messaging'],
       ['Evidence', '#member-claim-detail-evidence'],
       ['History', '#member-claim-detail-history'],
-      ['Messages', '#member-claim-detail-messaging'],
     ] as const;
     expect(sectionLinks).toHaveLength(expectedSectionLinks.length);
     expectedSectionLinks.forEach(([accessibleName, href], index) => {
