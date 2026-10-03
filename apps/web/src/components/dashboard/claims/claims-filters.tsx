@@ -5,6 +5,7 @@ import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { badgeVariants, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 import { useMemberClaimsSearch } from './use-member-claims-search';
 
 export function ClaimsFilters() {
@@ -17,7 +18,40 @@ export function ClaimsFilters() {
     isNavigationPending,
     handleSearch,
     handleStatusChange,
+    cancelSearchForNavigation,
   } = useMemberClaimsSearch();
+
+  useEffect(() => {
+    const cancelForLink = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.hasAttribute('download') ||
+        anchor.hasAttribute('disabled') ||
+        anchor.getAttribute('aria-disabled') === 'true' ||
+        (anchor.target && anchor.target !== '_self')
+      )
+        return;
+      const current = new URL(window.location.href);
+      const next = new URL(anchor.href, current);
+      if (
+        next.origin === current.origin &&
+        (next.pathname !== current.pathname || next.search !== current.search)
+      )
+        cancelSearchForNavigation();
+    };
+    document.addEventListener('click', cancelForLink, true);
+    return () => document.removeEventListener('click', cancelForLink, true);
+  }, [cancelSearchForNavigation]);
 
   const statusOptions = [
     { value: 'all', label: tCommon('all') },

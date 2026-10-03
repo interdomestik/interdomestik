@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClaimsFilters } from './claims-filters';
 import {
   advance,
   memberClaimsNav,
@@ -13,22 +12,7 @@ import {
   settleSearch,
   typeSearch,
 } from './claims-filters-test-support';
-
-vi.mock('@/i18n/routing', async () => {
-  return (await import('./claims-filters-test-support')).routingModule();
-});
-
-vi.mock('next/navigation', async () => {
-  return (await import('./claims-filters-test-support')).navigationModule();
-});
-
-vi.mock('next-intl', async () => {
-  return (await import('./claims-filters-test-support')).intlModule();
-});
-
-vi.mock('@interdomestik/ui', async () => {
-  return (await import('./claims-filters-test-support')).uiModule();
-});
+import { ClaimsFilters } from './claims-filters';
 
 function pending() {
   return screen.queryByTestId('member-claims-pending');

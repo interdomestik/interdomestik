@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClaimsFilters } from './claims-filters';
 import {
   advance,
   memberClaimsNav,
@@ -11,19 +10,7 @@ import {
   settleSearch,
   typeSearch,
 } from './claims-filters-test-support';
-
-vi.mock('@/i18n/routing', async () => {
-  return (await import('./claims-filters-test-support')).routingModule();
-});
-vi.mock('next/navigation', async () => {
-  return (await import('./claims-filters-test-support')).navigationModule();
-});
-vi.mock('next-intl', async () => {
-  return (await import('./claims-filters-test-support')).intlModule();
-});
-vi.mock('@interdomestik/ui', async () => {
-  return (await import('./claims-filters-test-support')).uiModule();
-});
+import { ClaimsFilters } from './claims-filters';
 
 function browserBack(query: string): void {
   window.history.replaceState(null, '', `/member/claims?${query}`);
@@ -112,5 +99,59 @@ describe('ClaimsFilters browser navigation cancellation', () => {
     expect(status).not.toBeDisabled();
     fireEvent.click(status);
     expect(pushedUrls()).toEqual(['/member/claims?search=previous&status=draft']);
+  });
+
+  it.each([
+    ['/member/claims/example-case', 'case detail'],
+    ['/member/claims?search=alpha&page=2', 'pagination'],
+  ])('cancels queued search when a %s link starts %s navigation', href => {
+    render(
+      <>
+        <ClaimsFilters />
+        <a
+          href={href}
+          onClick={event => {
+            event.preventDefault();
+            memberClaimsNav.push(href, { scroll: false });
+          }}
+        >
+          Navigate
+        </a>
+      </>
+    );
+    typeSearch('obsolete');
+    advance(200);
+    fireEvent.click(screen.getByText('Navigate'));
+    advance(300);
+    expect(pushedUrls()).toEqual([href]);
+    expect(searchInput()).toBeDisabled();
+  });
+
+  it.each([
+    { href: '/member/claims/other', target: '_blank' },
+    { href: '/member/claims/other', download: true },
+    { href: '/member/claims?search=alpha#section' },
+    { href: 'https://example.com/other' },
+    { href: '/member/claims/other', ctrlKey: true },
+    { href: '/member/claims?search=alpha&page=2', ariaDisabled: true },
+  ])('keeps queued search for non-current-page navigation: %j', options => {
+    render(
+      <>
+        <ClaimsFilters />
+        <a
+          href={options.href}
+          target={options.target}
+          download={options.download}
+          aria-disabled={options.ariaDisabled}
+          onClick={event => event.preventDefault()}
+        >
+          Unrelated link
+        </a>
+      </>
+    );
+    typeSearch('latest');
+    fireEvent.click(screen.getByText('Unrelated link'), { ctrlKey: options.ctrlKey });
+    settleSearch();
+    expect(pushedUrls()).toEqual(['/member/claims?search=latest']);
   });
 });

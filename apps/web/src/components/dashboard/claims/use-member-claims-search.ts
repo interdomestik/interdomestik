@@ -33,6 +33,7 @@ export type MemberClaimsSearch = {
   isNavigationPending: boolean;
   handleSearch: (value: string) => void;
   handleStatusChange: (status: string) => void;
+  cancelSearchForNavigation: () => void;
 };
 
 function filterUiReducer(state: FilterUiState, action: FilterUiAction): FilterUiState {
@@ -277,6 +278,13 @@ export function useMemberClaimsSearch(): MemberClaimsSearch {
     [cancelScheduledSearch, currentUrl, scheduleSearchCommit, searchParams, updatePendingKind]
   );
 
+  const cancelSearchForNavigation = useCallback(() => {
+    if (pendingKindRef.current !== 'search') return;
+    cancelScheduledSearch();
+    issuedUrlsRef.current.length = 0;
+    updatePendingKind('filter');
+  }, [cancelScheduledSearch, updatePendingKind]);
+
   return {
     currentStatus,
     searchValue,
@@ -284,5 +292,6 @@ export function useMemberClaimsSearch(): MemberClaimsSearch {
     isNavigationPending,
     handleSearch,
     handleStatusChange,
+    cancelSearchForNavigation,
   };
 }

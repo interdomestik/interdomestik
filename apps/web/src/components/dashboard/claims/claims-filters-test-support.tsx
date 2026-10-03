@@ -86,3 +86,9 @@ export function uiModule() {
     Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
   };
 }
+
+// Import this shared fixture before ClaimsFilters so registration precedes loading.
+vi.mock('@/i18n/routing', () => routingModule());
+vi.mock('next/navigation', () => navigationModule());
+vi.mock('next-intl', () => intlModule());
+vi.mock('@interdomestik/ui', () => uiModule());
