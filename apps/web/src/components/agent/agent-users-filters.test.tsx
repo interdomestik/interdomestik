@@ -1,3 +1,4 @@
+import { notifySiblingNavigation } from '@/hooks/use-sibling-navigation-cancel';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentUsersFilters } from './agent-users-filters';
@@ -39,12 +40,31 @@ vi.mock('@interdomestik/ui', () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
+// The shared responsive policy commits one navigation per typing burst and
+// keeps the input editable while that navigation runs.
+const SEARCH_COMMIT_DELAY_MS = 250;
+
+function searchInput(): HTMLInputElement {
+  return screen.getByTestId<HTMLInputElement>('agent-clients-search-input');
+}
+
+function type(value: string): void {
+  fireEvent.change(searchInput(), { target: { value } });
+}
+
+function advance(ms: number): void {
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+}
+
 describe('AgentUsersFilters', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     pathnameMock.mockReturnValue('/agent/clients');
     searchParamsMock.mockReturnValue(new URLSearchParams());
+    window.history.replaceState(null, '', '/agent/clients');
   });
 
   afterEach(() => {
@@ -68,13 +88,9 @@ describe('AgentUsersFilters', () => {
 
     render(<AgentUsersFilters />);
 
-    fireEvent.change(screen.getByTestId('agent-clients-search-input'), {
-      target: { value: 'ada' },
-    });
+    type('ada');
 
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
+    advance(SEARCH_COMMIT_DELAY_MS);
 
     expect(pushMock).toHaveBeenCalledWith(
       '/agent/clients?tenantId=tenant_ks&view=active&search=ada',
@@ -84,31 +100,83 @@ describe('AgentUsersFilters', () => {
     );
     expect(screen.getByTestId('agent-clients-search-region')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByTestId('agent-clients-search-pending')).toHaveTextContent('Processing...');
-    expect(screen.getByTestId('agent-clients-search-input')).toBeDisabled();
+    // The owner of this search keeps typing: only the navigation is deferred.
+    expect(searchInput()).not.toBeDisabled();
   });
 
-  it('keeps the active search control inert while a search transition is pending', () => {
+  it('coalesces one typing burst into a single search navigation', () => {
     render(<AgentUsersFilters />);
 
-    fireEvent.change(screen.getByTestId('agent-clients-search-input'), {
-      target: { value: 'ada' },
-    });
+    for (const value of ['a', 'ad', 'ada']) {
+      type(value);
+      advance(SEARCH_COMMIT_DELAY_MS - 50);
+    }
 
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
+    expect(pushMock).not.toHaveBeenCalled();
 
-    expect(screen.getByTestId('agent-clients-search-input')).toBeDisabled();
+    advance(50);
 
-    fireEvent.change(screen.getByTestId('agent-clients-search-input'), {
-      target: { value: 'ada lovelace' },
+    expect(pushMock).toHaveBeenCalledExactlyOnceWith('/agent/clients?search=ada', {
+      scroll: false,
     });
+  });
 
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
+  it('keeps editing available while its own search navigation is pending', () => {
+    render(<AgentUsersFilters />);
+
+    type('ada');
+    advance(SEARCH_COMMIT_DELAY_MS);
 
     expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(searchInput()).not.toBeDisabled();
+
+    type('ada lovelace');
+    advance(SEARCH_COMMIT_DELAY_MS);
+
+    expect(pushMock).toHaveBeenCalledTimes(2);
+    expect(pushMock).toHaveBeenLastCalledWith('/agent/clients?search=ada+lovelace', {
+      scroll: false,
+    });
+  });
+
+  it('keeps the newer draft when an earlier own search echoes back', () => {
+    const { rerender } = render(<AgentUsersFilters />);
+
+    type('ada');
+    advance(SEARCH_COMMIT_DELAY_MS);
+    expect(pushMock).toHaveBeenCalledTimes(1);
+
+    type('ada lovelace');
+    // The first commit lands in the url while the newer draft is still queued.
+    searchParamsMock.mockReturnValue(new URLSearchParams('search=ada'));
+    rerender(<AgentUsersFilters />);
+
+    expect(searchInput().value).toBe('ada lovelace');
+    expect(screen.getByTestId('agent-clients-search-pending')).toBeInTheDocument();
+
+    advance(SEARCH_COMMIT_DELAY_MS);
+
+    expect(pushMock).toHaveBeenCalledTimes(2);
+    expect(pushMock).toHaveBeenLastCalledWith('/agent/clients?search=ada+lovelace', {
+      scroll: false,
+    });
+  });
+
+  it('drops queued search work when a real sibling navigation starts', () => {
+    render(<AgentUsersFilters />);
+
+    type('abandoned');
+    advance(100);
+
+    act(() => {
+      notifySiblingNavigation('/agent/clients?view=archived');
+    });
+
+    advance(SEARCH_COMMIT_DELAY_MS);
+
+    expect(pushMock).not.toHaveBeenCalled();
+    // The sibling navigation owns the url until the router adopts it.
+    expect(searchInput()).toBeDisabled();
   });
 
   it('clears search while preserving unrelated query context', () => {
@@ -116,13 +184,9 @@ describe('AgentUsersFilters', () => {
 
     render(<AgentUsersFilters />);
 
-    fireEvent.change(screen.getByTestId('agent-clients-search-input'), {
-      target: { value: '' },
-    });
+    type('');
 
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
+    advance(SEARCH_COMMIT_DELAY_MS);
 
     expect(pushMock).toHaveBeenCalledWith('/agent/clients?tenantId=tenant_ks', {
       scroll: false,
@@ -134,12 +198,29 @@ describe('AgentUsersFilters', () => {
 
     render(<AgentUsersFilters />);
 
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
+    advance(SEARCH_COMMIT_DELAY_MS);
 
     expect(pushMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('agent-clients-search-region')).toHaveAttribute('aria-busy', 'false');
     expect(screen.queryByTestId('agent-clients-search-pending')).not.toBeInTheDocument();
+
+    // Retyping the committed term stays a no-op, including its page context.
+    type('ada');
+    advance(SEARCH_COMMIT_DELAY_MS);
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('does not reset pagination for an agent clients search', () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams('page=3&tenantId=tenant_ks'));
+
+    render(<AgentUsersFilters />);
+
+    type('ada');
+    advance(SEARCH_COMMIT_DELAY_MS);
+
+    expect(pushMock).toHaveBeenCalledExactlyOnceWith(
+      '/agent/clients?page=3&tenantId=tenant_ks&search=ada',
+      { scroll: false }
+    );
   });
 });

@@ -103,13 +103,15 @@ remain separately credited in the current program/tracker.
 
 ## Active member discovery performance
 
-`S7-MEMBER-CASE-SEARCH-PERFORMANCE` is the separately owner-authorized active increment. Opus resumed after the observed quota reset and owns implementation; Codex integrates and executes verification. Coalesce rapid member search into one settled navigation while preserving immediate text, latest results, status/page parameters, settled-search history/back-forward, cancellation and pending feedback. Existing query, API, cache, tenant/session, amounts/currency and domain contracts stay unchanged. Baseline observations are in the [historical research ledger](history/2026-09-22-current-tracker-ledger.md#member-discovery-performance-baseline-2026-10-03). No DB bottleneck, staging speedup or whole NFR/S7 acceptance is claimed.
+### Shared search default rollout
+
+`S7-SHARED-SEARCH-DEFAULT` is the first of three owner-authorized site-search increments. Opus is the preferred subscription implementation author; Codex integrates and verifies, with GPT fallback only after observed Claude quota exhaustion. Reuse the delivered member-search behavior in a shared 250ms automatic-navigation default and migrate member claims, agent clients and agent members. Draft text stays immediate and editable during its own search. Preserve query keys, normalization, push/replace, scroll, status/page and history contracts; cancel queued work on superseding edits, actual navigation, history and unmount. Current base is `89b4c093bb63ec788af415e8abb4e48d9c2eb436`. Local array filters and explicit-submit searches remain immediate. No proxy, auth/session, tenant/RLS, API/query/schema/cache, domain or billing change is selected.
 
 This exercises IDA-NFR-002/003 and preserves IDA-CAS-006/008. No numeric budget or whole requirement completion is inferred; database/API optimization is excluded without measured evidence and scoped selection.
 
 ## Current bounded S7 work
 
-The three authorized successors are technically delivered: member case workspace (#1865), staff case workspace (#1866), and shared message read recovery (#1867). Whole S7, human staff/member acceptance and staff public-notification evidence remain open. Completed third-slice scope and proof are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867). Arben separately authorized a measurement-first member-case discovery performance successor after this delivery, with temporary Codex ownership during Opus quota exhaustion and return to Opus at a clean boundary. No latency improvement, full redesign, palette approval, broader architecture or whole SRS completion is inferred.
+The prior member/staff workspace and shared-message batch (#1865–#1867) is technically delivered; its [historical evidence](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867) remains credited. Member-search #1868 is also delivered. Whole S7, human staff/member acceptance and staff public notification remain open; the current site-search batch does not select a redesign, palette, architecture or whole SRS completion.
 
 Staff case workspace #1866 is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-staff-case-workspace-delivery-1866). Human acceptance remains open; third-slice evidence is separate.
 
@@ -636,8 +638,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-SEC-019 | Production access | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-SEC-020 | Vulnerability response | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-NFR-001 | Availability objective | Target | unresolved | All journeys/S14 | open | none | U | U | U |
-| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | Bounded staff-history retrieval repair delivered in #1859; active member-search increment targets measured redundant navigation. Whole interactive performance and approved budget remain open | Current program/tracker; #1859 historical delivery; member-search proof pending | U | U | U |
-| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | Staff-history local retrieval proof is historical; member discovery has a staging baseline, with improvement proof pending. Whole load target and human acceptance remain open | Current program/tracker; #1859 historical delivery; member-search proof pending | U | U | U |
+| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | Bounded staff-history repair #1859 and member-search coalescing #1868 are delivered; shared automatic-search default is active across three authorized increments. Whole performance and approved budget remain open | Current program/tracker; #1859/#1868 historical delivery; shared-default proof pending | U | U | U |
+| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | Member-search #1868 staging has three illustrative matched bursts: fewer navigation starts, two faster visible-result samples and one slower. Shared default rollout is active; whole load target, approved budget and human acceptance remain open | Current program/tracker; #1859/#1868 historical delivery; shared-default proof pending | U | U | U |
 | IDA-NFR-004 | Scalability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-005 | Reliability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-006 | Accessibility | Target | pilot-required | All journeys/S14 | open | none | U | U | U |
