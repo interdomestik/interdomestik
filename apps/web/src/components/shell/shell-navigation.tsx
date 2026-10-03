@@ -19,6 +19,8 @@ export type ShellNavigationItem = Readonly<{
   exact?: boolean;
   /** Query-sensitive selection remains owned by the existing consumer. */
   selected?: boolean;
+  /** Link prefetch strategy remains owned by the existing consumer. */
+  prefetch?: boolean;
 }>;
 
 type NavigationGroup = Readonly<{
@@ -76,6 +78,7 @@ export function ShellNavigation({
                     >
                       <Link
                         href={item.href}
+                        prefetch={item.prefetch}
                         aria-current={active === item ? 'page' : undefined}
                         onClick={event => {
                           if (

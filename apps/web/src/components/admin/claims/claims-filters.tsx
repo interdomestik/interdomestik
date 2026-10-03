@@ -2,25 +2,28 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback } from 'react';
 
 import { OpsFiltersBar } from '@/components/ops';
 import { parseAdminDiasporaOriginFilter } from '@/features/admin/claims/lib/diaspora-origin-filter';
+import { useResponsiveSearch, type SearchParamUpdates } from '@/hooks/use-responsive-search';
+import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
 
-const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
+const SEARCH_PARAM = 'search';
+// Existing admin list sentinel: 'all' means "no filter". It keeps that meaning
+// for the typed term too, so an 'all' search removes the param instead of
+// committing a literal term.
+const ALL_VALUE = 'all';
 
-type PendingKind = 'filter' | 'search';
-
-function buildClaimsListUrl(
-  currentParams: URLSearchParams,
-  updates: Record<string, string | null>
-): string {
+/** Admin claims param policy: drop pagination, honour the 'all' sentinel and
+ * always land on the list view. Returns a query string with no leading '?'. */
+function buildClaimsListQuery(currentParams: URLSearchParams, updates: SearchParamUpdates): string {
   const params = new URLSearchParams(currentParams.toString());
 
   params.delete('page');
 
   Object.entries(updates).forEach(([key, value]) => {
-    if (value && value !== 'all') {
+    if (value && value !== ALL_VALUE) {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -29,7 +32,12 @@ function buildClaimsListUrl(
 
   params.set('view', 'list');
 
-  return `?${params.toString()}`;
+  return params.toString();
+}
+
+/** The sentinel applies to the draft as well: typing 'all' clears the search. */
+function normalizeClaimsTerm(draft: string): string {
+  return draft === ALL_VALUE ? '' : draft;
 }
 
 export function AdminClaimsFilters() {
@@ -40,42 +48,37 @@ export function AdminClaimsFilters() {
   const tAdmin = useTranslations('admin.claims_page');
   const tCommon = useTranslations('common');
 
-  const currentSearch = searchParams.get('search') || '';
   const currentStatus = searchParams.get('status') || 'all';
   const currentAssignment = searchParams.get('assigned') || 'all';
   const currentDiasporaOrigin = parseAdminDiasporaOriginFilter(searchParams.get('diaspora'));
-  const currentParamsString = searchParams.toString();
 
-  const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
-  const pendingKindRef = useRef<PendingKind | null>(null);
-  const [searchValue, setSearchValue] = useState(currentSearch);
-  const [isTransitionPending, startTransition] = useTransition();
-  const isNavigationPending = Boolean(pendingKind || isTransitionPending);
+  const navigate = useCallback(
+    (query: string) => {
+      router.replace(`${pathname}?${query}`, { scroll: false });
+    },
+    [pathname, router]
+  );
 
-  const updatePendingKind = useCallback((nextPendingKind: PendingKind | null) => {
-    pendingKindRef.current = nextPendingKind;
-    setPendingKind(nextPendingKind);
-  }, []);
+  const {
+    draft,
+    pendingKind,
+    isNavigationPending,
+    editDraft,
+    requestNavigation,
+    cancelScheduledSearch,
+    getPendingKind,
+  } = useResponsiveSearch({
+    searchParams,
+    searchKey: SEARCH_PARAM,
+    pathname,
+    navigate,
+    normalizeTerm: normalizeClaimsTerm,
+    buildQuery: buildClaimsListQuery,
+  });
 
-  useEffect(() => {
-    setSearchValue(currentSearch);
-  }, [currentSearch]);
-
-  useEffect(() => {
-    updatePendingKind(null);
-  }, [currentParamsString, updatePendingKind]);
-
-  useEffect(() => {
-    if (!pendingKind) {
-      return undefined;
-    }
-
-    const timeout = globalThis.setTimeout(
-      () => updatePendingKind(null),
-      PENDING_FEEDBACK_TIMEOUT_MS
-    );
-    return () => globalThis.clearTimeout(timeout);
-  }, [pendingKind, updatePendingKind]);
+  // An actual sibling navigation owns the url from here: queued search work is
+  // dropped instead of landing on top of the page the user just opened.
+  useSiblingNavigationCancel(cancelScheduledSearch);
 
   // V2 Status Tabs
   const statusOptions = [
@@ -95,43 +98,17 @@ export function AdminClaimsFilters() {
     { value: 'diaspora', label: tAdmin('filters.origin_diaspora') },
   ];
 
-  const buildHref = (updates: Record<string, string | null>) => {
-    return buildClaimsListUrl(searchParams, updates);
-  };
+  const buildHref = (updates: SearchParamUpdates) =>
+    `?${buildClaimsListQuery(searchParams, updates)}`;
 
-  const updateFilters = (updates: Record<string, string | null>, nextPendingKind: PendingKind) => {
-    if (pendingKindRef.current) {
+  const updateFilters = (updates: SearchParamUpdates) => {
+    // Synchronous read: a second control clicked inside the same burst stays
+    // blocked while the first filter navigation still owns the url.
+    if (getPendingKind()) {
       return;
     }
 
-    updatePendingKind(nextPendingKind);
-
-    startTransition(() => {
-      router.replace(`${pathname}${buildClaimsListUrl(searchParams, updates)}`, { scroll: false });
-    });
-  };
-
-  const updateSearch = (query: string) => {
-    setSearchValue(query);
-
-    if (pendingKindRef.current === 'filter') {
-      return;
-    }
-
-    const nextUrl = buildClaimsListUrl(searchParams, { search: query || null });
-    const currentUrl = currentParamsString ? `?${currentParamsString}` : '';
-
-    if (nextUrl === currentUrl) {
-      return;
-    }
-
-    updatePendingKind('search');
-
-    startTransition(() => {
-      router.replace(`${pathname}${nextUrl}`, {
-        scroll: false,
-      });
-    });
+    requestNavigation(updates, 'filter');
   };
 
   return (
@@ -174,9 +151,9 @@ export function AdminClaimsFilters() {
           href: buildHref({ status: option.value }),
         }))}
         activeTab={currentStatus}
-        onTabChange={tabId => updateFilters({ status: tabId }, 'filter')}
-        searchQuery={searchValue}
-        onSearchChange={updateSearch}
+        onTabChange={tabId => updateFilters({ status: tabId })}
+        searchQuery={draft}
+        onSearchChange={editDraft}
         searchPlaceholder={`${tCommon('search')}...`}
         searchInputTestId="claims-search-input"
         isPending={isNavigationPending}
@@ -194,7 +171,7 @@ export function AdminClaimsFilters() {
                 return (
                   <button
                     key={option.value}
-                    onClick={() => updateFilters({ assigned: option.value }, 'filter')}
+                    onClick={() => updateFilters({ assigned: option.value })}
                     type="button"
                     aria-pressed={isActive}
                     aria-disabled={isInert}
@@ -224,7 +201,7 @@ export function AdminClaimsFilters() {
                 return (
                   <button
                     key={option.value}
-                    onClick={() => updateFilters({ diaspora: option.value }, 'filter')}
+                    onClick={() => updateFilters({ diaspora: option.value })}
                     type="button"
                     aria-pressed={isActive}
                     aria-disabled={isInert}

@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { withAdminContext } from './admin-sidebar-context';
 
 interface AdminSidebarProps {
   readonly className?: string;
@@ -52,8 +53,6 @@ interface AdminSidebarProps {
   };
 }
 
-const PERSISTED_ADMIN_CONTEXT_PARAMS = new Set(['tenantId']);
-
 export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const t = useTranslations('admin.sidebar');
   const tNav = useTranslations('nav');
@@ -64,30 +63,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const searchParams = useSearchParams();
   const userRoleLabel = getRoleLabel(tCommon, user.role, user.role);
 
-  const withAdminContext = (href: string) => {
-    const [path, queryString] = href.split('?');
-    const merged = new URLSearchParams();
-
-    for (const [key, value] of searchParams.entries()) {
-      if (PERSISTED_ADMIN_CONTEXT_PARAMS.has(key)) {
-        merged.append(key, value);
-      }
-    }
-
-    if (queryString) {
-      const destinationParams = new URLSearchParams(queryString);
-      const destinationKeys = new Set(Array.from(destinationParams.keys()));
-      for (const key of destinationKeys) {
-        merged.delete(key);
-        for (const value of destinationParams.getAll(key)) {
-          merged.append(key, value);
-        }
-      }
-    }
-
-    const next = merged.toString();
-    return next ? `${path}?${next}` : path;
-  };
+  const applyAdminContext = (href: string) => withAdminContext(href, searchParams);
 
   const roleParam = searchParams.get('role');
   let peopleRole = 'members';
@@ -176,7 +152,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
     >
       <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
         <Link
-          href={withAdminContext('/admin/overview')}
+          href={applyAdminContext('/admin/overview')}
           className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
         >
           <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
@@ -201,9 +177,10 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
             {
               id: 'admin',
               items: sidebarItems.map(item => ({
-                href: withAdminContext(item.href),
+                href: applyAdminContext(item.href),
                 title: t(item.title),
                 icon: item.icon,
+                prefetch: item.peopleKey === 'members' || item.peopleKey === 'agents' || undefined,
                 selected:
                   item.peopleKey === undefined
                     ? undefined

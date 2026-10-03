@@ -49,7 +49,9 @@ vi.mock('@/lib/roles-i18n', () => ({
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
-  Link: (props: ComponentProps<'a'>) => <a {...props} />,
+  Link: ({ prefetch, ...props }: ComponentProps<'a'> & { prefetch?: boolean }) => (
+    <a {...props} data-prefetch={prefetch === undefined ? undefined : String(prefetch)} />
+  ),
   usePathname: () => '/admin/users',
   useRouter: () => ({
     push: vi.fn(),
@@ -208,6 +210,11 @@ describe('AdminSidebar', () => {
       'href',
       '/admin/crm?tenantId=tenant_ks'
     );
+    expect(screen.getByRole('link', { name: 'Members' })).toHaveAttribute('data-prefetch', 'true');
+    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute('data-prefetch', 'true');
+    for (const name of ['Staff', 'Claims', 'Dashboard', 'Payment Verification']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute('data-prefetch');
+    }
     expect(screen.getByRole('link', { name: 'Staff' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Agents' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: 'Members' })).not.toHaveAttribute('aria-current');

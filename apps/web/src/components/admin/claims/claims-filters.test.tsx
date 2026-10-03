@@ -1,73 +1,32 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps, PropsWithChildren } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPS_TEST_IDS } from '@/components/ops/testids';
+import { usePathname, useRouter, useSearchParams } from './claims-filters.test-support';
+import { SEARCH_COMMIT_DELAY_MS } from '@/hooks/use-responsive-search';
 import { AdminClaimsFilters } from './claims-filters';
-
-// Mock next/navigation - the component imports useRouter, usePathname, useSearchParams from here
-vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(),
-  usePathname: vi.fn(),
-  useSearchParams: vi.fn(),
-}));
-
-vi.mock('next-intl', () => ({
-  useTranslations: (namespace?: string) => (key: string) => {
-    if (namespace === 'common') {
-      if (key === 'all') return 'All';
-      if (key === 'search') return 'Search';
-    }
-
-    const adminClaimsKeys: Record<string, string> = {
-      'sections.active': 'Active',
-      'sections.draft': 'Draft',
-      'sections.resolved': 'Closed',
-      'filters.unassigned_only': 'Unassigned',
-      'filters.assigned_to_me': 'Assigned to me',
-      'filters.assignment_label': 'Assignment',
-      'filters.origin_label': 'Origin',
-      'filters.origin_all': 'All origins',
-      'filters.origin_diaspora': 'Diaspora / Green Card',
-      'filters.pending_filter': 'Updating filters...',
-      'filters.pending_search': 'Updating search...',
-    };
-
-    return adminClaimsKeys[key] ?? key;
-  },
-}));
-
-// Mock UI components
-vi.mock('@interdomestik/ui', () => ({
-  Button: ({
-    children,
-    asChild: _asChild,
-    ...props
-  }: PropsWithChildren<ComponentProps<'button'> & { asChild?: boolean }>) => (
-    <button {...props}>{children}</button>
-  ),
-  Badge: ({ children, ...props }: PropsWithChildren<ComponentProps<'span'>>) => (
-    <span {...props}>{children}</span>
-  ),
-  Input: (props: ComponentProps<'input'>) => <input {...props} />,
-  // GlassCard is just a div in test
-}));
-vi.mock('@/components/ui/glass-card', () => ({
-  GlassCard: ({ children }: PropsWithChildren) => <div>{children}</div>,
-}));
-
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 describe('AdminClaimsFilters', () => {
   const mockRouter = { replace: vi.fn() };
   // Helper to create mocked params
   const createMockParams = (qs = '') =>
     new URLSearchParams(qs) as unknown as ReturnType<typeof useSearchParams>;
+  // Automatic search is coalesced: the navigation lands on the trailing edge.
+  const flushSearchCommit = () =>
+    act(() => {
+      vi.advanceTimersByTime(SEARCH_COMMIT_DELAY_MS);
+    });
 
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>);
     vi.mocked(usePathname).mockReturnValue('/admin/claims');
     vi.mocked(useSearchParams).mockReturnValue(createMockParams());
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
   });
 
   it('renders search input', () => {
@@ -109,6 +68,7 @@ describe('AdminClaimsFilters', () => {
 
     const input = screen.getByPlaceholderText('Search...');
     fireEvent.change(input, { target: { value: 'query' } });
+    flushSearchCommit();
 
     expect(mockRouter.replace).toHaveBeenCalledWith(expect.stringContaining('search=query'), {
       scroll: false,
@@ -126,14 +86,15 @@ describe('AdminClaimsFilters', () => {
     expect(input).toHaveValue('query');
   });
 
-  it('keeps replacing the latest search query while search feedback is pending', () => {
+  it('commits only the latest search query once per burst', () => {
     render(<AdminClaimsFilters />);
 
     const input = screen.getByPlaceholderText('Search...');
     fireEvent.change(input, { target: { value: 'q' } });
     fireEvent.change(input, { target: { value: 'query' } });
+    flushSearchCommit();
 
-    expect(mockRouter.replace).toHaveBeenCalledTimes(2);
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1);
     expect(mockRouter.replace).toHaveBeenLastCalledWith('/admin/claims?search=query&view=list', {
       scroll: false,
     });
@@ -146,6 +107,7 @@ describe('AdminClaimsFilters', () => {
 
     const input = screen.getByPlaceholderText('Search...');
     fireEvent.change(input, { target: { value: 'query' } });
+    flushSearchCommit();
 
     expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(screen.queryByTestId('admin-claims-pending')).not.toBeInTheDocument();
