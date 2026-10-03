@@ -101,13 +101,13 @@ test('rejects a weakened boundary even when the other authority file remains cor
 test('rejects removal of owner-only governance document changes', () => {
   const root = fixture();
   const programPath = join(root, 'docs/plans/current-program.md');
-  writeFileSync(
-    programPath,
-    readFileSync(programPath, 'utf8').replace(
-      /- `README\.md`, `AGENTS\.md` and architecture documents[^]*?bounded owned files\.\n/u,
-      ''
-    )
+  const program = readFileSync(programPath, 'utf8');
+  const withoutGovernanceBoundary = program.replace(
+    /^- `README\.md`, `AGENTS\.md` and architecture documents[^\n]*\n(?:[ \t]+[^\n]*\n)*/mu,
+    ''
   );
+  assert.notEqual(withoutGovernanceBoundary, program, 'governance boundary paragraph not removed');
+  writeFileSync(programPath, withoutGovernanceBoundary);
   const result = run(root);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /missing owner-only governance document changes/u);
