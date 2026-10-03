@@ -11,13 +11,29 @@ import { SuccessFeeCollectionSection } from './success-fee-collection-section';
 import { useClaimActionPanelModel } from './use-claim-action-panel-model';
 import type { ClaimActionPanelProps } from './types';
 
+// Opt-in presentation density for narrow viewports with enlarged text. Pure CSS: it only lets the
+// existing controls shrink and wrap instead of holding their min-content width, and never clips,
+// hides, truncates, or scales down any content.
+const COMPACT_PANEL_CLASSNAME = [
+  'p-3 sm:p-4 md:p-6',
+  '[&_*]:min-w-0',
+  '[&_label]:[overflow-wrap:anywhere]',
+  '[&_span]:[overflow-wrap:anywhere]',
+  '[&_p]:[overflow-wrap:anywhere]',
+  '[&_h3]:[overflow-wrap:anywhere]',
+  '[&_h4]:[overflow-wrap:anywhere]',
+  '[&_button]:h-auto [&_button]:min-h-[2.5rem] [&_button]:whitespace-normal',
+  '[&_input]:max-w-full [&_select]:max-w-full [&_textarea]:max-w-full',
+].join(' ');
+
 export function ClaimActionPanel(props: ClaimActionPanelProps) {
   const model = useClaimActionPanelModel(props);
+  const densityClassName = props.density === 'compact' ? COMPACT_PANEL_CLASSNAME : 'p-6';
 
   return (
     <ClaimActionPanelProvider value={model.contextValue}>
       <div
-        className="bg-white rounded-lg border shadow-sm p-6 space-y-6"
+        className={`bg-white rounded-lg border shadow-sm space-y-6 ${densityClassName}`}
         data-testid="staff-claim-action-panel"
       >
         <h3 className="font-semibold text-lg">{model.contextValue.t('staff_actions.title')}</h3>

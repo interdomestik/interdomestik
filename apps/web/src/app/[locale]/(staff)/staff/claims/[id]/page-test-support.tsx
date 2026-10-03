@@ -118,6 +118,8 @@ vi.mock('next-intl/server', () => ({
           'details.sla_phase.running': 'Running',
           'details.sla_phase.incomplete': 'Waiting for member information',
           'details.sla_phase.not_applicable': 'Not active',
+          'details.verification_guidance':
+            'Case status is verification. Specific duties appear only in the information requests recorded on this case.',
           'details.branch_manager_readonly_notice':
             'Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot.',
           'details.staff_claim.section_title': 'Claim',
@@ -134,13 +136,23 @@ vi.mock('next-intl/server', () => ({
           'details.staff_agent.section_title': 'Agent',
           'details.staff_note.section_title': 'Latest status note',
           'details.staff_note.empty': 'No public status notes yet.',
+          'details.staff_note.history_title': 'Public status history',
           'details.messages': 'Messages',
+          'details.workspace.back': 'Back to case list',
+          'details.workspace.nav_label': 'Case sections',
+          'details.workspace.reference_label': 'Case reference',
+          'details.workspace.handling': 'Handling actions',
+          'details.workspace.requests': 'Information requests',
+          'details.workspace.context': 'Case context',
+          'details.workspace.history': 'Status history',
         },
         sq: {
           'details.sla_status_label': 'Statusi i SLA-së',
           'details.sla_phase.running': 'Në rrjedhë',
           'details.sla_phase.incomplete': 'Në pritje të informacionit nga anëtari',
           'details.sla_phase.not_applicable': 'Jo aktiv',
+          'details.verification_guidance':
+            'Statusi i rastit është verifikim. Detyrat konkrete shfaqen vetëm në kërkesat për informacion të regjistruara për këtë rast.',
           'details.branch_manager_readonly_notice':
             'Menaxherët e degës mund të rishikojnë statusin e rastit dhe kontekstin e anëtarit këtu, por caktimi, mesazhet dhe veprimet mbi rastin mbeten vetëm për stafin në pilot.',
           'details.staff_claim.section_title': 'Rasti',
@@ -157,7 +169,15 @@ vi.mock('next-intl/server', () => ({
           'details.staff_agent.section_title': 'Agjenti',
           'details.staff_note.section_title': 'Shënimi i fundit i statusit',
           'details.staff_note.empty': 'Nuk ka ende shënime publike të statusit.',
+          'details.staff_note.history_title': 'Historiku publik i statusit',
           'details.messages': 'Mesazhet',
+          'details.workspace.back': 'Kthehu te lista e rasteve',
+          'details.workspace.nav_label': 'Seksionet e rastit',
+          'details.workspace.reference_label': 'Referenca e rastit',
+          'details.workspace.handling': 'Veprimet e trajtimit',
+          'details.workspace.requests': 'Kërkesat për informacion',
+          'details.workspace.context': 'Konteksti i rastit',
+          'details.workspace.history': 'Historiku i statusit',
         },
       };
 

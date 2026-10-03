@@ -19,6 +19,8 @@ export interface ClaimActionPanelProps {
   readonly assigneeId: string | null;
   readonly assignmentOptions: ReadonlyArray<AssignmentOption>;
   readonly currentAssigneeLabel?: string | null;
+  /** Optional presentation-only density. Omitted (default) keeps the existing panel spacing. */
+  readonly density?: 'default' | 'compact';
 }
 
 export type ClaimStatusOption = {
