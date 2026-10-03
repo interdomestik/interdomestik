@@ -7,9 +7,9 @@ import { gotoApp } from '../utils/navigation';
 
 const SECTION_IDS = [
   'member-claim-detail-progress',
+  'member-claim-detail-messaging',
   'member-claim-detail-evidence',
   'member-claim-detail-history',
-  'member-claim-detail-messaging',
 ] as const;
 
 test.describe('Member Claim Detail Ops (Golden)', () => {
@@ -56,9 +56,9 @@ test.describe('Member Claim Detail Ops (Golden)', () => {
         });
         const labels = [
           continuity.progress,
+          continuity.messages,
           continuity.evidence,
           continuity.history,
-          continuity.messages,
         ];
         await expect(navigation.getByRole('link')).toHaveCount(SECTION_IDS.length);
         for (const [index, id] of SECTION_IDS.entries()) {

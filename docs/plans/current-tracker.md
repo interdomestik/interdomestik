@@ -57,10 +57,7 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 - #1861 amount/currency continuity is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-amount-continuity-delivery-1861).
 - #1862 overview next-action truth is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862). Lifecycle status does not establish an outstanding request.
 - #1863 generic detail repair is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863).
-- Delivered #1864 assurance guidance: the production `deriveClaimSlaPhase` → summary → mounted assurance panel path renders neutral `verification_in_progress` handling assurance for verification with the derived `incomplete` phase in EN/SQ/MK/SR.
-- Absent and fulfilled requests do not gain an invented duty; open request cards retain their specific authoritative duties; the other eight lifecycle states render unchanged.
-- Existing support links stay encoded, and erasure-state handling is preserved.
-- Out of scope: operative SLA phase/risk values, clocks and timers; the separate legacy SLA card; query, writer, auth, routing and privacy changes.
+- #1864 assurance guidance truth is technically delivered; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-delivery-1864).
 - Human acceptance and broader S7 remain open; completed baseline/helper facts are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-candidate).
 - #1860 staff-detail technical delivery and partial agent public/internal journey passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-detail-read-continuity-delivery-1860). Human acceptance and staff public notifications remain open.
 
