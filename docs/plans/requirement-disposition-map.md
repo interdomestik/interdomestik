@@ -101,9 +101,15 @@ automatic staging CD `36482936539` passed with production skipped. Product/priva
 and broader Free Start acceptance remain open. #1839 security triage and #1838 period/grace truth
 remain separately credited in the current program/tracker.
 
+## Active member discovery performance
+
+`S7-MEMBER-CASE-SEARCH-PERFORMANCE` is the separately owner-authorized active increment. Opus resumed after the observed quota reset and owns implementation; Codex integrates and executes verification. Coalesce rapid member search into one settled navigation while preserving immediate text, latest results, status/page parameters, settled-search history/back-forward, cancellation and pending feedback. Existing query, API, cache, tenant/session, amounts/currency and domain contracts stay unchanged. Baseline observations are in the [historical research ledger](history/2026-09-22-current-tracker-ledger.md#member-discovery-performance-baseline-2026-10-03). No DB bottleneck, staging speedup or whole NFR/S7 acceptance is claimed.
+
+This exercises IDA-NFR-002/003 and preserves IDA-CAS-006/008. No numeric budget or whole requirement completion is inferred; database/API optimization is excluded without measured evidence and scoped selection.
+
 ## Current bounded S7 work
 
-Arben preauthorized three bounded Opus successors and their additional packets through protected completion. Member case workspace (#1865) and staff case workspace (#1866) are technically delivered; whole S7 and human acceptance remain open. The third selected outcome is `S7-STAFF-MESSAGE-READ-RECOVERY-TRUTH`: a failed message read must display a localized recoverable service error rather than an empty conversation, preserve last successfully loaded history and the current draft during a failed refresh, and ignore stale/inactive read completions. Optional failed-initial-read metadata connects the existing staff server read to the shared panel without adding queries. Existing public/internal/read-only permissions, message and read-receipt writers, auth/proxy/routes, tenant/RLS, billing/schema and operative SLA/risk/timers remain unchanged. This is a bounded communication-flow improvement, not full redesign or an approved palette. Implementation and current-slice local/protected/staging proof remain pending.
+The three authorized successors are technically delivered: member case workspace (#1865), staff case workspace (#1866), and shared message read recovery (#1867). Whole S7, human staff/member acceptance and staff public-notification evidence remain open. Completed third-slice scope and proof are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867). Arben separately authorized a measurement-first member-case discovery performance successor after this delivery, with temporary Codex ownership during Opus quota exhaustion and return to Opus at a clean boundary. No latency improvement, full redesign, palette approval, broader architecture or whole SRS completion is inferred.
 
 Staff case workspace #1866 is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-staff-case-workspace-delivery-1866). Human acceptance remains open; third-slice evidence is separate.
 
@@ -630,8 +636,8 @@ storing repeated whitespace across 510 rows; no requirement or readiness field i
 | IDA-SEC-019 | Production access | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-SEC-020 | Vulnerability response | Target | unresolved | All slices/S14 | open | none | U | U | U |
 | IDA-NFR-001 | Availability objective | Target | unresolved | All journeys/S14 | open | none | U | U | U |
-| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | Selected staff-history projection successor targets demonstrated excess row transfer; comparable local proof pending, whole interactive performance and approved budget remain open | Current program/tracker; technical delivery pending | U | U | U |
-| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | Staff-history projection successor measures local retrieval separately; staging request/render latency and human acceptance remain open | Current program/tracker; technical delivery pending | U | U | U |
+| IDA-NFR-002 | Interactive performance | Target | unresolved | All journeys/S14 | Bounded staff-history retrieval repair delivered in #1859; active member-search increment targets measured redundant navigation. Whole interactive performance and approved budget remain open | Current program/tracker; #1859 historical delivery; member-search proof pending | U | U | U |
+| IDA-NFR-003 | User-perceived load | Target | unresolved | All journeys/S14 | Staff-history local retrieval proof is historical; member discovery has a staging baseline, with improvement proof pending. Whole load target and human acceptance remain open | Current program/tracker; #1859 historical delivery; member-search proof pending | U | U | U |
 | IDA-NFR-004 | Scalability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-005 | Reliability | Target | unresolved | All journeys/S14 | open | none | U | U | U |
 | IDA-NFR-006 | Accessibility | Target | pilot-required | All journeys/S14 | open | none | U | U | U |

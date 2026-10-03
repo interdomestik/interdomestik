@@ -16,7 +16,9 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Arben preauthorized three bounded Opus successors and their additional packets through protected completion. Member case workspace (#1865) and staff case workspace (#1866) are technically delivered; whole S7 and human acceptance remain open. The third selected outcome is `S7-STAFF-MESSAGE-READ-RECOVERY-TRUTH`: a failed message read must display a localized recoverable service error rather than an empty conversation, preserve last successfully loaded history and the current draft during a failed refresh, and ignore stale/inactive read completions. Optional failed-initial-read metadata connects the existing staff server read to the shared panel without adding queries. Existing public/internal/read-only permissions, message and read-receipt writers, auth/proxy/routes, tenant/RLS, billing/schema and operative SLA/risk/timers remain unchanged. This is a bounded communication-flow improvement, not full redesign or an approved palette. Implementation and current-slice local/protected/staging proof remain pending.
+`S7-MEMBER-CASE-SEARCH-PERFORMANCE` is the separately owner-authorized active increment. Opus resumed after the observed quota reset and owns implementation; Codex integrates and executes verification. Coalesce rapid member search into one settled navigation while preserving immediate text, latest results, status/page parameters, settled-search history/back-forward, cancellation and pending feedback. Existing query, API, cache, tenant/session, amounts/currency and domain contracts stay unchanged. Baseline observations are in the [historical research ledger](history/2026-09-22-current-tracker-ledger.md#member-discovery-performance-baseline-2026-10-03). No DB bottleneck, staging speedup or whole NFR/S7 acceptance is claimed.
+
+The three authorized successors are technically delivered: member case workspace (#1865), staff case workspace (#1866), and shared message read recovery (#1867). Whole S7, human staff/member acceptance and staff public-notification evidence remain open. Completed third-slice scope and proof are in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867). Arben separately authorized a measurement-first member-case discovery performance successor after this delivery, with temporary Codex ownership during Opus quota exhaustion and return to Opus at a clean boundary. No latency improvement, full redesign, palette approval, broader architecture or whole SRS completion is inferred.
 
 #1865 member case workspace is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Whole S7 and human acceptance remain open.
 
@@ -350,15 +352,15 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Confirmed staff case workspace acceptance
+### Active member-case search performance
 
-- Existing case identity/status/reference and staff page-ready/test markers remain; authorized handling/request controls precede secondary context.
-- Conditional localized section navigation targets rendered sections only; branch managers have read-only notice, no staff actions/message/form controls or mutation-only navigation.
-- Real EN/SQ/MK/SR catalogs and real request-card composition cover absent/open/fulfilled/read-error state with unchanged acknowledgment authorization and authoritative duties.
-- Only this route’s verification/incomplete presentation becomes neutral; draft/running/other phases, operative policy/timers, erasure, recovery/allowance, assignments, initial messages and privacy remain unchanged.
-- Focused normal-authenticated synthetic browser proof covers keyboard destinations, long references, 320 CSS-pixel reflow, enlarged presentation and reduced motion; no native-zoom or human-acceptance inference. Staff-only responsive header and optional handling-panel density preserve default other consumers and all operational handlers; document/body/workspace reflow is measured without clipping.
-- Consolidate actual current-head review/comments/Sonar and affected consumers before one required local pr:verify/security lane; protected merge and exact-six Actions/staging remain separate proof.
-- No query/writer/auth/proxy/schema/billing/architecture or operative SLA/risk/timer changes, no full-redesign/palette or whole S7/SRS completion claim.
+`S7-MEMBER-CASE-SEARCH-PERFORMANCE` is the separately owner-authorized active increment. Opus resumed after the observed quota reset and owns implementation; Codex integrates and executes verification. Coalesce rapid member search into one settled navigation while preserving immediate text, latest results, status/page parameters, settled-search history/back-forward, cancellation and pending feedback. Existing query, API, cache, tenant/session, amounts/currency and domain contracts stay unchanged. Baseline observations are in the [historical research ledger](history/2026-09-22-current-tracker-ledger.md#member-discovery-performance-baseline-2026-10-03). No DB bottleneck, staging speedup or whole NFR/S7 acceptance is claimed.
+
+Acceptance: a rapid burst produces one settled client navigation; local input stays intact through earlier URL commits; external navigation cancels queued work and restores its actual query; same-query/clear/unmount do not emit obsolete work. Status/page behavior, literal search terms, loading/error/empty/retry and keyboard markers remain contractual. Compare identical cold/warm and previously unseen-query scenarios, reporting request starts, commits, API/visible timing and sample counts separately. First-load/detail observations remain separate; no server/DB timing is inferred from browser timing. Required local/protected proof and exact-merge staging are pending; human acceptance remains open.
+
+### Delivered shared message read recovery (#1867)
+
+See [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867). Human acceptance remains open; member discovery latency has not been measured by this repair.
 
 ### Delivered staff case workspace (#1866)
 

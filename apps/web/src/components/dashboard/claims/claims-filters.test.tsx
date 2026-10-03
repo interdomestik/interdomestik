@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsFilters } from './claims-filters';
 
 const hoisted = vi.hoisted(() => ({
@@ -46,10 +46,25 @@ vi.mock('@interdomestik/ui', () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
+// Mirrors SEARCH_COMMIT_DELAY_MS in use-member-claims-search.ts: search
+// navigation is trailing-coalesced, local input edits stay immediate.
+const SEARCH_COMMIT_DELAY_MS = 250;
+
+function settleSearchCommit() {
+  act(() => {
+    vi.advanceTimersByTime(SEARCH_COMMIT_DELAY_MS);
+  });
+}
+
 describe('ClaimsFilters', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     hoisted.searchParams = new URLSearchParams();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders search input', () => {
@@ -88,6 +103,11 @@ describe('ClaimsFilters', () => {
       target: { value: 'claim 42' },
     });
 
+    expect(screen.getByTestId('member-claims-pending')).toHaveTextContent('Processing...');
+    expect(hoisted.push).not.toHaveBeenCalled();
+
+    settleSearchCommit();
+
     expect(hoisted.push).toHaveBeenCalledWith('/member/claims?search=claim+42', {
       scroll: false,
     });
@@ -102,6 +122,8 @@ describe('ClaimsFilters', () => {
       target: { value: 'all' },
     });
 
+    settleSearchCommit();
+
     expect(hoisted.push).toHaveBeenCalledWith('/member/claims?search=all', {
       scroll: false,
     });
@@ -115,6 +137,8 @@ describe('ClaimsFilters', () => {
     fireEvent.change(screen.getByTestId('member-claims-search-input'), {
       target: { value: 'claim 42' },
     });
+
+    settleSearchCommit();
 
     expect(hoisted.push).not.toHaveBeenCalled();
     expect(screen.queryByTestId('member-claims-pending')).not.toBeInTheDocument();

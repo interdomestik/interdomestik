@@ -9,11 +9,12 @@ evidence_root = "/tmp/interdomestik-pilot-evidence"
 max_threads = 5
 max_depth = 1
 
-[profiles.prepr]
-model = "gpt-5.5"
-model_reasoning_effort = "high"
-approval_policy = "never"
-sandbox_mode = "workspace-write"
+[agents.interdomestik-developer]
+description = "Own one bounded Interdomestik development increment."
+config_file = "agents/interdomestik-developer.toml"
+
+# Current Codex CLI profiles are user-level <name>.config.toml files.
+# See the development-agent guide for the optional prepr installation.
 
 [mcp_servers.openai_docs]
 url = "https://developers.openai.com/mcp"

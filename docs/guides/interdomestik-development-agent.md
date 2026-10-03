@@ -2,25 +2,58 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-03-post1866-lessons`). An optional personal installation at
-`~/.codex/agents/interdomestik-developer.toml` makes the named role available across
-worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
+`2026-10-03-workflow-runtime-clarity`). An optional personal installation at
+`~/.codex/agents/interdomestik-developer.toml` is a reusable copy; its existence alone
+does not prove named-role discovery. This repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
+This is a development-tooling configuration, not a production AI migration. Existing
+coding subscriptions suffice; application API credentials are irrelevant unless the
+owner separately authorizes an application API task. Unavailable advisory Brain
+bootstrap/resolver state is a reported limitation, not a veto over work supported by
+verified current repository authority.
 
 ## Load and invoke
+
+For current Codex clients, the project registers
+`[agents.interdomestik-developer]` with
+`config_file = "agents/interdomestik-developer.toml"`; the relative path resolves
+from `.codex/config.toml`. Existing legacy `[roles.*]` entries are not a verified
+loader mechanism and are outside this bounded correction. Verify the installed
+client's supported schema and observe a fresh named-role load before claiming activation.
+
+Current CLI profiles are user-level files. Project-local `[profiles.prepr]` is
+ignored by the documented CLI contract. For the owner's optional prepr model
+selection, preserve any existing personal file and install these model keys in
+`~/.codex/prepr.config.toml`:
+
+```toml
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+```
+
+Select it with `codex --profile prepr`. It adds no permission grants and does not
+change global default model settings. A read-only effective-config diagnostic
+can verify profile loading; it is not proof of a served model or desktop activation.
+See the [current Codex config reference](https://learn.chatgpt.com/docs/config-file/config-reference#configtoml).
 
 Start a fresh Codex chat after installing the definition. Versioned companion
 sources are in `docs/guides/`; an optional personal copy lives at
 `~/.codex/agent-guides/interdomestik-developer/`. A repository checkout supplies the
 project files, but does not install personal files on another machine. Compare
-SHA-256 hashes of project and personal definitions after updates; refresh both together. Check for
-stale project copies before starting a successor and report any mismatch rather
+SHA-256 hashes of project and personal definitions before and after updates. Coordinate
+shared-file ownership with any active Interdomestik chat; preserve newer lessons
+before synchronizing both copies. Record source path/revision/hash, installed
+path/hash, backup and install time in the existing installation manifest. Distinguish
+prepared source, installed matching copies and fresh-load verification; record runtime
+activation as pending until a fresh role load is observed. Do not overwrite another
+chat's active slice or treat a manifest hash as proof of served model/instructions.
+Check for stale project copies before starting a successor and report any mismatch rather
 than assuming which copy won. Preserve the installation manifest/backup at the
 personal guide directory. Carry configuration changes in the authorized product amendment; do not create a
 status-only PR solely for distribution.
 The agent uses GPT-6.1 Sol with high reasoning, as explicitly selected by the owner
-for this agent over the older GPT-5.6 Sol default in repo instructions and the
-installed skill. Confirm the model actually served; report unavailable access
+for this agent over older generic repository model defaults. The installed
+Interdomestik skill is synchronized with this scoped model policy. Confirm the model actually served; report unavailable access
 instead of silently substituting a paid API. Parent runtime permissions remain
 authoritative. Workspace-write and on-request are defaults, not additional grants.
 
@@ -32,6 +65,9 @@ Do not edit files, start services, create a PR, merge, deploy or spawn more help
 Read current repository authority and use interdomestik_qa with this checkout's
 absolute repoRoot. Report targetRepoRoot, targetHead, dirty files, current bounded
 priority, mandatory boundaries, available tools and a proposed verification plan.
+Report the role identity/instruction revision actually supplied at startup, separate
+from files read afterward. State requested model/reasoning and observed runtime
+metadata, or mark served model/effort unavailable; do not infer them from TOML.
 Wait for the agent and return its evidence and any failed calls.
 ```
 
@@ -68,7 +104,12 @@ no-status-only-PR rule. The handoff must name any pending canonical amendment an
 never delete uncommitted tracker edits or write directly to protected main.
 
 Before retirement preserve receipts, source, agent configuration, outstanding
-human acceptance and the next action. Retain resources used by active processes.
+human acceptance and the next action. Use the existing handoff for model switches
+and interruptions: outcome, authorization/exclusions, owning chat, worktree/branch/head,
+completed and remaining work, changed files, checks and evidence validity, unresolved
+review findings, pending canonical amendment and resource ownership. Verify the
+handoff against current state before resuming; do not restart valid proof by habit.
+Retain resources used by active processes.
 The parent chat owns archival; a delegated agent returns closeout readiness.
 Use managed-worktree archival and chat archival as separate operations. After the
 parent confirms archival, refresh the existing authoritative receipt (`receipt.json` or `current-closeout.json`), its summary and
@@ -180,8 +221,10 @@ For a meaningful runtime rehearsal, the required command lane is:
 pnpm plan:audit
 # Run the exact focused package test identified during reproduction.
 # Load the task-local environment before orchestration, not inside Playwright.
-node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
-node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard
+# Allocate this port for the task; 3100 is an example, not a universal default.
+TASK_PORT=3100
+PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
+PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard
 git diff --check
 ```
 
@@ -194,10 +237,13 @@ actual PR is authorized. Merge and deployment require explicit owner authority.
 From the target worktree, after establishing its owned local DB and environment:
 
 ```bash
-node --env-file=.env.local docs/guides/interdomestik-agent-preflight.mjs --expected-port 3100
+TASK_PORT=3100
+PW_PORT="$TASK_PORT" node --env-file=.env.local docs/guides/interdomestik-agent-preflight.mjs --expected-port "$TASK_PORT"
 ```
 
-Replace `3100` with the allocated task port. The check imports the repo's actual
+Replace `3100` with the allocated task port and use the same `TASK_PORT`/loaded
+environment in the supported lane above. Do not suppress conflicting `PORT` values
+or alter the resolver's loopback base URL to make the check pass. The check imports the repo's actual
 Playwright network resolver, requires explicit matching port/DB configuration,
 checks loopback DB TCP reachability and a free application port, and prints only
 non-secret evidence. A TCP pass is not SQL authentication, migration or RLS proof;
@@ -450,14 +496,23 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 ## Next slice coding and review lessons
 
-Owner direction for the next slice (2026-10-01): Sonnet 5 is the implementation
-coder; the Interdomestik agent owns integration and verification. Assign one bounded
-coding packet through the approved subscription route, with disjoint files, current
-source, SRS/M0-M5 constraints, acceptance and test expectations. Escalate to Opus for
-concrete unresolved complexity/security/concurrency or failed implementation; record
-why. Verify the actually served model and accepted code. If Sonnet 5 is unavailable,
-report that blocker rather than silently substituting another model. Preserve export
-permissions, subscription-only limits and independent review for high-risk work.
+Owner model routing (2026-10-03; supersedes the 2026-10-01 Sonnet-only direction):
+Opus is the owner's preferred coding model; Sonnet 5 is an available option for
+routine bounded coding, tests and fixes. Codex owns integration and verification
+with GPT-6.1 Sol high as this role's configured model and the approved coding
+fallback when Claude quota is unavailable. Record the unavailable route and actual
+executor, then continue adequate low/medium-risk work without a quota waiver ritual.
+Use Astra for concrete unresolved complexity, security, concurrency or architecture
+ambiguity; xhigh reasoning requires explicit owner direction for that work. Gemini
+is optional independent review, not a required coding step. These roles are working
+preferences, not measured rankings or proof of separate subscription quota pools.
+Assign any requested Claude coding a bounded packet with disjoint files, current
+source, SRS/M0-M5 constraints, acceptance and tests. Verify served-model metadata
+when available and accepted code; configured/requested models alone are not proof.
+Preserve export permissions, subscription-only routes and high-risk independent
+review. Never substitute a paid API or bypass a provider denial. Development model,
+agent and handoff updates use existing coding subscriptions; they do not authorize
+production AI changes, require application API credentials, or migrate app models.
 
 Apply #1858/#1859 lessons while preparing the next candidate: put meaningful regressions
 in the required lane, not only behind a manually enabled flag; use focused tests
@@ -488,3 +543,5 @@ For a narrow wire adapter, preserve valid existing metadata and numeric contract
 do not add unrelated validation restrictions merely while normalizing one field.
 
 Before publication, inventory actual changed-builder consumers and expected DTO keys plus navigation-order assertions in existing unit, server and browser tests. Reconcile Current phase, Current acceptance, selected heading, active queue, pending proof row, canonical overview and requirement links together; move predecessor scope to its historical section rather than leaving contradictory exclusions in active acceptance. Include real component/catalog/request fixtures, affected consumer assertions and file-class modularity caps in the implementation packet; send substantive corrections to the requested implementer and attribute mechanical integration separately. Status-only input cannot establish timer history or outstanding member duties. For UI changes measure the actual offending nodes at narrow/enlarged presentation, retain semantic tokens and normal local cookie choice, and never conceal overflow with global clipping. For sticky navigation, measure each destination and heading against the actual header at narrow and enlarged text; a changed hash or guessed offset is insufficient. A successful Sonar summary does not mean zero actionable findings: inspect annotations and include moved helper fixtures in scoped types/lint before freeze. Use explicit Playwright argument forwarding for the selected path/project; verify selected test count before allowing a focused diagnostic to continue. For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI; preserve a complete denied Write input rather than retrying solely to obtain a file. Narrated tools and timeout calls are not completed implementation. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.
+
+For async polling, inventory current versus superseded or permanently hung retrieval and receipt work across automatic ticks, manual refresh, SSR revalidation and unmount before freeze. Guard the current generation through retrieval plus receipt; stale settlement must release only its own token. Distinguish logical supersession from cancellation or duplicate-write prevention. Check the full interleaving matrix in focused regressions before the first aggregate lane, rather than discovering each case in successive PR reviews. Provider quota, failed artifacts, CLI matcher and publication-text mistakes are orchestration costs; record actual author/executor and resume an owner-authorized adequate alternative without paid fallback or false Opus attribution. Restore owned build-generated files before metadata readiness, which must not rerun passed proof.
