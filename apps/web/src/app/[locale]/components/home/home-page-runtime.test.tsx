@@ -1,11 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
   funnel: vi.fn((_: unknown) => null),
   hero: vi.fn((_: unknown) => null),
   host: vi.fn((): string | null => 'tenant_al'),
-  intake: vi.fn((_: unknown) => null),
+  intake: vi.fn((_: unknown): ReactNode => null),
   replace: vi.fn(),
   session: vi.fn(),
 }));
@@ -27,6 +28,22 @@ vi.mock('./free-start-intake-shell', () => ({
 
 import { HomePageRuntime } from './home-page-runtime';
 
+let intakeMountCount = 0;
+
+function IntakeDraftFixture() {
+  const [draft, setDraft] = useState('');
+  useEffect(() => {
+    intakeMountCount += 1;
+  }, []);
+  return (
+    <input
+      data-testid="intake-draft"
+      onChange={event => setDraft(event.target.value)}
+      value={draft}
+    />
+  );
+}
+
 function renderRuntime(defaultPublicTenantId: string | undefined) {
   const props = {
     defaultPublicTenantId,
@@ -42,6 +59,8 @@ describe('HomePageRuntime', () => {
     vi.clearAllMocks();
     h.session.mockReturnValue({ data: null });
     h.host.mockReturnValue('tenant_al');
+    h.intake.mockImplementation(() => null);
+    intakeMountCount = 0;
   });
 
   it('preserves the legacy authenticated redirect when UI V2 is disabled', async () => {
@@ -82,6 +101,56 @@ describe('HomePageRuntime', () => {
       });
     });
     expect(h.funnel).not.toHaveBeenCalled();
+    expect(h.replace).not.toHaveBeenCalled();
+  });
+
+  it('settles an anonymous pending session without disturbing rendered public entry', async () => {
+    // A fresh element per render keeps React from bailing out on identical props.
+    const runtime = () => (
+      <HomePageRuntime
+        defaultPublicTenantId="tenant_ks"
+        locale="sq"
+        neutralOtpHost="front-door.localhost:3000"
+        uiV2Enabled
+      />
+    );
+    h.intake.mockImplementation(() => <IntakeDraftFixture />);
+    h.session.mockReturnValue({ data: null, isPending: true });
+    const { rerender } = render(runtime());
+
+    const pendingStatus = screen.getByRole('status', { name: 'Duke u ngarkuar...' });
+    expect(pendingStatus).toHaveAttribute('aria-busy', 'true');
+    expect(pendingStatus).toHaveTextContent('Duke u ngarkuar...');
+    // No decorative node may occupy layout above the already usable hero.
+    expect(pendingStatus.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(h.funnel).not.toHaveBeenCalled();
+
+    const draft = screen.getByTestId('intake-draft');
+    draft.focus();
+    fireEvent.change(draft, { target: { value: 'Besa' } });
+    expect(draft).toHaveValue('Besa');
+    const pendingHeroProps = h.hero.mock.lastCall?.[0];
+    const pendingIntakeProps = h.intake.mock.lastCall?.[0];
+
+    h.session.mockReturnValue({ data: null, isPending: false });
+    rerender(runtime());
+
+    await waitFor(() =>
+      expect(h.funnel).toHaveBeenLastCalledWith({
+        locale: 'sq',
+        tenantId: 'tenant_al',
+        uiV2Enabled: true,
+      })
+    );
+    expect(screen.queryByTestId('public-entry-session-skeleton')).toBeNull();
+    expect(screen.queryByRole('status', { name: 'Duke u ngarkuar...' })).toBeNull();
+    expect(screen.getByTestId('intake-draft')).toBe(draft);
+    expect(draft).toHaveValue('Besa');
+    expect(draft).toHaveFocus();
+    expect(intakeMountCount).toBe(1);
+    expect(h.hero).toHaveBeenLastCalledWith(pendingHeroProps);
+    expect(h.intake).toHaveBeenLastCalledWith(pendingIntakeProps);
+    expect(pendingIntakeProps).toMatchObject({ publicEntryEnabled: true, tenantId: 'tenant_al' });
     expect(h.replace).not.toHaveBeenCalled();
   });
 

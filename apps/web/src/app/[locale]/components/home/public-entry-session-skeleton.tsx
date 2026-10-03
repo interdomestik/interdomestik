@@ -2,6 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 
+/**
+ * Announces the pending session to assistive technology only.
+ *
+ * The public Hero and intake already render while the session resolves, so this
+ * status must stay out of the layout: a painted placeholder reserved hero space
+ * and then released it on settlement, shifting usable content.
+ */
 export function PublicEntrySessionSkeleton() {
   const common = useTranslations('common');
 
@@ -10,12 +17,11 @@ export function PublicEntrySessionSkeleton() {
       aria-busy="true"
       aria-label={common('loading')}
       aria-live="polite"
-      className="mx-auto flex min-h-[24rem] max-w-6xl items-center justify-center px-6"
+      className="sr-only"
       data-testid="public-entry-session-skeleton"
       role="status"
     >
-      <div aria-hidden="true" className="h-12 w-48 animate-pulse rounded-full bg-muted" />
-      <span className="sr-only">{common('loading')}</span>
+      {common('loading')}
     </section>
   );
 }
