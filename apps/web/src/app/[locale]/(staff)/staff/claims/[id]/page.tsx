@@ -87,6 +87,13 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
   const isStaff = session.user.role === 'staff';
   const isAssignedStaff = isStaff && detail.claim.staffId === session.user.id;
+  // The server read above is the only message read on this route. A result that did not really
+  // succeed is reported as a recoverable read failure instead of being flattened into an empty
+  // conversation, and no extra query is issued for it.
+  const serverReadSucceeded =
+    initialMessagesResult.success === true &&
+    Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
+  const initialReadFailed = isStaff && !serverReadSucceeded;
   // Phase derivation stays operative; only this route's generic verification copy is neutral so it
   // never implies an outstanding member duty. The request card remains the source of real duties.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
@@ -226,6 +233,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
               }}
               allowInternal={true}
               initialMessages={initialMessages}
+              initialReadFailed={initialReadFailed}
               fetchOnMount={false}
             />
           </div>

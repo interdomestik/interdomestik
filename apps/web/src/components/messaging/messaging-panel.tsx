@@ -1,17 +1,14 @@
 'use client';
 
-import {
-  getMessagesForClaim,
-  markMessagesAsRead,
-  type MessageWithSender,
-} from '@/actions/messages';
+import type { MessageWithSender } from '@/actions/messages';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { Loader2, MessageSquare, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { type ReactNode, useCallback, useState, useTransition } from 'react';
 import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
+import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
 
 export type OptimisticMessage = MessageWithSender & {
   status?: 'pending' | 'failed';
@@ -31,73 +28,56 @@ interface MessagingPanelProps {
   readonly initialMessages?: MessageWithSender[];
   readonly fetchOnMount?: boolean;
   readonly readOnly?: boolean;
+  /** Set when the server-rendered read of this conversation failed. No extra query is issued. */
+  readonly initialReadFailed?: boolean;
 }
 
-export function MessagingPanel({
+/**
+ * Scope shell: keying by claim, user and role guarantees that a new scope never renders the
+ * previous history, optimistic sends or draft while its first read is still pending.
+ */
+export function MessagingPanel(props: MessagingPanelProps) {
+  const { claimId, currentUser } = props;
+
+  return (
+    <ScopedMessagingPanel key={`${claimId}|${currentUser.id}|${currentUser.role}`} {...props} />
+  );
+}
+
+function ScopedMessagingPanel({
   claimId,
   currentUser,
   isAgent = false,
   allowInternal = false,
-  initialMessages = [],
+  initialMessages = NO_MESSAGES,
   fetchOnMount = true,
   readOnly = false,
+  initialReadFailed = false,
 }: MessagingPanelProps) {
   const t = useTranslations('messaging');
-  const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);
+  const {
+    hasLoadedHistory,
+    isFirstLoad,
+    isReading,
+    messages,
+    readStatusFailed,
+    refresh,
+    retrievalFailed,
+  } = useMessageReadState({
+    claimId,
+    currentUserId: currentUser.id,
+    fetchOnMount,
+    initialMessages,
+    initialReadFailed,
+  });
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(fetchOnMount && initialMessages.length === 0);
   const [isPending, startTransition] = useTransition();
-
-  const fetchMessages = useCallback(async () => {
-    // Only fetch if tab is visible? For now simplistic.
-    const result = await getMessagesForClaim(claimId);
-    if (result.success && result.messages) {
-      setMessages(result.messages);
-
-      // Simple conflict resolution: Remove optimistic if real message arrived
-      // We assume real message matches content? Or just clear all optimistic on sync?
-      // Clearing all optimistic on sync might cause flickering if the sync happens before the send completes.
-      // Better: MessageInput handles the "send complete" and tells us to remove specific optimistic ID.
-      // But if fetch happens, we might have duplicates.
-      // For now, E1 (minimal) -> we'll handle optimistic removal via callbacks.
-
-      // Mark unread messages as read
-      const unreadIds = result.messages
-        .filter(m => m.senderId !== currentUser.id && !m.readAt)
-        .map(m => m.id);
-
-      if (unreadIds.length > 0) {
-        await markMessagesAsRead(unreadIds);
-      }
-    }
-    setIsLoading(false);
-  }, [claimId, currentUser.id]);
-
-  useEffect(() => {
-    if (fetchOnMount) {
-      fetchMessages();
-    } else {
-      const unreadIds = initialMessages
-        .filter(message => message.senderId !== currentUser.id && !message.readAt)
-        .map(message => message.id);
-
-      if (unreadIds.length > 0) {
-        void markMessagesAsRead(unreadIds);
-      }
-
-      setIsLoading(false);
-    }
-
-    // Poll for new messages every 30 seconds
-    const interval = setInterval(fetchMessages, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser.id, fetchMessages, fetchOnMount, initialMessages]);
 
   const handleRefresh = useCallback(() => {
     startTransition(async () => {
-      await fetchMessages();
+      await refresh();
     });
-  }, [fetchMessages]);
+  }, [refresh]);
 
   const handleSendMessage = async (content: string, isInternal: boolean): Promise<boolean> => {
     const tempId = `temp-${Date.now()}`;
@@ -146,8 +126,7 @@ export function MessagingPanel({
   };
 
   const handleRetry = (message: OptimisticMessage) => {
-    // Remove failed message and try again (UI will populate input? Or just re-send?)
-    // Easiest for "Retry": Just re-trigger send with same content.
+    // Remove failed message and re-trigger the same send.
     setOptimisticMessages(prev => prev.filter(m => m.id !== message.id));
     handleSendMessage(message.content, message.isInternal);
   };
@@ -155,43 +134,115 @@ export function MessagingPanel({
   const allMessages = [...messages, ...optimisticMessages].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
+  // Busy follows the actual in-flight read, not a control being natively disabled.
+  const isBusy = isReading || isPending;
+  // An empty conversation is only asserted once a read has really succeeded.
+  const showThread = hasLoadedHistory || allMessages.length > 0;
+
+  // The same three outcomes as before, decided once instead of inside nested markup ternaries:
+  // the first pending read wins, then a loaded or optimistically filled thread, otherwise nothing.
+  let conversation: ReactNode = null;
+  if (isFirstLoad) {
+    conversation = (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">{t('read.loading')}</span>
+      </div>
+    );
+  } else if (showThread) {
+    conversation = (
+      <MessageThread
+        messages={allMessages}
+        currentUser={currentUser}
+        isAgent={isAgent}
+        onRetry={handleRetry}
+      />
+    );
+  }
 
   return (
-    <Card className="flex flex-col h-[500px] shadow-sm" data-testid="messaging-panel">
-      <CardHeader className="flex flex-row items-center justify-between py-2.5 px-4 border-b">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
+    // 31.25rem is exactly the familiar 500px at the default root font size, but it now follows the
+    // operator's text size: at doubled root text the conversation gets twice the room instead of
+    // pushing the error, the retry control and the draft out of the panel.
+    <Card
+      aria-busy={isBusy}
+      className="flex flex-col h-[31.25rem] shadow-sm"
+      data-testid="messaging-panel"
+    >
+      <CardHeader className="flex flex-row shrink-0 items-center justify-between gap-2 py-2.5 px-4 border-b">
+        <CardTitle className="min-w-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 flex flex-wrap items-center gap-2 break-words">
+          <MessageSquare className="h-4 w-4 shrink-0" aria-hidden="true" />
           {t('title')}
           {messages.length > 0 && (
-            <span className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+            <span
+              className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full"
+              data-testid="messaging-count"
+            >
               {messages.length}
             </span>
           )}
         </CardTitle>
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleRefresh}
+          aria-busy={isBusy}
+          aria-label={t('read.refresh')}
+          className="h-8 w-8 shrink-0"
+          data-testid="messaging-refresh"
           disabled={isPending}
+          onClick={handleRefresh}
+          size="icon"
+          variant="ghost"
         >
-          <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${isBusy ? 'animate-spin' : ''}`} aria-hidden="true" />
         </Button>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {/* The column scrolls instead of clipping: when enlarged text or long localized copy needs
+          more than the panel offers, the error, the retry control and the draft stay reachable. */}
+      <CardContent
+        className="flex-1 flex flex-col min-h-0 p-0 overflow-y-auto"
+        data-testid="messaging-panel-content"
+      >
+        {retrievalFailed ? (
+          <div
+            className={
+              showThread
+                ? 'shrink-0 border-b px-3 py-3 space-y-2'
+                : 'flex-1 flex flex-col items-start justify-center gap-3 px-3 py-4'
+            }
+            data-testid="messaging-read-error"
+          >
+            {/* Service failure, not invalid input: the draft stays put and recovery is offered.
+                Native <output> carries the status role and polite live semantics itself, so the
+                failure is still announced without an explicit role. */}
+            <output className="flex items-start gap-2 text-sm text-destructive break-words">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{t('read.loadError')}</span>
+            </output>
+            <Button
+              aria-busy={isBusy}
+              className="h-auto max-w-full whitespace-normal break-words px-3 py-2 text-left"
+              data-testid="messaging-read-retry"
+              onClick={handleRefresh}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t('read.retry')}
+            </Button>
           </div>
-        ) : (
-          <MessageThread
-            messages={allMessages}
-            currentUser={currentUser}
-            isAgent={isAgent}
-            onRetry={handleRetry}
-          />
-        )}
+        ) : null}
+
+        {readStatusFailed ? (
+          // Same polite announcement as before: <output> is a status live region natively.
+          <output
+            className="shrink-0 border-b px-3 py-2 text-xs text-muted-foreground break-words"
+            data-testid="messaging-read-status-error"
+          >
+            {t('read.statusError')}
+          </output>
+        ) : null}
+
+        {conversation}
 
         {readOnly ? null : (
           <MessageInput

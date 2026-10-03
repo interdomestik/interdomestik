@@ -108,6 +108,33 @@ describe('StaffClaimDetailsPage', () => {
     );
   });
 
+  it('flags a failed staff message read from the existing server result', async () => {
+    const callsBefore = hoisted.getMessagesForClaimCoreMock.mock.calls.length;
+    hoisted.getMessagesForClaimCoreMock.mockResolvedValueOnce({
+      success: false,
+      error: 'private read detail',
+    } as never);
+
+    await renderPage('en');
+
+    expect(screen.getByTestId('staff-claim-messaging-panel')).toHaveAttribute(
+      'data-initial-read-failed',
+      'true'
+    );
+    // The failure is read off the existing server result: no second query is issued for it.
+    expect(hoisted.getMessagesForClaimCoreMock.mock.calls).toHaveLength(callsBefore + 1);
+    expect(screen.queryByText(/private read detail/)).not.toBeInTheDocument();
+  });
+
+  it('does not flag a successful staff message read', async () => {
+    await renderPage('en');
+
+    expect(screen.getByTestId('staff-claim-messaging-panel')).toHaveAttribute(
+      'data-initial-read-failed',
+      'false'
+    );
+  });
+
   it('shows a read-only operator notice for branch managers', async () => {
     const detail = await hoisted.getStaffClaimDetailMock.getMockImplementation()!();
     hoisted.getStaffClaimDetailMock.mockResolvedValueOnce({
