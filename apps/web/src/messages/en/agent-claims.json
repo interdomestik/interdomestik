@@ -265,6 +265,16 @@
           "section_title": "Latest status note",
           "empty": "No public status notes yet.",
           "history_title": "Public status history"
+        },
+        "verification_guidance": "Case status is verification. Specific duties appear only in the information requests recorded on this case.",
+        "workspace": {
+          "back": "Back to case list",
+          "nav_label": "Case sections",
+          "reference_label": "Case reference",
+          "handling": "Handling actions",
+          "requests": "Information requests",
+          "context": "Case context",
+          "history": "Status history"
         }
       },
       "staff_actions": {

@@ -16,7 +16,9 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Arben confirmed `S7-MEMBER-CASE-WORKSPACE` as the first of three preauthorized bounded successors, with actual Claude Pro Opus implementation and protected completion. The active slice puts public progress, the authoritative information-request card and help before secondary messages/evidence/history, with a coherent adaptive reading order. Verification with the existing `incomplete` phase receives neutral legacy SLA-display copy in EN/SQ/MK/SR; draft, running and other states remain unchanged. Request-specific duties come only from the injected request card. Existing header actions, routes, section/page-ready markers, message focus, support encoding, erasure, recovery/allowance and tenant/privacy contracts remain. No query, writer, auth, schema, operative SLA/risk/timer or architecture change is selected. Owner mockups are inspiration only, with no approved palette; this is one bounded redesign increment, not the full application redesign. Technical and human acceptance remain pending for this candidate.
+Arben confirmed `S7-STAFF-CASE-WORKSPACE` as the second of three preauthorized bounded Opus successors. Existing authorized staff handling actions and the authoritative information-request card move immediately after case identity; messages, public history and context gain discoverable permitted section destinations. Branch managers remain explicitly read-only with no mutation controls or mutation-only navigation. This mounted route alone receives neutral verification/incomplete display in EN/SQ/MK/SR; specific duties remain in the real request card, and other phases retain existing copy. No query, writer, role/auth/proxy/schema, operative SLA/risk/timer or architecture change is selected. This is a bounded task-first redesign increment inspired by owner mockups, not an approved palette or full-app redesign. Implementation, protected delivery and human acceptance for this candidate remain pending.
+
+#1865 member case workspace is technically delivered; see [completed scope and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Whole S7 and human acceptance remain open.
 
 The bounded staff-history projection performance repair is technically delivered by
 [#1859](https://github.com/interdomestik/interdomestik/pull/1859). Exact-merge Actions and
@@ -31,7 +33,7 @@ Member overview next-action truth is technically delivered by [#1862](https://gi
 Verification cases offer neutral detail/update navigation without asserting an outstanding request.
 Exact-merge Actions/staging passed; completed proof is in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-next-action-truth-delivery-1862).
 Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card.
-Member handling-assurance guidance is technically delivered by [#1864](https://github.com/interdomestik/interdomestik/pull/1864). Exact-merge Actions and staging/P0 passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-delivery-1864). Neutral verification/incomplete presentation preserves specific request authority, other states, support links, erasure and query/writer/privacy boundaries. Operative SLA/risk/timer policy and the distinct legacy SLA status display remain unchanged. Whole S7 and human acceptance remain open.
+Member handling-assurance guidance is technically delivered by [#1864](https://github.com/interdomestik/interdomestik/pull/1864). Exact-merge Actions and staging/P0 passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-delivery-1864). Neutral verification/incomplete presentation preserves specific request authority, other states, support links, erasure and query/writer/privacy boundaries. Within #1864, operative SLA/risk/timer policy and legacy SLA display were unchanged; #1865 subsequently neutralized the member verification-only display while preserving operative policy. Whole S7 and human acceptance remain open.
 
 Agent execution and Arben's human acceptance remain separate; whole S7 and SRS clauses
 remain open. No new conflict policy, legal/SLA, billing or architecture change is selected.
@@ -348,15 +350,19 @@ alone is not business or user acceptance.
 
 ## Current Repair Acceptance
 
-### Confirmed member case workspace acceptance
+### Confirmed staff case workspace acceptance
 
-- Public progress, companion guidance and the authoritative request card precede secondary content; messages, documents and public history remain discoverable with stable section destinations.
-- Verification/incomplete SLA-display guidance is neutral in EN/SQ/MK/SR; absent or fulfilled requests gain no invented member duty, while an open request retains its specific upload action.
-- The existing responsive header and Send message scroll/focus/reduced-motion action, case-scoped support link and recovery/allowance/erasure behavior are preserved.
-- Use actual phase/assurance builders, four real catalogs and absent/open/fulfilled request-card fixtures. Preserve other lifecycle and running/draft display expectations.
-- Prove mounted reading order, keyboard destinations and no horizontal overflow at 320 CSS pixels and 200% presentation through the normal authenticated own-case browser fixture; composition tests are not persistence or whole-route proof.
-- Consolidate current-head findings before one required local verification lane; protected merge and exact-SHA Actions/staging remain separate evidence. Whole S7, business/operational and human acceptance stay open.
-- No operative SLA/risk/timer, query, writer, auth, proxy, schema, billing or architecture change; no approved palette or full-redesign completion claim.
+- Existing case identity/status/reference and staff page-ready/test markers remain; authorized handling/request controls precede secondary context.
+- Conditional localized section navigation targets rendered sections only; branch managers have read-only notice, no staff actions/message/form controls or mutation-only navigation.
+- Real EN/SQ/MK/SR catalogs and real request-card composition cover absent/open/fulfilled/read-error state with unchanged acknowledgment authorization and authoritative duties.
+- Only this route’s verification/incomplete presentation becomes neutral; draft/running/other phases, operative policy/timers, erasure, recovery/allowance, assignments, initial messages and privacy remain unchanged.
+- Focused normal-authenticated synthetic browser proof covers keyboard destinations, long references, 320 CSS-pixel reflow, enlarged presentation and reduced motion; no native-zoom or human-acceptance inference. Staff-only responsive header and optional handling-panel density preserve default other consumers and all operational handlers; document/body/workspace reflow is measured without clipping.
+- Consolidate actual current-head review/comments/Sonar and affected consumers before one required local pr:verify/security lane; protected merge and exact-six Actions/staging remain separate proof.
+- No query/writer/auth/proxy/schema/billing/architecture or operative SLA/risk/timer changes, no full-redesign/palette or whole S7/SRS completion claim.
+
+### Delivered member case workspace (#1865)
+
+Member case workspace #1865 is technically delivered; see [completed acceptance and proof](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865). Human acceptance remains open; current staff-workspace proof is separate.
 
 ### Delivered member overview next-action truth (#1862)
 
@@ -368,7 +374,7 @@ Human acceptance remains open. The confirmed neutral generic detail successor is
 
 Member generic detail guidance is technically delivered by [#1863](https://github.com/interdomestik/interdomestik/pull/1863). Exact-merge Actions/staging passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-detail-guidance-truth-delivery-1863). Neutral verification guidance preserves specific obligations in the authoritative request card. Human acceptance remains open.
 
-Member handling-assurance guidance is technically delivered by [#1864](https://github.com/interdomestik/interdomestik/pull/1864). Exact-merge Actions and staging/P0 passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-delivery-1864). Neutral verification/incomplete presentation preserves specific request authority, other states, support links, erasure and query/writer/privacy boundaries. Operative SLA/risk/timer policy and the distinct legacy SLA status display remain unchanged. Whole S7 and human acceptance remain open.
+Member handling-assurance guidance is technically delivered by [#1864](https://github.com/interdomestik/interdomestik/pull/1864). Exact-merge Actions and staging/P0 passed; see the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-assurance-guidance-truth-delivery-1864). Neutral verification/incomplete presentation preserves specific request authority, other states, support links, erasure and query/writer/privacy boundaries. Within #1864, operative SLA/risk/timer policy and legacy SLA display were unchanged; #1865 subsequently neutralized the member verification-only display while preserving operative policy. Whole S7 and human acceptance remain open.
 
 ### Delivered member case amount continuity (#1861)
 

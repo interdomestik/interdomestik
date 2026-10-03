@@ -1,6 +1,16 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { hoisted, renderPage } from './page-test-support';
+
+// Nav destinations and section headings now share the same shipped copy, so each label is expected
+// exactly once per side instead of once across the whole document.
+const SQ_SECTION_LABELS = [
+  'Veprimet e trajtimit',
+  'Kërkesat për informacion',
+  'Mesazhet',
+  'Konteksti i rastit',
+  'Historiku i statusit',
+];
 
 describe('StaffClaimDetailsPage', () => {
   it.each([
@@ -19,6 +29,7 @@ describe('StaffClaimDetailsPage', () => {
       expect(screen.queryByTestId('staff-information-request-form') !== null).toBe(visible);
     }
   );
+
   it('localizes section labels on non-English staff claim detail routes', async () => {
     await renderPage('sq');
 
@@ -36,7 +47,29 @@ describe('StaffClaimDetailsPage', () => {
     expect(screen.getByText('Agjenti')).toBeInTheDocument();
     expect(screen.getByText('Shënimi i fundit i statusit')).toBeInTheDocument();
     expect(screen.getByText('Nuk ka ende shënime publike të statusit.')).toBeInTheDocument();
-    expect(screen.getByText('Mesazhet')).toBeInTheDocument();
+    // Messages now label both the section destination and the section itself.
+    expect(screen.getAllByText('Mesazhet')).toHaveLength(2);
+    expect(screen.getByTestId('staff-claim-workspace-back')).toHaveTextContent(
+      'Kthehu te lista e rasteve'
+    );
+    expect(screen.getByTestId('staff-claim-workspace-nav')).toHaveAttribute(
+      'aria-label',
+      'Seksionet e rastit'
+    );
+
+    // One nav destination per section, scoped to the nav region.
+    const nav = within(screen.getByTestId('staff-claim-workspace-nav'));
+    for (const label of SQ_SECTION_LABELS) {
+      expect(nav.getAllByText(label)).toHaveLength(1);
+    }
+
+    // The section headings keep their own localized copy under the shipped section markers.
+    expect(
+      within(screen.getByTestId('staff-claim-detail-actions')).getByText('Veprimet e trajtimit')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('staff-claim-context')).getByText('Konteksti i rastit')
+    ).toBeInTheDocument();
   });
 
   it.each([false, true])(

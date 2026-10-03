@@ -41,13 +41,14 @@ export default async function StaffLayout({
     <AuthenticatedShell locale={locale} messages={messages}>
       <SidebarProvider defaultOpen={true}>
         <StaffSidebar user={shellUser} />
-        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+        <SidebarInset className="bg-mesh flex min-w-0 flex-col min-h-screen">
           <DashboardHeader
             user={shellUser}
             adminAccess={adminAccess}
             prefetchNotifications={false}
+            density="responsive-compact"
           />
-          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+          <main className="flex-1 p-3 sm:p-6 md:p-8 pt-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </AuthenticatedShell>

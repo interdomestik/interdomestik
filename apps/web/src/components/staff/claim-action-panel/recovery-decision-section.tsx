@@ -109,17 +109,19 @@ export function RecoveryDecisionSection({
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      {/* Presentation only: the grid track may shrink below long localized action labels. */}
+      <div className="grid min-w-0 gap-3 md:grid-cols-2">
         <Button
           onClick={onAcceptRecoveryDecision}
           disabled={isPending}
+          className="h-auto min-h-10 w-full min-w-0 whitespace-normal py-2 text-center"
           data-testid="staff-accept-recovery-decision-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('staff_actions.recovery_decision.accept')}
         </Button>
 
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <label htmlFor="recovery-decline-reason" className="text-sm font-medium">
             {t('staff_actions.recovery_decision.decline_category_label')}
           </label>

@@ -95,4 +95,38 @@ describe('DashboardHeader', () => {
     expect(header).toHaveClass('sticky');
     expect(header).toHaveClass('top-0');
   });
+
+  it('keeps every control and the notification identity in responsive compact density', () => {
+    render(
+      <DashboardHeader
+        user={{ id: 'staff-1', role: 'staff', name: 'Staff One' }}
+        adminAccess={false}
+        density="responsive-compact"
+      />
+    );
+
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-trigger')).toBeVisible();
+    expect(screen.getByTestId('portal-surface-indicator-mock')).toBeVisible();
+    expect(screen.getByTestId('notification-bell-mock')).toBeVisible();
+    expect(screen.getByTestId('user-nav-mock')).toBeVisible();
+    expect(notificationBellMock).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriberId: 'staff-1', prefetchNotifications: false })
+    );
+  });
+
+  it('leaves the default (non opt-in) header contract untouched', () => {
+    render(<DashboardHeader user={{ id: 'member-1', role: 'member' }} />);
+
+    const header = screen.getByRole('banner');
+    expect(header.dataset.density).toBeUndefined();
+    expect(header).toHaveClass('h-16');
+    expect(header).not.toHaveClass('flex-wrap');
+    expect(screen.getByTestId('portal-surface-indicator-mock')).toBeVisible();
+    expect(screen.getByTestId('notification-bell-mock')).toBeVisible();
+    expect(screen.getByTestId('user-nav-mock')).toBeVisible();
+    expect(notificationBellMock).toHaveBeenCalledWith(
+      expect.objectContaining({ subscriberId: 'member-1', prefetchNotifications: false })
+    );
+  });
 });

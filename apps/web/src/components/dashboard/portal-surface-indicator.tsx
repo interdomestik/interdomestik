@@ -39,7 +39,10 @@ function inferPortalKeyFromRole(role: string | undefined): PortalKey | null {
   return null;
 }
 
-function PortalSurfaceIndicatorInner({ role }: Readonly<{ role?: string }>) {
+function PortalSurfaceIndicatorInner({
+  role,
+  className,
+}: Readonly<{ role?: string; className?: string }>) {
   const pathname = usePathname();
   const t = useTranslations('dashboard.shell');
   const pathPortalKey = inferPortalKeyFromPath(pathname);
@@ -49,7 +52,9 @@ function PortalSurfaceIndicatorInner({ role }: Readonly<{ role?: string }>) {
 
   return (
     <div
-      className="flex items-center gap-3 rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground"
+      className={`flex items-center gap-3 rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground${
+        className ? ` ${className}` : ''
+      }`}
       data-testid="portal-surface-indicator"
     >
       <span>{t('portal_label', { portal: t(`portal.${portalKey}`) })}</span>
@@ -62,13 +67,16 @@ function PortalSurfaceIndicatorInner({ role }: Readonly<{ role?: string }>) {
   );
 }
 
-export function PortalSurfaceIndicator({ role }: Readonly<{ role?: string }>) {
+export function PortalSurfaceIndicator({
+  role,
+  className,
+}: Readonly<{ role?: string; className?: string }>) {
   if (role !== undefined) {
-    return <PortalSurfaceIndicatorInner role={role} />;
+    return <PortalSurfaceIndicatorInner role={role} className={className} />;
   }
 
   const { data: session } = authClient.useSession();
   const sessionRole = (session?.user as { role?: string } | undefined)?.role;
 
-  return <PortalSurfaceIndicatorInner role={sessionRole} />;
+  return <PortalSurfaceIndicatorInner role={sessionRole} className={className} />;
 }

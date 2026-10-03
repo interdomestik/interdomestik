@@ -150,6 +150,16 @@
           "section_title": "Shënimi i fundit i statusit",
           "empty": "Nuk ka ende shënime publike të statusit.",
           "history_title": "Historiku publik i statusit"
+        },
+        "verification_guidance": "Statusi i rastit është verifikim. Detyrat konkrete shfaqen vetëm në kërkesat për informacion të regjistruara për këtë rast.",
+        "workspace": {
+          "back": "Kthehu te lista e rasteve",
+          "nav_label": "Seksionet e rastit",
+          "reference_label": "Referenca e rastit",
+          "handling": "Veprimet e trajtimit",
+          "requests": "Kërkesat për informacion",
+          "context": "Konteksti i rastit",
+          "history": "Historiku i statusit"
         }
       },
       "staff_actions": {

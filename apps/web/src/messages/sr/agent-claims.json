@@ -150,6 +150,16 @@
           "section_title": "Poslednja statusna beleška",
           "empty": "Još nema javnih statusnih beleški.",
           "history_title": "Javna istorija statusa"
+        },
+        "verification_guidance": "Status predmeta je verifikacija. Konkretne obaveze prikazuju se samo u zahtevima za informacije evidentiranim za ovaj predmet.",
+        "workspace": {
+          "back": "Nazad na listu predmeta",
+          "nav_label": "Delovi predmeta",
+          "reference_label": "Referenca predmeta",
+          "handling": "Radnje obrade",
+          "requests": "Zahtevi za informacije",
+          "context": "Kontekst predmeta",
+          "history": "Istorija statusa"
         }
       },
       "staff_actions": {
