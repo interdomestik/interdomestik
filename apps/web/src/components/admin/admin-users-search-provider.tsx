@@ -23,7 +23,7 @@ import {
   type AdminUsersPendingKind,
   type AdminUsersSearchValue,
 } from './admin-users-search-context';
-import { buildDraftSearchHref, buildSearchQuery } from './admin-users-search-query';
+import { buildDraftSearchHref, buildSearchQuery, shouldReassert } from './admin-users-search-query';
 
 export { useAdminUsersSearch } from './admin-users-search-context';
 
@@ -134,7 +134,7 @@ export function AdminUsersSearchProvider({ children }: { readonly children: Reac
       ownNavigations.current.delete(paramsString);
       // Older acknowledgements retain the draft and cannot settle a newer request.
       if (requestedParams.current !== paramsString) {
-        if (requestedParams.current === null && navigationParams.current !== paramsString) {
+        if (shouldReassert(requestedParams.current, navigationParams.current, paramsString)) {
           const target = navigationParams.current;
           requestedParams.current = target;
           ownNavigations.current.add(target);

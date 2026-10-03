@@ -31,3 +31,16 @@ export function buildDraftSearchHref(
   const nextQuery = buildSearchQuery(nextParams.toString(), draft);
   return nextQuery ? `${targetPath}?${nextQuery}` : targetPath;
 }
+
+/**
+ * Decides whether a retained target still has to be reasserted once an older
+ * acknowledgement arrives: only when nothing is already requested and the
+ * published query is not the retained target yet.
+ */
+export function shouldReassert(
+  requestedQuery: string | null,
+  targetQuery: string,
+  publishedQuery: string
+): boolean {
+  return requestedQuery === null && targetQuery !== publishedQuery;
+}
