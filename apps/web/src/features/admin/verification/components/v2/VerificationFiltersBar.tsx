@@ -56,10 +56,11 @@ export function VerificationFiltersBar({
         isPending={isFilterPending}
         searchDisabled={isFilterPending}
       />
+      {/* <output> already carries the status role natively. */}
       {isBusy ? (
-        <p role="status" className="sr-only" data-testid="verification-search-pending">
+        <output className="sr-only" data-testid="verification-search-pending">
           {tCommon('loading')}
-        </p>
+        </output>
       ) : null}
     </div>
   );

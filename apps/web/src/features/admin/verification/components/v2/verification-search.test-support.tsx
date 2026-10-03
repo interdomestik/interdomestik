@@ -36,7 +36,7 @@ vi.mock('next-intl', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock('../../actions/verification', () => ({
-  verifyCashAttemptAction: vi.fn(async () => ({ success: true })),
+  verifyCashAttemptAction: vi.fn(() => Promise.resolve({ success: true })),
 }));
 
 vi.mock('./VerificationKpis', () => ({
@@ -45,16 +45,15 @@ vi.mock('./VerificationKpis', () => ({
   ),
 }));
 
+// Each stub only declares the props it actually consumes; the production
+// imports keep their real component types, so validation is unaffected.
 vi.mock('./VerificationTableV2', () => ({
   VerificationTableV2: ({
     data,
     onViewDetails,
   }: {
     data: { id: string }[];
-    historyMode: boolean;
     onViewDetails: (id: string) => void;
-    onVerify: (id: string) => void;
-    onAction: (id: string, decision: 'reject' | 'needs_info') => void;
   }) => (
     <div data-testid="verification-table">
       {data.map(row => (
@@ -72,15 +71,7 @@ vi.mock('./VerificationTableV2', () => ({
 }));
 
 vi.mock('../VerificationDetailsDrawer', () => ({
-  VerificationDetailsDrawer: ({
-    isOpen,
-    onClose,
-  }: {
-    attemptId: string | null;
-    isOpen: boolean;
-    onClose: () => void;
-    onActionComplete: () => void;
-  }) =>
+  VerificationDetailsDrawer: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? (
       <button type="button" data-testid="drawer-close" onClick={onClose}>
         close
@@ -89,16 +80,8 @@ vi.mock('../VerificationDetailsDrawer', () => ({
 }));
 
 vi.mock('../VerificationActionDialog', () => ({
-  VerificationActionDialog: ({
-    open,
-  }: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    pendingDecision: 'reject' | 'needs_info' | null;
-    note: string;
-    onNoteChange: (note: string) => void;
-    onSubmit: () => void;
-  }) => (open ? <div data-testid="verification-action-dialog" /> : null),
+  VerificationActionDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="verification-action-dialog" /> : null,
 }));
 
 export const FIXTURE_HREFS = {
