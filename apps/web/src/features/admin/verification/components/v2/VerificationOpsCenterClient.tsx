@@ -2,10 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useOpsSelectionParam, trackOpsEvent } from '@/components/ops';
+import { useResponsiveSearch } from '@/hooks/use-responsive-search';
+import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
 import { verifyCashAttemptAction } from '../../actions/verification';
 import { type CashVerificationRequestDTO } from '../../server/types';
 import { VerificationActionDialog } from '../VerificationActionDialog';
@@ -30,18 +32,48 @@ export function VerificationOpsCenterClient({
   const {
     selectedId: selectedAttemptId,
     setSelectedId: baseSetSelectedId,
-    clearSelectedId: handleCloseDetails,
+    clearSelectedId: baseClearSelectedId,
   } = useOpsSelectionParam();
 
+  // Shared responsive search: the draft stays editable while a navigation is
+  // outstanding, and a burst of keystrokes commits once, after the last one.
+  // Default param policy: the raw term is written as typed, an empty term
+  // deletes the key, and every other param is left exactly as it is.
+  const {
+    draft: searchQuery,
+    pendingKind,
+    isNavigationPending,
+    editDraft,
+    requestNavigation,
+    cancelScheduledSearch,
+    getPendingKind,
+  } = useResponsiveSearch({
+    searchParams,
+    searchKey: 'query',
+    pathname,
+    initialDraft: initialParams.query,
+    navigate: query => {
+      router.replace(`${pathname}?${query}`);
+    },
+  });
+
+  // A real sibling navigation (sidebar, tab anchor) drops queued search work.
+  useSiblingNavigationCancel(cancelScheduledSearch);
+
+  // Selection navigation is programmatic, so the click listener cannot observe
+  // it: the queued commit is dropped here, synchronously, before the replace.
   const handleSelect = (id: string) => {
     trackOpsEvent({ surface: 'verification', action: 'select', entityId: id });
+    cancelScheduledSearch(null);
     baseSetSelectedId(id);
   };
 
-  const [requests, setRequests] = useState(initialData);
+  const handleCloseDetails = () => {
+    cancelScheduledSearch(null);
+    baseClearSelectedId();
+  };
 
-  // Search State
-  const [searchQuery, setSearchQuery] = useState(initialParams.query);
+  const [requests, setRequests] = useState(initialData);
 
   // Sync prop to state
   useEffect(() => {
@@ -54,24 +86,16 @@ export function VerificationOpsCenterClient({
   const [pendingDecision, setPendingDecision] = useState<'reject' | 'needs_info' | null>(null);
   const [note, setNote] = useState('');
 
-  // Search Debounce
-  const debounceRef = useRef<NodeJS.Timeout>(null);
-  const handleSearch = (term: string) => {
-    setSearchQuery(term);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const params = new URLSearchParams(searchParams);
-      if (term) params.set('query', term);
-      else params.delete('query');
-      router.replace(`${pathname}?${params.toString()}`);
-    }, 300);
-  };
-
   const handleViewChange = (view: 'queue' | 'history') => {
-    const params = new URLSearchParams(searchParams);
-    params.set('view', view);
-    params.delete('selected'); // Clear selection on view change
-    router.replace(`${pathname}?${params.toString()}`);
+    // Only a real outstanding filter navigation blocks another one: a queued
+    // search draft is superseded by the view change instead of blocking it.
+    if (getPendingKind() === 'filter') {
+      return;
+    }
+
+    // Shared ownership: this cancels the queued search synchronously and keeps
+    // the committed query, clearing only the selection.
+    requestNavigation({ view, selected: null }, 'filter');
   };
 
   // Derive KPIs from data
@@ -152,7 +176,9 @@ export function VerificationOpsCenterClient({
         view={initialParams.view}
         onViewChange={handleViewChange}
         searchQuery={searchQuery}
-        onSearchChange={handleSearch}
+        onSearchChange={editDraft}
+        isFilterPending={pendingKind === 'filter'}
+        isBusy={isNavigationPending}
       />
 
       {/* Table */}
