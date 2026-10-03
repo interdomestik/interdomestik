@@ -2,7 +2,7 @@
 
 This Codex agent owns one bounded Interdomestik development task. Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
-`2026-10-02-post1863-lessons`). An optional personal installation at
+`2026-10-03-post1864-lessons`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` makes the named role available across
 worktrees on that host; this repository also carries the project definition. It uses the existing Codex login
 and inherited MCP connections; it requires no separate Agents API application.
@@ -486,3 +486,5 @@ full lane for that cleanup.
 
 For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
 do not add unrelated validation restrictions merely while normalizing one field.
+
+Before publication, inventory actual changed-builder consumers and expected DTO keys, including existing server integration tests. Reconcile Current phase, Current acceptance, selected heading, active queue, proof ledger and requirement links together; a corrected queue alone does not establish canonical consistency. Include real component/catalog/request-fixture interfaces in a requested Claude implementation packet, and send substantive fixture corrections back to the requested implementer; attribute mechanical integration separately. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.

@@ -15,7 +15,7 @@ import {
   withMemberVaultConsentFixture as F,
 } from './member-vault-consent-display.fixture';
 
-const S = ['progress', 'evidence', 'history', 'messaging'] as const;
+const S = ['progress', 'messaging', 'evidence', 'history'] as const;
 // prettier-ignore
 const V = [[320, 740, ''], [390, 844, ''], [768, 1024, ''], [1440, 900, ''], [320, 740, '200%']] as const;
 const C = { en, mk, sq, sr } as const;
@@ -56,7 +56,7 @@ test.describe('Vault consent', () => {
       const ls = P(n.project.name) ? (['mk', 'sr'] as const) : (['sq', 'en'] as const);
       await p.route('**/api/claims/evidence-upload', route => route.abort());
       for (const l of ls) {
-        const c = C[l].claims, x = c.detail.continuity, U = c.detail.evidenceUpload, L = [x.progress, x.evidence, x.history, x.messages], h = routes.member(l);
+        const c = C[l].claims, x = c.detail.continuity, U = c.detail.evidenceUpload, L = [x.progress, x.messages, x.evidence, x.history], h = routes.member(l);
         await p.emulateMedia({ reducedMotion: 'no-preference' }); await gotoApp(p, routes.memberClaimDetail(u.claimId, l), n, { marker: M });
 
         const b = p.getByRole('link', { name: x.backToWorkspace, exact: true }), k = b.locator('xpath=ancestor::div[contains(@class,"bg-card")][1]'), r = k.locator('xpath=..'), nav = r.getByRole('navigation', { name: x.sectionNavigation, exact: true }), a = nav.getByRole('link'), q = S.map(s => `#member-claim-detail-${s}`).join(','), N = r.locator(`header:has(a[href="${h}"]),nav[aria-label="${x.sectionNavigation}"],${q}`);

@@ -29,7 +29,8 @@
       "sla": {
         "title": "SLA status",
         "running": "Rok za odgovor je aktivan.",
-        "incomplete": "Čekamo vaše informacije pre nego što SLA počne."
+        "incomplete": "Čekamo vaše informacije pre nego što SLA počne.",
+        "verification": "Vaš predmet je u verifikaciji. Ako nam nešto bude potrebno od vas, to se prikazuje kao konkretan zahtev za informacije na ovoj stranici."
       },
       "assurance": {
         "title": "Sigurnost obrade",

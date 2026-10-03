@@ -17,6 +17,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRef, type ReactNode } from 'react';
 import { CaseCompanionNextStepCard } from './CaseCompanionNextStepCard';
 import { MemberClaimEvidenceSection } from './MemberClaimEvidenceSection';
+import { MemberClaimProgressSummary } from './MemberClaimProgressSummary';
 import { MemberRecoveryDecisionCard } from './MemberRecoveryDecisionCard';
 import {
   MEMBER_CLAIM_DETAIL_SECTION_IDS,
@@ -99,9 +100,15 @@ export function MemberClaimDetailOpsPage({
     String(claim.progressSummary.latestUpdateAt)
   );
   const hasMemberSlaStatus = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
+  // Status alone cannot establish an outstanding member duty, so the verification status must not
+  // reuse the "waiting for your information" phase copy reserved for confirmed member tasks.
+  const memberSlaCopyKey =
+    claim.status === 'verification' && claim.slaPhase === 'incomplete'
+      ? ('verification' as const)
+      : claim.slaPhase;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
+    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8" data-testid="member-claim-detail-page">
       <MemberClaimDetailHeader
         claimId={claim.id}
         localizedStatusLabel={localizedStatusLabel}
@@ -111,117 +118,97 @@ export function MemberClaimDetailOpsPage({
         uploadAction={uploadAction}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          <section
-            id={MEMBER_CLAIM_DETAIL_SECTION_IDS.progress}
-            aria-label={tContinuity('progress')}
-            className="scroll-mt-24 space-y-6"
-          >
-            <Card data-testid="member-claim-progress-summary">
-              <CardHeader>
-                <CardTitle>{t('detail.progress.title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {t('detail.progress.currentState')}
-                    </span>
-                    <p className="mt-1 font-semibold" data-testid="member-claim-current-state">
-                      {translateTrackingLabel(claim.progressSummary.currentStatusLabelKey)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-xs uppercase text-muted-foreground">
-                      {t('detail.progress.latestUpdate')}
-                    </span>
-                    <p className="mt-1 font-semibold" data-testid="member-claim-latest-update">
-                      {translateTrackingLabel(claim.progressSummary.latestUpdateLabelKey)}
-                    </p>
-                    <p
-                      className="mt-1 text-xs text-muted-foreground"
-                      data-testid="member-claim-latest-update-date"
-                    >
-                      {latestUpdateDate}
-                    </p>
-                    {claim.progressSummary.latestUpdateNote ? (
-                      <p className="mt-2 text-sm" data-testid="member-claim-latest-update-note">
-                        {localizeMemberRecoveryPublicNote(
-                          claim.progressSummary.latestUpdateNote,
-                          t
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Task-first: public progress, the case companion step and any authoritative request. */}
+      <section
+        id={MEMBER_CLAIM_DETAIL_SECTION_IDS.progress}
+        aria-label={tContinuity('progress')}
+        className="min-w-0 scroll-mt-24 space-y-6"
+      >
+        <MemberClaimProgressSummary
+          latestUpdateDate={latestUpdateDate}
+          progressSummary={claim.progressSummary}
+        />
 
-            <CaseCompanionNextStepCard nextStep={claim.caseCompanionNextStep} />
-            {informationRequests}
-          </section>
+        <CaseCompanionNextStepCard nextStep={claim.caseCompanionNextStep} />
+        {informationRequests}
+      </section>
 
-          {hasMemberSlaStatus ? (
-            <Card data-testid="member-claim-sla-status">
-              <CardHeader>
-                <CardTitle>{tTrackingSla('title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium" data-testid="member-claim-sla-status-phase">
-                  {tTrackingSla(claim.slaPhase)}
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <Card data-testid="member-claim-trust-sla-panel">
+      {/* Help and handling summary stay visible before secondary case content. */}
+      <div className="min-w-0 space-y-6" data-testid="member-claim-help-summary">
+        {hasMemberSlaStatus ? (
+          <Card data-testid="member-claim-sla-status">
             <CardHeader>
-              <CardTitle>{translateAssurance(claim.memberTrustSummary.titleKey)}</CardTitle>
+              <CardTitle>{tTrackingSla('title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <span className="text-xs uppercase text-muted-foreground">
-                    {tAssurance('stateLabel')}
-                  </span>
-                  <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-state">
-                    {translateAssurance(claim.memberTrustSummary.stateLabelKey)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs uppercase text-muted-foreground">
-                    {tAssurance('latestUpdateLabel')}
-                  </span>
-                  <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-latest">
-                    {latestUpdateDate}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs uppercase text-muted-foreground">
-                    {tAssurance('supportLabel')}
-                  </span>
-                  <Button className="mt-2 w-full justify-start" size="sm" variant="outline" asChild>
-                    <Link
-                      href={claim.memberTrustSummary.supportHref}
-                      data-testid="member-claim-trust-sla-support-link"
-                    >
-                      <LifeBuoy className="mr-2 h-4 w-4" />
-                      {tAssurance('supportCta')}
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-              <p
-                className="mt-4 text-sm text-muted-foreground"
-                data-testid="member-claim-trust-sla-body"
-              >
-                {translateAssurance(claim.memberTrustSummary.bodyKey)}
+              <p className="text-sm font-medium" data-testid="member-claim-sla-status-phase">
+                {tTrackingSla(memberSlaCopyKey)}
               </p>
             </CardContent>
           </Card>
+        ) : null}
 
+        <Card data-testid="member-claim-trust-sla-panel">
+          <CardHeader>
+            <CardTitle>{translateAssurance(claim.memberTrustSummary.titleKey)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="min-w-0">
+                <span className="text-xs uppercase text-muted-foreground">
+                  {tAssurance('stateLabel')}
+                </span>
+                <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-state">
+                  {translateAssurance(claim.memberTrustSummary.stateLabelKey)}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs uppercase text-muted-foreground">
+                  {tAssurance('latestUpdateLabel')}
+                </span>
+                <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-latest">
+                  {latestUpdateDate}
+                </p>
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs uppercase text-muted-foreground">
+                  {tAssurance('supportLabel')}
+                </span>
+                <Button className="mt-2 w-full justify-start" size="sm" variant="outline" asChild>
+                  <Link
+                    href={claim.memberTrustSummary.supportHref}
+                    data-testid="member-claim-trust-sla-support-link"
+                  >
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    {tAssurance('supportCta')}
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <p
+              className="mt-4 text-sm text-muted-foreground"
+              data-testid="member-claim-trust-sla-body"
+            >
+              {translateAssurance(claim.memberTrustSummary.bodyKey)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <section
+        ref={messagingSectionRef}
+        id={MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging}
+        aria-label={tContinuity('messages')}
+        className="min-w-0 scroll-mt-24"
+        data-testid="member-claim-detail-messaging"
+        tabIndex={-1}
+      >
+        <MemberCaseMessages claimId={claim.id} currentUser={currentUser} />
+      </section>
+
+      {/* Evidence, details and the public timeline: reference content after the member tasks. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {claim.recoveryDecision ? (
             <MemberRecoveryDecisionCard
               decision={claim.recoveryDecision}
@@ -235,7 +222,7 @@ export function MemberClaimDetailOpsPage({
                 <CardTitle>{t('detail.matterAllowance.title')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid gap-4 text-sm sm:grid-cols-3">
                   <div>
                     <span className="text-xs uppercase text-muted-foreground">
                       {t('detail.matterAllowance.used')}
@@ -274,18 +261,18 @@ export function MemberClaimDetailOpsPage({
             </Card>
           ) : null}
 
-          <Card>
+          <Card data-testid="member-claim-case-details">
             <CardHeader>
               <CardTitle>{t('detail.caseDetails')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm">{claim.description}</p>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
                   <span className="text-xs text-muted-foreground uppercase">
                     {t('table.amount')}
                   </span>
-                  <p className="font-medium">
+                  <p className="font-medium break-words">
                     {claim.amount} {claim.currency}
                   </p>
                 </div>
@@ -296,7 +283,7 @@ export function MemberClaimDetailOpsPage({
           <section
             id={MEMBER_CLAIM_DETAIL_SECTION_IDS.evidence}
             aria-label={tContinuity('evidence')}
-            className="scroll-mt-24"
+            className="min-w-0 scroll-mt-24"
           >
             <MemberClaimEvidenceSection
               claimId={claim.id}
@@ -306,11 +293,10 @@ export function MemberClaimDetailOpsPage({
           </section>
         </div>
 
-        {/* Sidebar */}
         <aside
           id={MEMBER_CLAIM_DETAIL_SECTION_IDS.history}
           aria-label={tContinuity('history')}
-          className="scroll-mt-24 lg:col-span-1"
+          className="min-w-0 scroll-mt-24 lg:col-span-1"
         >
           <OpsTimeline
             title={t('timeline.title')}
@@ -319,17 +305,6 @@ export function MemberClaimDetailOpsPage({
             formatTimestamp={value => formatPilotDateTime(value, locale, String(value))}
           />
         </aside>
-
-        <section
-          ref={messagingSectionRef}
-          id={MEMBER_CLAIM_DETAIL_SECTION_IDS.messaging}
-          aria-label={tContinuity('messages')}
-          className="scroll-mt-24 lg:col-span-2"
-          data-testid="member-claim-detail-messaging"
-          tabIndex={-1}
-        >
-          <MemberCaseMessages claimId={claim.id} currentUser={currentUser} />
-        </section>
       </div>
     </div>
   );

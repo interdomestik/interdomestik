@@ -24,11 +24,13 @@ export function MemberClaimEvidenceSection({
   return (
     <div className="min-w-0 space-y-4">
       <MemberVaultConsentCard display={vaultConsentDisplay} />
+      {/* Members read this detail at 320 CSS px, so the nowrap upload action wraps under the title. */}
       <OpsDocumentsPanel
         title={t('detail.evidence')}
         documents={toOpsDocuments(documents)}
         emptyLabel={t('detail.documentsEmpty')}
         viewLabel={t('detail.viewDocument')}
+        headerLayout="wrap"
         headerActions={
           <ClaimEvidenceUploadDialog
             claimId={claimId}

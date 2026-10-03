@@ -29,7 +29,8 @@
       "sla": {
         "title": "Statusi i SLA-së",
         "running": "Afati i përgjigjes po ecën.",
-        "incomplete": "Po presim informacionin tuaj para se të nisë SLA-ja."
+        "incomplete": "Po presim informacionin tuaj para se të nisë SLA-ja.",
+        "verification": "Rasti juaj është në verifikim. Nëse na duhet diçka prej jush, shfaqet si kërkesë specifike për informacion në këtë faqe."
       },
       "assurance": {
         "title": "Siguria e trajtimit",

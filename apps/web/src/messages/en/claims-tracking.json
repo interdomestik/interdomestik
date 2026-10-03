@@ -29,7 +29,8 @@
       "sla": {
         "title": "SLA Status",
         "running": "Response timer is running.",
-        "incomplete": "Waiting for your information before the SLA starts."
+        "incomplete": "Waiting for your information before the SLA starts.",
+        "verification": "Your case is in verification. If we need anything from you, it appears as a specific information request on this page."
       },
       "assurance": {
         "title": "Handling assurance",

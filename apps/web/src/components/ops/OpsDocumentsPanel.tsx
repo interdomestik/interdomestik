@@ -13,6 +13,11 @@ interface OpsDocumentsPanelProps {
   viewLabel: string;
   headerActions?: ReactNode;
   className?: string;
+  /**
+   * `inline` keeps the single-row staff header. `wrap` lets a nowrap header action drop below the
+   * title instead of overflowing narrow member viewports.
+   */
+  headerLayout?: 'inline' | 'wrap';
 }
 
 export function OpsDocumentsPanel({
@@ -22,12 +27,17 @@ export function OpsDocumentsPanel({
   viewLabel,
   headerActions,
   className,
+  headerLayout = 'inline',
 }: OpsDocumentsPanelProps) {
   const containerClassName = ['space-y-3', className].filter(Boolean).join(' ');
+  const headerClassName =
+    headerLayout === 'wrap'
+      ? 'flex flex-wrap items-center justify-between gap-3'
+      : 'flex items-center justify-between gap-3';
 
   return (
     <div className={containerClassName} data-testid={OPS_TEST_IDS.DOCUMENTS.PANEL}>
-      <div className="flex items-center justify-between gap-3">
+      <div className={headerClassName}>
         <h4 className="font-medium flex items-center gap-2">
           <FileText className="w-4 h-4" /> {title}
         </h4>
