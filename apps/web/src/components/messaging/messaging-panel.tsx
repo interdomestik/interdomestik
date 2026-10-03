@@ -5,7 +5,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { AlertCircle, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState, useTransition } from 'react';
+import { type ReactNode, useCallback, useState, useTransition } from 'react';
 import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
 import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
@@ -139,6 +139,27 @@ function ScopedMessagingPanel({
   // An empty conversation is only asserted once a read has really succeeded.
   const showThread = hasLoadedHistory || allMessages.length > 0;
 
+  // The same three outcomes as before, decided once instead of inside nested markup ternaries:
+  // the first pending read wins, then a loaded or optimistically filled thread, otherwise nothing.
+  let conversation: ReactNode = null;
+  if (isFirstLoad) {
+    conversation = (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <span className="sr-only">{t('read.loading')}</span>
+      </div>
+    );
+  } else if (showThread) {
+    conversation = (
+      <MessageThread
+        messages={allMessages}
+        currentUser={currentUser}
+        isAgent={isAgent}
+        onRetry={handleRetry}
+      />
+    );
+  }
+
   return (
     // 31.25rem is exactly the familiar 500px at the default root font size, but it now follows the
     // operator's text size: at doubled root text the conversation gets twice the room instead of
@@ -190,14 +211,13 @@ function ScopedMessagingPanel({
             }
             data-testid="messaging-read-error"
           >
-            {/* Service failure, not invalid input: the draft stays put and recovery is offered. */}
-            <p
-              className="flex items-start gap-2 text-sm text-destructive break-words"
-              role="status"
-            >
+            {/* Service failure, not invalid input: the draft stays put and recovery is offered.
+                Native <output> carries the status role and polite live semantics itself, so the
+                failure is still announced without an explicit role. */}
+            <output className="flex items-start gap-2 text-sm text-destructive break-words">
               <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t('read.loadError')}</span>
-            </p>
+            </output>
             <Button
               aria-busy={isBusy}
               className="h-auto max-w-full whitespace-normal break-words px-3 py-2 text-left"
@@ -213,28 +233,16 @@ function ScopedMessagingPanel({
         ) : null}
 
         {readStatusFailed ? (
-          <p
+          // Same polite announcement as before: <output> is a status live region natively.
+          <output
             className="shrink-0 border-b px-3 py-2 text-xs text-muted-foreground break-words"
             data-testid="messaging-read-status-error"
-            role="status"
           >
             {t('read.statusError')}
-          </p>
+          </output>
         ) : null}
 
-        {isFirstLoad ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
-            <span className="sr-only">{t('read.loading')}</span>
-          </div>
-        ) : showThread ? (
-          <MessageThread
-            messages={allMessages}
-            currentUser={currentUser}
-            isAgent={isAgent}
-            onRetry={handleRetry}
-          />
-        ) : null}
+        {conversation}
 
         {readOnly ? null : (
           <MessageInput

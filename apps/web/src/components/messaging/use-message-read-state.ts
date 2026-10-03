@@ -47,6 +47,10 @@ export function useMessageReadState({
   const [isReading, setIsReading] = useState(false);
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
+  // How many retrievals are still outstanding, so the automatic poll can stay out of their way. A
+  // count rather than a flag: an explicit refresh may overlap an older read, and the first of them
+  // to settle must not hand the poll a conversation that is still loading.
+  const pendingReadsRef = useRef(0);
 
   // A response may only write state, or start read receipts, while it is still the newest read of
   // a mounted panel. Stale generations (out-of-order, changed scope, unmount) are dropped.
@@ -90,6 +94,7 @@ export function useMessageReadState({
 
   const read = useCallback(async () => {
     const generation = nextGeneration();
+    pendingReadsRef.current += 1;
     setIsReading(true);
 
     let loaded: MessageWithSender[] | null = null;
@@ -98,6 +103,10 @@ export function useMessageReadState({
       loaded = result.success === true && Array.isArray(result.messages) ? result.messages : null;
     } catch {
       loaded = null;
+    } finally {
+      // Released on every path - rendered, stale, failed, unmounted - and before anything below can
+      // return early, so a settled read can never leave the automatic poll switched off.
+      pendingReadsRef.current -= 1;
     }
 
     // Stale reads neither render nor initiate new read receipts.
@@ -124,6 +133,12 @@ export function useMessageReadState({
     if (fetchOnMount) void read();
 
     const interval = setInterval(() => {
+      // The automatic poll never supersedes a retrieval that is still outstanding: taking a new
+      // generation every tick would invalidate a read slower than the interval before it could
+      // commit, so the first spinner would never clear and the requests would only pile up. The
+      // 30s cadence is unchanged and still polls on the next tick once nothing is in flight; an
+      // explicit refresh keeps superseding the older read.
+      if (pendingReadsRef.current > 0) return;
       void read();
     }, MESSAGE_POLL_INTERVAL_MS);
 

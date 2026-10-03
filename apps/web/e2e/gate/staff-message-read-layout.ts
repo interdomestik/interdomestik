@@ -28,7 +28,7 @@ type ClipEntry = {
   bottom: number;
 };
 
-export async function rootFontSize(page: Page): Promise<number> {
+export function rootFontSize(page: Page): Promise<number> {
   return page.evaluate(() =>
     Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
   );
@@ -37,7 +37,7 @@ export async function rootFontSize(page: Page): Promise<number> {
 // Reads the real boxes once per phase: document, panel, the scrolling content column and the
 // operator controls, plus every clipping ancestor between a control and the panel. Nothing is
 // mutated here. A scrollable ancestor is not a clipping ancestor: its content stays reachable.
-export async function collectPanelDiagnostics(page: Page, phase: string) {
+export function collectPanelDiagnostics(page: Page, phase: string) {
   return page.evaluate(
     ({ panelSelector, contentSelector, testIds, phaseLabel }) => {
       const rectOf = (element: Element) => {
@@ -50,6 +50,10 @@ export async function collectPanelDiagnostics(page: Page, phase: string) {
         clientHeight: element.clientHeight,
         scrollHeight: element.scrollHeight,
       });
+      // dataset only exists once the node is narrowed to an HTML element; the non-HTML case keeps
+      // the existing tag/class fallback so a diagnostic label is always reported.
+      const testIdOf = (element: Element) =>
+        element instanceof HTMLElement ? element.dataset.testid : undefined;
       const clips = (style: CSSStyleDeclaration) =>
         [style.overflowX, style.overflowY].some(value => value === 'hidden' || value === 'clip');
 
@@ -78,8 +82,7 @@ export async function collectPanelDiagnostics(page: Page, phase: string) {
           const box = rectOf(ancestor);
           return {
             ancestor:
-              ancestor.getAttribute('data-testid') ??
-              `${ancestor.tagName.toLowerCase()}.${ancestor.className}`,
+              testIdOf(ancestor) ?? `${ancestor.tagName.toLowerCase()}.${ancestor.className}`,
             overflowX: style.overflowX,
             overflowY: style.overflowY,
             rect: box,
@@ -114,7 +117,7 @@ export async function collectPanelDiagnostics(page: Page, phase: string) {
         content:
           content && contentStyle
             ? {
-                testId: content.getAttribute('data-testid'),
+                testId: testIdOf(content) ?? null,
                 ...boxOf(content),
                 height: contentStyle.height,
                 overflowX: contentStyle.overflowX,
@@ -157,8 +160,10 @@ export async function expectFitsWithoutOverflow(
 ) {
   const clientWidth = diagnostics.root.clientWidth;
 
-  for (const locator of locators) {
-    const box = await locator.boundingBox();
+  // The boxes are read in one pass instead of awaiting inside the loop; every box is still
+  // asserted, in the same order, against the same bounds.
+  const boxes = await Promise.all(locators.map(locator => locator.boundingBox()));
+  for (const box of boxes) {
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(-1);
     expect(box!.x + box!.width).toBeLessThanOrEqual(clientWidth + 1);

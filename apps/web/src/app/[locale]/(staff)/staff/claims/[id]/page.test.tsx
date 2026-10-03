@@ -122,7 +122,7 @@ describe('StaffClaimDetailsPage', () => {
       'true'
     );
     // The failure is read off the existing server result: no second query is issued for it.
-    expect(hoisted.getMessagesForClaimCoreMock.mock.calls.length).toBe(callsBefore + 1);
+    expect(hoisted.getMessagesForClaimCoreMock.mock.calls).toHaveLength(callsBefore + 1);
     expect(screen.queryByText(/private read detail/)).not.toBeInTheDocument();
   });
 
