@@ -1,41 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { enFreeStartMessages } from '@/messages/free-start-test-messages';
 import {
   CATEGORY_EVIDENCE_EXPECTATIONS,
   completeFreeStartIntake,
-  createFreeStartAnalyticsMock,
-  createFreeStartTranslationsMock,
-  createRoutingLinkMock,
-  createSupportContactsMock,
   getFreeStartMessage,
   moveToFreeStartPreview,
-  type LocaleId,
 } from '@/test/free-start-organizer-harness';
 
-const hoisted = vi.hoisted(() => ({
-  freeStartCompleted: vi.fn(),
-  generatePack: vi.fn(),
-  submitIntake: vi.fn(),
-  locale: 'en' as 'en' | 'sq',
-}));
+import { getFreeStartShellBoundary, renderFreeStart } from '@/test/free-start-shell-fixture';
 
-vi.mock('next-intl', () => createFreeStartTranslationsMock(() => hoisted.locale));
-vi.mock('@/i18n/routing', () => createRoutingLinkMock());
-vi.mock('@/lib/support-contacts', () => createSupportContactsMock());
-vi.mock('@/lib/analytics', () => createFreeStartAnalyticsMock(hoisted.freeStartCompleted));
-vi.mock('@/actions/free-start.core', () => ({ submitFreeStartIntake: hoisted.submitIntake }));
-vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: hoisted.generatePack }));
-
-import { FreeStartIntakeShell } from './free-start-intake-shell';
-
-function renderFreeStart(locale: LocaleId, continueHref = '/pricing') {
-  hoisted.locale = locale;
-  return render(
-    <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId="tenant_public" />
-  );
-}
+const hoisted = getFreeStartShellBoundary();
 
 describe('FreeStartIntakeShell intake path', () => {
   beforeEach(() => {

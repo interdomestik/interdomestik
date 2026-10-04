@@ -1,3 +1,5 @@
+import { createSupportContactsMock } from '@/test/free-start-organizer-harness';
+import { createDraftWriterMock, createIdentityMock } from '@/test/public-intake-fixture';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,24 +22,11 @@ vi.mock('@/i18n/routing', () => ({
     <a href={href}>{children}</a>
   ),
 }));
-vi.mock('@/lib/support-contacts', () => ({
-  getSupportContacts: () => ({ telHref: 'tel:+38349900600' }),
-}));
+vi.mock('@/lib/support-contacts', () => createSupportContactsMock());
 vi.mock('@/actions/free-start.core', () => ({ submitFreeStartIntake: boundaries.writer }));
 vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: boundaries.writer }));
-vi.mock('@/actions/free-start-drafts', () => ({
-  createFreeStartDraft: boundaries.writer,
-  deleteFreeStartDraft: boundaries.writer,
-  listFreeStartDrafts: boundaries.writer,
-  resumeFreeStartDraft: boundaries.writer,
-  updateFreeStartDraft: boundaries.writer,
-}));
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    emailOtp: { sendVerificationOtp: boundaries.identity },
-    signIn: { emailOtp: boundaries.identity },
-  },
-}));
+vi.mock('@/actions/free-start-drafts', () => createDraftWriterMock(boundaries.writer));
+vi.mock('@/lib/auth-client', () => createIdentityMock(boundaries.identity));
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { writeAnonymousDraft } from './free-start-intake-shell/anonymous-draft-recovery';

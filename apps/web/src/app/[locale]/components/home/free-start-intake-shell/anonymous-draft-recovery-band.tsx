@@ -69,9 +69,9 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       </h3>
       {recoverable ? (
         <>
-          {!retained ? <p className="mt-1 text-sm leading-6">{copy.body}</p> : null}
+          {!retained ? <p className={hasOffer ? "mt-1 text-sm leading-5" : "mt-1 text-sm leading-6"}>{copy.body}</p> : null}
           {hasOffer ? (
-            <div className="mt-2 space-y-1 text-sm leading-6">
+            <div className="mt-1 space-y-1 text-sm leading-5">
               <p>{copy.offerBody}</p>
               <p>{disclosure.eligible}</p>
               <p>{disclosure.lifecycle}</p>
@@ -89,7 +89,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       >
         {status}
       </p>
-      <div className="mt-3 flex flex-wrap gap-3">
+      <div className={hasOffer ? "mt-2 flex flex-wrap gap-2" : "mt-3 flex flex-wrap gap-3"}>
         {hasOffer ? (
           <button
             type="button"

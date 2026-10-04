@@ -50,6 +50,7 @@ export function FreeStartIntakeShell({
         setMode('fallback');
         return;
       }
+      setCategoryIntent(null);
       setJourneyKey(key => key + 1);
       setMode(intent);
     };

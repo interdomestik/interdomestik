@@ -1,3 +1,4 @@
+import { resetPublicIntakeBrowser } from '@/test/public-intake-fixture';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import freeStartMessages from '@/messages/en/freeStart.json';
@@ -19,7 +20,6 @@ vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: boundary.
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { PublicEntryPropertyAction } from './public-entry-property-action';
-import { takePendingPublicEntryIntent } from './public-entry-intent';
 
 const copy = freeStartMessages.freeStart;
 const accepted = { success: true, data: {} };
@@ -85,17 +85,7 @@ function generatedPack(body: string) {
 describe('intake operation ownership across abandoned and explicit requests', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    localStorage.clear();
-    takePendingPublicEntryIntent();
-    history.replaceState(null, '', '/');
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: vi.fn(),
-    });
-    Object.defineProperty(navigator, 'locks', {
-      configurable: true,
-      value: { request: vi.fn((_name, _options, callback) => Promise.resolve(callback())) },
-    });
+    resetPublicIntakeBrowser();
     boundary.submit.mockResolvedValue(accepted);
     boundary.pack.mockResolvedValue({ success: false, code: 'GENERATION_FAILED' });
   });

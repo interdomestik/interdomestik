@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { expectNoOverflow, expectReadableControls } from '../fixtures/public-intake-arrival';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
@@ -18,10 +19,6 @@ async function openOrganizer(page: Page, info: TestInfo, locale: Locale) {
   return organizer;
 }
 
-async function expectNoOverflow(locator: Locator) {
-  expect(await locator.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
-}
-
 test.describe('premium Free Start organizer', () => {
   test('keeps the direct fallback readable in every canonical locale', async ({
     browser,
@@ -39,16 +36,7 @@ test.describe('premium Free Start organizer', () => {
         await expectNoOverflow(page.locator('html'));
         await expectNoOverflow(organizer);
 
-        const controls = await organizer.getByRole('button').all();
-        for (const control of controls) {
-          expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-        }
-        const fontSizes = await organizer
-          .locator('button, input, select, textarea')
-          .evaluateAll(nodes =>
-            nodes.map(node => Number.parseFloat(getComputedStyle(node).fontSize))
-          );
-        expect(Math.min(...fontSizes)).toBeGreaterThanOrEqual(16);
+        await expectReadableControls(organizer);
       }
     });
   });
