@@ -54,12 +54,15 @@ function mountEntry() {
   );
 }
 
-async function settleInitialRead() {
+async function settleInitialRead({ waitForArrival = false } = {}) {
   await act(async () => finishRead());
   await waitFor(() =>
     expect(screen.getByTestId('free-start-recovery-editor')).not.toHaveAttribute('inert')
   );
   await screen.findByLabelText(freeStartCopy.freeStart.details.summary);
+  if (waitForArrival) {
+    await waitFor(() => expect(frames.size).toBe(1));
+  }
   const pending = [...frames.values()];
   frames.clear();
   act(() => pending.forEach(callback => callback(0)));
@@ -141,7 +144,7 @@ describe('mounted public intent waiting for the actual initial recovery read', (
     mountEntry();
     await waitFor(() => expect(navigator.locks.request).toHaveBeenCalledOnce());
     await user.click(screen.getByRole('link', { name: 'Report vehicle damage' }));
-    await settleInitialRead();
+    await settleInitialRead({ waitForArrival: true });
     expectVehicleFactsWithoutSideEffects();
     expect(
       screen.getByRole('heading', { name: freeStartCopy.freeStart.details.summary })
@@ -154,7 +157,7 @@ describe('mounted public intent waiting for the actual initial recovery read', (
     dispatchPublicEntryIntent('vehicle');
     mountEntry();
     await waitFor(() => expect(navigator.locks.request).toHaveBeenCalledOnce());
-    await settleInitialRead();
+    await settleInitialRead({ waitForArrival: true });
     expectVehicleFactsWithoutSideEffects();
     expect(
       screen.getByRole('heading', { name: freeStartCopy.freeStart.details.summary })
