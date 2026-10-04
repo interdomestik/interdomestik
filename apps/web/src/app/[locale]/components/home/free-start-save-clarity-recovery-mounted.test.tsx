@@ -75,12 +75,14 @@ describe('save options locales and recovery', () => {
 
   it('reports a kept device copy only once recovery proves one exists', () => {
     const onOpen = vi.fn();
+    const onFocusRestored = vi.fn();
     const { rerender } = render(
       <SecureSaveEntry
         copy={en.saveEntry}
         deviceCopyKept={false}
         restoreFocus="none"
         onOpen={onOpen}
+        onFocusRestored={onFocusRestored}
       />
     );
 
@@ -90,11 +92,18 @@ describe('save options locales and recovery', () => {
       en.saveEntry.status.neutral
     );
     rerender(
-      <SecureSaveEntry copy={en.saveEntry} deviceCopyKept restoreFocus="none" onOpen={onOpen} />
+      <SecureSaveEntry
+        copy={en.saveEntry}
+        deviceCopyKept
+        restoreFocus="none"
+        onOpen={onOpen}
+        onFocusRestored={onFocusRestored}
+      />
     );
     expect(screen.getByTestId('free-start-save-entry-status')).toHaveTextContent(
       en.saveEntry.status.device
     );
     expect(onOpen).not.toHaveBeenCalled();
+    expect(onFocusRestored).not.toHaveBeenCalled();
   });
 });
