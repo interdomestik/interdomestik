@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { RateLimitOptions } from '@/lib/rate-limit.core';
+import { buildRateLimitKey } from '@/lib/rate-limit-upstash';
+
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   logAuditEvent: vi.fn(),
@@ -112,6 +115,57 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     expect(res.status).toBe(403);
     expect(hoisted.handlerPOST).toHaveBeenCalledExactlyOnceWith(req);
     expect(req.headers.get('origin')).toBe('https://evil.example');
+  });
+
+  it('blocks the 21st attempt for one account and IP despite rotating tenant cookies', async () => {
+    const counts = new Map<string, number>();
+    hoisted.enforceRateLimit.mockImplementation(async (options: RateLimitOptions) => {
+      const key = buildRateLimitKey(options);
+      const count = (counts.get(key) ?? 0) + 1;
+      counts.set(key, count);
+      return count > options.limit
+        ? Response.json({ error: 'Too Many Requests' }, { status: 429 })
+        : null;
+    });
+    hoisted.handlerPOST.mockImplementation(async () =>
+      Response.json({ code: 'INVALID_EMAIL_OR_PASSWORD' }, { status: 401 })
+    );
+    const cookies = ['', 'tenant_ks', 'tenant_mk', 'pilot-mk', 'tenant_al', 'unknown', '%E0%A4%A'];
+
+    for (let attempt = 0; attempt < 21; attempt++) {
+      const cookie = cookies[attempt % cookies.length];
+      const res = await POST(
+        buildSignInRequest({
+          headers: {
+            'x-forwarded-for': '192.0.2.10',
+            ...(cookie ? { cookie: `tenantId=${cookie}` } : {}),
+          },
+          body: {
+            email: attempt % 2 === 0 ? MEMBER_EMAIL : `  ${MEMBER_EMAIL.toUpperCase()} `,
+            password: 'provider-verifies',
+          },
+        })
+      );
+      expect(res.status).toBe(attempt < 20 ? 401 : 429);
+      expect(await res.json()).toEqual(
+        attempt < 20 ? { code: 'INVALID_EMAIL_OR_PASSWORD' } : { error: 'Too Many Requests' }
+      );
+    }
+    expect(counts.size).toBe(1);
+    expect([...counts.values()]).toEqual([21]);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledTimes(21);
+    for (const [options] of hoisted.enforceRateLimit.mock.calls) {
+      expect(options).toMatchObject({
+        name: 'api/auth/sign-in/email:identity',
+        limit: 20,
+        windowSeconds: 60,
+        keySuffix: expect.stringMatching(/^neutral:email_hash:[a-f0-9]{20}$/),
+        productionSensitive: true,
+      });
+    }
+    expect(hoisted.handlerPOST).toHaveBeenCalledTimes(20);
+    expect(hoisted.lookupUserTenantByEmail).not.toHaveBeenCalled();
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
 
   it('denies a conflicting tenant hint before reaching the provider', async () => {

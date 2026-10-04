@@ -12,74 +12,13 @@ import {
   snapshotNeutralHostEnv,
   throwNextRedirect,
   type BootstrapRedirectArgs,
-  type MockSession,
-  type MockTenantContext,
 } from './_core.entry-test-support';
 
-const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn<() => Promise<MockSession>>(async () => null),
-  // `localhost:3000` is never an admitted neutral host, so the mocked tenant context below stays
-  // the value under test.
-  requestHeadersMock: vi.fn<() => Promise<Headers>>(
-    async () => new Headers({ host: 'localhost:3000' })
-  ),
-  databaseSelectMock: vi.fn(),
-  loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
-  savedDraftSignInMock: vi.fn((_: unknown) => <div>saved-draft-sign-in</div>),
-  redirectMock: vi.fn((_target: string) => {}),
-  bootstrapRedirectMock: vi.fn<(args: unknown) => string | null>(() => null),
-  resolveTenantContextFromRequestMock: vi.fn<() => Promise<MockTenantContext>>(async () => ({
-    kind: 'tenant',
-    tenantId: 'tenant_ks',
-    source: 'compatibility_alias',
-  })),
-  setRequestLocaleMock: vi.fn(),
-}));
-
-vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string) => `auth.login.${key}`),
-  setRequestLocale: hoisted.setRequestLocaleMock,
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.requestHeadersMock,
-}));
-
-vi.mock('next/navigation', () => ({
-  redirect: hoisted.redirectMock,
-}));
-
-vi.mock('@/components/auth/login-form', () => ({
-  LoginForm: (props: unknown) => hoisted.loginFormMock(props),
-}));
-
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
-}));
-
-vi.mock('@/lib/tenant/tenant-request', () => ({
-  resolveTenantContextFromRequest: hoisted.resolveTenantContextFromRequestMock,
-}));
-
-vi.mock('./_core', async importOriginal => ({
-  ...(await importOriginal<typeof import('./_core')>()),
-  getLoginTenantBootstrapRedirect: hoisted.bootstrapRedirectMock,
-}));
-
-vi.mock('@interdomestik/database/db', () => ({
-  get db() {
-    return { select: hoisted.databaseSelectMock };
-  },
-  get dbAdmin() {
-    return { select: hoisted.databaseSelectMock };
-  },
-}));
-
-vi.mock('./saved-draft-sign-in', () => ({
-  SavedDraftSignInEntry: (props: unknown) => hoisted.savedDraftSignInMock(props),
-}));
+import { getLoginEntryMocks } from './_core.entry-test-mocks';
 
 import LoginPage from './_core.entry';
+
+const hoisted = getLoginEntryMocks();
 
 const originalEnv = new Map<string, string | undefined>();
 

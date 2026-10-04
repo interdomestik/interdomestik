@@ -10,16 +10,14 @@ import {
   type TenantId,
 } from '@/lib/tenant/tenant-hosts';
 
-import {
-  evaluateNeutralSingleEntryEmailSignIn,
-  type NeutralSingleEntryDecision,
-} from './neutral-email-sign-in-guard';
+import { resolveNeutralEmailSignInHost } from './neutral-email-sign-in-admission';
+import { evaluateNeutralSingleEntryEmailSignIn } from './neutral-email-sign-in-guard';
 import { resolveSignInTenantContext } from './sign-in-tenant-hint';
 
 // The neutral single-entry decision lives in its own route-local module; it stays importable from
 // here so the route and existing contracts keep one auth-core surface.
 export { evaluateNeutralSingleEntryEmailSignIn };
-export type { NeutralSingleEntryDecision };
+export type { NeutralSingleEntryDecision } from './neutral-email-sign-in-guard';
 
 export type AuthMethod = 'GET' | 'POST';
 export type AuthRateLimitConfig = { name: string; limit: number; windowSeconds: number };
@@ -66,6 +64,13 @@ export function getAuthRateLimitKeySuffix(args: {
   const email = extractEmailFromSignInBody(body);
   if (!email) {
     return null;
+  }
+
+  // Admission alone owns this bucket: untrusted tenant and booking hints cannot multiply
+  // attempts against one account. Their independent validation still happens in the guard.
+  if (resolveNeutralEmailSignInHost(headers) === 'admitted') {
+    const digest = createHash('sha256').update(email).digest('hex').slice(0, 20);
+    return `neutral:email_hash:${digest}`;
   }
 
   const tenantId = resolveTenantIdForEmailSignIn(headers, body);

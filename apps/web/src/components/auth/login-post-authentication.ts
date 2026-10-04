@@ -8,7 +8,6 @@ import {
 
 import { resolveSafeNextPath } from './login-next-path';
 
-const SESSION_SYNC_RETRY_COUNT = 2;
 const SESSION_SYNC_RETRY_DELAY_MS = 250;
 
 export type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
@@ -18,19 +17,14 @@ export type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
  * session cookie propagates.
  */
 export async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
-  for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
-    const { data: session } = await authClient.getSession();
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (role) {
-      return { role, timedOut: false };
-    }
+  const { data: session } = await authClient.getSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (role) return { role, timedOut: false };
 
-    if (attempt < SESSION_SYNC_RETRY_COUNT - 1) {
-      await new Promise(resolve => setTimeout(resolve, SESSION_SYNC_RETRY_DELAY_MS));
-    }
-  }
-
-  return { timedOut: true };
+  await new Promise(resolve => setTimeout(resolve, SESSION_SYNC_RETRY_DELAY_MS));
+  const { data: retriedSession } = await authClient.getSession();
+  const retriedRole = (retriedSession?.user as { role?: string } | undefined)?.role;
+  return retriedRole ? { role: retriedRole, timedOut: false } : { timedOut: true };
 }
 
 export function emitPostLoginFailureTelemetry(

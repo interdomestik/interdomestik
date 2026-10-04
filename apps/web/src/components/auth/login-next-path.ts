@@ -42,9 +42,10 @@ function getAllowedSurfacePrefix(role: string, locale: string): string | null {
  * URL parsing, so the returned pathname is what a caller must authorize.
  */
 export function sanitizeInternalContinuationPath(
-  candidate: string | null | undefined
+  candidate: string | null = ''
 ): InternalContinuationPath | null {
-  const value = candidate ?? '';
+  if (candidate === null) return null;
+  const value = candidate;
   if (!value.startsWith('/') || value.startsWith('//')) return null;
   if (UNSAFE_PATH_CHARS.test(value)) return null;
 

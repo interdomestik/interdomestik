@@ -50,7 +50,7 @@ describe('POST /api/auth/[...all] live-login cutover', () => {
     expect(hoisted.handlerPOST).toHaveBeenCalledTimes(1);
     expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
       expect.objectContaining({
-        keySuffix: expect.stringContaining('tenant:tenant_mk:email_hash:'),
+        keySuffix: expect.stringMatching(/^neutral:email_hash:[a-f0-9]{20}$/),
         name: 'api/auth/sign-in/email:identity',
       })
     );

@@ -1,10 +1,4 @@
-/**
- * Shared, non-hoisted support for the login entry page tests.
- *
- * Mock registration stays in each test module (`vi.hoisted` plus `vi.mock` must be hoisted per
- * module); only the request shapes, context literals and the mount/redirect helpers are shared so
- * the page-shell and continuation suites cannot drift apart.
- */
+/** Shared request shapes, context literals and mount/redirect helpers for login entry tests. */
 export type MockTenantContext =
   | { kind: 'tenant'; tenantId: string; source: string }
   | { kind: 'public'; tenantId: null; source: string };
