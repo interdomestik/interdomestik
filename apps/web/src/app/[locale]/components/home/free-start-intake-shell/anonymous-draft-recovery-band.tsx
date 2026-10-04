@@ -57,25 +57,25 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       data-testid={hasOffer ? 'anonymous-draft-recovery-offer' : 'anonymous-draft-recovery-status'}
       aria-labelledby="anonymous-draft-recovery-heading"
       aria-busy={recovery.pending}
-      className="break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
+      className={`break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] text-[#173b43] ${hasOffer ? '-mx-4 p-2 sm:mx-0 sm:p-3' : 'p-4'}`}
     >
       {recoverable && !retained ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
           {copy.eyebrow}
         </p>
       ) : null}
-      <h3 id="anonymous-draft-recovery-heading" className="mt-1 text-lg font-bold text-[#001a33]">
+      <h3 id="anonymous-draft-recovery-heading" tabIndex={-1} className="mt-1 scroll-mt-24 text-lg font-bold text-[#001a33] outline-none">
         {heading}
       </h3>
       {recoverable ? (
         <>
-          {!retained ? <p className="mt-1 text-sm leading-6">{copy.body}</p> : null}
+          {!retained ? <p className={hasOffer ? "mt-1 text-sm leading-5" : "mt-1 text-sm leading-6"}>{copy.body}</p> : null}
           {hasOffer ? (
-            <div className="mt-2 space-y-1 text-sm leading-6">
-              <p>{copy.offerBody}</p>
-              <p>{disclosure.eligible}</p>
-              <p>{disclosure.lifecycle}</p>
-              <p>{disclosure.securePath}</p>
+            <div className="mt-1 space-y-1 text-sm leading-5">
+              <p className="leading-5">{copy.offerBody}</p>
+              <p className="leading-5">{disclosure.eligible}</p>
+              <p className="leading-5">{disclosure.lifecycle}</p>
+              <p className="leading-5">{disclosure.securePath}</p>
             </div>
           ) : null}
           <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>
@@ -89,13 +89,13 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       >
         {status}
       </p>
-      <div className="mt-3 flex flex-wrap gap-3">
+      <div className={hasOffer ? "mt-1 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" : "mt-3 flex flex-wrap gap-3"}>
         {hasOffer ? (
           <button
             type="button"
             disabled={recovery.pending}
             onClick={recovery.resume}
-            className="min-h-12 rounded-xl bg-[#006f72] px-4 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
+            className="min-h-12 min-w-0 whitespace-normal rounded-xl bg-[#006f72] px-3 text-base font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2 sm:px-4"
           >
             {copy.continue}
           </button>
@@ -105,7 +105,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
             type="button"
             disabled={recovery.pending}
             onClick={recovery.discard}
-            className="min-h-12 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
+            className={`min-h-12 rounded-xl border border-[#006f72] bg-white font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] ${hasOffer ? 'min-w-0 whitespace-normal px-3 text-base sm:px-4' : 'px-4'}`}
           >
             {fresh ? secureCopy.startAnother : copy.discard}
           </button>

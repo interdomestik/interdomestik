@@ -96,6 +96,7 @@ describe('HomePageRuntime', () => {
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',
+        onVerifiedOwner: expect.any(Function),
         publicEntryEnabled: true,
         tenantId: 'tenant_al',
       });
@@ -130,7 +131,7 @@ describe('HomePageRuntime', () => {
     fireEvent.change(draft, { target: { value: 'Besa' } });
     expect(draft).toHaveValue('Besa');
     const pendingHeroProps = h.hero.mock.lastCall?.[0];
-    const pendingIntakeProps = h.intake.mock.lastCall?.[0];
+    const pendingIntakeProps = h.intake.mock.lastCall?.[0] as Record<string, unknown>;
 
     h.session.mockReturnValue({ data: null, isPending: false });
     rerender(runtime());
@@ -149,7 +150,12 @@ describe('HomePageRuntime', () => {
     expect(draft).toHaveFocus();
     expect(intakeMountCount).toBe(1);
     expect(h.hero).toHaveBeenLastCalledWith(pendingHeroProps);
-    expect(h.intake).toHaveBeenLastCalledWith(pendingIntakeProps);
+    // Every settled prop still matches the pending render exactly; only the newly accepted
+    // ownership callback is a fresh closure per render, by design.
+    expect(h.intake).toHaveBeenLastCalledWith({
+      ...pendingIntakeProps,
+      onVerifiedOwner: expect.any(Function),
+    });
     expect(pendingIntakeProps).toMatchObject({ publicEntryEnabled: true, tenantId: 'tenant_al' });
     expect(h.replace).not.toHaveBeenCalled();
   });
@@ -173,6 +179,7 @@ describe('HomePageRuntime', () => {
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',
+        onVerifiedOwner: expect.any(Function),
         publicEntryEnabled: true,
         tenantId: 'tenant_al',
       });
@@ -196,6 +203,7 @@ describe('HomePageRuntime', () => {
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',
+        onVerifiedOwner: expect.any(Function),
         publicEntryEnabled: false,
         tenantId: 'tenant_mk',
       });

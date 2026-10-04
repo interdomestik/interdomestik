@@ -9,15 +9,24 @@ import { parseSecureSaveCopy } from './types';
 type Props = Readonly<{
   locale: string;
   onVerified: () => Promise<void>;
+  onVerifiedOwner?: (userId: string) => boolean;
   tenantId?: string | null;
 }>;
 
-export function SecureSaveOtp({ locale, onVerified, tenantId }: Props) {
+export function SecureSaveOtp({ locale, onVerified, onVerifiedOwner, tenantId }: Props) {
   const t = useTranslations('freeStart');
   const copy = parseSecureSaveCopy(t.raw('secureSave'));
   const otp = useNeutralEmailOtp({
     locale,
-    onVerified,
+    // The identity this verification established claims this intake before anything is saved. Only
+    // the user id leaves the boundary, and a refusal stops the intent without a save request.
+    onVerified: async identity => {
+      if (onVerifiedOwner && !onVerifiedOwner(identity.userId)) {
+        throw new Error('secure_save_intent_failed');
+      }
+
+      await onVerified();
+    },
     retryVerifiedIntent: true,
     tenantId,
   });

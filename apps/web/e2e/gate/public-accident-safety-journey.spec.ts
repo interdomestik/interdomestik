@@ -1,134 +1,143 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import {
+  PUBLIC_FACTS_COPY as COPY,
+  createPublicFactsEntry,
+  expectNoOverflow,
+  expectUsefulArrival,
+  expectReadableControls,
+  expectKeyboardSafetyReturn,
+} from '../fixtures/public-intake-arrival';
+import { expect, test, type Page } from '@playwright/test';
 
-import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
-import { gotoApp } from '../utils/navigation';
 
 const localeMatrix = [
-  { locale: 'sq', title: 'A është dikush i lënduar?', width: 320, height: 720 },
-  { locale: 'en', title: 'Is anyone injured?', width: 375, height: 812 },
-  { locale: 'sr', title: 'Da li je neko povređen?', width: 390, height: 844 },
-  { locale: 'mk', title: 'Дали некој е повреден?', width: 768, height: 900 },
-  { locale: 'sq', title: 'A është dikush i lënduar?', width: 1024, height: 768 },
-  { locale: 'sq', title: 'A është dikush i lënduar?', width: 1440, height: 900 },
-  { locale: 'sq', title: 'A është dikush i lënduar?', width: 844, height: 390 },
+  { locale: 'sq', width: 320, height: 720 },
+  { locale: 'en', width: 375, height: 812 },
+  { locale: 'sr', width: 390, height: 844 },
+  { locale: 'mk', width: 768, height: 900 },
+  { locale: 'sq', width: 1024, height: 768 },
+  { locale: 'sq', width: 1440, height: 900 },
+  { locale: 'sq', width: 844, height: 390 },
 ] as const;
 
-async function openJourney(page: Page, info: TestInfo, locale: Locale = 'sq') {
-  await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
-  const vehicle = page.getByTestId('public-entry-vehicle');
-  const journey = page.getByTestId('accident-safety-journey');
-  await expect(async () => {
-    await vehicle.click();
-    await expect(journey).toBeVisible({ timeout: 1_000 });
-  }).toPass({ timeout: 10_000 });
-  return journey;
+const openVehicleEntry = createPublicFactsEntry('vehicle');
+
+async function expectAdviceAbove(page: Page, testId: string) {
+  const position = await page.evaluate(selector => {
+    const advice = document.querySelector('[data-testid="free-start-urgent-advice"]');
+    const target = document.querySelector(selector);
+    if (!advice || !target) return 0;
+    return advice.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING;
+  }, `[data-testid="${testId}"]`);
+  expect(position).not.toBe(0);
 }
 
-async function expectNoOverflow(locator: Locator) {
-  expect(await locator.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(
-    true
-  );
-}
-
-test.describe('public accident safety journey', () => {
-  test('starts in every locale and reflows at the required mobile widths', async ({
+test.describe('public vehicle reporting entry', () => {
+  test('opens the vehicle facts in every locale and reflows at the required mobile widths', async ({
     browser,
   }, info) => {
     await withAnonymousPage(browser, info, async page => {
       for (const entry of localeMatrix) {
         await page.setViewportSize({ width: entry.width, height: entry.height });
-        const journey = await openJourney(page, info, entry.locale);
-        await expect(journey.getByRole('heading', { name: entry.title })).toBeVisible();
+        const organizer = await openVehicleEntry(page, info, entry.locale);
+        const copy = COPY[entry.locale];
+        const narrative = organizer.getByLabel(copy.narrative);
+        await expect(organizer.getByRole('heading', { name: copy.advice })).toBeVisible();
+        await expect(narrative).toBeVisible();
+        // One hero selection has to land the first narrative in view without any manual scrolling.
+        await expect(narrative).toBeInViewport();
+        await expectUsefulArrival(page, organizer, copy.narrative, copy.advice);
         await expectNoOverflow(page.locator('html'));
-        await expectNoOverflow(journey);
+        await expectNoOverflow(organizer);
 
-        for (const answer of await journey.getByRole('button').all()) {
-          const box = await answer.boundingBox();
-          expect(box?.height).toBeGreaterThanOrEqual(44);
-        }
-        const textMetrics = await journey.locator('p, button, label, select').evaluateAll(nodes =>
-          nodes.map(node => ({
-            fontSize: Number.parseFloat(getComputedStyle(node).fontSize),
-            tag: node.tagName,
-            text: node.textContent?.trim().slice(0, 40),
-          }))
+        await expectReadableControls(
+          organizer,
+          organizer.getByTestId('free-start-recovery-editor')
         );
-        expect(
-          Math.min(...textMetrics.map(metric => metric.fontSize)),
-          JSON.stringify(textMetrics.filter(metric => metric.fontSize < 16))
-        ).toBeGreaterThanOrEqual(16);
       }
     });
   });
 
-  test('walks the safe vehicle route and continues without repeating the category', async ({
+  test('explains the problem first, with qualified urgent advice and no transmission', async ({
     browser,
   }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      const journey = await openJourney(page, info);
-      const materialOnly = journey.getByRole('button', { name: 'Jo, vetëm dëm material' });
-      await materialOnly.focus();
-      await materialOnly.press('Enter');
-      await expect(
-        journey.getByRole('heading', { name: /A mund të lëvizet vetura/i })
-      ).toBeFocused();
+      await page.setViewportSize({ width: 390, height: 844 });
+      const organizer = await openVehicleEntry(page, info);
+      const initialUrl = page.url();
+      const egress: string[] = [];
+      page.on('request', request => {
+        if (['fetch', 'xhr'].includes(request.resourceType())) egress.push(request.url());
+      });
 
-      await journey.getByRole('button', { name: /Po, mund të lëvizet/i }).click();
-      await journey.getByLabel('Shteti ku ndodhi aksidenti').selectOption('IT');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByLabel('Shteti i regjistrimit të veturës').selectOption('DE');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByLabel('Shteti i siguruesit ose palës tjetër').selectOption('XK');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await expect(
-        journey.getByRole('heading', { name: 'Ruani faktet e rëndësishme.' })
-      ).toBeVisible();
-      await journey.getByRole('button', { name: 'Ndrysho përgjigjen' }).click();
-      await expect(journey.getByLabel('Shteti i siguruesit ose palës tjetër')).toHaveValue('XK');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByRole('button', { name: 'Organizo të dhënat e rastit' }).click();
+      const advice = organizer.getByTestId('free-start-urgent-advice');
+      await expect(advice).toContainText('kërkoni menjëherë vlerësim profesional ose emergjent');
+      await expect(advice).toContainText('mos e lëvizni veturën');
+      await expect(advice).toContainText('Nëse ndodheni në BE');
+      // The removed question stages are gone, not merely hidden behind another click.
+      await expect(page.getByTestId('accident-safety-journey')).toHaveCount(0);
+      await expect(page.getByLabel('Shteti ku ndodhi aksidenti')).toHaveCount(0);
+      await expect(organizer.getByTestId('free-start-category-vehicle')).toHaveCount(0);
 
-      await expect(page.getByTestId('free-start-intake-shell')).toBeVisible();
-      await expect(page.getByTestId('free-start-category-vehicle')).toHaveCount(0);
+      const narrative = organizer.getByLabel(COPY.sq.narrative);
+      await narrative.click();
+      await narrative.fill('Vetura u dëmtua në parking dhe siguruesi nuk përgjigjet.');
+      await expect(narrative).toBeFocused();
+      await expect(narrative).toHaveValue(
+        'Vetura u dëmtua në parking dhe siguruesi nuk përgjigjet.'
+      );
+      expect(page.url()).toBe(initialUrl);
+      expect(egress).toEqual([]);
     });
   });
 
-  test('surfaces immediate safety outcomes before evidence guidance', async ({ browser }, info) => {
+  test('keeps the injury and movement advice above the facts editor', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      const journey = await openJourney(page, info);
-      await journey.getByRole('button', { name: 'Po, dikush është lënduar' }).click();
-      await expect(journey.getByRole('heading', { name: 'Siguria vjen e para.' })).toBeVisible();
-      await expect(journey).not.toContainText('Ruani faktet e rëndësishme.');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openVehicleEntry(page, info);
+      await expectAdviceAbove(page, 'free-start-recovery-editor');
     });
   });
 
-  test('keeps the first task readable at a 200 percent zoom proxy', async ({ browser }, info) => {
+  test('keeps the first narrative readable at a 200 percent zoom proxy', async ({
+    browser,
+  }, info) => {
     await withAnonymousPage(browser, info, async page => {
       await page.setViewportSize({ width: 768, height: 900 });
-      const journey = await openJourney(page, info);
+      const organizer = await openVehicleEntry(page, info);
       await page.locator('html').evaluate(element => {
         element.style.zoom = '2';
       });
 
-      await expect(
-        journey.getByRole('heading', { name: 'A është dikush i lënduar?' })
-      ).toBeVisible();
-      await expectNoOverflow(journey);
-      await expect(journey.getByRole('button', { name: 'Jo, vetëm dëm material' })).toBeVisible();
+      await expect(organizer.getByRole('heading', { name: COPY.sq.advice })).toBeVisible();
+      await expect(organizer.getByLabel(COPY.sq.narrative)).toBeVisible();
+      await expectNoOverflow(organizer);
     });
   });
 
-  test('browser back clears the transient journey instead of restoring stale advice', async ({
+  test('browser back keeps the entered facts instead of restoring a removed stage', async ({
     browser,
   }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      const journey = await openJourney(page, info);
-      await journey.getByRole('button', { name: 'Po, dikush është lënduar' }).click();
+      const organizer = await openVehicleEntry(page, info);
+      const narrative = organizer.getByLabel(COPY.sq.narrative);
+      await narrative.fill('Dëmtim në parking.');
       await page.goBack();
 
       await expect(page.getByTestId('accident-safety-journey')).toHaveCount(0);
       await expect(page.getByTestId('free-start-intake-shell')).toBeVisible();
+      await expect(organizer.getByLabel(COPY.sq.narrative)).toHaveValue('Dëmtim në parking.');
+    });
+  });
+
+  test('keyboard and same-hash arrival keep safety reachable and retain the facts', async ({
+    browser,
+  }, info) => {
+    await withAnonymousPage(browser, info, async page => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const organizer = await openVehicleEntry(page, info, 'sq', true);
+      await expectKeyboardSafetyReturn(page, organizer, 'vehicle', COPY.sq);
     });
   });
 });

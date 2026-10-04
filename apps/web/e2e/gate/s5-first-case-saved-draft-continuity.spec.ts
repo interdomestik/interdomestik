@@ -57,7 +57,6 @@ test.describe('S5 first-case saved-draft continuity', () => {
 
       const flow = start.getByTestId('premium-free-start-organizer');
       await flow.getByTestId('free-start-category-vehicle').click();
-      await flow.getByRole('button', { name: 'Continue to guided intake' }).click();
       await flow.getByLabel('What happened?').selectOption('collision');
       await flow.getByLabel('When did it happen?').fill(S3_JOURNEY_INCIDENT_DATE);
       await flow.getByLabel('Who are you dealing with?').fill(journey.counterparty);

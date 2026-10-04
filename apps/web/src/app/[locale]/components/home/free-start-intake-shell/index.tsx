@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 import {
   BrowserRecoveryDisclosure,
@@ -15,19 +15,23 @@ import { OrganizerHeader } from './organizer-header';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
 // prettier-ignore
-import { draftFingerprint, type CategoryId, type FreeStartCopy, type FreeStartIntakeShellProps } from './types';
+import { draftFingerprint, type CategoryId, type FreeStartCopy, type FreeStartOrganizerProps } from './types';
+import { UrgentAdvice } from './urgent-advice';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
+import { usePublicCategoryIntent } from './use-public-category-intent';
+import { usePublicIntakeArrival } from './use-public-intake-arrival';
 // prettier-ignore
 const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 // prettier-ignore
 export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) { return false; } reset(); return true; }
-export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
+export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
   const t = useTranslations('freeStart'),
     tCommon = useTranslations('common');
   const [recoveryDecision, setRecoveryDecision] = useState<BrowserRecoveryDecision>('pending');
-  const flow = useOrganizerFlow(props.initialCategory);
+  const arrivalOwnership = useRef(false);
+  const flow = useOrganizerFlow(props.initialCategory, arrivalOwnership);
   const draftLifecycle = useDraftLifecycle({
     category: flow.selectedCategory,
     draft: flow.draft,
@@ -53,6 +57,14 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
   });
   // prettier-ignore
   const view = useFreeStartViewModel({ flow, props, t, tCommon }), recoveryPending = !recovery.ready || recovery.busy || Boolean(recovery.offer), secureActionsBlocked = recoveryPending || recovery.state === 'retained';
+  const arrival = usePublicIntakeArrival({
+    blocked: recoveryPending,
+    category: flow.selectedCategory,
+    ownership: arrivalOwnership,
+    recoveryOffer: Boolean(recovery.offer),
+    recoveryBusy: recovery.busy,
+    step: flow.step,
+  });
   const recoveryView = {
     ...recovery,
     discard: () => {
@@ -68,8 +80,37 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
       recovery.resume();
     },
   };
-  // prettier-ignore
-  const selectCategory = (category: CategoryId) => recovery.neutralHost && flow.selectedCategory === 'injury' && (category === 'vehicle' || category === 'property') ? flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: flow.step === 'complete' ? 'preview' : flow.step }) : flow.selectCategory(category);
+  // One supported-data boundary for every deliberate situation entry: the organizer category
+  // buttons and a public hero selection both land here, and both open the facts directly.
+  const enterCategory = (category: CategoryId, arrivalAllowed = true) => {
+    arrival.request(category, arrivalAllowed);
+    if (category === flow.selectedCategory) {
+      // Re-choosing the current situation keeps the typed issue; it is not a category change.
+      if (flow.step !== 'details') flow.navigate('details');
+      return;
+    }
+    // Injury-origin notes are never eligible for recovery, so they cannot follow the customer
+    // into a vehicle or property entry on a neutral host.
+    if (
+      recovery.neutralHost &&
+      flow.selectedCategory === 'injury' &&
+      (category === 'vehicle' || category === 'property')
+    ) {
+      flow.restoreAnonymousDraft({ category, draft: EMPTY_DRAFT, resumeStep: 'details' });
+      return;
+    }
+    flow.selectCategory(category);
+    flow.setStep('details');
+  };
+  usePublicCategoryIntent({
+    // `recovery.busy` covers only the explicit resume/discard actions, never ordinary autosave,
+    // so a selection made while one of them runs is consumed instead of replayed afterwards.
+    decided: Boolean(recovery.offer) || recovery.busy,
+    intent: props.categoryIntent,
+    onEnter: enterCategory,
+    onDecided: arrival.requestDecision,
+    resolved: recovery.ready,
+  });
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
@@ -89,16 +130,6 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <AnonymousDraftRecoveryBand recovery={recoveryView} />
-        {recovery.ready &&
-        recovery.neutralHost &&
-        !recovery.offer &&
-        (recovery.state === 'idle' || recovery.state === 'discarded') ? (
-          <BrowserRecoveryDisclosure
-            decision={recoveryDecision}
-            onEnable={() => setRecoveryDecision('enabled')}
-            onSkip={() => setRecoveryDecision('disabled')}
-          />
-        ) : null}
         <OrganizerHeader step={flow.step} t={t} />
         <p
           data-testid="free-start-result-announcement"
@@ -120,6 +151,9 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
             {flow.validationError}
           </p>
         ) : null}
+        {flow.step === 'details' ? (
+          <UrgentAdvice selectedCategory={flow.selectedCategory} t={t} />
+        ) : null}
         {flow.step === 'complete' && flow.claimPack ? (
           <div data-testid="free-start-complete" data-layout="full-width">
             <ClaimPackResult
@@ -137,6 +171,7 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
                 categoryLabel={view.categoryLabel}
                 draft={flow.draft}
                 headingRef={flow.stageHeadingRef}
+                narrativeHeadingRef={arrival.headingRef}
                 issueIds={view.issueIds}
                 issueLabel={view.issueLabel}
                 isFinishing={flow.isFinishingIntake}
@@ -146,10 +181,10 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
                 step={flow.step}
                 t={t}
                 onBackToCategory={() => flow.navigate('category')}
-                onBackToDetails={() => flow.navigate('details')}
-                onCategorySelect={selectCategory}
+                onBackToDetails={() => { arrival.request(flow.selectedCategory); flow.navigate('details'); }}
+                onCategorySelect={enterCategory}
                 onFinish={view.finishIntake}
-                onMoveToDetails={() => flow.moveToDetails(t('validation.chooseCategory'))}
+                onMoveToDetails={() => { arrival.request(flow.selectedCategory); flow.moveToDetails(t('validation.chooseCategory')); }}
                 onMoveToPreview={() => flow.moveToPreview(view.validationMessage)}
               />
             </div>
@@ -166,9 +201,21 @@ export function FreeStartIntakeShell(props: FreeStartIntakeShellProps) {
             </aside>
           </div>
         )}
+        {/* The device-storage choice stays below the first input: it is optional, and opting in
+            remains required before any local write. */}
+        {recovery.ready &&
+        recovery.neutralHost &&
+        !recovery.offer &&
+        (recovery.state === 'idle' || recovery.state === 'discarded') ? (
+          <BrowserRecoveryDisclosure
+            decision={recoveryDecision}
+            onEnable={() => setRecoveryDecision('enabled')}
+            onSkip={() => setRecoveryDecision('disabled')}
+          />
+        ) : null}
         <TrustBoundary t={trustBoundaryT} />
         {/* prettier-ignore */}
-        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} tenantId={props.neutralOtpTenantId} /></div>
+        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} tenantId={props.neutralOtpTenantId} /></div>
       </div>
     </section>
   );

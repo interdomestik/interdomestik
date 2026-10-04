@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { expectNoOverflow, expectReadableControls } from '../fixtures/public-intake-arrival';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
@@ -18,10 +19,6 @@ async function openOrganizer(page: Page, info: TestInfo, locale: Locale) {
   return organizer;
 }
 
-async function expectNoOverflow(locator: Locator) {
-  expect(await locator.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
-}
-
 test.describe('premium Free Start organizer', () => {
   test('keeps the direct fallback readable in every canonical locale', async ({
     browser,
@@ -39,46 +36,30 @@ test.describe('premium Free Start organizer', () => {
         await expectNoOverflow(page.locator('html'));
         await expectNoOverflow(organizer);
 
-        const controls = await organizer.getByRole('button').all();
-        for (const control of controls) {
-          expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-        }
-        const fontSizes = await organizer
-          .locator('button, input, select, textarea')
-          .evaluateAll(nodes =>
-            nodes.map(node => Number.parseFloat(getComputedStyle(node).fontSize))
-          );
-        expect(Math.min(...fontSizes)).toBeGreaterThanOrEqual(16);
+        await expectReadableControls(organizer);
       }
     });
   });
 
-  test('continues the property journey without asking for category again', async ({
+  test('opens the property facts from one public selection without asking for category', async ({
     browser,
   }, info) => {
     await withAnonymousPage(browser, info, async page => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoApp(page, routes.home('sq'), info, { marker: 'public-entry-hero' });
       const propertyAction = page.getByTestId('public-entry-property');
-      const journey = page.getByTestId('property-safety-journey');
+      const organizer = page.getByTestId('premium-free-start-organizer');
+      const advice = organizer.getByTestId('free-start-urgent-advice');
       await expect(async () => {
         await propertyAction.click();
-        await expect(journey).toBeVisible({ timeout: 1_000 });
+        await expect(advice).toBeVisible({ timeout: 1_000 });
       }).toPass({ timeout: 10_000 });
-      await journey.getByRole('button', { name: 'Jo' }).click();
-      await journey.getByRole('button', { name: /Ujë, rrjedhje/i }).click();
-      await journey.getByRole('button', { name: 'Po' }).click();
-      await journey.getByRole('button', { name: 'Qiramarrës' }).click();
-      await journey.getByLabel('Shteti ku ndodhet prona').selectOption('IT');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByLabel('Shteti i vendbanimit të zakonshëm').selectOption('DE');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByRole('button', { name: /Organizo të dhënat e dëmit tim/i }).click();
 
-      const organizer = page.getByTestId('premium-free-start-organizer');
       await expect(organizer.getByText('Po vazhdoni për:')).toBeVisible();
       await expect(organizer.getByTestId('free-start-category-property')).toHaveCount(0);
+      await expect(organizer.getByLabel('Përmbledhje e shkurtër')).toBeVisible();
       await expect(organizer.getByLabel('Çfarë ndodhi?')).toBeVisible();
+      await expect(advice).toHaveAttribute('data-category', 'property');
     });
   });
 

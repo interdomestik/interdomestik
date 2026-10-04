@@ -31,7 +31,7 @@ async function completePropertyPack(page: Page, info: TestInfo) {
   await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
   const organizer = page.getByTestId('premium-free-start-organizer');
   // prettier-ignore
-  await (async () => { await organizer.getByTestId('free-start-category-property').click(); await organizer.getByRole('button', { name: 'Continue to guided intake' }).click(); await organizer.getByLabel('What happened?').selectOption('water_damage'); await organizer.getByLabel('When did it happen?').fill('2026-03-01'); await organizer.getByLabel('Who are you dealing with?').fill('Building insurer'); await organizer.getByLabel('What do you want to recover?').selectOption('repair'); await organizer.getByLabel('Brief summary').fill('Water damaged two rooms after a storm.'); await organizer.getByRole('button', { name: 'Review your summary' }).click(); await organizer.getByRole('button', { name: 'Create my summary' }).click(); })();
+  await (async () => { await organizer.getByTestId('free-start-category-property').click(); await organizer.getByLabel('What happened?').selectOption('water_damage'); await organizer.getByLabel('When did it happen?').fill('2026-03-01'); await organizer.getByLabel('Who are you dealing with?').fill('Building insurer'); await organizer.getByLabel('What do you want to recover?').selectOption('repair'); await organizer.getByLabel('Brief summary').fill('Water damaged two rooms after a storm.'); await organizer.getByRole('button', { name: 'Review your summary' }).click(); await organizer.getByRole('button', { name: 'Create my summary' }).click(); })();
   await expect(page.getByTestId('claim-pack-result')).toBeVisible({ timeout: 15_000 });
   return organizer;
 }

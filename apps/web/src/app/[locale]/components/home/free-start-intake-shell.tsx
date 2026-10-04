@@ -1,57 +1,65 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AccidentSafetyJourney } from './accident-safety-journey';
 import { FlightDisruptionJourney } from './flight-disruption-journey';
 import { FlightNoScriptGuidance } from './flight-no-script-guidance';
-import { FreeStartIntakeShell as LegacyFreeStartIntakeShell } from './free-start-intake-shell/index';
-import type { FreeStartIntakeShellProps } from './free-start-intake-shell/types';
+import { FreeStartIntakeShell as FreeStartOrganizer } from './free-start-intake-shell/index';
+// prettier-ignore
+import type { FreeStartIntakeShellProps, PublicCategoryIntent } from './free-start-intake-shell/types';
 import { InjurySafetyJourney } from './injury-safety-journey';
-import { PropertySafetyJourney } from './property-safety-journey';
 import {
   PUBLIC_INTENT_EVENT,
   readPublicEntryIntent,
   takePendingPublicEntryIntent,
+  type PublicEntryIntent,
 } from './public-entry-intent';
 
 type DynamicFreeStartIntakeShellProps = FreeStartIntakeShellProps &
   Readonly<{ publicEntryEnabled?: boolean }>;
 
+type IntakeMode = 'fallback' | 'injury' | 'injuryDetails' | 'flight';
+
+/** Vehicle and property reporting opens the facts editor directly, with no question stage. */
+function isDirectCategoryIntent(intent: PublicEntryIntent): intent is 'property' | 'vehicle' {
+  return intent === 'vehicle' || intent === 'property';
+}
+
 export function FreeStartIntakeShell({
   publicEntryEnabled = true,
   ...props
 }: DynamicFreeStartIntakeShellProps) {
-  const [mode, setMode] = useState<
-    | 'fallback'
-    | 'accident'
-    | 'injury'
-    | 'property'
-    | 'flight'
-    | 'vehicleDetails'
-    | 'injuryDetails'
-    | 'propertyDetails'
-  >('fallback');
+  const [mode, setMode] = useState<IntakeMode>('fallback');
   const [journeyKey, setJourneyKey] = useState(0);
+  const [categoryIntent, setCategoryIntent] = useState<PublicCategoryIntent | null>(null);
 
   useEffect(() => {
     if (!publicEntryEnabled) {
       takePendingPublicEntryIntent();
+      setCategoryIntent(null);
       setMode('fallback');
       return;
     }
 
+    const applyIntent = (intent: PublicEntryIntent) => {
+      if (isDirectCategoryIntent(intent)) {
+        // Each activation carries its own sequence so the organizer consumes it exactly once.
+        setCategoryIntent(current => ({
+          category: intent,
+          sequence: (current?.sequence ?? 0) + 1,
+        }));
+        setMode('fallback');
+        return;
+      }
+      setCategoryIntent(null);
+      setJourneyKey(key => key + 1);
+      setMode(intent);
+    };
+
     const onIntent = (event: Event) => {
       const intent = readPublicEntryIntent(event);
-      if (
-        intent === 'vehicle' ||
-        intent === 'injury' ||
-        intent === 'property' ||
-        intent === 'flight'
-      ) {
-        takePendingPublicEntryIntent();
-        setJourneyKey(key => key + 1);
-        setMode(intent === 'vehicle' ? 'accident' : intent);
-      }
+      if (!intent) return;
+      takePendingPublicEntryIntent();
+      applyIntent(intent);
     };
     const onHashChange = () => {
       if (window.location.hash === '#flight-guidance') {
@@ -66,13 +74,8 @@ export function FreeStartIntakeShell({
     window.addEventListener(PUBLIC_INTENT_EVENT, onIntent);
     window.addEventListener('hashchange', onHashChange);
     const pendingIntent = takePendingPublicEntryIntent();
-    if (
-      pendingIntent === 'vehicle' ||
-      pendingIntent === 'injury' ||
-      pendingIntent === 'property' ||
-      pendingIntent === 'flight'
-    ) {
-      setMode(pendingIntent === 'vehicle' ? 'accident' : pendingIntent);
+    if (pendingIntent) {
+      applyIntent(pendingIntent);
     } else {
       onHashChange();
     }
@@ -81,15 +84,6 @@ export function FreeStartIntakeShell({
       window.removeEventListener('hashchange', onHashChange);
     };
   }, [publicEntryEnabled]);
-
-  if (mode === 'accident') {
-    return (
-      <AccidentSafetyJourney
-        key={`accident-${props.locale}-${journeyKey}`}
-        onContinue={() => setMode('vehicleDetails')}
-      />
-    );
-  }
 
   if (mode === 'injury') {
     return (
@@ -100,32 +94,22 @@ export function FreeStartIntakeShell({
     );
   }
 
-  if (mode === 'property') {
-    return (
-      <PropertySafetyJourney
-        key={`property-${props.locale}-${journeyKey}`}
-        onContinue={() => setMode('propertyDetails')}
-      />
-    );
-  }
-
   if (mode === 'flight') {
     return <FlightDisruptionJourney key={`flight-${props.locale}-${journeyKey}`} />;
   }
 
-  let initialCategory = props.initialCategory;
-  if (mode === 'vehicleDetails') initialCategory = 'vehicle';
-  if (mode === 'injuryDetails') initialCategory = 'injury';
-  if (mode === 'propertyDetails') initialCategory = 'property';
   return (
     <>
       <noscript>
         <FlightNoScriptGuidance />
       </noscript>
-      <LegacyFreeStartIntakeShell
+      {/* Public entry enables the intent listener and its presentation only. The organizer
+          instance belongs to the settled owner above, so a repeated public selection, an ordinary
+          rerender or the first verified save can never discard typed facts. */}
+      <FreeStartOrganizer
         {...props}
-        key={initialCategory ?? 'fallback'}
-        initialCategory={initialCategory}
+        categoryIntent={publicEntryEnabled ? categoryIntent : null}
+        initialCategory={mode === 'injuryDetails' ? 'injury' : props.initialCategory}
       />
     </>
   );

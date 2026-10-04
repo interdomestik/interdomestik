@@ -11,8 +11,25 @@ export type FreeStartIntakeShellProps = Readonly<{
   locale: string;
   neutralOtpHost?: string | null;
   neutralOtpTenantId?: string | null;
+  /**
+   * Binds the identity a customer just verified to this intake, before any save is requested.
+   *
+   * Returning `false` refuses the verified intent: the identity belongs to a retired intake or to
+   * someone other than the owner already settled here. This is local UI ownership only and never
+   * grants server access.
+   */
+  onVerifiedOwner?: (userId: string) => boolean;
   tenantId?: string | null;
 }>;
+
+/**
+ * One deliberate public situation selection. The sequence lets the organizer consume each
+ * activation exactly once, separately from recovery or session rerenders.
+ */
+export type PublicCategoryIntent = Readonly<{ category: CategoryId; sequence: number }>;
+
+export type FreeStartOrganizerProps = FreeStartIntakeShellProps &
+  Readonly<{ categoryIntent?: PublicCategoryIntent | null }>;
 
 export type StepId = 'category' | 'details' | 'preview' | 'complete';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';

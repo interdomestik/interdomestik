@@ -10,7 +10,7 @@ import { parseSecureSaveCopy, parseSecureSaveReviewCopy, type SavedDraft } from 
 import type { useDraftLifecycle } from './use-draft-lifecycle';
 
 // prettier-ignore
-type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; tenantId?: string | null }>;
+type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; tenantId?: string | null }>;
 // prettier-ignore
 const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost), resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''); };
 
@@ -20,6 +20,7 @@ export function SecureSaveBand({
   locale,
   manageOnly,
   neutralOtpHost,
+  onVerifiedOwner,
   tenantId,
 }: Props) {
   const t = useTranslations('freeStart');
@@ -102,6 +103,7 @@ key={lifecycle.identityKey}
 locale={locale}
 tenantId={tenantId}
 onVerified={lifecycle.onVerified}
+onVerifiedOwner={onVerifiedOwner}
 />
 ) : null}
 {lifecycle.active ? (

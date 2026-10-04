@@ -1,118 +1,126 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import {
+  PUBLIC_FACTS_COPY as COPY,
+  createPublicFactsEntry,
+  expectNoOverflow,
+  expectUsefulArrival,
+  expectReadableControls,
+  expectKeyboardSafetyReturn,
+} from '../fixtures/public-intake-arrival';
+import { expect, test } from '@playwright/test';
 
-import { routes, type Locale } from '../routes';
 import { withAnonymousPage } from '../utils/anonymous-context';
-import { gotoApp } from '../utils/navigation';
 
 const localeMatrix = [
-  { locale: 'sq', title: /A ka ende rrezik aktiv/i, width: 360, height: 800 },
-  { locale: 'en', title: /Is there still an active danger/i, width: 375, height: 812 },
-  { locale: 'sr', title: /Da li i dalje postoji neposredna opasnost/i, width: 390, height: 844 },
-  { locale: 'mk', title: /Дали сè уште постои непосредна опасност/i, width: 430, height: 860 },
-  { locale: 'sq', title: /A ka ende rrezik aktiv/i, width: 844, height: 390 },
+  { locale: 'sq', width: 360, height: 800 },
+  { locale: 'en', width: 375, height: 812 },
+  { locale: 'sr', width: 390, height: 844 },
+  { locale: 'mk', width: 430, height: 860 },
+  { locale: 'sq', width: 844, height: 390 },
+  { locale: 'sq', width: 1440, height: 1024 },
 ] as const;
 
-async function openJourney(page: Page, info: TestInfo, locale: Locale = 'sq') {
-  await gotoApp(page, routes.home(locale), info, { marker: 'public-entry-hero' });
-  const property = page.getByTestId('public-entry-property');
-  const journey = page.getByTestId('property-safety-journey');
-  await expect(async () => {
-    await property.click();
-    await expect(journey).toBeVisible({ timeout: 1_000 });
-  }).toPass({ timeout: 10_000 });
-  return journey;
-}
+const openPropertyEntry = createPublicFactsEntry('property');
 
-async function expectNoOverflow(locator: Locator) {
-  expect(await locator.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(
-    true
-  );
-}
-
-async function reachResult(journey: Locator) {
-  await journey.getByRole('button', { name: 'Jo' }).click();
-  await journey.getByRole('button', { name: /Ujë, rrjedhje/i }).click();
-  await journey.getByRole('button', { name: 'Po' }).click();
-  await journey.getByRole('button', { name: 'Qiramarrës' }).click();
-  await journey.getByLabel('Shteti ku ndodhet prona').selectOption('IT');
-  await journey.getByRole('button', { name: 'Vazhdo' }).click();
-  await journey.getByLabel('Shteti i vendbanimit të zakonshëm').selectOption('DE');
-  await journey.getByRole('button', { name: 'Vazhdo' }).click();
-}
-
-test.describe('public property safety journey', () => {
-  test('starts in every locale with readable mobile controls', async ({ browser }, info) => {
+test.describe('public property reporting entry', () => {
+  test('opens the property facts in every locale with readable mobile controls', async ({
+    browser,
+  }, info) => {
     await withAnonymousPage(browser, info, async page => {
       for (const entry of localeMatrix) {
         await page.setViewportSize({ width: entry.width, height: entry.height });
-        const journey = await openJourney(page, info, entry.locale);
-        await expect(journey.getByRole('heading', { name: entry.title })).toBeVisible();
+        const organizer = await openPropertyEntry(page, info, entry.locale);
+        const copy = COPY[entry.locale];
+        const narrative = organizer.getByLabel(copy.narrative);
+        await expect(organizer.getByRole('heading', { name: copy.advice })).toBeVisible();
+        await expect(narrative).toBeVisible();
+        // One hero selection has to land the first narrative in view without any manual scrolling.
+        await expect(narrative).toBeInViewport();
+        await expectUsefulArrival(page, organizer, copy.narrative, copy.advice);
         await expectNoOverflow(page.locator('html'));
-        await expectNoOverflow(journey);
-        for (const answer of await journey.getByRole('button').all()) {
-          expect((await answer.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-        }
-        const sizes = await journey
-          .locator('p, button, label, select')
-          .evaluateAll(nodes =>
-            nodes.map(node => Number.parseFloat(getComputedStyle(node).fontSize))
-          );
-        expect(Math.min(...sizes)).toBeGreaterThanOrEqual(16);
+        await expectNoOverflow(organizer);
+
+        await expectReadableControls(
+          organizer,
+          organizer.getByTestId('free-start-recovery-editor')
+        );
       }
     });
   });
 
-  test('fails uncertainty closed with the EU-qualified 112 message', async ({ browser }, info) => {
+  test('keeps the danger advice visible with the EU-qualified 112 message', async ({
+    browser,
+  }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      const journey = await openJourney(page, info);
-      await journey.getByRole('button', { name: 'Nuk jam i sigurt' }).click();
-      await expect(journey.getByRole('heading', { name: /Largohuni nga rreziku/i })).toBeVisible();
-      await expect(journey).toContainText('Nëse ndodheni në BE');
-      await expect(journey).not.toContainText('Organizo të dhënat');
+      const organizer = await openPropertyEntry(page, info);
+      const advice = organizer.getByTestId('free-start-urgent-advice');
+
+      await expect(advice).toContainText('largohuni nga rreziku');
+      await expect(advice).toContainText('Mos hyni përsëri');
+      await expect(advice).toContainText('Nëse ndodheni në BE');
+      // The advice sits above the facts editor instead of gating it.
+      const position = await page.evaluate(() => {
+        const node = document.querySelector('[data-testid="free-start-urgent-advice"]');
+        const editor = document.querySelector('[data-testid="free-start-recovery-editor"]');
+        if (!node || !editor) return 0;
+        return node.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING;
+      });
+      expect(position).not.toBe(0);
     });
   });
 
-  test('keeps answers transient and starts a fresh property intake', async ({ browser }, info) => {
+  test('keeps the entry transient and starts the property facts without extra questions', async ({
+    browser,
+  }, info) => {
     await withAnonymousPage(browser, info, async page => {
-      const journey = await openJourney(page, info);
+      await page.setViewportSize({ width: 390, height: 844 });
+      const organizer = await openPropertyEntry(page, info);
       await expect(page).toHaveURL(/#free-start-intake$/);
       const initialUrl = page.url();
       const egress: string[] = [];
       page.on('request', request => {
         if (['fetch', 'xhr'].includes(request.resourceType())) egress.push(request.url());
       });
-      const safe = journey.getByRole('button', { name: 'Jo' });
-      await safe.focus();
-      await safe.press('Enter');
-      await expect(journey.getByRole('heading', { name: /Çfarë lloj dëmi/i })).toBeFocused();
-      await journey.getByRole('button', { name: /Ujë, rrjedhje/i }).click();
-      await journey.getByRole('button', { name: 'Po' }).click();
-      await journey.getByRole('button', { name: 'Qiramarrës' }).click();
-      await journey.getByLabel('Shteti ku ndodhet prona').selectOption('IT');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
-      await journey.getByLabel('Shteti i vendbanimit të zakonshëm').selectOption('DE');
-      await journey.getByRole('button', { name: 'Vazhdo' }).click();
+
+      await expect(page.getByTestId('property-safety-journey')).toHaveCount(0);
+      await expect(page.getByLabel('Shteti ku ndodhet prona')).toHaveCount(0);
+      await expect(organizer.getByTestId('free-start-category-property')).toHaveCount(0);
+      await expect(organizer.getByText('Po vazhdoni për:')).toBeVisible();
+
+      const narrative = organizer.getByLabel(COPY.sq.narrative);
+      await narrative.click();
+      await narrative.fill('Uji dëmtoi garazhën dhe sallonin.');
+      await expect(narrative).toBeFocused();
+      await expect(narrative).toHaveValue('Uji dëmtoi garazhën dhe sallonin.');
       expect(page.url()).toBe(initialUrl);
       expect(egress).toEqual([]);
-      await journey.getByRole('button', { name: /Organizo të dhënat e dëmit tim/i }).click();
-      await expect(page.getByTestId('free-start-intake-shell')).toBeVisible();
-      await expect(page.getByTestId('free-start-category-property')).toHaveCount(0);
     });
   });
 
   test('reflows at 200 percent zoom and with expanded text spacing', async ({ browser }, info) => {
     await withAnonymousPage(browser, info, async page => {
       await page.setViewportSize({ width: 768, height: 900 });
-      const journey = await openJourney(page, info);
-      await reachResult(journey);
+      const organizer = await openPropertyEntry(page, info);
       await page.locator('html').evaluate(element => {
         element.style.zoom = '2';
         element.style.letterSpacing = '0.12em';
         element.style.wordSpacing = '0.16em';
         element.style.lineHeight = '1.5';
       });
-      await expect(journey.getByRole('heading', { name: /Mbroni njerëzit/i })).toBeVisible();
-      await expectNoOverflow(journey);
+
+      await expect(organizer.getByRole('heading', { name: COPY.sq.advice })).toBeVisible();
+      await expect(organizer.getByLabel(COPY.sq.narrative)).toBeVisible();
+      await expectNoOverflow(organizer);
+    });
+  });
+
+  test('keyboard and same-hash arrival keep safety reachable and retain the facts', async ({
+    browser,
+  }, info) => {
+    await withAnonymousPage(browser, info, async page => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const organizer = await openPropertyEntry(page, info, 'sq', true);
+      await expectKeyboardSafetyReturn(page, organizer, 'property', COPY.sq);
     });
   });
 });
