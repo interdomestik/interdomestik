@@ -112,7 +112,7 @@ test.describe('IDA-UI03b different-email recovery entry', () => {
     });
     try {
       const page = await noJs.newPage();
-      await openOrganizer(page, info);
+      await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
       await expect(page.getByTestId('different-email-recovery')).toHaveCount(0);
     } finally {
       await noJs.close();
