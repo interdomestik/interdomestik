@@ -164,6 +164,7 @@ test.describe('pre-membership Free Start recovery', () => {
       await page.reload();
       const returned = await openOrganizer(page, ida, true, false, 'en');
       await returned.getByRole('button', { name: 'Discard from this device' }).click();
+      await expect(returned.getByTestId('anonymous-draft-recovery-offer')).toHaveCount(0);
       await openSaveArea(returned);
       await expect(returned.getByTestId('browser-recovery-disabled')).toBeVisible();
       await expect(returned).toHaveAttribute('data-save-behavior', 'explicit-only');
