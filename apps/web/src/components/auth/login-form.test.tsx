@@ -1,146 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  loginFormMocks as mocks,
+  resetLoginFormHarness,
+  fillAndSubmitCredentials,
+  setLoginFormLocation,
+} from '@/test/login-form-harness';
 import { LoginForm } from './login-form';
 
-let mockSearchParams = new URLSearchParams('');
-const mockEmitAuthTelemetryEvent = vi.fn();
-
-const mockCanAccessAdmin = vi.fn();
-vi.mock('@/actions/admin-access', () => ({
-  canAccessAdmin: () => mockCanAccessAdmin(),
-}));
-
-// Mock authClient
-const mockSignInEmail = vi.fn();
-const mockSignInSocial = vi.fn();
-const mockGetSession = vi.fn();
-const mockLocationAssign = vi.fn();
-
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    signIn: {
-      email: (...args: unknown[]) => mockSignInEmail(...args),
-      social: (...args: unknown[]) => mockSignInSocial(...args),
-    },
-    getSession: () => mockGetSession(),
-  },
-}));
-
-vi.mock('@/lib/auth-telemetry', () => ({
-  emitAuthTelemetryEvent: (...args: unknown[]) => mockEmitAuthTelemetryEvent(...args),
-}));
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: (namespace: string) => (key: string) => {
-    const translations: Record<string, Record<string, string>> = {
-      'auth.login': {
-        title: 'Welcome Back',
-        subtitle: 'Sign in to continue',
-        email: 'Email',
-        password: 'Password',
-        showPassword: 'Show password',
-        hidePassword: 'Hide password',
-        forgotPassword: 'Forgot password?',
-        rememberMe: 'Remember me',
-        submit: 'Sign In',
-        noAccount: "Don't have an account?",
-        registerLink: 'Register',
-        error: 'An error occurred',
-      },
-      common: {
-        loading: 'Loading...',
-        or: 'or',
-      },
-    };
-    return translations[namespace]?.[key] || key;
-  },
-}));
-
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => mockSearchParams,
-  usePathname: () => '/en/login',
-}));
-
-// Mock router
-const mockPush = vi.fn();
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-  useRouter: () => ({
-    push: mockPush,
-  }),
-}));
-
-// Mock UI components
-vi.mock('@interdomestik/ui', () => ({
-  Button: ({
-    children,
-    type,
-    onClick,
-    disabled,
-  }: {
-    children: React.ReactNode;
-    type?: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) =>
-    type === 'submit' ? (
-      <button type="submit" disabled={disabled}>
-        {children}
-      </button>
-    ) : (
-      <button type="button" onClick={onClick} disabled={disabled}>
-        {children}
-      </button>
-    ),
-  Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CardContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CardDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CardTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
-  Checkbox: ({ id, disabled }: { id: string; disabled?: boolean }) => (
-    <input type="checkbox" id={id} disabled={disabled} />
-  ),
-  Input: ({
-    id,
-    name,
-    type,
-    required,
-    disabled,
-  }: {
-    id: string;
-    name: string;
-    type: string;
-    required?: boolean;
-    disabled?: boolean;
-  }) => <input id={id} name={name} type={type} required={required} disabled={disabled} />,
-  Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) => (
-    <label htmlFor={htmlFor}>{children}</label>
-  ),
-}));
-
-function fillAndSubmitCredentials(email = 'test@example.com', password = 'password123'): void {
-  fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
-  fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
-  fireEvent.click(screen.getByText('Sign In'));
-}
-
 describe('LoginForm', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockEmitAuthTelemetryEvent.mockReset();
-    Object.defineProperty(globalThis, 'location', {
-      configurable: true,
-      value: {
-        assign: mockLocationAssign,
-      },
-    });
-    mockSearchParams = new URLSearchParams('');
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
-    mockCanAccessAdmin.mockResolvedValue(false);
-  });
+  beforeEach(resetLoginFormHarness);
 
   it('renders the login form correctly', () => {
     render(<LoginForm />);
@@ -163,50 +32,58 @@ describe('LoginForm', () => {
   });
 
   it('submits form with email and password', async () => {
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockSignInEmail).toHaveBeenCalledWith({
+      expect(mocks.signInEmail).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
       });
     });
 
     await waitFor(() => {
-      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member');
+      expect(mocks.locationAssign).toHaveBeenCalledWith('/en/member');
     });
   });
 
   it('redirects admins to canonical route when access is granted', async () => {
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'admin' } } });
-    mockCanAccessAdmin.mockResolvedValue(true);
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    let release!: (result: { role: string; hasAdminAccess: boolean }) => void;
+    mocks.readLoginSession.mockReturnValueOnce(
+      new Promise(resolve => {
+        release = resolve;
+      })
+    );
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
+    await waitFor(() => expect(mocks.readLoginSession).toHaveBeenCalledOnce());
+    expect(mocks.locationAssign).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+    release({ role: 'admin', hasAdminAccess: true });
     await waitFor(() => {
-      expect(mockLocationAssign).toHaveBeenCalledWith('/en/admin/overview');
+      expect(mocks.locationAssign).toHaveBeenCalledWith('/en/admin/overview');
     });
+    expect(mocks.readLoginSession).toHaveBeenCalledOnce();
   });
 
   it('does not redirect admins without access', async () => {
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'admin' } } });
-    mockCanAccessAdmin.mockResolvedValue(false);
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'admin', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockLocationAssign).not.toHaveBeenCalled();
+      expect(mocks.locationAssign).not.toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -215,22 +92,22 @@ describe('LoginForm', () => {
   });
 
   it('shows an error when canonical redirect is unavailable', async () => {
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'unknown' } } });
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'unknown', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockLocationAssign).not.toHaveBeenCalled();
+      expect(mocks.locationAssign).not.toHaveBeenCalled();
     });
 
     await waitFor(() => {
       expect(screen.getByText(/unsupported account role/i)).toBeInTheDocument();
     });
 
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+    expect(mocks.emitAuthTelemetryEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: 'staff_post_login_redirect_failed',
         reason: 'unsupported_redirect_target',
@@ -240,8 +117,8 @@ describe('LoginForm', () => {
   });
 
   it('emits telemetry when role sync never resolves after the retry window', async () => {
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: {} } });
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ hasAdminAccess: false });
 
     render(<LoginForm />);
 
@@ -251,33 +128,37 @@ describe('LoginForm', () => {
       expect(screen.getByText('An error occurred')).toBeInTheDocument();
     });
 
-    expect(mockLocationAssign).not.toHaveBeenCalled();
-    expect(mockEmitAuthTelemetryEvent).toHaveBeenCalledWith(
+    expect(mocks.locationAssign).not.toHaveBeenCalled();
+    expect(mocks.emitAuthTelemetryEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: 'staff_post_login_redirect_failed',
         reason: 'post_login_sync_timeout',
         pathname: '/en/login',
       })
     );
-    expect(mockGetSession).toHaveBeenCalledTimes(2);
+    expect(mocks.readLoginSession).toHaveBeenCalledTimes(2);
   });
 
-  it('displays error on invalid credentials', async () => {
-    mockSignInEmail.mockResolvedValue({ error: { message: 'Invalid credentials' } });
-    render(<LoginForm />);
-
-    fillAndSubmitCredentials('test@example.com', 'wrongpassword');
-
-    await waitFor(() => {
-      expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+  it.each([
+    ['invalid_credentials', 'Invalid credentials'],
+    ['session_error', 'An error occurred'],
+  ])('displays a fail-closed error for %s', async (kind, message) => {
+    mocks.signInEmail.mockResolvedValue({
+      error: kind === 'invalid_credentials' ? { message } : null,
     });
+    if (kind === 'session_error')
+      mocks.readLoginSession.mockRejectedValueOnce(new Error('Synthetic failure'));
+    render(<LoginForm />);
+    fillAndSubmitCredentials('test@example.com', 'wrongpassword');
+    await waitFor(() => expect(screen.getByText(message)).toBeInTheDocument());
+    expect(mocks.locationAssign).not.toHaveBeenCalled();
   });
 
   it('shows loading state during submission', async () => {
-    mockSignInEmail.mockImplementation(
+    mocks.signInEmail.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ error: null }), 100))
     );
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
 
     render(<LoginForm />);
 
@@ -294,35 +175,29 @@ describe('LoginForm', () => {
 
   it('uses resolved onboarding for GitHub OAuth with server tenant context', async () => {
     const originalLocation = globalThis.location;
-    Object.defineProperty(globalThis, 'location', {
-      value: { origin: 'http://localhost:3000' },
-      writable: true,
-    });
+    setLoginFormLocation({ origin: 'http://localhost:3000' });
 
     render(<LoginForm githubOAuthEnabled tenantId="tenant_ks" />);
     const githubButton = screen.getByText('GitHub');
     fireEvent.click(githubButton);
 
     await waitFor(() => {
-      expect(mockSignInSocial).toHaveBeenCalledWith({
+      expect(mocks.signInSocial).toHaveBeenCalledWith({
         provider: 'github',
         callbackURL: 'http://localhost:3000/en/login',
         additionalData: { onboarding: { tenant: 'tenant_ks', mode: 'resolved' } },
       });
     });
 
-    Object.defineProperty(globalThis, 'location', { value: originalLocation });
+    setLoginFormLocation(originalLocation);
   });
 
   it('preserves the GitHub callback and defers a neutral tenant hint', async () => {
     const originalLocation = globalThis.location;
-    mockSearchParams = new URLSearchParams('tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims');
-    Object.defineProperty(globalThis, 'location', {
-      value: {
-        origin: 'http://localhost:3000',
-        href: 'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
-      },
-      writable: true,
+    mocks.searchParams = new URLSearchParams('tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims');
+    setLoginFormLocation({
+      origin: 'http://localhost:3000',
+      href: 'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
     });
 
     render(<LoginForm githubOAuthEnabled />);
@@ -330,7 +205,7 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByText('GitHub'));
 
     await waitFor(() => {
-      expect(mockSignInSocial).toHaveBeenCalledWith({
+      expect(mocks.signInSocial).toHaveBeenCalledWith({
         provider: 'github',
         callbackURL:
           'http://localhost:3000/en/login?tenantId=tenant_ks&next=%2Fen%2Fmember%2Fclaims',
@@ -338,7 +213,7 @@ describe('LoginForm', () => {
       });
     });
 
-    Object.defineProperty(globalThis, 'location', { value: originalLocation });
+    setLoginFormLocation(originalLocation);
   });
 
   it('has forgot password link', () => {
@@ -368,7 +243,7 @@ describe('LoginForm', () => {
   });
 
   it('preserves selected plan in register link continuity', () => {
-    mockSearchParams = new URLSearchParams('tenantId=tenant_ks&plan=standard');
+    mocks.searchParams = new URLSearchParams('tenantId=tenant_ks&plan=standard');
     render(<LoginForm />);
 
     const registerLink = screen.getByText('Register');
@@ -376,44 +251,44 @@ describe('LoginForm', () => {
   });
 
   it('redirects members to selected plan flow after login when plan query is present', async () => {
-    mockSearchParams = new URLSearchParams('plan=standard');
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mocks.searchParams = new URLSearchParams('plan=standard');
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockLocationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');
+      expect(mocks.locationAssign).toHaveBeenCalledWith('/en/pricing?plan=standard');
     });
   });
 
   it('redirects to a safe next path after login when it matches the authenticated surface', async () => {
-    mockSearchParams = new URLSearchParams('next=%2Fen%2Fmember%2Fclaims');
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mocks.searchParams = new URLSearchParams('next=%2Fen%2Fmember%2Fclaims');
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member/claims');
+      expect(mocks.locationAssign).toHaveBeenCalledWith('/en/member/claims');
     });
   });
 
   it('falls back to the canonical route when next targets a different protected surface', async () => {
-    mockSearchParams = new URLSearchParams('next=%2Fen%2Fadmin%2Foverview');
-    mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mocks.searchParams = new URLSearchParams('next=%2Fen%2Fadmin%2Foverview');
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
 
     render(<LoginForm />);
 
     fillAndSubmitCredentials();
 
     await waitFor(() => {
-      expect(mockLocationAssign).toHaveBeenCalledWith('/en/member');
+      expect(mocks.locationAssign).toHaveBeenCalledWith('/en/member');
     });
   });
 });

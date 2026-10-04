@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   callbacks: [] as Array<() => Promise<void> | void>,
   emailOTP: vi.fn((config: unknown) => config),
   send: vi.fn(),
+  normalize: vi.fn(() => 'sq'),
 }));
 
 vi.mock('next/server', () => ({
@@ -15,7 +16,7 @@ vi.mock('next/server', () => ({
 }));
 vi.mock('better-auth/plugins/email-otp', () => ({ emailOTP: mocks.emailOTP }));
 vi.mock('../email', () => ({
-  normalizeSignInOtpLocale: vi.fn(() => 'sq'),
+  normalizeSignInOtpLocale: mocks.normalize,
   sendPasswordResetEmail: vi.fn(),
   sendSignInOtpEmail: mocks.send,
 }));
@@ -103,5 +104,32 @@ describe('IDA-UI03a0b2 deferred OTP provider', () => {
     expect(serialized).not.toContain('654321');
     expect(serialized).not.toContain('RAW_PROVIDER_SECRET');
     error.mockRestore();
+  });
+
+  it('captures only the locale scalar before after, then normalizes it during delivery', async () => {
+    const config = plugin();
+    const request = new Request('https://ida.test/api/auth/email-otp', {
+      headers: { 'x-interdomestik-locale': 'sq' },
+    });
+    const readHeader = vi.spyOn(request.headers, 'get');
+    const completion = config.sendVerificationOTP(
+      {
+        email: 'synthetic@example.com',
+        otp: '123456',
+        type: 'sign-in',
+      },
+      { request }
+    );
+    expect(mocks.after).toHaveBeenCalledOnce();
+    expect(readHeader).toHaveBeenCalledOnce();
+    expect(mocks.normalize).not.toHaveBeenCalled();
+    await completion;
+    request.headers.set('x-interdomestik-locale', 'mk');
+    readHeader.mockClear();
+    await mocks.callbacks[0]?.();
+    expect(readHeader).not.toHaveBeenCalled();
+    expect(mocks.normalize).toHaveBeenCalledWith('sq');
+    expect(mocks.send).toHaveBeenCalledWith('synthetic@example.com', '123456', 'sq');
+    readHeader.mockRestore();
   });
 });

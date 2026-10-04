@@ -4,13 +4,14 @@ import { LoginForm } from './login-form';
 
 let mockSearchParams = new URLSearchParams('');
 const mockSignInEmail = vi.fn();
-const mockGetSession = vi.fn();
+const mockReadLoginSession = vi.fn();
 
-vi.mock('@/actions/admin-access', () => ({ canAccessAdmin: vi.fn(async () => false) }));
+vi.mock('@/components/auth/login-session-client', () => ({
+  readLoginSession: () => mockReadLoginSession(),
+}));
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     signIn: { email: (...args: unknown[]) => mockSignInEmail(...args) },
-    getSession: () => mockGetSession(),
   },
 }));
 vi.mock('@/lib/auth-telemetry', () => ({ emitAuthTelemetryEvent: vi.fn() }));
@@ -65,7 +66,7 @@ describe('LoginForm neutral entry and ida live-login cutover', () => {
     vi.clearAllMocks();
     mockSearchParams = new URLSearchParams('');
     mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mockReadLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
   });
 
   it('submits plain credentials at the neutral entry without a tenant hint', async () => {

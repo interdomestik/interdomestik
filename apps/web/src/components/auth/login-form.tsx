@@ -1,6 +1,5 @@
 'use client';
 
-import { canAccessAdmin } from '@/actions/admin-access';
 import {
   resolveLoginTenantHint,
   resolveSocialOnboardingTenantContext,
@@ -93,7 +92,7 @@ export function LoginForm({
                 return;
               }
 
-              const { role, timedOut } = await resolveAuthenticatedRole();
+              const { role, hasAdminAccess, timedOut } = await resolveAuthenticatedRole();
 
               if (!role || timedOut) {
                 emitPostLoginFailureTelemetry(
@@ -106,14 +105,10 @@ export function LoginForm({
                 return;
               }
 
-              const isAdminRole = isAdmin(role);
-              if (isAdminRole) {
-                const hasAdminAccess = await canAccessAdmin().catch(() => false);
-                if (!hasAdminAccess) {
-                  setError(t('error'));
-                  setLoading(false);
-                  return;
-                }
+              if (isAdmin(role) && !hasAdminAccess) {
+                setError(t('error'));
+                setLoading(false);
+                return;
               }
 
               const continuation = resolvePostLoginTarget({
