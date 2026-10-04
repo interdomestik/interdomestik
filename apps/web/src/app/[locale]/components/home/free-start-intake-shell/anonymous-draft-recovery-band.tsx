@@ -57,7 +57,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       data-testid={hasOffer ? 'anonymous-draft-recovery-offer' : 'anonymous-draft-recovery-status'}
       aria-labelledby="anonymous-draft-recovery-heading"
       aria-busy={recovery.pending}
-      className="break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] p-4 text-[#173b43]"
+      className={`break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] text-[#173b43] ${hasOffer ? 'p-3' : 'p-4'}`}
     >
       {recoverable && !retained ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
@@ -89,13 +89,13 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       >
         {status}
       </p>
-      <div className={hasOffer ? "mt-2 flex flex-wrap gap-2" : "mt-3 flex flex-wrap gap-3"}>
+      <div className={hasOffer ? "mt-1 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" : "mt-3 flex flex-wrap gap-3"}>
         {hasOffer ? (
           <button
             type="button"
             disabled={recovery.pending}
             onClick={recovery.resume}
-            className="min-h-12 rounded-xl bg-[#006f72] px-4 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
+            className="min-h-12 min-w-0 whitespace-normal rounded-xl bg-[#006f72] px-3 text-base font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2 sm:px-4"
           >
             {copy.continue}
           </button>
@@ -105,7 +105,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
             type="button"
             disabled={recovery.pending}
             onClick={recovery.discard}
-            className="min-h-12 rounded-xl border border-[#006f72] bg-white px-4 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
+            className={`min-h-12 rounded-xl border border-[#006f72] bg-white font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] ${hasOffer ? 'min-w-0 whitespace-normal px-3 text-base sm:px-4' : 'px-4'}`}
           >
             {fresh ? secureCopy.startAnother : copy.discard}
           </button>

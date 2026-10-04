@@ -65,7 +65,7 @@ export async function expectUsefulArrival(
   await expect(cue).toHaveAttribute('href', '#free-start-urgent-advice-heading');
   await expect(cue).toBeInViewport({ ratio: 1 });
   await expect
-    .poll(async () => {
+    .poll(() => {
       return organizer.getByLabel(narrative).evaluate(element => {
         const field = element.getBoundingClientRect();
         const header = document
@@ -83,8 +83,10 @@ export async function expectUsefulArrival(
 }
 
 export async function expectReadableControls(organizer: Locator, buttons: Locator = organizer) {
-  for (const control of await buttons.getByRole('button').all()) {
-    expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  const controls = await buttons.getByRole('button').all();
+  const bounds = await Promise.all(controls.map(control => control.boundingBox()));
+  for (const bound of bounds) {
+    expect(bound?.height).toBeGreaterThanOrEqual(44);
   }
   const fontSizes = await organizer
     .locator('button, input, select, textarea')
