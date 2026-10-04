@@ -1,18 +1,20 @@
 'use client';
 
 import { canAccessAdmin } from '@/actions/admin-access';
-import { resolveLoginTenantHint } from '@/components/auth/login-tenant-hint';
+import {
+  resolveLoginTenantHint,
+  resolveSocialOnboardingTenantContext,
+} from '@/components/auth/login-tenant-hint';
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
-import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
-import {
-  getCanonicalRouteForRole,
-  getValidatedLocaleFromPathname,
-  stripLocalePrefixFromCanonicalRoute,
-} from '@/lib/canonical-routes';
+import { getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
 import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { isAdmin } from '@/lib/roles.core';
-import { resolveSafeNextPath } from './login-next-path';
+import {
+  emitPostLoginFailureTelemetry,
+  resolveAuthenticatedRole,
+  resolvePostLoginTarget,
+} from './login-post-authentication';
 import {
   Button,
   Card,
@@ -29,42 +31,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { buildSocialOnboardingPayload } from './register-onboarding-payload';
 
-const SESSION_SYNC_RETRY_COUNT = 2;
-const SESSION_SYNC_RETRY_DELAY_MS = 250;
-type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
-
-async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
-  for (let attempt = 0; attempt < SESSION_SYNC_RETRY_COUNT; attempt += 1) {
-    const { data: session } = await authClient.getSession();
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (role) {
-      return { role, timedOut: false };
-    }
-
-    if (attempt < SESSION_SYNC_RETRY_COUNT - 1) {
-      await new Promise(resolve => setTimeout(resolve, SESSION_SYNC_RETRY_DELAY_MS));
-    }
-  }
-
-  return { timedOut: true };
-}
-
-function emitPostLoginFailureTelemetry(
-  reason: 'post_login_sync_timeout' | 'unsupported_redirect_target',
-  pathname: string,
-  tenantId?: string
-): void {
-  emitAuthTelemetryEvent({
-    eventName: 'staff_post_login_redirect_failed',
-    tenant: tenantId,
-    locale: getValidatedLocaleFromPathname(pathname),
-    surface: 'unknown',
-    host: globalThis.location?.host ?? null,
-    pathname,
-    reason,
-  });
-}
-
 export function LoginForm({
   githubOAuthEnabled = false,
   tenantId,
@@ -79,6 +45,9 @@ export function LoginForm({
   const planIdFromQuery = searchParams.get('plan') || undefined;
   const nextPathFromQuery = searchParams.get('next');
   const resolvedTenantId = resolveLoginTenantHint(searchParams, tenantId);
+  // Social sign-up needs a validated onboarding intent, which keeps its own booking context; the
+  // password payload above stays identity-only.
+  const socialOnboarding = resolveSocialOnboardingTenantContext(searchParams, tenantId);
   const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -146,49 +115,27 @@ export function LoginForm({
                   return;
                 }
               }
-              const canonical = getCanonicalRouteForRole(role, locale);
-              if (!canonical) {
-                emitPostLoginFailureTelemetry(
-                  'unsupported_redirect_target',
-                  pathname,
-                  resolvedTenantId
-                );
-                setError(`${t('error')} (Unsupported account role)`);
-                setLoading(false);
-                return;
-              }
 
-              const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
-              if (!target) {
-                emitPostLoginFailureTelemetry(
-                  'unsupported_redirect_target',
-                  pathname,
-                  resolvedTenantId
-                );
-                setError(`${t('error')} (Unsupported account role)`);
-                setLoading(false);
-                return;
-              }
-
-              const safeNextPath = resolveSafeNextPath(
-                nextPathFromQuery,
+              const continuation = resolvePostLoginTarget({
                 role,
                 locale,
-                globalThis.location.hash
-              );
-              if (safeNextPath) {
-                globalThis.location.assign(safeNextPath);
+                nextPathFromQuery,
+                planIdFromQuery,
+                hash: globalThis.location.hash,
+              });
+              if (continuation.kind === 'unsupported_role') {
+                emitPostLoginFailureTelemetry(
+                  'unsupported_redirect_target',
+                  pathname,
+                  resolvedTenantId
+                );
+                setError(`${t('error')} (Unsupported account role)`);
+                setLoading(false);
                 return;
               }
 
-              if (planIdFromQuery && target === '/member') {
-                const pricingParams = new URLSearchParams();
-                pricingParams.set('plan', planIdFromQuery);
-                globalThis.location.assign(`/${locale}/pricing?${pricingParams}`); // eslint-disable-line @next/next/no-location-assign-relative-destination -- hard navigation reloads the authenticated session
-                return;
-              }
-
-              globalThis.location.assign(canonical);
+              // Hard navigation reloads the authenticated session.
+              globalThis.location.assign(continuation.target);
             } catch {
               setError(t('error'));
               setLoading(false);
@@ -298,8 +245,11 @@ export function LoginForm({
                     provider: 'github',
                     callbackURL:
                       globalThis.location.href || `${globalThis.location.origin}/${locale}/login`,
-                    ...(resolvedTenantId
-                      ? buildSocialOnboardingPayload(resolvedTenantId, tenantId === undefined)
+                    ...(socialOnboarding
+                      ? buildSocialOnboardingPayload(
+                          socialOnboarding.tenantId,
+                          socialOnboarding.deferred
+                        )
                       : {}),
                   });
                 }}
