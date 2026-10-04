@@ -57,7 +57,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
       data-testid={hasOffer ? 'anonymous-draft-recovery-offer' : 'anonymous-draft-recovery-status'}
       aria-labelledby="anonymous-draft-recovery-heading"
       aria-busy={recovery.pending}
-      className={`break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] text-[#173b43] ${hasOffer ? 'p-3' : 'p-4'}`}
+      className={`break-words rounded-2xl border border-[#006f72]/25 bg-[#eef8f5] text-[#173b43] ${hasOffer ? '-mx-4 p-2 sm:mx-0 sm:p-3' : 'p-4'}`}
     >
       {recoverable && !retained ? (
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#006f72]">
