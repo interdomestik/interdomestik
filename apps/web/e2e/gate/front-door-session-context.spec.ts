@@ -4,6 +4,7 @@ import { db, E2E_PASSWORD, E2E_USERS, eq, notifications, user } from '@interdome
 import { expect, test, type TestInfo } from '@playwright/test';
 
 import { routes } from '../routes';
+import { registerNeutralCredentialEntryCases } from './front-door-neutral-entry.cases';
 import { gotoApp } from '../utils/navigation';
 
 type FrontDoorTenant = 'tenant_ks' | 'tenant_mk';
@@ -194,3 +195,5 @@ test.describe('Front-door session context', () => {
     }
   });
 });
+
+registerNeutralCredentialEntryCases(projectInfo);

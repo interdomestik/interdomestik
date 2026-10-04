@@ -1,22 +1,36 @@
 import 'server-only';
 
+// The neutral entry reuses the single exact host-admission authority that the sign-in route uses;
+// this pure module derives no tenant and owns no routing.
+import { resolveNeutralEmailSignInHost } from '@/app/api/auth/[...all]/neutral-email-sign-in-admission';
 import { LoginForm } from '@/components/auth/login-form';
+import { resolveSafeNextPath } from '@/components/auth/login-next-path';
 import { getSessionSafe } from '@/components/shell/session';
-import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { hasGitHubOAuthCredentials } from '@/lib/auth/social-providers';
-import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { resolveTenantContextFromRequest } from '@/lib/tenant/tenant-request';
 import { FileText, Globe2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getLoginTenantBootstrapRedirect, loadTenantOptions } from './_core';
+import { getLoginTenantBootstrapRedirect } from './_core';
 import { SavedDraftSignInEntry } from './saved-draft-sign-in';
+
+type LoginSearchParams = {
+  tenantId?: string | string[];
+  plan?: string | string[];
+  next?: string | string[];
+};
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ tenantId?: string; plan?: string }>;
+  searchParams?: Promise<LoginSearchParams>;
 };
+
+// Duplicate query values are ambiguous continuation input, so only a single value is honored.
+function readSingleQueryValue(value: string | string[] | undefined): string | null {
+  return typeof value === 'string' ? value : null;
+}
 
 type PortalCopy = {
   eyebrow: string;
@@ -87,44 +101,52 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const tenantIdFromQuery = readSingleQueryValue(resolvedSearchParams?.tenantId);
+  const planIdFromQuery = readSingleQueryValue(resolvedSearchParams?.plan);
+  const nextPathFromQuery = readSingleQueryValue(resolvedSearchParams?.next);
+
   const session = await getSessionSafe('LoginPage');
-  if (session?.user?.role) {
-    const canonical = getCanonicalRouteForRole(session.user.role, locale);
+  const sessionRole = session?.user?.role;
+  if (sessionRole) {
+    // An already-authenticated visit still honors a validated role-scoped continuation; the server
+    // cannot read the request fragment, so client saved-draft hash handling stays in the form.
+    const safeNextPath = resolveSafeNextPath(nextPathFromQuery, sessionRole, locale);
+    if (safeNextPath) {
+      redirect(safeNextPath);
+    }
+
+    const canonical = getCanonicalRouteForRole(sessionRole, locale);
     if (canonical) {
       redirect(canonical);
     }
   }
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  // On an exact admitted neutral host there is no implicit tenant: the legacy resolver would hand
+  // back the default public tenant (or a stale cookie), and that would be submitted as an implicit
+  // hint that denies a normal login from another tenant. Every other host — country/pilot alias,
+  // loopback, unknown, and any rejected neutral candidate — keeps its resolved context.
+  const neutralHostDecision = resolveNeutralEmailSignInHost(await headers());
   const tenantContext = await resolveTenantContextFromRequest();
-  const tenantIdFromContext = tenantContext.kind === 'tenant' ? tenantContext.tenantId : null;
+  const tenantIdFromContext =
+    neutralHostDecision === 'admitted' || tenantContext.kind !== 'tenant'
+      ? null
+      : tenantContext.tenantId;
   const bootstrapRedirect = getLoginTenantBootstrapRedirect({
     locale,
-    tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
-    planIdFromQuery: resolvedSearchParams?.plan ?? null,
+    tenantIdFromQuery,
+    planIdFromQuery,
+    nextPathFromQuery,
     tenantIdFromContext,
   });
   if (bootstrapRedirect) redirect(bootstrapRedirect);
 
-  const resolvedTenantId =
-    tenantIdFromContext ?? coerceTenantId(resolvedSearchParams?.tenantId ?? undefined);
-
-  const tenantOptions: TenantOption[] = await loadTenantOptions({
-    resolvedTenantId,
-    loadTenants: async () => {
-      const [{ dbAdmin }, { tenants }, drizzle] = await Promise.all([
-        import('@interdomestik/database/db'),
-        import('@interdomestik/database/schema'),
-        import('drizzle-orm'),
-      ]);
-      // db-access-guard: system-exempt -- reason: public login tenant selector lists active tenant metadata only; runtime RLS denies this directory
-      return dbAdmin
-        .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
-        .from(tenants)
-        .where(drizzle.eq(tenants.isActive, true))
-        .orderBy(drizzle.asc(tenants.name));
-    },
-  });
+  // Neutral entry: returning customers submit credentials without choosing a country/tenant. Only a
+  // deliberate host/context tenant is server-resolved here; a validated `tenantId` request stays on
+  // the URL and the form carries it as explicit context itself. Keeping the two apart is what lets
+  // the social onboarding intent stay `deferred` on the neutral entry and `resolved` on a country
+  // host.
+  const resolvedTenantId = tenantIdFromContext;
 
   const t = await getTranslations({ locale, namespace: 'auth.login' });
 
@@ -163,9 +185,6 @@ export default async function LoginPage({ params, searchParams }: Props) {
             </p>
           </div>
 
-          {resolvedTenantId ? null : (
-            <TenantSelector tenants={tenantOptions} title={t('portal.tenantTitle')} />
-          )}
           <SavedDraftSignInEntry locale={locale} />
           <LoginForm
             githubOAuthEnabled={hasGitHubOAuthCredentials()}

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { evaluateEmailSignInTenantGuard, resolveTenantIdForEmailSignIn } from './_core';
 
@@ -95,6 +95,21 @@ describe('auth core ida live-login cutover', () => {
     });
 
     expect(result).toEqual({ decision: 'allow' });
+  });
+
+  it('keeps the neutral single entry usable while the cutover is enabled', async () => {
+    MUTABLE_ENV.FEATURE_IDA_LIVE_LOGIN_CUTOVER = 'true';
+    const lookupUserTenantByEmail = vi.fn(async () => 'tenant_mk' as const);
+
+    const result = await evaluateEmailSignInTenantGuard({
+      url: 'https://ida.localhost:3000/api/auth/sign-in/email',
+      headers: new Headers({ host: 'ida.localhost:3000' }),
+      body: { email: 'member.mk@interdomestik.test' },
+      lookupUserTenantByEmail,
+    });
+
+    expect(result).toEqual({ decision: 'allow' });
+    expect(lookupUserTenantByEmail).not.toHaveBeenCalled();
   });
 
   it('does not let body hints bypass the country-host cutover block', async () => {

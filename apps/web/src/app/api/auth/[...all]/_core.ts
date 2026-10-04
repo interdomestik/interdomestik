@@ -10,7 +10,16 @@ import {
   type TenantId,
 } from '@/lib/tenant/tenant-hosts';
 
-import { resolveSignInAdditionalTenantHint } from './sign-in-tenant-hint';
+import {
+  evaluateNeutralSingleEntryEmailSignIn,
+  type NeutralSingleEntryDecision,
+} from './neutral-email-sign-in-guard';
+import { resolveSignInTenantContext } from './sign-in-tenant-hint';
+
+// The neutral single-entry decision lives in its own route-local module; it stays importable from
+// here so the route and existing contracts keep one auth-core surface.
+export { evaluateNeutralSingleEntryEmailSignIn };
+export type { NeutralSingleEntryDecision };
 
 export type AuthMethod = 'GET' | 'POST';
 export type AuthRateLimitConfig = { name: string; limit: number; windowSeconds: number };
@@ -125,14 +134,12 @@ function hasUnambiguousFrontDoorHost(headers: Headers): boolean {
 
 function resolveFrontDoorTenantHint(headers: Headers, body?: unknown): TenantId | null {
   if (!hasUnambiguousFrontDoorHost(headers)) return null;
-  const bodyTenant = resolveSignInAdditionalTenantHint(body);
-  return (
-    coerceTenantId(headers.get(TENANT_HEADER_NAME)) ??
-    (bodyTenant.kind === 'valid' ? bodyTenant.tenantId : null) ??
-    (bodyTenant.kind === 'invalid'
-      ? null
-      : coerceTenantId(parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME)))
-  );
+
+  const explicitContext = resolveSignInTenantContext(headers, body);
+  if (explicitContext.kind === 'invalid') return null;
+  if (explicitContext.kind === 'valid') return explicitContext.tenantId;
+
+  return coerceTenantId(parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME));
 }
 
 export function resolveTenantIdForPasswordResetAudit(
@@ -186,6 +193,16 @@ export function resolveTenantIdForEmailSignIn(headers: Headers, body?: unknown):
   );
 }
 
+function denyMissingTenantContext(): SignInTenantGuardResult {
+  return {
+    decision: 'deny',
+    code: 'WRONG_TENANT_CONTEXT',
+    message: 'Wrong tenant context',
+    reason: 'missing_tenant_context',
+    resolvedTenantId: null,
+  };
+}
+
 export function extractEmailFromSignInBody(body: unknown): string | null {
   if (!body || typeof body !== 'object') return null;
   const raw = (body as { email?: unknown }).email;
@@ -203,16 +220,21 @@ export async function evaluateEmailSignInTenantGuard(args: {
   const { url, headers, body, lookupUserTenantByEmail } = args;
   if (!isEmailSignInUrl(url)) return null;
 
-  const resolvedTenantId = resolveTenantIdForEmailSignIn(headers, body);
-  if (!resolvedTenantId) {
-    return {
-      decision: 'deny',
-      code: 'WRONG_TENANT_CONTEXT',
-      message: 'Wrong tenant context',
-      reason: 'missing_tenant_context',
-      resolvedTenantId: null,
-    };
-  }
+  const neutralEntry = evaluateNeutralSingleEntryEmailSignIn(headers, body);
+  // Delegate to the unchanged provider handler, which verifies credentials and establishes
+  // tenant/role from the stored identity. No pre-auth email lookup happens on this path.
+  if (neutralEntry.kind === 'delegate_to_provider') return { decision: 'allow' };
+  // An unusable explicit context, or a neutral candidate host that is not an exact admitted entry,
+  // fails closed here instead of falling back to the loose legacy host/cookie comparison.
+  if (neutralEntry.kind === 'reject') return denyMissingTenantContext();
+
+  // On an admitted neutral host the parsed explicit tenant is the comparison authority; everything
+  // else keeps the established host/cookie/header resolution.
+  const resolvedTenantId =
+    neutralEntry.kind === 'compare_explicit_tenant'
+      ? neutralEntry.tenantId
+      : resolveTenantIdForEmailSignIn(headers, body);
+  if (!resolvedTenantId) return denyMissingTenantContext();
 
   const email = extractEmailFromSignInBody(body);
   if (!email) return { decision: 'allow' };

@@ -1,38 +1,49 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tenants } from '@interdomestik/database/schema';
-import { asc, eq } from 'drizzle-orm';
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-type MockTenantContext =
-  | { kind: 'tenant'; tenantId: string; source: string }
-  | { kind: 'public'; tenantId: null; source: string };
+import {
+  captureRedirect,
+  clearNeutralHostOverrides,
+  COUNTRY_ALIAS_CONTEXT,
+  NON_NEUTRAL_REQUEST_HOST,
+  PUBLIC_FRONT_DOOR_CONTEXT,
+  renderLoginPage,
+  restoreNeutralHostEnv,
+  snapshotNeutralHostEnv,
+  throwNextRedirect,
+  type MockSession,
+  type MockTenantContext,
+} from './_core.entry-test-support';
 
 const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn(async () => null),
-  tenantRows: [{ id: 'tenant_ks', name: 'KS', countryCode: 'XK' }],
-  adminSelectMock: vi.fn(),
-  adminHandleMock: vi.fn(),
-  runtimeSelectMock: vi.fn(),
-  activeOnlyMock: vi.fn(),
-  tenantFromMock: vi.fn(),
-  orderByMock: vi.fn(),
+  getSessionSafeMock: vi.fn<() => Promise<MockSession>>(async () => null),
+  // `localhost:3000` is never an admitted neutral host, so the mocked tenant context below stays
+  // the value under test. Exact admitted hosts have their own suite.
+  requestHeadersMock: vi.fn<() => Promise<Headers>>(
+    async () => new Headers({ host: 'localhost:3000' })
+  ),
+  databaseSelectMock: vi.fn(),
   loginFormMock: vi.fn((_: unknown) => <div>login-form</div>),
   savedDraftSignInMock: vi.fn((_: unknown) => <div>saved-draft-sign-in</div>),
-  redirectMock: vi.fn(),
+  redirectMock: vi.fn((_target: string) => {}),
+  bootstrapRedirectMock: vi.fn<(args: unknown) => string | null>(() => null),
   resolveTenantContextFromRequestMock: vi.fn<() => Promise<MockTenantContext>>(async () => ({
     kind: 'tenant',
     tenantId: 'tenant_ks',
     source: 'compatibility_alias',
   })),
   setRequestLocaleMock: vi.fn(),
-  tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),
 }));
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => `auth.login.${key}`),
   setRequestLocale: hoisted.setRequestLocaleMock,
+}));
+
+vi.mock('next/headers', () => ({
+  headers: hoisted.requestHeadersMock,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -43,16 +54,8 @@ vi.mock('@/components/auth/login-form', () => ({
   LoginForm: (props: unknown) => hoisted.loginFormMock(props),
 }));
 
-vi.mock('@/components/auth/tenant-selector', () => ({
-  TenantSelector: (props: unknown) => hoisted.tenantSelectorMock(props),
-}));
-
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
-}));
-
-vi.mock('@/lib/canonical-routes', () => ({
-  getCanonicalRouteForRole: vi.fn(() => null),
 }));
 
 vi.mock('@/lib/tenant/tenant-request', () => ({
@@ -61,13 +64,17 @@ vi.mock('@/lib/tenant/tenant-request', () => ({
 
 vi.mock('./_core', async importOriginal => ({
   ...(await importOriginal<typeof import('./_core')>()),
-  getLoginTenantBootstrapRedirect: vi.fn(() => null),
+  getLoginTenantBootstrapRedirect: hoisted.bootstrapRedirectMock,
 }));
 
+// Any tenant-directory access would have to come through the database handle; the neutral entry
+// must never reach it.
 vi.mock('@interdomestik/database/db', () => ({
-  db: { select: hoisted.runtimeSelectMock },
+  get db() {
+    return { select: hoisted.databaseSelectMock };
+  },
   get dbAdmin() {
-    return hoisted.adminHandleMock();
+    return { select: hoisted.databaseSelectMock };
   },
 }));
 
@@ -78,125 +85,114 @@ vi.mock('./saved-draft-sign-in', () => ({
 
 import LoginPage from './_core.entry';
 
-describe('LoginPage tenant selection', () => {
+const ENTRY_SOURCE_PATH = join(process.cwd(), 'src/app/[locale]/(auth)/login/_core.entry.tsx');
+
+const originalEnv = new Map<string, string | undefined>();
+
+describe('LoginPage neutral single entry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    snapshotNeutralHostEnv(originalEnv);
+    // An ambient configured host could otherwise make the request host an admitted neutral entry.
+    clearNeutralHostOverrides();
     hoisted.getSessionSafeMock.mockResolvedValue(null);
-    hoisted.adminHandleMock.mockReturnValue({ select: hoisted.adminSelectMock });
-    hoisted.adminSelectMock.mockReturnValue({ from: hoisted.tenantFromMock });
-    hoisted.tenantFromMock.mockReturnValue({ where: hoisted.activeOnlyMock });
-    hoisted.orderByMock.mockResolvedValue(hoisted.tenantRows);
-    hoisted.activeOnlyMock.mockReturnValue({
-      orderBy: hoisted.orderByMock,
-    });
-    // Staging RLS deliberately makes tenants invisible to the runtime role.
-    hoisted.runtimeSelectMock.mockReturnValue({
-      from: () => ({ where: () => ({ orderBy: async () => [] }) }),
-    });
-    hoisted.resolveTenantContextFromRequestMock.mockResolvedValue({
-      kind: 'tenant',
-      tenantId: 'tenant_ks',
-      source: 'compatibility_alias',
-    });
+    hoisted.bootstrapRedirectMock.mockReturnValue(null);
+    hoisted.redirectMock.mockImplementation(throwNextRedirect);
+    hoisted.requestHeadersMock.mockResolvedValue(new Headers({ host: NON_NEUTRAL_REQUEST_HOST }));
+    hoisted.resolveTenantContextFromRequestMock.mockResolvedValue(COUNTRY_ALIAS_CONTEXT);
   });
 
-  it('renders the portal shell and resolves tenant context without rendering the chooser', async () => {
-    const tree = await LoginPage({
-      params: Promise.resolve({ locale: 'en' }),
-      searchParams: Promise.resolve({}),
-    });
-
-    render(tree);
-
-    expect(screen.getByTestId('auth-ready')).toBeInTheDocument();
-    expect(screen.getByTestId('auth-portal-hero')).toHaveTextContent(
-      'auth.login.portal.panelTitle'
-    );
-    expect(screen.getByTestId('auth-portal-form-region')).toBeInTheDocument();
-    expect(screen.queryByText('tenant-selector')).not.toBeInTheDocument();
-    expect(hoisted.adminHandleMock).not.toHaveBeenCalled();
-    expect(hoisted.adminSelectMock).not.toHaveBeenCalled();
-    expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
-    expect(screen.getByText('login-form')).toBeInTheDocument();
-    expect(hoisted.savedDraftSignInMock).toHaveBeenCalledWith({ locale: 'en' });
-    expect(hoisted.loginFormMock).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: 'tenant_ks' })
-    );
-  });
+  afterEach(() => restoreNeutralHostEnv(originalEnv));
 
   it.each(['en', 'sq', 'mk', 'sr'])(
-    'renders active public tenant metadata despite runtime RLS denial in %s',
+    'renders the %s portal shell with a single password form and no tenant chooser',
     async locale => {
-      hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
-        kind: 'public',
-        tenantId: null,
-        source: 'ida_front_door',
-      });
+      hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce(PUBLIC_FRONT_DOOR_CONTEXT);
 
-      const tree = await LoginPage({
-        params: Promise.resolve({ locale }),
-        searchParams: Promise.resolve({}),
-      });
+      render(await renderLoginPage(LoginPage, { locale }));
 
-      render(tree);
-
-      expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
-      expect(hoisted.adminSelectMock).toHaveBeenCalledWith({
-        id: tenants.id,
-        name: tenants.name,
-        countryCode: tenants.countryCode,
-      });
-      expect(hoisted.activeOnlyMock).toHaveBeenCalledExactlyOnceWith(eq(tenants.isActive, true));
-      expect(hoisted.orderByMock).toHaveBeenCalledExactlyOnceWith(asc(tenants.name));
+      expect(screen.getByTestId('auth-ready')).toBeInTheDocument();
+      expect(screen.getByTestId('auth-portal-hero')).toHaveTextContent(
+        'auth.login.portal.panelTitle'
+      );
+      expect(screen.getByTestId('auth-portal-form-region')).toBeInTheDocument();
+      expect(screen.getByText('login-form')).toBeInTheDocument();
+      expect(screen.queryByText('tenant-selector')).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(hoisted.databaseSelectMock).not.toHaveBeenCalled();
       expect(hoisted.setRequestLocaleMock).toHaveBeenCalledExactlyOnceWith(locale);
-      expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
-        expect.objectContaining({ tenants: hoisted.tenantRows })
-      );
-      expect(screen.getByTestId('auth-portal-form-region')).toContainElement(
-        screen.getByText('tenant-selector')
-      );
-      expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'auth.login.portal.tenantTitle' })
-      );
+      expect(hoisted.savedDraftSignInMock).toHaveBeenCalledWith({ locale });
       expect(hoisted.loginFormMock).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: undefined })
       );
+      expect(hoisted.redirectMock).not.toHaveBeenCalled();
     }
   );
 
-  it.each(['handle', 'query'])(
-    'keeps the login form available on a tenant directory %s failure',
-    async source => {
-      const failure = new Error('tenant directory unavailable');
-      const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
-      try {
-        hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce({
-          kind: 'public',
-          tenantId: null,
-          source: 'ida_front_door',
-        });
-        const failingOperation =
-          source === 'handle' ? hoisted.adminHandleMock : hoisted.adminSelectMock;
-        failingOperation.mockImplementationOnce(() => {
-          throw failure;
-        });
-        render(
-          await LoginPage({
-            params: Promise.resolve({ locale: 'sq' }),
-            searchParams: Promise.resolve({}),
-          })
-        );
-        expect(screen.getByText('login-form')).toBeInTheDocument();
-        expect(hoisted.tenantSelectorMock).toHaveBeenCalledWith(
-          expect.objectContaining({ tenants: [] })
-        );
-        expect(hoisted.runtimeSelectMock).not.toHaveBeenCalled();
-        expect(errorLog).toHaveBeenCalledWith('Failed to load tenant options for login:', failure);
-      } finally {
-        errorLog.mockRestore();
-      }
+  it('does not reference a tenant directory or chooser in the login entry source', () => {
+    const source = readFileSync(ENTRY_SOURCE_PATH, 'utf8');
+    const forbiddenReferences = [
+      'TenantSelector',
+      'loadTenantOptions',
+      'dbAdmin',
+      'database/schema',
+    ];
+
+    for (const forbidden of forbiddenReferences) {
+      expect(source).not.toContain(forbidden);
     }
-  );
+  });
+
+  it('keeps carrying a deliberate host tenant context into the form', async () => {
+    render(await renderLoginPage(LoginPage, {}));
+
+    expect(hoisted.loginFormMock).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant_ks' })
+    );
+    expect(hoisted.databaseSelectMock).not.toHaveBeenCalled();
+  });
+
+  it('leaves an explicit query tenant to the form instead of server-resolving it', async () => {
+    hoisted.resolveTenantContextFromRequestMock.mockResolvedValueOnce(PUBLIC_FRONT_DOOR_CONTEXT);
+
+    render(await renderLoginPage(LoginPage, { searchParams: { tenantId: 'tenant_mk' } }));
+
+    // The prop stays the server-resolved host/context tenant, so a neutral social sign-up keeps its
+    // deferred onboarding intent. The validated `tenantId` request stays on the URL and the form
+    // submits it as explicit context (see login-form-live-login-cutover.test.tsx).
+    expect(hoisted.loginFormMock).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: undefined })
+    );
+  });
+
+  it('passes the single parsed query values into the tenant bootstrap decision', async () => {
+    render(
+      await renderLoginPage(LoginPage, {
+        searchParams: {
+          tenantId: 'tenant_mk',
+          plan: 'family',
+          next: '/en/member/claims/new',
+        },
+      })
+    );
+
+    expect(hoisted.bootstrapRedirectMock).toHaveBeenCalledExactlyOnceWith({
+      locale: 'en',
+      tenantIdFromQuery: 'tenant_mk',
+      planIdFromQuery: 'family',
+      nextPathFromQuery: '/en/member/claims/new',
+      tenantIdFromContext: 'tenant_ks',
+    });
+  });
+
+  it('follows a tenant bootstrap redirect before rendering', async () => {
+    hoisted.bootstrapRedirectMock.mockReturnValue('/en/login/tenant-context?tenantId=tenant_mk');
+
+    await expect(
+      captureRedirect(LoginPage, { searchParams: { tenantId: 'tenant_mk' } })
+    ).resolves.toBe('/en/login/tenant-context?tenantId=tenant_mk');
+  });
 
   it('keeps portal login copy available in every supported locale', () => {
     const expectedKeys = [
