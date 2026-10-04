@@ -19,7 +19,7 @@ const CANONICAL_SESSION_PATH = '/api/auth/get-session';
  * Headers that describe the provider's own body. A success body is replaced by the minimal login
  * payload, so keeping these would misdescribe or revalidate the wrong representation.
  */
-const STALE_REPRESENTATION_HEADERS = [
+const STALE_REPRESENTATION_HEADERS = new Set([
   'content-digest',
   'content-encoding',
   'content-length',
@@ -28,7 +28,7 @@ const STALE_REPRESENTATION_HEADERS = [
   'digest',
   'etag',
   'last-modified',
-];
+]);
 
 export type LoginSessionResponse = { role?: string; hasAdminAccess: boolean };
 
@@ -75,7 +75,7 @@ async function resolveLoginSession(payload: unknown): Promise<LoginSessionRespon
 function buildSuccessHeaders(provider: Headers): Headers {
   const headers = new Headers();
   for (const [name, value] of provider.entries()) {
-    if (name === 'set-cookie' || STALE_REPRESENTATION_HEADERS.includes(name)) continue;
+    if (name === 'set-cookie' || STALE_REPRESENTATION_HEADERS.has(name)) continue;
     headers.append(name, value);
   }
 
