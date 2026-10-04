@@ -1,7 +1,6 @@
 import { compare, hash } from 'bcryptjs';
 import { emailOTP } from 'better-auth/plugins/email-otp';
 import { after } from 'next/server';
-import { normalizeSignInOtpLocale, sendPasswordResetEmail, sendSignInOtpEmail } from '../email';
 import { getGitHubSocialProvider } from './social-providers';
 
 type GitHubOAuthEnv = {
@@ -19,10 +18,12 @@ function logOtpDelivery(category: 'success' | 'failure'): void {
 function scheduleSignInOtpDelivery(
   email: string,
   otp: string,
-  locale: 'sq' | 'en' | 'sr' | 'mk'
+  localeHeader: string | null | undefined
 ): void {
   after(async () => {
     try {
+      const { normalizeSignInOtpLocale, sendSignInOtpEmail } = await import('../email');
+      const locale = normalizeSignInOtpLocale(localeHeader);
       const result = await sendSignInOtpEmail(email, otp, locale);
       logOtpDelivery(result.success ? 'success' : 'failure');
     } catch {
@@ -50,6 +51,7 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
       sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
         // Never throw here; the API handler already returns a generic response.
         // If email delivery is misconfigured (e.g., RESEND_API_KEY missing), we keep the UX consistent.
+        const { sendPasswordResetEmail } = await import('../email');
         await sendPasswordResetEmail(user.email, url);
       },
     },
@@ -60,10 +62,8 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
             return;
           }
 
-          const locale = normalizeSignInOtpLocale(
-            context?.request?.headers.get('x-interdomestik-locale')
-          );
-          scheduleSignInOtpDelivery(email, otp, locale);
+          const localeHeader = context?.request?.headers.get('x-interdomestik-locale');
+          scheduleSignInOtpDelivery(email, otp, localeHeader);
         },
         storeOTP: 'hashed',
         expiresIn: 300,

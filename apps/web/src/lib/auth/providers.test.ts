@@ -85,7 +85,10 @@ describe('authProviders email OTP plugin', () => {
   });
 
   it.each([
+    ['sq', 'sq'],
+    ['en', 'en'],
     ['sr', 'sr'],
+    ['mk', 'mk'],
     ['de', 'en'],
   ])('allowlists the %s OTP wording locale as %s', async (header, expected) => {
     await otpPlugin.sendVerificationOTP(
@@ -99,5 +102,43 @@ describe('authProviders email OTP plugin', () => {
     await mocks.callbacks[0]?.();
 
     expect(mocks.sendSignInOtpEmail).toHaveBeenCalledWith('member@example.com', '123456', expected);
+  });
+
+  it('registers the configured GitHub provider unchanged', () => {
+    const providers = buildAuthProviders({
+      GITHUB_CLIENT_ID: 'synthetic-client',
+      GITHUB_CLIENT_SECRET: 'synthetic-secret',
+    });
+    expect(providers.socialProviders?.github).toMatchObject({
+      clientId: 'synthetic-client',
+      clientSecret: 'synthetic-secret',
+    });
+  });
+
+  it('preserves reset sender rejection instead of reporting success', async () => {
+    const failure = new Error('SYNTHETIC_RESET_FAILURE');
+    mocks.sendPasswordResetEmail.mockRejectedValueOnce(failure);
+    await expect(
+      authProviders.emailAndPassword.sendResetPassword({
+        user: { email: 'synthetic@example.com' },
+        url: 'https://ida.test/reset/synthetic',
+      })
+    ).rejects.toBe(failure);
+    expect(mocks.sendPasswordResetEmail).toHaveBeenCalledWith(
+      'synthetic@example.com',
+      'https://ida.test/reset/synthetic'
+    );
+  });
+
+  it.each([undefined, null])('preserves the %s locale-header fallback', async header => {
+    await otpPlugin.sendVerificationOTP(
+      { email: 'member@example.com', otp: '123456', type: 'sign-in' },
+      header === undefined
+        ? undefined
+        : { request: new Request('https://ida.test/api/auth/email-otp') }
+    );
+    await mocks.callbacks[0]?.();
+    expect(mocks.normalizeSignInOtpLocale).toHaveBeenLastCalledWith(header);
+    expect(mocks.sendSignInOtpEmail).toHaveBeenCalledWith('member@example.com', '123456', 'en');
   });
 });

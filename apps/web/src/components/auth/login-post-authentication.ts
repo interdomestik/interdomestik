@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/auth-client';
+import { readLoginSession, type LoginSession } from '@/components/auth/login-session-client';
 import { emitAuthTelemetryEvent } from '@/lib/auth-telemetry';
 import {
   getCanonicalRouteForRole,
@@ -10,21 +10,19 @@ import { resolveSafeNextPath } from './login-next-path';
 
 const SESSION_SYNC_RETRY_DELAY_MS = 250;
 
-export type ResolvedAuthenticatedRole = { role?: string; timedOut: boolean };
+export type ResolvedAuthenticatedRole = LoginSession & { timedOut: boolean };
 
 /**
- * Reads the role the provider established for the new session, retrying once while the client
+ * Reads the authoritative role and admin decision together, retrying once while the browser
  * session cookie propagates.
  */
 export async function resolveAuthenticatedRole(): Promise<ResolvedAuthenticatedRole> {
-  const { data: session } = await authClient.getSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (role) return { role, timedOut: false };
+  const session = await readLoginSession();
+  if (session.role) return { ...session, timedOut: false };
 
   await new Promise(resolve => setTimeout(resolve, SESSION_SYNC_RETRY_DELAY_MS));
-  const { data: retriedSession } = await authClient.getSession();
-  const retriedRole = (retriedSession?.user as { role?: string } | undefined)?.role;
-  return retriedRole ? { role: retriedRole, timedOut: false } : { timedOut: true };
+  const retriedSession = await readLoginSession();
+  return { ...retriedSession, timedOut: !retriedSession.role };
 }
 
 export function emitPostLoginFailureTelemetry(
