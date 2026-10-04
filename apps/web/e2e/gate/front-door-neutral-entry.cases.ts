@@ -1,9 +1,24 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { gotoApp } from '../utils/navigation';
 
 type ProjectInfo = (baseURL: string | undefined) => { origin: string; locale: string };
+
+async function prepareNativeLogin(page: Page): Promise<void> {
+  // Fresh contexts choose necessary cookies through the real control before submitting.
+  const decline = page.getByTestId('cookie-consent-decline');
+  await expect(decline).toBeVisible();
+  await decline.click();
+  await expect(page.getByTestId('cookie-consent-banner')).toHaveCount(0);
+  // An SSR marker alone does not prove the form has installed its event handlers.
+  const password = page.getByTestId('login-password');
+  const visibility = password.locator('..').getByRole('button');
+  await visibility.click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await visibility.click();
+  await expect(password).toHaveAttribute('type', 'password');
+}
 
 export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): void {
   const NEUTRAL_LOGIN_CASES = [
@@ -51,7 +66,10 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
           !new URL(origin).hostname.startsWith('ida.'),
           'neutral UI proof uses IDA projects'
         );
-        const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+        const context = await browser.newContext({
+          extraHTTPHeaders: {},
+          storageState: { cookies: [], origins: [] },
+        });
         try {
           const foreignTenant = identity.tenantId === 'tenant_ks' ? 'tenant_mk' : 'tenant_ks';
           await context.addCookies([{ name: 'tenantId', value: foreignTenant, url: origin }]);
@@ -61,21 +79,25 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
           login.searchParams.set('next', `/${locale}/${surface}`);
           await gotoApp(page, login.toString(), testInfo, { marker: 'auth-ready' });
           await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
+          await prepareNativeLogin(page);
           await page.getByTestId('login-email').fill(identity.email);
           await page.getByTestId('login-password').fill(E2E_PASSWORD);
-          const signIn = page.waitForResponse(
-            response =>
-              new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
-              response.request().method() === 'POST'
-          );
-          await page.getByTestId('login-submit').click();
-          const response = await signIn;
+          const [response] = await Promise.all([
+            page.waitForResponse(
+              response =>
+                new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
+                response.request().method() === 'POST'
+            ),
+            page.getByTestId('login-submit').click(),
+          ]);
           expect(response.status()).toBe(200);
           const submitted = response.request().postDataJSON() as { additionalData?: unknown };
           expect(submitted.additionalData).toBeUndefined();
           expect(response.request().headers()['x-tenant-id']).toBeUndefined();
           await expect(page).toHaveURL(new URL(`/${locale}/${surface}`, origin).toString());
-          await expect(page.getByTestId(marker)).toBeVisible();
+          const ready = page.getByTestId(marker).filter({ visible: true });
+          await expect(ready).toHaveCount(1);
+          await expect(ready).toBeVisible();
           const sessionResponse = await context.request.get(
             new URL('/api/auth/get-session', origin).toString()
           );
@@ -97,7 +119,10 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
     }, testInfo) => {
       const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
       test.skip(!new URL(origin).hostname.startsWith('ida.'), 'neutral UI proof uses IDA projects');
-      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const context = await browser.newContext({
+        extraHTTPHeaders: {},
+        storageState: { cookies: [], origins: [] },
+      });
       try {
         await context.addCookies([{ name: 'tenantId', value: 'tenant_ks', url: origin }]);
         const page = await context.newPage();
@@ -106,15 +131,17 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
         login.searchParams.set('next', `/${locale}/member/claims`);
         await gotoApp(page, login.toString(), testInfo, { marker: 'auth-ready' });
         await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
+        await prepareNativeLogin(page);
         await page.getByTestId('login-email').fill(E2E_USERS.KS_MEMBER.email);
         await page.getByTestId('login-password').fill(E2E_PASSWORD);
-        const refused = page.waitForResponse(
-          response =>
-            new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
-            response.request().method() === 'POST'
-        );
-        await page.getByTestId('login-submit').click();
-        const rejected = await refused;
+        const [rejected] = await Promise.all([
+          page.waitForResponse(
+            response =>
+              new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
+              response.request().method() === 'POST'
+          ),
+          page.getByTestId('login-submit').click(),
+        ]);
         expect(rejected.status()).toBe(401);
         expect(rejected.request().postDataJSON().additionalData).toEqual({ tenantId: 'tenant_mk' });
         expect(rejected.request().headers()['x-tenant-id']).toBeUndefined();
@@ -128,13 +155,14 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
         expect(await unauthenticated.json()).toBeNull();
         await expect(page.getByTestId('login-submit')).toBeEnabled();
         await page.getByTestId('login-email').fill(E2E_USERS.MK_MEMBER.email);
-        const accepted = page.waitForResponse(
-          response =>
-            new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
-            response.request().method() === 'POST'
-        );
-        await page.getByTestId('login-submit').click();
-        const signedIn = await accepted;
+        const [signedIn] = await Promise.all([
+          page.waitForResponse(
+            response =>
+              new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
+              response.request().method() === 'POST'
+          ),
+          page.getByTestId('login-submit').click(),
+        ]);
         expect(signedIn.status()).toBe(200);
         expect(signedIn.request().postDataJSON().additionalData).toEqual({ tenantId: 'tenant_mk' });
         await expect(page).toHaveURL(new URL(`/${locale}/member/claims`, origin).toString());
@@ -154,21 +182,26 @@ export function registerNeutralCredentialEntryCases(projectInfo: ProjectInfo): v
     }, testInfo) => {
       const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
       test.skip(!new URL(origin).hostname.startsWith('ida.'), 'neutral UI proof uses IDA projects');
-      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const context = await browser.newContext({
+        extraHTTPHeaders: {},
+        storageState: { cookies: [], origins: [] },
+      });
       try {
         const page = await context.newPage();
         await gotoApp(page, new URL(`/${locale}/login`, origin).toString(), testInfo, {
           marker: 'auth-ready',
         });
+        await prepareNativeLogin(page);
         await page.getByTestId('login-email').fill(E2E_USERS.MK_MEMBER.email);
         await page.getByTestId('login-password').fill('incorrect-password-for-negative-proof');
-        const credentialFailure = page.waitForResponse(
-          response =>
-            new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
-            response.request().method() === 'POST'
-        );
-        await page.getByTestId('login-submit').click();
-        const denied = await credentialFailure;
+        const [denied] = await Promise.all([
+          page.waitForResponse(
+            response =>
+              new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
+              response.request().method() === 'POST'
+          ),
+          page.getByTestId('login-submit').click(),
+        ]);
         expect(denied.status()).toBe(401);
         expect(denied.request().postDataJSON().additionalData).toBeUndefined();
         expect((await denied.json()).code).toBe('INVALID_EMAIL_OR_PASSWORD');
