@@ -13,7 +13,7 @@
  * unknown hosts) keep their established behaviour.
  */
 import { isKnownIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
-import { resolveCountryHostCompatibilityAlias } from '@/lib/tenant/tenant-host-aliases';
+import { resolveTenantContextFromSources } from '@/lib/tenant/tenant-hosts';
 
 type HostAuthority = { hostname: string; port: number | null; authority: string };
 
@@ -94,6 +94,10 @@ function isAdmittedNeutralAuthority(direct: HostAuthority, env: NeutralSignInHos
   );
 }
 
+function isCompatibilityAliasHost(host: string): boolean {
+  return resolveTenantContextFromSources({ host }).source === 'compatibility_alias';
+}
+
 function isExactNeutralEntryRequest(
   rawDirect: string | null,
   rawForwarded: string | null,
@@ -104,7 +108,7 @@ function isExactNeutralEntryRequest(
 
   // A country/pilot compatibility alias keeps its own tenant contract and cutover behaviour even
   // when it is also present in configured host values.
-  if (resolveCountryHostCompatibilityAlias(direct.authority)) return false;
+  if (isCompatibilityAliasHost(direct.authority)) return false;
   if (!isAdmittedNeutralAuthority(direct, env)) return false;
 
   if (rawForwarded === null) return true;
@@ -134,7 +138,7 @@ function configuredNeutralHostnames(env: NeutralSignInHostEnv): string[] {
 
 function isNeutralEntryCandidateHostname(hostname: string, env: NeutralSignInHostEnv): boolean {
   if (!hostname) return false;
-  if (resolveCountryHostCompatibilityAlias(hostname)) return false;
+  if (isCompatibilityAliasHost(hostname)) return false;
 
   return (
     CANONICAL_NEUTRAL_HOSTNAMES.has(hostname) ||
@@ -168,7 +172,7 @@ export function resolveNeutralEmailSignInHost(
   // An alias direct host owns the request outright, so a forwarded neutral claim cannot turn it
   // into a neutral candidate.
   const directHostname = lenientNeutralHostname(rawDirect);
-  if (directHostname && resolveCountryHostCompatibilityAlias(directHostname)) {
+  if (directHostname && isCompatibilityAliasHost(directHostname)) {
     return 'not_a_neutral_candidate';
   }
 

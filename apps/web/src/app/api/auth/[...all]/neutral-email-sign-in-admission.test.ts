@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import { resolveTenantContextFromSources } from '@/lib/tenant/tenant-hosts';
+
 import {
   resolveNeutralEmailSignInHost,
   type NeutralSignInHostEnv,
 } from './neutral-email-sign-in-admission';
 
 const NO_CONFIGURED_HOSTS: NeutralSignInHostEnv = {};
+const CONFIGURED_HOST_KEYS = [
+  'IDA_HOST',
+  'VERCEL_URL',
+  'BETTER_AUTH_URL',
+  'NEXT_PUBLIC_APP_URL',
+] as const;
 
 // The three-state decision (admitted / rejected candidate / not a candidate) is asserted in
 // _core.neutral-email-sign-in-hosts.test.ts alongside its terminal guard behaviour.
@@ -148,4 +156,40 @@ describe('neutral email sign-in host admission', () => {
       false
     );
   });
+
+  it.each(CONFIGURED_HOST_KEYS)(
+    'keeps aliases outside the neutral entry when configured through %s',
+    key => {
+      for (const alias of ['ks', 'mk', 'al', 'pilot']) {
+        for (const suffix of ['interdomestik.com', 'localhost:3000', '127.0.0.1.nip.io:3000']) {
+          const host = `${alias}.${suffix}`;
+          const env: NeutralSignInHostEnv = { [key]: `https://${host}` };
+          const forwardedHeaders: Record<string, string>[] = [
+            {},
+            { 'x-forwarded-host': host },
+            { 'x-forwarded-host': 'www.interdomestik.com' },
+            { 'x-forwarded-host': 'ida.interdomestik.com' },
+          ];
+
+          for (const forwarded of forwardedHeaders) {
+            expect(resolveNeutralEmailSignInHost(new Headers({ host, ...forwarded }), env)).toBe(
+              'not_a_neutral_candidate'
+            );
+          }
+        }
+      }
+    }
+  );
+
+  it.each(CONFIGURED_HOST_KEYS)(
+    'admits an exact configured non-alias with default-public context through %s',
+    key => {
+      const host = 'neutral-entry.example.test:3000';
+      const env: NeutralSignInHostEnv = { [key]: `https://${host}` };
+
+      expect(resolveTenantContextFromSources({ host }).source).toBe('default_public');
+      expect(admitted({ host }, env)).toBe(true);
+      expect(admitted({ host, 'x-forwarded-host': host }, env)).toBe(true);
+    }
+  );
 });
