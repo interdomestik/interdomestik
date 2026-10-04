@@ -1,7 +1,8 @@
 'use client';
 
-import { Check, ShieldAlert } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 export type BrowserRecoveryDecision = 'pending' | 'disabled' | 'enabled';
 
@@ -25,9 +26,20 @@ type Props = Readonly<{
   onSkip: () => void;
 }>;
 
+const QUIET_ACTION_CLASS =
+  'min-h-11 rounded-xl border border-[#006f72] bg-white px-4 text-base font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2';
+
+/**
+ * Device storage is a separate optional decision inside the save area.
+ *
+ * Expanding it only reveals the complete existing facts: no consent is given and nothing is
+ * written until the explicit enable below them. Its actions stay visually quiet so they never
+ * compete with the secure-save or saved-draft continuation action above.
+ */
 export function BrowserRecoveryDisclosure({ decision, onEnable, onSkip }: Props) {
   const t = useTranslations('freeStart');
   const copy = t.raw('localRecoveryDisclosure') as Copy;
+  const [open, setOpen] = useState(false);
 
   if (decision === 'enabled') return null;
 
@@ -56,51 +68,64 @@ export function BrowserRecoveryDisclosure({ decision, onEnable, onSkip }: Props)
     );
   }
 
+  const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <section
       data-testid="browser-recovery-disclosure"
       aria-labelledby="browser-recovery-disclosure-heading"
-      className="rounded-3xl border-2 border-[#b77a08]/45 bg-[#fff8e8] p-5 text-[#173b43] sm:p-6"
+      className="rounded-2xl border border-[#001a33]/15 bg-white p-4 text-[#173b43]"
     >
-      <div className="flex items-start gap-3">
-        <ShieldAlert aria-hidden="true" className="mt-0.5 h-6 w-6 shrink-0 text-[#8a5a00]" />
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a5a00]">
-            {copy.eyebrow}
-          </p>
-          <h3
-            id="browser-recovery-disclosure-heading"
-            className="mt-1 text-xl font-bold text-[#001a33]"
-          >
-            {copy.heading}
-          </h3>
-        </div>
-      </div>
-      <ul className="mt-4 grid gap-3 text-sm leading-6 md:grid-cols-2">
-        {[copy.eligible, copy.risk, copy.lifecycle, copy.securePath].map(item => (
-          <li key={item} className="flex items-start gap-2">
-            <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#006f72]" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <h3 id="browser-recovery-disclosure-heading" className="text-sm font-bold text-[#001a33]">
         <button
           type="button"
-          data-testid="browser-recovery-enable"
-          onClick={onEnable}
-          className="min-h-12 rounded-xl bg-[#006f72] px-5 font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
+          data-testid="browser-recovery-details-open"
+          aria-controls="browser-recovery-details"
+          aria-expanded={open}
+          onClick={() => setOpen(current => !current)}
+          className="flex min-h-11 w-full items-center gap-2 rounded-lg text-left text-sm font-bold text-[#006b7b] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
         >
-          {copy.enable}
+          <Chevron aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <ShieldAlert aria-hidden="true" className="h-4 w-4 shrink-0 text-[#8a5a00]" />
+          <span>{copy.heading}</span>
         </button>
-        <button
-          type="button"
-          data-testid="browser-recovery-skip"
-          onClick={onSkip}
-          className="min-h-12 rounded-xl border border-[#006f72] bg-white px-5 font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
-        >
-          {copy.skip}
-        </button>
+      </h3>
+      {/* The container stays in the tree so the opener always controls a real element. */}
+      <div id="browser-recovery-details">
+        {open ? (
+          <>
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-[#8a5a00]">
+              {copy.eyebrow}
+            </p>
+            <ul className="mt-3 grid gap-3 text-sm leading-6 md:grid-cols-2">
+              {[copy.eligible, copy.risk, copy.lifecycle, copy.securePath].map(item => (
+                <li key={item} className="flex items-start gap-2">
+                  <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-[#006f72]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <button
+                type="button"
+                data-testid="browser-recovery-enable"
+                data-emphasis="secondary"
+                onClick={onEnable}
+                className={QUIET_ACTION_CLASS}
+              >
+                {copy.enable}
+              </button>
+              <button
+                type="button"
+                data-testid="browser-recovery-skip"
+                data-emphasis="secondary"
+                onClick={onSkip}
+                className={QUIET_ACTION_CLASS}
+              >
+                {copy.skip}
+              </button>
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
   );

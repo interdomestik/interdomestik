@@ -81,6 +81,8 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await p1.getByTestId('cookie-consent-accept').click();
       const firstSession = await signInMember(p1, origin, headers);
       const flow = p1.getByTestId('premium-free-start-organizer');
+      // Saving and managing live in one optional area while facts are entered; reveal it first.
+      await flow.getByTestId('free-start-save-entry-open').click();
       await flow.getByTestId('free-start-manage-open').click();
       await expect(flow.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
       await flow.getByTestId('free-start-category-property').click();

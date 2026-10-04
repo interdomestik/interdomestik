@@ -21,9 +21,12 @@ type Props = Readonly<{
   issueLabel: string;
   isFinishing: boolean;
   outcomeLabel: string;
+  secondaryFinish?: boolean;
   selectedCategory: CategoryId | null;
   setDraftField: SetDraftField;
   step: StepId;
+  /** The resolved temporary-result and service-limit truth for the optional summary action. */
+  truthBody: string;
   t: FreeStartCopy;
   onBackToCategory: () => void;
   onBackToDetails: () => void;
@@ -92,8 +95,10 @@ export function FreeStartMainPanel(props: Props) {
           issueLabel={props.issueLabel}
           isFinishing={props.isFinishing}
           outcomeLabel={props.outcomeLabel}
+          secondaryFinish={props.secondaryFinish}
           step={props.step}
           t={props.t}
+          truthBody={props.truthBody}
           onBack={props.onBackToDetails}
           onFinish={props.onFinish}
         />

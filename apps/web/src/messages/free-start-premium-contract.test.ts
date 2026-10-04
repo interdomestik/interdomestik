@@ -173,6 +173,52 @@ describe('premium Free Start copy contract', () => {
     }
   );
 
+  it('keeps the optional save-entry contract identical in SQ, EN, SR and MK', () => {
+    const copies = Object.values(localeMessages).map(messages => messages.freeStart.saveEntry);
+    const keys = copies.map(copy => collectKeyPaths(copy).sort());
+
+    // prettier-ignore
+    expect(keys[0]).toEqual(['close', 'heading', 'manage', 'open', 'status.device', 'status.neutral']);
+    expect(keys).toEqual([keys[0], keys[0], keys[0], keys[0]]);
+  });
+
+  it.each(Object.entries(localeMessages))(
+    '%s keeps the collapsed save status conservative about what storage holds',
+    (_locale, messages) => {
+      const entry = messages.freeStart.saveEntry;
+
+      // The fallback status may never claim absence: unavailable storage cannot be read, and an
+      // idle recovery window can still leave a superseded device record in place. It describes the
+      // page instead, and never claims any save has happened.
+      expect(entry.status.neutral).not.toMatch(/nothing|asgjë|ništa|ништо/i);
+      expect(entry.status.neutral).not.toMatch(/\bsaved\b|është ruajtur|je sačuvano|е зачувано/i);
+      expect(entry.status.neutral).toMatch(/page|faqe|stranica|страница/i);
+      // The positive device claim is only ever used for states that prove a kept copy.
+      expect(entry.status.device).toMatch(/browser|shfletues|pregledač|прелистувач/i);
+      expect(entry.status.device).toMatch(/device|pajisje|uređaj|уред/i);
+      expect(collectCopyValues(entry).join(' ')).not.toMatch(
+        /automatic|automatik|automatski|автоматски/i
+      );
+    }
+  );
+
+  it.each(Object.entries(localeMessages))(
+    '%s keeps one short service limit beside the full temporary-result explanation',
+    (_locale, messages) => {
+      const boundary = messages.freeStart.trustBoundary;
+
+      // The short line carries the permanent service limit without repeating the storage and
+      // temporary-result paragraph that now belongs to the optional summary action and the result.
+      expect(boundary.short.length).toBeLessThan(boundary.body.length);
+      expect(boundary.short).toMatch(/organiz|организира/i);
+      expect(boundary.short).toMatch(/no case|nuk hapet|nijedan slučaj|не се отвора/i);
+      expect(boundary.short).toMatch(/insurer|sigurues|osiguravač|осигурувач/i);
+      expect(boundary.short).toMatch(/advice|këshillë|savet|совет/i);
+      expect(boundary.short).not.toMatch(/30/);
+      expect(boundary.short).not.toMatch(/browser|shfletues|pregledač|прелистувач/i);
+    }
+  );
+
   it.each(Object.entries(localeMessages))(
     'C29 %s states verified-email resume, bounded storage, conflict and permanent deletion truth',
     (locale, messages) => {

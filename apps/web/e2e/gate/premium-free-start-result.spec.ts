@@ -85,11 +85,15 @@ test.describe('premium Free Start result', () => {
         await page.setViewportSize({ width: 320, height: 844 });
         await gotoOrigin(page, neutralUrl, info, 'free-start-intake-shell');
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
+        // Saving is one optional area while facts are entered; open it to measure its reflow.
+        await expectNoOverflow(page.getByTestId('free-start-save-entry'));
+        await page.getByTestId('free-start-save-entry-open').click();
         await expectNoOverflow(page.getByTestId('free-start-secure-save-band'));
       }
       neutralUrl.pathname = routes.home('en');
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoOrigin(page, neutralUrl, info, 'free-start-intake-shell');
+      await page.getByTestId('free-start-save-entry-open').click();
       const band = page.getByTestId('free-start-secure-save-band');
       const save = band.getByTestId('free-start-save-open');
       // prettier-ignore

@@ -152,6 +152,11 @@ describe('mounted problem-first intake with the real organizer', () => {
     render(<FreeStartIntakeShell {...shellProps} initialCategory="vehicle" />);
     const narrative = screen.getByLabelText(copy.details.summary);
     const issue = screen.getByLabelText(copy.details.issueType);
+    // The device-storage decision is optional twice over: it waits inside the save area, after the
+    // facts, and its own details stay collapsed until the customer asks for them.
+    fireEvent.click(await screen.findByTestId('free-start-save-entry-open'));
+    expect(screen.queryByRole('button', { name: copy.localRecoveryDisclosure.enable })).toBeNull();
+    fireEvent.click(await screen.findByTestId('browser-recovery-details-open'));
     const recovery = await screen.findByRole('button', {
       name: copy.localRecoveryDisclosure.enable,
     });

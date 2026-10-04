@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 import {
   BrowserRecoveryDisclosure,
@@ -12,6 +12,8 @@ import { EMPTY_DRAFT } from './constants';
 import { useFreeStartViewModel, useSecureIntentGuard } from './free-start-view-model';
 import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
+// prettier-ignore
+import { SAVE_AREA_ID, SaveAreaClose, SecureSaveEntry, isSecureSaveEngaged, parseSaveEntryCopy, useNeutralFrontDoor, type SaveEntryOpener } from './secure-save-entry';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
 // prettier-ignore
@@ -111,6 +113,22 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     onDecided: arrival.requestDecision,
     resolved: recovery.ready,
   });
+  // The save area is one optional disclosure: closed while facts are entered, revealed directly on
+  // review of an admitted situation, and held open by any real save work.
+  const saveEntryCopy = parseSaveEntryCopy(t.raw('saveEntry'));
+  const neutralFrontDoor = useNeutralFrontDoor(props.neutralOtpHost);
+  const saveEngaged = isSecureSaveEngaged(draftLifecycle);
+  // prettier-ignore
+  const reviewingAdmitted = (flow.step === 'preview' || flow.step === 'complete') && (flow.selectedCategory === 'vehicle' || flow.selectedCategory === 'property');
+  // prettier-ignore
+  const [saveArea, setSaveArea] = useState<{ focus: 'area' | 'entry' | 'none'; opener: SaveEntryOpener; open: boolean }>({ focus: 'none', opener: 'save', open: false });
+  // prettier-ignore
+  useEffect(() => { if (saveEngaged) setSaveArea(current => (current.open ? current : { ...current, focus: 'none', open: true })); }, [saveEngaged]);
+  // Off the neutral front door the band renders its own nothing, and no optional opener belongs.
+  const saveAreaRevealed = saveArea.open || reviewingAdmitted || !neutralFrontDoor;
+  const saveAreaCloseable = saveArea.open && !saveEngaged && !reviewingAdmitted;
+  // prettier-ignore
+  const closeSaveArea = () => setSaveArea(current => ({ ...current, focus: 'entry', open: false }));
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
@@ -176,10 +194,12 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
                 issueLabel={view.issueLabel}
                 isFinishing={flow.isFinishingIntake}
                 outcomeLabel={view.outcomeLabel}
+                secondaryFinish={neutralFrontDoor && reviewingAdmitted && !secureActionsBlocked}
                 selectedCategory={flow.selectedCategory}
                 setDraftField={flow.setDraftField}
                 step={flow.step}
                 t={t}
+                truthBody={trustBoundaryT('trustBoundary.body')}
                 onBackToCategory={() => flow.navigate('category')}
                 onBackToDetails={() => { arrival.request(flow.selectedCategory); flow.navigate('details'); }}
                 onCategorySelect={enterCategory}
@@ -201,21 +221,44 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             </aside>
           </div>
         )}
-        {/* The device-storage choice stays below the first input: it is optional, and opting in
-            remains required before any local write. */}
-        {recovery.ready &&
-        recovery.neutralHost &&
-        !recovery.offer &&
-        (recovery.state === 'idle' || recovery.state === 'discarded') ? (
-          <BrowserRecoveryDisclosure
-            decision={recoveryDecision}
-            onEnable={() => setRecoveryDecision('enabled')}
-            onSkip={() => setRecoveryDecision('disabled')}
-          />
-        ) : null}
         <TrustBoundary t={trustBoundaryT} />
         {/* prettier-ignore */}
-        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} tenantId={props.neutralOtpTenantId} /></div>
+        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}>
+          {saveAreaRevealed ? null : (
+            <SecureSaveEntry
+              copy={saveEntryCopy}
+              deviceCopyKept={['conflict', 'retained', 'saved'].includes(recovery.state)}
+              restoreFocus={saveArea.focus === 'entry' ? saveArea.opener : 'none'}
+              onFocusRestored={() => setSaveArea(current => ({ ...current, focus: 'none' }))}
+              onOpen={opener => setSaveArea({ focus: 'area', opener, open: true })}
+            />
+          )}
+          {/* Always present so the optional openers control a real element. */}
+          <div id={SAVE_AREA_ID} className="space-y-4">
+            {saveAreaRevealed ? (
+              <>
+                {/* prettier-ignore */}
+                <SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} publicPresentation={{ autoFocusHeading: saveArea.focus === 'area' }} tenantId={props.neutralOtpTenantId} />
+                {/* The device-storage choice is a separate optional disclosure here: expanding it
+                    only reveals the existing facts, and the explicit enable below them stays the
+                    one thing that permits a local write. */}
+                {recovery.ready &&
+                recovery.neutralHost &&
+                !recovery.offer &&
+                (recovery.state === 'idle' || recovery.state === 'discarded') ? (
+                  <BrowserRecoveryDisclosure
+                    decision={recoveryDecision}
+                    onEnable={() => setRecoveryDecision('enabled')}
+                    onSkip={() => setRecoveryDecision('disabled')}
+                  />
+                ) : null}
+                {saveAreaCloseable ? (
+                  <SaveAreaClose label={saveEntryCopy.close} onClose={closeSaveArea} />
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
     </section>
   );

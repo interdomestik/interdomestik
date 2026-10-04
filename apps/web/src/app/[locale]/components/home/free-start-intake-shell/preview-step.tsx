@@ -9,8 +9,18 @@ type Props = Readonly<{
   issueLabel: string;
   isFinishing: boolean;
   outcomeLabel: string;
+  /**
+   * True only where an admitted neutral vehicle or property save actually replaces this as the
+   * primary action. Injury, flight and non-neutral hosts keep the summary primary.
+   */
+  secondaryFinish?: boolean;
   step: StepId;
   t: FreeStartCopy;
+  /**
+   * The full temporary-result and service-limit explanation, shown with the optional summary
+   * action before it generates anything. It is not repeated while facts are still being entered.
+   */
+  truthBody: string;
   onBack: () => void;
   onFinish: () => void;
 }>;
@@ -54,6 +64,15 @@ export function PreviewStep(props: Props) {
         </ul>
       </div>
       {props.step === 'preview' ? (
+        <p
+          id="free-start-preview-truth"
+          data-testid="free-start-preview-truth"
+          className="text-sm leading-6 text-[#33485c]"
+        >
+          {props.truthBody}
+        </p>
+      ) : null}
+      {props.step === 'preview' ? (
         <div className="flex flex-wrap justify-between gap-3">
           <button type="button" onClick={props.onBack} className={SECONDARY_ACTION_CLASS}>
             <ArrowLeft aria-hidden="true" className="h-4 w-4" />
@@ -61,10 +80,13 @@ export function PreviewStep(props: Props) {
           </button>
           <button
             type="button"
+            data-testid="free-start-preview-finish"
+            data-emphasis={props.secondaryFinish ? 'secondary' : 'primary'}
             disabled={props.isFinishing}
             aria-busy={props.isFinishing}
+            aria-describedby="free-start-preview-truth"
             onClick={props.onFinish}
-            className={PRIMARY_ACTION_CLASS}
+            className={props.secondaryFinish ? SECONDARY_ACTION_CLASS : PRIMARY_ACTION_CLASS}
           >
             {props.isFinishing ? (
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
