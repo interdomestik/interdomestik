@@ -117,8 +117,9 @@ export function pendingRefresh(user: SessionUser): SessionSnapshot {
 }
 
 export async function publishSession(store: SessionStore, next: SessionSnapshot): Promise<void> {
-  await act(async () => {
+  await act(() => {
     store.set(next);
+    return Promise.resolve();
   });
 }
 
@@ -222,8 +223,9 @@ export async function requestCode(email = VERIFIED_EMAIL): Promise<void> {
 /** Submits the delivered code and lets the verified intent reach the server action. */
 export async function submitCode(code = '123456'): Promise<void> {
   fireEvent.change(screen.getByTestId('free-start-save-code'), { target: { value: code } });
-  await act(async () => {
+  await act(() => {
     fireEvent.click(screen.getByTestId('free-start-save-verify'));
+    return Promise.resolve();
   });
 }
 
