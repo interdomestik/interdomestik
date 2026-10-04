@@ -1,17 +1,45 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import { authClient } from '@/lib/auth-client';
+import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { ChevronDown, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 
 const publicLocales = ['sq', 'en', 'sr', 'mk'] as const;
+
+// better-auth's react bridge wires the same getter as both the client and server
+// snapshot (`useSyncExternalStore(subscribe, get, get)`), so if another component
+// resolves the shared session store before this one hydrates, that getter already
+// reports the resolved value during Header's first hydration render too. Gating on
+// a real server/client snapshot split keeps that render session-neutral so it can
+// never diverge from the login markup the server sent, then lets the immediate
+// post-hydration re-render pick up the real session.
+const subscribeNoop = () => () => {};
+const getHasHydratedSnapshot = () => true;
+const getHasHydratedServerSnapshot = () => false;
+
+function useHasHydrated(): boolean {
+  return useSyncExternalStore(subscribeNoop, getHasHydratedSnapshot, getHasHydratedServerSnapshot);
+}
 
 export function Header() {
   const locale = useLocale();
   const t = useTranslations('nav');
+  const { data: session, isPending } = authClient.useSession();
+  const hasHydrated = useHasHydrated();
   const [localeOpen, setLocaleOpen] = useState(false);
   const localeTrigger = useRef<HTMLButtonElement>(null);
+
+  // Session state chooses a destination; the server still enforces access on arrival.
+  const settledRole =
+    !hasHydrated || isPending
+      ? null
+      : ((session as { user?: { role?: string } } | null)?.user?.role ?? null);
+  const canonicalRoute = getCanonicalRouteForRole(settledRole, locale);
+  const authHref = canonicalRoute ?? `/${locale}/login`;
+  const authLabel = canonicalRoute ? t('myAccount') : t('login');
 
   return (
     <header
@@ -80,12 +108,14 @@ export function Header() {
               ))}
             </div>
           ) : null}
-          <Link
-            href="/login"
+          {/* Use document navigation at the auth boundary to avoid the stalled client transition. */}
+          <a
+            href={authHref}
+            data-testid="public-auth-action"
             className="inline-flex min-h-11 min-w-11 items-center justify-center border border-white/70 px-1 text-xs font-semibold transition-colors hover:bg-white hover:text-[#001A33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5DE0D7] motion-reduce:transition-none forced-colors:focus-visible:outline sm:px-6 sm:text-sm"
           >
-            {t('login')}
-          </Link>
+            {authLabel}
+          </a>
         </div>
       </div>
     </header>
