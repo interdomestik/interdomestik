@@ -103,13 +103,13 @@ export function FreeStartIntakeShell({
       <noscript>
         <FlightNoScriptGuidance />
       </noscript>
-      {/* The organizer instance only restarts when the session settles, so a repeated public
-          selection or an ordinary rerender can never discard typed facts. */}
+      {/* Public entry enables the intent listener and its presentation only. The organizer
+          instance belongs to the settled owner above, so a repeated public selection, an ordinary
+          rerender or the first verified save can never discard typed facts. */}
       <FreeStartOrganizer
         {...props}
         categoryIntent={publicEntryEnabled ? categoryIntent : null}
         initialCategory={mode === 'injuryDetails' ? 'injury' : props.initialCategory}
-        key={publicEntryEnabled ? 'public-entry' : 'session-settled'}
       />
     </>
   );
