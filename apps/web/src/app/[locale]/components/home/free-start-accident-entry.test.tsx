@@ -16,20 +16,31 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('./free-start-intake-shell/index', () => ({
-  FreeStartIntakeShell: ({ initialCategory }: { initialCategory?: string }) => {
+  FreeStartIntakeShell: ({
+    categoryIntent,
+    initialCategory,
+  }: {
+    categoryIntent?: { category: string; sequence: number } | null;
+    initialCategory?: string;
+  }) => {
     const [mountedCategory] = useState(initialCategory);
     return (
-      <section data-initial-category={mountedCategory} data-testid="legacy-free-start">
+      <section
+        data-initial-category={mountedCategory}
+        data-intent-category={categoryIntent?.category}
+        data-intent-sequence={categoryIntent?.sequence}
+        data-testid="legacy-free-start"
+      >
         Fallback
       </section>
     );
   },
 }));
 
-vi.mock('./accident-safety-journey', () => ({
-  AccidentSafetyJourney: ({ onContinue }: { onContinue?: () => void }) => (
-    <section>
-      <h2>A është dikush i lënduar?</h2>
+vi.mock('./injury-safety-journey', () => ({
+  InjurySafetyJourney: ({ onContinue }: { onContinue?: () => void }) => (
+    <section data-testid="injury-safety-journey">
+      <h2>Lëndim personal</h2>
       <button type="button" onClick={onContinue}>
         Organizo të dhënat e rastit
       </button>
@@ -37,58 +48,63 @@ vi.mock('./accident-safety-journey', () => ({
   ),
 }));
 
-vi.mock('./property-safety-journey', () => ({
-  PropertySafetyJourney: () => <section data-testid="property-safety-journey" />,
-}));
-
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { dispatchPublicEntryIntent, takePendingPublicEntryIntent } from './public-entry-intent';
 
-describe('FreeStart accident entry', () => {
+function dispatchIntent(intent: string) {
+  act(() => {
+    window.dispatchEvent(new CustomEvent('interdomestik:public-intent', { detail: { intent } }));
+  });
+}
+
+describe('FreeStart public entry routing', () => {
   beforeEach(() => takePendingPublicEntryIntent());
-  it('consumes a vehicle intent dispatched before the intake listener mounts', () => {
+
+  it('opens the facts for a vehicle intent dispatched before the listener mounts', () => {
     dispatchPublicEntryIntent('vehicle');
 
     render(<FreeStartIntakeShell continueHref="/pricing" locale="sq" />);
 
-    expect(screen.getByRole('heading', { name: 'A është dikush i lënduar?' })).toBeInTheDocument();
+    const intake = screen.getByTestId('legacy-free-start');
+    expect(intake).toHaveAttribute('data-intent-category', 'vehicle');
+    expect(intake).toHaveAttribute('data-intent-sequence', '1');
+    expect(screen.queryByTestId('injury-safety-journey')).not.toBeInTheDocument();
+  });
+
+  it('sends supported situations straight to the facts and keeps unsupported guidance', () => {
+    render(<FreeStartIntakeShell continueHref="/pricing" locale="sq" />);
+    const intake = screen.getByTestId('legacy-free-start');
+    expect(intake).not.toHaveAttribute('data-intent-category');
+
+    dispatchIntent('property');
+    expect(screen.getByTestId('legacy-free-start')).toHaveAttribute(
+      'data-intent-category',
+      'property'
+    );
+    expect(screen.getByTestId('legacy-free-start')).toHaveAttribute('data-intent-sequence', '1');
+
+    dispatchIntent('vehicle');
+    expect(screen.getByTestId('legacy-free-start')).toHaveAttribute(
+      'data-intent-category',
+      'vehicle'
+    );
+    // A second deliberate activation is a new sequence, never a remount of the editor.
+    expect(screen.getByTestId('legacy-free-start')).toHaveAttribute('data-intent-sequence', '2');
+
+    dispatchIntent('injury');
+    expect(screen.getByTestId('injury-safety-journey')).toBeInTheDocument();
     expect(screen.queryByTestId('legacy-free-start')).not.toBeInTheDocument();
   });
 
-  it('keeps direct entry on fallback and routes each supported intent explicitly', () => {
+  it('continues into injury details without asking for the category again', () => {
     render(<FreeStartIntakeShell continueHref="/pricing" locale="sq" />);
-    expect(screen.getByTestId('legacy-free-start')).toBeInTheDocument();
-
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent('interdomestik:public-intent', { detail: { intent: 'property' } })
-      );
-    });
-    expect(screen.getByTestId('property-safety-journey')).toBeInTheDocument();
-
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent('interdomestik:public-intent', { detail: { intent: 'vehicle' } })
-      );
-    });
-
-    expect(screen.getByRole('heading', { name: 'A është dikush i lënduar?' })).toBeInTheDocument();
-    expect(screen.queryByTestId('legacy-free-start')).not.toBeInTheDocument();
-  });
-
-  it('continues into vehicle details without asking for the category again', () => {
-    render(<FreeStartIntakeShell continueHref="/pricing" locale="sq" />);
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent('interdomestik:public-intent', { detail: { intent: 'vehicle' } })
-      );
-    });
+    dispatchIntent('injury');
 
     fireEvent.click(screen.getByRole('button', { name: 'Organizo të dhënat e rastit' }));
 
     expect(screen.getByTestId('legacy-free-start')).toHaveAttribute(
       'data-initial-category',
-      'vehicle'
+      'injury'
     );
   });
 
@@ -96,31 +112,24 @@ describe('FreeStart accident entry', () => {
     const { rerender } = render(
       <FreeStartIntakeShell continueHref="/pricing" locale="sq" publicEntryEnabled />
     );
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent('interdomestik:public-intent', { detail: { intent: 'vehicle' } })
-      );
-    });
-    expect(screen.getByRole('heading', { name: 'A është dikush i lënduar?' })).toBeInTheDocument();
+    dispatchIntent('injury');
+    expect(screen.getByTestId('injury-safety-journey')).toBeInTheDocument();
 
     rerender(
       <FreeStartIntakeShell continueHref="/member" locale="sq" publicEntryEnabled={false} />
     );
 
     expect(screen.getByTestId('legacy-free-start')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: 'A është dikush i lënduar?' })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('injury-safety-journey')).not.toBeInTheDocument();
   });
 
-  it('remounts the legacy intake without vehicle state after authentication settles', () => {
+  it('remounts the legacy intake without public entry state after authentication settles', () => {
     const { rerender } = render(
       <FreeStartIntakeShell continueHref="/pricing" locale="sq" publicEntryEnabled />
     );
     act(() => dispatchPublicEntryIntent('vehicle'));
-    fireEvent.click(screen.getByRole('button', { name: 'Organizo të dhënat e rastit' }));
     expect(screen.getByTestId('legacy-free-start')).toHaveAttribute(
-      'data-initial-category',
+      'data-intent-category',
       'vehicle'
     );
 
@@ -129,6 +138,7 @@ describe('FreeStart accident entry', () => {
     );
 
     expect(screen.getByTestId('legacy-free-start')).not.toHaveAttribute('data-initial-category');
+    expect(screen.getByTestId('legacy-free-start')).not.toHaveAttribute('data-intent-category');
   });
 
   it('ignores intent dispatch outside a browser context', () => {

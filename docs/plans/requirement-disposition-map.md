@@ -105,7 +105,9 @@ remain separately credited in the current program/tracker.
 
 ### Shared search default rollout
 
-`S7-NEUTRAL-SINGLE-ENTRY` is the current owner-authorized increment for IDA-CTX-002/003 and IDA-IAM-001. [Current Program](current-program.md#current-repair-acceptance) defines the bounded credential admission and intent contract; whole clauses remain open.
+`S7-PROBLEM-FIRST-INTAKE` is the current owner-authorized increment for bounded IDA-FST-001/002 and IDA-NFR-007/008 concerns: direct supported problem input, necessary questions, preserved editor/facts and localized accessible interaction. [Current Program](current-program.md#problem-first-intake-acceptance) defines the safety/privacy/service and later confirmation/writer gates. Whole clauses remain open.
+
+Neutral single entry is technically delivered by [#1873](https://github.com/interdomestik/interdomestik/pull/1873) for bounded IDA-CTX-002/003 and IDA-IAM-001 concerns; exact-main/staging/P0/provenance and normal-UI approved four-role entry passed. [Detailed proof](history/2026-09-22-current-tracker-ledger.md#s7-neutral-single-entry-delivery-1873) retains source-bound runtime/fixture attribution. The admitted no-hint path remains the owner's narrow ADR06 exception; explicit context, country cutover, origin/rate limits, provider layering and canonical role intent remain enforced. Human acceptance and whole clauses remain open.
 
 Public-entry stability is technically delivered by [#1872](https://github.com/interdomestik/interdomestik/pull/1872); exact-main staging and matched desktop/mobile continuity passed. Detailed proof remains in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-public-entry-stability-delivery-1872). Human acceptance and whole-site performance budgets remain separate.
 

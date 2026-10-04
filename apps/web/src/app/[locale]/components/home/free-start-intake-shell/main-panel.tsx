@@ -16,6 +16,7 @@ type Props = Readonly<{
   categoryLabel: string;
   draft: DraftState;
   headingRef: RefObject<HTMLHeadingElement | null>;
+  narrativeHeadingRef?: RefObject<HTMLHeadingElement | null>;
   issueIds: ReadonlyArray<IssueId>;
   issueLabel: string;
   isFinishing: boolean;
@@ -75,6 +76,7 @@ export function FreeStartMainPanel(props: Props) {
       {props.step === 'details' && props.selectedCategory ? (
         <DetailsStep
           draft={props.draft}
+          narrativeHeadingRef={props.narrativeHeadingRef}
           issueIds={props.issueIds}
           selectedCategory={props.selectedCategory}
           setDraftField={props.setDraftField}

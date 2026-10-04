@@ -84,7 +84,6 @@ test.describe('@smoke ida.localhost canonical dashboard smoke', () => {
       await flow.getByTestId('free-start-manage-open').click();
       await expect(flow.getByRole('heading', { name: 'Your saved drafts' })).toBeFocused();
       await flow.getByTestId('free-start-category-property').click();
-      await flow.getByRole('button', { name: 'Continue to guided intake' }).click();
       await flow.getByLabel('What happened?').selectOption('water_damage');
       await flow.getByLabel('When did it happen?').fill('2026-03-01');
       await flow.getByLabel('Who are you dealing with?').fill('C31 Building Insurer');

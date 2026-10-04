@@ -37,6 +37,10 @@ const translate = ((key: string) => {
   }, enMessages.freeStart) as string;
 }) as FreeStartCopy;
 
+function precedes(first: Element, second: Element) {
+  return (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+}
+
 describe('premium Free Start organizer', () => {
   // prettier-ignore
   beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); hoisted.submit.mockReset(); hoisted.generate.mockReset(); hoisted.create.mockReset().mockResolvedValue({ ok: false, code: 'authRequired' }); hoisted.send.mockReset().mockResolvedValue({ data: {}, error: null }); hoisted.verify.mockReset().mockResolvedValue({ data: { user: { id: 'user-a' } }, error: null }); });
@@ -62,6 +66,8 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByText('Personal injury')).toBeInTheDocument();
     expect(screen.queryByTestId('free-start-category-injury')).not.toBeInTheDocument();
     expect(screen.getByLabelText('What happened?')).toBeInTheDocument();
+    // Personal injury keeps its own unsupported-category guidance and service boundary.
+    expect(screen.queryByTestId('free-start-urgent-advice')).toBeNull();
     const boundary = screen.getByTestId('free-start-trust-boundary');
     expect(boundary).toBeVisible();
     expect(boundary).not.toHaveAttribute('role', 'alert');
@@ -77,6 +83,23 @@ describe('premium Free Start organizer', () => {
     expect(screen.getByTestId('free-start-category-vehicle')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-property')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-injury')).toBeInTheDocument();
+  });
+
+  it('opens the facts from the category fallback without a separate continue step', () => {
+    const copy = enMessages.freeStart;
+    render(<FreeStartIntakeShell continueHref="/pricing" locale="en" tenantId="tenant_public" />);
+
+    fireEvent.click(screen.getByTestId('free-start-category-vehicle'));
+
+    expect(screen.getByLabelText(copy.details.summary)).toBeInTheDocument();
+    expect(screen.getByTestId('free-start-urgent-advice')).toHaveAttribute(
+      'data-category',
+      'vehicle'
+    );
+    expect(screen.getByTestId('free-start-urgent-advice')).toHaveTextContent(
+      copy.urgentAdvice.vehicle.movement
+    );
+    expect(screen.queryByTestId('free-start-category-vehicle')).toBeNull();
   });
 
   it('shows the service boundary before neutral-host secure-save actions', async () => {
@@ -96,6 +119,13 @@ describe('premium Free Start organizer', () => {
     expect(boundary).toBeVisible();
     expect(boundary.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(boundary.compareDocumentPosition(manage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+
+    const advice = screen.getByTestId('free-start-urgent-advice');
+    const narrative = screen.getByLabelText(enMessages.freeStart.details.summary);
+    const issue = screen.getByLabelText(enMessages.freeStart.details.issueType);
+    expect(advice).toHaveTextContent(enMessages.freeStart.urgentAdvice.property.contact);
+    expect(precedes(advice, narrative)).toBe(true);
+    expect(precedes(narrative, issue)).toBe(true);
   });
 
   it('shows the Free Start service boundary in the mounted generated result', async () => {
@@ -109,7 +139,6 @@ describe('premium Free Start organizer', () => {
 
     render(<FreeStartIntakeShell continueHref="/pricing" locale="en" tenantId="tenant_public" />);
     await user.click(screen.getByTestId('free-start-category-property'));
-    await user.click(screen.getByRole('button', { name: copy.choose.continue }));
     await user.selectOptions(screen.getByLabelText(copy.details.issueType), 'water_damage');
     await user.type(screen.getByLabelText(copy.details.incidentDate), '2026-03-01');
     await user.type(screen.getByLabelText(copy.details.counterparty), 'Building insurer');

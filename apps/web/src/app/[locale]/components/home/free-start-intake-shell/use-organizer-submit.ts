@@ -22,6 +22,9 @@ type SubmitOptions = Readonly<{
   selectedCategory: CategoryId | null;
   tenantId?: string | null;
   validationMessage: string;
+  /** Takes ownership of the organizer for the request this finish is about to send. */
+  beginOperation: () => number;
+  ownsOperation: (operation: number) => boolean;
   setClaimPack: (pack: ClaimPack | null) => void;
   setError: (message: string | null) => void;
   setIsFinishing: (value: boolean) => void;
@@ -29,17 +32,31 @@ type SubmitOptions = Readonly<{
 }>;
 
 export function useOrganizerSubmit(options: SubmitOptions) {
-  const submissionKeyRef = useRef<string | null>(null);
+  const inFlightOperationRef = useRef<number | null>(null);
 
   return useCallback(async () => {
     if (options.isFinishing) return;
+    // A duplicate finish inside the operation that still owns the organizer is ignored. After a
+    // deliberate change the customer may always start a new explicit request: the earlier one is
+    // only no longer awaited, never resent and never withdrawn.
+    const inFlight = inFlightOperationRef.current;
+    if (inFlight !== null && options.ownsOperation(inFlight)) return;
     if (!options.selectedCategory || hasIncompleteDraft(options.selectedCategory, options.draft)) {
       options.setError(options.validationMessage);
       return;
     }
 
-    const submissionKey = submissionKeyRef.current ?? createUuidV4();
-    submissionKeyRef.current = submissionKey;
+    const operation = options.beginOperation();
+    // Each explicit finish carries its own idempotency key, so the server can discard a duplicate
+    // of this request without ever deduplicating deliberately changed facts against an older one.
+    const submissionKey = createUuidV4();
+    const owned = (write: () => void) => {
+      if (options.ownsOperation(operation)) write();
+    };
+    const settle = () => {
+      if (inFlightOperationRef.current === operation) inFlightOperationRef.current = null;
+    };
+    inFlightOperationRef.current = operation;
     options.setIsFinishing(true);
     let result: Awaited<ReturnType<typeof submitFreeStartIntake>>;
 
@@ -57,18 +74,24 @@ export function useOrganizerSubmit(options: SubmitOptions) {
       );
     } catch (error) {
       console.error('[FreeStart] Failed to submit intake', error);
-      submissionKeyRef.current = null;
-      options.setError(options.retryMessage);
-      options.setIsFinishing(false);
+      settle();
+      owned(() => {
+        options.setError(options.retryMessage);
+        options.setIsFinishing(false);
+      });
       return;
     }
 
     if (!result.success) {
-      submissionKeyRef.current = null;
-      options.setError(
-        result.code === 'INVALID_PAYLOAD' ? options.validationMessage : options.retryMessage
-      );
-      options.setIsFinishing(false);
+      const message =
+        result.code === 'INVALID_PAYLOAD' ? options.validationMessage : options.retryMessage;
+      settle();
+      // A failure the customer has already moved on from must not replace a newer request's error
+      // state, nor clear the busy state of the finish that is running now.
+      owned(() => {
+        options.setError(message);
+        options.setIsFinishing(false);
+      });
       return;
     }
 
@@ -80,7 +103,10 @@ export function useOrganizerSubmit(options: SubmitOptions) {
         intake_issue: result.data?.intakeIssue ?? options.draft.issueType,
       }
     );
-    submissionKeyRef.current = null;
+    settle();
+    // The intake exists now, but only the operation that still owns this organizer may show it:
+    // a newer situation, newer facts or a newer finish keeps the editor the customer is using.
+    if (!options.ownsOperation(operation)) return;
     options.setError(null);
     options.setIsFinishing(false);
     options.setStep('complete');
@@ -95,7 +121,7 @@ export function useOrganizerSubmit(options: SubmitOptions) {
       locale: options.locale,
     })
       .then(packResult => {
-        if (packResult.success) options.setClaimPack(packResult.data);
+        if (packResult.success) owned(() => options.setClaimPack(packResult.data));
       })
       .catch(() => undefined);
   }, [options]);

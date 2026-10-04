@@ -64,7 +64,7 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
           {copy.eyebrow}
         </p>
       ) : null}
-      <h3 id="anonymous-draft-recovery-heading" className="mt-1 text-lg font-bold text-[#001a33]">
+      <h3 id="anonymous-draft-recovery-heading" tabIndex={-1} className="mt-1 scroll-mt-24 text-lg font-bold text-[#001a33] outline-none">
         {heading}
       </h3>
       {recoverable ? (

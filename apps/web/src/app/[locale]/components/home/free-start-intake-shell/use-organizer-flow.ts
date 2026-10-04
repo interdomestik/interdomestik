@@ -1,12 +1,15 @@
 import type { ClaimPack } from '@interdomestik/domain-claims/claim-pack';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 
 import { EMPTY_DRAFT } from './constants';
 import { hasIncompleteDraft } from './intake-validation';
 import type { AnonymousDraftSnapshot } from './anonymous-draft-recovery';
 import type { CategoryId, DraftState, SavedDraft, SetDraftField, StepId } from './types';
 
-export function useOrganizerFlow(initialCategory?: CategoryId) {
+export function useOrganizerFlow(
+  initialCategory?: CategoryId,
+  detailsArrivalOwned?: RefObject<boolean>
+) {
   const [step, setStep] = useState<StepId>(initialCategory ? 'details' : 'category');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(
     initialCategory ?? null
@@ -18,17 +21,42 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
   const validationErrorRef = useRef<HTMLParagraphElement | null>(null);
   const stageHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const previousStepRef = useRef(step);
+  const intakeOperationRef = useRef(0);
 
   useEffect(() => {
     if (validationError) validationErrorRef.current?.focus();
   }, [validationError]);
 
   useEffect(() => {
-    if (previousStepRef.current !== step) stageHeadingRef.current?.focus();
+    if (previousStepRef.current !== step && !(step === 'details' && detailsArrivalOwned?.current)) {
+      stageHeadingRef.current?.focus();
+    }
     previousStepRef.current = step;
-  }, [step]);
+  }, [detailsArrivalOwned, step]);
+
+  /**
+   * One intake operation owns the completion it started.
+   *
+   * Releasing hands ownership to the next explicit request: the obsolete result is cleared so it
+   * can never reappear for changed facts, and this organizer stops waiting for the operation it
+   * was running. The request already sent is never unsent, cancelled or resent.
+   */
+  const releaseIntakeOperation = () => {
+    intakeOperationRef.current += 1;
+    setIsFinishingIntake(current => (current ? false : current));
+    setClaimPack(current => (current ? null : current));
+  };
+
+  const beginIntakeOperation = () => {
+    intakeOperationRef.current += 1;
+    return intakeOperationRef.current;
+  };
+
+  const ownsIntakeOperation = (operation: number) => operation === intakeOperationRef.current;
 
   const selectCategory = (category: CategoryId) => {
+    // A different situation is a different intake: whatever the previous one returns is obsolete.
+    releaseIntakeOperation();
     setSelectedCategory(category);
     setDraft(current => ({ ...current, issueType: '' }));
     setValidationError(null);
@@ -47,15 +75,21 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
   };
 
   const setDraftField: SetDraftField = (field, value) => {
+    // Deliberately editing the facts makes an earlier answer about the previous facts obsolete.
+    releaseIntakeOperation();
     setDraft(current => ({ ...current, [field]: value }));
   };
 
   const navigate = (nextStep: StepId) => {
+    // Going back to edit, or re-entering the situation that is already selected, is a deliberate
+    // return to the facts; the completion the customer left behind no longer owns this organizer.
+    releaseIntakeOperation();
     setValidationError(null);
     setStep(nextStep);
   };
 
   const resumeDraft = (saved: SavedDraft) => {
+    releaseIntakeOperation();
     setSelectedCategory(saved.category);
     setDraft({
       counterparty: saved.counterparty,
@@ -65,34 +99,34 @@ export function useOrganizerFlow(initialCategory?: CategoryId) {
       summary: saved.summary,
     });
     setStep(saved.resumeStep);
-    setClaimPack(null);
     setValidationError(null);
   };
 
   const restoreAnonymousDraft = (saved: AnonymousDraftSnapshot) => {
+    releaseIntakeOperation();
     setSelectedCategory(saved.category);
     setDraft(saved.draft);
     setStep(saved.resumeStep);
-    setClaimPack(null);
     setValidationError(null);
   };
 
   const resetDraft = () => {
+    releaseIntakeOperation();
     setSelectedCategory(initialCategory ?? null);
     setDraft(EMPTY_DRAFT);
     setStep(initialCategory ? 'details' : 'category');
-    setClaimPack(null);
     setValidationError(null);
-    setIsFinishingIntake(false);
   };
 
   return {
+    beginIntakeOperation,
     claimPack,
     draft,
     isFinishingIntake,
     navigate,
     moveToDetails,
     moveToPreview,
+    ownsIntakeOperation,
     resetDraft,
     restoreAnonymousDraft,
     resumeDraft,

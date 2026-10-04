@@ -34,9 +34,11 @@ export function useFreeStartViewModel({ flow, props, t, tCommon }: Args) {
   const confidenceLevel = getConfidenceLevel(flow.selectedCategory, flow.draft);
   const validationMessage = t('validation.completeIntake');
   const finishIntake = useOrganizerSubmit({
+    beginOperation: flow.beginIntakeOperation,
     draft: flow.draft,
     isFinishing: flow.isFinishingIntake,
     locale: props.locale,
+    ownsOperation: flow.ownsIntakeOperation,
     retryMessage: tCommon('errors.retry'),
     selectedCategory: flow.selectedCategory,
     setClaimPack: flow.setClaimPack,
