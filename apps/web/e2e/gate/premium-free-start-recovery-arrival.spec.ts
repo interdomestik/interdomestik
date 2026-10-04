@@ -1,5 +1,8 @@
 import { expect, test, type TestInfo } from '@playwright/test';
 
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
+
 import en from '../../src/messages/en/freeStart.json';
 import sq from '../../src/messages/sq/freeStart.json';
 import mk from '../../src/messages/mk/freeStart.json';
@@ -53,7 +56,10 @@ for (const locale of ['en', 'sq', 'mk', 'sr'] as const) {
           { key: KEY, raw, origin }
         );
         const page = await context.newPage();
-        const response = await page.goto(`/${locale}`);
+        const response = await gotoApp(page, routes.home(locale), info, {
+          baseURL: origin,
+          marker: 'public-entry-hero',
+        });
         expect([200, 304]).toContain(response?.status());
         expect(await page.evaluate(() => isSecureContext && Boolean(navigator.locks))).toBe(true);
         const organizer = page.getByTestId('premium-free-start-organizer');
