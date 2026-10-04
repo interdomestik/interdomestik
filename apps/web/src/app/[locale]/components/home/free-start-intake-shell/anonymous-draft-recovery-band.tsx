@@ -72,10 +72,10 @@ export function AnonymousDraftRecoveryBand({ recovery }: Props) { // NOSONAR
           {!retained ? <p className={hasOffer ? "mt-1 text-sm leading-5" : "mt-1 text-sm leading-6"}>{copy.body}</p> : null}
           {hasOffer ? (
             <div className="mt-1 space-y-1 text-sm leading-5">
-              <p>{copy.offerBody}</p>
-              <p>{disclosure.eligible}</p>
-              <p>{disclosure.lifecycle}</p>
-              <p>{disclosure.securePath}</p>
+              <p className="leading-5">{copy.offerBody}</p>
+              <p className="leading-5">{disclosure.eligible}</p>
+              <p className="leading-5">{disclosure.lifecycle}</p>
+              <p className="leading-5">{disclosure.securePath}</p>
             </div>
           ) : null}
           <p className="mt-1 text-xs leading-5 text-[#526274]">{copy.privateDevice}</p>

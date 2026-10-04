@@ -1,3 +1,5 @@
+import { StrictMode } from 'react';
+import { dispatchPublicEntryIntent } from './public-entry-intent';
 import { resetPublicIntakeBrowser } from '@/test/public-intake-fixture';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,8 +33,8 @@ function held<T>() {
   });
   return { promise, resolve };
 }
-function renderPublicOrganizer() {
-  render(
+function renderPublicOrganizer(strict = false) {
+  const organizer = (
     <>
       <PublicEntryPropertyAction label="Property problem" />
       <PublicEntryVehicleAction label="Vehicle problem" />
@@ -44,6 +46,7 @@ function renderPublicOrganizer() {
       />
     </>
   );
+  render(strict ? <StrictMode>{organizer}</StrictMode> : organizer);
 }
 async function enter(category: 'vehicle' | 'property') {
   fireEvent.click(screen.getByTestId(`public-entry-${category}`));
@@ -106,6 +109,76 @@ describe('mounted completion ownership across real public selections', () => {
     expect(localStorage).toHaveLength(0);
   });
 
+  it.each(['edit', 'category', 'injury', 'flight'] as const)(
+    'emits completion only for the current request after %s supersedes held acceptance',
+    async change => {
+      const accepted = held<typeof success>();
+      boundary.submit.mockReturnValueOnce(accepted.promise);
+      renderPublicOrganizer();
+      await enter('property');
+      fillAndPreview('property', 'Earlier accepted property facts.');
+      finish();
+      expect(boundary.submit).toHaveBeenCalledTimes(1);
+      expect(boundary.completed).not.toHaveBeenCalled();
+      const category = change === 'category' ? 'vehicle' : 'property';
+      const unmounted = change === 'injury' || change === 'flight';
+      if (unmounted) {
+        act(() => dispatchPublicEntryIntent(change));
+        expect(
+          screen.getByTestId(
+            change === 'injury' ? 'injury-safety-journey' : 'flight-disruption-journey'
+          )
+        ).toBeInTheDocument();
+      } else if (change === 'category') await enter(category);
+      else fireEvent.click(screen.getByRole('button', { name: copy.preview.back }));
+      const narrative = unmounted ? null : screen.getByLabelText(copy.details.summary);
+      if (narrative)
+        fireEvent.change(narrative, {
+          target: { value: 'Current facts after deliberate change.' },
+        });
+      await act(async () => {
+        accepted.resolve(success);
+        await accepted.promise;
+      });
+      expect(boundary.completed).not.toHaveBeenCalled();
+      expect(boundary.submit).toHaveBeenCalledTimes(1);
+      expect(boundary.pack).not.toHaveBeenCalled();
+      if (narrative) {
+        expect(screen.getByLabelText(copy.details.summary)).toBe(narrative);
+        expect(narrative).toHaveValue('Current facts after deliberate change.');
+      } else {
+        expect(screen.queryByLabelText(copy.details.summary)).toBeNull();
+        await enter(category);
+      }
+      fillAndPreview(category, 'Current facts after deliberate change.');
+      finish();
+      await screen.findByTestId('free-start-complete-pending-pack');
+      expect(boundary.completed).toHaveBeenCalledTimes(1);
+      expect(boundary.completed).toHaveBeenCalledWith(
+        expect.objectContaining({ locale: 'en', tenantId: 'tenant_public' }),
+        {
+          claim_category: category,
+          desired_outcome: 'repair',
+          intake_issue: category === 'property' ? 'water_damage' : 'collision',
+        }
+      );
+      expect(boundary.submit).toHaveBeenCalledTimes(2);
+      expect(boundary.pack).toHaveBeenCalledTimes(1);
+      expect(localStorage).toHaveLength(0);
+    }
+  );
+
+  it('emits one legitimate current acceptance after StrictMode effect remount', async () => {
+    renderPublicOrganizer(true);
+    await enter('property');
+    fillAndPreview('property', 'Current property facts in strict mode.');
+    finish();
+    await screen.findByTestId('free-start-complete-pending-pack');
+    expect(boundary.completed).toHaveBeenCalledTimes(1);
+    expect(boundary.submit).toHaveBeenCalledTimes(1);
+    expect(boundary.pack).toHaveBeenCalledTimes(1);
+  });
+
   it('does not install an old pack after returning to edit the same category', async () => {
     const generation = held<ReturnType<typeof pack>>();
     boundary.pack.mockReturnValueOnce(generation.promise);
@@ -114,6 +187,7 @@ describe('mounted completion ownership across real public selections', () => {
     fillAndPreview('property', 'Original property facts.');
     finish();
     await waitFor(() => expect(boundary.pack).toHaveBeenCalledTimes(1));
+    expect(boundary.completed).toHaveBeenCalledTimes(1);
     await enter('property');
     fireEvent.change(screen.getByLabelText(copy.details.summary), {
       target: { value: 'Updated property facts.' },

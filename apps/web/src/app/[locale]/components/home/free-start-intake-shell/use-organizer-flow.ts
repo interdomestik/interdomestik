@@ -23,6 +23,14 @@ export function useOrganizerFlow(
   const previousStepRef = useRef(step);
   const intakeOperationRef = useRef(0);
 
+  useEffect(
+    () => () => {
+      // Unmount releases UI ownership without cancelling or resending the accepted request.
+      intakeOperationRef.current += 1;
+    },
+    []
+  );
+
   useEffect(() => {
     if (validationError) validationErrorRef.current?.focus();
   }, [validationError]);

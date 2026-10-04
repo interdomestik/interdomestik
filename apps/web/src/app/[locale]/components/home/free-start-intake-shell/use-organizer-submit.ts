@@ -95,6 +95,10 @@ export function useOrganizerSubmit(options: SubmitOptions) {
       return;
     }
 
+    settle();
+    // The intake exists now, but only the operation that still owns this organizer may show it:
+    // a newer situation, newer facts or a newer finish keeps the editor the customer is using.
+    if (!options.ownsOperation(operation)) return;
     CommercialFunnelEvents.freeStartCompleted(
       { locale: options.locale, tenantId: options.tenantId, variant: resolveFunnelVariant(true) },
       {
@@ -103,10 +107,6 @@ export function useOrganizerSubmit(options: SubmitOptions) {
         intake_issue: result.data?.intakeIssue ?? options.draft.issueType,
       }
     );
-    settle();
-    // The intake exists now, but only the operation that still owns this organizer may show it:
-    // a newer situation, newer facts or a newer finish keeps the editor the customer is using.
-    if (!options.ownsOperation(operation)) return;
     options.setError(null);
     options.setIsFinishing(false);
     options.setStep('complete');
