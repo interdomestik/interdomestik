@@ -159,4 +159,32 @@ describe('save options entry', () => {
     expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
     expectNoBoundaryReached();
   });
+
+  it.each([
+    { category: 'injury' as const, neutralOtpHost: shellProps.neutralOtpHost },
+    { category: 'vehicle' as const, neutralOtpHost: undefined },
+  ])(
+    'keeps the full resolved disclosure while editing $category on host $neutralOtpHost',
+    async ({ category, neutralOtpHost }) => {
+      render(
+        <FreeStartIntakeShell
+          {...shellProps}
+          initialCategory={category}
+          neutralOtpHost={neutralOtpHost}
+        />
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('free-start-recovery-editor')).not.toHaveAttribute('inert')
+      );
+      const noRecovery = (JSON.parse(en.secureSaveReviewCopy) as { noRecovery: string }).noRecovery;
+      const boundary = screen.getByTestId('free-start-trust-boundary');
+      expect(screen.getByLabelText(en.details.summary)).toBeVisible();
+      expect(boundary).toHaveTextContent(noRecovery);
+      expect(boundary).toHaveTextContent('nothing saves automatically');
+      expect(boundary).toHaveTextContent('generated result itself remains temporary');
+      expect(boundary).not.toHaveTextContent('recover automatically only on this browser');
+      expect(screen.queryByTestId('free-start-preview-truth')).toBeNull();
+      expectNoBoundaryReached();
+    }
+  );
 });

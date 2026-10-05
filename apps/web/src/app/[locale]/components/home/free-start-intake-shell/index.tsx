@@ -224,7 +224,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             </aside>
           </div>
         )}
-        <TrustBoundary t={trustBoundaryT} />
+        <TrustBoundary t={trustBoundaryT} concise={neutralFrontDoor && saveAvailable} />
         {/* prettier-ignore */}
         <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}>
           {saveAreaRevealed ? null : (
