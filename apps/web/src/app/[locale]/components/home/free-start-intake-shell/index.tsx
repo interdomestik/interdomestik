@@ -242,7 +242,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             {saveAreaRevealed ? (
               <>
                 {/* prettier-ignore */}
-                <SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} publicPresentation={{ autoFocusHeading: saveArea.focus === 'area', saveAvailable }} tenantId={props.neutralOtpTenantId} />
+                <SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} publicPresentation={{ autoFocusHeading: saveArea.focus === 'area', onHeadingFocused: () => setSaveArea(current => ({ ...current, focus: 'none' })), saveAvailable }} tenantId={props.neutralOtpTenantId} />
                 {/* The device-storage choice is a separate optional disclosure here: expanding it
                     only reveals the existing facts, and the explicit enable below them stays the
                     one thing that permits a local write. */}

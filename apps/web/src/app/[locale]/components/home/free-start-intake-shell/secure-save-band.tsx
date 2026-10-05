@@ -17,6 +17,7 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
  */
 export type SecureSavePresentation = Readonly<{
   autoFocusHeading: boolean;
+  onHeadingFocused: () => void;
   saveAvailable: boolean;
 }>;
 // prettier-ignore
@@ -43,11 +44,12 @@ export function SecureSaveBand({
   const statusRef = useRef<HTMLParagraphElement>(null);
   const saveAvailable = publicPresentation?.saveAvailable !== false;
   const autoFocusHeading = publicPresentation?.autoFocusHeading ?? false;
+  const onHeadingFocused = publicPresentation?.onHeadingFocused;
   // prettier-ignore
   useEffect(() => { setNeutralFrontDoor(isNeutralFrontDoor(neutralOtpHost)); }, [neutralOtpHost]);
   // A deliberate opener lands on this heading; nothing else here moves focus on first rendering.
   // prettier-ignore
-  useEffect(() => { if (autoFocusHeading && neutralFrontDoor) headingRef.current?.focus(); }, [autoFocusHeading, neutralFrontDoor]);
+  useEffect(() => { if (autoFocusHeading && neutralFrontDoor && headingRef.current) { headingRef.current.focus(); onHeadingFocused?.(); } }, [autoFocusHeading, neutralFrontDoor, onHeadingFocused]);
   useEffect(() => {
     if (['saved', 'conflict', 'deleted'].includes(lifecycle.state)) statusRef.current?.focus();
   }, [lifecycle.state]);

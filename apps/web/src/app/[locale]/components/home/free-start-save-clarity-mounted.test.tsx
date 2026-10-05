@@ -1,6 +1,7 @@
 import '@/test/free-start-save-clarity-harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import {
   en,
@@ -187,4 +188,36 @@ describe('save options entry', () => {
       expectNoBoundaryReached();
     }
   );
+
+  it('keeps narrative keyboard focus when external storage invalidation remounts the save area', async () => {
+    const user = userEvent.setup();
+    render(<FreeStartIntakeShell {...shellProps} initialCategory="vehicle" />);
+    const opener = await screen.findByTestId('free-start-save-entry-open');
+    opener.focus();
+    await user.keyboard('{Enter}');
+    const originalBand = await screen.findByTestId('free-start-secure-save-band');
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: secureSave.heading })).toHaveFocus()
+    );
+
+    const narrative = screen.getByLabelText(en.details.summary);
+    narrative.focus();
+    await user.keyboard('My vehicle facts');
+    expect(narrative).toHaveFocus();
+    const event = new Event('storage');
+    Object.defineProperties(event, {
+      key: { value: 'interdomestik_free_start_recovery_v1' },
+      newValue: { value: null },
+      storageArea: { value: localStorage },
+    });
+    fireEvent(window, event);
+
+    await waitFor(() => expect(originalBand).not.toBeInTheDocument());
+    expect(await screen.findByTestId('free-start-secure-save-band')).not.toBe(originalBand);
+    expect(narrative).toHaveFocus();
+    await user.keyboard(' remain editable');
+    expect(narrative).toHaveValue('My vehicle facts remain editable');
+    expect(screen.getByRole('heading', { name: secureSave.heading })).not.toHaveFocus();
+    expectNoBoundaryReached();
+  });
 });
