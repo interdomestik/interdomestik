@@ -1,9 +1,7 @@
-import { agentClients, claimDocuments, claims, db, tenantSettings } from '@interdomestik/database';
+import { claimDocuments, claims, withTenantContext } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
@@ -13,6 +11,7 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
+import { loadClaimAssignmentContext, type ClaimAssignmentContext } from './submit-assignment';
 import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -32,94 +31,6 @@ export class ClaimValidationError extends Error {
     this.name = 'ClaimValidationError';
   }
 }
-type ClaimAssignmentContext = {
-  subscription: Awaited<ReturnType<typeof getActiveSubscription>>;
-  branchId: string | null;
-  agentId: string | null;
-  agentAttributionSource: 'agent_clients' | 'subscription' | 'none';
-  branchResolutionSource: 'subscription' | 'agent' | 'tenant_default' | 'none';
-};
-
-function resolveDefaultBranchId(value: unknown): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const normalizedValue = value as
-    { branchId?: string; defaultBranchId?: string; id?: string; value?: string } | string;
-  if (typeof normalizedValue === 'string') {
-    return normalizedValue;
-  }
-
-  return (
-    normalizedValue.branchId ??
-    normalizedValue.defaultBranchId ??
-    normalizedValue.id ??
-    normalizedValue.value ??
-    null
-  );
-}
-
-async function resolveAgentBranchId(agentId: string, tenantId: string): Promise<string | null> {
-  const agent = await db.query.user.findFirst({
-    where: (user, { eq }) => withTenant(tenantId, user.tenantId, eq(user.id, agentId)),
-    columns: { branchId: true },
-  });
-
-  return agent?.branchId ?? null;
-}
-
-async function loadClaimAssignmentContext(
-  userId: string,
-  tenantId: string
-): Promise<ClaimAssignmentContext> {
-  const subscription = await getActiveSubscription(userId, tenantId);
-  const activeAssignment = await db.query.agentClients.findFirst({
-    where: withTenant(
-      tenantId,
-      agentClients.tenantId,
-      and(eq(agentClients.memberId, userId), eq(agentClients.status, 'active'))
-    ),
-    columns: { agentId: true },
-  });
-  const agentId = activeAssignment?.agentId ?? subscription?.agentId ?? null;
-  let agentBranchId: string | null = null;
-  if (!subscription?.branchId && agentId) {
-    agentBranchId = await resolveAgentBranchId(agentId, tenantId);
-  }
-  const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-    where: withTenant(
-      tenantId,
-      tenantSettings.tenantId,
-      and(eq(tenantSettings.category, 'rbac'), eq(tenantSettings.key, 'default_branch_id'))
-    ),
-  });
-  const defaultBranchId = resolveDefaultBranchId(defaultBranchSetting?.value);
-  const agentAttributionSource = activeAssignment?.agentId
-    ? 'agent_clients'
-    : agentId
-      ? 'subscription'
-      : 'none';
-  const subscriptionBranchId = subscription?.branchId ?? null;
-  const branchId = subscriptionBranchId ?? agentBranchId ?? defaultBranchId ?? null;
-  let branchResolutionSource: ClaimAssignmentContext['branchResolutionSource'] = 'none';
-  if (subscriptionBranchId) {
-    branchResolutionSource = 'subscription';
-  } else if (agentBranchId) {
-    branchResolutionSource = 'agent';
-  } else if (defaultBranchId) {
-    branchResolutionSource = 'tenant_default';
-  }
-
-  return {
-    subscription,
-    branchId,
-    agentId,
-    agentAttributionSource,
-    branchResolutionSource,
-  };
-}
-
 async function persistSubmittedClaim(args: {
   claimId: string;
   tenantId: string;
@@ -131,15 +42,16 @@ async function persistSubmittedClaim(args: {
   agentId: string | null;
   handoffContext?: ClaimStartHandoffContext | null;
   data: CreateClaimValues;
+  tenantMetadata: { tenantId: string; code: string };
 }): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[] }> {
   const { title, description, category, companyName, claimAmount, currency, files } = args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
   const incidentCountry = resolveSubmittedClaimIncidentCountry(args.data);
   let claimNumber = '';
 
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await db.transaction(async tx => {
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
+  // One tenant-context transaction keeps the claim number, lifecycle, events and
+  // documents atomic under installed tenant RLS settings.
+  await withTenantContext({ tenantId: args.tenantId }, async tx => {
     await tx.insert(claims).values({
       id: args.claimId,
       tenantId: args.tenantId,
@@ -159,11 +71,15 @@ async function persistSubmittedClaim(args: {
       updatedAt: args.createdAt,
     });
 
-    claimNumber = await generateClaimNumber(tx, {
-      tenantId: args.tenantId,
-      claimId: args.claimId,
-      createdAt: args.createdAt,
-    });
+    claimNumber = await generateClaimNumber(
+      tx,
+      {
+        tenantId: args.tenantId,
+        claimId: args.claimId,
+        createdAt: args.createdAt,
+      },
+      args.tenantMetadata
+    );
 
     await recordSubmittedClaimLifecycle(tx, {
       changedByRole: args.changedByRole,
@@ -187,7 +103,6 @@ async function persistSubmittedClaim(args: {
       tenantId: args.tenantId,
     });
 
-    // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(claimDocuments).values(documentRows);
   });
 
@@ -312,9 +227,18 @@ export async function submitClaimCore(
   let claimNumber = '';
 
   try {
+    // The tenant directory is deny-all to the runtime RLS role, so the
+    // authoritative tenant code is prepared on its own connection before the
+    // persistence transaction opens, never inside it.
+    const tenantCode = (await readTenantLocaleMetadata(tenantId))?.code?.trim();
+    if (!tenantCode) {
+      throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
+    }
+
     const persistedClaim = await persistSubmittedClaim({
       claimId,
       tenantId,
+      tenantMetadata: { tenantId, code: tenantCode },
       userId: session.user.id,
       createdAt,
       changedByRole: session.user.role ?? 'member',

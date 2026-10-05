@@ -4,16 +4,27 @@ const h = vi.hoisted(() => {
   const limit = vi.fn();
   const where = vi.fn(() => ({ limit }));
   const from = vi.fn(() => ({ where }));
+  const txSelect = vi.fn(() => ({ from }));
+  const contexts: unknown[] = [];
   return {
+    contexts,
     from,
     limit,
     rateLimit: vi.fn(),
     resolveSession: vi.fn(),
     resumeDraft: vi.fn(),
     runAuthenticated: vi.fn(),
+    // Unscoped client sentinel: the recovery read must never use it.
     select: vi.fn(() => ({ from })),
     submit: vi.fn(),
+    txSelect,
     where,
+    withTenantContext: vi.fn(
+      async (context: unknown, action: (tx: { select: typeof txSelect }) => Promise<unknown>) => {
+        contexts.push(context);
+        return action({ select: txSelect });
+      }
+    ),
   };
 });
 
@@ -29,6 +40,7 @@ vi.mock('./submit.core', () => ({ submitClaimCore: h.submit }));
 vi.mock('@interdomestik/database', () => ({
   claims: { claimNumber: 'claimNumber', id: 'id', tenantId: 'tenantId', userId: 'userId' },
   db: { select: h.select },
+  withTenantContext: h.withTenantContext,
 }));
 vi.mock('@interdomestik/database/claim-number', () => ({
   isValidClaimNumber: (value: string) => /^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/.test(value),
@@ -56,6 +68,7 @@ const session = {
 describe('lookupSavedDraftClaim', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.contexts.length = 0;
     h.runAuthenticated.mockImplementation(async callback => ({
       success: true,
       data: await callback({ session, tenantId: 'tenant_ks', requestHeaders: new Headers() }),
@@ -77,6 +90,9 @@ describe('lookupSavedDraftClaim', () => {
     expect(h.resumeDraft).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.rateLimit).not.toHaveBeenCalled();
+    expect(h.contexts).toEqual([{ tenantId: 'tenant_ks' }]);
+    expect(h.txSelect).toHaveBeenCalledTimes(1);
+    expect(h.select).not.toHaveBeenCalled();
   });
 
   it('normalizes mixed-case UUIDs to the legacy lowercase B1 identity', () => {
@@ -112,6 +128,7 @@ describe('lookupSavedDraftClaim', () => {
     h.runAuthenticated.mockRejectedValue(new Error('unavailable'));
     await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
     expect(h.select).not.toHaveBeenCalled();
+    expect(h.txSelect).not.toHaveBeenCalled();
   });
 
   it('preserves framework redirects instead of converting them to an absent claim', async () => {

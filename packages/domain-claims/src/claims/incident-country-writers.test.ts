@@ -37,8 +37,12 @@ vi.mock('@interdomestik/database', () => ({
   claimStageHistory: { __name: 'claim_stage_history' },
   claims: { __name: 'claim', id: 'claims.id', tenantId: 'claims.tenant_id' },
   db: h.db,
+  withTenantContext: vi.fn(async (_context, callback) => callback(h.db)),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
   tenantSettings: { category: 'category', key: 'key', tenantId: 'tenant_id' },
+}));
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: vi.fn().mockResolvedValue({ code: 'T1', countryCode: 'MK' }),
 }));
 vi.mock('@interdomestik/database/claim-number', () => ({
   generateClaimNumber: vi.fn().mockResolvedValue('CLM-T1-2026-000001'),

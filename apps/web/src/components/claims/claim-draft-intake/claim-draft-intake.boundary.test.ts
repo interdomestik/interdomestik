@@ -110,9 +110,9 @@ describe('Claim Draft Intake import and scope boundary', () => {
       'utf8'
     );
     expect(identity).toContain("import 'server-only'");
-    expect(identity).toContain(
-      'db-access-guard: tenant-scoped -- reason: RLS enabled, not enforced for this runtime role; exact-id, tenant and owner'
-    );
+    expect(identity).toContain('withTenantContext({ tenantId }');
+    expect(identity).toContain('eq(claims.tenantId, tenantId)');
+    expect(identity).toContain('eq(claims.userId, actorId)');
     expect(identity).not.toMatch(
       /createClaimCore|generateClaimNumber|adminDb|provider|upload|storage|notification/i
     );
