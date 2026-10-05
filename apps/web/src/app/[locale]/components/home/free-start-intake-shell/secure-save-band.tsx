@@ -80,7 +80,7 @@ id="free-start-secure-save-heading"
 tabIndex={publicPresentation ? -1 : undefined}
 className="mt-2 text-2xl font-bold text-[#001a33] outline-none"
 >
-{saveAvailable ? copy.heading : copy.manage.heading}
+{saveAvailable ? copy.heading : copy.manage.open}
 </h3>
 {saveAvailable ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
 <p className="mt-2 max-w-3xl text-xs leading-5 text-[#526274]">{copy.privacy}</p>
