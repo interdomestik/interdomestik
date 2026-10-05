@@ -111,11 +111,12 @@ export async function loadClaimAssignmentContext(
   );
   const { agentBranchId, defaultBranchId } = sources;
   const agentId = sources.activeAgentId ?? subscription?.agentId ?? null;
-  const agentAttributionSource = sources.activeAgentId
-    ? 'agent_clients'
-    : agentId
-      ? 'subscription'
-      : 'none';
+  let agentAttributionSource: ClaimAssignmentContext['agentAttributionSource'] = 'none';
+  if (sources.activeAgentId) {
+    agentAttributionSource = 'agent_clients';
+  } else if (agentId) {
+    agentAttributionSource = 'subscription';
+  }
   const branchId = subscriptionBranchId ?? agentBranchId ?? defaultBranchId ?? null;
   let branchResolutionSource: ClaimAssignmentContext['branchResolutionSource'] = 'none';
   if (subscriptionBranchId) {

@@ -76,12 +76,14 @@ export async function reserveCommercialAction(params: {
     return inserted ?? null;
   }
 
-  const [inserted] = await withTenantContext({ tenantId: scope.tenantId }, async tx =>
-    tx
-      .insert(commercialActionIdempotency)
-      .values(values)
-      .onConflictDoNothing()
-      .returning({ id: commercialActionIdempotency.id })
+  const [inserted] = await withTenantContext(
+    { tenantId: scope.tenantId },
+    async tx =>
+      await tx
+        .insert(commercialActionIdempotency)
+        .values(values)
+        .onConflictDoNothing()
+        .returning({ id: commercialActionIdempotency.id })
   );
   return inserted ?? null;
 }
@@ -113,8 +115,9 @@ export async function findExistingReservation(
     return existing ?? null;
   }
 
-  const [existing] = await withTenantContext({ tenantId: scope.tenantId }, async tx =>
-    tx.select(columns).from(commercialActionIdempotency).where(where).limit(1)
+  const [existing] = await withTenantContext(
+    { tenantId: scope.tenantId },
+    async tx => await tx.select(columns).from(commercialActionIdempotency).where(where).limit(1)
   );
   return existing ?? null;
 }
@@ -138,8 +141,9 @@ export async function completeCommercialActionReservation(params: {
     return;
   }
 
-  await withTenantContext({ tenantId: scope.tenantId }, async tx =>
-    tx.update(commercialActionIdempotency).set(values).where(where)
+  await withTenantContext(
+    { tenantId: scope.tenantId },
+    async tx => await tx.update(commercialActionIdempotency).set(values).where(where)
   );
 }
 
@@ -156,7 +160,8 @@ export async function releaseCommercialActionReservation(params: {
     return;
   }
 
-  await withTenantContext({ tenantId: scope.tenantId }, async tx =>
-    tx.delete(commercialActionIdempotency).where(where)
+  await withTenantContext(
+    { tenantId: scope.tenantId },
+    async tx => await tx.delete(commercialActionIdempotency).where(where)
   );
 }
