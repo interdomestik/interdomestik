@@ -25,6 +25,8 @@ export function savedDraftRecoveryHref(
   )
     return base;
   const url = new URL(base, 'https://internal.invalid');
+  // The existing diaspora green-card handoff is vehicle-only; this restores its review intent,
+  // while the resumed owner-scoped saved draft and server writer still validate the actual facts.
   url.searchParams.set('category', 'vehicle');
   url.searchParams.set('source', context.source);
   url.searchParams.set('country', context.country);

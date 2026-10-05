@@ -97,37 +97,89 @@ export function scrubSentryBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null
   }
 }
 
+const MEASUREMENT_NAMES = new Set([
+  'fp',
+  'fcp',
+  'lcp',
+  'cls',
+  'fid',
+  'inp',
+  'ttfb',
+  'ttfb.requestTime',
+]);
+const MEASUREMENT_UNITS = new Set([
+  '',
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'ratio',
+  'percent',
+]);
+function safeMeasurements(measurements: unknown): SpanJSON['measurements'] {
+  if (!measurements || typeof measurements !== 'object') return undefined;
+  const result: NonNullable<SpanJSON['measurements']> = {};
+  for (const [name, measurement] of Object.entries(measurements)) {
+    if (!MEASUREMENT_NAMES.has(name) || !measurement || typeof measurement !== 'object') continue;
+    const { value, unit } = measurement as { value?: unknown; unit?: unknown };
+    if (
+      typeof value !== 'number' ||
+      !Number.isFinite(value) ||
+      typeof unit !== 'string' ||
+      !MEASUREMENT_UNITS.has(unit)
+    )
+      continue;
+    result[name] = { value, unit };
+  }
+  return result;
+}
+function safeNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 export function scrubSentrySpan(span: SpanJSON): SpanJSON {
+  // Construct from reviewed SDK fields: no unknown payload can survive a spread.
+  const technical: SpanJSON = {
+    span_id: span.span_id,
+    trace_id: span.trace_id,
+    parent_span_id: span.parent_span_id,
+    start_timestamp: safeNumber(span.start_timestamp) ?? 0,
+    timestamp: safeNumber(span.timestamp),
+    exclusive_time: safeNumber(span.exclusive_time),
+    is_segment: typeof span.is_segment === 'boolean' ? span.is_segment : undefined,
+    description: '[redacted]',
+    op: 'diagnostic',
+    status: safeTraceStatus(span.status),
+    data: {},
+  };
   try {
     const safe = redactSignedStorageSpan(span);
-    return {
-      ...safe,
-      description: safe.op === 'ui.action' ? 'Critical UI action' : '[redacted]',
-      data: safeData(safe.data),
-      op: [
-        'ui.action',
-        'http.client',
-        'http.server',
-        'db',
-        'db.query',
-        'db.sql.query',
-        'pageload',
-        'navigation',
-        'resource',
-        'resource.script',
-        'resource.css',
-        'resource.img',
-        'resource.fetch',
-        'resource.xhr',
-      ].includes(safe.op ?? '')
-        ? safe.op
-        : 'diagnostic',
-      status: safeTraceStatus(safe.status),
-      links: undefined,
-    };
+    technical.description = safe.op === 'ui.action' ? 'Critical UI action' : '[redacted]';
+    technical.data = safeData(safe.data);
+    technical.op = [
+      'ui.action',
+      'http.client',
+      'http.server',
+      'db',
+      'db.query',
+      'db.sql.query',
+      'pageload',
+      'navigation',
+      'resource',
+      'resource.script',
+      'resource.css',
+      'resource.img',
+      'resource.fetch',
+      'resource.xhr',
+    ].includes(safe.op ?? '')
+      ? safe.op
+      : 'diagnostic';
+    technical.measurements = safeMeasurements(safe.measurements);
   } catch {
-    return { ...span, description: '[redacted]', data: {} };
+    /* Retain only technical fields if any payload cannot be scrubbed. */
   }
+  return technical;
 }
 
 export function scrubSentryEvent<T extends Event>(event: T): T | null {
@@ -204,7 +256,13 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
           })),
         }
       : undefined;
-    if (result.type === 'transaction') result.spans = result.spans?.map(scrubSentrySpan);
+    if (result.type === 'transaction') {
+      result.spans = result.spans?.map(scrubSentrySpan);
+      result.measurements = safeMeasurements(result.measurements);
+    } else {
+      delete result.spans;
+      delete result.measurements;
+    }
     return result;
   } catch {
     return null;
