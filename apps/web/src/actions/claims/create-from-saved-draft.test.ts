@@ -14,6 +14,11 @@ vi.mock('./submit.core', () => ({ submitClaimCore: h.submit }));
 vi.mock('@interdomestik/database', () => ({
   claims: { claimNumber: 'claimNumber', id: 'id', tenantId: 'tenantId', userId: 'userId' },
   db: { select: h.select },
+  // The recovery read owns its tenant context; the select alias stays shared.
+  withTenantContext: vi.fn(
+    async (_context: unknown, action: (tx: { select: typeof h.select }) => Promise<unknown>) =>
+      action({ select: h.select })
+  ),
 }));
 vi.mock('@interdomestik/database/claim-number', () => ({
   isValidClaimNumber: (value: string) => /^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/.test(value),

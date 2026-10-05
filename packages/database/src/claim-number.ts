@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, like, sql } from 'drizzle-orm';
 
-import { db } from './db';
+import type { db } from './db';
 import { claimCounters } from './schema/claim-counters';
 import { claims } from './schema/claims';
 import { tenants } from './schema/tenants';
@@ -52,9 +52,46 @@ export function parseClaimNumber(
  */
 type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/**
+ * Server-prepared tenant code. The tenant directory is deny-all to runtime RLS
+ * roles, so an authorized caller may supply the code it already read on another
+ * connection instead of forcing a tenant-table read inside this transaction.
+ * The code is only trusted when it is pinned to the same tenantId.
+ */
+export type TrustedClaimNumberTenantMetadata = { tenantId: string; code: string };
+
+async function resolveTenantCode(
+  tx: DrizzleTx,
+  tenantId: string,
+  trustedTenantMetadata?: TrustedClaimNumberTenantMetadata
+): Promise<string> {
+  if (trustedTenantMetadata) {
+    const trustedCode = trustedTenantMetadata.code.trim();
+    if (trustedTenantMetadata.tenantId.trim() !== tenantId || !trustedCode) {
+      // MUST: this exact shape is used by your audit check
+      throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
+    }
+    return trustedCode;
+  }
+
+  const [tenant] = await tx
+    .select({ code: tenants.code })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+
+  if (!tenant?.code) {
+    // MUST: this exact shape is used by your audit check
+    throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
+  }
+
+  return tenant.code;
+}
+
 export async function generateClaimNumber(
   tx: DrizzleTx,
-  params: { tenantId: string; claimId: string; createdAt: Date }
+  params: { tenantId: string; claimId: string; createdAt: Date },
+  trustedTenantMetadata?: TrustedClaimNumberTenantMetadata
 ): Promise<string> {
   const { tenantId, claimId, createdAt } = params;
 
@@ -68,22 +105,13 @@ export async function generateClaimNumber(
   if (existing?.claimNumber) return existing.claimNumber;
 
   // 2) Guard tenant code BEFORE touching the counter (gap reduction)
-  const [tenant] = await tx
-    .select({ code: tenants.code })
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
-    .limit(1);
-
-  if (!tenant?.code) {
-    // MUST: this exact shape is used by your audit check
-    throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
-  }
+  const tenantCode = await resolveTenantCode(tx, tenantId, trustedTenantMetadata);
 
   // 3) Year semantics (historical accuracy)
   const year = createdAt.getFullYear();
 
   // 3b) Seed from existing numbered claims when the counter table is missing or stale.
-  const claimNumberPrefix = `CLM-${tenant.code.toUpperCase()}-${year}-`;
+  const claimNumberPrefix = `CLM-${tenantCode.toUpperCase()}-${year}-`;
   const [latestExistingClaim] = await tx
     .select({ claimNumber: claims.claimNumber })
     .from(claims)
@@ -114,7 +142,7 @@ export async function generateClaimNumber(
     throw new ClaimNumberGenerationError('Failed to generate claim sequence');
   }
 
-  const claimNumber = formatClaimNumber(tenant.code, year, counter.lastNumber);
+  const claimNumber = formatClaimNumber(tenantCode, year, counter.lastNumber);
 
   // 5) Race-safe conditional update
   const [updated] = await tx
