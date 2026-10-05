@@ -119,7 +119,8 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
   const neutralFrontDoor = useNeutralFrontDoor(props.neutralOtpHost);
   const saveEngaged = isSecureSaveEngaged(draftLifecycle);
   // prettier-ignore
-  const reviewingAdmitted = (flow.step === 'preview' || flow.step === 'complete') && (flow.selectedCategory === 'vehicle' || flow.selectedCategory === 'property');
+  const saveAvailable = flow.selectedCategory === 'vehicle' || flow.selectedCategory === 'property';
+  const reviewingAdmitted = (flow.step === 'preview' || flow.step === 'complete') && saveAvailable;
   // prettier-ignore
   const [saveArea, setSaveArea] = useState<{ focus: 'area' | 'entry' | 'none'; opener: SaveEntryOpener; open: boolean }>({ focus: 'none', opener: 'save', open: false });
   // prettier-ignore
@@ -228,6 +229,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             <SecureSaveEntry
               copy={saveEntryCopy}
               deviceCopyKept={['conflict', 'retained', 'saved'].includes(recovery.state)}
+              saveAvailable={saveAvailable}
               restoreFocus={saveArea.focus === 'entry' ? saveArea.opener : 'none'}
               onFocusRestored={() => setSaveArea(current => ({ ...current, focus: 'none' }))}
               onOpen={opener => setSaveArea({ focus: 'area', opener, open: true })}
@@ -238,7 +240,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             {saveAreaRevealed ? (
               <>
                 {/* prettier-ignore */}
-                <SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} publicPresentation={{ autoFocusHeading: saveArea.focus === 'area' }} tenantId={props.neutralOtpTenantId} />
+                <SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} publicPresentation={{ autoFocusHeading: saveArea.focus === 'area', saveAvailable }} tenantId={props.neutralOtpTenantId} />
                 {/* The device-storage choice is a separate optional disclosure here: expanding it
                     only reveals the existing facts, and the explicit enable below them stays the
                     one thing that permits a local write. */}

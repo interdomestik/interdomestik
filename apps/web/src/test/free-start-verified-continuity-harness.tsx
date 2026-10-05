@@ -206,7 +206,9 @@ export async function prepareVehicleReport(): Promise<void> {
 
 /** Reveals the optional save area; presentation only, so no consent or request may follow. */
 export async function openSaveArea(): Promise<void> {
-  const opener = screen.queryByTestId('free-start-save-entry-open');
+  const opener =
+    screen.queryByTestId('free-start-save-entry-open') ??
+    screen.queryByTestId('free-start-save-entry-manage');
   if (opener) fireEvent.click(opener);
   await screen.findByTestId('free-start-secure-save-band');
 }
@@ -266,10 +268,9 @@ export async function expectSaveState(state: string): Promise<void> {
  * clutter, and no claim about what device storage does or does not hold.
  */
 export async function expectNoSavedReceipt(): Promise<void> {
-  await waitFor(() =>
-    // prettier-ignore
-    expect(screen.getByTestId('free-start-save-entry-status')).toHaveTextContent(saveEntryCopy.status.neutral)
-  );
+  await waitFor(() => expect(screen.getByTestId('free-start-save-entry-manage')).toBeVisible());
+  expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
+  expect(screen.queryByTestId('free-start-save-entry-status')).toBeNull();
   expect(screen.queryByTestId('free-start-secure-save-band')).toBeNull();
   expect(screen.queryByTestId('free-start-save-status')).toBeNull();
   expect(continuation()).toBeNull();

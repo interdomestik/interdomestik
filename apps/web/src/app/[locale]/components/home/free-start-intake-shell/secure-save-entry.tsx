@@ -67,6 +67,7 @@ const ENTRY_ACTION_CLASS =
 type EntryProps = Readonly<{
   copy: SaveEntryCopy;
   deviceCopyKept: boolean;
+  saveAvailable: boolean;
   restoreFocus: SaveEntryOpener | 'none';
   onOpen: (opener: SaveEntryOpener) => void;
   onFocusRestored: () => void;
@@ -75,6 +76,7 @@ type EntryProps = Readonly<{
 export function SecureSaveEntry({
   copy,
   deviceCopyKept,
+  saveAvailable,
   restoreFocus,
   onOpen,
   onFocusRestored,
@@ -85,9 +87,9 @@ export function SecureSaveEntry({
   // moves focus at all.
   useEffect(() => {
     if (restoreFocus === 'none') return;
-    (restoreFocus === 'save' ? saveRef : manageRef).current?.focus();
+    (restoreFocus === 'save' && saveAvailable ? saveRef : manageRef).current?.focus();
     onFocusRestored();
-  }, [restoreFocus, onFocusRestored]);
+  }, [restoreFocus, onFocusRestored, saveAvailable]);
   const status = deviceCopyKept ? copy.status.device : copy.status.neutral;
 
   return (
@@ -98,30 +100,34 @@ export function SecureSaveEntry({
     >
       <div className="min-w-0">
         <p id="free-start-save-entry-heading" className="text-sm font-bold text-[#001a33]">
-          {copy.heading}
+          {saveAvailable ? copy.heading : copy.manage}
         </p>
-        <p
-          data-testid="free-start-save-entry-status"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="mt-1 text-sm leading-6 text-[#526274]"
-        >
-          {status}
-        </p>
+        {saveAvailable || deviceCopyKept ? (
+          <p
+            data-testid="free-start-save-entry-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mt-1 text-sm leading-6 text-[#526274]"
+          >
+            {status}
+          </p>
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-3">
-        <button
-          ref={saveRef}
-          type="button"
-          data-testid="free-start-save-entry-open"
-          aria-controls={SAVE_AREA_ID}
-          aria-expanded={false}
-          onClick={() => onOpen('save')}
-          className={ENTRY_ACTION_CLASS}
-        >
-          {copy.open}
-        </button>
+        {saveAvailable ? (
+          <button
+            ref={saveRef}
+            type="button"
+            data-testid="free-start-save-entry-open"
+            aria-controls={SAVE_AREA_ID}
+            aria-expanded={false}
+            onClick={() => onOpen('save')}
+            className={ENTRY_ACTION_CLASS}
+          >
+            {copy.open}
+          </button>
+        ) : null}
         <button
           ref={manageRef}
           type="button"

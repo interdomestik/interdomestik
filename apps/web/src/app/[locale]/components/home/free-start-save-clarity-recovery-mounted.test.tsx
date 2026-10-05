@@ -79,6 +79,7 @@ describe('save options locales and recovery', () => {
     const { rerender } = render(
       <SecureSaveEntry
         copy={en.saveEntry}
+        saveAvailable
         deviceCopyKept={false}
         restoreFocus="none"
         onOpen={onOpen}
@@ -94,6 +95,7 @@ describe('save options locales and recovery', () => {
     rerender(
       <SecureSaveEntry
         copy={en.saveEntry}
+        saveAvailable
         deviceCopyKept
         restoreFocus="none"
         onOpen={onOpen}

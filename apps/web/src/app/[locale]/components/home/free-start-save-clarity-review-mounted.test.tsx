@@ -115,6 +115,8 @@ describe('save options review', () => {
     );
     expect(screen.queryByTestId('free-start-secure-save-band')).toBeNull();
     expect(screen.getByTestId('free-start-save-entry')).toBeInTheDocument();
+    expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
+    expect(screen.getByTestId('free-start-save-entry-manage')).toBeEnabled();
     expectNoBoundaryReached();
   });
 
@@ -152,5 +154,30 @@ describe('save options review', () => {
     );
     expect(screen.getByTestId('free-start-save-entry-open')).not.toHaveFocus();
     expectNoBoundaryReached();
+  });
+
+  it('keeps management and reset available without saving an active draft switched to injury', async () => {
+    render(<FreeStartIntakeShell {...shellProps} initialCategory="vehicle" />);
+    await reviewFacts('vehicle');
+    fireEvent.click(await screen.findByTestId('free-start-save-open'));
+    await waitFor(() =>
+      expect(screen.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved')
+    );
+    fireEvent.click(screen.getByRole('button', { name: en.preview.back }));
+    fireEvent.click(await screen.findByRole('button', { name: en.selectedSituation.change }));
+    fireEvent.click(await screen.findByTestId('free-start-category-injury'));
+
+    expect(screen.queryByTestId('free-start-save-open')).toBeNull();
+    expect(screen.queryByTestId('free-start-save-changes')).toBeNull();
+    expect(screen.queryByTestId('saved-draft-continue')).toBeNull();
+    expect(screen.getByTestId('free-start-manage-open')).toBeEnabled();
+    expect(screen.getByTestId('free-start-start-another')).toBeEnabled();
+    expect(boundaries.create).toHaveBeenCalledOnce();
+    expect(boundaries.update).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('free-start-start-another'));
+    await waitFor(() => expect(screen.queryByTestId('free-start-start-another')).toBeNull());
+    expect(boundaries.update).not.toHaveBeenCalled();
+    expect(boundaries.remove).not.toHaveBeenCalled();
   });
 });

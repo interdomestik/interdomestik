@@ -60,7 +60,7 @@ async function openOrganizer(page: Page, info: TestInfo) {
   const organizer = page.getByTestId('premium-free-start-organizer');
   await expect(organizer).toBeVisible();
   // Saving and managing live in one optional area while facts are entered; reveal it first.
-  await organizer.getByTestId('free-start-save-entry-open').click();
+  await organizer.getByTestId('free-start-save-entry-manage').click();
   await expect(organizer.getByTestId('free-start-secure-save-band')).toBeVisible();
   return organizer;
 }

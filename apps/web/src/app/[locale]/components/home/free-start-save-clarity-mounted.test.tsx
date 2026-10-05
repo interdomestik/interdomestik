@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 import {
   en,
+  boundaries,
   secureSave,
   shellProps,
   expectNoBoundaryReached,
@@ -115,4 +116,47 @@ describe('save options entry', () => {
       expectNoBoundaryReached();
     }
   );
+
+  it.each([undefined, 'injury'] as const)(
+    'offers management without an unsupported save action for category %s',
+    async initialCategory => {
+      render(<FreeStartIntakeShell {...shellProps} initialCategory={initialCategory} />);
+      const manage = await screen.findByTestId('free-start-save-entry-manage');
+      expect(manage).toBeEnabled();
+      expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
+      expectNoBoundaryReached();
+
+      fireEvent.click(manage);
+      await screen.findByTestId('free-start-secure-save-band');
+      expect(screen.queryByTestId('free-start-save-open')).toBeNull();
+      expect(screen.getByTestId('free-start-manage-open')).toBeEnabled();
+      expectNoBoundaryReached();
+
+      fireEvent.click(screen.getByTestId('free-start-save-close'));
+      expect(await screen.findByTestId('free-start-save-entry-manage')).toHaveFocus();
+      fireEvent.click(screen.getByTestId('free-start-save-entry-manage'));
+      fireEvent.click(await screen.findByTestId('free-start-manage-open'));
+      await waitFor(() => expect(boundaries.list).toHaveBeenCalledOnce());
+      const manageCopy = JSON.parse(en.secureSave) as { manage: { heading: string } };
+      expect(
+        await screen.findByRole('heading', { name: manageCopy.manage.heading, level: 4 })
+      ).toBeVisible();
+      expect(boundaries.create).not.toHaveBeenCalled();
+      expect(boundaries.update).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('free-start-save-open')).toBeNull();
+    }
+  );
+
+  it('returns focus to management when the previous save opener becomes unsupported', async () => {
+    render(<FreeStartIntakeShell {...shellProps} initialCategory="vehicle" />);
+    fireEvent.click(await screen.findByTestId('free-start-save-entry-open'));
+    await screen.findByTestId('free-start-secure-save-band');
+    fireEvent.click(screen.getByRole('button', { name: en.selectedSituation.change }));
+    fireEvent.click(await screen.findByTestId('free-start-category-injury'));
+    expect(screen.queryByTestId('free-start-save-open')).toBeNull();
+    fireEvent.click(screen.getByTestId('free-start-save-close'));
+    expect(await screen.findByTestId('free-start-save-entry-manage')).toHaveFocus();
+    expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
+    expectNoBoundaryReached();
+  });
 });

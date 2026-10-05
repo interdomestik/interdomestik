@@ -11,6 +11,7 @@ const boundaries = vi.hoisted(() => ({ create: vi.fn(), identity: vi.fn(), list:
 // The active locale is read per translation lookup, so one mounted suite can walk all four.
 export const active = { locale: 'en' as keyof typeof freeStartLocaleMessages };
 vi.mock('next-intl', () => ({
+  useLocale: () => active.locale,
   useTranslations: createUseTranslationsMock(() => ({
     ...freeStartLocaleMessages[active.locale],
     common: { errors: { retry: 'Please try again.' } },

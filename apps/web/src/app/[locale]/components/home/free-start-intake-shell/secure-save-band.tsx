@@ -14,7 +14,10 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
  * Optional public presentation. Member and manager consumers omit it and keep the default
  * rendering; the public shell uses it to focus this heading after a deliberate opener click.
  */
-export type SecureSavePresentation = Readonly<{ autoFocusHeading: boolean }>;
+export type SecureSavePresentation = Readonly<{
+  autoFocusHeading: boolean;
+  saveAvailable: boolean;
+}>;
 // prettier-ignore
 type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; publicPresentation?: SecureSavePresentation; tenantId?: string | null }>;
 // prettier-ignore
@@ -41,6 +44,7 @@ export function SecureSaveBand({
   const [deleteTarget, setDeleteTarget] = useState<SavedDraft | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
+  const saveAvailable = publicPresentation?.saveAvailable !== false;
   const autoFocusHeading = publicPresentation?.autoFocusHeading ?? false;
   // prettier-ignore
   useEffect(() => { setNeutralFrontDoor(isNeutralFrontDoor(neutralOtpHost)); }, [neutralOtpHost]);
@@ -76,13 +80,13 @@ id="free-start-secure-save-heading"
 tabIndex={publicPresentation ? -1 : undefined}
 className="mt-2 text-2xl font-bold text-[#001a33] outline-none"
 >
-{copy.heading}
+{saveAvailable ? copy.heading : copy.manage.heading}
 </h3>
-<p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p>
+{saveAvailable ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
 <p className="mt-2 max-w-3xl text-xs leading-5 text-[#526274]">{copy.privacy}</p>
 </div>
 <div className="flex flex-wrap gap-3">
-{!manageOnly ? (
+{!manageOnly && saveAvailable ? (
 <button
 type="button"
 data-testid="free-start-save-open"
@@ -130,7 +134,7 @@ onVerifiedOwner={onVerifiedOwner}
 ) : null}
 {lifecycle.active ? (
 <div className="mt-4 flex flex-wrap gap-3">
-{hasSaveableChanges(lifecycle) ? (
+{saveAvailable && hasSaveableChanges(lifecycle) ? (
 <button
 type="button"
 data-testid="free-start-save-changes"
