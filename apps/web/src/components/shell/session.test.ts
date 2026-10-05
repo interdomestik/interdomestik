@@ -1,4 +1,8 @@
+import { getCookies } from 'better-auth/cookies';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { authConfig } from '@/lib/auth/config';
+import { authProviders } from '@/lib/auth/providers';
 
 type MockSession = { user: { id: string } } | null;
 
@@ -97,6 +101,18 @@ describe('getSessionSafe', () => {
   });
 
   describe('credential-bearing requests', () => {
+    it('recognizes the session cookie emitted by the current provider configuration', async () => {
+      const { sessionToken } = getCookies({ ...authConfig, ...authProviders });
+      setHeaders({ cookie: `${sessionToken.name}=${VALID_TOKEN}` });
+      const { getSessionSafe } = await loadSession();
+
+      const session = await getSessionSafe('StaffLayout');
+
+      expect(session).toEqual({ user: { id: 'staff-1' } });
+      expect(state.authModuleLoads).toBe(1);
+      expect(getSessionMock).toHaveBeenCalledTimes(1);
+    });
+
     it.each([
       ['plain', `better-auth.session_token=${VALID_TOKEN}`],
       ['__Secure prefixed', `__Secure-better-auth.session_token=${VALID_TOKEN}`],
