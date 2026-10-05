@@ -104,6 +104,8 @@
       "required_fields": "Please complete required fields",
       "submit_success": "Case submitted. You can track it from the dashboard. Your saved draft stays separate; if you edit or delete the draft later, that does not change or delete this case.",
       "submit_failed": "Submission could not be completed. Please try again or contact support.",
+      "submit_reload": "Reload saved draft",
+      "submit_outdated": "The app has been updated. Reload your saved draft to review it, then submit. This request did not submit a case.",
       "submit_unexpected": "Something unexpected happened. Please try once more or contact support.",
       "help": {
         "title": "Need help?",

@@ -59,6 +59,14 @@ const STRUCTURED_OWNERS = [
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],
   [/^\.codex\/agents\/interdomestik-developer\.toml$/u, 'interdomestik-development-agent-contract'],
+  [
+    /^\.codex\/agents\/interdomestik-slice-director\.toml$/u,
+    'interdomestik-three-agent-trial-contract',
+  ],
+  [
+    /^\.codex\/agents\/interdomestik-workflow-coach\.toml$/u,
+    'interdomestik-three-agent-trial-contract',
+  ],
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['freeStart.json', 's5-local-draft-disclosure-i18n-contract'],

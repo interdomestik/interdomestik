@@ -2,6 +2,7 @@
 import type { DraftState, FreeStartCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import Link from 'next/link';
+import { savedDraftRecoveryHref } from '@/lib/saved-draft-deployment-recovery';
 import { useLocale } from 'next-intl';
 import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { isSavedDraftId, useSavedDraftClaim } from './use-saved-draft-claim';
@@ -11,7 +12,7 @@ export function parseClaimDraftCopy(value: unknown): ClaimDraftCopy {
   return JSON.parse(String(value)) as ClaimDraftCopy;
 }
 // prettier-ignore
-export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; goToClaims: string; label: string; success: string; unexpected: string }>;
+export type SavedDraftSubmitCopy = Readonly<{ failed: string; goToClaim: string; goToClaims: string; label: string; reload?: string; outdated?: string; success: string; unexpected: string }>;
 // prettier-ignore
 type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; draft: DraftState; hasUnsavedChanges?: boolean; headingRef: RefObject<HTMLHeadingElement | null>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy }>;
 // prettier-ignore
@@ -34,14 +35,17 @@ export function DormantPreview(props: Props) {
   const unsaved = Boolean(readyExceptUnsavedChanges && hasUnsavedChanges);
   // prettier-ignore
   const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), Boolean(confirmationRequired), confirmationRequiredCopy, incomplete, unsaved, firstSaveExplanation);
-  const { claim, failure, lookupStatus, origin, pending, submit } = useSavedDraftClaim({
-    claimStart,
-    draftId: activeDraftId,
-    draftVersion: activeDraftVersion,
-    eligible,
-    failedCopy: submitCopy.failed,
-    unexpectedCopy: submitCopy.unexpected,
-  });
+  const { claim, failure, needsReload, lookupStatus, origin, pending, submit } = useSavedDraftClaim(
+    {
+      claimStart,
+      draftId: activeDraftId,
+      draftVersion: activeDraftVersion,
+      eligible,
+      failedCopy: submitCopy.failed,
+      unexpectedCopy: submitCopy.unexpected,
+      outdatedCopy: submitCopy.outdated,
+    }
+  );
   const showTruth = Boolean(!claim && !eligible);
   // prettier-ignore
   useEffect(() => { if (failure) failureRef.current?.focus(); else if (claim && origin === 'user_submit') successRef.current?.focus(); }, [failure, claim, origin]);
@@ -66,6 +70,19 @@ export function DormantPreview(props: Props) {
         </Link>
       </output>
     );
+  } else if (eligible && needsReload) {
+    const href = activeDraftId
+      ? savedDraftRecoveryHref(locale, activeDraftId, claimStart?.handoffContext)
+      : null;
+    submitAction = href ? (
+      <a
+        href={href}
+        data-testid="claim-draft-reload"
+        className="inline-flex min-h-12 items-center rounded-xl bg-[#006b7b] px-5 font-bold text-white"
+      >
+        {submitCopy.reload}
+      </a>
+    ) : null;
   } else if (eligible) {
     submitAction = (
       <button

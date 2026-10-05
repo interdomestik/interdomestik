@@ -149,7 +149,7 @@ export function ClaimDraftIntake({ freeStartMessages, ...props }: Props) {
   // prettier-ignore
   const handoffCountryLabel = props.handoffContext ? tDiaspora(`selector.options.${props.handoffContext.country}`) : null;
   // prettier-ignore
-  const submitCopy = { failed: t('wizard.submit_failed'), goToClaim: t('success.go_to_claim'), goToClaims: t('title'), label: t('wizard.submit_label'), success: t('wizard.submit_success'), unexpected: t('wizard.submit_unexpected') };
+  const submitCopy = { failed: t('wizard.submit_failed'), goToClaim: t('success.go_to_claim'), goToClaims: t('title'), label: t('wizard.submit_label'), reload: t('wizard.submit_reload'), outdated: t('wizard.submit_outdated'), success: t('wizard.submit_success'), unexpected: t('wizard.submit_unexpected') };
   // prettier-ignore
   return (
 <NextIntlClientProvider locale={props.locale} messages={freeStartMessages}>
