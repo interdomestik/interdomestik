@@ -21,17 +21,13 @@ export async function readSavedDraftClaim(
 ): Promise<ExactSavedDraftClaim> {
   // The recovery read owns its tenant RLS context and keeps the exact-id, tenant
   // and owner predicates; the transaction closes before the caller continues.
-  const [row] = await withTenantContext(
-    { tenantId },
-    async tx =>
-      await tx
-        .select({ id: claims.id, claimNumber: claims.claimNumber })
-        .from(claims)
-        .where(
-          and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, actorId))
-        )
-        .limit(1)
-  );
+  const [row] = await withTenantContext({ tenantId }, async tx => {
+    return await tx
+      .select({ id: claims.id, claimNumber: claims.claimNumber })
+      .from(claims)
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId), eq(claims.userId, actorId)))
+      .limit(1);
+  });
   if (!row) return { kind: 'absent' };
   if (typeof row.claimNumber !== 'string' || !isValidClaimNumber(row.claimNumber)) {
     return { kind: 'invalid' };
