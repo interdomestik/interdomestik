@@ -37,7 +37,7 @@ describe('save options locales and recovery', () => {
       expect(band).toHaveAccessibleName(localeSecureSave.heading);
       expect(band).toHaveTextContent(localeSecureSave.privacy);
       // The device details stay collapsed in every locale until the customer opens them.
-      const disclosure = screen.getByTestId('browser-recovery-disclosure');
+      const disclosure = await screen.findByTestId('browser-recovery-disclosure');
       expect(disclosure).toHaveAccessibleName(text.localRecoveryDisclosure.heading);
       expect(screen.queryByRole('button', { name: text.localRecoveryDisclosure.skip })).toBeNull();
       fireEvent.click(screen.getByTestId('browser-recovery-details-open'));
