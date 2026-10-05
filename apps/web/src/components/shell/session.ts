@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import type { auth } from '@/lib/auth';
 import { createHash } from 'node:crypto';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -48,7 +48,9 @@ function enforceSessionCacheLimit() {
 
 async function fetchSessionOnce(logTag: string, requestHeaders: Headers): Promise<SessionResult> {
   try {
-    return (await auth.api.getSession({ headers: requestHeaders })) ?? null;
+    // Imported lazily so anonymous requests never initialize the auth module.
+    const { auth: authModule } = await import('@/lib/auth');
+    return (await authModule.api.getSession({ headers: requestHeaders })) ?? null;
   } catch (error) {
     console.error(`[${logTag}] Session fetch failed:`, error);
     return null;
@@ -69,9 +71,14 @@ async function fetchSessionWithRetry(
   return await fetchSessionOnce(logTag, requestHeaders);
 }
 
-export async function getSessionSafe(logTag: string) {
+export async function getSessionSafe(logTag: string): Promise<SessionResult> {
   try {
     const requestHeaders = await headers();
+    if (!hasSessionHint(requestHeaders)) {
+      // No credentials to verify: answer anonymously without touching caches or auth.
+      return null;
+    }
+
     const cacheKey = getRequestSignature(requestHeaders);
     const now = Date.now();
     const cached = successfulSessionCache.get(cacheKey);

@@ -4,7 +4,9 @@ import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
+  headersMock: vi.fn(
+    async () => new Headers({ cookie: 'better-auth.session_token=member-fixture' })
+  ),
   redirectMock: vi.fn(),
   getSessionMock: vi.fn(async () => ({
     user: {
