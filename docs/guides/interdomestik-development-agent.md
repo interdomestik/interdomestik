@@ -496,9 +496,9 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 ## Next slice coding and review lessons
 
-Owner model routing (2026-10-03; supersedes the 2026-10-01 Sonnet-only direction):
-Opus is the owner's preferred coding model; Sonnet 5 is an available option for
-routine bounded coding, tests and fixes. Codex owns integration and verification
+Owner model routing (2026-10-05; Sonnet 5.5 replaces the routine Sonnet 5 preference):
+Opus is the owner's preferred coding model; Sonnet 5.5 is the preferred routine option
+for bounded coding, tests and fixes. Codex owns integration and verification
 with GPT-6.1 Sol high as this role's configured model and the approved coding
 fallback when Claude quota is unavailable. Record the unavailable route and actual
 executor, then continue adequate low/medium-risk work without a quota waiver ritual.

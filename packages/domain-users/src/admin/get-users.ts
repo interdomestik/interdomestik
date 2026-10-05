@@ -44,7 +44,6 @@ export async function getUsersCore(params: {
       const users = await tx.query.user.findMany({
         where: (t, { eq, and }) => withTenant(scope.tenantId, t.tenantId, userConditions),
         orderBy: (users, { desc }) => [desc(users.createdAt)],
-        with: { agent: true },
       });
 
       const unreadByUser =
