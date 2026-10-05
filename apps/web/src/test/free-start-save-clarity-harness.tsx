@@ -68,12 +68,12 @@ export function copy() {
 }
 
 function enterFacts(category: 'injury' | 'property' | 'vehicle') {
-  const issue =
-    category === 'property'
-      ? 'water_damage'
-      : category === 'injury'
-        ? 'workplace_injury'
-        : VEHICLE.issueType;
+  const issueByCategory: Record<typeof category, string> = {
+    property: 'water_damage',
+    injury: 'workplace_injury',
+    vehicle: VEHICLE.issueType,
+  };
+  const issue = issueByCategory[category];
   const text = copy().details;
   fireEvent.change(screen.getByLabelText(text.issueType), { target: { value: issue } });
   fireEvent.change(screen.getByLabelText(text.incidentDate), {

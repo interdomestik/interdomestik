@@ -99,6 +99,7 @@ test.describe('premium Free Start result', () => {
       await expect(save).toHaveCount(0);
       await page.getByTestId('free-start-category-injury').click();
       await expect(save).toHaveCount(0);
+      await page.getByRole('button', { name: 'Change situation', exact: true }).click();
       await page.getByTestId('free-start-category-property').click();
       // prettier-ignore
       await (async () => { await expect(band).toBeVisible(); await expect(band.getByRole('heading', { level: 3 })).toBeVisible(); await expect(band.getByRole('status')).toHaveAttribute('aria-atomic', 'true'); await save.focus(); await page.keyboard.press('Tab'); await expect(band.getByTestId('free-start-manage-open')).toBeFocused(); for (const button of await band.getByRole('button').all()) expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44); })();

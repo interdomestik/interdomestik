@@ -27,11 +27,15 @@ export function parseSaveEntryCopy(value: unknown): SaveEntryCopy {
   return value as SaveEntryCopy;
 }
 
-const NEUTRAL_FRONT_DOORS = ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'];
+const NEUTRAL_FRONT_DOORS = new Set([
+  'ida.interdomestik.com',
+  'ida.localhost',
+  'ida.127.0.0.1.nip.io',
+]);
 
 export function isNeutralFrontDoor(neutralOtpHost?: string | null): boolean {
   return (
-    NEUTRAL_FRONT_DOORS.includes(globalThis.location.hostname) ||
+    NEUTRAL_FRONT_DOORS.has(globalThis.location.hostname) ||
     Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost)
   );
 }

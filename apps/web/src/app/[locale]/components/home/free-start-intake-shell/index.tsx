@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 import {
   BrowserRecoveryDisclosure,
@@ -13,7 +13,7 @@ import { useFreeStartViewModel, useSecureIntentGuard } from './free-start-view-m
 import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
 // prettier-ignore
-import { SAVE_AREA_ID, SaveAreaClose, SecureSaveEntry, isSecureSaveEngaged, parseSaveEntryCopy, useNeutralFrontDoor, type SaveEntryOpener } from './secure-save-entry';
+import { SAVE_AREA_ID, SaveAreaClose, SecureSaveEntry, parseSaveEntryCopy } from './secure-save-entry';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
 // prettier-ignore
@@ -24,6 +24,7 @@ import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
 import { usePublicCategoryIntent } from './use-public-category-intent';
 import { usePublicIntakeArrival } from './use-public-intake-arrival';
+import { usePublicSaveArea } from './use-public-save-area';
 // prettier-ignore
 const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
 // prettier-ignore
@@ -116,20 +117,21 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
   // The save area is one optional disclosure: closed while facts are entered, revealed directly on
   // review of an admitted situation, and held open by any real save work.
   const saveEntryCopy = parseSaveEntryCopy(t.raw('saveEntry'));
-  const neutralFrontDoor = useNeutralFrontDoor(props.neutralOtpHost);
-  const saveEngaged = isSecureSaveEngaged(draftLifecycle);
-  // prettier-ignore
-  const saveAvailable = flow.selectedCategory === 'vehicle' || flow.selectedCategory === 'property';
-  const reviewingAdmitted = (flow.step === 'preview' || flow.step === 'complete') && saveAvailable;
-  // prettier-ignore
-  const [saveArea, setSaveArea] = useState<{ focus: 'area' | 'entry' | 'none'; opener: SaveEntryOpener; open: boolean }>({ focus: 'none', opener: 'save', open: false });
-  // prettier-ignore
-  useEffect(() => { if (saveEngaged) setSaveArea(current => (current.open ? current : { ...current, focus: 'none', open: true })); }, [saveEngaged]);
-  // Off the neutral front door the band renders its own nothing, and no optional opener belongs.
-  const saveAreaRevealed = saveArea.open || reviewingAdmitted || !neutralFrontDoor;
-  const saveAreaCloseable = saveArea.open && !saveEngaged && !reviewingAdmitted;
-  // prettier-ignore
-  const closeSaveArea = () => setSaveArea(current => ({ ...current, focus: 'entry', open: false }));
+  const {
+    neutralFrontDoor,
+    saveAvailable,
+    reviewingAdmitted,
+    saveArea,
+    setSaveArea,
+    saveAreaRevealed,
+    saveAreaCloseable,
+    closeSaveArea,
+  } = usePublicSaveArea({
+    category: flow.selectedCategory,
+    step: flow.step,
+    lifecycle: draftLifecycle,
+    neutralOtpHost: props.neutralOtpHost,
+  });
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
