@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => {
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   return {
     db: {
+      insert: txInsert,
       query: {
         agentClients: { findFirst: vi.fn().mockResolvedValue(null) },
         tenantSettings: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -38,6 +39,7 @@ vi.mock('@interdomestik/database', () => ({
   claimStageHistory: { __name: 'claim_stage_history' },
   claims: { __name: 'claim' },
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_context, callback) => callback(hoisted.db)),
   tenantSettings: {
     category: 'tenant_settings.category',
     key: 'tenant_settings.key',
@@ -45,6 +47,9 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-directory', () => ({
+  readTenantLocaleMetadata: vi.fn().mockResolvedValue({ code: 'T1', countryCode: 'MK' }),
+}));
 vi.mock('@interdomestik/database/claim-number', () => ({
   generateClaimNumber: hoisted.generateClaimNumber,
 }));
