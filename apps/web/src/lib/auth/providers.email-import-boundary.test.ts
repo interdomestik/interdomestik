@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   callbacks: [] as Array<() => Promise<void> | void>,
   emailOTP: vi.fn((config: unknown) => config),
   evaluated: vi.fn(),
+  importFailure: undefined as Error | undefined,
   normalize: vi.fn((value: string | null | undefined) => value ?? 'en'),
   reset: vi.fn(),
   send: vi.fn(),
@@ -21,10 +22,10 @@ type OtpConfig = {
 };
 const message = { email: 'synthetic@example.com', otp: '123456', type: 'sign-in' };
 
-function mockEmail(failure?: Error) {
+function mockEmail() {
   vi.doMock('../email', () => {
     mocks.evaluated();
-    if (failure) throw failure;
+    if (mocks.importFailure) throw mocks.importFailure;
     return {
       normalizeSignInOtpLocale: mocks.normalize,
       sendPasswordResetEmail: mocks.reset,
@@ -47,6 +48,7 @@ describe('email module import boundary', () => {
     vi.resetModules();
     vi.clearAllMocks();
     mocks.callbacks.length = 0;
+    mocks.importFailure = undefined;
     mocks.send.mockResolvedValue({ success: true });
     mocks.reset.mockResolvedValue(undefined);
     vi.stubEnv('OTP_CONTENT_FREE_LOGGING', '1');
@@ -78,7 +80,7 @@ describe('email module import boundary', () => {
   });
 
   it('keeps import rejection inside deferred delivery with content-free failure logging', async () => {
-    mockEmail(new Error('SYNTHETIC_IMPORT_FAILURE'));
+    mocks.importFailure = new Error('SYNTHETIC_IMPORT_FAILURE');
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     await providers();
     await expect(otp().sendVerificationOTP(message)).resolves.toBeUndefined();
@@ -117,7 +119,7 @@ describe('email module import boundary', () => {
   });
 
   it('propagates reset import rejection without converting it to success', async () => {
-    mockEmail(new Error('SYNTHETIC_RESET_IMPORT_FAILURE'));
+    mocks.importFailure = new Error('SYNTHETIC_RESET_IMPORT_FAILURE');
     const configured = await providers();
     await expect(
       configured.emailAndPassword.sendResetPassword({

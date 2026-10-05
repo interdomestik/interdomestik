@@ -4,15 +4,26 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { DeleteDraftConfirmation } from './delete-draft-confirmation';
 import { SavedDraftList } from './saved-draft-list';
-import { SavedDraftContinuation } from './saved-draft-continuation';
+import { SavedDraftContinuation, isSavedDraftContinuationReady } from './saved-draft-continuation';
+import { isNeutralFrontDoor } from './secure-save-entry';
 import { SecureSaveOtp } from './secure-save-otp';
+import { SecureSaveActiveActions, SecureSavePrimaryActions } from './secure-save-actions';
 import { parseSecureSaveCopy, parseSecureSaveReviewCopy, type SavedDraft } from './types';
 import type { useDraftLifecycle } from './use-draft-lifecycle';
 
+/**
+ * Optional public presentation. Member and manager consumers omit it and keep the default
+ * rendering; the public shell uses it to focus this heading after a deliberate opener click.
+ */
+export type SecureSavePresentation = Readonly<{
+  autoFocusHeading: boolean;
+  onHeadingFocused: () => void;
+  saveAvailable: boolean;
+}>;
 // prettier-ignore
-type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; tenantId?: string | null }>;
+type Props = Readonly<{ allowContinuation?: boolean; lifecycle: ReturnType<typeof useDraftLifecycle>; locale: string; manageOnly?: boolean; neutralOtpHost?: string | null; onVerifiedOwner?: (userId: string) => boolean; publicPresentation?: SecureSavePresentation; tenantId?: string | null }>;
 // prettier-ignore
-const hasSaveableChanges = (lifecycle: ReturnType<typeof useDraftLifecycle>) => ['dirty', 'error'].includes(lifecycle.state) || (lifecycle.state === 'deleted' && lifecycle.hasUnsavedChanges), isNeutralFrontDoor = (neutralOtpHost?: string | null) => ['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io'].includes(globalThis.location.hostname) || Boolean(neutralOtpHost && globalThis.location.host.toLowerCase() === neutralOtpHost), resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''); };
+const resolveStatus = (lifecycle: ReturnType<typeof useDraftLifecycle>, locale: string, copy: ReturnType<typeof parseSecureSaveCopy>, reviewCopy: ReturnType<typeof parseSecureSaveReviewCopy>) => { const directStatus = lifecycle.state === 'unsupported' || lifecycle.state === 'invalid' || lifecycle.state === 'accountContext' ? reviewCopy[lifecycle.state] : copy.status[lifecycle.state]; return (directStatus ?? copy.status.error ?? '').replace('{date}', lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''); };
 
 export function SecureSaveBand({
   allowContinuation,
@@ -21,6 +32,7 @@ export function SecureSaveBand({
   manageOnly,
   neutralOtpHost,
   onVerifiedOwner,
+  publicPresentation,
   tenantId,
 }: Props) {
   const t = useTranslations('freeStart');
@@ -28,9 +40,16 @@ export function SecureSaveBand({
   const reviewCopy = parseSecureSaveReviewCopy(t.raw('secureSaveReviewCopy'));
   const [neutralFrontDoor, setNeutralFrontDoor] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SavedDraft | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
+  const saveAvailable = publicPresentation?.saveAvailable !== false;
+  const autoFocusHeading = publicPresentation?.autoFocusHeading ?? false;
+  const onHeadingFocused = publicPresentation?.onHeadingFocused;
   // prettier-ignore
   useEffect(() => { setNeutralFrontDoor(isNeutralFrontDoor(neutralOtpHost)); }, [neutralOtpHost]);
+  // A deliberate opener lands on this heading; nothing else here moves focus on first rendering.
+  // prettier-ignore
+  useEffect(() => { if (autoFocusHeading && neutralFrontDoor && headingRef.current) { headingRef.current.focus(); onHeadingFocused?.(); } }, [autoFocusHeading, neutralFrontDoor, onHeadingFocused]);
   useEffect(() => {
     if (['saved', 'conflict', 'deleted'].includes(lifecycle.state)) statusRef.current?.focus();
   }, [lifecycle.state]);
@@ -40,6 +59,8 @@ export function SecureSaveBand({
   const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error'].includes(lifecycle.state);
   const pending = ['saving', 'loading'].includes(lifecycle.state);
   const status = resolveStatus(lifecycle, locale, copy, reviewCopy);
+  // An acknowledged clean draft owns the primary action, so saving and managing step back.
+  const continuationReady = Boolean(allowContinuation) && isSavedDraftContinuationReady(lifecycle);
   // prettier-ignore
   return (
 <section
@@ -53,36 +74,17 @@ className="rounded-3xl border border-[#006f72]/25 bg-[#eaf5f2] p-5 sm:p-6"
 {copy.eyebrow}
 </p>
 <h3
+ref={headingRef}
 id="free-start-secure-save-heading"
-className="mt-2 text-2xl font-bold text-[#001a33]"
+tabIndex={publicPresentation ? -1 : undefined}
+className="mt-2 text-2xl font-bold text-[#001a33] outline-none"
 >
-{copy.heading}
+{saveAvailable ? copy.heading : copy.manage.open}
 </h3>
-<p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p>
+{saveAvailable ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#365265]">{copy.body}</p> : null}
 <p className="mt-2 max-w-3xl text-xs leading-5 text-[#526274]">{copy.privacy}</p>
 </div>
-<div className="flex flex-wrap gap-3">
-{!manageOnly ? (
-<button
-type="button"
-data-testid="free-start-save-open"
-disabled={pending}
-onClick={lifecycle.openSave}
-className="min-h-11 rounded-xl bg-[#006f72] px-5 text-base font-bold text-white outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] focus-visible:ring-offset-2"
->
-{copy.save}
-</button>
-) : null}
-<button
-type="button"
-data-testid="free-start-manage-open"
-disabled={pending}
-onClick={lifecycle.openManage}
-className="min-h-11 rounded-xl border border-[#006f72] bg-white px-5 text-base font-bold text-[#006f72] outline-none focus-visible:ring-3 focus-visible:ring-[#008f91]"
->
-{copy.manage.open}
-</button>
-</div>
+<SecureSavePrimaryActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={saveAvailable} pending={pending} continuationReady={continuationReady} />
 </div>
 <p
 ref={statusRef}
@@ -106,32 +108,7 @@ onVerified={lifecycle.onVerified}
 onVerifiedOwner={onVerifiedOwner}
 />
 ) : null}
-{lifecycle.active ? (
-<div className="mt-4 flex flex-wrap gap-3">
-{hasSaveableChanges(lifecycle) ? (
-<button
-type="button"
-data-testid="free-start-save-changes"
-disabled={pending}
-onClick={lifecycle.saveChanges}
-className="min-h-11 rounded-xl bg-[#006f72] px-5 font-bold text-white"
->
-{copy.saveChanges}
-</button>
-) : null}
-{!manageOnly ? (
-<button
-type="button"
-data-testid="free-start-start-another"
-disabled={pending}
-onClick={lifecycle.startAnother}
-className="min-h-11 rounded-xl border border-[#006f72] bg-white px-5 font-bold text-[#006f72]"
->
-{copy.startAnother}
-</button>
-) : null}
-</div>
-) : null}
+<SecureSaveActiveActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={saveAvailable} pending={pending} />
 {lifecycle.intent === 'manage' && lifecycle.verified ? (
 <SavedDraftList
 items={lifecycle.items}

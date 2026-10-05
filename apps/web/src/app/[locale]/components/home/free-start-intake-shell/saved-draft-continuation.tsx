@@ -8,6 +8,16 @@ function continuationDraft(lifecycle: ReturnType<typeof useDraftLifecycle>): Sav
   return isReviewReadySavedDraft(lifecycle.active) ? lifecycle.active : null;
 }
 
+/**
+ * The one eligibility predicate the band also reads to decide emphasis. Dirty, conflicting,
+ * pending or deleted lifecycles answer `false`, so continuation is never offered for them.
+ */
+export function isSavedDraftContinuationReady(
+  lifecycle: ReturnType<typeof useDraftLifecycle>
+): boolean {
+  return continuationDraft(lifecycle) !== null;
+}
+
 export function isReviewReadySavedDraft(draft: SavedDraft): boolean {
   return (
     (draft.category === 'vehicle' || draft.category === 'property') &&

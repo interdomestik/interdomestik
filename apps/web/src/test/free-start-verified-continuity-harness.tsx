@@ -98,6 +98,7 @@ vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: seams.pac
 
 export const freeStartCopy = enFreeStart.freeStart;
 export const heroCopy = enHero.hero.publicEntry;
+export const saveEntryCopy = freeStartCopy.saveEntry;
 export const secureSaveCopy = parseSecureSaveCopy(freeStartCopy.secureSave);
 export const secureSaveReviewCopy = parseSecureSaveReviewCopy(freeStartCopy.secureSaveReviewCopy);
 
@@ -203,8 +204,23 @@ export async function prepareVehicleReport(): Promise<void> {
   await screen.findByText(VEHICLE_FACTS.summary);
 }
 
-/** Opts into device recovery through the real disclosure before any local copy may be written. */
+/** Reveals the optional save area; presentation only, so no consent or request may follow. */
+export async function openSaveArea(): Promise<void> {
+  const opener =
+    screen.queryByTestId('free-start-save-entry-open') ??
+    screen.queryByTestId('free-start-save-entry-manage');
+  if (opener) fireEvent.click(opener);
+  await screen.findByTestId('free-start-secure-save-band');
+}
+
+/**
+ * Opts into device recovery the way a customer must: reveal the save area, expand the optional
+ * device details, then take the explicit enable that is the first thing permitted to write.
+ */
 export async function enableDeviceRecovery(): Promise<void> {
+  await openSaveArea();
+  fireEvent.click(await screen.findByTestId('browser-recovery-details-open'));
+  expect(localStorage).toHaveLength(0);
   fireEvent.click(await screen.findByTestId('browser-recovery-enable'));
   expect(screen.queryByTestId('browser-recovery-disclosure')).toBeNull();
 }
@@ -244,4 +260,18 @@ export const reportedFacts = () => screen.queryByText(VEHICLE_FACTS.summary);
 
 export async function expectSaveState(state: string): Promise<void> {
   await waitFor(() => expect(saveStatus()).toHaveAttribute('data-state', state));
+}
+
+/**
+ * A reset save area holds no receipt, so it collapses back to the optional entry with the
+ * conservative status. This replaces an idle expanded band: no receipt, no continuation, no
+ * clutter, and no claim about what device storage does or does not hold.
+ */
+export async function expectNoSavedReceipt(): Promise<void> {
+  await waitFor(() => expect(screen.getByTestId('free-start-save-entry-manage')).toBeVisible());
+  expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
+  expect(screen.queryByTestId('free-start-save-entry-status')).toBeNull();
+  expect(screen.queryByTestId('free-start-secure-save-band')).toBeNull();
+  expect(screen.queryByTestId('free-start-save-status')).toBeNull();
+  expect(continuation()).toBeNull();
 }

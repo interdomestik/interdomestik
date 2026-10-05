@@ -85,13 +85,22 @@ test.describe('premium Free Start result', () => {
         await page.setViewportSize({ width: 320, height: 844 });
         await gotoOrigin(page, neutralUrl, info, 'free-start-intake-shell');
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
+        // Saving is one optional area while facts are entered; open it to measure its reflow.
+        await expectNoOverflow(page.getByTestId('free-start-save-entry'));
+        await page.getByTestId('free-start-save-entry-manage').click();
         await expectNoOverflow(page.getByTestId('free-start-secure-save-band'));
       }
       neutralUrl.pathname = routes.home('en');
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoOrigin(page, neutralUrl, info, 'free-start-intake-shell');
+      await page.getByTestId('free-start-save-entry-manage').click();
       const band = page.getByTestId('free-start-secure-save-band');
       const save = band.getByTestId('free-start-save-open');
+      await expect(save).toHaveCount(0);
+      await page.getByTestId('free-start-category-injury').click();
+      await expect(save).toHaveCount(0);
+      await page.getByRole('button', { name: 'Change situation', exact: true }).click();
+      await page.getByTestId('free-start-category-property').click();
       // prettier-ignore
       await (async () => { await expect(band).toBeVisible(); await expect(band.getByRole('heading', { level: 3 })).toBeVisible(); await expect(band.getByRole('status')).toHaveAttribute('aria-atomic', 'true'); await save.focus(); await page.keyboard.press('Tab'); await expect(band.getByTestId('free-start-manage-open')).toBeFocused(); for (const button of await band.getByRole('button').all()) expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44); })();
       await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
@@ -103,11 +112,6 @@ test.describe('premium Free Start result', () => {
       // prettier-ignore
       await page.locator('html').evaluate(node => { node.style.zoom = '2'; node.style.letterSpacing = '0.12em'; node.style.wordSpacing = '0.16em'; node.style.lineHeight = '1.5'; });
       await expectNoOverflow(band);
-      await save.focus();
-      await page.keyboard.press('Enter');
-      // prettier-ignore
-      await expect(band.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'unsupported');
-      await page.getByTestId('free-start-category-property').click();
       // prettier-ignore
       await expect(band.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'idle');
       await save.focus();

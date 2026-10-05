@@ -19,10 +19,34 @@ beforeEach(() => {
 });
 
 describe('BrowserRecoveryDisclosure', () => {
+  it('keeps the device-storage details optional and offers no action until they are opened', () => {
+    const onEnable = vi.fn();
+    const onSkip = vi.fn();
+    render(<BrowserRecoveryDisclosure decision="pending" onEnable={onEnable} onSkip={onSkip} />);
+
+    const disclosure = screen.getByTestId('browser-recovery-disclosure');
+    expect(disclosure).toHaveAccessibleName('Choose whether this browser remembers your notes');
+    const opener = screen.getByTestId('browser-recovery-details-open');
+    expect(opener).toHaveAttribute('aria-expanded', 'false');
+    expect(opener).toHaveAttribute('aria-controls', 'browser-recovery-details');
+    expect(document.getElementById('browser-recovery-details')).not.toBeNull();
+    expect(screen.queryByTestId('browser-recovery-enable')).toBeNull();
+    expect(screen.queryByTestId('browser-recovery-skip')).toBeNull();
+    expect(disclosure).not.toHaveTextContent('expires after 30 days');
+
+    fireEvent.click(opener);
+    expect(opener).toHaveAttribute('aria-expanded', 'true');
+    // Expanding reveals facts only: neither callback may run from the disclosure itself.
+    expect(onEnable).not.toHaveBeenCalled();
+    expect(onSkip).not.toHaveBeenCalled();
+    expect(localStorage).toHaveLength(0);
+  });
+
   it('presents the complete pre-persistence choice with keyboard-reachable actions', () => {
     const onEnable = vi.fn();
     const onSkip = vi.fn();
     render(<BrowserRecoveryDisclosure decision="pending" onEnable={onEnable} onSkip={onSkip} />);
+    fireEvent.click(screen.getByTestId('browser-recovery-details-open'));
 
     const disclosure = screen.getByTestId('browser-recovery-disclosure');
     expect(disclosure).toHaveAccessibleName('Choose whether this browser remembers your notes');
@@ -34,6 +58,16 @@ describe('BrowserRecoveryDisclosure', () => {
     expect(disclosure).toHaveTextContent('discard it at any time');
     expect(disclosure).toHaveTextContent('Secure save is separate');
     expect(disclosure).toHaveTextContent('review the facts before any later handoff');
+
+    // Device storage never competes visually with the secure-save or continuation action above.
+    expect(screen.getByTestId('browser-recovery-enable')).toHaveAttribute(
+      'data-emphasis',
+      'secondary'
+    );
+    expect(screen.getByTestId('browser-recovery-skip')).toHaveAttribute(
+      'data-emphasis',
+      'secondary'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Use browser recovery' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue without device save' }));

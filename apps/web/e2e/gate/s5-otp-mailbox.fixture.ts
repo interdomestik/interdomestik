@@ -136,3 +136,27 @@ export async function postOtpFromBrowser(
 
 export const localCopy = (page: Page) =>
   page.evaluate(key => localStorage.getItem(key) !== null, LOCAL_COPY);
+
+/** Exercise the real form and retain the opaque mail receipt for the journey's cleanup. */
+export async function requestOtpCode({
+  flow,
+  email,
+  seen,
+  mails,
+  openTestId,
+}: {
+  flow: Locator;
+  email: string;
+  seen: Set<string>;
+  mails: OtpMail[];
+  openTestId?: string;
+}) {
+  if (openTestId) await flow.getByTestId(openTestId).click();
+  const panel = flow.getByTestId('free-start-save-otp');
+  await panel.getByTestId('free-start-save-email').fill(email);
+  await panel.getByTestId('free-start-save-send-code').click();
+  await expect(panel.getByTestId('free-start-save-code')).toBeVisible();
+  const mail = await waitForOtpMail(email, seen);
+  mails.push(mail);
+  return { mail, panel };
+}

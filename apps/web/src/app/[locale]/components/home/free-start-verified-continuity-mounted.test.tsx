@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ANONYMOUS_DRAFT_KEY } from './free-start-intake-shell/anonymous-draft-recovery';
 // The harness registers every seam, so it must be imported before the runtime graph below.
 // prettier-ignore
-import { ACCOUNT_CONTEXT, ACKNOWLEDGED, ANONYMOUS_PENDING, ANONYMOUS_SETTLED, AUTH_REQUIRED, CONTINUATION_HREF, OWNER_A, OWNER_B, SIGN_IN_OK, VEHICLE_FACTS, VERIFIED_EMAIL, continuation, continuityBoundary, createCalls, deferred, enableDeviceRecovery, expectSaveState, heroCopy, openSecureSave, organizerNode, pendingRefresh, prepareVehicleReport, publishSession, reportedFacts, requestCode, resetContinuityBoundary, saveStatus, saveWithVerifiedEmail, secureSaveReviewCopy, settleHeld, settledOwner, submitCode, type SessionSnapshot, type SessionUser } from '@/test/free-start-verified-continuity-harness';
+import { ACCOUNT_CONTEXT, ACKNOWLEDGED, ANONYMOUS_PENDING, ANONYMOUS_SETTLED, AUTH_REQUIRED, CONTINUATION_HREF, OWNER_A, OWNER_B, SIGN_IN_OK, VEHICLE_FACTS, VERIFIED_EMAIL, continuation, continuityBoundary, createCalls, deferred, enableDeviceRecovery, expectNoSavedReceipt, expectSaveState, heroCopy, openSecureSave, organizerNode, pendingRefresh, prepareVehicleReport, publishSession, reportedFacts, requestCode, resetContinuityBoundary, saveStatus, saveWithVerifiedEmail, secureSaveReviewCopy, settleHeld, settledOwner, submitCode, type SessionSnapshot, type SessionUser } from '@/test/free-start-verified-continuity-harness';
 
 import { HomePageRuntime } from './home-page-runtime';
 
@@ -180,7 +180,7 @@ describe('mounted verified-save continuity across session publication', () => {
       expect(reportedFacts()).toBeNull();
       expect(continuation()).toBeNull();
       expect(screen.queryByText(VEHICLE_FACTS.counterparty)).toBeNull();
-      await expectSaveState('idle');
+      await expectNoSavedReceipt();
       expect(h.create).toHaveBeenCalledTimes(2);
       expect(h.list).not.toHaveBeenCalled();
       expect(localStorage).toHaveLength(0);
@@ -201,7 +201,7 @@ describe('mounted verified-save continuity across session publication', () => {
     expect(continuation()).toBeNull();
     expect(reportedFacts()).toBeNull();
     expect(screen.queryByText(VEHICLE_FACTS.counterparty)).toBeNull();
-    await expectSaveState('idle');
+    await expectNoSavedReceipt();
     expect(h.create).toHaveBeenCalledTimes(2);
     expect(localStorage).toHaveLength(0);
   });
@@ -223,7 +223,7 @@ describe('mounted verified-save continuity across session publication', () => {
     await settleHeld(accepted, ACKNOWLEDGED);
     expect(continuation()).toBeNull();
     expect(screen.queryByTestId('saved-draft-continuation')).toBeNull();
-    expect(saveStatus()).not.toHaveAttribute('data-state', 'saved');
+    await expectNoSavedReceipt();
     expect(reportedFacts()).toBeNull();
     expect(h.create).toHaveBeenCalledTimes(2);
     expect(new Set(createCalls().map(call => call.clientRequestId)).size).toBe(1);

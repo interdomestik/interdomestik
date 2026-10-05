@@ -4,14 +4,14 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
-import {
-  BrowserRecoveryDisclosure,
-  type BrowserRecoveryDecision,
-} from './browser-recovery-disclosure';
+import type { BrowserRecoveryDecision } from './browser-recovery-disclosure';
 import { EMPTY_DRAFT } from './constants';
 import { useFreeStartViewModel, useSecureIntentGuard } from './free-start-view-model';
 import { FreeStartMainPanel } from './main-panel';
 import { OrganizerHeader } from './organizer-header';
+// prettier-ignore
+import { parseSaveEntryCopy } from './secure-save-entry';
+import { PublicSaveOptions } from './public-save-options';
 import { FreeStartSidebar } from './sidebar';
 import { TrustBoundary } from './trust-boundary';
 // prettier-ignore
@@ -22,8 +22,9 @@ import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useOrganizerFlow } from './use-organizer-flow';
 import { usePublicCategoryIntent } from './use-public-category-intent';
 import { usePublicIntakeArrival } from './use-public-intake-arrival';
+import { usePublicSaveArea } from './use-public-save-area';
 // prettier-ignore
-const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false }), SecureSaveBand = dynamic(() => import('./secure-save-band').then(module => module.SecureSaveBand), { ssr: false });
+const ClaimPackResult = dynamic(() => import('../claim-pack-result').then(module => module.ClaimPackResult), { ssr: false });
 // prettier-ignore
 export async function resetAfterRecoveryClear(clear: () => Promise<boolean> | boolean, reset: () => void): Promise<boolean> { if (!(await clear())) { return false; } reset(); return true; }
 export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
@@ -111,6 +112,16 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     onDecided: arrival.requestDecision,
     resolved: recovery.ready,
   });
+  // The save area is one optional disclosure: closed while facts are entered, revealed directly on
+  // review of an admitted situation, and held open by any real save work.
+  const saveEntryCopy = parseSaveEntryCopy(t.raw('saveEntry'));
+  const saveOptions = usePublicSaveArea({
+    category: flow.selectedCategory,
+    step: flow.step,
+    lifecycle: draftLifecycle,
+    neutralOtpHost: props.neutralOtpHost,
+  });
+  const { neutralFrontDoor, saveAvailable, reviewingAdmitted } = saveOptions;
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
@@ -176,10 +187,12 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
                 issueLabel={view.issueLabel}
                 isFinishing={flow.isFinishingIntake}
                 outcomeLabel={view.outcomeLabel}
+                secondaryFinish={neutralFrontDoor && reviewingAdmitted && !secureActionsBlocked}
                 selectedCategory={flow.selectedCategory}
                 setDraftField={flow.setDraftField}
                 step={flow.step}
                 t={t}
+                truthBody={trustBoundaryT('trustBoundary.body')}
                 onBackToCategory={() => flow.navigate('category')}
                 onBackToDetails={() => { arrival.request(flow.selectedCategory); flow.navigate('details'); }}
                 onCategorySelect={enterCategory}
@@ -201,21 +214,18 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
             </aside>
           </div>
         )}
-        {/* The device-storage choice stays below the first input: it is optional, and opting in
-            remains required before any local write. */}
-        {recovery.ready &&
-        recovery.neutralHost &&
-        !recovery.offer &&
-        (recovery.state === 'idle' || recovery.state === 'discarded') ? (
-          <BrowserRecoveryDisclosure
-            decision={recoveryDecision}
-            onEnable={() => setRecoveryDecision('enabled')}
-            onSkip={() => setRecoveryDecision('disabled')}
-          />
-        ) : null}
-        <TrustBoundary t={trustBoundaryT} />
-        {/* prettier-ignore */}
-        <div data-testid="free-start-recovery-secure-actions" aria-describedby={secureActionsBlocked ? 'anonymous-draft-recovery-heading' : undefined} inert={secureActionsBlocked || undefined}><SecureSaveBand allowContinuation key={secureIntent.epoch} lifecycle={secureLifecycle} locale={props.locale} neutralOtpHost={props.neutralOtpHost} onVerifiedOwner={props.onVerifiedOwner} tenantId={props.neutralOtpTenantId} /></div>
+        <TrustBoundary t={trustBoundaryT} concise={neutralFrontDoor && saveAvailable} />
+        <PublicSaveOptions
+          area={saveOptions}
+          blocked={secureActionsBlocked}
+          decision={recoveryDecision}
+          epoch={secureIntent.epoch}
+          lifecycle={secureLifecycle}
+          organizerProps={props}
+          recovery={recovery}
+          saveEntryCopy={saveEntryCopy}
+          setDecision={setRecoveryDecision}
+        />
       </div>
     </section>
   );

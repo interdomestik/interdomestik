@@ -59,6 +59,9 @@ async function openOrganizer(page: Page, info: TestInfo) {
   await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
   const organizer = page.getByTestId('premium-free-start-organizer');
   await expect(organizer).toBeVisible();
+  // Saving and managing live in one optional area while facts are entered; reveal it first.
+  await organizer.getByTestId('free-start-save-entry-manage').click();
+  await expect(organizer.getByTestId('free-start-secure-save-band')).toBeVisible();
   return organizer;
 }
 
@@ -109,7 +112,7 @@ test.describe('IDA-UI03b different-email recovery entry', () => {
     });
     try {
       const page = await noJs.newPage();
-      await openOrganizer(page, info);
+      await gotoApp(page, routes.home('en'), info, { marker: 'free-start-intake-shell' });
       await expect(page.getByTestId('different-email-recovery')).toHaveCount(0);
     } finally {
       await noJs.close();

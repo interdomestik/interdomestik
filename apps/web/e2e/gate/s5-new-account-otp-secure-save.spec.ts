@@ -12,6 +12,7 @@ import {
 } from '@interdomestik/database';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
+import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 import { gotoApp } from '../utils/navigation';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
 import { cleanupOtpJourney, redactOtpFailure } from './s5-new-account-otp-cleanup.fixture';
@@ -21,7 +22,7 @@ import {
   localCopy,
   mailboxConfigured,
   postOtpFromBrowser,
-  waitForOtpMail,
+  requestOtpCode,
 } from './s5-otp-mailbox.fixture';
 import { idaOrigin, idaTarget } from './s5-saved-draft.fixture';
 import {
@@ -85,16 +86,8 @@ test.describe('S5 new-account email OTP secure save', () => {
       pages.push(page);
       return page;
     };
-    const requestCode = async (flow: Locator, openTestId?: string) => {
-      if (openTestId) await flow.getByTestId(openTestId).click();
-      const panel = flow.getByTestId('free-start-save-otp');
-      await panel.getByTestId('free-start-save-email').fill(email);
-      await panel.getByTestId('free-start-save-send-code').click();
-      await expect(panel.getByTestId('free-start-save-code')).toBeVisible();
-      const mail = await waitForOtpMail(email, seen);
-      mails.push(mail);
-      return { mail, panel };
-    };
+    const requestCode = (flow: Locator, openTestId?: string) =>
+      requestOtpCode({ flow, email, seen, mails, openTestId });
     try {
       const start = await open();
       await gotoApp(start, routes.home('en'), info, { marker: 'free-start-intake-shell' });
@@ -104,6 +97,10 @@ test.describe('S5 new-account email OTP secure save', () => {
       await start.getByTestId('cookie-consent-accept').click();
       const flow = start.getByTestId('premium-free-start-organizer');
       expect(await localCopy(start), 'browser recovery starts with no local copy').toBe(false);
+      await openSaveArea(flow);
+      expect(await localCopy(start), 'opening the save options writes nothing').toBe(false);
+      await openDeviceDetails(flow);
+      expect(await localCopy(start), 'reading device storage details writes nothing').toBe(false);
       await flow.getByTestId('browser-recovery-enable').click();
       await expect(flow).toHaveAttribute('data-save-behavior', 'device-recovery');
       await flow.getByTestId('free-start-category-vehicle').click();
@@ -236,6 +233,7 @@ test.describe('S5 new-account email OTP secure save', () => {
         await fresh.getByTestId('cookie-consent-accept').click();
         expect(await localCopy(fresh), 'a fresh browser has no local copy').toBe(false);
         const again = fresh.getByTestId('premium-free-start-organizer');
+        await openSaveArea(again);
         const second = await requestCode(again, 'free-start-manage-open');
         expect(second.mail.id).not.toBe(mail.id);
         await enter(second.panel.getByTestId('free-start-save-code'), second.mail.code);
@@ -271,6 +269,7 @@ test.describe('S5 new-account email OTP secure save', () => {
           await gotoApp(fresh, routes.home('en'), info, { marker: 'free-start-intake-shell' });
         });
 
+        await openSaveArea(again);
         await again.getByTestId('free-start-manage-open').click();
         await again.getByTestId(`free-start-delete-${created.draftId}`).click();
         await again.getByTestId('free-start-delete-confirm').click();

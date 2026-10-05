@@ -71,10 +71,19 @@ describe('premium Free Start organizer', () => {
     const boundary = screen.getByTestId('free-start-trust-boundary');
     expect(boundary).toBeVisible();
     expect(boundary).not.toHaveAttribute('role', 'alert');
+    // Injury keeps the complete resolved disclosure while editing, including temporary-result
+    // limits and the explicit-save rule without unsupported browser-recovery promises.
+    const noRecovery = (
+      JSON.parse(enMessages.freeStart.secureSaveReviewCopy) as { noRecovery: string }
+    ).noRecovery;
+    expect(boundary).toHaveTextContent(noRecovery);
+    expect(boundary).toHaveTextContent(/no case is opened/i);
+    expect(boundary).toHaveTextContent(/does not create legal representation/i);
+    expect(boundary).toHaveTextContent(/or give professional advice/i);
     expect(boundary).toHaveTextContent('nothing saves automatically');
-    expect(boundary).toHaveTextContent(
-      /does not create legal representation, accept a claim, submit anything to an insurer, or give professional advice/i
-    );
+    expect(boundary).toHaveTextContent('generated result itself remains temporary');
+    expect(boundary).not.toHaveTextContent('30 days');
+    expect(screen.queryByTestId('free-start-preview-truth')).toBeNull();
   });
 
   it('keeps the direct-entry category fallback available', () => {
@@ -114,6 +123,12 @@ describe('premium Free Start organizer', () => {
     );
 
     const boundary = screen.getByTestId('free-start-trust-boundary');
+    // Entering facts keeps the long secure-save decision behind one deliberate optional opener.
+    const entry = await screen.findByTestId('free-start-save-entry');
+    expect(entry).toHaveTextContent(enMessages.freeStart.saveEntry.status.neutral);
+    expect(screen.queryByTestId('free-start-secure-save-band')).toBeNull();
+    fireEvent.click(screen.getByTestId('free-start-save-entry-open'));
+
     const save = await screen.findByTestId('free-start-save-open');
     const manage = screen.getByTestId('free-start-manage-open');
     expect(boundary).toBeVisible();
@@ -162,5 +177,5 @@ describe('premium Free Start organizer', () => {
   it('blocks secure actions until a pending device discard settles', async () => { writeAnonymousDraft(localStorage, { category: 'property', draft: { counterparty: 'Insurer', desiredOutcome: 'repair', incidentDate: '2026-07-15', issueType: 'water_damage', summary: 'Water damaged two rooms.' }, resumeStep: 'preview' }, null); const request = vi.fn((_name, options: { signal: AbortSignal }, callback: () => unknown) => request.mock.calls.length === 1 ? Promise.resolve(callback()) : new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true }))); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request } }); render(<FreeStartIntakeShell continueHref="/pricing" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); fireEvent.click(await screen.findByRole('button', { name: 'Discard from this device' })); await waitFor(() => expect(request).toHaveBeenCalledTimes(2)); expect(screen.getByTestId('free-start-recovery-secure-actions')).toHaveAttribute('inert'); });
 
   // prettier-ignore
-  it('prevents a denied sibling storage event from completing a pending OTP save', async () => { let finishVerify!: () => void; hoisted.verify.mockReturnValue(new Promise(resolve => { finishVerify = () => resolve({ data: { user: { id: 'user-a' } }, error: null }); })); Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() }); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn(async (_name, _options, callback) => callback()) } }); render(<FreeStartIntakeShell continueHref="/pricing" initialCategory="property" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); fireEvent.click(await screen.findByRole('button', { name: 'Use browser recovery' })); await waitFor(() => expect(localStorage).toHaveLength(1)); fireEvent.click(await screen.findByRole('button', { name: 'Save securely' })); fireEvent.change(await screen.findByLabelText('Email address'), { target: { value: 'owner@example.com' } }); fireEvent.click(screen.getByRole('button', { name: 'Send code' })); await waitFor(() => expect(hoisted.send).toHaveBeenCalledOnce()); fireEvent.change(screen.getByLabelText('Verification code'), { target: { value: '123456' } }); fireEvent.click(screen.getByRole('button', { name: 'Verify and continue' })); await waitFor(() => expect(hoisted.verify).toHaveBeenCalledOnce()); const available = localStorage, event = new Event('storage') as StorageEvent; vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); Object.defineProperties(event, { key: { value: 'interdomestik_free_start_recovery_v1' }, newValue: { value: null }, storageArea: { value: available } }); globalThis.dispatchEvent(event); await act(async () => finishVerify()); expect(hoisted.create).toHaveBeenCalledOnce(); });
+  it('prevents a denied sibling storage event from completing a pending OTP save', async () => { let finishVerify!: () => void; hoisted.verify.mockReturnValue(new Promise(resolve => { finishVerify = () => resolve({ data: { user: { id: 'user-a' } }, error: null }); })); Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() }); Object.defineProperty(navigator, 'locks', { configurable: true, value: { request: vi.fn(async (_name, _options, callback) => callback()) } }); render(<FreeStartIntakeShell continueHref="/pricing" initialCategory="property" locale="en" neutralOtpHost={globalThis.location.host} tenantId="tenant_public" />); fireEvent.click(await screen.findByTestId('free-start-save-entry-open')); fireEvent.click(await screen.findByTestId('browser-recovery-details-open')); expect(localStorage).toHaveLength(0); fireEvent.click(await screen.findByRole('button', { name: 'Use browser recovery' })); await waitFor(() => expect(localStorage).toHaveLength(1)); fireEvent.click(await screen.findByRole('button', { name: 'Save securely' })); fireEvent.change(await screen.findByLabelText('Email address'), { target: { value: 'owner@example.com' } }); fireEvent.click(screen.getByRole('button', { name: 'Send code' })); await waitFor(() => expect(hoisted.send).toHaveBeenCalledOnce()); fireEvent.change(screen.getByLabelText('Verification code'), { target: { value: '123456' } }); fireEvent.click(screen.getByRole('button', { name: 'Verify and continue' })); await waitFor(() => expect(hoisted.verify).toHaveBeenCalledOnce()); const available = localStorage, event = new Event('storage') as StorageEvent; vi.spyOn(globalThis, 'localStorage', 'get').mockImplementation(() => { throw new DOMException('blocked'); }); Object.defineProperties(event, { key: { value: 'interdomestik_free_start_recovery_v1' }, newValue: { value: null }, storageArea: { value: available } }); globalThis.dispatchEvent(event); await act(async () => finishVerify()); expect(hoisted.create).toHaveBeenCalledOnce(); });
 });
