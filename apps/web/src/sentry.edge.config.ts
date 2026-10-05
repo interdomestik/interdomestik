@@ -22,11 +22,11 @@ try {
     dsn: isEnabled ? dsn : undefined,
     enabled: isEnabled,
     sendDefaultPii: false,
-    tracesSampleRate: resolveEnabledSampleRate(
-      isEnabled,
-      process.env.SENTRY_TRACES_SAMPLE_RATE,
-      DEFAULT_TRACES_SAMPLE_RATE
-    ),
+    tracesSampleRate: resolveEnabledSampleRate({
+      enabled: isEnabled,
+      rawValue: process.env.SENTRY_TRACES_SAMPLE_RATE,
+      defaultRate: DEFAULT_TRACES_SAMPLE_RATE,
+    }),
     environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,
     beforeSend: scrubSentryEvent,
     beforeSendTransaction: scrubSentryEvent,

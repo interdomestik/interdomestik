@@ -18,7 +18,7 @@ describe('Sentry sampling gates', () => {
     for (const value of ['0', '', ' ', 'junk', '-1', '1.01', 'Infinity'])
       expect(resolveSampleRate(value, 0.1)).toBe(0);
     expect(resolveSampleRate('0.25', 0.1)).toBe(0.25);
-    expect(resolveEnabledSampleRate(false, '1', 0.1)).toBe(0);
+    expect(resolveEnabledSampleRate({ enabled: false, rawValue: '1', defaultRate: 0.1 })).toBe(0);
   });
   it('requires a usable DSN, production and a non-automated run', () => {
     expect(isSentryTelemetryEnabled({ dsn, nodeEnv: 'production', automated: false })).toBe(true);

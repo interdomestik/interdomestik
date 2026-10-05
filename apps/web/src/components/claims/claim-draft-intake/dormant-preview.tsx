@@ -23,16 +23,62 @@ function selectSubmitExplanation(copy: ClaimDraftCopy, membership: boolean, conf
   if (firstSaveExplanation) return firstSaveExplanation;
   return (confirmationRequired && confirmationRequiredCopy) || copy.submitExplanation;
 }
+function draftReadiness(props: Props) {
+  const {
+    activeDraftId,
+    activeDraftVersion,
+    draft,
+    managerOnly,
+    hasUnsavedChanges,
+    confirmationRequired,
+  } = props;
+  const values = [
+    draft.issueType,
+    draft.incidentDate,
+    draft.counterparty,
+    draft.desiredOutcome,
+    draft.summary,
+  ];
+  const persisted = Boolean(isSavedDraftId(activeDraftId) && activeDraftVersion);
+  const incomplete = persisted && values.some(value => !value.trim());
+  const firstSaveExplanation =
+    !managerOnly &&
+    activeDraftId == null &&
+    activeDraftVersion == null &&
+    values.every(value => value.trim()) &&
+    props.copy.submitFirstSaveExplanation;
+  const readyExceptUnsavedChanges = Boolean(!managerOnly && persisted && !incomplete);
+  return {
+    eligible: readyExceptUnsavedChanges && !hasUnsavedChanges && !confirmationRequired,
+    unsaved: Boolean(readyExceptUnsavedChanges && hasUnsavedChanges),
+    incomplete,
+    firstSaveExplanation,
+  };
+}
+function reloadAction(locale: string, props: Props): ReactNode {
+  if (!props.activeDraftId) return null;
+  const href = savedDraftRecoveryHref(
+    locale,
+    props.activeDraftId,
+    props.claimStart?.handoffContext
+  );
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      data-testid="claim-draft-reload"
+      className="inline-flex min-h-12 items-center rounded-xl bg-[#006b7b] px-5 font-bold text-white"
+    >
+      {props.submitCopy.reload}
+    </a>
+  );
+}
 export function DormantPreview(props: Props) {
   // prettier-ignore
-  const { activeDraftId, activeDraftVersion, claimStart, confirmationRequired, confirmationRequiredCopy, copy, draft, hasUnsavedChanges, headingRef, labels, managerOnly, submitCopy, tFree } = props, failureRef = useRef<HTMLParagraphElement>(null), successRef = useRef<HTMLOutputElement>(null), locale = useLocale();
+  const { activeDraftId, activeDraftVersion, claimStart, confirmationRequired, confirmationRequiredCopy, copy, draft, headingRef, labels, managerOnly, submitCopy, tFree } = props, failureRef = useRef<HTMLParagraphElement>(null), successRef = useRef<HTMLOutputElement>(null), locale = useLocale();
   // prettier-ignore
   const facts = [[tFree('preview.categoryLabel'), labels.category], [tFree('preview.issueLabel'), labels.issue], [tFree('preview.dateLabel'), draft.incidentDate], [tFree('preview.counterpartyLabel'), draft.counterparty], [tFree('preview.outcomeLabel'), labels.outcome], [tFree('preview.summaryLabel'), draft.summary]];
-  // prettier-ignore
-  const persisted = Boolean(isSavedDraftId(activeDraftId) && activeDraftVersion), incomplete = persisted && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].some(value => !value.trim()), firstSaveExplanation = !managerOnly && activeDraftId == null && activeDraftVersion == null && [draft.issueType, draft.incidentDate, draft.counterparty, draft.desiredOutcome, draft.summary].every(value => value.trim()) && copy.submitFirstSaveExplanation;
-  const readyExceptUnsavedChanges = Boolean(!managerOnly && persisted && !incomplete);
-  const eligible = readyExceptUnsavedChanges && !hasUnsavedChanges && !confirmationRequired;
-  const unsaved = Boolean(readyExceptUnsavedChanges && hasUnsavedChanges);
+  const { eligible, unsaved, incomplete, firstSaveExplanation } = draftReadiness(props);
   // prettier-ignore
   const submitExplanation = selectSubmitExplanation(copy, Boolean(managerOnly), Boolean(confirmationRequired), confirmationRequiredCopy, incomplete, unsaved, firstSaveExplanation);
   const { claim, failure, needsReload, lookupStatus, origin, pending, submit } = useSavedDraftClaim(
@@ -71,18 +117,7 @@ export function DormantPreview(props: Props) {
       </output>
     );
   } else if (eligible && needsReload) {
-    const href = activeDraftId
-      ? savedDraftRecoveryHref(locale, activeDraftId, claimStart?.handoffContext)
-      : null;
-    submitAction = href ? (
-      <a
-        href={href}
-        data-testid="claim-draft-reload"
-        className="inline-flex min-h-12 items-center rounded-xl bg-[#006b7b] px-5 font-bold text-white"
-      >
-        {submitCopy.reload}
-      </a>
-    ) : null;
+    submitAction = reloadAction(locale, props);
   } else if (eligible) {
     submitAction = (
       <button

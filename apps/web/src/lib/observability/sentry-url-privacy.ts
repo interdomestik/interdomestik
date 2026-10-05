@@ -115,7 +115,7 @@ export function scrubStackFilename(value: string): string {
   try {
     const url = new URL(value);
     const asset =
-      /^\/_next\/static\/(?:chunks|css)\/(?:(?:webpack|main|framework|polyfills|app|page|layout|error|not-found|[0-9]{1,8})-)?[a-f0-9]{6,64}\.(?:js|mjs|css)$/i;
+      /^\/_next\/static\/(?:chunks|css)\/(?:(?:webpack|main|framework|polyfills|app|page|layout|error|not-found|\d{1,8})-)?[a-f0-9]{6,64}\.(?:js|mjs|css)$/i;
     if (['http:', 'https:'].includes(url.protocol) && asset.test(url.pathname))
       return `${url.origin}${url.pathname}`;
     return scrubUrl(value);

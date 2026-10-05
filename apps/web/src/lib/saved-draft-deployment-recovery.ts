@@ -18,8 +18,7 @@ export function savedDraftRecoveryHref(
   const base = savedDraftContinuationHref(locale, id);
   if (!base) return null;
   if (
-    !context ||
-    context.source !== 'diaspora-green-card' ||
+    context?.source !== 'diaspora-green-card' ||
     context.incidentLocation !== 'abroad' ||
     !['DE', 'CH', 'AT', 'IT'].includes(context.country)
   )

@@ -140,7 +140,10 @@ describe('existing consent event integration', () => {
     expect(beforeSendEvent).toBeTypeOf('function');
     const afterSendEvent = sdk.on.mock.calls.find(call => call[0] === 'afterSendEvent')?.[1];
     expect(afterSendEvent).toBeTypeOf('function');
-    const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const random = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(array => {
+      (array as Uint32Array).fill(0);
+      return array;
+    });
     const selected: { event_id: string; tags?: Record<string, string> } = {
       event_id: 'selected-error',
     };

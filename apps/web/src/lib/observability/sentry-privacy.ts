@@ -58,27 +58,35 @@ const NUMERIC_KEYS = new Set([
   'http.request_content_length',
 ]);
 
+function safeDataValue(key: string, value: unknown): string | number | undefined {
+  if (NUMERIC_KEYS.has(key) && typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return undefined;
+  switch (key) {
+    case 'url':
+    case 'http.url':
+    case 'url.full':
+    case 'from':
+    case 'to':
+      return scrubUrl(value);
+    case 'http.route':
+      return /^\/[^\s]*$/.test(value) && !value.startsWith('//') ? scrubUrl(value) : undefined;
+    case 'replayId':
+      return /^[a-f0-9]{32}$/i.test(value) ? value : undefined;
+    case 'slo_alert':
+      return SLO_ALERTS.has(value) ? value : undefined;
+    case 'ui_action':
+      return ACTIONS.has(value) ? value : undefined;
+    case 'ui_outcome':
+      return OUTCOMES.has(value) ? value : undefined;
+    default:
+      return undefined;
+  }
+}
 function safeData(data: Record<string, unknown> = {}): Record<string, string | number> {
   const result: Record<string, string | number> = {};
   for (const [key, value] of Object.entries(data)) {
-    if (NUMERIC_KEYS.has(key) && typeof value === 'number' && Number.isFinite(value))
-      result[key] = value;
-    if (['url', 'http.url', 'url.full', 'from', 'to'].includes(key) && typeof value === 'string')
-      result[key] = scrubUrl(value);
-    if (
-      key === 'http.route' &&
-      typeof value === 'string' &&
-      /^\/[^\s]*$/.test(value) &&
-      !value.startsWith('//')
-    )
-      result[key] = scrubUrl(value);
-    if (key === 'replayId' && typeof value === 'string' && /^[a-f0-9]{32}$/i.test(value))
-      result[key] = value;
-    if (key === 'slo_alert' && typeof value === 'string' && SLO_ALERTS.has(value))
-      result[key] = value;
-    if (key === 'ui_action' && typeof value === 'string' && ACTIONS.has(value)) result[key] = value;
-    if (key === 'ui_outcome' && typeof value === 'string' && OUTCOMES.has(value))
-      result[key] = value;
+    const safe = safeDataValue(key, value);
+    if (safe !== undefined) result[key] = safe;
   }
   return result;
 }
@@ -166,12 +174,9 @@ export function scrubSentrySpan(span: SpanJSON): SpanJSON {
     const safe = redactSignedStorageSpan(span);
     if (['auto.http.browser.inp', 'auto.ui.browser.metrics'].includes(safe.origin ?? ''))
       technical.origin = safe.origin;
-    technical.description =
-      safe.op === 'ui.action'
-        ? 'Critical UI action'
-        : safe.is_segment === true
-          ? scrubTransactionName(safe.description ?? '')
-          : '[redacted]';
+    if (safe.op === 'ui.action') technical.description = 'Critical UI action';
+    else if (safe.is_segment === true)
+      technical.description = scrubTransactionName(safe.description ?? '');
     technical.data = safeData(safe.data);
     technical.op = [
       'ui.action',

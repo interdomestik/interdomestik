@@ -77,9 +77,12 @@ export function resolveSampleRate(
 
 /** Resolves the rate only for an enabled runtime; a disabled runtime samples nothing. */
 export function resolveEnabledSampleRate(
-  isEnabled: boolean,
-  rawValue: string | undefined | null,
-  defaultRate: number
+  config: Readonly<{
+    enabled: boolean;
+    rawValue: string | undefined | null;
+    defaultRate: number;
+  }>
 ): number {
-  return isEnabled ? resolveSampleRate(rawValue, defaultRate) : 0;
+  if (!config.enabled) return 0;
+  return resolveSampleRate(config.rawValue, config.defaultRate);
 }

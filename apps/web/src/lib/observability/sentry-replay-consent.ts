@@ -1,5 +1,6 @@
 import { getCookieConsent, subscribeCookieConsent } from '@/lib/cookie-consent';
 import { isReplaySafeLocation, replayPrivacyOptions } from './sentry-replay-privacy';
+import { sampleReplay } from './sentry-replay-sampling';
 
 type Replay = {
   start(): void;
@@ -21,22 +22,24 @@ export function createReplayConsentController(dependencies: Dependencies) {
   let loading: Promise<Replay> | undefined;
   let pending = Promise.resolve();
   let running = false;
+  async function stopCurrentReplay(): Promise<void> {
+    try {
+      if (replay) await replay.stop({ flush: false });
+    } catch {
+      /* Optional telemetry. */
+    }
+  }
   function update(nextAccepted: boolean): void {
     accepted = nextAccepted;
     const currentRevision = ++revision;
     // Stop immediately; the SDK marks recording disabled before its promise resolves.
     if (!accepted || !dependencies.allowed()) {
       running = false;
-      try {
-        if (replay) {
-          const stopping = replay.stop({ flush: false }).catch(() => undefined);
-          pending = Promise.all([pending, stopping]).then(
-            () => undefined,
-            () => undefined
-          );
-        }
-      } catch {
-        /* Optional telemetry. */
+      if (replay) {
+        pending = Promise.all([pending, stopCurrentReplay()]).then(
+          () => undefined,
+          () => undefined
+        );
       }
       return;
     }
@@ -88,7 +91,7 @@ export function initializeConsentReplay(
   activeController = createReplayConsentController({
     allowed: () => isReplaySafeLocation(window.location.href),
     errorSampleRate: errorRate,
-    sampleSession: () => Math.random() < sessionRate,
+    sampleSession: () => sampleReplay(sessionRate),
     load: async () => {
       const sdk = await import('@sentry/nextjs');
       const replay = sdk.replayIntegration({
@@ -109,7 +112,7 @@ export function initializeConsentReplay(
             event.type ||
             !eligible() ||
             replay.getRecordingMode() !== 'buffer' ||
-            Math.random() >= errorRate
+            !sampleReplay(errorRate)
           )
             return;
           const replayId = replay.getReplayId();
