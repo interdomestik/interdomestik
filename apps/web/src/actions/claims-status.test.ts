@@ -1,55 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import './claims.test-mocks';
+import { describe, expect, it, vi } from 'vitest';
 import { updateClaimStatus } from './claims';
 import {
-  mockGetActiveSubscription,
   mockGetSession,
-  mockHasActiveMembership,
   mockTxSelectLimit,
   mockTxUpdateReturning,
-  resetClaimActionMocks,
   submittedLifecycleCurrentClaim,
 } from './claims.test-support';
 
-vi.mock('@interdomestik/domain-membership-billing/subscription', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@interdomestik/domain-membership-billing/subscription')>();
-  return {
-    ...actual,
-    hasActiveMembership: () => mockHasActiveMembership(),
-    getActiveSubscription: () => mockGetActiveSubscription(),
-  };
-});
-vi.mock('@/lib/auth', async () => (await import('./claims.test-support')).authModuleMock());
-vi.mock('@interdomestik/database/claim-number', async () =>
-  (await import('./claims.test-support')).claimNumberModuleMock()
-);
-vi.mock('@interdomestik/database/tenant-directory', async () =>
-  (await import('./claims.test-support')).tenantDirectoryModuleMock()
-);
-vi.mock('@interdomestik/database', async () =>
-  (await import('./claims.test-support')).databaseModuleMock()
-);
-vi.mock('nanoid', async () => (await import('./claims.test-support')).nanoidModuleMock());
-vi.mock('next/cache', async () => (await import('./claims.test-support')).nextCacheModuleMock());
-vi.mock('next/headers', async () =>
-  (await import('./claims.test-support')).nextHeadersModuleMock()
-);
-vi.mock('@/lib/notifications', async () =>
-  (await import('./claims.test-support')).notificationsModuleMock()
-);
-vi.mock('@/lib/ai/claim-workflows', async () =>
-  (await import('./claims.test-support')).aiClaimWorkflowsModuleMock()
-);
-vi.mock('@/lib/audit', async () => (await import('./claims.test-support')).auditModuleMock());
-vi.mock('@/features/claims/upload/server/initial-claim-upload', async () =>
-  (await import('./claims.test-support')).initialClaimUploadModuleMock()
-);
-
 describe('Claim Actions', () => {
-  beforeEach(() => {
-    resetClaimActionMocks();
-  });
-
   describe('updateClaimStatus', () => {
     it('should deny non-admin and non-staff users', async () => {
       mockGetSession.mockResolvedValue({

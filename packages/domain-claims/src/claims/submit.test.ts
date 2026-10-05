@@ -1,29 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@interdomestik/database', async () =>
-  (await import('./submit-test-support')).databaseModuleMock()
-);
-vi.mock('@interdomestik/database/tenant-security', async () =>
-  (await import('./submit-test-support')).tenantSecurityModuleMock()
-);
-vi.mock('drizzle-orm', async () => (await import('./submit-test-support')).drizzleModuleMock());
-vi.mock('@interdomestik/database/claim-number', async () => ({
-  generateClaimNumber: (await import('./submit-test-support')).generateClaimNumberMock,
-}));
-vi.mock('@interdomestik/database/tenant-directory', async () => ({
-  readTenantLocaleMetadata: (await import('./submit-test-support')).readTenantLocaleMetadataMock,
-}));
-vi.mock('@interdomestik/domain-membership-billing/subscription', async () => ({
-  getActiveSubscription: (await import('./submit-test-support')).getActiveSubscriptionMock,
-}));
-vi.mock('@interdomestik/shared-auth', async () => ({
-  ensureTenantId: (await import('./submit-test-support')).ensureTenantIdMock,
-}));
-vi.mock('nanoid', async () => ({ nanoid: (await import('./submit-test-support')).nanoidMock }));
-vi.mock('./ai-workflows', async () => ({
-  queueClaimDocumentAiWorkflows: (await import('./submit-test-support'))
-    .queueClaimDocumentAiWorkflowsMock,
-}));
+import './submit-test-mocks';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   appendEventMock,
@@ -33,7 +9,6 @@ import {
   logAuditEventMock,
   nanoidMock,
   queueClaimDocumentAiWorkflowsMock,
-  resetSubmitClaimMocks,
   txInsert,
   txInsertValues,
   txQuery,
@@ -41,10 +16,6 @@ import {
 import { submitClaimCore } from './submit';
 
 describe('submitClaimCore', () => {
-  beforeEach(() => {
-    resetSubmitClaimMocks();
-  });
-
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);

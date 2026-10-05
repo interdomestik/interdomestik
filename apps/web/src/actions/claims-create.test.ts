@@ -1,55 +1,16 @@
+import './claims.test-mocks';
 import { db } from '@interdomestik/database';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createClaim } from './claims';
 import {
   mockDbInsert,
+  retailClaimFormData,
   mockGetActiveSubscription,
   mockGetSession,
-  mockHasActiveMembership,
-  resetClaimActionMocks,
   type MockResolvedOnce,
 } from './claims.test-support';
 
-vi.mock('@interdomestik/domain-membership-billing/subscription', async importOriginal => {
-  const actual =
-    await importOriginal<typeof import('@interdomestik/domain-membership-billing/subscription')>();
-  return {
-    ...actual,
-    hasActiveMembership: () => mockHasActiveMembership(),
-    getActiveSubscription: () => mockGetActiveSubscription(),
-  };
-});
-vi.mock('@/lib/auth', async () => (await import('./claims.test-support')).authModuleMock());
-vi.mock('@interdomestik/database/claim-number', async () =>
-  (await import('./claims.test-support')).claimNumberModuleMock()
-);
-vi.mock('@interdomestik/database/tenant-directory', async () =>
-  (await import('./claims.test-support')).tenantDirectoryModuleMock()
-);
-vi.mock('@interdomestik/database', async () =>
-  (await import('./claims.test-support')).databaseModuleMock()
-);
-vi.mock('nanoid', async () => (await import('./claims.test-support')).nanoidModuleMock());
-vi.mock('next/cache', async () => (await import('./claims.test-support')).nextCacheModuleMock());
-vi.mock('next/headers', async () =>
-  (await import('./claims.test-support')).nextHeadersModuleMock()
-);
-vi.mock('@/lib/notifications', async () =>
-  (await import('./claims.test-support')).notificationsModuleMock()
-);
-vi.mock('@/lib/ai/claim-workflows', async () =>
-  (await import('./claims.test-support')).aiClaimWorkflowsModuleMock()
-);
-vi.mock('@/lib/audit', async () => (await import('./claims.test-support')).auditModuleMock());
-vi.mock('@/features/claims/upload/server/initial-claim-upload', async () =>
-  (await import('./claims.test-support')).initialClaimUploadModuleMock()
-);
-
 describe('Claim Actions', () => {
-  beforeEach(() => {
-    resetClaimActionMocks();
-  });
-
   describe('createClaim', () => {
     it('should fail if user has no active membership', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
@@ -84,10 +45,7 @@ describe('Claim Actions', () => {
 
     it('should create a claim successfully with valid data', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
-      const formData = new FormData();
-      formData.append('title', 'Test Claim');
-      formData.append('companyName', 'Bad Company');
-      formData.append('category', 'retail');
+      const formData = retailClaimFormData();
 
       await createClaim({}, formData);
 
@@ -120,10 +78,7 @@ describe('Claim Actions', () => {
         value: { branchId: 'branch-mk-skopje-center' },
       });
 
-      const formData = new FormData();
-      formData.append('title', 'Test Claim');
-      formData.append('companyName', 'Bad Company');
-      formData.append('category', 'retail');
+      const formData = retailClaimFormData();
 
       await createClaim({}, formData);
 
@@ -142,10 +97,7 @@ describe('Claim Actions', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const formData = new FormData();
-      formData.append('title', 'Test Claim');
-      formData.append('companyName', 'Bad Company');
-      formData.append('category', 'retail');
+      const formData = retailClaimFormData();
 
       const result = await createClaim({}, formData);
 
@@ -160,11 +112,7 @@ describe('Claim Actions', () => {
     it('should handle optional claimAmount as empty string', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      const formData = new FormData();
-      formData.append('title', 'Test Claim');
-      formData.append('companyName', 'Bad Company');
-      formData.append('category', 'retail');
-      formData.append('claimAmount', '');
+      const formData = retailClaimFormData('');
 
       await createClaim({}, formData);
 
@@ -181,11 +129,7 @@ describe('Claim Actions', () => {
     it('should transform truthy claimAmount value', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      const formData = new FormData();
-      formData.append('title', 'Test Claim');
-      formData.append('companyName', 'Bad Company');
-      formData.append('category', 'retail');
-      formData.append('claimAmount', '999.99');
+      const formData = retailClaimFormData('999.99');
 
       await createClaim({}, formData);
 
