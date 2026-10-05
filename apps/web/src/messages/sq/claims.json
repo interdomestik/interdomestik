@@ -104,6 +104,8 @@
       "required_fields": "Plotëso fushat e detyrueshme",
       "submit_success": "Rasti u dërgua. Mund ta ndiqni nga paneli. Skica juaj e ruajtur mbetet e veçantë; nëse e ndryshoni ose e fshini skicën më vonë, kjo nuk e ndryshon dhe as nuk e fshin këtë rast.",
       "submit_failed": "Dërgimi nuk mund të përfundohej. Provoni përsëri ose kontaktoni mbështetjen.",
+      "submit_reload": "Ringarko draftin e ruajtur",
+      "submit_outdated": "Aplikacioni është përditësuar. Ringarko draftin e ruajtur për ta rishikuar, pastaj dërgoje. Kjo kërkesë nuk dorëzoi një rast.",
       "submit_unexpected": "Ndodhi diçka e papritur. Provoni edhe një herë ose kontaktoni mbështetjen.",
       "help": {
         "title": "Ke nevojë për ndihmë?",

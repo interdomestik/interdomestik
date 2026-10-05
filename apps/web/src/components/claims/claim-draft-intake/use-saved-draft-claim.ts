@@ -4,6 +4,8 @@ import {
   createClaimFromSavedDraft,
   lookupSavedDraftClaim,
 } from '@/actions/claims/create-from-saved-draft';
+import { startCriticalAction } from '@/lib/observability/critical-action';
+import { isOutdatedServerAction } from '@/lib/saved-draft-deployment-recovery';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -26,12 +28,14 @@ type Options = Readonly<{
     incidentCountryCode: ClaimStartHandoffContext['country'];
   };
   unexpectedCopy: string;
+  outdatedCopy?: string;
 }>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const isSavedDraftId = (value?: string | null) => Boolean(value && UUID.test(value));
 
 export function useSavedDraftClaim(options: Options) {
-  const { claimStart, draftId, draftVersion, eligible, failedCopy, unexpectedCopy } = options;
+  const { claimStart, draftId, draftVersion, eligible, failedCopy, unexpectedCopy, outdatedCopy } =
+    options;
   const validId = isSavedDraftId(draftId);
   const identity = validId && draftVersion ? `${draftId!.toLowerCase()}:${draftVersion}` : null;
   const initialStatus: LookupStatus = identity ? 'checking' : 'idle';
@@ -41,7 +45,11 @@ export function useSavedDraftClaim(options: Options) {
     origin: null,
     status: initialStatus,
   });
-  const [failure, setFailure] = useState<{ identity: string; message: string } | null>(null);
+  const [failure, setFailure] = useState<{
+    identity: string;
+    message: string;
+    needsReload?: boolean;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
   const submitting = useRef(false);
   const current =
@@ -80,9 +88,11 @@ export function useSavedDraftClaim(options: Options) {
   function submit() {
     if (!eligible || !draftId || !draftVersion || !identity || submitting.current) return;
     if (current.status === 'checking' || current.status === 'found') return;
+    if (failure?.identity === identity && failure.needsReload) return;
     submitting.current = true;
     setFailure(null);
     startTransition(async () => {
+      const action = startCriticalAction('saved_draft_submit');
       try {
         const result = await createClaimFromSavedDraft({
           ...(claimStart ? { claimStart } : {}),
@@ -90,15 +100,25 @@ export function useSavedDraftClaim(options: Options) {
           expectedVersion: draftVersion,
         });
         if (result.success) {
+          action.finish('success');
           setLookup({
             claim: { id: result.claimId, number: result.claimNumber },
             identity,
             origin: 'user_submit',
             status: 'found',
           });
-        } else setFailure({ identity, message: failedCopy });
-      } catch {
-        setFailure({ identity, message: unexpectedCopy });
+        } else {
+          action.finish('rejected');
+          setFailure({ identity, message: failedCopy });
+        }
+      } catch (error) {
+        const needsReload = isOutdatedServerAction(error);
+        action.finish(needsReload ? 'stale_deployment' : 'unexpected');
+        setFailure({
+          identity,
+          message: needsReload ? (outdatedCopy ?? unexpectedCopy) : unexpectedCopy,
+          needsReload,
+        });
       } finally {
         submitting.current = false;
       }
@@ -108,6 +128,7 @@ export function useSavedDraftClaim(options: Options) {
   return {
     claim: current.claim,
     failure: failure?.identity === identity ? failure.message : null,
+    needsReload: failure?.identity === identity && Boolean(failure.needsReload),
     lookupStatus: current.status,
     origin: current.origin,
     pending,

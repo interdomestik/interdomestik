@@ -104,6 +104,8 @@
       "required_fields": "Popunite obavezna polja",
       "submit_success": "Slučaj je podnet. Možete ga pratiti sa kontrolne table. Sačuvani nacrt ostaje odvojen; ako nacrt kasnije izmenite ili izbrišete, to ne menja niti briše ovaj slučaj.",
       "submit_failed": "Podnošenje nije moglo da se završi. Pokušajte ponovo ili kontaktirajte podršku.",
+      "submit_reload": "Ponovo učitaj sačuvani nacrt",
+      "submit_outdated": "Aplikacija je ažurirana. Ponovo učitaj sačuvani nacrt da ga pregledaš, pa ga podnesi. Ovaj zahtev nije podneo slučaj.",
       "submit_unexpected": "Dogodilo se nešto neočekivano. Pokušajte još jednom ili kontaktirajte podršku.",
       "help": {
         "title": "Treba vam pomoć?",

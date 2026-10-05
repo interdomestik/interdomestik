@@ -6,6 +6,7 @@ import {
 } from '@/components/auth/login-tenant-hint';
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { startCriticalAction } from '@/lib/observability/critical-action';
 import { getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
 import { getPublicMembershipEntryHref } from '@/lib/public-membership-entry';
 import { isAdmin } from '@/lib/roles.core';
@@ -72,6 +73,7 @@ export function LoginForm({
           data-testid="login-form"
           onSubmit={async e => {
             e.preventDefault();
+            const monitoring = startCriticalAction('login_submit');
             setError(null);
             setLoading(true);
 
@@ -87,6 +89,7 @@ export function LoginForm({
               });
 
               if (error) {
+                monitoring.finish('rejected');
                 setError(error.message || t('error'));
                 setLoading(false);
                 return;
@@ -95,6 +98,7 @@ export function LoginForm({
               const { role, hasAdminAccess, timedOut } = await resolveAuthenticatedRole();
 
               if (!role || timedOut) {
+                monitoring.finish('unexpected');
                 emitPostLoginFailureTelemetry(
                   'post_login_sync_timeout',
                   pathname,
@@ -106,6 +110,7 @@ export function LoginForm({
               }
 
               if (isAdmin(role) && !hasAdminAccess) {
+                monitoring.finish('rejected');
                 setError(t('error'));
                 setLoading(false);
                 return;
@@ -119,6 +124,7 @@ export function LoginForm({
                 hash: globalThis.location.hash,
               });
               if (continuation.kind === 'unsupported_role') {
+                monitoring.finish('unexpected');
                 emitPostLoginFailureTelemetry(
                   'unsupported_redirect_target',
                   pathname,
@@ -130,8 +136,10 @@ export function LoginForm({
               }
 
               // Hard navigation reloads the authenticated session.
+              monitoring.finish('navigation_started');
               globalThis.location.assign(continuation.target);
             } catch {
+              monitoring.finish('unexpected');
               setError(t('error'));
               setLoading(false);
             } finally {
