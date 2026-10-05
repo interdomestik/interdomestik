@@ -49,6 +49,8 @@ const SLO_ALERTS = new Set([
 ]);
 const NUMERIC_KEYS = new Set([
   'duration_ms',
+  'sentry.exclusive_time',
+  'browser.web_vital.inp.value',
   'status_code',
   'http.status_code',
   'http.response.status_code',
@@ -162,10 +164,23 @@ export function scrubSentrySpan(span: SpanJSON): SpanJSON {
   };
   try {
     const safe = redactSignedStorageSpan(span);
-    technical.description = safe.op === 'ui.action' ? 'Critical UI action' : '[redacted]';
+    if (['auto.http.browser.inp', 'auto.ui.browser.metrics'].includes(safe.origin ?? ''))
+      technical.origin = safe.origin;
+    technical.description =
+      safe.op === 'ui.action'
+        ? 'Critical UI action'
+        : safe.is_segment === true
+          ? scrubTransactionName(safe.description ?? '')
+          : '[redacted]';
     technical.data = safeData(safe.data);
     technical.op = [
       'ui.action',
+      'ui.interaction.click',
+      'ui.interaction.hover',
+      'ui.interaction.drag',
+      'ui.interaction.press',
+      'ui.long-task',
+      'ui.long-animation-frame',
       'http.client',
       'http.server',
       'db',
