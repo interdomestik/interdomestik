@@ -8,6 +8,8 @@ Critical `login_submit` and `saved_draft_submit` operations use fixed action/out
 
 ## Staging alert setup
 
+Set both deployment variables `SENTRY_ENVIRONMENT=staging` and `NEXT_PUBLIC_SENTRY_ENVIRONMENT=staging` before the staging build; the client value is embedded at build time. Confirm event labels in Sentry before applying alerts. Without explicit environment configuration, the existing runtime fallback is `NODE_ENV`, which labels a production build as production even on a staging host.
+
 Inspect the prepared catalog without credentials:
 
 ```sh

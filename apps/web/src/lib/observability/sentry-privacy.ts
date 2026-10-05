@@ -1,7 +1,7 @@
 import type { Breadcrumb, Event, init } from '@sentry/nextjs';
 type Options = NonNullable<Parameters<typeof init>[0]>;
 type SpanJSON = Parameters<NonNullable<Options['beforeSendSpan']>>[0];
-import { scrubStackFilename, scrubUrl } from './sentry-url-privacy';
+import { scrubStackFilename, scrubTransactionName, scrubUrl } from './sentry-url-privacy';
 import { redactSignedStorageBreadcrumb, redactSignedStorageSpan } from './signed-storage-redaction';
 
 const ACTIONS = new Set(['login_submit', 'saved_draft_submit']);
@@ -62,6 +62,13 @@ function safeData(data: Record<string, unknown> = {}): Record<string, string | n
     if (NUMERIC_KEYS.has(key) && typeof value === 'number' && Number.isFinite(value))
       result[key] = value;
     if (['url', 'http.url', 'url.full', 'from', 'to'].includes(key) && typeof value === 'string')
+      result[key] = scrubUrl(value);
+    if (
+      key === 'http.route' &&
+      typeof value === 'string' &&
+      /^\/[^\s]*$/.test(value) &&
+      !value.startsWith('//')
+    )
       result[key] = scrubUrl(value);
     if (key === 'replayId' && typeof value === 'string' && /^[a-f0-9]{32}$/i.test(value))
       result[key] = value;
@@ -227,7 +234,7 @@ export function scrubSentryEvent<T extends Event>(event: T): T | null {
     result.request = event.request
       ? { url: event.request.url ? scrubUrl(event.request.url) : undefined }
       : undefined;
-    result.transaction = event.transaction ? scrubUrl(event.transaction) : undefined;
+    result.transaction = event.transaction ? scrubTransactionName(event.transaction) : undefined;
     result.breadcrumbs = event.breadcrumbs
       ?.map(scrubSentryBreadcrumb)
       .filter((b): b is Breadcrumb => b !== null);

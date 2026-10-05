@@ -95,6 +95,16 @@ export function scrubUrl(value: string): string {
   return pathOnly.startsWith('/') ? toRouteFamily(pathOnly) : '[redacted]';
 }
 
+/** Preserve SDK request grouping: Next names server roots as `METHOD /source/route`. */
+export function scrubTransactionName(value: string): string {
+  if (value === 'Critical UI action') return value;
+  const request = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|CONNECT|TRACE) (\/[^\s]*)$/.exec(value);
+  if (request && !request[2].startsWith('//')) return `${request[1]} ${scrubUrl(request[2])}`;
+  if (/^\/[^\s]*$/.test(value) && !value.startsWith('//')) return scrubUrl(value);
+  if (/^https?:\/\/[^\s]+$/.test(value)) return scrubUrl(value);
+  return '[redacted]';
+}
+
 /** Arbitrary free text is never a diagnostic label. */
 export function scrubText(value: string): string {
   return value ? '[redacted]' : '';
