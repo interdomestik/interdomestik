@@ -3,7 +3,10 @@ import { ShieldCheck } from 'lucide-react';
 import type { FreeStartCopy } from './types';
 
 /** Keep full disclosure outside the supported neutral presentation. */
-export function TrustBoundary({ t, concise = false }: { t: FreeStartCopy; concise?: boolean }) {
+export function TrustBoundary({
+  t,
+  concise = false,
+}: Readonly<{ t: FreeStartCopy; concise?: boolean }>) {
   return (
     <div
       data-testid="free-start-trust-boundary"

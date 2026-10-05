@@ -71,13 +71,17 @@ describe('premium Free Start organizer', () => {
     const boundary = screen.getByTestId('free-start-trust-boundary');
     expect(boundary).toBeVisible();
     expect(boundary).not.toHaveAttribute('role', 'alert');
-    // The permanent service limit is stated once and briefly while facts are entered. The long
-    // temporary-result and storage explanation belongs to the optional summary action and the
-    // result, and is asserted there instead of being repeated here.
-    expect(boundary).toHaveTextContent(enMessages.freeStart.trustBoundary.short);
+    // Injury keeps the complete resolved disclosure while editing, including temporary-result
+    // limits and the explicit-save rule without unsupported browser-recovery promises.
+    const noRecovery = (
+      JSON.parse(enMessages.freeStart.secureSaveReviewCopy) as { noRecovery: string }
+    ).noRecovery;
+    expect(boundary).toHaveTextContent(noRecovery);
     expect(boundary).toHaveTextContent(/no case is opened/i);
-    expect(boundary).toHaveTextContent(/not legal representation or professional advice/i);
-    expect(boundary).not.toHaveTextContent('nothing saves automatically');
+    expect(boundary).toHaveTextContent(/does not create legal representation/i);
+    expect(boundary).toHaveTextContent(/or give professional advice/i);
+    expect(boundary).toHaveTextContent('nothing saves automatically');
+    expect(boundary).toHaveTextContent('generated result itself remains temporary');
     expect(boundary).not.toHaveTextContent('30 days');
     expect(screen.queryByTestId('free-start-preview-truth')).toBeNull();
   });
