@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { DraftLifecycleCommands } from './draft-lifecycle-commands';
 import { DraftEditor, type DraftEditorArgs, type DraftEditorView } from './draft-lifecycle-editor';
+import { shownState } from './draft-lifecycle-operations';
 
 export function useDraftLifecycle(args: DraftEditorArgs) {
   const latest = useRef(args);
@@ -16,6 +17,7 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
     verified: args.account?.emailVerified === true,
     identityKey: 0,
     readAdmitted: false,
+    managerBusy: false,
   });
   const holder = useRef<DraftLifecycleCommands | null>(null);
   if (!holder.current)
@@ -31,6 +33,8 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
   useEffect(() => () => commands.dispose(), [commands]);
   return {
     ...view,
+    // A live manager hold masks queue, edit and background read states until it completes.
+    state: shownState(view),
     hasUnsavedChanges: Boolean(view.active && editor.savedFingerprint !== editor.fingerprint()),
     loadMore: () => commands.load(view.nextCursor),
     openSave: () => commands.openSave(),
@@ -42,6 +46,7 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
     startAnother: (beforeReset?: () => Promise<boolean> | boolean) =>
       commands.startAnother(beforeReset),
     prepareForContinuation: () => commands.prepareForContinuation(),
-    releaseContinuation: () => commands.releaseContinuation(),
+    releaseContinuation: (receipt?: Parameters<DraftLifecycleCommands['releaseContinuation']>[0]) =>
+      commands.releaseContinuation(receipt),
   };
 }

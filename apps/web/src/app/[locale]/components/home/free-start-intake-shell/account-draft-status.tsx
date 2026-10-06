@@ -55,7 +55,12 @@ export function AccountDraftStatus({
         </button>
       ) : null}
       {lifecycle.items.length > 0 ? (
-        <button type="button" onClick={lifecycle.openManage} className="ml-3 min-h-11 underline">
+        <button
+          type="button"
+          disabled={state === 'loading'}
+          onClick={lifecycle.openManage}
+          className="ml-3 min-h-11 underline"
+        >
           {copy.manage.open}
         </button>
       ) : null}

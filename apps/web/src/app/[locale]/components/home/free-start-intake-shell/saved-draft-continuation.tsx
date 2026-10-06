@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { isDraftContinuationCurrent } from './draft-lifecycle-continuation';
 import { savedDraftContinuationHref } from '@/lib/saved-draft-continuation';
 import { hasIncompleteDraft } from './intake-validation';
 import type { SavedDraft, SecureSaveCopy } from './types';
@@ -57,20 +58,22 @@ export function SavedDraftContinuation({
           if (moving.current) return;
           moving.current = true;
           setPending(true);
+          let prepared: SavedDraft | null = null;
           void lifecycle
             .prepareForContinuation()
             .then(settled => {
+              prepared = settled;
               const destination =
                 settled && isReviewReadySavedDraft(settled)
                   ? savedDraftContinuationHref(locale, settled.id)
                   : null;
-              if (!destination) {
-                lifecycle.releaseContinuation();
+              if (!destination || !settled || !isDraftContinuationCurrent(settled)) {
+                lifecycle.releaseContinuation(settled);
                 return;
               }
               globalThis.location.assign(destination);
             })
-            .catch(() => lifecycle.releaseContinuation())
+            .catch(() => lifecycle.releaseContinuation(prepared))
             .finally(() => {
               moving.current = false;
               setPending(false);

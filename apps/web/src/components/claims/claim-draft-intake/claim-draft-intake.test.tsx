@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en/claims.json';
@@ -10,9 +10,9 @@ import type { DraftSaveState } from '@/app/[locale]/components/home/free-start-i
 import { ClaimDraftIntake } from './index';
 
 // prettier-ignore
-const a = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
+const a = vi.hoisted(() => ({ account: vi.fn(), create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 vi.mock('@/actions/free-start-drafts', () => ({
-  getFreeStartDraftAccount: vi.fn().mockResolvedValue({
+  getFreeStartDraftAccount: a.account.mockResolvedValue({
     ok: true,
     emailVerified: true,
     expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
@@ -182,6 +182,73 @@ describe('ClaimDraftIntake', () => {
     await user.click(submit);
     // prettier-ignore
     await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart }));
+  });
+
+  it('gives one deliberate Submit priority over a held older manager discovery', async () => {
+    vi.clearAllMocks();
+    const user = userEvent.setup();
+    const expectedContext = { ownerUserId: 'owner-a', tenantId: 'tenant_ks' };
+    a.list.mockResolvedValue({ ok: true, items: [savedDraft], nextCursor: null, expectedContext });
+    a.resume.mockResolvedValue({ ok: true, draft: savedDraft, expectedContext });
+    claim.lookup.mockResolvedValue({ claim: null });
+    claim.submit.mockResolvedValue({
+      success: true,
+      claimId: 'priority-case',
+      claimNumber: 'CLM-PRIORITY',
+    });
+    render(
+      <ClaimDraftIntake
+        freeStartMessages={{}}
+        initialCategory="vehicle"
+        locale="en"
+        neutralOtpHost={location.host}
+        tenantId="tenant_ks"
+      />
+    );
+    await user.click(await screen.findByTestId('free-start-manage-open'));
+    await user.click(await screen.findByRole('button', { name: 'Resume' }));
+    const submit = await screen.findByTestId('claim-draft-submit');
+    await waitFor(() => expect(submit).toBeEnabled());
+    let settle!: (value: unknown) => void;
+    a.account.mockReturnValueOnce(
+      new Promise(resolve => {
+        settle = resolve;
+      })
+    );
+    await user.click(within(screen.getByTestId('account-draft-status')).getByRole('button'));
+    expect(screen.getByTestId(`free-start-resume-${savedDraft.id}`)).toBeDisabled();
+    await user.click(submit);
+    await waitFor(() =>
+      expect(claim.submit).toHaveBeenCalledExactlyOnceWith({
+        id: savedDraft.id,
+        expectedVersion: 1,
+      })
+    );
+    expect(await screen.findByTestId('claim-created-success')).toHaveAttribute(
+      'data-claim-number',
+      'CLM-PRIORITY'
+    );
+    await act(async () => {
+      settle({ ok: true, emailVerified: true, expectedContext });
+    });
+    expect(a.list).toHaveBeenCalledOnce();
+    expect(a.create).not.toHaveBeenCalled();
+    expect(a.update).not.toHaveBeenCalled();
+    expect(a.delete).not.toHaveBeenCalled();
+    const review = screen.getByTestId('claim-draft-dormant-preview');
+    expect(
+      within(review)
+        .getAllByRole('definition')
+        .map(node => node.textContent)
+    ).toEqual([
+      'categories.vehicle.title',
+      'issues.vehicle.collision',
+      '2026-07-01',
+      'Insurer',
+      'outcomes.repair',
+      'Saved facts.',
+    ]);
+    vi.clearAllMocks();
   });
 
   it.each(saveStates)('keeps the reused live save state perceivable: %s', async state => {

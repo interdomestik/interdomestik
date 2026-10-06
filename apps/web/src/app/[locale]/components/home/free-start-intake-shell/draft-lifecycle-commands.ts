@@ -1,16 +1,23 @@
 import {
   deleteFreeStartDraft,
-  getFreeStartDraftAccount,
   listFreeStartDrafts,
   resumeFreeStartDraft,
 } from '@/actions/free-start-drafts';
 import { DraftEditor, receiptMatches, type DraftEditorToken } from './draft-lifecycle-editor';
-import { createDraftReadController } from './draft-lifecycle-reads';
+import { DraftOperations, failDraft, type DraftOperation } from './draft-lifecycle-operations';
+import {
+  acknowledgeDraftDeletion,
+  prepareDraftContinuation,
+  releaseDraftContinuation,
+} from './draft-lifecycle-continuation';
+import { createDraftReadController, type DraftReadController } from './draft-lifecycle-reads';
 import { isReviewReadySavedDraft } from './saved-draft-continuation';
-import { draftFailureState, draftFingerprint, type SavedDraft } from './types';
+import { draftFingerprint, type SavedDraft } from './types';
 
+type Cursor = DraftEditor['view']['nextCursor'];
 export class DraftLifecycleCommands {
-  private readonly reads;
+  private readonly reads: DraftReadController;
+  private readonly ops: DraftOperations;
   private bootstrapping: DraftEditorToken | null = null;
   constructor(readonly editor: DraftEditor) {
     this.reads = createDraftReadController({
@@ -21,76 +28,47 @@ export class DraftLifecycleCommands {
         fingerprint: editor.fingerprint(),
       }),
       onBusy: busy => {
-        if (!busy && editor.owns(editor.token()) && editor.view.state === 'loading')
-          editor.patch({ state: editor.editedState() });
+        if (!busy) this.ops.settle();
       },
     });
+    this.ops = new DraftOperations(editor, () => this.reads.isBusy());
   }
   invalidate() {
     this.reads.invalidate();
   }
   dispose() {
+    this.ops.dispose();
     this.reads.dispose();
     this.editor.dispose();
   }
   private failure(code: string, required = false): false {
-    this.editor.patch({ state: draftFailureState(code) });
-    if (required) throw new Error('secure_save_intent_failed');
-    return false;
+    return failDraft(this.editor, code, required);
   }
-  private async discover(required = false): Promise<boolean> {
-    const token = this.editor.token();
-    try {
-      const result = await getFreeStartDraftAccount();
-      if (!this.editor.owns(token)) return false;
-      if (!result.ok) {
-        if (result.code === 'authRequired' && !required) {
-          this.editor.patch({ state: 'idle' });
-          return false;
-        }
-        return this.failure(result.code, required);
-      }
-      if (!this.editor.acceptAccount(result))
-        return this.failure('unavailableAccountContext', required);
-      if (!result.emailVerified) {
-        if (required) return this.failure('authRequired', true);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      if (error instanceof Error && error.message === 'secure_save_intent_failed') throw error;
-      if (!this.editor.owns(token)) return false;
-      return this.failure('error', required);
-    }
-  }
-  async load(cursor: DraftEditor['view']['nextCursor'] = null, required = false): Promise<boolean> {
+  async load(cursor: Cursor = null, required = false, op?: DraftOperation): Promise<boolean> {
     const context = this.editor.account?.expectedContext;
     if (!context) return this.failure('authRequired', required);
     const token = this.editor.token();
+    const live = () => !op || this.ops.live(op);
     this.editor.patch({ state: 'loading' });
     const accepted = await this.reads.run(
       () => listFreeStartDrafts({ cursor, expectedContext: context }),
       result => {
-        if (!this.editor.owns(token, true)) return false;
-        if (!result.ok) {
-          this.failure(result.code);
-          return false;
-        }
-        if (!receiptMatches(result.expectedContext, context)) {
-          this.failure('unavailableAccountContext');
-          return false;
-        }
+        if (!this.editor.owns(token, true) || !live()) return false;
+        if (!result.ok) return this.failure(result.code);
+        if (!receiptMatches(result.expectedContext, context))
+          return this.failure('unavailableAccountContext');
         this.editor.patch({
           items: cursor ? [...this.editor.view.items, ...result.items] : result.items,
           nextCursor: result.nextCursor,
           readAdmitted: true,
+          // Raw state stays truthful; a live manager hold masks it through `managerBusy`.
           state: this.editor.editedState(),
         });
         this.editor.initialized = true;
         return true;
       },
       () => {
-        if (this.editor.owns(token)) this.failure('error');
+        if (this.editor.owns(token) && live()) this.failure('error');
       }
     );
     if (!accepted && required && this.editor.owns(token))
@@ -107,10 +85,13 @@ export class DraftLifecycleCommands {
     )
       return;
     const token = this.editor.token();
+    const mark = this.ops.mark();
     this.bootstrapping = token;
     try {
       if (await this.load()) {
+        // Sole-draft restore never competes with a pending or newer deliberate intent.
         if (
+          this.ops.quiet(mark) &&
           this.editor.view.items.length === 1 &&
           !this.editor.view.active &&
           !Object.values(this.editor.current().draft).some(Boolean)
@@ -160,36 +141,47 @@ export class DraftLifecycleCommands {
     return true;
   }
   async openSave() {
+    const op = this.ops.begin();
     this.editor.patch({ intent: 'save' });
-    if (!(await this.discover())) return false;
+    if ((await this.ops.discover(op)) !== true || !this.ops.live(op)) return false;
     return this.store();
   }
-  async openManage() {
-    this.editor.patch({ intent: 'manage' });
-    await this.discover();
-    return this.load();
+  /** `managerBusy` from entry until this operation's own list settles; stale ones never list. */
+  async openManage(): Promise<boolean> {
+    return this.ops.hold(async op => {
+      this.editor.patch({ intent: 'manage' });
+      if (!(await this.ops.discover(op)) || !this.ops.live(op)) return false;
+      return this.load(null, false, op);
+    });
   }
   async onVerified() {
-    if (!(await this.discover(true))) throw new Error('secure_save_intent_failed');
-    if (this.editor.view.intent === 'manage') await this.load(null, true);
+    const op = this.ops.begin();
+    // A superseded verification never completed its intent, so it rejects instead of succeeding.
+    if ((await this.ops.discover(op, true)) !== true || !this.ops.live(op))
+      throw new Error('secure_save_intent_failed');
+    if (this.editor.view.intent === 'manage') await this.load(null, true, op);
     else await this.store(true);
   }
   async saveChanges() {
     return this.store();
   }
   async resume(id: string, options?: { reviewOnly: boolean }) {
-    if (!this.editor.account) await this.discover();
+    const op = this.ops.begin();
+    if (!this.editor.account) await this.ops.discover(op);
+    if (!this.ops.live(op)) return false;
     const context = this.editor.account?.expectedContext;
     if (!context) return this.failure('authRequired');
     const token = this.editor.token();
-    if (!(await this.editor.retire()) || !this.editor.owns(token)) return false;
+    // Checked again after retirement, before any receipt or adoption.
+    const live = () => this.ops.live(op) && this.editor.owns(token);
+    if (!(await this.editor.retire(live)) || !live()) return false;
     this.editor.terminal = false;
     this.editor.patch({ state: 'loading' });
     let row: SavedDraft | null = null;
     const accepted = await this.reads.run(
       () => resumeFreeStartDraft({ id, expectedContext: context }),
       result => {
-        if (!this.editor.owns(token, true)) return false;
+        if (!this.editor.owns(token, true) || !this.ops.live(op)) return false;
         if (!result.ok) return this.failure(result.code);
         if (!receiptMatches(result.expectedContext, context))
           return this.failure('unavailableAccountContext');
@@ -201,10 +193,10 @@ export class DraftLifecycleCommands {
         return true;
       },
       () => {
-        if (this.editor.owns(token)) this.failure('error');
+        if (live()) this.failure('error');
       }
     );
-    if (!accepted || !row || !this.editor.owns(token, true)) return false;
+    if (!accepted || !row || !this.editor.owns(token, true) || !this.ops.live(op)) return false;
     const restored: SavedDraft = row;
     this.editor.generation++;
     this.reads.invalidate();
@@ -221,11 +213,13 @@ export class DraftLifecycleCommands {
     return true;
   }
   async remove(draft: SavedDraft) {
+    const op = this.ops.begin();
     const token = this.editor.token();
+    const live = () => this.ops.live(op) && this.editor.owns(token);
     const active = this.editor.queue?.getDraft() ?? this.editor.view.active;
     const removingActive = active?.id === draft.id;
-    if (removingActive && !(await this.editor.retire())) return false;
-    if (!this.editor.owns(token)) return false;
+    if (removingActive && !(await this.editor.retire(live))) return false;
+    if (!live()) return false;
     const settled = removingActive ? (this.editor.retiredDraft ?? draft) : draft;
     this.editor.patch({ state: 'loading' });
     try {
@@ -233,7 +227,11 @@ export class DraftLifecycleCommands {
         id: settled.id,
         expectedVersion: settled.version,
       });
-      if (!this.editor.owns(token)) return false;
+      if (result.ok && !live()) {
+        acknowledgeDraftDeletion(this.editor, draft.id, token.owner, () => this.reads.invalidate());
+        return false;
+      }
+      if (!live()) return false;
       if (!result.ok) {
         this.editor.terminal = false;
         return this.failure(result.code);
@@ -245,14 +243,19 @@ export class DraftLifecycleCommands {
       });
       return true;
     } catch {
+      if (!live()) return false;
       this.editor.terminal = false;
-      return this.editor.owns(token) ? this.failure('error') : false;
+      return this.failure('error');
     }
   }
   async startAnother(beforeReset?: () => Promise<boolean> | boolean) {
+    const op = this.ops.begin();
     const token = this.editor.token();
-    if (!(await this.editor.retire()) || !this.editor.owns(token)) return false;
-    if (beforeReset && !(await beforeReset())) {
+    const live = () => this.ops.live(op) && this.editor.owns(token);
+    if (!(await this.editor.retire(live)) || !live()) return false;
+    const accepted = beforeReset ? await beforeReset() : true;
+    if (!live()) return false;
+    if (!accepted) {
       this.editor.terminal = false;
       return false;
     }
@@ -260,25 +263,34 @@ export class DraftLifecycleCommands {
     this.editor.reset();
     return true;
   }
-  releaseContinuation() {
-    this.editor.terminal = false;
-    this.editor.autoSave();
+  releaseContinuation(receipt?: Pick<SavedDraft, 'id' | 'version'> | null) {
+    releaseDraftContinuation(receipt);
   }
   async prepareForContinuation(): Promise<SavedDraft | null> {
+    const op = this.ops.begin();
     const token = this.editor.token();
+    const live = () => this.ops.live(op) && this.editor.owns(token);
+    if (this.editor.explicitRequired) return null;
     const snapshot = this.editor.snapshot();
     const queue = this.editor.getQueue();
     if (!snapshot || !queue) return null;
     if (this.editor.savedFingerprint !== snapshot.fingerprint) queue.enqueue(snapshot);
     if (
       !(await queue.drain()) ||
+      !live() ||
       !this.editor.owns(token, true) ||
       this.editor.savedFingerprint !== this.editor.fingerprint()
     )
       return null;
     const settled = queue.getDraft();
-    if (!(await this.editor.retire()) || !this.editor.owns(token, true)) return null;
+    if (!settled) return null;
+    if (!(await this.editor.retire(live)) || !live()) return null;
+    if (!this.editor.owns(token, true)) {
+      this.editor.terminal = false;
+      this.editor.autoSave();
+      return null;
+    }
     this.reads.invalidate();
-    return settled;
+    return prepareDraftContinuation(this.editor, this.ops, op, token, settled);
   }
 }

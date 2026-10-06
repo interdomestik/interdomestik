@@ -36,6 +36,7 @@ export type DraftEditorView = {
   verified: boolean;
   readAdmitted: boolean;
   identityKey: number;
+  managerBusy: boolean;
 };
 export type DraftEditorToken = { generation: number; owner: string; fingerprint: string };
 export const accountKey = (account: DraftAccount | null | undefined) =>
@@ -65,6 +66,7 @@ export class DraftEditor {
     verified: false,
     readAdmitted: false,
     identityKey: 0,
+    managerBusy: false,
   };
   account: DraftAccount | null;
   generation = 0;
@@ -78,6 +80,7 @@ export class DraftEditor {
   retiredDraft: SavedDraft | null = null;
   private propIdentity: string;
   private writeStarted = false;
+  private retiring = 0;
 
   constructor(
     readonly current: () => DraftEditorArgs,
@@ -133,6 +136,8 @@ export class DraftEditor {
       const hadOwner = this.account !== null;
       this.queue?.dispose();
       this.queue = null;
+      this.terminal = false;
+      this.retiredDraft = null;
       this.generation++;
       this.savedFingerprint = null;
       this.writeStarted = false;
@@ -149,6 +154,7 @@ export class DraftEditor {
         verified: next?.emailVerified === true,
         readAdmitted: false,
         identityKey: this.view.identityKey + 1,
+        managerBusy: false,
       });
       if (hadOwner) this.current().onReset();
     } else {
@@ -209,7 +215,7 @@ export class DraftEditor {
         this.patch({ state: state === 'saved' ? this.editedState() : state });
       },
       onAck: (draft, fingerprint) => {
-        if (!this.owns(token) || this.terminal) return;
+        if (!this.owns(token)) return;
         this.savedFingerprint = fingerprint;
         this.patch({ active: draft, verified: true });
       },
@@ -240,10 +246,22 @@ export class DraftEditor {
       this.getQueue()?.enqueue(snapshot);
     else if (this.view.active) this.patch({ state: this.editedState() });
   }
-  async retire(): Promise<boolean> {
+  async retire(stillCurrent: () => boolean = () => true): Promise<boolean> {
     this.terminal = true;
     const queue = this.queue;
+    this.retiring++;
     const safe = queue ? await queue.retire() : true;
+    this.retiring--;
+    if (!stillCurrent()) {
+      if (this.retiring > 0 || this.queue !== queue || this.disposed) return false;
+      this.terminal = false;
+      if (safe) {
+        queue?.dispose();
+        this.queue = null;
+      } else this.patch({ state: 'error' });
+      this.autoSave();
+      return false;
+    }
     if (!safe) {
       this.terminal = false;
       this.patch({ state: 'error' });
@@ -254,13 +272,13 @@ export class DraftEditor {
     this.queue = null;
     return true;
   }
-  reset() {
+  reset(preserveFacts = false) {
     this.generation++;
     this.savedFingerprint = null;
     this.writeStarted = false;
     this.initialized = true;
-    this.explicitRequired = false;
-    this.awaitingReset = true;
+    this.explicitRequired = preserveFacts;
+    this.awaitingReset = !preserveFacts;
     this.terminal = false;
     this.patch({
       active: null,
@@ -270,8 +288,9 @@ export class DraftEditor {
       state: 'idle',
       readAdmitted: false,
       identityKey: this.view.identityKey + 1,
+      managerBusy: false,
     });
-    this.current().onReset();
+    if (!preserveFacts) this.current().onReset();
   }
   dispose() {
     this.disposed = true;
