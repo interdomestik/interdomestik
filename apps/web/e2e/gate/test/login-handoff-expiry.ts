@@ -1,0 +1,132 @@
+import { and, dbAdmin, eq, session, sql, user } from '@interdomestik/database';
+import { expect, type Page } from '@playwright/test';
+import type { OwnedExpiryFixture } from './login-handoff-isolated-expiry';
+import { type heldLogin } from './login-handoff-session';
+
+export async function expireOwnedSession(
+  page: Page,
+  login: Awaited<ReturnType<typeof heldLogin>>,
+  fixture?: OwnedExpiryFixture
+) {
+  // Fixed supported owned test mappings: local defaults and versioned CI/parity services.
+  const url = new URL(fixture?.url ?? process.env.DATABASE_URL ?? '');
+  const app = new URL(page.url());
+  const localHost =
+    app.hostname === '127.0.0.1' ||
+    app.hostname === 'localhost' ||
+    app.hostname.endsWith('.127.0.0.1.nip.io');
+  const localDB =
+    url.hostname === '127.0.0.1' && url.port === '55438' && url.pathname === '/interdomestik_test';
+  // Exact repository-local E2E default in scripts/run-with-default-db-url.mjs.
+  const repositoryLocalDB =
+    url.hostname === '127.0.0.1' && url.port === '54322' && url.pathname === '/postgres';
+  const ciDB =
+    (process.env.CI === 'true' || process.env.CI === '1') &&
+    (url.hostname === '127.0.0.1' || url.hostname === 'ci-postgres') &&
+    url.port === '5432' &&
+    url.pathname === '/interdomestik_test';
+  const isolatedDB =
+    fixture !== undefined &&
+    url.hostname === '127.0.0.1' &&
+    url.port === '5432' &&
+    url.pathname === '/interdomestik_test';
+  const database = fixture?.db ?? dbAdmin;
+  if (
+    app.protocol !== 'http:' ||
+    !localHost ||
+    (!localDB && !repositoryLocalDB && !ciDB && !isolatedDB) ||
+    !login.token ||
+    !login.ownerId
+  )
+    throw new Error('owned expiry fixture guard failed');
+  const token = login.token;
+  const ownerId = login.ownerId;
+  try {
+    const owned = await database
+      .select({ id: session.id, expiresAt: session.expiresAt, createdAt: session.createdAt })
+      .from(session)
+      .innerJoin(user, eq(user.id, session.userId))
+      .where(
+        and(
+          eq(session.token, token),
+          eq(session.userId, ownerId),
+          eq(user.email, login.identity.email),
+          eq(user.tenantId, login.identity.tenantId)
+        )
+      );
+    expect(owned.length).toBe(1);
+    const fresh = owned[0];
+    expect(
+      fresh.createdAt.getTime() >= login.startedAt - 5000 &&
+        fresh.createdAt.getTime() <= Date.now() + 5000
+    ).toBe(true);
+    // Both versioned shell and proxy positive-session caches expire after 2000ms.
+    const cacheGraceMs = 2000 + 100;
+    const where = and(
+      eq(session.id, fresh.id),
+      eq(session.token, token),
+      eq(session.userId, ownerId)
+    );
+    const changed = await database
+      .update(session)
+      .set({
+        expiresAt: sql`date_trunc('milliseconds', CURRENT_TIMESTAMP) + (${cacheGraceMs} * INTERVAL '1 millisecond')`,
+      })
+      .where(where)
+      .returning({ id: session.id, expiresAt: session.expiresAt });
+    expect(changed.length).toBe(1);
+    const expiredAt = changed[0].expiresAt;
+    const restore = async () => {
+      try {
+        const present = await database
+          .select({ expiresAt: session.expiresAt })
+          .from(session)
+          .where(where);
+        expect(present.length <= 1).toBe(true);
+        if (present.length === 0) return false; // Server verifier may remove the expired row.
+        expect(present[0].expiresAt.getTime() === expiredAt.getTime()).toBe(true);
+        const restored = await database
+          .update(session)
+          .set({ expiresAt: fresh.expiresAt })
+          .where(and(where, eq(session.expiresAt, expiredAt)))
+          .returning({ id: session.id });
+        expect(restored.length).toBe(1);
+        return true;
+      } catch {
+        throw new Error('owned expiry fixture restoration failed');
+      }
+    };
+    try {
+      await expect
+        .poll(
+          async () => {
+            const present = await database
+              .select({
+                expiresAt: session.expiresAt,
+                expired: sql<boolean>`${session.expiresAt} <= CURRENT_TIMESTAMP`,
+              })
+              .from(session)
+              .innerJoin(user, eq(user.id, session.userId))
+              .where(
+                and(
+                  where,
+                  eq(user.email, login.identity.email),
+                  eq(user.tenantId, login.identity.tenantId)
+                )
+              );
+            expect(present.length).toBe(1); // Absence cannot prove expiration.
+            expect(present[0].expiresAt.getTime() === expiredAt.getTime()).toBe(true);
+            return present[0].expired === true;
+          },
+          { timeout: 10_000, intervals: [100, 250, 500], message: 'owned row present and expired' }
+        )
+        .toBe(true);
+    } catch (error) {
+      await restore(); // Setup failure must also restore this exact temporary expiry.
+      throw error;
+    }
+    return restore;
+  } catch {
+    throw new Error('owned expiry fixture setup failed');
+  }
+}

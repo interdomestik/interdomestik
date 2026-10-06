@@ -1,5 +1,7 @@
 'use client';
 
+import { useLoginHandoff, type LoginHandoffSubmission } from './login-navigation-cancellation';
+
 import {
   resolveLoginTenantHint,
   resolveSocialOnboardingTenantContext,
@@ -49,7 +51,7 @@ export function LoginForm({
   // password payload above stays identity-only.
   const socialOnboarding = resolveSocialOnboardingTenantContext(searchParams, tenantId);
   const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
-  const [loading, setLoading] = React.useState(false);
+  const { loading, setLoading, activeSubmission, observeHandoff } = useLoginHandoff();
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const locale = getValidatedLocaleFromPathname(pathname);
@@ -73,6 +75,9 @@ export function LoginForm({
           data-testid="login-form"
           onSubmit={async e => {
             e.preventDefault();
+            if (activeSubmission.current) return;
+            const submission: LoginHandoffSubmission = { handoffStarted: false };
+            activeSubmission.current = submission;
             const monitoring = startCriticalAction('login_submit');
             setError(null);
             setLoading(true);
@@ -137,13 +142,20 @@ export function LoginForm({
 
               // Hard navigation reloads the authenticated session.
               monitoring.finish('navigation_started');
+              submission.handoffStarted = true;
+              observeHandoff(submission, continuation.target);
               globalThis.location.assign(continuation.target);
             } catch {
+              submission.handoffStarted = false;
               monitoring.finish('unexpected');
               setError(t('error'));
               setLoading(false);
             } finally {
-              setLoading(false);
+              if (activeSubmission.current === submission && !submission.handoffStarted) {
+                submission.cleanupCancellation?.();
+                activeSubmission.current = null;
+                setLoading(false);
+              }
             }
           }}
         >
