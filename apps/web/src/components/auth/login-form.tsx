@@ -1,5 +1,7 @@
 'use client';
 
+import { useLoginHandoff, type LoginHandoffSubmission } from './login-navigation-cancellation';
+
 import {
   resolveLoginTenantHint,
   resolveSocialOnboardingTenantContext,
@@ -49,22 +51,10 @@ export function LoginForm({
   // password payload above stays identity-only.
   const socialOnboarding = resolveSocialOnboardingTenantContext(searchParams, tenantId);
   const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
-  const [loading, setLoading] = React.useState(false);
-  const activeSubmission = React.useRef<{ handoffStarted: boolean } | null>(null);
+  const { loading, setLoading, activeSubmission, observeHandoff } = useLoginHandoff();
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const locale = getValidatedLocaleFromPathname(pathname);
-
-  React.useEffect(() => {
-    function handlePageShow(event: PageTransitionEvent) {
-      if (event.persisted && activeSubmission.current?.handoffStarted) {
-        activeSubmission.current = null;
-        setLoading(false);
-      }
-    }
-    window.addEventListener('pageshow', handlePageShow);
-    return () => window.removeEventListener('pageshow', handlePageShow);
-  }, []);
 
   return (
     <Card className="w-full max-w-md animate-fade-in border-none bg-white/80 shadow-xl ring-1 ring-[hsl(var(--border))] backdrop-blur-lg dark:bg-white/5 dark:ring-white/10">
@@ -86,7 +76,7 @@ export function LoginForm({
           onSubmit={async e => {
             e.preventDefault();
             if (activeSubmission.current) return;
-            const submission = { handoffStarted: false };
+            const submission: LoginHandoffSubmission = { handoffStarted: false };
             activeSubmission.current = submission;
             const monitoring = startCriticalAction('login_submit');
             setError(null);
@@ -153,6 +143,7 @@ export function LoginForm({
               // Hard navigation reloads the authenticated session.
               monitoring.finish('navigation_started');
               submission.handoffStarted = true;
+              observeHandoff(submission, continuation.target);
               globalThis.location.assign(continuation.target);
             } catch {
               submission.handoffStarted = false;
@@ -161,6 +152,7 @@ export function LoginForm({
               setLoading(false);
             } finally {
               if (activeSubmission.current === submission && !submission.handoffStarted) {
+                submission.cleanupCancellation?.();
                 activeSubmission.current = null;
                 setLoading(false);
               }

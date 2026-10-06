@@ -205,6 +205,7 @@ export async function heldLogin(page: Page, info: TestInfo, locale: string, admi
       ownerId: typeof owner?.id === 'string' ? owner.id : null,
       identity,
       passwordPostCount: () => passwordPosts,
+      roleGetCount: () => roleGets,
       release,
       close,
       async stop() {

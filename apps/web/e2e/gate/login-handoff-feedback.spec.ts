@@ -1,7 +1,9 @@
+import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { gotoApp } from '../utils/navigation';
 import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
+import { passiveRoleObserver } from './test/login-handoff-observer';
 import { withIsolatedExpiry, type OwnedExpiryFixture } from './test/login-handoff-isolated-expiry';
 import { expireOwnedSession } from './test/login-handoff-expiry';
 
@@ -90,7 +92,8 @@ test.describe('Login handoff feedback continuity', () => {
         let restore: (() => Promise<boolean>) | undefined;
         try {
           await login.stop();
-          await expect(page.getByTestId('login-submit')).toBeDisabled();
+          await interactiveLogin(page, locale);
+          await expect(page.getByTestId('login-submit')).toBeEnabled();
           if (state === 'absent') {
             const peer = await page.context().newPage();
             try {
@@ -137,10 +140,75 @@ test.describe('Login handoff feedback continuity', () => {
     });
   }
 
+  test('actual browser Stop releases only the canceled handoff for one same-form normal retry', async ({
+    browser,
+  }, info) => {
+    await withFreshPage(browser, info, true, async page => {
+      const locale = info.project.name.includes('mk') ? 'mk' : 'sq';
+      const login = await heldLogin(page, info, locale);
+      await login.stop();
+      await interactiveLogin(page, locale);
+      await expect(page.getByTestId('login-submit')).toBeEnabled();
+      expect(login.passwordPostCount()).toBe(1);
+      const role = await passiveRoleObserver(
+        page,
+        new URL(page.url()).origin,
+        login.identity.dbRole,
+        false
+      );
+      try {
+        await page.getByTestId('login-email').fill(login.identity.email);
+        await page.getByTestId('login-password').fill(E2E_PASSWORD);
+        const password = page.waitForResponse(
+          response =>
+            new URL(response.url()).pathname === '/api/auth/sign-in/email' &&
+            response.request().method() === 'POST'
+        );
+        await page.getByTestId('login-submit').click();
+        expect((await password).status()).toBe(200);
+        await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/member(?:\?|$)`));
+        await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+        await expect.poll(() => role.read() !== null).toBe(true);
+        expect(role.read()?.status === 200 && role.read()?.bodyRead && role.read()?.validated).toBe(
+          true
+        );
+        expect(login.passwordPostCount()).toBe(2);
+        expect(login.roleGetCount()).toBe(2);
+        info.annotations.push({
+          type: 'same-form-cancellation-retry',
+          description: JSON.stringify({
+            actualBrowserStop: true,
+            nativeEscapeProven: false,
+            explicitRetry: true,
+            passwordPosts: 2,
+            validatedRole: true,
+            memberReady: true,
+          }),
+        });
+        await normalLogout(page, locale);
+      } finally {
+        await role.close();
+        await login.close();
+      }
+    });
+  });
+
   test('synthetic persisted restoration resets a completed handoff only; it is not BFCache evidence', async ({
     browser,
   }, info) => {
     await withFreshPage(browser, info, true, async page => {
+      // Compatibility simulation only; this is not an older-browser or BFCache claim.
+      await page.addInitScript(() =>
+        Object.defineProperty(window, 'navigation', { value: undefined })
+      );
+      info.annotations.push({
+        type: 'synthetic-restoration-fallback',
+        description: JSON.stringify({
+          simulatedUnsupportedNavigationAPI: true,
+          syntheticPersisted: true,
+          actualBFCacheProof: false,
+        }),
+      });
       const locale = info.project.name.includes('mk') ? 'mk' : 'sq';
       const login = await heldLogin(page, info, locale);
       await login.stop();
