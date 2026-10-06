@@ -149,7 +149,7 @@ export class DraftEditor {
         active: null,
         items: [],
         nextCursor: null,
-        intent: null,
+        intent: !hadOwner && this.view.intent === 'manage' ? 'manage' : null,
         state: 'idle',
         verified: next?.emailVerified === true,
         readAdmitted: false,

@@ -148,6 +148,22 @@ describe('manager discovery and later deliberate resume ownership', () => {
     expect(onResume).not.toHaveBeenCalled();
     commands.dispose();
   });
+  it('keeps an explicit verified manager list open when background bootstrap returns one draft', async () => {
+    const list = held<unknown>();
+    actions.list.mockReturnValueOnce(list.promise);
+    const { editor, commands, onResume } = setup({ seeded: false });
+    editor.patch({ intent: 'manage' });
+    const booting = commands.bootstrap();
+    list.resolve(listed([saved]));
+    try {
+      await booting;
+      expect(actions.resume).not.toHaveBeenCalled();
+      expect(onResume).not.toHaveBeenCalled();
+      expect(editor.view).toMatchObject({ intent: 'manage', active: null, items: [saved] });
+    } finally {
+      commands.dispose();
+    }
+  });
   it('restores a sole bootstrap draft when no deliberate intent is pending', async () => {
     const { editor, commands, onResume } = setup({ seeded: false });
     await commands.bootstrap();

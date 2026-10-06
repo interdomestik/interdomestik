@@ -92,6 +92,7 @@ export class DraftLifecycleCommands {
         // Sole-draft restore never competes with a pending or newer deliberate intent.
         if (
           this.ops.quiet(mark) &&
+          this.editor.view.intent !== 'manage' &&
           this.editor.view.items.length === 1 &&
           !this.editor.view.active &&
           !Object.values(this.editor.current().draft).some(Boolean)
