@@ -97,10 +97,17 @@ async function stopOwned(child: ChildProcess) {
 }
 
 async function pnpmLauncher() {
-  const script = process.env.npm_execpath;
-  if (!script || !path.isAbsolute(script) || path.basename(script) !== 'pnpm.cjs')
+  // Match the versioned executor's Node-sibling default and hosted setup-pnpm route.
+  const script =
+    process.env.npm_execpath ??
+    (process.env.PNPM_HOME === '/home/runner/setup-pnpm/node_modules/.bin'
+      ? '/home/runner/setup-pnpm/node_modules/pnpm/bin/pnpm.cjs'
+      : path.join(path.dirname(process.execPath), 'pnpm'));
+  if (!path.isAbsolute(script) || !['pnpm', 'pnpm.cjs', 'pnpm.js'].includes(path.basename(script)))
     throw new Error('isolated expiry package launcher missing');
   const fixed = await realpath(script);
+  if (!['pnpm.cjs', 'pnpm.js'].includes(path.basename(fixed)))
+    throw new Error('isolated expiry package launcher type mismatch');
   const owned = await lstat(fixed);
   if (!owned.isFile() || ![0, process.getuid?.()].includes(owned.uid) || (owned.mode & 0o022) !== 0)
     throw new Error('isolated expiry package launcher ownership mismatch');
