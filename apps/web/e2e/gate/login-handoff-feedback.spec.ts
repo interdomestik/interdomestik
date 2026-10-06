@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gotoApp } from '../utils/navigation';
 import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
 import { expireOwnedSession } from './test/login-handoff-expiry';
@@ -88,7 +89,7 @@ test.describe('Login handoff feedback continuity', () => {
           if (state === 'absent') {
             const peer = await page.context().newPage();
             try {
-              await peer.goto(login.target);
+              await gotoApp(peer, login.target, info, { marker: 'member-dashboard-ready' });
               await expect(peer.getByTestId('member-dashboard-ready')).toBeVisible();
               await normalLogout(peer, locale);
             } finally {
@@ -109,9 +110,16 @@ test.describe('Login handoff feedback continuity', () => {
           }
         } finally {
           await login.release();
-          if (restore && (await restore())) {
+          const restored = restore ? await restore() : false;
+          if (restore) {
+            info.annotations.push({
+              type: 'owned-expiry-cleanup',
+              description: JSON.stringify({ rowRestored: restored, rowAlreadyRemoved: !restored }),
+            });
+          }
+          if (restored) {
             await page.waitForTimeout(sessionCacheSettleMs);
-            await page.goto(login.target);
+            await gotoApp(page, login.target, info, { marker: 'member-dashboard-ready' });
             await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
             await normalLogout(page, locale);
           }

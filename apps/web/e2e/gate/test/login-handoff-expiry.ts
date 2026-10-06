@@ -13,7 +13,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
   const localDB =
     url.hostname === '127.0.0.1' && url.port === '55438' && url.pathname === '/interdomestik_test';
   const ciDB =
-    process.env.CI === 'true' &&
+    (process.env.CI === 'true' || process.env.CI === '1') &&
     url.hostname === '127.0.0.1' &&
     url.port === '5432' &&
     url.pathname === '/interdomestik_test';
