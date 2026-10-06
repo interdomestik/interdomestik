@@ -22,7 +22,7 @@ export async function passiveRoleObserver(
     });
   } catch {
     await cdp.detach();
-    throw Error('passive durable role observer unsupported');
+    throw new Error('passive durable role observer unsupported');
   }
   cdp.on('Network.requestWillBeSent', event => {
     const url = new URL(event.request.url);
@@ -81,7 +81,7 @@ export async function passiveRoleObserver(
         await cdp.detach();
       } catch (error) {
         if (!(error instanceof Error) || !error.message.includes('No session with given id'))
-          throw Error('passive observer detach failed');
+          throw new Error('passive observer detach failed');
       }
     },
   };

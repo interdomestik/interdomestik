@@ -27,7 +27,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
     !login.token ||
     !login.ownerId
   )
-    throw Error('owned expiry fixture guard failed');
+    throw new Error('owned expiry fixture guard failed');
   const token = login.token;
   const ownerId = login.ownerId;
   try {
@@ -78,10 +78,10 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
         expect(restored.length).toBe(1);
         return true;
       } catch {
-        throw Error('owned expiry fixture restoration failed');
+        throw new Error('owned expiry fixture restoration failed');
       }
     };
   } catch {
-    throw Error('owned expiry fixture setup failed');
+    throw new Error('owned expiry fixture setup failed');
   }
 }

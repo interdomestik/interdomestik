@@ -3,13 +3,8 @@ import { expect, type Browser, type Page, type TestInfo } from '@playwright/test
 
 export function account(testInfo: TestInfo, admin = false) {
   const mk = testInfo.project.name.includes('mk');
-  return admin
-    ? mk
-      ? E2E_USERS.MK_ADMIN
-      : E2E_USERS.KS_ADMIN
-    : mk
-      ? E2E_USERS.MK_MEMBER
-      : E2E_USERS.KS_MEMBER;
+  if (admin) return mk ? E2E_USERS.MK_ADMIN : E2E_USERS.KS_ADMIN;
+  return mk ? E2E_USERS.MK_MEMBER : E2E_USERS.KS_MEMBER;
 }
 
 export async function withFreshPage(
@@ -36,7 +31,7 @@ export async function withFreshPage(
 }
 
 export async function interactiveLogin(page: Page, locale: string) {
-  await expect(page).toHaveURL(new RegExp(`/${locale}/login(?:\\?|$)`));
+  await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`));
   const form = page.getByTestId('login-form');
   await expect(form).toHaveCount(1);
   await expect(form.getByTestId('login-email')).toBeEditable();

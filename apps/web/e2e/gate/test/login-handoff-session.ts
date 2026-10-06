@@ -79,7 +79,7 @@ export async function heldLogin(page: Page, info: TestInfo, locale: string, admi
       await navigation.detach();
     } catch (error) {
       if (!(error instanceof Error) || !error.message.includes('No session with given id'))
-        throw Error('document fixture detach failed');
+        throw new Error('document fixture detach failed');
     }
     await observer.close();
   };
@@ -169,10 +169,10 @@ export async function heldLogin(page: Page, info: TestInfo, locale: string, admi
       expect.poll(() => controls !== null && controls.at > heldAt, { timeout: 5000 }).toBe(true));
     const busy = controls as Controls | null;
     expect(upstreamStatus).toBe(200);
-    await test.step('held controls ownership disabled and localized busy copy', async () => {
+    await test.step('held controls ownership disabled and localized busy copy', () => {
       expect(busy?.owned && busy.disabled && busy.changedCopy && busy.retainedCopy).toBe(true);
     });
-    if (!busy || busy.x === null || busy.y === null) throw Error('visible submit geometry missing');
+    if (busy?.x == null || busy?.y == null) throw new Error('visible submit geometry missing');
     await test.step(
       'native repeat pointer while document held',
       () => page.mouse.click(busy.x!, busy.y!),
@@ -222,7 +222,7 @@ export async function heldLogin(page: Page, info: TestInfo, locale: string, admi
           await navigation.send('Fetch.disable');
           interceptionEnabled = false;
         }
-        await expect(page).toHaveURL(new RegExp(`/${locale}/login(?:\\?|$)`));
+        await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`));
       },
     };
   } catch (error) {
