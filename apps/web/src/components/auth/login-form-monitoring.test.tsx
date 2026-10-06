@@ -72,5 +72,15 @@ describe('login critical-action semantics', () => {
             : 'An error occurred'
       )
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign In' })).toBeEnabled();
+    expect(screen.getByLabelText('Email')).toBeEnabled();
+    expect(screen.getByLabelText('Password')).toBeEnabled();
+    mocks.signInEmail.mockResolvedValue({ error: null });
+    mocks.readLoginSession.mockResolvedValue({ role: 'user', hasAdminAccess: false });
+    fillAndSubmitCredentials();
+    await waitFor(() => expect(mocks.locationAssign).toHaveBeenCalledWith('/en/member'));
+    expect(screen.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+    expect(monitoring.start).toHaveBeenCalledTimes(2);
+    expect(monitoring.finish).toHaveBeenCalledTimes(2);
   });
 });

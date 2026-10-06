@@ -154,7 +154,7 @@ describe('LoginForm', () => {
     expect(mocks.locationAssign).not.toHaveBeenCalled();
   });
 
-  it('shows loading state during submission', async () => {
+  it('keeps loading feedback and credentials disabled through the verified document handoff', async () => {
     mocks.signInEmail.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ error: null }), 100))
     );
@@ -168,9 +168,14 @@ describe('LoginForm', () => {
       expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(mocks.locationAssign).toHaveBeenCalledWith('/en/member'));
+    expect(screen.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+    expect(screen.getByLabelText('Email')).toBeDisabled();
+    expect(screen.getByLabelText('Password')).toBeDisabled();
+    fireEvent.submit(screen.getByTestId('login-form'));
+    expect(mocks.signInEmail).toHaveBeenCalledOnce();
+    expect(mocks.readLoginSession).toHaveBeenCalledOnce();
+    expect(mocks.locationAssign).toHaveBeenCalledOnce();
   });
 
   it('uses resolved onboarding for GitHub OAuth with server tenant context', async () => {

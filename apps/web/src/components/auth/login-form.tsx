@@ -50,9 +50,21 @@ export function LoginForm({
   const socialOnboarding = resolveSocialOnboardingTenantContext(searchParams, tenantId);
   const signupHref = getPublicMembershipEntryHref(planIdFromQuery);
   const [loading, setLoading] = React.useState(false);
+  const activeSubmission = React.useRef<{ handoffStarted: boolean } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const locale = getValidatedLocaleFromPathname(pathname);
+
+  React.useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted && activeSubmission.current?.handoffStarted) {
+        activeSubmission.current = null;
+        setLoading(false);
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   return (
     <Card className="w-full max-w-md animate-fade-in border-none bg-white/80 shadow-xl ring-1 ring-[hsl(var(--border))] backdrop-blur-lg dark:bg-white/5 dark:ring-white/10">
@@ -73,6 +85,9 @@ export function LoginForm({
           data-testid="login-form"
           onSubmit={async e => {
             e.preventDefault();
+            if (activeSubmission.current) return;
+            const submission = { handoffStarted: false };
+            activeSubmission.current = submission;
             const monitoring = startCriticalAction('login_submit');
             setError(null);
             setLoading(true);
@@ -137,13 +152,18 @@ export function LoginForm({
 
               // Hard navigation reloads the authenticated session.
               monitoring.finish('navigation_started');
+              submission.handoffStarted = true;
               globalThis.location.assign(continuation.target);
             } catch {
+              submission.handoffStarted = false;
               monitoring.finish('unexpected');
               setError(t('error'));
               setLoading(false);
             } finally {
-              setLoading(false);
+              if (activeSubmission.current === submission && !submission.handoffStarted) {
+                activeSubmission.current = null;
+                setLoading(false);
+              }
             }
           }}
         >
