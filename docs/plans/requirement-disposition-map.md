@@ -121,6 +121,8 @@ The three bounded automatic-search increments [#1869](https://github.com/interdo
 
 This exercises IDA-NFR-002/003 and preserves IDA-CAS-006/008. No numeric budget or whole requirement completion is inferred; database/API optimization is excluded without measured evidence and scoped selection.
 
+Bounded #1883 admin read recovery is technically delivered with final local/protected/exact-staging proof; [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-admin-user-read-recovery-delivery-1883) records NFR-006/007/008 credit without whole-clause completion. The additional first-use diagnosis is observationally complete at mergeef0e98, preserving NFR-002/003 unknown budgets and separate observer cohorts. Its demonstrated mobile pointer defect selects `S7-MOBILE-ADMIN-ACCOUNT-ACTIONABILITY`; [current acceptance](current-program.md#mobile-admin-account-actionability-acceptance) bounds one admin main minimum-width correction and mandatory mounted/local/protected/staging proof, currently pending. IAM-001, CTX-002/003 and M0–M5 invariants remain preserved.
+
 ## Current bounded S7 work
 
 The prior member/staff workspace and shared-message batch (#1865–#1867) is technically delivered; its [historical evidence](history/2026-09-22-current-tracker-ledger.md#s7-staff-message-read-recovery-delivery-1867) remains credited. Member-search #1868 is also delivered. Whole S7, human staff/member acceptance and staff public notification remain open; the delivered site-search batch does not implement a redesign or establish whole SRS completion; the owner separately authorized unified role-shell direction discovery.

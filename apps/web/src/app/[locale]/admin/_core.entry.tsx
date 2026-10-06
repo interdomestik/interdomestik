@@ -79,7 +79,7 @@ export default async function AdminLayout({
                 role: sessionNonNull.user.role,
               }}
             />
-            <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <SidebarInset className="bg-mesh flex min-w-0 flex-col min-h-screen">
               <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
                 <div className="flex items-center gap-2">
                   <SidebarTrigger
