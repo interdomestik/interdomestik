@@ -44,8 +44,9 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: vi.fn((tenantId: string, _column: unknown, condition?: unknown) => ({
+  withTenant: vi.fn((tenantId: string, column: unknown, condition?: unknown) => ({
     tenantId,
+    column,
     condition,
   })),
 }));
@@ -142,5 +143,57 @@ describe('admin user list RLS context', () => {
       },
       { id: 'member-2', unreadCount: 0, unreadClaimId: null, alertLink: null },
     ]);
+  });
+  function listQueryArgs() {
+    return mocks.findMany.mock.calls[0][0] as {
+      with?: Record<string, unknown>;
+      where: (table: { tenantId: string }, operators: Record<string, unknown>) => unknown;
+      orderBy: (
+        table: { createdAt: string },
+        operators: { desc: (column: unknown) => unknown }
+      ) => unknown[];
+    };
+  }
+  it('projects scalar user columns without eagerly loading the agent relation', async () => {
+    mocks.findMany.mockImplementation(async (args: { with?: Record<string, unknown> }) => [
+      {
+        id: 'member-1',
+        role: 'member',
+        agentId: 'agent-1',
+        branchId: 'branch-1',
+        // The relational query returns a nested agent only when the caller opts in.
+        ...(args.with?.agent ? { agent: { id: 'agent-1', name: 'Agent One' } } : {}),
+      },
+    ]);
+    mocks.orderBy.mockResolvedValue([]);
+    const users = await getUsersCore({
+      session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+    });
+    expect(listQueryArgs()).not.toHaveProperty('with');
+    expect(users).toEqual([
+      {
+        id: 'member-1',
+        role: 'member',
+        agentId: 'agent-1',
+        branchId: 'branch-1',
+        unreadCount: 0,
+        unreadClaimId: null,
+        alertLink: null,
+      },
+    ]);
+  });
+  it('keeps the list query tenant-scoped and ordered by newest first', async () => {
+    await getUsersCore({
+      session: { user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' } },
+      filters: { role: 'admin,staff' },
+    });
+    const args = listQueryArgs();
+    const whereClause = args.where({ tenantId: 'user.tenantId' }, { eq: vi.fn(), and: vi.fn() });
+    expect(whereClause).toMatchObject({ tenantId: 'tenant_ks', column: 'user.tenantId' });
+    const order = args.orderBy(
+      { createdAt: 'user.createdAt' },
+      { desc: column => ({ desc: column }) }
+    );
+    expect(order).toEqual([{ desc: 'user.createdAt' }]);
   });
 });

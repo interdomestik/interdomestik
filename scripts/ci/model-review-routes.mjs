@@ -35,9 +35,9 @@ export const defaultReviewers = ['sonnet'];
 
 export const modelReviewRoutes = {
   sonnet: {
-    label: 'Claude Sonnet 5 routine review',
+    label: 'Claude Sonnet 5.5 routine review',
     provider: 'anthropic',
-    model: 'claude-sonnet-5',
+    model: 'claude-sonnet-5-5',
     command: 'claude',
     timeoutMs: 10 * 60_000,
     noOutputTimeoutMs: 300_000,
@@ -45,7 +45,7 @@ export const modelReviewRoutes = {
       '-p',
       prompt,
       '--model',
-      'claude-sonnet-5',
+      'claude-sonnet-5-5',
       '--tools',
       '',
       '--disable-slash-commands',

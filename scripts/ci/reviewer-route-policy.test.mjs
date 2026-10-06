@@ -66,7 +66,7 @@ test('review authority is bounded per file and in aggregate', () => {
 test('current reviewer routes keep fast work optional and pin the requested models', () => {
   assert.deepEqual(defaultReviewers, ['sonnet']);
   for (const [route, model] of [
-    ['sonnet', 'claude-sonnet-5'],
+    ['sonnet', 'claude-sonnet-5-5'],
     ['opus', 'claude-opus-5'],
     ['gemini', 'gemini-3.1-pro-preview'],
     ['flash', 'gemini-3.8-flash'],
