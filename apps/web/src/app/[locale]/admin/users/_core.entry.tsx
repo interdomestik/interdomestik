@@ -75,6 +75,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const t = await getTranslations('admin.users_page');
   const tFilters = await getTranslations('admin.users_filters');
+  let recoveryMessage: string | null = null;
+  if (!usersResult.success) recoveryMessage = t('load_users_error');
+  else if (!agentsResult.success) recoveryMessage = t('load_agent_choices_error');
 
   const buildRoleHref = (role: string) => {
     const nextParams = new URLSearchParams();
@@ -129,15 +132,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />
         <UsersFilters hideRole hideAssignment={selectedRole !== 'user'} />
       </AdminUsersSearchProvider>
-      <AdminUsersReadRecovery
-        message={
-          !usersResult.success
-            ? t('load_users_error')
-            : !agentsResult.success
-              ? t('load_agent_choices_error')
-              : null
-        }
-      >
+      <AdminUsersReadRecovery message={recoveryMessage}>
         {usersResult.success && (
           <UsersSections
             users={users}

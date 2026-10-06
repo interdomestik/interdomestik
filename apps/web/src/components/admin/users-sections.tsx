@@ -75,7 +75,7 @@ export function UsersSections({
   users,
   agents,
   assignmentChoicesAvailable = true,
-}: UsersSectionsProps) {
+}: Readonly<UsersSectionsProps>) {
   const t = useTranslations('admin.users_table');
 
   if (users.length === 0) {

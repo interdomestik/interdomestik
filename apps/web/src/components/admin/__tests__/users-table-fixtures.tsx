@@ -61,17 +61,6 @@ vi.mock('@/actions/admin-users', () => ({
   updateUserAgent: vi.fn().mockResolvedValue({}),
 }));
 
-// Mock UI components
-vi.mock('@interdomestik/ui/components/avatar', () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AvatarFallback: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  AvatarImage: () => null,
-}));
-
-vi.mock('@interdomestik/ui/components/badge', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-}));
-
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({
     children,

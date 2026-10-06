@@ -8,15 +8,15 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from 'reac
 export function AdminUsersReadRecovery({
   message,
   children,
-}: {
+}: Readonly<{
   message: string | null;
   children: ReactNode;
-}) {
+}>) {
   const router = useRouter();
   const t = useTranslations('common');
   const [hasRetried, setHasRetried] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const region = useRef<HTMLDivElement>(null);
+  const region = useRef<HTMLElement>(null);
   const retry = useRef<HTMLButtonElement>(null);
   const ownsFocus = useRef(false);
 
@@ -53,10 +53,13 @@ export function AdminUsersReadRecovery({
     }
   }, [message]);
 
+  let statusMessage = '';
+  if (isPending) statusMessage = t('loading');
+  else if (hasRetried) statusMessage = message ?? '';
+
   return (
-    <div
+    <section
       ref={region}
-      role="region"
       tabIndex={-1}
       aria-labelledby="admin-users-heading"
       data-testid="admin-users-read-region"
@@ -85,12 +88,12 @@ export function AdminUsersReadRecovery({
           >
             {isPending ? t('loading') : t('tryAgain')}
           </Button>
-          <span role="status" className="sr-only">
-            {isPending ? t('loading') : hasRetried ? message : ''}
-          </span>
+          <output aria-live="polite" className="sr-only">
+            {statusMessage}
+          </output>
         </div>
       )}
       {children}
-    </div>
+    </section>
   );
 }

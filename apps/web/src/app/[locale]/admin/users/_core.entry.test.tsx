@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import './__tests__/admin-users-page-fixtures';
 import AdminUsersPage from './_core.entry';
 
 const { getUsers, getUserChoices, getAgents, listBranches, addAgentDialog } = vi.hoisted(() => ({
@@ -45,31 +46,6 @@ vi.mock('@/components/admin/admin-users-role-tabs', () => ({
 
 vi.mock('@/components/admin/users-filters', () => ({
   UsersFilters: () => <div data-testid="users-filters" />,
-}));
-
-vi.mock('@/components/admin/users-sections', () => ({
-  UsersSections: (props: { users: unknown[]; assignmentChoicesAvailable?: boolean }) => (
-    <div
-      data-testid="users-sections"
-      data-choices-available={props.assignmentChoicesAvailable}
-      data-users={props.users.length}
-    />
-  ),
-}));
-
-vi.mock('@/components/admin/admin-users-read-recovery', () => ({
-  AdminUsersReadRecovery: ({
-    message,
-    children,
-  }: {
-    message: string | null;
-    children: React.ReactNode;
-  }) => (
-    <div>
-      {message && <p role="alert">{message}</p>}
-      {children}
-    </div>
-  ),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
