@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import { type heldLogin } from './login-handoff-session';
 
 export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<typeof heldLogin>>) {
-  // Fixed supported owned test mappings: this task's local fixture and versioned CI service.
+  // Fixed supported owned test mappings: local defaults and versioned CI/parity services.
   const url = new URL(process.env.DATABASE_URL ?? '');
   const app = new URL(page.url());
   const localHost =
@@ -17,7 +17,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
     url.hostname === '127.0.0.1' && url.port === '54322' && url.pathname === '/postgres';
   const ciDB =
     (process.env.CI === 'true' || process.env.CI === '1') &&
-    url.hostname === '127.0.0.1' &&
+    (url.hostname === '127.0.0.1' || url.hostname === 'ci-postgres') &&
     url.port === '5432' &&
     url.pathname === '/interdomestik_test';
   if (
