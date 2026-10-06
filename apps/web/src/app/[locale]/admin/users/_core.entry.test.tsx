@@ -48,7 +48,28 @@ vi.mock('@/components/admin/users-filters', () => ({
 }));
 
 vi.mock('@/components/admin/users-sections', () => ({
-  UsersSections: () => <div data-testid="users-sections" />,
+  UsersSections: (props: { users: unknown[]; assignmentChoicesAvailable?: boolean }) => (
+    <div
+      data-testid="users-sections"
+      data-choices-available={props.assignmentChoicesAvailable}
+      data-users={props.users.length}
+    />
+  ),
+}));
+
+vi.mock('@/components/admin/admin-users-read-recovery', () => ({
+  AdminUsersReadRecovery: ({
+    message,
+    children,
+  }: {
+    message: string | null;
+    children: React.ReactNode;
+  }) => (
+    <div>
+      {message && <p role="alert">{message}</p>}
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@interdomestik/ui/components/button', () => ({
@@ -76,7 +97,9 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+  notFound: vi.fn(() => {
+    throw new Error('TEST_NOT_FOUND');
+  }),
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 

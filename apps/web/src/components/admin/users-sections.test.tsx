@@ -4,8 +4,16 @@ import { UsersSections } from './users-sections';
 
 // Mock UsersTable
 vi.mock('@/components/admin/users-table', () => ({
-  UsersTable: ({ users }: { users: unknown[] }) => (
-    <div data-testid="users-table">Users: {users.length}</div>
+  UsersTable: ({
+    users,
+    assignmentChoicesAvailable,
+  }: {
+    users: unknown[];
+    assignmentChoicesAvailable?: boolean;
+  }) => (
+    <div data-testid="users-table" data-available={assignmentChoicesAvailable}>
+      Users: {users.length}
+    </div>
   ),
 }));
 
@@ -104,4 +112,16 @@ describe('UsersSections', () => {
     const tables = screen.getAllByTestId('users-table');
     expect(tables.length).toBeGreaterThan(0);
   });
+});
+
+it('forwards choice unavailability to all four sections and restores availability', () => {
+  const view = render(
+    <UsersSections users={mockUsers} agents={[]} assignmentChoicesAvailable={false} />
+  );
+  expect(screen.getAllByTestId('users-table')).toHaveLength(4);
+  for (const table of screen.getAllByTestId('users-table'))
+    expect(table).toHaveAttribute('data-available', 'false');
+  view.rerender(<UsersSections users={mockUsers} agents={mockAgents} />);
+  for (const table of screen.getAllByTestId('users-table'))
+    expect(table).toHaveAttribute('data-available', 'true');
 });

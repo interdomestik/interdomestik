@@ -25,7 +25,7 @@ import {
 } from '@interdomestik/ui/components/table';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface User {
@@ -55,6 +55,7 @@ interface Agent {
 interface UsersTableProps {
   readonly users: User[];
   readonly agents: Agent[];
+  readonly assignmentChoicesAvailable?: boolean;
   readonly showEmptyState?: boolean;
   readonly showContainer?: boolean;
 }
@@ -64,6 +65,7 @@ const COMPANY_OWNED_VALUE = 'company-owned';
 export function UsersTable({
   users,
   agents,
+  assignmentChoicesAvailable = true,
   showEmptyState = true,
   showContainer = true,
 }: UsersTableProps) {
@@ -98,6 +100,10 @@ export function UsersTable({
     const next = merged.toString();
     return next ? `${path}?${next}` : path;
   };
+  const choicesAvailable = useRef(assignmentChoicesAvailable);
+  useLayoutEffect(() => {
+    choicesAvailable.current = assignmentChoicesAvailable;
+  }, [assignmentChoicesAvailable]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [assignedAgents, setAssignedAgents] = useState<Record<string, string>>({});
 
@@ -119,6 +125,7 @@ export function UsersTable({
   }, [users]);
 
   const handleAgentChange = async (userId: string, agentId: string) => {
+    if (!choicesAvailable.current) return;
     const previousValue = assignedAgents[userId] || COMPANY_OWNED_VALUE;
     setAssignedAgents(current => ({ ...current, [userId]: agentId }));
     setLoadingId(userId);
@@ -229,7 +236,7 @@ export function UsersTable({
             <TableCell>
               {isMember(user.role) ? (
                 <Select
-                  disabled={loadingId === user.id}
+                  disabled={!assignmentChoicesAvailable || loadingId === user.id}
                   value={assignedAgents[user.id] || COMPANY_OWNED_VALUE}
                   onValueChange={val => handleAgentChange(user.id, val)}
                 >

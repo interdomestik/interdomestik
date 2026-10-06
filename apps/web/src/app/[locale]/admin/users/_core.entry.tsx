@@ -1,4 +1,5 @@
 import { getAgents, getUsers } from '@/actions/admin-users';
+import { AdminUsersReadRecovery } from '@/components/admin/admin-users-read-recovery';
 import { AdminUsersSearchProvider } from '@/components/admin/admin-users-search-provider';
 import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
 import { AdminUsersRoleTabs } from '@/components/admin/admin-users-role-tabs';
@@ -117,7 +118,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     >
       <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <h1 id="admin-users-heading" className="text-3xl font-bold tracking-tight">
+            {t('title')}
+          </h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <AddAgentDialog search={search} />
@@ -126,7 +129,23 @@ export default async function AdminUsersPage({ searchParams }: Props) {
         <AdminUsersRoleTabs selectedRole={selectedRole} options={roleOptions} />
         <UsersFilters hideRole hideAssignment={selectedRole !== 'user'} />
       </AdminUsersSearchProvider>
-      <UsersSections users={users} agents={agents} />
+      <AdminUsersReadRecovery
+        message={
+          !usersResult.success
+            ? t('load_users_error')
+            : !agentsResult.success
+              ? t('load_agent_choices_error')
+              : null
+        }
+      >
+        {usersResult.success && (
+          <UsersSections
+            users={users}
+            agents={agents}
+            assignmentChoicesAvailable={agentsResult.success}
+          />
+        )}
+      </AdminUsersReadRecovery>
     </div>
   );
 }

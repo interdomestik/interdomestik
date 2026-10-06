@@ -52,7 +52,9 @@
           "branch_created": "Filijala je kreirana",
           "branch_create_error": "Kreiranje filijale nije uspelo"
         }
-      }
+      },
+      "load_users_error": "Nismo mogli da učitamo korisnike. Pokušajte ponovo.",
+      "load_agent_choices_error": "Izbor agenata nije učitan. I dalje možete da pregledate korisnike, ali promene dodeljivanja su privremeno nedostupne."
     },
     "users_filters": {
       "search_placeholder": "Pretraži po imenu ili e-pošti",
