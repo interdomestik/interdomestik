@@ -1,4 +1,4 @@
-import { and, dbAdmin, eq, session, user } from '@interdomestik/database';
+import { and, dbAdmin, eq, session, sql, user } from '@interdomestik/database';
 import { expect, type Page } from '@playwright/test';
 import type { OwnedExpiryFixture } from './login-handoff-isolated-expiry';
 import { type heldLogin } from './login-handoff-session';
@@ -60,7 +60,8 @@ export async function expireOwnedSession(
       fresh.createdAt.getTime() >= login.startedAt - 5000 &&
         fresh.createdAt.getTime() <= Date.now() + 5000
     ).toBe(true);
-    const expiredAt = new Date(Date.now() - 60_000);
+    // Both versioned shell and proxy positive-session caches expire after 2000ms.
+    const cacheGraceMs = 2000 + 100;
     const where = and(
       eq(session.id, fresh.id),
       eq(session.token, token),
@@ -68,11 +69,14 @@ export async function expireOwnedSession(
     );
     const changed = await database
       .update(session)
-      .set({ expiresAt: expiredAt })
+      .set({
+        expiresAt: sql`date_trunc('milliseconds', CURRENT_TIMESTAMP) + (${cacheGraceMs} * INTERVAL '1 millisecond')`,
+      })
       .where(where)
-      .returning({ id: session.id });
+      .returning({ id: session.id, expiresAt: session.expiresAt });
     expect(changed.length).toBe(1);
-    return async () => {
+    const expiredAt = changed[0].expiresAt;
+    const restore = async () => {
       try {
         const present = await database
           .select({ expiresAt: session.expiresAt })
@@ -92,6 +96,36 @@ export async function expireOwnedSession(
         throw new Error('owned expiry fixture restoration failed');
       }
     };
+    try {
+      await expect
+        .poll(
+          async () => {
+            const present = await database
+              .select({
+                expiresAt: session.expiresAt,
+                expired: sql<boolean>`${session.expiresAt} <= CURRENT_TIMESTAMP`,
+              })
+              .from(session)
+              .innerJoin(user, eq(user.id, session.userId))
+              .where(
+                and(
+                  where,
+                  eq(user.email, login.identity.email),
+                  eq(user.tenantId, login.identity.tenantId)
+                )
+              );
+            expect(present.length).toBe(1); // Absence cannot prove expiration.
+            expect(present[0].expiresAt.getTime() === expiredAt.getTime()).toBe(true);
+            return present[0].expired === true;
+          },
+          { timeout: 10_000, intervals: [100, 250, 500], message: 'owned row present and expired' }
+        )
+        .toBe(true);
+    } catch (error) {
+      await restore(); // Setup failure must also restore this exact temporary expiry.
+      throw error;
+    }
+    return restore;
   } catch {
     throw new Error('owned expiry fixture setup failed');
   }

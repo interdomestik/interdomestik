@@ -124,24 +124,39 @@ test.describe('Login handoff feedback continuity', () => {
           }
           if (state === 'expired-server') {
             const authCookies = (await page.context().cookies()).filter(cookie =>
-              /^(?:__Secure-)?better-auth\.session_token$/.test(cookie.name)
+              /^(?:__Secure-|__Host-)?better-auth\.session_token$/.test(cookie.name)
             );
             expect(authCookies.length === 1).toBe(true);
             restore = await expireOwnedSession(page, login, fixture);
             const unchangedCookies = (await page.context().cookies()).filter(cookie =>
-              /^(?:__Secure-)?better-auth\.session_token$/.test(cookie.name)
+              /^(?:__Secure-|__Host-)?better-auth\.session_token$/.test(cookie.name)
             );
             // Compare in memory; never include a cookie value in an assertion or receipt.
             expect(JSON.stringify(authCookies) === JSON.stringify(unchangedCookies)).toBe(true);
             expect(login.roleGetCount()).toBe(1);
-            await expect(async () => {
-              // Reload is the first expired-session consumer; it also observes cache settlement.
-              await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
-              expect(login.passwordPostCount()).toBe(1);
-              await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`), {
-                timeout: 500,
-              });
-            }).toPass({ timeout: 10_000, intervals: [250, 500, 1000] });
+            // The owned row is still present and actually expired; this ONE Reload is decisive.
+            const decisive = await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
+            if (!decisive) throw new Error('decisive expired document response missing');
+            expect(decisive.status()).toBe(200);
+            expect(new URL(decisive.url()).pathname === `/${locale}/login`).toBe(true);
+            expect(decisive.request().isNavigationRequest()).toBe(true);
+            expect(decisive.request().frame() === page.mainFrame()).toBe(true);
+            expect(decisive.request().redirectedFrom() === null).toBe(true);
+            expect(login.passwordPostCount()).toBe(1);
+            await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`));
+            info.annotations.push({
+              type: 'expired-reload-first-result',
+              description: JSON.stringify({
+                ownedRowPresentExpiredBeforeReload: true,
+                originalCookiePreserved: true,
+                setupRoleProbes: 1,
+                decisiveReloads: 1,
+                decisiveStatus: 200,
+                originalLoginDocument: true,
+                redirectChainAbsent: true,
+                passwordPosts: 1,
+              }),
+            });
           } else {
             await page.reload();
           }
