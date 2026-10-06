@@ -12,6 +12,9 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
     app.hostname.endsWith('.127.0.0.1.nip.io');
   const localDB =
     url.hostname === '127.0.0.1' && url.port === '55438' && url.pathname === '/interdomestik_test';
+  // Exact repository-local E2E default in scripts/run-with-default-db-url.mjs.
+  const repositoryLocalDB =
+    url.hostname === '127.0.0.1' && url.port === '54322' && url.pathname === '/postgres';
   const ciDB =
     (process.env.CI === 'true' || process.env.CI === '1') &&
     url.hostname === '127.0.0.1' &&
@@ -20,7 +23,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
   if (
     app.protocol !== 'http:' ||
     !localHost ||
-    (!localDB && !ciDB) ||
+    (!localDB && !repositoryLocalDB && !ciDB) ||
     !login.token ||
     !login.ownerId
   )
