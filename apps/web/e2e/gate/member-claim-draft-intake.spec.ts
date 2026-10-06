@@ -89,14 +89,12 @@ test.describe('IDA-UI03a2-B5 existing-case copy truth', () => {
       const intake = visibleIntake(page);
       await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
       await fillSupportedDraft(page);
-      const submit = intake.getByTestId('claim-draft-submit-disabled');
-      await expect(submit).toBeDisabled();
-      await expect(submit).toHaveAccessibleDescription(sqCopy.submitFirstSaveExplanation);
-      await intake.getByTestId('free-start-save-open').click();
-      await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
+      await expect(intake.getByTestId('account-draft-status')).toHaveAttribute(
         'data-state',
         'saved'
       );
+      await expect(intake.getByTestId('claim-draft-submit')).toBeEnabled();
+      await expectPreservedFacts(intake);
       await intake.getByTestId('free-start-manage-open').click();
       const savedResume = page.locator('[data-testid^="free-start-resume-"]').first();
       // prettier-ignore
