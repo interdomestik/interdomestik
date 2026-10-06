@@ -99,10 +99,9 @@ async function stopOwned(child: ChildProcess) {
 async function pnpmLauncher() {
   // Match the versioned executor's Node-sibling default and hosted setup-pnpm route.
   const script =
-    process.env.npm_execpath ??
-    (process.env.PNPM_HOME === '/home/runner/setup-pnpm/node_modules/.bin'
+    process.env.PNPM_HOME === '/home/runner/setup-pnpm/node_modules/.bin'
       ? '/home/runner/setup-pnpm/node_modules/pnpm/bin/pnpm.cjs'
-      : path.join(path.dirname(process.execPath), 'pnpm'));
+      : path.join(path.dirname(process.execPath), 'pnpm');
   if (!path.isAbsolute(script) || !['pnpm', 'pnpm.cjs', 'pnpm.js'].includes(path.basename(script)))
     throw new Error('isolated expiry package launcher missing');
   const fixed = await realpath(script);
