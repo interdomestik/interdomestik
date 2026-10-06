@@ -4,7 +4,11 @@ import { gotoApp } from '../utils/navigation';
 import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
 import { passiveRoleObserver } from './test/login-handoff-observer';
-import { withIsolatedExpiry, type OwnedExpiryFixture } from './test/login-handoff-isolated-expiry';
+import {
+  withIsolatedExpiry,
+  isolatedExpiryAdditionalTimeoutMs,
+  type OwnedExpiryFixture,
+} from './test/login-handoff-isolated-expiry';
 import { expireOwnedSession } from './test/login-handoff-expiry';
 
 const locales = ['en', 'sq', 'mk', 'sr'] as const;
@@ -82,6 +86,20 @@ test.describe('Login handoff feedback continuity', () => {
     test(`interrupted handoff Reload re-verifies a ${state} session without credential replay`, async ({
       browser,
     }, info) => {
+      // This case alone may migrate and seed the empty owned spare (60s each).
+      if (state === 'expired-server') {
+        const scenarioTimeoutMs = info.timeout;
+        const totalTimeoutMs = scenarioTimeoutMs + isolatedExpiryAdditionalTimeoutMs;
+        test.setTimeout(totalTimeoutMs);
+        info.annotations.push({
+          type: 'isolated-expiry-budget',
+          description: JSON.stringify({
+            scenarioTimeoutMs,
+            additionalFixtureTimeoutMs: isolatedExpiryAdditionalTimeoutMs,
+            totalTimeoutMs,
+          }),
+        });
+      }
       const run = async (
         page: Page,
         fixture?: OwnedExpiryFixture,

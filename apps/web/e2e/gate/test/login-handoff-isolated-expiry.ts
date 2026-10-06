@@ -2,7 +2,7 @@ import type { dbAdmin } from '@interdomestik/database';
 import type { Browser, Page, TestInfo } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, lstat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, lstat, writeFile, realpath } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -43,8 +43,7 @@ export function selectExpiryFixture(env: NodeJS.ProcessEnv) {
   if (explicit) {
     const url = parsedURL(explicit);
     if (
-      !url ||
-      url.hostname !== '127.0.0.1' ||
+      url?.hostname !== '127.0.0.1' ||
       url.port !== '5432' ||
       url.pathname !== '/interdomestik_test'
     )
@@ -73,16 +72,49 @@ function signalOwned(pid: number, signal: NodeJS.Signals) {
   }
 }
 
+const setupTimeoutMs = 60_000;
+const readinessTimeoutMs = 15_000;
+const cleanupTimeoutMs = 5_000;
+export const isolatedExpiryAdditionalTimeoutMs =
+  2 * setupTimeoutMs + readinessTimeoutMs + cleanupTimeoutMs;
+
 async function stopOwned(child: ChildProcess) {
   if (child.exitCode !== null || child.signalCode !== null || !child.pid) return;
-  signalOwned(child.pid, 'SIGTERM'); // Every owned child has a separate process group.
-  for (let i = 0; i < 50 && child.exitCode === null && child.signalCode === null; i++)
-    await new Promise(resolve => setTimeout(resolve, 100));
-  if (child.exitCode === null && child.signalCode === null) signalOwned(child.pid, 'SIGKILL');
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const exited = new Promise<void>(resolve => child.once('exit', () => resolve()));
+  try {
+    signalOwned(child.pid, 'SIGTERM');
+    await Promise.race([
+      exited,
+      new Promise<void>(resolve => {
+        timer = setTimeout(resolve, cleanupTimeoutMs);
+      }),
+    ]);
+    if (child.exitCode === null && child.signalCode === null) signalOwned(child.pid, 'SIGKILL');
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
-async function runSetup(command: string, env: NodeJS.ProcessEnv) {
-  const child = spawn('pnpm', [command], { cwd: root, env, detached: true, stdio: 'ignore' });
+async function pnpmLauncher() {
+  const script = process.env.npm_execpath;
+  if (!script || !path.isAbsolute(script) || path.basename(script) !== 'pnpm.cjs')
+    throw new Error('isolated expiry package launcher missing');
+  const fixed = await realpath(script);
+  const owned = await lstat(fixed);
+  if (!owned.isFile() || ![0, process.getuid?.()].includes(owned.uid) || (owned.mode & 0o022) !== 0)
+    throw new Error('isolated expiry package launcher ownership mismatch');
+  return fixed;
+}
+
+async function runSetup(command: 'db:migrate' | 'seed:e2e', env: NodeJS.ProcessEnv) {
+  const child = spawn(process.execPath, [await pnpmLauncher(), command], {
+    cwd: root,
+    env,
+    detached: true,
+    stdio: 'ignore',
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const exit = await Promise.race([
       new Promise<number | null>((resolve, reject) => {
@@ -90,13 +122,74 @@ async function runSetup(command: string, env: NodeJS.ProcessEnv) {
         child.once('exit', resolve);
       }),
       new Promise<never>((_, reject) => {
-        const timer = setTimeout(() => reject(new Error('isolated expiry setup deadline')), 60_000);
-        timer.unref();
+        timer = setTimeout(
+          () => reject(new Error('isolated expiry setup deadline')),
+          setupTimeoutMs
+        );
       }),
     ]);
     if (exit !== 0) throw new Error('isolated expiry setup failed');
   } finally {
+    if (timer) clearTimeout(timer);
     await stopOwned(child);
+  }
+}
+
+async function bootstrapSpare(
+  identity: { tables: number; started: string },
+  url: string,
+  env: NodeJS.ProcessEnv
+) {
+  const directory = path.join(tmpdir(), `ida-expiry-${digest(root + url)}`);
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const owner = await lstat(directory);
+  if (owner.isSymbolicLink() || owner.uid !== process.getuid?.() || (owner.mode & 0o777) !== 0o700)
+    throw new Error('isolated expiry bootstrap ownership mismatch');
+  const marker = path.join(directory, 'bootstrap.json');
+  if (identity.tables === 0) {
+    await runSetup('db:migrate', env);
+    await runSetup('seed:e2e', env);
+    await writeFile(marker, JSON.stringify({ started: identity.started }), {
+      mode: 0o600,
+      flag: 'wx',
+    });
+    return;
+  }
+  const owned = await lstat(marker);
+  if (
+    owned.isSymbolicLink() ||
+    !owned.isFile() ||
+    owned.uid !== owner.uid ||
+    (owned.mode & 0o777) !== 0o600 ||
+    JSON.parse(await readFile(marker, 'utf8')).started !== identity.started
+  )
+    throw new Error('isolated expiry spare service was not bootstrapped by this fixture');
+}
+
+async function awaitOwnedRuntime(child: ChildProcess, port: number) {
+  let tail = '';
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      timer = setTimeout(
+        () => reject(new Error('isolated expiry runtime readiness deadline')),
+        readinessTimeoutMs - 5000
+      );
+      child.once('error', () => reject(new Error('isolated expiry runtime start failed')));
+      child.once('exit', () => reject(new Error('isolated expiry runtime exited')));
+      child.stdout?.on('data', chunk => {
+        tail = (tail + String(chunk)).slice(-256);
+        if (/Ready in \d+(?:ms|s)/.test(tail)) resolve();
+      });
+    });
+    const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok || child.exitCode !== null || child.signalCode !== null)
+      throw new Error('isolated expiry runtime failed readiness');
+  } finally {
+    if (timer) clearTimeout(timer);
+    tail = '';
   }
 }
 
@@ -124,7 +217,7 @@ export async function withIsolatedExpiry(
     url: string,
     options: object
   ) => typeof dbAdmin.$client;
-  const sql = postgres(selected.url, { max: 1, onnotice: () => {} });
+  const sql = postgres(selected.url, { max: 1, connect_timeout: 5, onnotice: () => {} });
   let server: ChildProcess | undefined;
   try {
     const [identity] = await sql`select current_database() as name,
@@ -152,77 +245,22 @@ export async function withIsolatedExpiry(
       PLAYWRIGHT: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',
     };
-    if (selected.bootstrap) {
-      const directory = path.join(tmpdir(), `ida-expiry-${digest(root + selected.url)}`);
-      await mkdir(directory, { recursive: true, mode: 0o700 });
-      const owner = await lstat(directory);
-      if (
-        owner.isSymbolicLink() ||
-        owner.uid !== process.getuid?.() ||
-        (owner.mode & 0o777) !== 0o700
-      )
-        throw new Error('isolated expiry bootstrap ownership mismatch');
-      const marker = path.join(directory, 'bootstrap.json');
-      if (identity.tables === 0) {
-        await runSetup('db:migrate', env);
-        await runSetup('seed:e2e', env);
-        await writeFile(marker, JSON.stringify({ started: identity.started }), {
-          mode: 0o600,
-          flag: 'wx',
-        });
-      } else {
-        const owned = await lstat(marker);
-        if (
-          owned.isSymbolicLink() ||
-          !owned.isFile() ||
-          owned.uid !== owner.uid ||
-          (owned.mode & 0o777) !== 0o600 ||
-          JSON.parse(await readFile(marker, 'utf8')).started !== identity.started
-        )
-          throw new Error('isolated expiry spare service was not bootstrapped by this fixture');
-      }
-    }
+    if (selected.bootstrap)
+      await bootstrapSpare(identity as { tables: number; started: string }, selected.url, env);
     const artifact = path.join(root, 'apps/web/.next/standalone/.build-stamp.json');
     const before = digest(await readFile(artifact, 'utf8'));
-    let readyMarker = false;
-    server = spawn('bash', [path.join(root, 'scripts/e2e-webserver.sh')], {
+    server = spawn('/bin/bash', [path.join(root, 'scripts/e2e-webserver.sh')], {
       cwd: root,
       env,
       detached: true,
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-    let readinessTail = '';
-    server.stdout?.on('data', chunk => {
-      readinessTail = (readinessTail + String(chunk)).slice(-256);
-      if (/Ready in \d+(?:ms|s)/.test(readinessTail)) readyMarker = true;
-    });
-    let startupFailed = false;
-    server.once('error', () => {
-      startupFailed = true;
-    });
-    let ready = false;
-    for (let i = 0; i < 100; i++) {
-      if (startupFailed || server.exitCode !== null || server.signalCode !== null) break;
-      try {
-        ready =
-          readyMarker &&
-          (await fetch(`http://127.0.0.1:${port}/robots.txt`, { signal: AbortSignal.timeout(500) }))
-            .ok;
-      } catch {
-        /* Await this owned child only. */
-      }
-      if (ready) break;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    readinessTail = '';
-    if (!ready || startupFailed || server.exitCode !== null)
-      throw new Error('isolated expiry runtime failed readiness');
-    const headers = { ...info.project.use.extraHTTPHeaders, 'x-forwarded-host': base.host };
+    await awaitOwnedRuntime(server, port);
     const isolatedInfo = {
       ...info,
       project: {
         ...info.project,
-        use: { ...info.project.use, baseURL: base.href, extraHTTPHeaders: headers },
+        use: { ...info.project.use, baseURL: base.href },
       },
     } as TestInfo;
     await withFreshPage(browser, isolatedInfo, true, page =>
@@ -245,7 +283,7 @@ export async function withIsolatedExpiry(
     try {
       if (server) await stopOwned(server);
     } finally {
-      await sql.end();
+      await sql.end({ timeout: 5 });
     }
   }
 }
