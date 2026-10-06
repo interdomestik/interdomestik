@@ -111,6 +111,14 @@ describe('AdminUsersPage read recovery', () => {
     }
   );
 
+  it('keeps a choices denial closed even when users also fail without a denial', async () => {
+    getUsers.mockResolvedValue({ success: false, code: 'INTERNAL_SERVER_ERROR' });
+    getAgents.mockResolvedValue({ success: false, code: 'FORBIDDEN_SCOPE' });
+    await expect(AdminUsersPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+      'TEST_NOT_FOUND'
+    );
+  });
+
   it.each(['UNAUTHORIZED', 'FORBIDDEN', 'FORBIDDEN_SCOPE'])(
     'keeps either action denial %s closed before recovery',
     async code => {

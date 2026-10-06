@@ -68,6 +68,19 @@ describe('AdminUsersReadRecovery', () => {
     expect(screen.getByText('Rows or valid empty')).toBeInTheDocument();
   });
 
+  it('does not restore keyboard focus after a pointer retry and resets prior retry status', () => {
+    const view = render(content('Read failed'));
+    const retry = screen.getByRole('button');
+    act(() => retry.focus());
+    fireEvent.pointerDown(retry);
+    fireEvent.click(retry, { detail: 1 });
+    view.rerender(content(null));
+    expect(screen.getByTestId('admin-users-read-region')).not.toHaveFocus();
+    view.rerender(content('Later failure'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Later failure');
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it.each(['focus', 'pointer', 'tab'])(
     'does not steal focus after newer %s interaction',
     interaction => {

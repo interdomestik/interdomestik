@@ -43,6 +43,7 @@ export function AdminUsersReadRecovery({
   }, []);
 
   useEffect(() => {
+    if (!message) setHasRetried(false);
     if (!message && ownsFocus.current) {
       // Only restore the keyboard retry's focus if no newer control owns it.
       if (document.activeElement === document.body || document.activeElement === retry.current) {
@@ -75,10 +76,10 @@ export function AdminUsersReadRecovery({
             aria-disabled={isPending}
             aria-busy={isPending}
             className="shrink-0"
-            onClick={() => {
+            onClick={event => {
               if (isPending) return;
               setHasRetried(true);
-              ownsFocus.current = document.activeElement === retry.current;
+              ownsFocus.current = event.detail === 0 && document.activeElement === retry.current;
               startTransition(() => router.refresh());
             }}
           >
