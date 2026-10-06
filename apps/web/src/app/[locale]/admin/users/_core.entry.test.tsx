@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import './__tests__/admin-users-page-fixtures';
 import AdminUsersPage from './_core.entry';
 
 const { getUsers, getUserChoices, getAgents, listBranches, addAgentDialog } = vi.hoisted(() => ({
@@ -47,10 +48,6 @@ vi.mock('@/components/admin/users-filters', () => ({
   UsersFilters: () => <div data-testid="users-filters" />,
 }));
 
-vi.mock('@/components/admin/users-sections', () => ({
-  UsersSections: () => <div data-testid="users-sections" />,
-}));
-
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({
     asChild,
@@ -76,7 +73,9 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+  notFound: vi.fn(() => {
+    throw new Error('TEST_NOT_FOUND');
+  }),
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 

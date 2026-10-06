@@ -35,6 +35,7 @@ type Agent = {
 type UsersSectionsProps = {
   users: User[];
   agents: Agent[];
+  assignmentChoicesAvailable?: boolean;
 };
 
 type SectionProps = {
@@ -70,7 +71,11 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
   );
 }
 
-export function UsersSections({ users, agents }: UsersSectionsProps) {
+export function UsersSections({
+  users,
+  agents,
+  assignmentChoicesAvailable = true,
+}: Readonly<UsersSectionsProps>) {
   const t = useTranslations('admin.users_table');
 
   if (users.length === 0) {
@@ -99,6 +104,7 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
           <UsersTable
             users={assignedMembers}
             agents={agents}
+            assignmentChoicesAvailable={assignmentChoicesAvailable}
             showEmptyState={false}
             showContainer={false}
           />
@@ -109,6 +115,7 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
           <UsersTable
             users={companyOwnedMembers}
             agents={agents}
+            assignmentChoicesAvailable={assignmentChoicesAvailable}
             showEmptyState={false}
             showContainer={false}
           />
@@ -119,6 +126,7 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
           <UsersTable
             users={agentsOnly}
             agents={agents}
+            assignmentChoicesAvailable={assignmentChoicesAvailable}
             showEmptyState={false}
             showContainer={false}
           />
@@ -129,6 +137,7 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
           <UsersTable
             users={staffMembers}
             agents={agents}
+            assignmentChoicesAvailable={assignmentChoicesAvailable}
             showEmptyState={false}
             showContainer={false}
           />

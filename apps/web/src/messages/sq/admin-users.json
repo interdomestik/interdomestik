@@ -52,7 +52,9 @@
           "branch_created": "Dega u krijua",
           "branch_create_error": "Krijimi i degës dështoi"
         }
-      }
+      },
+      "load_users_error": "Nuk mund t’i ngarkonim përdoruesit. Provoni përsëri.",
+      "load_agent_choices_error": "Zgjedhjet e agjentëve nuk u ngarkuan. Mund t’i shihni përdoruesit, por ndryshimet e caktimit janë përkohësisht të padisponueshme."
     },
     "users_filters": {
       "search_placeholder": "Kërko sipas emrit ose email-it",

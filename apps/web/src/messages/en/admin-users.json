@@ -52,7 +52,9 @@
           "branch_created": "Branch created",
           "branch_create_error": "Failed to create branch"
         }
-      }
+      },
+      "load_users_error": "We couldn’t load the users. Try again.",
+      "load_agent_choices_error": "Agent choices couldn’t load. You can still view users, but assignment changes are temporarily unavailable."
     },
     "users_filters": {
       "search_placeholder": "Search by name or email",
