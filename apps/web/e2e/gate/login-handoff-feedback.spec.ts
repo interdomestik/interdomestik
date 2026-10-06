@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { gotoApp } from '../utils/navigation';
 import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
+import { withIsolatedExpiry, type OwnedExpiryFixture } from './test/login-handoff-isolated-expiry';
 import { expireOwnedSession } from './test/login-handoff-expiry';
 
 const locales = ['en', 'sq', 'mk', 'sr'] as const;
@@ -79,9 +80,13 @@ test.describe('Login handoff feedback continuity', () => {
     test(`interrupted handoff Reload re-verifies a ${state} session without credential replay`, async ({
       browser,
     }, info) => {
-      await withFreshPage(browser, info, true, async page => {
+      const run = async (
+        page: Page,
+        fixture?: OwnedExpiryFixture,
+        currentInfo: TestInfo = info
+      ) => {
         const locale = info.project.name.includes('mk') ? 'mk' : 'sq';
-        const login = await heldLogin(page, info, locale);
+        const login = await heldLogin(page, currentInfo, locale);
         let restore: (() => Promise<boolean>) | undefined;
         try {
           await login.stop();
@@ -89,7 +94,7 @@ test.describe('Login handoff feedback continuity', () => {
           if (state === 'absent') {
             const peer = await page.context().newPage();
             try {
-              await gotoApp(peer, login.target, info, { marker: 'member-dashboard-ready' });
+              await gotoApp(peer, login.target, currentInfo, { marker: 'member-dashboard-ready' });
               await expect(peer.getByTestId('member-dashboard-ready')).toBeVisible();
               await normalLogout(peer, locale);
             } finally {
@@ -97,7 +102,7 @@ test.describe('Login handoff feedback continuity', () => {
             }
             await page.context().clearCookies();
           }
-          if (state === 'expired-server') restore = await expireOwnedSession(page, login);
+          if (state === 'expired-server') restore = await expireOwnedSession(page, login, fixture);
           await page.waitForTimeout(sessionCacheSettleMs);
           await page.reload();
           expect(login.passwordPostCount()).toBe(1);
@@ -119,14 +124,16 @@ test.describe('Login handoff feedback continuity', () => {
           }
           if (restored) {
             await page.waitForTimeout(sessionCacheSettleMs);
-            await gotoApp(page, login.target, info, { marker: 'member-dashboard-ready' });
+            await gotoApp(page, login.target, currentInfo, { marker: 'member-dashboard-ready' });
             await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
             await normalLogout(page, locale);
           }
           expect(login.passwordPostCount()).toBe(1);
           await login.close();
         }
-      });
+      };
+      if (state === 'expired-server') await withIsolatedExpiry(browser, info, run);
+      else await withFreshPage(browser, info, true, page => run(page));
     });
   }
 

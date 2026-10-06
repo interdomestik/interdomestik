@@ -1,10 +1,15 @@
 import { and, dbAdmin, eq, session, user } from '@interdomestik/database';
 import { expect, type Page } from '@playwright/test';
+import type { OwnedExpiryFixture } from './login-handoff-isolated-expiry';
 import { type heldLogin } from './login-handoff-session';
 
-export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<typeof heldLogin>>) {
+export async function expireOwnedSession(
+  page: Page,
+  login: Awaited<ReturnType<typeof heldLogin>>,
+  fixture?: OwnedExpiryFixture
+) {
   // Fixed supported owned test mappings: local defaults and versioned CI/parity services.
-  const url = new URL(process.env.DATABASE_URL ?? '');
+  const url = new URL(fixture?.url ?? process.env.DATABASE_URL ?? '');
   const app = new URL(page.url());
   const localHost =
     app.hostname === '127.0.0.1' ||
@@ -20,10 +25,16 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
     (url.hostname === '127.0.0.1' || url.hostname === 'ci-postgres') &&
     url.port === '5432' &&
     url.pathname === '/interdomestik_test';
+  const isolatedDB =
+    fixture !== undefined &&
+    url.hostname === '127.0.0.1' &&
+    url.port === '5432' &&
+    url.pathname === '/interdomestik_test';
+  const database = fixture?.db ?? dbAdmin;
   if (
     app.protocol !== 'http:' ||
     !localHost ||
-    (!localDB && !repositoryLocalDB && !ciDB) ||
+    (!localDB && !repositoryLocalDB && !ciDB && !isolatedDB) ||
     !login.token ||
     !login.ownerId
   )
@@ -31,7 +42,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
   const token = login.token;
   const ownerId = login.ownerId;
   try {
-    const owned = await dbAdmin
+    const owned = await database
       .select({ id: session.id, expiresAt: session.expiresAt, createdAt: session.createdAt })
       .from(session)
       .innerJoin(user, eq(user.id, session.userId))
@@ -55,7 +66,7 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
       eq(session.token, token),
       eq(session.userId, ownerId)
     );
-    const changed = await dbAdmin
+    const changed = await database
       .update(session)
       .set({ expiresAt: expiredAt })
       .where(where)
@@ -63,14 +74,14 @@ export async function expireOwnedSession(page: Page, login: Awaited<ReturnType<t
     expect(changed.length).toBe(1);
     return async () => {
       try {
-        const present = await dbAdmin
+        const present = await database
           .select({ expiresAt: session.expiresAt })
           .from(session)
           .where(where);
         expect(present.length <= 1).toBe(true);
         if (present.length === 0) return false; // Server verifier may remove the expired row.
         expect(present[0].expiresAt.getTime() === expiredAt.getTime()).toBe(true);
-        const restored = await dbAdmin
+        const restored = await database
           .update(session)
           .set({ expiresAt: fresh.expiresAt })
           .where(and(where, eq(session.expiresAt, expiredAt)))
