@@ -126,13 +126,16 @@ test.describe('Login handoff feedback continuity', () => {
             const authCookies = (await page.context().cookies()).filter(cookie =>
               /^(?:__Secure-|__Host-)?better-auth\.session_token$/.test(cookie.name)
             );
-            expect(authCookies.length === 1).toBe(true);
+            const authCookieCount = authCookies.length;
+            expect(authCookieCount).toBe(1);
             restore = await expireOwnedSession(page, login, fixture);
             const unchangedCookies = (await page.context().cookies()).filter(cookie =>
               /^(?:__Secure-|__Host-)?better-auth\.session_token$/.test(cookie.name)
             );
             // Compare in memory; never include a cookie value in an assertion or receipt.
-            expect(JSON.stringify(authCookies) === JSON.stringify(unchangedCookies)).toBe(true);
+            const originalCookiePreserved =
+              JSON.stringify(authCookies) === JSON.stringify(unchangedCookies);
+            expect(originalCookiePreserved).toBe(true);
             expect(login.roleGetCount()).toBe(1);
             // The owned row is still present and actually expired; this ONE Reload is decisive.
             const decisive = await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
