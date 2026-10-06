@@ -60,7 +60,7 @@ const ownedClaimScope = (ownerUserId: string) =>
 
 /** Read-only full owner inventory in native list order (updatedAt DESC, id DESC); no cap. */
 async function readOwnedDrafts(ownerUserId: string) {
-  return db.query.freeStartDrafts.findMany({
+  return await db.query.freeStartDrafts.findMany({
     where: ownedDraftScope(ownerUserId),
     orderBy: [desc(freeStartDrafts.updatedAt), desc(freeStartDrafts.id)],
   });
@@ -68,14 +68,14 @@ async function readOwnedDrafts(ownerUserId: string) {
 
 async function readExactOwnedDrafts(ownerUserId: string, ids: readonly string[]) {
   if (ids.length === 0) return [];
-  return db.query.freeStartDrafts.findMany({
+  return await db.query.freeStartDrafts.findMany({
     where: and(ownedDraftScope(ownerUserId), inArray(freeStartDrafts.id, [...ids])),
     orderBy: [desc(freeStartDrafts.updatedAt), desc(freeStartDrafts.id)],
   });
 }
 
 async function readOwnedClaims(ownerUserId: string) {
-  return db.query.claims.findMany({
+  return await db.query.claims.findMany({
     where: ownedClaimScope(ownerUserId),
     orderBy: [desc(claims.id)],
   });
@@ -83,7 +83,7 @@ async function readOwnedClaims(ownerUserId: string) {
 
 async function readExactOwnedClaims(ownerUserId: string, ids: readonly string[]) {
   if (ids.length === 0) return [];
-  return db.query.claims.findMany({
+  return await db.query.claims.findMany({
     where: and(ownedClaimScope(ownerUserId), inArray(claims.id, [...ids])),
     orderBy: [desc(claims.id)],
   });

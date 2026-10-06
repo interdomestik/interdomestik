@@ -124,6 +124,8 @@ export class DraftLifecycleCommands {
     this.editor.awaitingReset = false;
     const queue = this.editor.getQueue();
     if (!queue) return this.failure('authRequired', required);
+    // A valid deliberate write supersedes pending reads without changing owner generation.
+    this.reads.invalidate();
     const token = this.editor.token();
     this.editor.initialized = true;
     if (this.editor.view.active && this.editor.savedFingerprint === snapshot.fingerprint)

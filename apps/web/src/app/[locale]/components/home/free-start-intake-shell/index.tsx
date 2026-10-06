@@ -127,14 +127,22 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
   const noRecoveryBody = (
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
-  const trustBoundaryT: FreeStartCopy = key =>
-    key === 'trustBoundary.body' && draftLifecycle.verified
-      ? `${t('accountDraft.body')} ${t('trustBoundary.short')}`
-      : key === 'trustBoundary.body' && !recovery.enabled
-        ? noRecoveryBody
-        : t(key);
-  // prettier-ignore
-  const secureLifecycle = { ...draftLifecycle, onVerified: secureIntent.onVerified, startAnother: async () => { secureIntent.invalidate(); return draftLifecycle.startAnother(recovery.clearBeforeReset); } };
+  const trustBoundaryT: FreeStartCopy = key => {
+    if (key !== 'trustBoundary.body') return t(key);
+    if (draftLifecycle.verified) return `${t('accountDraft.body')} ${t('trustBoundary.short')}`;
+    return recovery.enabled ? t(key) : noRecoveryBody;
+  };
+  const secureLifecycle = {
+    ...draftLifecycle,
+    onVerified: secureIntent.onVerified,
+    async startAnother() {
+      secureIntent.invalidate();
+      return await draftLifecycle.startAnother(recovery.clearBeforeReset);
+    },
+  };
+  let saveBehavior = 'explicit-only';
+  if (draftLifecycle.verified) saveBehavior = 'account-autosave';
+  else if (recovery.enabled) saveBehavior = 'device-recovery';
   return (
     <section
       id="free-start-intake"
@@ -143,13 +151,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     >
       <div
         data-testid="premium-free-start-organizer"
-        data-save-behavior={
-          draftLifecycle.verified
-            ? 'account-autosave'
-            : recovery.enabled
-              ? 'device-recovery'
-              : 'explicit-only'
-        }
+        data-save-behavior={saveBehavior}
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <AnonymousDraftRecoveryBand recovery={recoveryView} />

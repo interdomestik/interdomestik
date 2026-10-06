@@ -29,15 +29,15 @@ export const snap = (summary: string): DraftWriteSnapshot => ({
   payload: { category: 'vehicle', resumeStep: 'details', summary },
 });
 export const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
-export const fail = (code: string) => async (): Promise<DraftWriteResult> => ({ ok: false, code });
-export const okCreate = async (): Promise<DraftWriteResult> => ({ ok: true, draft: saved });
-export const okUpdate = async (
-  _call: number,
-  payload: DraftUpdateRequest
-): Promise<DraftWriteResult> => ({
-  ok: true,
-  draft: { ...saved, summary: payload.summary ?? '', version: payload.expectedVersion + 1 },
-});
+export const fail = (code: string) => (): Promise<DraftWriteResult> =>
+  Promise.resolve({ ok: false, code });
+export const okCreate = (): Promise<DraftWriteResult> =>
+  Promise.resolve({ ok: true, draft: saved });
+export const okUpdate = (_call: number, payload: DraftUpdateRequest): Promise<DraftWriteResult> =>
+  Promise.resolve({
+    ok: true,
+    draft: { ...saved, summary: payload.summary ?? '', version: payload.expectedVersion + 1 },
+  });
 
 export function held<T>() {
   let resolve!: (value: T) => void;

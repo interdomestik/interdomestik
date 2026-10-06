@@ -111,7 +111,7 @@ export async function logout(page: Page, info: TestInfo, locale: string) {
   await normalLogout(page, locale);
 }
 export async function runDrafts(context: FreeStartDraftContext, summary: string) {
-  return db.query.freeStartDrafts.findMany({
+  return await db.query.freeStartDrafts.findMany({
     columns: { id: true, version: true, summary: true, category: true },
     where: and(
       eq(freeStartDrafts.ownerUserId, context.ownerUserId),
@@ -121,21 +121,26 @@ export async function runDrafts(context: FreeStartDraftContext, summary: string)
   });
 }
 export async function cleanupDraft(context: FreeStartDraftContext, ids: Set<string>) {
-  for (const id of ids) {
-    const rows = await db.query.freeStartDrafts.findMany({
-      columns: { version: true },
-      where: and(
-        eq(freeStartDrafts.id, id),
-        eq(freeStartDrafts.ownerUserId, context.ownerUserId),
-        eq(freeStartDrafts.accessTenantId, context.accessTenantId)
-      ),
-    });
-    if (rows.length === 1)
-      expect(
-        (await deleteFreeStartDraft(context, { id, expectedVersion: rows[0]!.version })).ok
-      ).toBe(true);
-    await db
-      .delete(auditLog)
-      .where(and(eq(auditLog.tenantId, context.tenantId), eq(auditLog.entityId, id)));
-  }
+  // Keep cleanup fail-fast and serial: each scoped version read precedes its delete and audit cleanup.
+  await [...ids].reduce(
+    (previous, id) => previous.then(() => cleanupOneDraft(context, id)),
+    Promise.resolve()
+  );
+}
+async function cleanupOneDraft(context: FreeStartDraftContext, id: string) {
+  const rows = await db.query.freeStartDrafts.findMany({
+    columns: { version: true },
+    where: and(
+      eq(freeStartDrafts.id, id),
+      eq(freeStartDrafts.ownerUserId, context.ownerUserId),
+      eq(freeStartDrafts.accessTenantId, context.accessTenantId)
+    ),
+  });
+  if (rows.length === 1)
+    expect(
+      (await deleteFreeStartDraft(context, { id, expectedVersion: rows[0]!.version })).ok
+    ).toBe(true);
+  await db
+    .delete(auditLog)
+    .where(and(eq(auditLog.tenantId, context.tenantId), eq(auditLog.entityId, id)));
 }

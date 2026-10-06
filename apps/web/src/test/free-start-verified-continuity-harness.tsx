@@ -177,12 +177,14 @@ export function resetContinuityBoundary(): void {
       : AUTH_REQUIRED;
   });
   seams.create.mockResolvedValue(AUTH_REQUIRED);
-  seams.list.mockImplementation(async input => ({
-    ok: true,
-    items: [],
-    nextCursor: null,
-    expectedContext: input.expectedContext,
-  }));
+  seams.list.mockImplementation(input =>
+    Promise.resolve({
+      ok: true,
+      items: [],
+      nextCursor: null,
+      expectedContext: input.expectedContext,
+    })
+  );
   seams.send.mockResolvedValue({ data: {}, error: null });
   seams.signIn.mockResolvedValue(SIGN_IN_OK);
 }
@@ -289,8 +291,6 @@ export async function expectSaveState(state: string): Promise<void> {
  */
 export async function expectNoSavedReceipt(): Promise<void> {
   await waitFor(() => expect(continuation()).toBeNull());
-  expect(screen.queryByTestId('account-draft-status')?.getAttribute('data-state')).not.toBe(
-    'saved'
-  );
+  expect(screen.queryByTestId('account-draft-status')?.dataset.state).not.toBe('saved');
   expect(screen.queryByTestId('saved-draft-continuation')).toBeNull();
 }

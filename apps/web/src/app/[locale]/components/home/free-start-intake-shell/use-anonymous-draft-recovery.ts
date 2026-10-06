@@ -81,7 +81,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     const expected = knownRecord.current, now = captureTime(); if (now === null) return markUnavailable();
     setState(value => value === 'saved' ? 'idle' : value);
     localWrites.current += 1;
-    void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(async ({ current, result }) => {
+    void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable') return markUnavailable();
       if (!result.value) return;

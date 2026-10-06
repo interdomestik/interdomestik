@@ -98,7 +98,8 @@ export function createAccountDraftWriteQueue(
   const quiescent = () => !inflight && (disposed || closed || failed !== null || !hasPending());
 
   function flush(): void {
-    for (const waiter of [...waiters]) {
+    // Resolving a waiter splices the live array; iterate a stable snapshot.
+    for (const waiter of waiters.slice()) {
       if (!waiter.ready()) continue;
       waiters.splice(waiters.indexOf(waiter), 1);
       waiter.resolve();

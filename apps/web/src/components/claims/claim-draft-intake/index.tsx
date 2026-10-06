@@ -32,18 +32,30 @@ function supportedCategory(value?: string): CategoryId | undefined {
   if (value === 'auto' || value === 'vehicle') return 'vehicle';
   return value === 'property' ? 'property' : undefined;
 }
-// prettier-ignore
-function ClaimDraftIntakeBody({ draftAccount: initialAccount, copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
-  const tFree = useTranslations('freeStart');
+function useClaimDraftAccount(initialAccount: DraftAccount | null | undefined) {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user as { id?: string; tenantId?: string | null } | undefined;
   const lastOwner = useRef(initialAccount?.expectedContext ?? null);
   if (!isPending || (user?.id && user.tenantId)) {
-    lastOwner.current = user?.id && user.tenantId ? { ownerUserId: user.id, tenantId: user.tenantId } : null;
+    lastOwner.current =
+      user?.id && user.tenantId ? { ownerUserId: user.id, tenantId: user.tenantId } : null;
   }
   const hint = lastOwner.current;
   const freshAccount = useAccountDraftPresentation(hint, initialAccount);
-  const draftAccount = initialAccount === undefined ? undefined : freshAccount;
+  return initialAccount === undefined ? undefined : freshAccount;
+}
+function confirmedClaimStart(
+  handoff: ClaimStartHandoffContext | null | undefined,
+  confirmed: boolean
+) {
+  return handoff && confirmed
+    ? { confirmed: true as const, handoffContext: handoff, incidentCountryCode: handoff.country }
+    : undefined;
+}
+// prettier-ignore
+function ClaimDraftIntakeBody({ draftAccount: initialAccount, copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
+  const tFree = useTranslations('freeStart');
+  const draftAccount = useClaimDraftAccount(initialAccount);
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
   const handoff = flow.selectedCategory === 'vehicle' ? handoffContext : null;
   const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<ClaimStartHandoffContext['country'] | null>(null);
@@ -140,7 +152,7 @@ activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
 prepareForContinuation={lifecycle.prepareForContinuation}
 onContinuationRejected={lifecycle.releaseContinuation}
-claimStart={handoff && handoffCountryConfirmed ? { confirmed: true, handoffContext: handoff, incidentCountryCode: handoff.country } : undefined}
+claimStart={confirmedClaimStart(handoff, handoffCountryConfirmed)}
 confirmationRequired={Boolean(handoff && !handoffCountryConfirmed)}
 confirmationRequiredCopy={t('wizard.handoff.confirmationRequired')}
 copy={lifecycle.verified ? { ...copy, previewBody: tFree('accountDraft.body') } : copy}

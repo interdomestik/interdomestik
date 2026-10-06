@@ -192,11 +192,8 @@ export class DraftEditor {
   editedState(): DraftSaveState {
     if (this.current().category === 'injury') return 'unsupported';
     if (hasDraftFacts(this.current().draft) && !this.snapshot()) return 'invalid';
-    return this.view.active && this.savedFingerprint === this.fingerprint()
-      ? 'saved'
-      : this.view.active
-        ? 'dirty'
-        : 'idle';
+    if (!this.view.active) return 'idle';
+    return this.savedFingerprint === this.fingerprint() ? 'saved' : 'dirty';
   }
   getQueue(): AccountDraftWriteQueue | null {
     if (!this.account?.emailVerified || this.terminal || this.awaitingReset) return null;

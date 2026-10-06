@@ -8,10 +8,10 @@ import type { useDraftLifecycle } from './use-draft-lifecycle';
 export function AccountDraftStatus({
   lifecycle,
   locale,
-}: {
+}: Readonly<{
   lifecycle: ReturnType<typeof useDraftLifecycle>;
   locale: string;
-}) {
+}>) {
   const t = useTranslations('freeStart');
   if (!lifecycle.verified) return null;
   const copy = parseSecureSaveCopy(t.raw('secureSave'));
@@ -25,13 +25,13 @@ export function AccountDraftStatus({
     'accountContext',
     'error',
   ].includes(state);
-  const message = (
-    state === 'invalid' || state === 'unsupported' || state === 'accountContext'
-      ? review[state]
-      : state === 'idle'
-        ? t('accountDraft.ready')
-        : (copy.status[state] ?? '')
-  ).replace(
+  let statusMessage = copy.status[state] ?? '';
+  if (state === 'invalid' || state === 'unsupported' || state === 'accountContext') {
+    statusMessage = review[state];
+  } else if (state === 'idle') {
+    statusMessage = t('accountDraft.ready');
+  }
+  const message = statusMessage.replace(
     '{date}',
     lifecycle.active ? new Date(lifecycle.active.updatedAt).toLocaleString(locale) : ''
   );

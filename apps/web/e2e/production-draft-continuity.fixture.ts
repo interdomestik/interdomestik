@@ -68,7 +68,7 @@ export async function assertSmokeSavedWithoutClaim(
 ): Promise<void> {
   const facts = intake.getByTestId('claim-draft-dormant-preview').locator('dd');
   await expect(facts).toHaveCount(6);
-  for (const index of [0, 1, 4]) await expect(facts.nth(index)).not.toBeEmpty();
+  await Promise.all([0, 1, 4].map(index => expect(facts.nth(index)).not.toBeEmpty()));
   await expect(facts.nth(2)).toHaveText('2026-07-20');
   await expect(facts.nth(3)).toHaveText('Test Company');
   await expect(facts.nth(5)).toHaveText(summary);
