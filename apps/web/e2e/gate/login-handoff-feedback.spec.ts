@@ -141,10 +141,12 @@ test.describe('Login handoff feedback continuity', () => {
             const decisive = await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
             if (!decisive) throw new Error('decisive expired document response missing');
             expect(decisive.status()).toBe(200);
-            expect(new URL(decisive.url()).pathname === `/${locale}/login`).toBe(true);
+            expect(new URL(decisive.url()).pathname).toBe(`/${locale}/login`);
             expect(decisive.request().isNavigationRequest()).toBe(true);
-            expect(decisive.request().frame() === page.mainFrame()).toBe(true);
-            expect(decisive.request().redirectedFrom() === null).toBe(true);
+            const mainFrameOwned = decisive.request().frame() === page.mainFrame();
+            const redirectChainAbsent = decisive.request().redirectedFrom() === null;
+            expect(mainFrameOwned).toBe(true);
+            expect(redirectChainAbsent).toBe(true);
             expect(login.passwordPostCount()).toBe(1);
             await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`));
             info.annotations.push({
