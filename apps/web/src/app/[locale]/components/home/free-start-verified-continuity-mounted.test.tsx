@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ANONYMOUS_DRAFT_KEY } from './free-start-intake-shell/anonymous-draft-recovery';
 // The harness registers every seam, so it must be imported before the runtime graph below.
 // prettier-ignore
-import { ACCOUNT_CONTEXT, ACKNOWLEDGED, ANONYMOUS_PENDING, ANONYMOUS_SETTLED, AUTH_REQUIRED, CONTINUATION_HREF, OWNER_A, OWNER_B, SIGN_IN_OK, VEHICLE_FACTS, VERIFIED_EMAIL, continuation, continuityBoundary, createCalls, deferred, enableDeviceRecovery, expectNoSavedReceipt, expectSaveState, heroCopy, openSecureSave, organizerNode, pendingRefresh, prepareVehicleReport, publishSession, reportedFacts, requestCode, resetContinuityBoundary, saveStatus, saveWithVerifiedEmail, secureSaveReviewCopy, settleHeld, settledOwner, submitCode, type SessionSnapshot, type SessionUser } from '@/test/free-start-verified-continuity-harness';
+import { ACCOUNT_CONTEXT, ACKNOWLEDGED, ANONYMOUS_PENDING, ANONYMOUS_SETTLED, CONTINUATION_HREF, OWNER_A, OWNER_B, SIGN_IN_OK, VEHICLE_FACTS, VERIFIED_EMAIL, continuation, continuityBoundary, createCalls, deferred, enableDeviceRecovery, expectNoSavedReceipt, expectSaveState, heroCopy, openSecureSave, organizerNode, pendingRefresh, prepareVehicleReport, publishSession, reportedFacts, requestCode, resetContinuityBoundary, saveStatus, saveWithVerifiedEmail, secureSaveReviewCopy, settleHeld, settledOwner, submitCode, type SessionSnapshot, type SessionUser } from '@/test/free-start-verified-continuity-harness';
 
 import { HomePageRuntime } from './home-page-runtime';
 
@@ -18,7 +18,7 @@ describe('mounted verified-save continuity across session publication', () => {
 
   it('C11 keeps the report and the held save when the verified identity publishes', async () => {
     const accepted = deferred<typeof ACKNOWLEDGED>();
-    h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockReturnValueOnce(accepted.promise);
+    h.create.mockReturnValueOnce(accepted.promise);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     await saveWithVerifiedEmail();
@@ -37,10 +37,10 @@ describe('mounted verified-save continuity across session publication', () => {
     expect(organizerNode()).toBe(organizer);
     expect(reportedFacts()).not.toBeNull();
     expect(continuation()).toHaveAttribute('href', CONTINUATION_HREF);
-    const [first, second] = createCalls();
-    expect(h.create).toHaveBeenCalledTimes(2);
-    expect(second.clientRequestId).toBe(first.clientRequestId);
-    expect(second).toMatchObject({ category: 'vehicle', resumeStep: 'preview', ...VEHICLE_FACTS });
+    const [first] = createCalls();
+    expect(h.create).toHaveBeenCalledTimes(1);
+    expect(first.expectedContext).toEqual({ ownerUserId: OWNER_A.id, tenantId: OWNER_A.tenantId });
+    expect(first).toMatchObject({ category: 'vehicle', resumeStep: 'preview', ...VEHICLE_FACTS });
     expect(h.send).toHaveBeenCalledTimes(1);
     expect(h.signIn).toHaveBeenCalledTimes(1);
     // prettier-ignore
@@ -51,7 +51,7 @@ describe('mounted verified-save continuity across session publication', () => {
   });
 
   it('C11 keeps the acknowledged receipt when the same identity publishes afterwards', async () => {
-    h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockResolvedValueOnce(ACKNOWLEDGED);
+    h.create.mockResolvedValueOnce(ACKNOWLEDGED);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     await saveWithVerifiedEmail();
@@ -70,7 +70,7 @@ describe('mounted verified-save continuity across session publication', () => {
     expect(organizerNode()).toBe(organizer);
     expect(continuation()).toHaveAttribute('href', CONTINUATION_HREF);
     expect(saveStatus()).toHaveAttribute('data-state', 'saved');
-    expect(h.create).toHaveBeenCalledTimes(2);
+    expect(h.create).toHaveBeenCalledTimes(1);
     expect(h.update).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
     expect(localStorage).toHaveLength(0);
@@ -78,10 +78,7 @@ describe('mounted verified-save continuity across session publication', () => {
 
   it('C11 reports a held save failure truthfully and retries the same request', async () => {
     const rejected = deferred<typeof ACCOUNT_CONTEXT>();
-    h.create
-      .mockResolvedValueOnce(AUTH_REQUIRED)
-      .mockReturnValueOnce(rejected.promise)
-      .mockResolvedValueOnce(ACKNOWLEDGED);
+    h.create.mockReturnValueOnce(rejected.promise).mockResolvedValueOnce(ACKNOWLEDGED);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     await saveWithVerifiedEmail();
@@ -101,7 +98,7 @@ describe('mounted verified-save continuity across session publication', () => {
     await expectSaveState('saved');
     expect(organizerNode()).toBe(organizer);
     expect(continuation()).toHaveAttribute('href', CONTINUATION_HREF);
-    expect(h.create).toHaveBeenCalledTimes(3);
+    expect(h.create).toHaveBeenCalledTimes(2);
     expect(new Set(createCalls().map(call => call.clientRequestId)).size).toBe(1);
     expect(h.send).toHaveBeenCalledTimes(1);
     expect(h.signIn).toHaveBeenCalledTimes(1);
@@ -129,33 +126,14 @@ describe('mounted verified-save continuity across session publication', () => {
       expect(continuation()).toBeNull();
     }
     expect(h.create).not.toHaveBeenCalled();
-    expect(h.list).not.toHaveBeenCalled();
+    expect(h.list).toHaveBeenCalledWith({
+      cursor: null,
+      expectedContext: { ownerUserId: OWNER_A.id, tenantId: OWNER_A.tenantId },
+    });
     expect(h.send).not.toHaveBeenCalled();
     expect(h.signIn).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.replace).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-  });
-
-  it('C11 opens an authenticated arrival with no receipt and no automatic save', async () => {
-    h.set(settledOwner(OWNER_A));
-    renderPublicHome();
-    await prepareVehicleReport();
-    // Preparing the report reaches neither the server nor the identity boundary on its own.
-    expect(h.create).not.toHaveBeenCalled();
-    expect(h.list).not.toHaveBeenCalled();
-    expect(h.send).not.toHaveBeenCalled();
-    expect(h.signIn).not.toHaveBeenCalled();
-    expect(h.submit).not.toHaveBeenCalled();
-    expect(continuation()).toBeNull();
-    expect(screen.getByTestId('public-entry-hero')).toHaveTextContent(heroCopy.memberTitle);
-
-    await openSecureSave();
-    expect(h.create).toHaveBeenCalledTimes(1);
-    expect(createCalls()[0]).toMatchObject({ category: 'vehicle', resumeStep: 'preview' });
-    expect(h.send).not.toHaveBeenCalled();
-    expect(h.signIn).not.toHaveBeenCalled();
-    expect(h.submit).not.toHaveBeenCalled();
     expect(localStorage).toHaveLength(0);
   });
 
@@ -167,7 +145,7 @@ describe('mounted verified-save continuity across session publication', () => {
   ] as [string, boolean, SessionSnapshot][])(
     'C11 resets the receipt and the facts when %s',
     async (_label, publishesOwner, next) => {
-      h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockResolvedValueOnce(ACKNOWLEDGED);
+      h.create.mockResolvedValueOnce(ACKNOWLEDGED);
       renderPublicHome();
       await publishSession(h, ANONYMOUS_SETTLED);
       await saveWithVerifiedEmail();
@@ -181,15 +159,19 @@ describe('mounted verified-save continuity across session publication', () => {
       expect(continuation()).toBeNull();
       expect(screen.queryByText(VEHICLE_FACTS.counterparty)).toBeNull();
       await expectNoSavedReceipt();
-      expect(h.create).toHaveBeenCalledTimes(2);
-      expect(h.list).not.toHaveBeenCalled();
+      expect(h.create).toHaveBeenCalledTimes(1);
+      for (const [input] of h.list.mock.calls)
+        expect(input.expectedContext).toEqual({
+          ownerUserId: next.data?.user.id,
+          tenantId: next.data?.user.tenantId,
+        });
       expect(localStorage).toHaveLength(0);
     }
   );
 
   it('C11 keeps a held save for the previous owner out of the new owner UI', async () => {
     const accepted = deferred<typeof ACKNOWLEDGED>();
-    h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockReturnValueOnce(accepted.promise);
+    h.create.mockReturnValueOnce(accepted.promise);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     await saveWithVerifiedEmail();
@@ -202,13 +184,13 @@ describe('mounted verified-save continuity across session publication', () => {
     expect(reportedFacts()).toBeNull();
     expect(screen.queryByText(VEHICLE_FACTS.counterparty)).toBeNull();
     await expectNoSavedReceipt();
-    expect(h.create).toHaveBeenCalledTimes(2);
+    expect(h.create).toHaveBeenCalledTimes(1);
     expect(localStorage).toHaveLength(0);
   });
 
   it('C11 keeps an acknowledgment for one owner out of the first settled owner', async () => {
     const accepted = deferred<typeof ACKNOWLEDGED>();
-    h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockReturnValueOnce(accepted.promise);
+    h.create.mockReturnValueOnce(accepted.promise);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     // Owner A verifies the save here, but their session is never published to this page.
@@ -225,10 +207,13 @@ describe('mounted verified-save continuity across session publication', () => {
     expect(screen.queryByTestId('saved-draft-continuation')).toBeNull();
     await expectNoSavedReceipt();
     expect(reportedFacts()).toBeNull();
-    expect(h.create).toHaveBeenCalledTimes(2);
+    expect(h.create).toHaveBeenCalledTimes(1);
     expect(new Set(createCalls().map(call => call.clientRequestId)).size).toBe(1);
     expect(h.update).not.toHaveBeenCalled();
-    expect(h.list).not.toHaveBeenCalled();
+    expect(h.list).toHaveBeenCalledWith({
+      cursor: null,
+      expectedContext: { ownerUserId: OWNER_B.id, tenantId: OWNER_B.tenantId },
+    });
     expect(h.send).toHaveBeenCalledTimes(1);
     expect(h.signIn).toHaveBeenCalledTimes(1);
     expect(h.submit).not.toHaveBeenCalled();
@@ -251,9 +236,8 @@ describe('mounted verified-save continuity across session publication', () => {
 
       // The verification only now returns owner A, who no longer owns this page.
       await settleHeld(verifying, SIGN_IN_OK);
-      // Only the optional pre-verification probe may ever have reached the server.
-      expect(h.create).toHaveBeenCalledTimes(1);
-      expect(createCalls()[0]).toMatchObject({ category: 'vehicle', resumeStep: 'preview' });
+      // Admission rejects before any pre-verification write.
+      expect(h.create).not.toHaveBeenCalled();
       expect(continuation()).toBeNull();
       expect(reportedFacts()).toBeNull();
       expect(screen.queryByText(VEHICLE_FACTS.counterparty)).toBeNull();
@@ -270,7 +254,7 @@ describe('mounted verified-save continuity across session publication', () => {
     ['retains the opted-in device copy when the save is rejected', ACCOUNT_CONTEXT, false],
   ] as [string, unknown, boolean][])('C11 %s', async (_label, answer, cleared) => {
     const held = deferred<unknown>();
-    h.create.mockResolvedValueOnce(AUTH_REQUIRED).mockReturnValueOnce(held.promise);
+    h.create.mockReturnValueOnce(held.promise);
     renderPublicHome();
     await publishSession(h, ANONYMOUS_SETTLED);
     await enableDeviceRecovery();
@@ -294,7 +278,7 @@ describe('mounted verified-save continuity across session publication', () => {
       expect(continuation()).toBeNull();
     }
     expect(reportedFacts()).not.toBeNull();
-    expect(h.create).toHaveBeenCalledTimes(2);
+    expect(h.create).toHaveBeenCalledTimes(1);
     expect(h.submit).not.toHaveBeenCalled();
   });
 });

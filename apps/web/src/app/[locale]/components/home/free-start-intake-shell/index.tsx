@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import { AccountDraftStatus } from './account-draft-status';
 import { AnonymousDraftRecoveryBand } from './anonymous-draft-recovery-band';
 import type { BrowserRecoveryDecision } from './browser-recovery-disclosure';
 import { EMPTY_DRAFT } from './constants';
@@ -34,6 +35,7 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
   const arrivalOwnership = useRef(false);
   const flow = useOrganizerFlow(props.initialCategory, arrivalOwnership);
   const draftLifecycle = useDraftLifecycle({
+    account: props.draftAccount,
     category: flow.selectedCategory,
     draft: flow.draft,
     onReset: flow.resetDraft,
@@ -126,9 +128,13 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     JSON.parse(String(t.raw('secureSaveReviewCopy'))) as { noRecovery: string }
   ).noRecovery;
   const trustBoundaryT: FreeStartCopy = key =>
-    key === 'trustBoundary.body' && !recovery.enabled ? noRecoveryBody : t(key);
+    key === 'trustBoundary.body' && draftLifecycle.verified
+      ? `${t('accountDraft.body')} ${t('trustBoundary.short')}`
+      : key === 'trustBoundary.body' && !recovery.enabled
+        ? noRecoveryBody
+        : t(key);
   // prettier-ignore
-  const secureLifecycle = { ...draftLifecycle, onVerified: secureIntent.onVerified, startAnother: () => { secureIntent.invalidate(); void resetAfterRecoveryClear(recovery.clearBeforeReset, draftLifecycle.startAnother); } };
+  const secureLifecycle = { ...draftLifecycle, onVerified: secureIntent.onVerified, startAnother: async () => { secureIntent.invalidate(); return draftLifecycle.startAnother(recovery.clearBeforeReset); } };
   return (
     <section
       id="free-start-intake"
@@ -137,11 +143,18 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     >
       <div
         data-testid="premium-free-start-organizer"
-        data-save-behavior={recovery.enabled ? 'device-recovery' : 'explicit-only'}
+        data-save-behavior={
+          draftLifecycle.verified
+            ? 'account-autosave'
+            : recovery.enabled
+              ? 'device-recovery'
+              : 'explicit-only'
+        }
         className="mx-auto max-w-6xl space-y-8 px-4 py-12 sm:px-6 md:py-16"
       >
         <AnonymousDraftRecoveryBand recovery={recoveryView} />
         <OrganizerHeader step={flow.step} t={t} />
+        <AccountDraftStatus lifecycle={draftLifecycle} locale={props.locale} />
         <p
           data-testid="free-start-result-announcement"
           role="status"

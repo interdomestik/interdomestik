@@ -51,7 +51,7 @@ export function SecureSaveBand({
   // prettier-ignore
   useEffect(() => { if (autoFocusHeading && neutralFrontDoor && headingRef.current) { headingRef.current.focus(); onHeadingFocused?.(); } }, [autoFocusHeading, neutralFrontDoor, onHeadingFocused]);
   useEffect(() => {
-    if (['saved', 'conflict', 'deleted'].includes(lifecycle.state)) statusRef.current?.focus();
+    if (['conflict', 'deleted'].includes(lifecycle.state)) statusRef.current?.focus();
   }, [lifecycle.state]);
 
   if (!neutralFrontDoor) return null;
@@ -99,7 +99,7 @@ className={`mt-4 text-sm font-semibold outline-none ${alert ? 'text-[#8a2f43]' :
 {status}
 </p>
 <SavedDraftContinuation copy={copy.continuation} enabled={allowContinuation} lifecycle={lifecycle} locale={locale} />
-{lifecycle.intent && !lifecycle.verified && !pending ? (
+{lifecycle.intent && !lifecycle.verified && !(lifecycle.intent === 'manage' && lifecycle.readAdmitted) && !pending ? (
 <SecureSaveOtp
 key={lifecycle.identityKey}
 locale={locale}
@@ -109,7 +109,7 @@ onVerifiedOwner={onVerifiedOwner}
 />
 ) : null}
 <SecureSaveActiveActions copy={copy} lifecycle={lifecycle} manageOnly={manageOnly} saveAvailable={saveAvailable} pending={pending} />
-{lifecycle.intent === 'manage' && lifecycle.verified ? (
+{lifecycle.intent === 'manage' && (lifecycle.verified || lifecycle.readAdmitted) ? (
 <SavedDraftList
 items={lifecycle.items}
 nextCursor={lifecycle.nextCursor}

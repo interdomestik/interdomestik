@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
+  account: vi.fn(),
   funnel: vi.fn((_: unknown) => null),
   hero: vi.fn((_: unknown) => null),
   host: vi.fn((): string | null => 'tenant_al'),
@@ -10,6 +11,7 @@ const h = vi.hoisted(() => ({
   replace: vi.fn(),
   session: vi.fn(),
 }));
+vi.mock('@/actions/free-start-drafts', () => ({ getFreeStartDraftAccount: h.account }));
 vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: h.session } }));
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => (key === 'loading' ? 'Duke u ngarkuar...' : key),
@@ -58,6 +60,7 @@ describe('HomePageRuntime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     h.session.mockReturnValue({ data: null });
+    h.account.mockResolvedValue({ ok: false, code: 'authRequired' });
     h.host.mockReturnValue('tenant_al');
     h.intake.mockImplementation(() => null);
     intakeMountCount = 0;
@@ -93,6 +96,7 @@ describe('HomePageRuntime', () => {
       });
       expect(h.intake).toHaveBeenLastCalledWith({
         continueHref: '/pricing',
+        draftAccount: null,
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',
@@ -176,6 +180,7 @@ describe('HomePageRuntime', () => {
       });
       expect(h.intake).toHaveBeenLastCalledWith({
         continueHref: '/pricing',
+        draftAccount: null,
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',
@@ -200,6 +205,10 @@ describe('HomePageRuntime', () => {
       });
       expect(h.intake).toHaveBeenLastCalledWith({
         continueHref: '/member/claims/new',
+        draftAccount: {
+          emailVerified: false,
+          expectedContext: { ownerUserId: 'user-1', tenantId: 'tenant_mk' },
+        },
         locale: 'sq',
         neutralOtpHost: 'front-door.localhost:3000',
         neutralOtpTenantId: 'tenant_ks',

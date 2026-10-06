@@ -1,4 +1,8 @@
 'use client';
+import type { DraftAccount } from '@/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-editor';
+import { AccountDraftStatus } from '@/app/[locale]/components/home/free-start-intake-shell/account-draft-status';
+import { useAccountDraftPresentation } from '@/app/[locale]/components/home/free-start-intake-shell/use-account-draft-presentation';
+import { authClient } from '@/lib/auth-client';
 import { SecureSaveBand } from '@/app/[locale]/components/home/free-start-intake-shell/secure-save-band';
 import {
   getIssueIds,
@@ -14,14 +18,14 @@ import { useDraftLifecycle } from '@/app/[locale]/components/home/free-start-int
 import { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { NextIntlClientProvider, useTranslations, type AbstractIntlMessages } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 // prettier-ignore
 import { parseClaimDraftCopy, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 import { ClaimDraftMainPanel } from './main-panel';
 import { DraftContinuationNotice } from './draft-continuation-notice';
 import { useDraftContinuation } from './use-draft-continuation';
 // prettier-ignore
-type Props = Readonly<{ freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
+type Props = Readonly<{ draftAccount?: DraftAccount | null; freeStartMessages: AbstractIntlMessages; handoffContext?: ClaimStartHandoffContext | null; initialCategory?: string; locale: string; managerOnly?: boolean; neutralOtpHost?: string | null; tenantId: string }>;
 // prettier-ignore
 type BodyProps = Omit<Props, 'freeStartMessages'> & Readonly<{ copy: ClaimDraftCopy; handoffCountryLabel: string | null; submitCopy: SavedDraftSubmitCopy; t: (key: string, values?: Record<string, string>) => string }>;
 function supportedCategory(value?: string): CategoryId | undefined {
@@ -29,13 +33,23 @@ function supportedCategory(value?: string): CategoryId | undefined {
   return value === 'property' ? 'property' : undefined;
 }
 // prettier-ignore
-function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
+function ClaimDraftIntakeBody({ draftAccount: initialAccount, copy, handoffContext, handoffCountryLabel, initialCategory, locale, managerOnly, neutralOtpHost, submitCopy, t, tenantId }: BodyProps) {
   const tFree = useTranslations('freeStart');
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user as { id?: string; tenantId?: string | null } | undefined;
+  const lastOwner = useRef(initialAccount?.expectedContext ?? null);
+  if (!isPending || (user?.id && user.tenantId)) {
+    lastOwner.current = user?.id && user.tenantId ? { ownerUserId: user.id, tenantId: user.tenantId } : null;
+  }
+  const hint = lastOwner.current;
+  const freshAccount = useAccountDraftPresentation(hint, initialAccount);
+  const draftAccount = initialAccount === undefined ? undefined : freshAccount;
   const flow = useOrganizerFlow(supportedCategory(initialCategory));
   const handoff = flow.selectedCategory === 'vehicle' ? handoffContext : null;
   const [confirmedHandoffCountry, setConfirmedHandoffCountry] = useState<ClaimStartHandoffContext['country'] | null>(null);
   const handoffCountryConfirmed = confirmedHandoffCountry === handoff?.country;
   const lifecycle = useDraftLifecycle({
+    account: draftAccount,
     category: flow.selectedCategory,
     draft: flow.draft,
     onReset: flow.resetDraft,
@@ -55,7 +69,7 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
   const saveBandProps = { lifecycle, locale, manageOnly: managerOnly, neutralOtpHost, tenantId };
   if (continuation.blocked) {
     return (
-      <section data-testid="claim-draft-intake" data-save-behavior="explicit-only" className="mx-auto max-w-5xl">
+      <section data-testid="claim-draft-intake" data-save-behavior={lifecycle.verified ? 'account-autosave' : 'explicit-only'} className="mx-auto max-w-5xl">
         <DraftContinuationNotice continuation={continuation} copy={parseSecureSaveCopy(tFree.raw('secureSave')).continuation} locale={locale} />
       </section>
     );
@@ -64,7 +78,7 @@ function ClaimDraftIntakeBody({ copy, handoffContext, handoffCountryLabel, initi
   return (
 <section
 data-testid="claim-draft-intake"
-data-save-behavior="explicit-only"
+data-save-behavior={lifecycle.verified ? 'account-autosave' : 'explicit-only'}
 className="mx-auto max-w-5xl space-y-6"
 >
 <header className="space-y-3">
@@ -120,14 +134,16 @@ className="rounded-xl border border-rose-300 bg-rose-50 p-3 font-semibold text-r
 {flow.validationError}
 </p>
 ) : null}
-{!managerOnly || lifecycle.active ? (
+{(!managerOnly || lifecycle.active || lifecycle.verified) ? (
 <ClaimDraftMainPanel
 activeDraftId={lifecycle.active?.id}
 activeDraftVersion={lifecycle.active?.version}
+prepareForContinuation={lifecycle.prepareForContinuation}
+onContinuationRejected={lifecycle.releaseContinuation}
 claimStart={handoff && handoffCountryConfirmed ? { confirmed: true, handoffContext: handoff, incidentCountryCode: handoff.country } : undefined}
 confirmationRequired={Boolean(handoff && !handoffCountryConfirmed)}
 confirmationRequiredCopy={t('wizard.handoff.confirmationRequired')}
-copy={copy}
+copy={lifecycle.verified ? { ...copy, previewBody: tFree('accountDraft.body') } : copy}
 flow={flow}
 hasUnsavedChanges={lifecycle.hasUnsavedChanges}
 issueIds={issueIds}
@@ -138,6 +154,7 @@ submitCopy={submitCopy}
 tFree={tFree}
 />
 ) : null}
+<AccountDraftStatus lifecycle={lifecycle} locale={locale} />
 <SecureSaveBand {...saveBandProps} />
 </section>
 );

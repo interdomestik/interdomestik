@@ -28,7 +28,7 @@ export type SessionStore = {
   subscribe: (listener: () => void) => () => void;
 };
 // prettier-ignore
-type BoundaryAction = 'create' | 'list' | 'pack' | 'remove' | 'replace' | 'resume' | 'send' | 'signIn' | 'submit' | 'update';
+type BoundaryAction = 'account' | 'create' | 'list' | 'pack' | 'remove' | 'replace' | 'resume' | 'send' | 'signIn' | 'submit' | 'update';
 export type ContinuityBoundary = SessionStore & Record<BoundaryAction, ReturnType<typeof vi.fn>>;
 
 const seams = vi.hoisted(() => {
@@ -37,7 +37,7 @@ const seams = vi.hoisted(() => {
   const listeners = new Set<() => void>();
   let snapshot: Snapshot = { data: null, isPending: true };
   // prettier-ignore
-  const actions = { create: vi.fn(), list: vi.fn(), pack: vi.fn(), remove: vi.fn(), replace: vi.fn(), resume: vi.fn(), send: vi.fn(), signIn: vi.fn(), submit: vi.fn(), update: vi.fn() };
+  const actions = { account: vi.fn(), create: vi.fn(), list: vi.fn(), pack: vi.fn(), remove: vi.fn(), replace: vi.fn(), resume: vi.fn(), send: vi.fn(), signIn: vi.fn(), submit: vi.fn(), update: vi.fn() };
   // prettier-ignore
   const publish = (next: Snapshot) => { snapshot = next; for (const listener of listeners) listener(); };
   // prettier-ignore
@@ -84,6 +84,7 @@ vi.mock('@/lib/auth-client', () => ({
   },
 }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: seams.account,
   createFreeStartDraft: seams.create,
   deleteFreeStartDraft: seams.remove,
   listFreeStartDrafts: seams.list,
@@ -161,8 +162,27 @@ export function resetContinuityBoundary(): void {
   vi.resetAllMocks();
   resetPublicIntakeBrowser();
   seams.set(ANONYMOUS_PENDING);
+  seams.account.mockImplementation(async () => {
+    let owner = seams.read().data?.user;
+    if (!owner && seams.signIn.mock.calls.length) {
+      const answer = await seams.signIn.mock.results.at(-1)?.value;
+      if (answer?.data?.user?.id === OWNER_A.id) owner = OWNER_A;
+    }
+    return owner
+      ? {
+          ok: true,
+          emailVerified: true,
+          expectedContext: { ownerUserId: owner.id, tenantId: owner.tenantId },
+        }
+      : AUTH_REQUIRED;
+  });
   seams.create.mockResolvedValue(AUTH_REQUIRED);
-  seams.list.mockResolvedValue({ ok: true, items: [], nextCursor: null });
+  seams.list.mockImplementation(async input => ({
+    ok: true,
+    items: [],
+    nextCursor: null,
+    expectedContext: input.expectedContext,
+  }));
   seams.send.mockResolvedValue({ data: {}, error: null });
   seams.signIn.mockResolvedValue(SIGN_IN_OK);
 }
@@ -268,10 +288,9 @@ export async function expectSaveState(state: string): Promise<void> {
  * clutter, and no claim about what device storage does or does not hold.
  */
 export async function expectNoSavedReceipt(): Promise<void> {
-  await waitFor(() => expect(screen.getByTestId('free-start-save-entry-manage')).toBeVisible());
-  expect(screen.queryByTestId('free-start-save-entry-open')).toBeNull();
-  expect(screen.queryByTestId('free-start-save-entry-status')).toBeNull();
-  expect(screen.queryByTestId('free-start-secure-save-band')).toBeNull();
-  expect(screen.queryByTestId('free-start-save-status')).toBeNull();
-  expect(continuation()).toBeNull();
+  await waitFor(() => expect(continuation()).toBeNull());
+  expect(screen.queryByTestId('account-draft-status')?.getAttribute('data-state')).not.toBe(
+    'saved'
+  );
+  expect(screen.queryByTestId('saved-draft-continuation')).toBeNull();
 }

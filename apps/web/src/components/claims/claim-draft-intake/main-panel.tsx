@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
 
 // prettier-ignore
-type Props = Readonly<{ activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
+type Props = Readonly<{ onContinuationRejected?: () => void; prepareForContinuation?: () => Promise<import('@/app/[locale]/components/home/free-start-intake-shell/types').SavedDraft | null>; activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
 
 const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
 const ACTION_CLASS =
@@ -46,9 +46,11 @@ export function ClaimDraftMainPanel(props: Props) {
       <div className="space-y-4">
         {accountContextNotice}
         <DormantPreview
-          key={`${props.activeDraftId}:${props.activeDraftVersion}`}
+          key={props.activeDraftId ?? 'unsaved'}
           activeDraftId={props.activeDraftId}
           activeDraftVersion={props.activeDraftVersion}
+          prepareForContinuation={props.prepareForContinuation}
+          onContinuationRejected={props.onContinuationRejected}
           claimStart={props.claimStart}
           confirmationRequired={props.confirmationRequired}
           confirmationRequiredCopy={props.confirmationRequiredCopy}

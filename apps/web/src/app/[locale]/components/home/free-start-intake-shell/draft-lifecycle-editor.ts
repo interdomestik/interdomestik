@@ -1,0 +1,281 @@
+import { createFreeStartDraft, updateFreeStartDraft } from '@/actions/free-start-drafts';
+import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
+import {
+  createAccountDraftWriteQueue,
+  type AccountDraftWriteQueue,
+  type DraftQueueContext,
+  type DraftWriteSnapshot,
+} from './account-draft-write-queue';
+import {
+  createUuidV4,
+  draftFingerprint,
+  resolveEditedDraftState,
+  draftFingerprintState,
+  type CategoryId,
+  type DraftSaveState,
+  type DraftState,
+  type SavedDraft,
+  type StepId,
+} from './types';
+
+export type DraftAccount = Readonly<{ emailVerified: boolean; expectedContext: DraftQueueContext }>;
+export type DraftEditorArgs = Readonly<{
+  account?: DraftAccount | null;
+  category: CategoryId | null;
+  draft: DraftState;
+  step: StepId;
+  onReset: () => void;
+  onResume: (draft: SavedDraft) => void;
+}>;
+export type DraftEditorView = {
+  active: SavedDraft | null;
+  items: SavedDraft[];
+  nextCursor: { id: string; updatedAt: string } | null;
+  intent: 'save' | 'manage' | null;
+  state: DraftSaveState;
+  verified: boolean;
+  readAdmitted: boolean;
+  identityKey: number;
+};
+export type DraftEditorToken = { generation: number; owner: string; fingerprint: string };
+export const accountKey = (account: DraftAccount | null | undefined) =>
+  account
+    ? JSON.stringify([account.expectedContext.ownerUserId, account.expectedContext.tenantId])
+    : '';
+export const hasDraftFacts = (draft: DraftState) =>
+  Object.values(draft).some(value => value.trim() !== '');
+export function receiptMatches(value: unknown, expected: DraftQueueContext): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const receipt = value as Record<string, unknown>;
+  return (
+    Object.keys(receipt).length === 2 &&
+    receipt.ownerUserId === expected.ownerUserId &&
+    receipt.tenantId === expected.tenantId
+  );
+}
+
+/** Local ownership only. Every server operation still resolves authoritative session/tenant. */
+export class DraftEditor {
+  view: DraftEditorView = {
+    active: null,
+    items: [],
+    nextCursor: null,
+    intent: null,
+    state: 'idle',
+    verified: false,
+    readAdmitted: false,
+    identityKey: 0,
+  };
+  account: DraftAccount | null;
+  generation = 0;
+  initialized = false;
+  explicitRequired: boolean;
+  awaitingReset = false;
+  terminal = false;
+  disposed = false;
+  savedFingerprint: string | null = null;
+  queue: AccountDraftWriteQueue | null = null;
+  retiredDraft: SavedDraft | null = null;
+  private propIdentity: string;
+  private writeStarted = false;
+
+  constructor(
+    readonly current: () => DraftEditorArgs,
+    private readonly publish: (view: DraftEditorView) => void
+  ) {
+    this.account = current().account ?? null;
+    this.explicitRequired = !this.account;
+    this.propIdentity = this.propKey();
+    this.view.verified = this.account?.emailVerified === true;
+  }
+  fingerprint() {
+    const args = this.current();
+    return draftFingerprint(args.category, args.draft, args.step);
+  }
+  propKey() {
+    const account = this.current().account;
+    return account === undefined
+      ? 'unresolved'
+      : JSON.stringify([accountKey(account), account?.emailVerified]);
+  }
+  patch(update: Partial<DraftEditorView>) {
+    if (this.disposed) return;
+    this.view = { ...this.view, ...update };
+    this.publish(this.view);
+  }
+  token(): DraftEditorToken {
+    return {
+      generation: this.generation,
+      owner: accountKey(this.account),
+      fingerprint: this.fingerprint(),
+    };
+  }
+  owns(token: DraftEditorToken, includeFingerprint = false) {
+    return (
+      !this.disposed &&
+      token.generation === this.generation &&
+      token.owner === accountKey(this.account) &&
+      this.propKey() === this.propIdentity &&
+      (!includeFingerprint || token.fingerprint === this.fingerprint())
+    );
+  }
+  syncAccount(): boolean {
+    const key = this.propKey();
+    if (key === this.propIdentity) {
+      if (this.awaitingReset && !hasDraftFacts(this.current().draft)) this.awaitingReset = false;
+      return false;
+    }
+    this.propIdentity = key;
+    if (this.current().account === undefined) return false;
+    const next = this.current().account ?? null;
+    const changedOwner = accountKey(next) !== accountKey(this.account);
+    if (changedOwner) {
+      const hadOwner = this.account !== null;
+      this.queue?.dispose();
+      this.queue = null;
+      this.generation++;
+      this.savedFingerprint = null;
+      this.writeStarted = false;
+      this.initialized = false;
+      this.explicitRequired = !hadOwner && hasDraftFacts(this.current().draft);
+      this.awaitingReset = hadOwner && hasDraftFacts(this.current().draft);
+      this.account = next;
+      this.patch({
+        active: null,
+        items: [],
+        nextCursor: null,
+        intent: null,
+        state: 'idle',
+        verified: next?.emailVerified === true,
+        readAdmitted: false,
+        identityKey: this.view.identityKey + 1,
+      });
+      if (hadOwner) this.current().onReset();
+    } else {
+      this.account = next;
+      this.patch({ verified: next?.emailVerified === true });
+    }
+    return true;
+  }
+  acceptAccount(next: DraftAccount): boolean {
+    if (this.account && accountKey(this.account) !== accountKey(next)) return false;
+    this.account = {
+      emailVerified: next.emailVerified === true,
+      expectedContext: { ...next.expectedContext },
+    };
+    this.patch({ verified: this.account.emailVerified });
+    return true;
+  }
+  snapshot(): DraftWriteSnapshot | null {
+    const args = this.current();
+    if (!args.category || args.category === 'injury') return null;
+    if (!hasDraftFacts(args.draft) && !this.view.active && !this.writeStarted) return null;
+    const payload = {
+      category: args.category,
+      counterparty: args.draft.counterparty,
+      desiredOutcome: args.draft.desiredOutcome || undefined,
+      incidentDate: args.draft.incidentDate || undefined,
+      issueType: args.draft.issueType || undefined,
+      resumeStep: args.step === 'complete' ? ('preview' as const) : args.step,
+      summary: args.draft.summary,
+    };
+    return freeStartDraftPayloadSchema.safeParse(payload).success
+      ? { fingerprint: this.fingerprint(), payload }
+      : null;
+  }
+  editedState(): DraftSaveState {
+    if (this.current().category === 'injury') return 'unsupported';
+    if (hasDraftFacts(this.current().draft) && !this.snapshot()) return 'invalid';
+    return this.view.active && this.savedFingerprint === this.fingerprint()
+      ? 'saved'
+      : this.view.active
+        ? 'dirty'
+        : 'idle';
+  }
+  getQueue(): AccountDraftWriteQueue | null {
+    if (!this.account?.emailVerified || this.terminal || this.awaitingReset) return null;
+    if (this.queue) return this.queue;
+    const token = this.token();
+    this.queue = createAccountDraftWriteQueue({
+      expectedContext: this.account.expectedContext,
+      clientRequestId: createUuidV4(),
+      create: input => {
+        this.writeStarted = true;
+        return createFreeStartDraft(input);
+      },
+      update: updateFreeStartDraft,
+      onState: state => {
+        if (!this.owns(token) || this.terminal) return;
+        this.patch({ state: state === 'saved' ? this.editedState() : state });
+      },
+      onAck: (draft, fingerprint) => {
+        if (!this.owns(token) || this.terminal) return;
+        this.savedFingerprint = fingerprint;
+        this.patch({ active: draft, verified: true });
+      },
+    });
+    if (this.view.active) this.queue.adopt(this.view.active);
+    return this.queue;
+  }
+  noteEdit() {
+    const next = resolveEditedDraftState(
+      this.view.state,
+      Boolean(this.current().category && this.current().category !== 'injury'),
+      draftFingerprintState(Boolean(this.view.active), this.savedFingerprint, this.fingerprint())
+    );
+    if (next !== this.view.state) this.patch({ state: next });
+  }
+  autoSave() {
+    if (
+      this.current().account === undefined ||
+      !this.initialized ||
+      this.explicitRequired ||
+      this.awaitingReset ||
+      this.terminal ||
+      (this.view.items.length > 0 && !this.view.active)
+    )
+      return;
+    const snapshot = this.snapshot();
+    if (snapshot && !(this.view.active && this.savedFingerprint === snapshot.fingerprint))
+      this.getQueue()?.enqueue(snapshot);
+    else if (this.view.active) this.patch({ state: this.editedState() });
+  }
+  async retire(): Promise<boolean> {
+    this.terminal = true;
+    const queue = this.queue;
+    const safe = queue ? await queue.retire() : true;
+    if (!safe) {
+      this.terminal = false;
+      this.patch({ state: 'error' });
+      return false;
+    }
+    this.retiredDraft = queue?.getDraft() ?? this.view.active;
+    queue?.dispose();
+    this.queue = null;
+    return true;
+  }
+  reset() {
+    this.generation++;
+    this.savedFingerprint = null;
+    this.writeStarted = false;
+    this.initialized = true;
+    this.explicitRequired = false;
+    this.awaitingReset = true;
+    this.terminal = false;
+    this.patch({
+      active: null,
+      items: [],
+      nextCursor: null,
+      intent: null,
+      state: 'idle',
+      readAdmitted: false,
+      identityKey: this.view.identityKey + 1,
+    });
+    this.current().onReset();
+  }
+  dispose() {
+    this.disposed = true;
+    this.generation++;
+    this.queue?.dispose();
+  }
+}

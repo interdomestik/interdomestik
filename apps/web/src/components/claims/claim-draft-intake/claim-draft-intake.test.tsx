@@ -12,6 +12,11 @@ import { ClaimDraftIntake } from './index';
 // prettier-ignore
 const a = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: vi.fn().mockResolvedValue({
+    ok: true,
+    emailVerified: true,
+    expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+  }),
   createFreeStartDraft: a.create,
   deleteFreeStartDraft: a.delete,
   listFreeStartDrafts: a.list,
@@ -90,8 +95,17 @@ function enter(label: string, value: string) {
 
 describe('ClaimDraftIntake', () => {
   it('keeps manager-only closed until explicit Manage then Resume', async () => {
-    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
+    a.list.mockResolvedValueOnce({
+      items: [savedDraft],
+      nextCursor: null,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
+    a.resume.mockResolvedValueOnce({
+      draft: savedDraft,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
     // prettier-ignore
     render(<ClaimDraftIntake freeStartMessages={{}} handoffContext={claimStart.handoffContext} initialCategory="property" locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
     expect(screen.queryByTestId(/claim-(wizard-handoff|draft-main-panel)/)).toBeNull();
@@ -132,8 +146,17 @@ describe('ClaimDraftIntake', () => {
 
   it('forwards country only after keyboard confirmation', async () => {
     const user = userEvent.setup();
-    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
+    a.list.mockResolvedValueOnce({
+      items: [savedDraft],
+      nextCursor: null,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
+    a.resume.mockResolvedValueOnce({
+      draft: savedDraft,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
     claim.submit.mockResolvedValue({ success: true, claimId: 'claim-1', claimNumber: 'CLM-1' });
     render(
       <ClaimDraftIntake

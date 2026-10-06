@@ -83,7 +83,9 @@ export function SecureSaveActiveActions({
               type="button"
               data-testid="free-start-start-another"
               disabled={pending}
-              onClick={lifecycle.startAnother}
+              onClick={() => {
+                void lifecycle.startAnother();
+              }}
               className="min-h-11 rounded-xl border border-[#006f72] bg-white px-5 font-bold text-[#006f72]"
             >
               {copy.startAnother}

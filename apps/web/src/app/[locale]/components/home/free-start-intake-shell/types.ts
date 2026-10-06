@@ -7,6 +7,7 @@ import type { getSupportContacts } from '@/lib/support-contacts';
 
 export type FreeStartIntakeShellProps = Readonly<{
   continueHref: string;
+  draftAccount?: import('./draft-lifecycle-editor').DraftAccount | null;
   initialCategory?: CategoryId;
   locale: string;
   neutralOtpHost?: string | null;

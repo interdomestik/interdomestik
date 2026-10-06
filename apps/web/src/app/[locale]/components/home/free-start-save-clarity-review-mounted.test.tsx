@@ -55,7 +55,7 @@ describe('save options review', () => {
   });
 
   it('keeps an engaged save area open when the customer returns to the facts', async () => {
-    boundaries.create.mockResolvedValue({ ok: false, code: 'authRequired' });
+    boundaries.account.mockResolvedValue({ ok: false, code: 'authRequired' });
     render(<FreeStartIntakeShell {...shellProps} initialCategory="vehicle" />);
     await reviewFacts('vehicle');
     fireEvent.click(await screen.findByTestId('free-start-save-open'));

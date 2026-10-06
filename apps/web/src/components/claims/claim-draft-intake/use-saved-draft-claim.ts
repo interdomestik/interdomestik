@@ -18,6 +18,8 @@ type LookupState = {
   status: LookupStatus;
 };
 type Options = Readonly<{
+  prepareForContinuation?: () => Promise<{ id: string; version: number } | null>;
+  onContinuationRejected?: () => void;
   draftId?: string | null;
   draftVersion?: number | null;
   eligible: boolean;
@@ -93,29 +95,42 @@ export function useSavedDraftClaim(options: Options) {
     setFailure(null);
     startTransition(async () => {
       const action = startCriticalAction('saved_draft_submit');
+      let submittedIdentity = identity;
       try {
+        const settled = options.prepareForContinuation
+          ? await options.prepareForContinuation()
+          : { id: draftId, version: draftVersion };
+        if (!settled || !isSavedDraftId(settled.id) || !settled.version) {
+          action.finish('rejected');
+          options.onContinuationRejected?.();
+          setFailure({ identity, message: failedCopy });
+          return;
+        }
+        submittedIdentity = `${settled.id.toLowerCase()}:${settled.version}`;
         const result = await createClaimFromSavedDraft({
           ...(claimStart ? { claimStart } : {}),
-          id: draftId,
-          expectedVersion: draftVersion,
+          id: settled.id,
+          expectedVersion: settled.version,
         });
         if (result.success) {
           action.finish('success');
           setLookup({
             claim: { id: result.claimId, number: result.claimNumber },
-            identity,
+            identity: submittedIdentity,
             origin: 'user_submit',
             status: 'found',
           });
         } else {
           action.finish('rejected');
-          setFailure({ identity, message: failedCopy });
+          options.onContinuationRejected?.();
+          setFailure({ identity: submittedIdentity, message: failedCopy });
         }
       } catch (error) {
         const needsReload = isOutdatedServerAction(error);
         action.finish(needsReload ? 'stale_deployment' : 'unexpected');
+        options.onContinuationRejected?.();
         setFailure({
-          identity,
+          identity: submittedIdentity,
           message: needsReload ? (outdatedCopy ?? unexpectedCopy) : unexpectedCopy,
           needsReload,
         });
