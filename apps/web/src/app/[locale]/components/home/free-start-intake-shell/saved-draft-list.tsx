@@ -30,7 +30,14 @@ export function SavedDraftList(props: Props) {
   const locale = useLocale();
   const copy = parseSecureSaveCopy(t.raw('secureSave'));
   const headingRef = useRef<HTMLHeadingElement>(null);
-  useEffect(() => headingRef.current?.focus(), []);
+  const headingFocused = useRef(false);
+  const headingAvailable = props.state !== 'loading' || props.items.length > 0;
+  useEffect(() => {
+    if (!headingFocused.current && headingRef.current) {
+      headingRef.current.focus();
+      headingFocused.current = true;
+    }
+  }, [headingAvailable]);
 
   if (props.state === 'loading' && props.items.length === 0) {
     return <p className="mt-5 text-sm text-[#526274]">{copy.manage.loading}</p>;
