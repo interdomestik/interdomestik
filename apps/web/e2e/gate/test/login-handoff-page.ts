@@ -30,6 +30,39 @@ export async function withFreshPage(
   }
 }
 
+/** Wait for the existing authoritative verifier, including its unchanged session cache. */
+export async function awaitMemberSessionState(page: Page, info: TestInfo, present: boolean) {
+  const origin = new URL(String(info.project.use.baseURL)).origin;
+  expect(new URL(page.url()).origin).toBe(origin);
+  const endpoint = new URL('/api/auth/login-session', origin).href;
+  await expect
+    .poll(
+      async () => {
+        const response = await page.request.get(endpoint, { timeout: 2500 });
+        try {
+          if (response.status() !== 200) return false;
+          const bytes = await response.body();
+          if (bytes.length > 4096) return false;
+          const payload: unknown = JSON.parse(bytes.toString('utf8'));
+          if (typeof payload !== 'object' || payload === null) return false;
+          const verdict = payload as { role?: unknown; hasAdminAccess?: unknown };
+          return (
+            verdict.hasAdminAccess === false &&
+            (present ? verdict.role === 'member' : verdict.role === undefined)
+          );
+        } finally {
+          await response.dispose();
+        }
+      },
+      {
+        timeout: 10_000,
+        intervals: [250, 500, 1000],
+        message: 'authoritative member session state',
+      }
+    )
+    .toBe(true);
+}
+
 export async function interactiveLogin(page: Page, locale: string) {
   await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`));
   const form = page.getByTestId('login-form');

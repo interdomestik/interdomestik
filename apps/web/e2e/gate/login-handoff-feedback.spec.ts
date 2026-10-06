@@ -1,7 +1,12 @@
 import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { gotoApp } from '../utils/navigation';
-import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
+import {
+  awaitMemberSessionState,
+  interactiveLogin,
+  normalLogout,
+  withFreshPage,
+} from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
 import { passiveRoleObserver } from './test/login-handoff-observer';
 import {
@@ -12,7 +17,6 @@ import {
 import { expireOwnedSession } from './test/login-handoff-expiry';
 
 const locales = ['en', 'sq', 'mk', 'sr'] as const;
-const sessionCacheSettleMs = 2100; // Existing server session cache TTL is 2s; fixture-only settling.
 
 test.describe('Login handoff feedback continuity', () => {
   for (const locale of locales) {
@@ -124,7 +128,7 @@ test.describe('Login handoff feedback continuity', () => {
             await page.context().clearCookies();
           }
           if (state === 'expired-server') restore = await expireOwnedSession(page, login, fixture);
-          await page.waitForTimeout(sessionCacheSettleMs);
+          await awaitMemberSessionState(page, currentInfo, state === 'valid');
           await page.reload();
           expect(login.passwordPostCount()).toBe(1);
           if (state === 'valid') {
@@ -144,7 +148,7 @@ test.describe('Login handoff feedback continuity', () => {
             });
           }
           if (restored) {
-            await page.waitForTimeout(sessionCacheSettleMs);
+            await awaitMemberSessionState(page, currentInfo, true);
             await gotoApp(page, login.target, currentInfo, { marker: 'member-dashboard-ready' });
             await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
             await normalLogout(page, locale);
