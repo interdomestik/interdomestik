@@ -1,12 +1,7 @@
 import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { gotoApp } from '../utils/navigation';
-import {
-  awaitMemberSessionState,
-  interactiveLogin,
-  normalLogout,
-  withFreshPage,
-} from './test/login-handoff-page';
+import { interactiveLogin, normalLogout, withFreshPage } from './test/login-handoff-page';
 import { heldLogin } from './test/login-handoff-session';
 import { passiveRoleObserver } from './test/login-handoff-observer';
 import {
@@ -127,9 +122,29 @@ test.describe('Login handoff feedback continuity', () => {
             }
             await page.context().clearCookies();
           }
-          if (state === 'expired-server') restore = await expireOwnedSession(page, login, fixture);
-          await awaitMemberSessionState(page, currentInfo, state === 'valid');
-          await page.reload();
+          if (state === 'expired-server') {
+            const authCookies = (await page.context().cookies()).filter(cookie =>
+              /^(?:__Secure-)?better-auth\.session_token$/.test(cookie.name)
+            );
+            expect(authCookies.length === 1).toBe(true);
+            restore = await expireOwnedSession(page, login, fixture);
+            const unchangedCookies = (await page.context().cookies()).filter(cookie =>
+              /^(?:__Secure-)?better-auth\.session_token$/.test(cookie.name)
+            );
+            // Compare in memory; never include a cookie value in an assertion or receipt.
+            expect(JSON.stringify(authCookies) === JSON.stringify(unchangedCookies)).toBe(true);
+            expect(login.roleGetCount()).toBe(1);
+            await expect(async () => {
+              // Reload is the first expired-session consumer; it also observes cache settlement.
+              await page.reload({ waitUntil: 'domcontentloaded', timeout: 5000 });
+              expect(login.passwordPostCount()).toBe(1);
+              await expect(page).toHaveURL(new RegExp(String.raw`/${locale}/login(?:\?|$)`), {
+                timeout: 500,
+              });
+            }).toPass({ timeout: 10_000, intervals: [250, 500, 1000] });
+          } else {
+            await page.reload();
+          }
           expect(login.passwordPostCount()).toBe(1);
           if (state === 'valid') {
             await expect(page).toHaveURL(new RegExp(`/${locale}/member(?:\\?|$)`));
@@ -148,8 +163,13 @@ test.describe('Login handoff feedback continuity', () => {
             });
           }
           if (restored) {
-            await awaitMemberSessionState(page, currentInfo, true);
-            await gotoApp(page, login.target, currentInfo, { marker: 'member-dashboard-ready' });
+            await expect(async () => {
+              await gotoApp(page, login.target, currentInfo, {
+                marker: 'member-dashboard-ready',
+                markerTimeoutMs: 500,
+              });
+              expect(login.passwordPostCount()).toBe(1);
+            }).toPass({ timeout: 10_000, intervals: [250, 500, 1000] });
             await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
             await normalLogout(page, locale);
           }
