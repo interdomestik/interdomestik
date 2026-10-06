@@ -7,7 +7,7 @@ import type { CategoryId, DraftSaveState, DraftState, StepId } from './types';
 // prettier-ignore
 type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'unavailable' | 'discarded' | 'secure';
 // prettier-ignore
-type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; allowWrites: boolean; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: () => void; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
+type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; allowWrites: boolean; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: (beforeReset?: () => Promise<boolean> | boolean) => void | boolean | Promise<void | boolean>; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
 function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || configured?.toLowerCase() === location.host.toLowerCase()); }
 // prettier-ignore
@@ -81,7 +81,7 @@ export function useAnonymousDraftRecovery(args: Args) {
     const expected = knownRecord.current, now = captureTime(); if (now === null) return markUnavailable();
     setState(value => value === 'saved' ? 'idle' : value);
     localWrites.current += 1;
-    void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(({ current, result }) => {
+    void runLocked((current, executionNow) => current() ? writeAnonymousDraft(getAnonymousDraftStorage(), snapshot, expected, now, executionNow) : null, currentContext).then(async ({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable') return markUnavailable();
       if (!result.value) return;
@@ -130,18 +130,51 @@ export function useAnonymousDraftRecovery(args: Args) {
     finally { actionBusy.current = false; setBusy(false); }
   }, [clearDeviceCopy, currentFingerprint, pending, resetFingerprint]);
   // prettier-ignore
-  const discard = useCallback(() => { void clearBeforeReset().then(cleared => { if (cleared) args.onReset(); }); }, [args.onReset, clearBeforeReset]);
+  const discard = useCallback(() => {
+    if (pending || actionBusy.current) return;
+    const ownerGeneration = generation.current, ownerContext = currentContextRef.current, expected = offer ?? knownRecord.current;
+    interaction.current = true; actionBusy.current = true; setBusy(true);
+    void (async () => {
+      await args.onReset(async () => {
+        if (!mounted.current || generation.current !== ownerGeneration || currentContextRef.current !== ownerContext) return false;
+        if (!(await clearDeviceCopy())) return false;
+        invalidated.current = false; suppression.current = { from: currentFingerprint, to: resetFingerprint }; setState('discarded');
+        return true;
+      });
+    })().catch(() => {
+      if (!mounted.current || generation.current !== ownerGeneration || currentContextRef.current !== ownerContext || terminalInvalidation.current) return;
+      const latest = readAnonymousDraft(getAnonymousDraftStorage());
+      if (expected && latest.status === 'available' && sameAnonymousDraftRecord(latest.record, expected)) markRetained();
+    }).finally(() => { interaction.current = false; actionBusy.current = false; if (mounted.current) setBusy(false); });
+  }, [args.onReset, clearDeviceCopy, currentFingerprint, markRetained, offer, pending, resetFingerprint]);
   const resume = useCallback(() => {
     if (pending || actionBusy.current || !offer) return;
+    const failureGeneration = generation.current + 1, failureContext = currentContextRef.current;
     interaction.current = true; actionBusy.current = true; setBusy(true);
-    void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null, currentContext).then(({ current, result }) => {
+    void runLocked((current, now) => current() ? readAnonymousDraft(getAnonymousDraftStorage(), now) : null, currentContext).then(async ({ current, result }) => {
       if (!current) return;
       if (result.status === 'unavailable' || !result.value || result.value.status === 'unavailable') return markUnavailable();
       if (result.value.status === 'invalid') return markUnavailable(false);
       if (result.value.status === 'none') { terminalInvalidation.current = true; invalidated.current = true; knownRecord.current = null; setEnabled(false); setOffer(null); setState('discarded'); }
       else if (!sameAnonymousDraftRecord(result.value.record, offer)) { offerRequired.current = true; knownRecord.current = result.value.record; setOffer(result.value.record); setState('conflict'); }
-      else { offerRequired.current = false; invalidated.current = false; knownRecord.current = result.value.record; suppression.current = { from: currentFingerprint, to: recordFingerprint(result.value.record) }; args.onReset(); args.onRestore(result.value.record); setOffer(null); setState('saved'); }
-    }).finally(() => { interaction.current = false; actionBusy.current = false; setBusy(false); });
-  }, [args.onReset, args.onRestore, currentContext, currentFingerprint, markUnavailable, offer, pending, runLocked]);
+      else {
+        const ownerGeneration = generation.current;
+        const reset = await args.onReset();
+        if (reset === false || !mounted.current || generation.current !== ownerGeneration || terminalInvalidation.current) return;
+        const latest = readAnonymousDraft(getAnonymousDraftStorage());
+        if (latest.status !== 'available' || !sameAnonymousDraftRecord(latest.record, result.value.record)) {
+          applyRead(latest, true);
+          return;
+        }
+        offerRequired.current = false; invalidated.current = false; knownRecord.current = latest.record;
+        suppression.current = { from: currentFingerprint, to: recordFingerprint(latest.record) };
+        args.onRestore(latest.record); setOffer(null); setState('saved');
+      }
+    }).catch(() => {
+      if (!mounted.current || generation.current !== failureGeneration || currentContextRef.current !== failureContext || terminalInvalidation.current) return;
+      const latest = readAnonymousDraft(getAnonymousDraftStorage());
+      if (latest.status === 'available' && sameAnonymousDraftRecord(latest.record, offer)) markRetained();
+    }).finally(() => { interaction.current = false; actionBusy.current = false; if (mounted.current) setBusy(false); });
+  }, [applyRead, args.onReset, args.onRestore, currentContext, currentFingerprint, markRetained, markUnavailable, offer, pending, runLocked]);
   return { busy, clearBeforeReset, clearDeviceCopy, discard, enabled: enabled && args.allowWrites, neutralHost, offer, pending: pending || busy, ready, resume, state };
 }

@@ -20,10 +20,12 @@ function useAnonymousDraftRecovery(args: HookProps) {
 }
 function setupRecovery(lifecycleState: 'idle' | 'loading' | 'saved' | 'saving' = 'idle') {
   const calls: string[] = [],
-    onReset = vi.fn(() => calls.push('reset'));
+    onReset = vi.fn(() => {
+      calls.push('reset');
+    });
   const onRestore = vi.fn(() => calls.push('restore'));
   // prettier-ignore
-  const props: HookProps = { activeId: null, category: null, draft: snapshot.draft, lifecycleState, neutralHost: globalThis.location.host, onReset, onRestore, resetCategory: null, step: 'details' };
+  const props: HookProps = { activeId: null, category: null, draft: snapshot.draft, lifecycleState, neutralHost: globalThis.location.host, onReset: async beforeReset => { if (beforeReset && !(await beforeReset())) return false; onReset(); return true; }, onRestore, resetCategory: null, step: 'details' };
   const hook = renderHook(value => useAnonymousDraftRecovery(value), { initialProps: props });
   return { ...hook, calls, onReset, onRestore, props };
 }

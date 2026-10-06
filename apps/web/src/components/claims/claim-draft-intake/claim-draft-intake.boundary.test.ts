@@ -100,7 +100,9 @@ describe('Claim Draft Intake import and scope boundary', () => {
     expect(preview).toContain('onClick={submit}');
     expect(preview).not.toMatch(/<form|onSubmit|formAction|type=["']submit/);
     const mainPanel = readFileSync(join(root, 'main-panel.tsx'), 'utf8');
-    expect(mainPanel).toMatch(/key=.*activeDraftId.*activeDraftVersion/);
+    expect(mainPanel).toContain("key={props.activeDraftId ?? 'unsaved'}");
+    expect(mainPanel).toContain('activeDraftVersion={props.activeDraftVersion}');
+    expect(mainPanel).toContain('prepareForContinuation={props.prepareForContinuation}');
     expect(mainPanel).toContain('managerOnly={props.managerOnly}');
     const index = readFileSync(join(root, 'index.tsx'), 'utf8');
     expect(index).toContain("flow.step !== 'preview' && flow.step !== 'complete'");

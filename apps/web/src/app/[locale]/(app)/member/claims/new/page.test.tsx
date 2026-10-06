@@ -88,7 +88,7 @@ describe('NewClaimPage dormant draft intake', () => {
     expect(h.t).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
     expect(h.member).toHaveBeenCalledWith('member-1', 'tenant_ks');
     // prettier-ignore
-    expect(h.intake).toHaveBeenCalledWith({ freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'front-door.localhost:3000', tenantId: 'tenant_ks' });
+    expect(h.intake).toHaveBeenCalledWith({ draftAccount: { emailVerified: false, expectedContext: { ownerUserId: 'member-1', tenantId: 'tenant_ks' } }, freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'front-door.localhost:3000', tenantId: 'tenant_ks' });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-intake-props')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
