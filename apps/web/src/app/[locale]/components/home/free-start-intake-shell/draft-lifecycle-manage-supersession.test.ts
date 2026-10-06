@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DraftLifecycleCommands } from './draft-lifecycle-commands';
 import { DraftEditor, type DraftAccount, type DraftEditorArgs } from './draft-lifecycle-editor';
 import { shownState } from './draft-lifecycle-operations';
+import { held } from './tests/terminal-draft-fixtures';
 import { draftFailureState, type DraftState, type SavedDraft } from './types';
-
 const actions = vi.hoisted(() => ({
   account: vi.fn(),
   list: vi.fn(),
@@ -53,14 +53,6 @@ const listed = (items: SavedDraft[]) => ({
   expectedContext: account.expectedContext,
 });
 type Held = { resolve: (value: unknown) => void; reject: (error: unknown) => void };
-function held<T>() {
-  let resolve!: (value: T) => void, reject!: (error: unknown) => void;
-  const promise = new Promise<T>((done, fail) => {
-    resolve = done;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
-}
 type Seed = 'listed' | 'active' | 'fresh' | 'none';
 function setup(seed: Seed = 'listed', owner: DraftAccount | null = account) {
   const onResume = vi.fn(),
@@ -144,9 +136,14 @@ describe('superseded manager discovery', () => {
   });
   it('denies a stale list receipt after edits, releasing busy and keeping the edit', async () => {
     const discovery = held<unknown>(),
-      list = held<unknown>();
+      list = held<unknown>(),
+      write = held<unknown>();
     actions.account.mockReturnValueOnce(discovery.promise);
     actions.list.mockReturnValueOnce(list.promise);
+    actions.create.mockReturnValueOnce(write.promise);
+    actions.update.mockImplementation(input =>
+      Promise.resolve({ ok: true, draft: { ...savedB, ...input, version: 2 } })
+    );
     const { editor, commands, change, onReset } = setup();
     const managing = commands.openManage();
     change({ draft: newer });
@@ -162,7 +159,21 @@ describe('superseded manager discovery', () => {
     await vi.waitFor(() => expect(shownState(editor.view)).not.toBe('loading'));
     expect(editor.current().draft).toEqual(latest);
     expect(onReset).not.toHaveBeenCalled();
-    expect(actions.create).not.toHaveBeenCalled();
+    expect(actions.create).toHaveBeenCalledOnce();
+    write.resolve({ ok: true, draft: { ...savedB, ...newer } });
+    await vi.waitFor(() => expect(editor.view.active?.version).toBe(2));
+    expect(actions.update).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        id: savedB.id,
+        expectedVersion: 1,
+        expectedContext: account.expectedContext,
+        summary: latest.summary,
+      })
+    );
+    expect(editor.view.active?.summary).toBe(latest.summary);
+    expect(editor.view.items).toEqual([saved]);
+    expect(editor.view.state).toBe('saved');
+    expect(actions.create).toHaveBeenCalledOnce();
     commands.dispose();
   });
   it('stays busy over a failed bootstrap list, then shows its own failure', async () => {

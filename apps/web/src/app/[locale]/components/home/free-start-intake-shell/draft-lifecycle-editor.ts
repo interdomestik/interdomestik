@@ -234,8 +234,7 @@ export class DraftEditor {
       !this.initialized ||
       this.explicitRequired ||
       this.awaitingReset ||
-      this.terminal ||
-      (this.view.items.length > 0 && !this.view.active)
+      this.terminal
     )
       return;
     const snapshot = this.snapshot();

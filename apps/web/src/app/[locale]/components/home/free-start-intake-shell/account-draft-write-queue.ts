@@ -36,6 +36,7 @@ export type AccountDraftWriteQueue = {
   dispose: () => void;
   adopt: (draft: SavedDraft) => boolean;
   getDraft: () => SavedDraft | null;
+  getWriteFeedback: () => DraftSaveState | null;
 };
 
 // A create answered with this code (or a thrown error) may have committed on the server with
@@ -242,5 +243,6 @@ export function createAccountDraftWriteQueue(
       return true;
     },
     getDraft: () => draft,
+    getWriteFeedback: () => (inflight ? 'saving' : failed),
   };
 }

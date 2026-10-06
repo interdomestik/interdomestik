@@ -49,7 +49,7 @@ export class DraftLifecycleCommands {
     if (!context) return this.failure('authRequired', required);
     const token = this.editor.token();
     const live = () => !op || this.ops.live(op);
-    this.editor.patch({ state: 'loading' });
+    this.editor.patch({ state: this.editor.queue?.getWriteFeedback() ?? 'loading' });
     const accepted = await this.reads.run(
       () => listFreeStartDrafts({ cursor, expectedContext: context }),
       result => {
@@ -62,7 +62,7 @@ export class DraftLifecycleCommands {
           nextCursor: result.nextCursor,
           readAdmitted: true,
           // Raw state stays truthful; a live manager hold masks it through `managerBusy`.
-          state: this.editor.editedState(),
+          state: this.editor.queue?.getWriteFeedback() ?? this.editor.editedState(),
         });
         this.editor.initialized = true;
         return true;
