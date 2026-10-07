@@ -92,7 +92,7 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
             })}
           </div>
           <label className="mt-5 block max-w-sm text-sm font-semibold text-slate-800">
-            <span>Trip country</span>
+            <span>{copy.countryLabel}</span>
             <select
               className="mt-2 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
               value={country}
@@ -100,7 +100,7 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
             >
               {HELP_NOW_COUNTRY_PACKS.map(pack => (
                 <option key={pack.country} value={pack.country}>
-                  {pack.marketLabel}
+                  {copy.countries[pack.country]}
                 </option>
               ))}
             </select>
@@ -124,6 +124,7 @@ export function HelpNowExperience({ locale }: HelpNowExperienceProps) {
         <TripMode copy={copy} country={country} packs={signedOffPacks} />
         <ClaimPackPreview
           copy={copy}
+          locale={contentLocale}
           pack={pack}
           completedCount={completed.length}
           country={country}

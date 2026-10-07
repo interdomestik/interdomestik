@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import type { IncidentScenePack } from '@interdomestik/domain-assistance';
+import { PUBLIC_FREE_START_ENTRY_HREF } from '@/lib/public-membership-entry';
 import type { HelpNowCopy } from './copy';
 import { trackHelpNowEvent } from './analytics';
-import type { HelpNowCountry, HelpNowScenario } from './content-packs';
+import type { HelpNowContentLocale, HelpNowCountry, HelpNowScenario } from './content-packs';
 import { HelpNowMetric, HelpNowPanel } from './help-now-ui';
 
 type ClaimPackPreviewProps = Readonly<{
   copy: HelpNowCopy;
+  locale: HelpNowContentLocale;
   pack: IncidentScenePack | null;
   completedCount: number;
   country: HelpNowCountry;
@@ -16,8 +18,33 @@ type ClaimPackPreviewProps = Readonly<{
   scenario: HelpNowScenario;
 }>;
 
+type HelpNowContinuationProps = Readonly<{
+  copy: HelpNowCopy;
+  locale: HelpNowContentLocale;
+}>;
+
+// Native link only: no click handler, query or state transfer to the separate organizer.
+function HelpNowContinuation({ copy, locale }: HelpNowContinuationProps) {
+  return (
+    <div className="mt-4 border-t border-slate-200 pt-4">
+      <p id="help-now-continue-note" className="text-sm text-slate-600">
+        {copy.continueNote}
+      </p>
+      <a
+        href={`/${locale}${PUBLIC_FREE_START_ENTRY_HREF}`}
+        data-testid="help-now-continue"
+        aria-describedby="help-now-continue-note"
+        className="mt-3 inline-flex rounded-md bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+      >
+        {copy.continueLink}
+      </a>
+    </div>
+  );
+}
+
 export function ClaimPackPreview({
   copy,
+  locale,
   pack,
   completedCount,
   country,
@@ -38,10 +65,16 @@ export function ClaimPackPreview({
   }
 
   const metrics = [
-    { label: 'Access zone', value: pack?.zone },
-    { label: 'Checklist', value: completedCount },
-    { label: 'Local evidence', value: evidenceCount },
+    ...(pack?.zone === 'free' ? [{ label: copy.metricGuidance, value: copy.guidanceFree }] : []),
+    { label: copy.metricChecklist, value: completedCount },
+    { label: copy.metricFiles, value: evidenceCount },
   ];
+  const previewSummary = [
+    copy.previewReady,
+    `${copy.countryLabel}: ${copy.countries[country]}`,
+    `${copy.metricChecklist}: ${completedCount}`,
+    `${copy.metricFiles}: ${evidenceCount}`,
+  ].join(' · ');
 
   return (
     <HelpNowPanel title={copy.packTitle} titleId="claim-pack-title">
@@ -59,12 +92,11 @@ export function ClaimPackPreview({
             onClick={handleGeneratePreview}
             className="mt-4 rounded-md border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-900"
           >
-            Generate local preview
+            {copy.generate}
           </button>
           {isPreviewReady ? (
             <output className="mt-3 block text-sm font-medium text-emerald-800">
-              Local preview ready for {country}: {completedCount} checklist items and{' '}
-              {evidenceCount} evidence notes.
+              {previewSummary}
             </output>
           ) : null}
         </>
@@ -74,6 +106,7 @@ export function ClaimPackPreview({
           <p className="mt-1">{copy.darkBody}</p>
         </div>
       )}
+      <HelpNowContinuation copy={copy} locale={locale} />
     </HelpNowPanel>
   );
 }

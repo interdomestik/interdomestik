@@ -26,8 +26,11 @@ describe('HelpNowExperience', () => {
       'data-scope',
       'public-no-account'
     );
-    expect(screen.getAllByText('Country pack awaiting L2 sign-off')).toHaveLength(2);
-    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Country guidance not available yet')).toHaveLength(2);
+    expect(screen.queryByText('Country guidance available')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/reviewer|signed off|Reviewed country packs/i)
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/112|192/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('help-now-generate-pack')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Flight: coming soon' })).toBeDisabled();
@@ -38,21 +41,26 @@ describe('HelpNowExperience', () => {
     const user = userEvent.setup();
     render(<HelpNowExperience locale="mk" />);
 
-    expect(screen.getByLabelText('Trip country')).toHaveValue('MK');
+    expect(screen.getByLabelText('Земја на патување')).toHaveValue('MK');
     await user.click(screen.getByRole('button', { name: 'Имотна штета' }));
     expect(screen.getByRole('button', { name: 'Имотна штета' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
 
-    expect(screen.getByText('Пакетот за земјата е одобрен')).toBeInTheDocument();
-    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
+    expect(screen.getByText('Упатствата за земјата се достапни')).toBeInTheDocument();
+    expect(screen.queryByText(/Одобрени пакети/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Упатствата за земјата сè уште не се достапни')
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('help-now-generate-pack')).toBeInTheDocument();
     expect(screen.queryByText(/112|192/)).not.toBeInTheDocument();
-    expect(screen.getByText('Access zone')).toBeInTheDocument();
+    expect(screen.getByText('Упатства')).toBeInTheDocument();
+    expect(screen.getByText('Бесплатни и јавни')).toBeInTheDocument();
 
     await user.click(screen.getByTestId('help-now-generate-pack'));
-    expect(screen.getByText(/Local preview ready for MK/)).toBeInTheDocument();
+    const preview = screen.getByText(/Локалниот преглед е подготвен/);
+    expect(preview).toHaveTextContent('Северна Македонија');
   });
 
   it('tracks page open once when the trip country changes', async () => {
@@ -106,7 +114,7 @@ describe('HelpNowExperience', () => {
     await user.upload(screen.getByTestId('help-now-shot-0'), file);
 
     expect(screen.getByText(/blocked-storage.jpg/)).toBeInTheDocument();
-    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('1 items');
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('this device: 1');
 
     setItemSpy.mockRestore();
   });
@@ -127,7 +135,7 @@ describe('HelpNowExperience', () => {
       await user.upload(screen.getByTestId('help-now-shot-0'), file);
 
       expect(screen.getByText(/blocked-access.jpg/)).toBeInTheDocument();
-      expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('1 items');
+      expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('this device: 1');
     } finally {
       if (descriptor) {
         Object.defineProperty(globalThis, 'localStorage', descriptor);
@@ -144,7 +152,7 @@ describe('HelpNowExperience', () => {
     render(<HelpNowExperience locale="en" />);
     await user.click(screen.getByTestId('help-now-clear-bundle'));
 
-    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('0 items');
+    expect(screen.getByTestId('help-now-local-only')).toHaveTextContent('this device: 0');
     removeItemSpy.mockRestore();
   });
 });
