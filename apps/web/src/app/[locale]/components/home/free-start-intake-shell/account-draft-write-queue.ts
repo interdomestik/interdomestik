@@ -26,6 +26,8 @@ export type AccountDraftWriteQueueOptions = {
   update: (payload: DraftUpdateRequest) => Promise<DraftWriteResult>;
   onState: (state: DraftSaveState) => void;
   onAck: (draft: SavedDraft, fingerprint: string, current: boolean) => void;
+  /** A definite refusal's original code, observed only after the failure is stored. */
+  onRefused?: (code: string) => void;
 };
 
 export type AccountDraftWriteQueue = {
@@ -154,6 +156,7 @@ export function createAccountDraftWriteQueue(
     if (!wasCreate && !thrown && code === 'conflict') failed = 'conflict';
     else failed = thrown ? 'error' : failureState(code);
     emitState(failed);
+    if (!thrown) notify(() => options.onRefused?.(code));
   }
 
   async function run(): Promise<void> {

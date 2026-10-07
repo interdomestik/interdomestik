@@ -3,6 +3,7 @@ import {
   listFreeStartDrafts,
   resumeFreeStartDraft,
 } from '@/actions/free-start-drafts';
+import { ownsWrite } from './draft-lifecycle-admission';
 import type { DraftEditor, DraftEditorToken } from './draft-lifecycle-editor';
 import { DraftOperations, failDraft, type DraftOperation } from './draft-lifecycle-operations';
 import {
@@ -150,7 +151,7 @@ export class DraftLifecycleCommands {
       !saved ||
       this.editor.savedFingerprint !== this.editor.fingerprint()
     ) {
-      if (required && this.editor.owns(token)) throw new Error('secure_save_intent_failed');
+      if (required && ownsWrite(this.editor, token)) throw new Error('secure_save_intent_failed');
       return false;
     }
     return true;

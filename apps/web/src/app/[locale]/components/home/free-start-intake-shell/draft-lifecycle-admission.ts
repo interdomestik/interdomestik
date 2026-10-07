@@ -1,6 +1,6 @@
 import type { AccountDraftWriteQueue } from './account-draft-write-queue';
-import { accountKey, type DraftEditor, type DraftEditorToken } from './draft-lifecycle-editor';
-import type { SavedDraft } from './types';
+import type { DraftEditor } from './draft-lifecycle-editor';
+import { accountKey, type DraftEditorToken, type SavedDraft } from './types';
 
 type RevokedAdmission = {
   owner: string;
@@ -39,6 +39,36 @@ export function revokeDraftAdmission(editor: DraftEditor): void {
   editor.admissionRevoked = true;
   if (editor.account) editor.account = { ...editor.account, emailVerified: false };
   editor.patch({ intent, verified: false, readAdmitted: false, state: 'idle' });
+}
+
+type WriteRefusal = Readonly<{ owner: string; from: number; to: number }>;
+const refusals = new WeakMap<DraftEditor, WriteRefusal>();
+
+/**
+ * A live queued create/update's own authRequired proves write admission is gone, whether signed
+ * out or signed in unverified, so it revokes like a direct receipt; only fresh discovery later
+ * tells which. An automatic save gains a save intent so the existing OTP is reachable. Inert for
+ * a superseded generation, owner, tenant, terminal, disposed or replaced queue; never retries.
+ */
+export function refuseDraftWrite(editor: DraftEditor, token: DraftEditorToken, code: string): void {
+  if (code !== 'authRequired' || editor.terminal || editor.queueToken !== token) return;
+  if (!editor.owns(token)) return;
+  const from = editor.generation;
+  revokeDraftAdmission(editor);
+  editor.patch({ intent: editor.view.intent ?? 'save', state: 'error' });
+  refusals.set(editor, { owner: token.owner, from, to: editor.generation });
+}
+
+/** A write's own token, or the generation its own queued authRequired just revoked. */
+export function ownsWrite(editor: DraftEditor, token: DraftEditorToken): boolean {
+  if (editor.owns(token)) return true;
+  const refusal = refusals.get(editor);
+  return (
+    !editor.disposed &&
+    refusal?.owner === token.owner &&
+    refusal.from === token.generation &&
+    refusal.to === editor.generation
+  );
 }
 
 /**

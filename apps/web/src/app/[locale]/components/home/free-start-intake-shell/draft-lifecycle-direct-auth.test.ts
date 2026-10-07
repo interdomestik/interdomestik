@@ -1,35 +1,26 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { DraftLifecycleCommands } from './draft-lifecycle-commands';
 import { DraftEditor } from './draft-lifecycle-editor';
+import { configureDefaultActions, facts, verified } from './tests/account-draft-hook-fixtures';
 import {
-  configureDefaultActions,
-  facts,
-  verified,
-  type Props,
-} from './tests/account-draft-hook-fixtures';
+  createAuthSuite,
+  CURSOR,
+  SIGNED_OUT,
+  type AuthHarness,
+} from './tests/draft-lifecycle-auth-fixtures';
 import { account, held, saved } from './tests/terminal-draft-fixtures';
 
 /** Suite-owned action mocks; no real session, tenant, database or outbound call is reached. */
-const actions = vi.hoisted(() => ({
-  account: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  list: vi.fn(),
-  resume: vi.fn(),
-  remove: vi.fn(),
-}));
-vi.mock('@/actions/free-start-drafts', () => ({
-  getFreeStartDraftAccount: actions.account,
-  createFreeStartDraft: actions.create,
-  updateFreeStartDraft: actions.update,
-  listFreeStartDrafts: actions.list,
-  resumeFreeStartDraft: actions.resume,
-  deleteFreeStartDraft: actions.remove,
-}));
+const actions = await vi.hoisted(async () => {
+  const { createDraftActionMocks } = await import('./tests/draft-lifecycle-auth-fixtures');
+  return createDraftActionMocks();
+});
+vi.mock('@/actions/free-start-drafts', async () => {
+  const { draftActionModule } = await import('./tests/draft-lifecycle-auth-fixtures');
+  return draftActionModule(actions);
+});
 
 const { expectedContext } = account;
-const CURSOR = { id: saved.id, updatedAt: saved.updatedAt };
-const SIGNED_OUT = { ok: false, code: 'authRequired' };
 const FACTS = facts(saved.summary);
 const OWNER_B = { ...account, expectedContext: { ...expectedContext, ownerUserId: 'owner-b' } };
 const LIVE = ['load', 'manage', 'resume', 'remove'] as const;
@@ -54,35 +45,12 @@ const REQUEST: Record<Operation, object> = {
 };
 
 /** Real editor, commands, operations, reads and write queue over the suite-owned mocks only. */
-function harness() {
-  const onReset = vi.fn();
-  const onResume = vi.fn();
-  let props: Props = { ...verified, draft: FACTS };
-  const editor = new DraftEditor(
-    () => ({ ...props, onReset, onResume }),
-    () => undefined
-  );
-  const change = (next: Partial<Props>) => {
-    props = { ...props, ...next };
-  };
-  return { editor, commands: new DraftLifecycleCommands(editor), onReset, change };
-}
-type Harness = ReturnType<typeof harness>;
-
-/** An acknowledged source plus an admitted manager list that offers Load more. */
-async function establish(h: Harness): Promise<void> {
-  await expect(h.commands.openSave()).resolves.toBe(true);
-  await expect(h.commands.openManage()).resolves.toBe(true);
-  expect(h.editor.view).toMatchObject({
-    active: saved,
-    items: [saved],
-    nextCursor: CURSOR,
-    intent: 'manage',
-    verified: true,
-    readAdmitted: true,
-    managerBusy: false,
-  });
-}
+const { reset, harness, establish, expectWrites, observe } = createAuthSuite(
+  actions,
+  { Editor: DraftEditor, Commands: DraftLifecycleCommands, configure: configureDefaultActions },
+  { ...verified, draft: FACTS }
+);
+type Harness = AuthHarness;
 
 /** Dispatches one direct manager action whose server receipt `receipt` supplies. */
 function direct(
@@ -108,21 +76,6 @@ async function supersede(h: Harness, kind: Supersession): Promise<void> {
   }
 }
 
-/** Everything a stale receipt could disturb: presentation, owner, generation and source. */
-const observe = (h: Harness) => ({
-  view: h.editor.view,
-  account: h.editor.account,
-  generation: h.editor.generation,
-  queue: h.editor.queue,
-  fingerprint: h.editor.savedFingerprint,
-  retired: h.editor.retiredDraft,
-});
-
-function expectWrites(creates: number, updates: number): void {
-  expect(actions.create).toHaveBeenCalledTimes(creates);
-  expect(actions.update).toHaveBeenCalledTimes(updates);
-}
-
 /** Revoked manage presentation (the band shows its existing OTP) with facts left in place. */
 function expectRevoked(h: Harness): void {
   expect(h.editor.view).toMatchObject({
@@ -143,16 +96,7 @@ function expectRevoked(h: Harness): void {
 }
 
 describe('direct account draft actions after an authoritative expired session', () => {
-  beforeEach(() => {
-    for (const mock of Object.values(actions)) mock.mockReset();
-    configureDefaultActions(actions);
-    actions.list.mockResolvedValue({
-      ok: true,
-      items: [saved],
-      nextCursor: CURSOR,
-      expectedContext,
-    });
-  });
+  beforeEach(reset);
 
   it.each(LIVE)(
     'revokes admitted source on a live direct %s authRequired until fresh verification',

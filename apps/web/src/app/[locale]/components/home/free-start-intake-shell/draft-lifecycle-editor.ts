@@ -5,6 +5,7 @@ import {
   type AccountDraftWriteQueue,
   type DraftWriteSnapshot,
 } from './account-draft-write-queue';
+import { refuseDraftWrite } from './draft-lifecycle-admission';
 import {
   accountKey,
   createUuidV4,
@@ -208,6 +209,7 @@ export class DraftEditor {
         this.savedFingerprint = fingerprint;
         this.patch({ active: draft, verified: true });
       },
+      onRefused: code => refuseDraftWrite(this, token, code),
     });
     if (this.view.active) this.queue.adopt(this.view.active);
     return this.queue;
