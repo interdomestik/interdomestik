@@ -274,6 +274,8 @@ test.describe('pre-membership Free Start recovery', () => {
         await pair.first.evaluate(() => (window as BarrierWindow).__idaRestoreStorage?.());
         await pair.first.reload();
         const returned = pair.first.getByTestId('premium-free-start-organizer');
+        await expect(returned).toHaveAttribute('data-save-behavior', 'account-autosave');
+        await expect(returned.getByTestId('account-draft-status')).toHaveAttribute('data-state', /^(idle|saved)$/);
         await openSaveArea(returned);
         await returned.getByTestId('free-start-manage-open').click();
         await returned.getByTestId(`free-start-resume-${latest.id}`).click();
