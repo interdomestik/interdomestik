@@ -54,6 +54,16 @@ export function SavedDraftContinuation({
         href={href}
         aria-busy={pending}
         onClick={event => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
+            return;
+          }
           event.preventDefault();
           if (moving.current) return;
           moving.current = true;

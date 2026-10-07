@@ -160,4 +160,79 @@ describe('public continuation attempt ownership', () => {
     expect(editor.view.active).toEqual(saved);
     commands.dispose();
   });
+  describe('native anchor semantics', () => {
+    const canonical = `/en/member/claims/new?mode=drafts#draft=${saved.id}`;
+    function activate(link: HTMLElement, init: MouseEventInit = {}): boolean {
+      let prevented = false;
+      const capture = (event: Event) => {
+        prevented = event.defaultPrevented;
+        event.preventDefault();
+      };
+      document.addEventListener('click', capture, { once: true });
+      act(() => {
+        link.dispatchEvent(
+          new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            detail: 1,
+            ...init,
+          })
+        );
+      });
+      document.removeEventListener('click', capture);
+      return prevented;
+    }
+    function observe() {
+      const parts = setup();
+      const prepare = vi.spyOn(parts.lifecycle, 'prepareForContinuation');
+      const release = vi.spyOn(parts.lifecycle, 'releaseContinuation');
+      parts.view();
+      return { ...parts, prepare, release, link: screen.getByTestId('saved-draft-continue') };
+    }
+    it.each<[string, MouseEventInit]>([
+      ['ctrl', { ctrlKey: true }],
+      ['meta', { metaKey: true }],
+      ['shift', { shiftKey: true }],
+      ['alt', { altKey: true }],
+      ['middle button', { button: 1 }],
+      ['secondary button', { button: 2 }],
+    ])('leaves native anchor navigation alone for %s activation', (_name, init) => {
+      const { commands, link, prepare, release } = observe();
+      expect(activate(link, init)).toBe(false);
+      expect(link).toHaveAttribute('href', canonical);
+      expect(link).toHaveAttribute('aria-busy', 'false');
+      expect(prepare).not.toHaveBeenCalled();
+      expect(release).not.toHaveBeenCalled();
+      expect(assign).not.toHaveBeenCalled();
+      commands.dispose();
+    });
+    it('keeps an already prevented activation prevented without preparation', () => {
+      const { commands, link, prepare, release } = observe();
+      link.addEventListener('click', event => event.preventDefault());
+      expect(activate(link)).toBe(true);
+      expect(link).toHaveAttribute('aria-busy', 'false');
+      expect(prepare).not.toHaveBeenCalled();
+      expect(release).not.toHaveBeenCalled();
+      expect(assign).not.toHaveBeenCalled();
+      commands.dispose();
+    });
+    it('still prepares and assigns once on an ordinary click after a modified click', async () => {
+      const { commands, link, prepare } = observe();
+      expect(activate(link, { ctrlKey: true })).toBe(false);
+      expect(prepare).not.toHaveBeenCalled();
+      expect(activate(link)).toBe(true);
+      await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(canonical));
+      await waitFor(() => expect(link).toHaveAttribute('aria-busy', 'false'));
+      expect(prepare).toHaveBeenCalledOnce();
+      commands.dispose();
+    });
+    it('keeps keyboard-generated activation intercepted and prepared once', async () => {
+      const { commands, link, prepare } = observe();
+      expect(activate(link, { detail: 0 })).toBe(true);
+      await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(canonical));
+      expect(prepare).toHaveBeenCalledOnce();
+      commands.dispose();
+    });
+  });
 });
