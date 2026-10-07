@@ -7,7 +7,6 @@ import {
   QUIET_MS,
   settle,
   setup,
-  verified,
   type Props,
 } from './tests/account-draft-hook-fixtures';
 import { account, held, saved } from './tests/terminal-draft-fixtures';

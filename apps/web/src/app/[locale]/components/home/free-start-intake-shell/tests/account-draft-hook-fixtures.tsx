@@ -37,11 +37,21 @@ export const facts = (summary: string): DraftState => ({
 });
 export const verified: Props = { account, category: 'vehicle', draft: blank, step: 'details' };
 
+const MICROTASK_YIELDS = 25;
+/** One sequential `.then` hop per microtask; Promise.all would collapse them into one drain. */
+function chainMicrotasks(hops: number): Promise<void> {
+  return Array.from({ length: hops }).reduce<Promise<void>>(
+    chain => chain.then(() => undefined),
+    Promise.resolve()
+  );
+}
+
 /** Advances fake time and drains action/queue microtasks inside one act scope; no waitFor. */
 export async function settle(ms = 0): Promise<void> {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(ms);
-    for (let tick = 0; tick < 25; tick += 1) await Promise.resolve();
+    // 24 chained hops plus this await are exactly 25 sequential microtask yields.
+    await chainMicrotasks(MICROTASK_YIELDS - 1);
   });
 }
 
@@ -69,10 +79,12 @@ export function configureDefaultActions(actions: DraftActionMocks): void {
   actions.account.mockResolvedValue({ ok: true, ...account });
   actions.list.mockResolvedValue({ ok: true, items: [], nextCursor: null, expectedContext });
   actions.create.mockResolvedValue({ ok: true, draft: saved });
-  actions.update.mockImplementation(async (input: { expectedVersion: number }) => ({
-    ok: true,
-    draft: { ...saved, version: input.expectedVersion + 1 },
-  }));
+  // Executor keeps immediate evaluation; a throwing expectedVersion getter still rejects.
+  const nextVersion = (input: { expectedVersion: number }) =>
+    new Promise(resolve =>
+      resolve({ ok: true, draft: { ...saved, version: input.expectedVersion + 1 } })
+    );
+  actions.update.mockImplementation(nextVersion);
   actions.resume.mockResolvedValue({ ok: true, draft: saved, expectedContext });
   actions.remove.mockResolvedValue({ ok: true });
 }

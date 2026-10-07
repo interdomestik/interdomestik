@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { EMPTY_DRAFT } from './constants';
 import { writeAnonymousDraft } from './anonymous-draft-recovery';
 import { useAnonymousDraftRecovery } from './use-anonymous-draft-recovery';
+import { held } from './tests/terminal-draft-fixtures';
 const snapshot = {
   category: 'property' as const,
   draft: { ...EMPTY_DRAFT, summary: 'Water damaged the garage.' },
@@ -34,14 +35,23 @@ function setup(onReset: (beforeReset?: () => Promise<boolean> | boolean) => Prom
   );
   return { ...hook, onRestore };
 }
+type BeforeReset = () => Promise<boolean> | boolean;
+/** Resume calls onReset() bare and ignores beforeReset, so only the held gate settles it. */
+function heldResumeReset() {
+  const gate = held<boolean>();
+  return { finish: gate.resolve, reject: gate.reject, reset: vi.fn(() => gate.promise) };
+}
+/** Discard awaits the gate, then invokes beforeReset only when the gate allowed it. */
+function heldDiscardReset() {
+  const gate = held<boolean>();
+  const reset = vi.fn(async (beforeReset?: BeforeReset) => {
+    const allowed = await gate.promise;
+    return allowed && Boolean(await beforeReset?.());
+  });
+  return { finish: gate.resolve, reset };
+}
 it('settles the terminal reset before restoring consented notes', async () => {
-  let finish!: (value: boolean) => void;
-  const reset = vi.fn(
-    () =>
-      new Promise<boolean>(resolve => {
-        finish = resolve;
-      })
-  );
+  const { finish, reset } = heldResumeReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   act(() => hook.result.current.resume());
@@ -61,13 +71,7 @@ it('preserves the offered copy when terminal retirement refuses', async () => {
   expect(hook.result.current.offer?.draft.summary).toBe(snapshot.draft.summary);
 });
 it('does not restore after unmount while terminal retirement is pending', async () => {
-  let finish!: (value: boolean) => void;
-  const reset = vi.fn(
-    () =>
-      new Promise<boolean>(resolve => {
-        finish = resolve;
-      })
-  );
+  const { finish, reset } = heldResumeReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   act(() => hook.result.current.resume());
@@ -91,13 +95,7 @@ it('retains consented notes when terminal retirement rejects', async () => {
   expect(hook.result.current.offer?.draft.summary).toBe(snapshot.draft.summary);
 });
 it('revalidates the copy after delayed retirement instead of adopting superseded notes', async () => {
-  let finish!: (value: boolean) => void;
-  const reset = vi.fn(
-    () =>
-      new Promise<boolean>(resolve => {
-        finish = resolve;
-      })
-  );
+  const { finish, reset } = heldResumeReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   act(() => hook.result.current.resume());
@@ -116,13 +114,7 @@ it('revalidates the copy after delayed retirement instead of adopting superseded
 });
 
 it('keeps discard busy and preserves its copy until terminal retirement settles', async () => {
-  let finish!: (value: boolean) => void;
-  const reset = vi.fn(async (beforeReset?: () => Promise<boolean> | boolean) => {
-    const allowed = await new Promise<boolean>(resolve => {
-      finish = resolve;
-    });
-    return allowed && Boolean(await beforeReset?.());
-  });
+  const { finish, reset } = heldDiscardReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   const original = localStorage.getItem('interdomestik_free_start_recovery_v1');
@@ -147,13 +139,7 @@ it('preserves the copy when discard retirement rejects', async () => {
   expect(localStorage.getItem('interdomestik_free_start_recovery_v1')).toBe(original);
 });
 it('does not let a rejected old resume overwrite a newer deletion', async () => {
-  let reject!: (error: Error) => void;
-  const reset = vi.fn(
-    () =>
-      new Promise<boolean>((_resolve, fail) => {
-        reject = fail;
-      })
-  );
+  const { reject, reset } = heldResumeReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   act(() => hook.result.current.resume());
@@ -183,13 +169,7 @@ it('preserves the copy when discard retirement refuses', async () => {
   expect(hook.onRestore).not.toHaveBeenCalled();
 });
 it('does not clear the copy after unmount during discard retirement', async () => {
-  let finish!: (value: boolean) => void;
-  const reset = vi.fn(async (beforeReset?: () => Promise<boolean> | boolean) => {
-    const allowed = await new Promise<boolean>(resolve => {
-      finish = resolve;
-    });
-    return allowed && Boolean(await beforeReset?.());
-  });
+  const { finish, reset } = heldDiscardReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   const original = localStorage.getItem('interdomestik_free_start_recovery_v1');
@@ -200,13 +180,7 @@ it('does not clear the copy after unmount during discard retirement', async () =
   expect(localStorage.getItem('interdomestik_free_start_recovery_v1')).toBe(original);
 });
 it('does not let a rejected old resume overwrite a replacement offer', async () => {
-  let reject!: (error: Error) => void;
-  const reset = vi.fn(
-    () =>
-      new Promise<boolean>((_resolve, fail) => {
-        reject = fail;
-      })
-  );
+  const { reject, reset } = heldResumeReset();
   const hook = setup(reset);
   await waitFor(() => expect(hook.result.current.state).toBe('offer'));
   act(() => hook.result.current.resume());
