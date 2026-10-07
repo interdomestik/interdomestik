@@ -136,6 +136,6 @@ describe('Help Now continuation', () => {
     expect(prevented).toEqual([false, false, false, false, false]);
     expect(hoisted.trackEventMock).toHaveBeenCalledTimes(trackedCalls);
     expect(localStorage.getItem(EVIDENCE_KEY)).toBe(storedEvidence);
-    expect(sessionStorage.length).toBe(0);
+    expect(sessionStorage).toHaveLength(0);
   });
 });

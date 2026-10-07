@@ -94,7 +94,8 @@ test.describe('MOB-01 public Help Now route', () => {
       const continuation = page.getByTestId('help-now-continue');
       await expect(continuation).toHaveCount(1);
       await expect(continuation).toBeVisible();
-      await expect(continuation).toHaveAttribute('href', '/mk/#free-start-intake');
+      const expectedHref = `${routes.home('mk')}/#free-start-intake`;
+      await expect(continuation).toHaveAttribute('href', expectedHref);
       await expect(page.getByText(/112|192/)).toHaveCount(0);
       expect(protectedRequests).toEqual([]);
     } finally {
@@ -115,7 +116,8 @@ test.describe('MOB-01 public Help Now route', () => {
 
       const continuation = page.getByRole('link', { name: 'Organizo të dhënat e ngjarjes' });
       await expect(continuation).toHaveCount(1);
-      await expect(continuation).toHaveAttribute('href', '/sq/#free-start-intake');
+      const expectedHref = `${routes.home('sq')}/#free-start-intake`;
+      await expect(continuation).toHaveAttribute('href', expectedHref);
 
       await continuation.focus();
       await page.keyboard.press('Enter');
