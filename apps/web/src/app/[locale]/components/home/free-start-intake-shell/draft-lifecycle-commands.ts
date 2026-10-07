@@ -55,12 +55,16 @@ export class DraftLifecycleCommands {
     if (!context) return this.failure('authRequired', required);
     const token = this.editor.token();
     const live = () => !op || this.ops.live(op);
+    let signedOut = false; // its own live revocation still rejects a required intent
     this.editor.patch({ state: this.editor.queue?.getWriteFeedback() ?? 'loading' });
     const accepted = await this.reads.run(
       () => listFreeStartDrafts({ cursor, expectedContext: context }),
       result => {
         if (!live() || !reconcileDraftRead(this.editor, this.reads, token, true)) return false;
-        if (!result.ok) return this.failure(result.code);
+        if (!result.ok) {
+          signedOut = result.code === 'authRequired';
+          return this.ops.failReceipt(result.code);
+        }
         if (!receiptMatches(result.expectedContext, context))
           return this.failure('unavailableAccountContext');
         this.editor.patch({
@@ -76,7 +80,7 @@ export class DraftLifecycleCommands {
         if (live() && reconcileDraftRead(this.editor, this.reads, token)) this.failure('error');
       }
     );
-    if (!accepted && required && this.editor.owns(token))
+    if (!accepted && required && (signedOut || this.editor.owns(token)))
       throw new Error('secure_save_intent_failed');
     return accepted;
   }
@@ -192,7 +196,7 @@ export class DraftLifecycleCommands {
       () => resumeFreeStartDraft({ id, expectedContext: context }),
       result => {
         if (!this.editor.owns(token, true) || !this.ops.live(op)) return false;
-        if (!result.ok) return this.failure(result.code);
+        if (!result.ok) return this.ops.failReceipt(result.code);
         if (!receiptMatches(result.expectedContext, context))
           return this.failure('unavailableAccountContext');
         if (options?.reviewOnly && !isReviewReadySavedDraft(result.draft)) {
@@ -234,7 +238,7 @@ export class DraftLifecycleCommands {
       if (!result.ok) {
         this.editor.terminal = false;
         const code: string = result.code;
-        if (code !== 'conflict') return this.failure(code);
+        if (code !== 'conflict') return this.ops.failReceipt(code);
         this.editor.patch({ state: 'conflict' });
         return false;
       }

@@ -105,6 +105,12 @@ export class DraftOperations {
     return false;
   }
 
+  /** A live direct list, Resume or Delete receipt; signed out also revokes cached admission. */
+  failReceipt(code: string): false {
+    if (code === 'authRequired') revokeDraftAdmission(this.editor);
+    return failDraft(this.editor, code);
+  }
+
   /** True while a live manager operation other than `except` owns the busy display. */
   held(except?: DraftOperation): boolean {
     const holder = this.holder;
