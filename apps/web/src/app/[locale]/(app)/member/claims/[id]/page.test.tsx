@@ -67,6 +67,8 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
 }));
 
+vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
   notFound: hoisted.notFoundMock,

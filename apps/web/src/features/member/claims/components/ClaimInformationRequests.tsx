@@ -6,6 +6,7 @@ import {
   RequestFulfilmentButton,
 } from '@/features/member/claims/components/information-request-staff-actions';
 import { MemberEvidenceDownloadButton } from '@/features/member/claims/components/member-evidence-download-button';
+import { InformationRequestReadRecovery } from '@/features/member/claims/components/information-request-read-recovery';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
@@ -98,15 +99,19 @@ export function ClaimInformationRequests({
     minute: '2-digit',
     hourCycle: 'h23',
   });
-  if (displayRequests === null)
+  // One persistent region across failure, retry and success keeps keyboard focus recoverable.
+  if (displayRequests === null) return <InformationRequestReadRecovery failed />;
+  if (!displayRequests.length) {
     return (
-      <output className="block" aria-live="polite" aria-atomic="true">
-        {t('loadError')}
-      </output>
+      <InformationRequestReadRecovery failed={false}>
+        <p className="text-sm text-muted-foreground" data-testid="information-request-empty">
+          {t('empty')}
+        </p>
+      </InformationRequestReadRecovery>
     );
-  if (!displayRequests.length) return null;
-  return (
-    <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">
+  }
+  const list = (
+    <div data-testid="claim-information-requests" className="space-y-4">
       {announcement ? (
         <output className="block text-sm" aria-live="polite" aria-atomic="true">
           {announcement}
@@ -261,6 +266,7 @@ export function ClaimInformationRequests({
           </Card>
         );
       })}
-    </section>
+    </div>
   );
+  return <InformationRequestReadRecovery failed={false}>{list}</InformationRequestReadRecovery>;
 }

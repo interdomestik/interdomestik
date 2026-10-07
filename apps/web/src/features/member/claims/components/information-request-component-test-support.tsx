@@ -35,6 +35,9 @@ vi.mock('@/features/member/claims/components/ClaimEvidenceUploadDialog', () => (
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
+vi.mock('@/i18n/routing', () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+}));
 export const { ClaimInformationRequests } = await import('./ClaimInformationRequests');
 afterEach(() => {
   cleanup();

@@ -86,7 +86,7 @@ describe('independent account continuity review counterexamples', () => {
       expect.objectContaining({ id: saved.id, expectedVersion: 1, summary: '', counterparty: '' })
     );
     expect(actions.create).toHaveBeenCalledOnce();
-    expect(hook.result.current.state).toBe('saved');
+    await waitFor(() => expect(hook.result.current.state).toBe('saved'));
   });
   it('initializes B once after a delayed A list without typing or another dependency change', async () => {
     const a = held<unknown>();
