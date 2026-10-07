@@ -3,56 +3,31 @@ import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 import {
   createAccountDraftWriteQueue,
   type AccountDraftWriteQueue,
-  type DraftQueueContext,
   type DraftWriteSnapshot,
 } from './account-draft-write-queue';
 import {
+  accountKey,
   createUuidV4,
   draftFingerprint,
   resolveEditedDraftState,
   draftFingerprintState,
-  type CategoryId,
+  hasDraftFacts,
+  type DraftAccount,
+  type DraftEditorArgs,
+  type DraftEditorToken,
+  type DraftEditorView,
+  type DraftResetBarrier,
   type DraftSaveState,
-  type DraftState,
   type SavedDraft,
-  type StepId,
 } from './types';
-export type DraftAccount = Readonly<{ emailVerified: boolean; expectedContext: DraftQueueContext }>;
-export type DraftEditorArgs = Readonly<{
-  account?: DraftAccount | null;
-  category: CategoryId | null;
-  draft: DraftState;
-  step: StepId;
-  onReset: () => void;
-  onResume: (draft: SavedDraft) => void;
-}>;
-export type DraftEditorView = {
-  active: SavedDraft | null;
-  items: SavedDraft[];
-  nextCursor: { id: string; updatedAt: string } | null;
-  intent: 'save' | 'manage' | null;
-  state: DraftSaveState;
-  verified: boolean;
-  readAdmitted: boolean;
-  identityKey: number;
-  managerBusy: boolean;
-};
-export type DraftEditorToken = { generation: number; owner: string; fingerprint: string };
-export const accountKey = (account: DraftAccount | null | undefined) =>
-  account
-    ? JSON.stringify([account.expectedContext.ownerUserId, account.expectedContext.tenantId])
-    : '';
-export const hasDraftFacts = (draft: DraftState) =>
-  Object.values(draft).some(value => value.trim() !== '');
-export function receiptMatches(value: unknown, expected: DraftQueueContext): boolean {
-  if (typeof value !== 'object' || value === null) return false;
-  const receipt = value as Record<string, unknown>;
-  return (
-    Object.keys(receipt).length === 2 &&
-    receipt.ownerUserId === expected.ownerUserId &&
-    receipt.tenantId === expected.tenantId
-  );
-}
+export { accountKey, hasDraftFacts, receiptMatches } from './types';
+export type {
+  DraftAccount,
+  DraftEditorArgs,
+  DraftEditorToken,
+  DraftEditorView,
+  DraftResetBarrier,
+} from './types';
 export class DraftEditor {
   view: DraftEditorView = {
     active: null,
@@ -77,6 +52,7 @@ export class DraftEditor {
   queueToken: DraftEditorToken | null = null;
   admissionRevoked = false;
   retiredDraft: SavedDraft | null = null;
+  resetBarrier: DraftResetBarrier | null = null;
   private propIdentity: string;
   private writeStarted = false;
   private retiring = 0;
@@ -123,44 +99,59 @@ export class DraftEditor {
   syncAccount(): boolean {
     const key = this.propKey();
     if (key === this.propIdentity) {
-      if (this.awaitingReset && !hasDraftFacts(this.current().draft)) this.awaitingReset = false;
+      if (this.awaitingReset && (!hasDraftFacts(this.current().draft) || this.restoredReset()))
+        this.awaitingReset = false;
       return false;
     }
     this.propIdentity = key;
     if (this.current().account === undefined) return false;
     const next = this.current().account ?? null;
-    const changedOwner = accountKey(next) !== accountKey(this.account);
-    if (changedOwner) {
-      const hadOwner = this.account !== null;
-      this.queue?.dispose();
-      this.queue = null;
-      this.terminal = false;
-      this.retiredDraft = null;
-      this.generation++;
-      this.savedFingerprint = null;
-      this.writeStarted = false;
-      this.initialized = false;
-      this.explicitRequired = !hadOwner && hasDraftFacts(this.current().draft);
-      this.awaitingReset = hadOwner && hasDraftFacts(this.current().draft);
-      this.account = next;
-      this.admissionRevoked = false;
-      this.patch({
-        active: null,
-        items: [],
-        nextCursor: null,
-        intent: !hadOwner && this.view.intent === 'manage' ? 'manage' : null,
-        state: 'idle',
-        verified: next?.emailVerified === true,
-        readAdmitted: false,
-        identityKey: this.view.identityKey + 1,
-        managerBusy: false,
-      });
-      if (hadOwner) this.current().onReset();
-    } else {
-      this.account = this.admissionRevoked && next ? { ...next, emailVerified: false } : next;
-      this.patch({ verified: this.account?.emailVerified === true });
+    if (accountKey(next) !== accountKey(this.account)) {
+      this.changeOwner(next);
+      return true;
     }
-    return true;
+    // Same owner/tenant: verification presentation only. It never re-admits a revoked session
+    // nor supersedes a fresh authoritative same-context read, so the caller keeps its reads.
+    this.account = this.admissionRevoked && next ? { ...next, emailVerified: false } : next;
+    this.patch({ verified: this.account?.emailVerified === true });
+    return false;
+  }
+  /** Only the accepted reset's own barrier, for exactly the browser-copy facts it restored. */
+  private restoredReset(): boolean {
+    const barrier = this.resetBarrier;
+    return (
+      barrier?.generation === this.generation &&
+      barrier.owner === accountKey(this.account) &&
+      barrier.restored === this.fingerprint()
+    );
+  }
+  private changeOwner(next: DraftAccount | null): void {
+    const hadOwner = this.account !== null;
+    this.queue?.dispose();
+    this.queue = null;
+    this.terminal = false;
+    this.retiredDraft = null;
+    this.resetBarrier = null;
+    this.generation++;
+    this.savedFingerprint = null;
+    this.writeStarted = false;
+    this.initialized = false;
+    this.explicitRequired = !hadOwner && hasDraftFacts(this.current().draft);
+    this.awaitingReset = hadOwner && hasDraftFacts(this.current().draft);
+    this.account = next;
+    this.admissionRevoked = false;
+    this.patch({
+      active: null,
+      items: [],
+      nextCursor: null,
+      intent: !hadOwner && this.view.intent === 'manage' ? 'manage' : null,
+      state: 'idle',
+      verified: next?.emailVerified === true,
+      readAdmitted: false,
+      identityKey: this.view.identityKey + 1,
+      managerBusy: false,
+    });
+    if (hadOwner) this.current().onReset();
   }
   acceptAccount(next: DraftAccount): boolean {
     if (this.account && accountKey(this.account) !== accountKey(next)) return false;
@@ -279,6 +270,10 @@ export class DraftEditor {
     this.initialized = true;
     this.explicitRequired = preserveFacts;
     this.awaitingReset = !preserveFacts;
+    // An ordinary reset barrier; only an accepted browser-copy restoration may name its facts.
+    this.resetBarrier = preserveFacts
+      ? null
+      : { generation: this.generation, owner: accountKey(this.account), restored: null };
     this.terminal = false;
     this.patch({
       active: null,

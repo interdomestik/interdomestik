@@ -5,6 +5,7 @@ import type { DraftEditor, DraftEditorView } from './draft-lifecycle-editor';
 import { draftFailureState, type DraftSaveState } from './types';
 
 export type DraftOperation = Readonly<{ id: number; generation: number }>;
+type AccountReceipt = Awaited<ReturnType<typeof getFreeStartDraftAccount>>;
 
 /** Rendered state: a live manager hold masks the raw state without discarding it. */
 export const shownState = (view: DraftEditorView): DraftSaveState =>
@@ -72,25 +73,36 @@ export class DraftOperations {
     try {
       const result = await getFreeStartDraftAccount();
       if (!current()) return false;
-      if (!result.ok) {
-        if (result.code === 'authRequired') {
-          revokeDraftAdmission(editor);
-          if (required) return failDraft(editor, result.code, true);
-          return false;
-        }
-        return failDraft(editor, result.code, required);
-      }
-      if (!editor.acceptAccount(result))
-        return failDraft(editor, 'unavailableAccountContext', required);
-      if (!result.emailVerified)
-        return required ? failDraft(editor, 'authRequired', true) : 'unverified';
-      const admitted = editor.token();
-      return await restoreDraftAdmission(editor, () => editor.owns(admitted) && this.live(op));
+      return await this.admit(op, result, required);
     } catch (error) {
       if (error instanceof Error && error.message === 'secure_save_intent_failed') throw error;
       if (!current()) return false;
       return failDraft(editor, 'error', required);
     }
+  }
+
+  /** A live account receipt: refusal, unverified access or fresh retained-source admission. */
+  private async admit(
+    op: DraftOperation,
+    result: AccountReceipt,
+    required: boolean
+  ): Promise<boolean | 'unverified'> {
+    const { editor } = this;
+    if (!result.ok) return this.refuse(result.code, required);
+    if (!editor.acceptAccount(result))
+      return failDraft(editor, 'unavailableAccountContext', required);
+    if (!result.emailVerified)
+      return required ? failDraft(editor, 'authRequired', true) : 'unverified';
+    const admitted = editor.token();
+    return await restoreDraftAdmission(editor, () => editor.owns(admitted) && this.live(op));
+  }
+
+  /** Signed out revokes admission presentation; a required intent also rejects. */
+  private refuse(code: string, required: boolean): false {
+    if (code !== 'authRequired') return failDraft(this.editor, code, required);
+    revokeDraftAdmission(this.editor);
+    if (required) return failDraft(this.editor, code, true);
+    return false;
   }
 
   /** True while a live manager operation other than `except` owns the busy display. */

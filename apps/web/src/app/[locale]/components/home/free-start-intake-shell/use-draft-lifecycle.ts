@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { AnonymousDraftSnapshot } from './anonymous-draft-recovery';
 import { DraftLifecycleCommands } from './draft-lifecycle-commands';
 import { DraftEditor, type DraftEditorArgs, type DraftEditorView } from './draft-lifecycle-editor';
 import { shownState } from './draft-lifecycle-operations';
+import {
+  completeBrowserRestoration,
+  type DraftRestorationLease,
+} from './draft-lifecycle-restoration';
 import {
   attachDraftLifecycle,
   cancelPendingDraftEdit,
@@ -88,6 +93,11 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
     remove: commands.remove.bind(commands),
     startAnother: (beforeReset?: () => Promise<boolean> | boolean) =>
       commands.startAnother(beforeReset),
+    /** Restoration reset: an opaque lease for that accepted reset only, or null when refused. */
+    startRestoration: () => commands.startRestoration(),
+    /** Names only the lease's own reset barrier's browser-copy facts, before adoption. */
+    completeRestoration: (lease: DraftRestorationLease, snapshot: AnonymousDraftSnapshot) =>
+      completeBrowserRestoration(editor, lease, snapshot),
     prepareForContinuation: () => commands.prepareForContinuation(),
     releaseContinuation: (receipt?: Parameters<DraftLifecycleCommands['releaseContinuation']>[0]) =>
       commands.releaseContinuation(receipt),

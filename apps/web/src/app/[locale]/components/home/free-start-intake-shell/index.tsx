@@ -54,7 +54,9 @@ export function FreeStartIntakeShell(props: FreeStartOrganizerProps) {
     neutralHost: props.neutralOtpHost,
     onExternalChange: secureIntent.invalidate,
     onReset: draftLifecycle.startAnother,
-    onRestore: flow.restoreAnonymousDraft,
+    onRestoreReset: draftLifecycle.startRestoration,
+    // Adopts browser facts only once that accepted reset's own lease completes for them.
+    onRestore: (snapshot, lease) => { if (!lease || !draftLifecycle.completeRestoration(lease, snapshot)) { return false; } flow.restoreAnonymousDraft(snapshot); return true; },
     resetCategory: props.initialCategory ?? null,
     step: flow.step,
   });

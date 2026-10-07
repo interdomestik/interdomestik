@@ -4,10 +4,11 @@ import type {
   FreeStartOutcomeId as OutcomeId,
 } from '@/lib/free-start-contract';
 import type { getSupportContacts } from '@/lib/support-contacts';
+import type { DraftQueueContext } from './account-draft-write-queue';
 
 export type FreeStartIntakeShellProps = Readonly<{
   continueHref: string;
-  draftAccount?: import('./draft-lifecycle-editor').DraftAccount | null;
+  draftAccount?: DraftAccount | null;
   initialCategory?: CategoryId;
   locale: string;
   neutralOtpHost?: string | null;
@@ -97,6 +98,50 @@ export type SecureSaveReviewCopy = Record<'accountContext' | 'invalid' | 'unsupp
 
 export function parseSecureSaveReviewCopy(value: unknown): SecureSaveReviewCopy {
   return JSON.parse(String(value)) as SecureSaveReviewCopy;
+}
+
+export type DraftAccount = Readonly<{ emailVerified: boolean; expectedContext: DraftQueueContext }>;
+export type DraftEditorArgs = Readonly<{
+  account?: DraftAccount | null;
+  category: CategoryId | null;
+  draft: DraftState;
+  step: StepId;
+  onReset: () => void;
+  onResume: (draft: SavedDraft) => void;
+}>;
+export type DraftEditorView = {
+  active: SavedDraft | null;
+  items: SavedDraft[];
+  nextCursor: { id: string; updatedAt: string } | null;
+  intent: 'save' | 'manage' | null;
+  state: DraftSaveState;
+  verified: boolean;
+  readAdmitted: boolean;
+  identityKey: number;
+  managerBusy: boolean;
+};
+export type DraftEditorToken = { generation: number; owner: string; fingerprint: string };
+/** One accepted ordinary reset; only its own restoration lease may name the facts it admits. */
+export type DraftResetBarrier = {
+  readonly generation: number;
+  readonly owner: string;
+  restored: string | null;
+};
+
+export const accountKey = (account: DraftAccount | null | undefined) =>
+  account
+    ? JSON.stringify([account.expectedContext.ownerUserId, account.expectedContext.tenantId])
+    : '';
+export const hasDraftFacts = (draft: DraftState) =>
+  Object.values(draft).some(value => value.trim() !== '');
+export function receiptMatches(value: unknown, expected: DraftQueueContext): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const receipt = value as Record<string, unknown>;
+  return (
+    Object.keys(receipt).length === 2 &&
+    receipt.ownerUserId === expected.ownerUserId &&
+    receipt.tenantId === expected.tenantId
+  );
 }
 
 export type DraftField = keyof DraftState;

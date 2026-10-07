@@ -16,6 +16,7 @@ const revoked = new WeakMap<DraftEditor, RevokedAdmission>();
 
 /** Revoke access presentation, not the identity of an already dispatched write or saved source. */
 export function revokeDraftAdmission(editor: DraftEditor): void {
+  if (confirmAnonymousDraft(editor)) return;
   const previous = revoked.get(editor);
   const recovery =
     previous?.generation === editor.generation
@@ -40,6 +41,35 @@ export function revokeDraftAdmission(editor: DraftEditor): void {
   editor.patch({ intent, verified: false, readAdmitted: false, state: 'idle' });
 }
 
+/**
+ * A truly anonymous intake has nothing to revoke: no known owner (even unverified), admitted
+ * list or active row, queue, retained recovery, retired source or retirement in progress. A
+ * signed-out verdict then confirms that state without a reset, so OTP identity, typed entry and
+ * intent survive; the caller still returns its refusal or required failure.
+ */
+function confirmAnonymousDraft(editor: DraftEditor): boolean {
+  const { view } = editor;
+  if (
+    editor.account ||
+    editor.current().account ||
+    revoked.has(editor) ||
+    editor.admissionRevoked ||
+    editor.terminal ||
+    editor.queue ||
+    editor.retiredDraft ||
+    editor.savedFingerprint !== null ||
+    view.active ||
+    view.items.length > 0 ||
+    view.nextCursor ||
+    view.readAdmitted ||
+    view.verified
+  )
+    return false;
+  editor.explicitRequired = true;
+  editor.patch({ state: 'idle' });
+  return true;
+}
+
 /** Fresh server admission may recover only the same owner/tenant and original CAS identity. */
 export async function restoreDraftAdmission(
   editor: DraftEditor,
@@ -47,16 +77,7 @@ export async function restoreDraftAdmission(
 ): Promise<boolean> {
   const recovery = revoked.get(editor);
   if (!recovery) return true;
-  if (recovery.generation !== editor.generation) {
-    if (editor.view.active && editor.queue === recovery.queue) {
-      recovery.queue?.dispose();
-      editor.queue = null;
-      editor.queueToken = null;
-    }
-    revoked.delete(editor);
-    editor.admissionRevoked = false;
-    return true;
-  }
+  if (recovery.generation !== editor.generation) return releaseSuperseded(editor, recovery);
   if (recovery.owner && recovery.owner !== accountKey(editor.account)) return false;
   const live = () =>
     current() &&
@@ -68,23 +89,54 @@ export async function restoreDraftAdmission(
   editor.admissionRevoked = false;
   if (editor.account) editor.account = { ...editor.account, emailVerified: true };
   editor.explicitRequired = recovery.explicitRequired;
-  if (!safe) {
-    // Preserve the original UUID/snapshot for an explicit retry or known-conflict Resume.
-    if (recovery.queueToken) Object.assign(recovery.queueToken, editor.token());
-    editor.patch({ state: recovery.queue?.getWriteFeedback() ?? 'error' });
-    revoked.delete(editor);
-    return editor.view.intent === 'manage';
-  }
+  if (!safe) return retainUncertainRecovery(editor, recovery);
   const active = recovery.queue?.getDraft() ?? recovery.active;
-  const feedback = recovery.queue?.getWriteFeedback();
-  if (feedback && recovery.queue?.restoreKnownFailure()) {
-    if (recovery.queueToken) Object.assign(recovery.queueToken, editor.token());
-    editor.explicitRequired = true;
-    editor.savedFingerprint = recovery.queue.getAcknowledgedFingerprint() ?? recovery.fingerprint;
-    editor.patch({ active, state: feedback });
-    revoked.delete(editor);
-    return editor.view.intent === 'manage';
+  return reopenKnownFailure(editor, recovery, active) ?? adoptRecovered(editor, recovery, active);
+}
+
+/** A newer generation (reset, resume, delete) supersedes the hidden retained source. */
+function releaseSuperseded(editor: DraftEditor, recovery: RevokedAdmission): true {
+  if (editor.view.active && editor.queue === recovery.queue) {
+    recovery.queue?.dispose();
+    editor.queue = null;
+    editor.queueToken = null;
   }
+  revoked.delete(editor);
+  editor.admissionRevoked = false;
+  return true;
+}
+
+/** Preserve the original UUID/snapshot for an explicit retry or known-conflict Resume. */
+function retainUncertainRecovery(editor: DraftEditor, recovery: RevokedAdmission): boolean {
+  if (recovery.queueToken) Object.assign(recovery.queueToken, editor.token());
+  editor.patch({ state: recovery.queue?.getWriteFeedback() ?? 'error' });
+  revoked.delete(editor);
+  return editor.view.intent === 'manage';
+}
+
+/** A known failed write reopens only for explicit retry; null when no such failure exists. */
+function reopenKnownFailure(
+  editor: DraftEditor,
+  recovery: RevokedAdmission,
+  active: SavedDraft | null
+): boolean | null {
+  const queue = recovery.queue;
+  const feedback = queue?.getWriteFeedback();
+  if (!feedback || !queue?.restoreKnownFailure()) return null;
+  if (recovery.queueToken) Object.assign(recovery.queueToken, editor.token());
+  editor.explicitRequired = true;
+  editor.savedFingerprint = queue.getAcknowledgedFingerprint() ?? recovery.fingerprint;
+  editor.patch({ active, state: feedback });
+  revoked.delete(editor);
+  return editor.view.intent === 'manage';
+}
+
+/** A safely retired source is adopted with its acknowledged identity, never a newer write. */
+function adoptRecovered(
+  editor: DraftEditor,
+  recovery: RevokedAdmission,
+  active: SavedDraft | null
+): true {
   recovery.queue?.dispose();
   editor.queue = null;
   editor.queueToken = null;
@@ -105,8 +157,7 @@ export function invalidateExpiredDraftSource(
 ): boolean {
   const recovery = revoked.get(editor);
   if (
-    !recovery ||
-    recovery.owner !== owner ||
+    recovery?.owner !== owner ||
     recovery.generation !== editor.generation ||
     (recovery.active?.id !== id && recovery.queue?.getDraft()?.id !== id)
   )

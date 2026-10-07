@@ -3,29 +3,36 @@ import {
   listFreeStartDrafts,
   resumeFreeStartDraft,
 } from '@/actions/free-start-drafts';
-import { DraftEditor, receiptMatches, type DraftEditorToken } from './draft-lifecycle-editor';
+import type { DraftEditor, DraftEditorToken } from './draft-lifecycle-editor';
 import { DraftOperations, failDraft, type DraftOperation } from './draft-lifecycle-operations';
 import {
   acknowledgeDraftDeletion,
   prepareDraftContinuation,
   releaseDraftContinuation,
 } from './draft-lifecycle-continuation';
-import { createDraftReadController, type DraftReadController } from './draft-lifecycle-reads';
+import {
+  createDraftReadController,
+  draftReadIdentity,
+  reconcileDraftRead,
+  type DraftReadController,
+} from './draft-lifecycle-reads';
+import {
+  acceptDraftReset,
+  adoptResumedDraft,
+  leaseBrowserRestoration,
+  type DraftRestorationLease,
+} from './draft-lifecycle-restoration';
 import { isReviewReadySavedDraft } from './saved-draft-continuation';
-import { draftFingerprint, type SavedDraft } from './types';
+import { receiptMatches, type SavedDraft } from './types';
 type Cursor = DraftEditor['view']['nextCursor'];
 export class DraftLifecycleCommands {
   private readonly reads: DraftReadController;
   private readonly ops: DraftOperations;
   private bootstrapping: DraftEditorToken | null = null;
+  private readonly supersede = () => this.reads.invalidate();
   constructor(readonly editor: DraftEditor) {
     this.reads = createDraftReadController({
-      current: () => ({
-        ownerUserId: editor.account?.expectedContext.ownerUserId ?? null,
-        tenantId: editor.account?.expectedContext.tenantId ?? null,
-        editorGeneration: editor.generation,
-        fingerprint: editor.fingerprint(),
-      }),
+      current: () => draftReadIdentity(editor),
       onBusy: busy => {
         if (!busy) this.ops.settle();
       },
@@ -52,7 +59,7 @@ export class DraftLifecycleCommands {
     const accepted = await this.reads.run(
       () => listFreeStartDrafts({ cursor, expectedContext: context }),
       result => {
-        if (!this.editor.owns(token, true) || !live()) return false;
+        if (!live() || !reconcileDraftRead(this.editor, this.reads, token, true)) return false;
         if (!result.ok) return this.failure(result.code);
         if (!receiptMatches(result.expectedContext, context))
           return this.failure('unavailableAccountContext');
@@ -66,12 +73,21 @@ export class DraftLifecycleCommands {
         return true;
       },
       () => {
-        if (this.editor.owns(token) && live()) this.failure('error');
+        if (live() && reconcileDraftRead(this.editor, this.reads, token)) this.failure('error');
       }
     );
     if (!accepted && required && this.editor.owns(token))
       throw new Error('secure_save_intent_failed');
     return accepted;
+  }
+  /** The sole listed row, only while no intent, active source, facts or other category exists. */
+  private soleRestorable(mark: number): SavedDraft | null {
+    const { view } = this.editor;
+    const { category, draft } = this.editor.current();
+    const sole = view.items.length === 1 ? (view.items[0] ?? null) : null;
+    if (!sole || !this.ops.quiet(mark) || view.intent === 'manage' || view.active) return null;
+    if (Object.values(draft).some(Boolean)) return null;
+    return category === null || category === sole.category ? sole : null;
   }
   async bootstrap() {
     if (
@@ -87,16 +103,10 @@ export class DraftLifecycleCommands {
     this.bootstrapping = token;
     try {
       if (await this.load()) {
-        // Sole-draft restore never competes with a pending or newer deliberate intent.
-        if (
-          this.ops.quiet(mark) &&
-          this.editor.view.intent !== 'manage' &&
-          this.editor.view.items.length === 1 &&
-          !this.editor.view.active &&
-          !Object.values(this.editor.current().draft).some(Boolean)
-        ) {
-          await this.resume(this.editor.view.items[0]!.id);
-        }
+        // Sole-draft restore never competes with a pending or newer deliberate intent, nor
+        // replaces a different explicit category already chosen for the current intake.
+        const sole = this.soleRestorable(mark);
+        if (sole) await this.resume(sole.id);
         this.editor.autoSave();
       }
     } finally {
@@ -198,18 +208,7 @@ export class DraftLifecycleCommands {
     );
     if (!accepted || !row || !this.editor.owns(token, true) || !this.ops.live(op)) return false;
     const restored: SavedDraft = row;
-    this.editor.generation++;
-    this.reads.invalidate();
-    this.editor.savedFingerprint = draftFingerprint(
-      restored.category,
-      restored,
-      restored.resumeStep
-    );
-    this.editor.patch({ active: restored, intent: null, state: 'saved' });
-    this.editor.current().onResume(restored);
-    this.editor.initialized = true;
-    this.editor.explicitRequired = false;
-    this.editor.getQueue(true)?.adopt(restored);
+    adoptResumedDraft(this.editor, restored, this.supersede);
     return true;
   }
   async remove(draft: SavedDraft) {
@@ -251,20 +250,15 @@ export class DraftLifecycleCommands {
       return this.failure('error');
     }
   }
-  async startAnother(beforeReset?: () => Promise<boolean> | boolean) {
-    const op = this.ops.begin();
-    const token = this.editor.token();
-    const live = () => this.ops.live(op) && this.editor.owns(token);
-    if (!(await this.editor.retire(live)) || !live()) return false;
-    const accepted = beforeReset ? await beforeReset() : true;
-    if (!live()) return false;
-    if (!accepted) {
-      this.editor.terminal = false;
-      return false;
-    }
-    this.reads.invalidate();
-    this.editor.reset();
-    return true;
+  async startAnother(beforeReset?: () => Promise<boolean> | boolean): Promise<boolean> {
+    return (await acceptDraftReset(this.editor, this.ops, this.supersede, beforeReset)) !== null;
+  }
+  /** A restoration reset yields only its own opaque lease; null when refused or superseded. */
+  async startRestoration(): Promise<DraftRestorationLease | null> {
+    const accepted = await acceptDraftReset(this.editor, this.ops, this.supersede);
+    if (!accepted?.barrier) return null;
+    const { op, barrier } = accepted;
+    return leaseBrowserRestoration(this.editor, () => this.ops.mark() === op.id, barrier);
   }
   releaseContinuation(receipt?: Pick<SavedDraft, 'id' | 'version'> | null) {
     releaseDraftContinuation(receipt);

@@ -44,6 +44,8 @@ function setup() {
     resume: commands.resume.bind(commands),
     saveChanges: vi.fn(),
     startAnother: vi.fn(),
+    startRestoration: vi.fn(),
+    completeRestoration: vi.fn(),
     prepareForContinuation: commands.prepareForContinuation.bind(commands),
     releaseContinuation: commands.releaseContinuation.bind(commands),
   };

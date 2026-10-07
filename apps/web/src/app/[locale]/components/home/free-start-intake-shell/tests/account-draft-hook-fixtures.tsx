@@ -81,11 +81,14 @@ export function configureDefaultActions(actions: DraftActionMocks): void {
   actions.create.mockResolvedValue({ ok: true, draft: saved });
   // Preserve immediate evaluation and rejection when the receipt getter throws.
   const nextVersion = (input: { expectedVersion: number }) => {
+    let version: number;
     try {
-      return Promise.resolve({ ok: true, draft: { ...saved, version: input.expectedVersion + 1 } });
+      version = input.expectedVersion + 1;
     } catch (error) {
       return Promise.reject(error);
     }
+    // The getter was read exactly once above; resolution follows only the guarded computation.
+    return Promise.resolve({ ok: true, draft: { ...saved, version } });
   };
   actions.update.mockImplementation(nextVersion);
   actions.resume.mockResolvedValue({ ok: true, draft: saved, expectedContext });

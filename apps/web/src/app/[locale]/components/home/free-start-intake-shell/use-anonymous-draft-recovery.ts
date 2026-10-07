@@ -3,11 +3,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // prettier-ignore
 import { ANONYMOUS_DRAFT_KEY, createAnonymousDraftSnapshot, getAnonymousDraftStorage, readAnonymousDraft, removeAnonymousDraft, runAnonymousDraftLocked, sameAnonymousDraftRecord, writeAnonymousDraft, type AnonymousDraftRecord, type AnonymousDraftSnapshot, type LockedResult, type ReadResult } from './anonymous-draft-recovery';
 import { EMPTY_DRAFT } from './constants';
+import type { DraftRestorationLease } from './draft-lifecycle-restoration';
 import type { CategoryId, DraftSaveState, DraftState, StepId } from './types';
 // prettier-ignore
 type RecoveryState = 'idle' | 'saved' | 'offer' | 'conflict' | 'retained' | 'unavailable' | 'discarded' | 'secure';
 // prettier-ignore
-type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; allowWrites: boolean; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: (beforeReset?: () => Promise<boolean> | boolean) => void | boolean | Promise<void | boolean>; onRestore: (draft: AnonymousDraftSnapshot) => void; resetCategory: CategoryId | null; step: StepId }>;
+type Args = Readonly<{ activeFingerprint?: string | null; activeId: string | null; allowWrites: boolean; category: CategoryId | null; draft: DraftState; lifecycleState: DraftSaveState; neutralHost?: string | null; onExternalChange?: () => void; onReset: (beforeReset?: () => Promise<boolean> | boolean) => void | boolean | Promise<void | boolean>; onRestore: (draft: AnonymousDraftSnapshot, lease?: DraftRestorationLease) => unknown; onRestoreReset?: () => Promise<DraftRestorationLease | null> | DraftRestorationLease | null; resetCategory: CategoryId | null; step: StepId }>;
 // prettier-ignore
 function isNeutralHost(configured?: string | null) { return typeof location !== 'undefined' && (location.hostname.toLowerCase() === 'ida.localhost' || configured?.toLowerCase() === location.host.toLowerCase()); }
 // prettier-ignore
@@ -159,22 +160,27 @@ export function useAnonymousDraftRecovery(args: Args) {
       else if (!sameAnonymousDraftRecord(result.value.record, offer)) { offerRequired.current = true; knownRecord.current = result.value.record; setOffer(result.value.record); setState('conflict'); }
       else {
         const ownerGeneration = generation.current;
-        const reset = await args.onReset();
+        // A restoration reset returns its own accepted-reset lease; generic callers keep onReset.
+        const lease = args.onRestoreReset ? await args.onRestoreReset() : undefined;
+        const reset = lease === undefined ? await args.onReset() : lease !== null;
         if (reset === false || !mounted.current || generation.current !== ownerGeneration || terminalInvalidation.current) return;
         const latest = readAnonymousDraft(getAnonymousDraftStorage());
         if (latest.status !== 'available' || !sameAnonymousDraftRecord(latest.record, result.value.record)) {
           applyRead(latest, true);
           return;
         }
+        // A refused completion adopts nothing and keeps this offer for a deliberate retry.
+        const restored = lease ? args.onRestore(latest.record, lease) : args.onRestore(latest.record);
+        if (restored === false) return;
         offerRequired.current = false; invalidated.current = false; knownRecord.current = latest.record;
         suppression.current = { from: currentFingerprint, to: recordFingerprint(latest.record) };
-        args.onRestore(latest.record); setOffer(null); setState('saved');
+        setOffer(null); setState('saved');
       }
     }).catch(() => {
       if (!mounted.current || generation.current !== failureGeneration || currentContextRef.current !== failureContext || terminalInvalidation.current) return;
       const latest = readAnonymousDraft(getAnonymousDraftStorage());
       if (latest.status === 'available' && sameAnonymousDraftRecord(latest.record, offer)) markRetained();
     }).finally(() => { interaction.current = false; actionBusy.current = false; if (mounted.current) setBusy(false); });
-  }, [applyRead, args.onReset, args.onRestore, currentContext, currentFingerprint, markRetained, markUnavailable, offer, pending, runLocked]);
+  }, [applyRead, args.onReset, args.onRestore, args.onRestoreReset, currentContext, currentFingerprint, markRetained, markUnavailable, offer, pending, runLocked]);
   return { busy, clearBeforeReset, clearDeviceCopy, discard, enabled: enabled && args.allowWrites, neutralHost, offer, pending: pending || busy, ready, resume, state };
 }

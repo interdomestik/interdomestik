@@ -1,3 +1,6 @@
+import type { DraftEditor } from './draft-lifecycle-editor';
+import { accountKey, type DraftEditorToken } from './types';
+
 export type DraftReadIdentity = Readonly<{
   ownerUserId: string | null;
   tenantId: string | null;
@@ -120,4 +123,39 @@ export function createDraftReadController(options: Options): DraftReadController
   }
 
   return { run, invalidate, dispose, isBusy: () => !disposed && busy };
+}
+
+/** Live owner and prop identity an editor presents to each read. */
+export const draftReadIdentity = (editor: DraftEditor): DraftReadIdentity => ({
+  ownerUserId: editor.account?.expectedContext.ownerUserId ?? null,
+  tenantId: editor.account?.expectedContext.tenantId ?? null,
+  editorGeneration: editor.generation,
+  fingerprint: editor.fingerprint(),
+});
+
+/**
+ * Live read observation for the original token. A pending same-owner presentation change
+ * (verification) is reconciled before the prop-identity check, then the token is rechecked;
+ * an actual owner/tenant change advances generation and rejects. Nothing else is relaxed.
+ */
+export function reconcileDraftRead(
+  editor: DraftEditor,
+  reads: Pick<DraftReadController, 'invalidate'>,
+  token: DraftEditorToken,
+  includeFingerprint = false
+): boolean {
+  if (editor.owns(token, includeFingerprint)) return true;
+  if (
+    editor.disposed ||
+    token.generation !== editor.generation ||
+    token.owner !== accountKey(editor.account) ||
+    (includeFingerprint && token.fingerprint !== editor.fingerprint()) ||
+    editor.current().account === undefined
+  )
+    return false;
+  if (editor.syncAccount()) {
+    reads.invalidate();
+    return false;
+  }
+  return editor.owns(token, includeFingerprint);
 }
