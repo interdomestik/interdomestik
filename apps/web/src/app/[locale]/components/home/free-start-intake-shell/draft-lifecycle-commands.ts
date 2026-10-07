@@ -36,10 +36,10 @@ export class DraftLifecycleCommands {
   invalidate() {
     this.reads.invalidate();
   }
-  dispose() {
+  dispose(retainQueue = false) {
     this.ops.dispose();
     this.reads.dispose();
-    this.editor.dispose();
+    this.editor.dispose(retainQueue);
   }
   private failure(code: string, required = false): false {
     return failDraft(this.editor, code, required);

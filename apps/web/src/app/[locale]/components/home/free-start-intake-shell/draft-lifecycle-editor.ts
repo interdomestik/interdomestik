@@ -290,9 +290,9 @@ export class DraftEditor {
     });
     if (!preserveFacts) this.current().onReset();
   }
-  dispose() {
+  dispose(retain = false) {
     this.disposed = true;
     this.generation++;
-    this.queue?.dispose();
+    if (!retain) this.queue?.dispose();
   }
 }

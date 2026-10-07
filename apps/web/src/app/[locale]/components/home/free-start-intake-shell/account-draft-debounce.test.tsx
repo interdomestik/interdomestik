@@ -247,7 +247,7 @@ describe('account draft automatic edit quiet window', () => {
     expect(actions.update).not.toHaveBeenCalled();
   });
 
-  it('cancels the pending tick on owner change and on unmount', async () => {
+  it('cancels the owner-change tick; a later unmount never writes as either owner', async () => {
     const owner = setup();
     await settle();
     owner.type('Facts before the owner changes.');
@@ -255,11 +255,8 @@ describe('account draft automatic edit quiet window', () => {
     expect(owner.onReset).toHaveBeenCalledOnce();
     await settle(QUIET_MS);
     expect(actions.list).toHaveBeenCalledOnce();
+    expect(actions.create).not.toHaveBeenCalled();
     owner.hook.unmount();
-    const unmounted = setup();
-    await settle();
-    unmounted.type('Facts before unmount.');
-    unmounted.hook.unmount();
     await settle(QUIET_MS);
     expect(actions.create).not.toHaveBeenCalled();
     expect(actions.update).not.toHaveBeenCalled();

@@ -35,6 +35,9 @@ export type AccountDraftWriteQueue = {
   /** `recover` holds open only a known divergent create replay for authoritative resume. */
   retire: (recover?: boolean) => Promise<boolean | 'recovering'>;
   dispose: () => void;
+  /** Ends admission (enqueue, retry, adopt, retire) but keeps serializing the already-owned
+   * latest write on each acknowledged version until quiescent, then disposes. Never retries. */
+  settle: () => Promise<void>;
   adopt: (draft: SavedDraft) => boolean;
   getDraft: () => SavedDraft | null;
   getWriteFeedback: () => DraftSaveState | null;
@@ -94,8 +97,10 @@ export function createAccountDraftWriteQueue(
   let retiring = false;
   let closed = false;
   let disposed = false;
+  let sealed = false;
 
   const live = () => !disposed && !closed;
+  const admitting = () => live() && !sealed;
   const hasPending = () => latest !== null && latest.fingerprint !== ackedFingerprint;
   const quiescent = () => !inflight && (disposed || closed || failed !== null || !hasPending());
 
@@ -194,12 +199,12 @@ export function createAccountDraftWriteQueue(
 
   return {
     enqueue(snapshot) {
-      if (!live()) return;
+      if (!admitting()) return;
       latest = { fingerprint: snapshot.fingerprint, payload: { ...snapshot.payload } };
       pump();
     },
     retry() {
-      if (!live() || retiring || inflight || failed === null || failed === 'conflict') return;
+      if (!admitting() || retiring || inflight || failed === null || failed === 'conflict') return;
       failed = null;
       if (uncertainCreate === null && !hasPending()) {
         emitState(draft ? 'saved' : 'idle');
@@ -214,6 +219,7 @@ export function createAccountDraftWriteQueue(
     },
     async retire(recover = false) {
       if (closed) return true;
+      if (sealed) return false; // a settling queue only completes writes it already owns
       retiring = true;
       await waitUntil(() => !inflight);
       if (closed) return true;
@@ -235,9 +241,15 @@ export function createAccountDraftWriteQueue(
       disposed = true;
       flush();
     },
+    async settle() {
+      sealed = true;
+      await waitUntil(quiescent);
+      disposed = true;
+      flush();
+    },
     adopt(next) {
       const createConflict = uncertainCreate !== null && failed === 'conflict';
-      if (!live() || retiring || inflight) return false;
+      if (!admitting() || retiring || inflight) return false;
       if (uncertainCreate !== null && !createConflict) return false;
       if (hasPending() && failed !== 'conflict') return false;
       draft = next;

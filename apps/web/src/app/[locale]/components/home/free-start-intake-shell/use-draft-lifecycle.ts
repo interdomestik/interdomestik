@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { DraftLifecycleCommands } from './draft-lifecycle-commands';
 import { DraftEditor, type DraftEditorArgs, type DraftEditorView } from './draft-lifecycle-editor';
 import { shownState } from './draft-lifecycle-operations';
+import {
+  attachDraftLifecycle,
+  cancelPendingDraftEdit,
+  detachDraftLifecycle,
+  notePendingDraftEdit,
+} from './draft-lifecycle-unmount';
 
 /** Trailing quiet window for repeated automatic edit admission only; deliberate commands and
  * lifecycle boundaries (bootstrap, release, retirement recovery) keep their immediate writes. */
@@ -30,6 +36,13 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
   const editor = commands.editor;
   // The one pending edit-admission handle; only the effect run that scheduled it may clear it.
   const tick = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Declared first so a StrictMode setup→cleanup→setup rehearsal reattaches this same owner
+  // before the edit effect re-runs. Cleanup suspends ownership synchronously; only an actual
+  // exit finalizes, exactly once, after the rehearsal window (see detachDraftLifecycle).
+  useEffect(() => {
+    attachDraftLifecycle(commands);
+    return () => detachDraftLifecycle(commands);
+  }, [commands]);
   useEffect(() => {
     if (editor.syncAccount()) commands.invalidate();
     editor.noteEdit();
@@ -37,8 +50,12 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
     // The tick re-checks owner, generation, prop identity and fingerprint, then lets the
     // current editor re-read its latest facts; reset, delete, owner change or disposal before
     // the tick supersedes it. Resume cancels it synchronously: generation advances only after
-    // row admission. Cleanup cancels a superseded or unmounted admission.
-    const token = editor.token();
+    // row admission. Cleanup clears only this timer handle; the logical pending admission noted
+    // here survives dependency cleanup, so an actual exit can still admit the latest facts once.
+    // A null token is that same admission, deliberately cancelled: no quiet tick is scheduled,
+    // and this effect then owns no handle to clear or replace.
+    const token = notePendingDraftEdit(editor);
+    if (token === null) return undefined;
     const timer = setTimeout(() => {
       if (tick.current === timer) tick.current = null;
       if (editor.owns(token, true)) editor.autoSave();
@@ -49,7 +66,6 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
       if (tick.current === timer) tick.current = null;
     };
   }, [commands, editor, args.account, args.category, args.draft, args.step]);
-  useEffect(() => () => commands.dispose(), [commands]);
   return {
     ...view,
     // A live manager hold masks queue, edit and background read states until it completes.
@@ -61,10 +77,12 @@ export function useDraftLifecycle(args: DraftEditorArgs) {
     onVerified: () => commands.onVerified(),
     saveChanges: () => commands.saveChanges(),
     resume: (id: string, options?: Parameters<DraftLifecycleCommands['resume']>[1]) => {
-      // Logical cancellation only, before resume can await a held row under the old token.
+      // Deliberate cancellation, before resume can await a held row under the old token: the
+      // timer handle and the logical exit admission of the superseded facts both end here.
       const pending = tick.current;
       tick.current = null;
       if (pending !== null) clearTimeout(pending);
+      cancelPendingDraftEdit(editor);
       return commands.resume(id, options);
     },
     remove: commands.remove.bind(commands),
