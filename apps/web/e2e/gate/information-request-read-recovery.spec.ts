@@ -30,7 +30,6 @@ const CATALOG_LABELS = Object.entries({ en, sq, mk, sr }).map(
   ([locale, messages]) => [locale, messages.claims.informationRequests.retryRead] as const
 );
 const LAYOUT_SCOPE = 'layout-only catalog label substitution on the rendered retry button';
-
 type Draft = { field: Locator; value: string };
 type Scenario = {
   queue: (testInfo: TestInfo) => string;
@@ -135,7 +134,8 @@ async function openFailedDetail(
   seam: InformationRequestReadSeam
 ): Promise<void> {
   const scenario = SCENARIOS[audience];
-  await gotoApp(page, scenario.queue(testInfo), testInfo);
+  const marker = audience === 'member' ? 'member-claims-table-region' : 'staff-page-ready';
+  await gotoApp(page, scenario.queue(testInfo), testInfo, { marker });
   await expect(page.locator('body')).toBeVisible();
   const link = page.locator(`a[href="${detailPath}"]`).filter({ visible: true });
   await expect(link).toHaveCount(1);
@@ -225,6 +225,7 @@ async function runScenario(
   audience: ReadResultAudience
 ): Promise<void> {
   test.setTimeout(TEST_TIMEOUT_MS);
+  // KS-owned fixture and SQ labels: other projects skip, while both audiences execute on KS.
   test.skip(testInfo.project.name !== PROJECT, 'The Albanian KS fixture owns this packet');
   expect(routes.getLocale(testInfo)).toBe('sq');
   await withInformationRequestFixture(async ({ claimId }) => {

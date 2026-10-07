@@ -225,7 +225,7 @@ export async function installInformationRequestReadSeam(
 
   const finishInitial = async (): Promise<void> => {
     initial = null;
-    await Promise.all([...outstanding]);
+    await Promise.all(outstanding);
   };
 
   const matcher = (url: URL): boolean => url.pathname === target.pathname;

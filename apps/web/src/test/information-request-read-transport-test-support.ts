@@ -25,10 +25,11 @@ export const rsc = (body: string, overrides: Partial<FakeResponse> = {}): FakeRe
 export async function mount() {
   const registered: { matcher?: Matcher; handler?: Handler } = {};
   const page = {
-    route: vi.fn(async (matcher: Matcher, handler: Handler) => {
+    route: vi.fn((matcher: Matcher, handler: Handler): Promise<void> => {
       Object.assign(registered, { matcher, handler });
+      return Promise.resolve();
     }),
-    unroute: vi.fn(async (_matcher: Matcher, _handler: Handler) => undefined),
+    unroute: vi.fn((_matcher: Matcher, _handler: Handler) => Promise.resolve(undefined)),
   };
   const seam = await installInformationRequestReadSeam(page as unknown as Page, TARGET);
   const { matcher, handler } = registered;
@@ -40,15 +41,15 @@ export function fakeRoute(response: FakeResponse, request: FakeRequest = GET_RSC
   const fetched = {
     ok: () => response.ok,
     headers: () => ({ 'content-type': response.contentType }),
-    text: async () => response.body,
+    text: () => Promise.resolve(response.body),
   };
   return {
     fetched,
     request: () => ({ method: () => request.method, headers: () => request.headers }),
-    fetch: vi.fn(async () => fetched),
-    fulfill: vi.fn(async (_options: { response: unknown; body?: string }) => undefined),
-    fallback: vi.fn(async () => undefined),
-    abort: vi.fn(async (_errorCode?: string) => undefined),
+    fetch: vi.fn(() => Promise.resolve(fetched)),
+    fulfill: vi.fn((_options: { response: unknown; body?: string }) => Promise.resolve(undefined)),
+    fallback: vi.fn(() => Promise.resolve(undefined)),
+    abort: vi.fn((_errorCode?: string) => Promise.resolve(undefined)),
   };
 }
 export type FakeRoute = ReturnType<typeof fakeRoute>;
