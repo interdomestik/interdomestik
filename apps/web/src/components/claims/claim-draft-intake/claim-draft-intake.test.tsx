@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en/claims.json';
@@ -10,8 +10,13 @@ import type { DraftSaveState } from '@/app/[locale]/components/home/free-start-i
 import { ClaimDraftIntake } from './index';
 
 // prettier-ignore
-const a = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
+const a = vi.hoisted(() => ({ account: vi.fn(), create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: a.account.mockResolvedValue({
+    ok: true,
+    emailVerified: true,
+    expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+  }),
   createFreeStartDraft: a.create,
   deleteFreeStartDraft: a.delete,
   listFreeStartDrafts: a.list,
@@ -90,8 +95,17 @@ function enter(label: string, value: string) {
 
 describe('ClaimDraftIntake', () => {
   it('keeps manager-only closed until explicit Manage then Resume', async () => {
-    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
+    a.list.mockResolvedValueOnce({
+      items: [savedDraft],
+      nextCursor: null,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
+    a.resume.mockResolvedValueOnce({
+      draft: savedDraft,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
     // prettier-ignore
     render(<ClaimDraftIntake freeStartMessages={{}} handoffContext={claimStart.handoffContext} initialCategory="property" locale="en" managerOnly neutralOtpHost={location.host} tenantId="tenant_ks" />);
     expect(screen.queryByTestId(/claim-(wizard-handoff|draft-main-panel)/)).toBeNull();
@@ -132,8 +146,17 @@ describe('ClaimDraftIntake', () => {
 
   it('forwards country only after keyboard confirmation', async () => {
     const user = userEvent.setup();
-    a.list.mockResolvedValueOnce({ items: [savedDraft], nextCursor: null, ok: true });
-    a.resume.mockResolvedValueOnce({ draft: savedDraft, ok: true });
+    a.list.mockResolvedValueOnce({
+      items: [savedDraft],
+      nextCursor: null,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
+    a.resume.mockResolvedValueOnce({
+      draft: savedDraft,
+      ok: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+    });
     claim.submit.mockResolvedValue({ success: true, claimId: 'claim-1', claimNumber: 'CLM-1' });
     render(
       <ClaimDraftIntake
@@ -159,6 +182,90 @@ describe('ClaimDraftIntake', () => {
     await user.click(submit);
     // prettier-ignore
     await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart }));
+    const success = await screen.findByTestId('claim-created-success');
+    expect(success).toHaveAttribute('data-claim-number', 'CLM-1');
+    // prettier-ignore
+    a.update.mockImplementation(async (input: { expectedVersion: number; summary: string }) => ({ ok: true, draft: { ...savedDraft, summary: input.summary, version: input.expectedVersion + 1 } }));
+    await user.click(screen.getByRole('button', { name: claimCopy.backToDetails }));
+    for (const summary of ['Edited after Submit.', 'Edited again.']) {
+      enter('details.summary', summary);
+      await user.click(await screen.findByTestId('free-start-save-changes'));
+      await waitFor(() => expect(a.update.mock.lastCall?.[0].summary).toBe(summary));
+    }
+    // prettier-ignore
+    const edited = { category: 'vehicle', counterparty: 'Insurer', desiredOutcome: 'repair', id: savedDraft.id, incidentDate: '2026-07-01', issueType: 'collision', resumeStep: 'details', expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' } };
+    // prettier-ignore
+    expect(a.update.mock.calls).toEqual([[{ ...edited, expectedVersion: 1, summary: 'Edited after Submit.' }], [{ ...edited, expectedVersion: 2, summary: 'Edited again.' }]]);
+    expect(claim.submit).toHaveBeenCalledOnce();
+    expect(a.create.mock.calls.length + a.delete.mock.calls.length).toBe(0);
+    a.update.mockReset();
+  });
+
+  it('gives one deliberate Submit priority over a held older manager discovery', async () => {
+    vi.clearAllMocks();
+    const user = userEvent.setup();
+    const expectedContext = { ownerUserId: 'owner-a', tenantId: 'tenant_ks' };
+    a.list.mockResolvedValue({ ok: true, items: [savedDraft], nextCursor: null, expectedContext });
+    a.resume.mockResolvedValue({ ok: true, draft: savedDraft, expectedContext });
+    claim.lookup.mockResolvedValue({ claim: null });
+    claim.submit.mockResolvedValue({
+      success: true,
+      claimId: 'priority-case',
+      claimNumber: 'CLM-PRIORITY',
+    });
+    render(
+      <ClaimDraftIntake
+        freeStartMessages={{}}
+        initialCategory="vehicle"
+        locale="en"
+        neutralOtpHost={location.host}
+        tenantId="tenant_ks"
+      />
+    );
+    await user.click(await screen.findByTestId('free-start-manage-open'));
+    await user.click(await screen.findByRole('button', { name: 'Resume' }));
+    const submit = await screen.findByTestId('claim-draft-submit');
+    await waitFor(() => expect(submit).toBeEnabled());
+    let settle!: (value: unknown) => void;
+    a.account.mockReturnValueOnce(
+      new Promise(resolve => {
+        settle = resolve;
+      })
+    );
+    await user.click(within(screen.getByTestId('account-draft-status')).getByRole('button'));
+    expect(screen.getByTestId(`free-start-resume-${savedDraft.id}`)).toBeDisabled();
+    await user.click(submit);
+    await waitFor(() =>
+      expect(claim.submit).toHaveBeenCalledExactlyOnceWith({
+        id: savedDraft.id,
+        expectedVersion: 1,
+      })
+    );
+    expect(await screen.findByTestId('claim-created-success')).toHaveAttribute(
+      'data-claim-number',
+      'CLM-PRIORITY'
+    );
+    await act(async () => {
+      settle({ ok: true, emailVerified: true, expectedContext });
+    });
+    expect(a.list).toHaveBeenCalledOnce();
+    expect(a.create).not.toHaveBeenCalled();
+    expect(a.update).not.toHaveBeenCalled();
+    expect(a.delete).not.toHaveBeenCalled();
+    const review = screen.getByTestId('claim-draft-dormant-preview');
+    expect(
+      within(review)
+        .getAllByRole('definition')
+        .map(node => node.textContent)
+    ).toEqual([
+      'categories.vehicle.title',
+      'issues.vehicle.collision',
+      '2026-07-01',
+      'Insurer',
+      'outcomes.repair',
+      'Saved facts.',
+    ]);
+    vi.clearAllMocks();
   });
 
   it.each(saveStates)('keeps the reused live save state perceivable: %s', async state => {

@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 import { FreeStartIntakeShell } from './free-start-intake-shell';
+import { useAccountDraftPresentation } from './free-start-intake-shell/use-account-draft-presentation';
 import { HeroSection } from './hero-section';
 import { PublicEntrySessionSkeleton } from './public-entry-session-skeleton';
 
@@ -62,6 +63,14 @@ export function HomePageRuntime({
   const sessionUserId = user?.id ?? null;
   const sessionUserRole = user?.role ?? null;
   const sessionTenantId = user?.tenantId ?? null;
+  const lastDraftOwner = useRef<{ ownerUserId: string; tenantId: string } | null>(null);
+  if (!isPending || (sessionUserId && sessionTenantId)) {
+    lastDraftOwner.current =
+      sessionUserId && sessionTenantId
+        ? { ownerUserId: sessionUserId, tenantId: sessionTenantId }
+        : null;
+  }
+  const draftAccount = useAccountDraftPresentation(lastDraftOwner.current);
   const [intakeOwner, setIntakeOwner] = useState<IntakeOwner>({
     tenantId: sessionTenantId,
     userId: sessionUserId,
@@ -175,6 +184,7 @@ export function HomePageRuntime({
         <FreeStartIntakeShell
           key={`intake-${intakeInstance}`}
           continueHref={continueHref}
+          draftAccount={draftAccount}
           locale={locale}
           neutralOtpHost={neutralOtpHost}
           neutralOtpTenantId={defaultPublicTenantId}
@@ -200,6 +210,7 @@ export function HomePageRuntime({
       <FreeStartIntakeShell
         key={`intake-${intakeInstance}`}
         continueHref={continueHref}
+        draftAccount={draftAccount}
         locale={locale}
         neutralOtpHost={neutralOtpHost}
         neutralOtpTenantId={defaultPublicTenantId}

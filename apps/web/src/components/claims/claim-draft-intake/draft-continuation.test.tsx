@@ -17,6 +17,7 @@ import { DraftContinuationNotice } from './draft-continuation-notice';
 
 vi.unmock('next-intl');
 const actions = vi.hoisted(() => ({
+  account: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
@@ -26,6 +27,7 @@ const actions = vi.hoisted(() => ({
   submit: vi.fn(),
 }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: actions.account,
   createFreeStartDraft: actions.create,
   updateFreeStartDraft: actions.update,
   deleteFreeStartDraft: actions.remove,
@@ -59,6 +61,11 @@ const catalogs = {
 } as const;
 beforeEach(() => {
   vi.resetAllMocks();
+  actions.account.mockResolvedValue({
+    ok: true,
+    emailVerified: true,
+    expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+  });
   actions.lookup.mockResolvedValue({ claim: null });
 });
 afterEach(() => window.history.replaceState(null, '', '/'));
@@ -97,10 +104,17 @@ describe('saved draft continuation mounted contract', () => {
     'reviews exact facts in %s without granting membership or submitting',
     async locale => {
       window.history.replaceState(null, '', `/#draft=${id}`);
-      actions.resume.mockResolvedValue({ ok: true, draft: saved });
+      actions.resume.mockResolvedValue({
+        ok: true,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+        draft: saved,
+      });
       view(locale);
       await waitFor(() => expect(screen.getByTestId('claim-draft-dormant-preview')).toBeVisible());
-      expect(actions.resume).toHaveBeenCalledExactlyOnceWith({ id });
+      expect(actions.resume).toHaveBeenCalledExactlyOnceWith({
+        id,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+      });
       expect(screen.getByText(saved.summary)).toBeVisible();
       await waitFor(() =>
         expect(
@@ -125,9 +139,11 @@ describe('saved draft continuation mounted contract', () => {
     'does not expose or replace facts on %s and offers focused retry',
     async code => {
       window.history.replaceState(null, '', `/#draft=${id}`);
-      actions.resume
-        .mockResolvedValueOnce({ ok: false, code })
-        .mockResolvedValueOnce({ ok: true, draft: saved });
+      actions.resume.mockResolvedValueOnce({ ok: false, code }).mockResolvedValueOnce({
+        ok: true,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+        draft: saved,
+      });
       view();
       const alert = await screen.findByRole('alert');
       await waitFor(() => expect(alert).toHaveFocus());
@@ -137,7 +153,10 @@ describe('saved draft continuation mounted contract', () => {
       retry.focus();
       await userEvent.keyboard('{Enter}');
       expect(await screen.findByText(saved.summary)).toBeVisible();
-      expect(actions.resume.mock.calls).toEqual([[{ id }], [{ id }]]);
+      expect(actions.resume.mock.calls).toEqual([
+        [{ id, expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' } }],
+        [{ id, expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' } }],
+      ]);
       expect(actions.submit).not.toHaveBeenCalled();
     }
   );
@@ -153,8 +172,13 @@ describe('saved draft continuation mounted contract', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading your saved draft');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    await waitFor(() => expect(actions.resume).toHaveBeenCalledOnce());
     await act(async () => {
-      finish({ ok: true, draft: saved });
+      finish({
+        ok: true,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+        draft: saved,
+      });
     });
     expect(await screen.findByText(saved.summary)).toBeVisible();
   });
@@ -168,8 +192,16 @@ describe('saved draft continuation mounted contract', () => {
   ])('refuses a draft that is no longer review-ready: %j', async changed => {
     window.history.replaceState(null, '', `/#draft=${id}`);
     actions.resume
-      .mockResolvedValueOnce({ ok: true, draft: { ...saved, ...changed } })
-      .mockResolvedValueOnce({ ok: true, draft: saved });
+      .mockResolvedValueOnce({
+        ok: true,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+        draft: { ...saved, ...changed },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+        draft: saved,
+      });
     view();
     expect(await screen.findByRole('alert')).toBeVisible();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

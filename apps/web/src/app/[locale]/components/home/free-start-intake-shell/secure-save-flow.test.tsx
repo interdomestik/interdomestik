@@ -5,9 +5,10 @@ import type { CategoryId, DraftState, SavedDraft } from './types';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 import { useNeutralEmailOtp } from '@/components/auth/use-neutral-email-otp';
 // prettier-ignore
-const actions = vi.hoisted(() => ({ create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
+const actions = vi.hoisted(() => ({ account: vi.fn(), create: vi.fn(), delete: vi.fn(), list: vi.fn(), resume: vi.fn(), update: vi.fn() }));
 const auth = vi.hoisted(() => ({ send: vi.fn(), verify: vi.fn() }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: actions.account,
   createFreeStartDraft: actions.create,
   deleteFreeStartDraft: actions.delete,
   listFreeStartDrafts: actions.list,
@@ -48,6 +49,11 @@ function setup() {
 describe('secure Free Start lifecycle', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    actions.account.mockResolvedValue({
+      ok: true,
+      emailVerified: true,
+      expectedContext: { ownerUserId: 'stable-user', tenantId: 'tenant_ks' },
+    });
     actions.create.mockResolvedValue({ ok: true, draft: saved, idempotent: false });
     actions.update.mockResolvedValue({ ok: true, draft: { ...saved, version: 2 } });
     actions.delete.mockResolvedValue({ ok: true, id: saved.id, version: 1 });
@@ -56,8 +62,8 @@ describe('secure Free Start lifecycle', () => {
     auth.verify.mockResolvedValue({ data: { user: { id: 'stable-user' } }, error: null });
   });
   it('C25 retries a verified save intent without consuming the OTP twice', async () => {
+    actions.account.mockResolvedValueOnce({ ok: false, code: 'authRequired' });
     actions.create
-      .mockResolvedValueOnce({ ok: false, code: 'authRequired' })
       .mockResolvedValueOnce({ ok: false, code: 'unavailableAccountContext' })
       .mockResolvedValueOnce({ ok: true, draft: saved, idempotent: false });
     const lifecycle = setup();
@@ -71,15 +77,15 @@ describe('secure Free Start lifecycle', () => {
     expect(lifecycle.result.current.state).toBe('accountContext');
     await act(() => result.current.verify());
     expect(auth.verify).toHaveBeenCalledOnce();
-    expect(actions.create).toHaveBeenCalledTimes(3);
+    expect(actions.create).toHaveBeenCalledTimes(2);
     expect(lifecycle.result.current.state).toBe('saved');
   });
   it('C26 preserves retry identity and distinguishes rejection, invalid, account and unsupported', async () => {
     // prettier-ignore
-    actions.create.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({ ok: false, code: 'invalid' }).mockResolvedValueOnce({ ok: false, code: 'unavailableAccountContext' }).mockResolvedValueOnce({ ok: true, draft: { ...saved, summary: 'Corrected facts.' }, idempotent: false });
+    actions.create.mockResolvedValueOnce({ ok: false, code: 'invalid' }).mockResolvedValueOnce({ ok: false, code: 'unavailableAccountContext' }).mockResolvedValueOnce({ ok: true, draft: { ...saved, summary: 'Corrected facts.' }, idempotent: false });
     const lifecycle = setup();
     const corrected = { ...draft, summary: 'Corrected facts.' };
-    for (const expected of ['error', 'invalid', 'accountContext']) {
+    for (const expected of ['invalid', 'accountContext']) {
       await act(() => lifecycle.result.current.openSave());
       expect(lifecycle.result.current.state).toBe(expected);
       if (expected === 'invalid') {
@@ -104,10 +110,11 @@ describe('secure Free Start lifecycle', () => {
     expect(actions.create).toHaveBeenCalledWith(expect.objectContaining({ category: 'property', resumeStep: 'preview' }));
     let releaseList!: () => void;
     // prettier-ignore
-    actions.list.mockImplementationOnce(() => new Promise(resolve => (releaseList = () => resolve({ ok: true, items: [saved], nextCursor: null }))));
+    actions.list.mockImplementationOnce(() => new Promise(resolve => (releaseList = () => resolve({ ok: true, items: [saved], nextCursor: null, expectedContext: { ownerUserId: 'stable-user', tenantId: 'tenant_ks' } }))));
     let managing!: Promise<unknown>;
     // prettier-ignore
     act(() => { managing = result.current.openManage(); });
+    await waitFor(() => expect(actions.list).toHaveBeenCalledOnce());
     rerender({ category: 'property', draft: { ...draft, summary: 'Changed.' }, step: 'preview' });
     releaseList();
     await act(() => managing);
@@ -122,7 +129,7 @@ describe('secure Free Start lifecycle', () => {
     const { result, onReset } = setup();
     await act(() => result.current.openSave());
     const firstRequest = actions.create.mock.calls[0][0].clientRequestId;
-    act(() => result.current.startAnother());
+    await act(() => result.current.startAnother());
     await act(() => result.current.openSave());
     expect(actions.create.mock.calls[1][0].clientRequestId).not.toBe(firstRequest);
     expect(result.current.identityKey).toBe(1);

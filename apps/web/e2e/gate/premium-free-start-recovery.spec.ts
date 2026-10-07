@@ -12,7 +12,7 @@ import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 const KEY = 'interdomestik_free_start_recovery_v1';
 const LOCK = 'interdomestik:free-start:anonymous-draft:v1';
 // prettier-ignore
-type BarrierWindow = Window & { __idaArm?: () => void; __idaHeld?: boolean; __idaRelease?: () => void; __idaReleaseTurn?: (expire: boolean) => void; __idaRestore?: () => void; __idaSeam?: () => { held: boolean; owned: boolean; turn: number } };
+type BarrierWindow = Window & { __idaStorageTrace?: Array<string | null>; __idaRestoreStorage?: () => void; __idaArm?: () => void; __idaHeld?: boolean; __idaRelease?: () => void; __idaReleaseTurn?: (expire: boolean) => void; __idaRestore?: () => void; __idaSeam?: () => { held: boolean; owned: boolean; turn: number } };
 // prettier-ignore
 function resolveIdaTarget(info: TestInfo): TestInfo {
   const explicit = process.env.IDA_RECOVERY_ORIGIN?.trim();
@@ -226,7 +226,64 @@ test.describe('pre-membership Free Start recovery', () => {
   });
 
   // prettier-ignore
-  test('keeps a retained active draft current until the next secure save', async ({ browser }, info) => { test.setTimeout(180_000); const ida = resolveIdaTarget(info); await withPage(browser, ida, async keeper => { await keeper.context().clearCookies(); const runId = `${info.project.name}-${info.workerIndex}-${Date.now()}`, seed = `Active seed ${runId}.`, promotion = `Active promotion ${runId}.`, later = `Active later ${runId}.`, pair = await seededPair(keeper.context(), ida, seed), saved = [seed, promotion, later]; let auth: AuthState | null = null; try { auth = await freshLogin(pair.first, ida); await openSaveArea(pair.firstOrganizer); await holdLock(pair.first); await pair.firstOrganizer.getByTestId('free-start-save-open').evaluate(button => (button as HTMLButtonElement).click()); await expectPending(pair.first, 1); await pair.firstOrganizer.getByLabel('Brief summary').fill(promotion); await releaseLock(pair.first, 1); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(promotion); await expect(pair.firstOrganizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'dirty'); await pair.firstOrganizer.getByLabel('Brief summary').fill(later); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toContain(later); await pair.firstOrganizer.getByTestId('free-start-save-changes').click(); await expect(pair.firstOrganizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved'); await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBeNull(); } finally { try { await deleteSavedDrafts(saved); } finally { try { if (auth) await freshLogout(pair.first, ida, auth); } finally { await closePair(pair); } } } }); });
+  test('keeps later retained facts on the same active source through account autosave', async ({ browser }, info) => {
+    test.setTimeout(180_000);
+    const ida = resolveIdaTarget(info);
+    await withPage(browser, ida, async keeper => {
+      await keeper.context().clearCookies();
+      const runId = `${info.project.name}-${info.workerIndex}-${Date.now()}`, seed = `Active seed ${runId}.`, promotion = `Active promotion ${runId}.`, later = `Active later ${runId}.`, saved = [seed, promotion, later];
+      const pair = await seededPair(keeper.context(), ida, seed);
+      const owner = await db.query.user.findFirst({ columns: { id: true }, where: eq(user.email, E2E_USERS.KS_MEMBER.email) });
+      if (!owner) throw new Error('secure draft owner missing');
+      const context = { accessTenantId: E2E_USERS.KS_MEMBER.tenantId, actorRole: 'member', ownerUserId: owner.id, tenantId: E2E_USERS.KS_MEMBER.tenantId };
+      const ownSources = async () => (await listFreeStartDrafts(context, { limit: 50 })).items.filter(item => saved.includes(item.summary));
+      let auth: AuthState | null = null;
+      try {
+        await pair.first.evaluate(key => {
+          const view = window as BarrierWindow, set = Object.getOwnPropertyDescriptor(Storage.prototype, 'setItem'), remove = Object.getOwnPropertyDescriptor(Storage.prototype, 'removeItem');
+          if (!set || !remove) throw new Error('native storage descriptors missing');
+          const nativeSet = Storage.prototype.setItem, nativeRemove = Storage.prototype.removeItem, nativeGet = Storage.prototype.getItem; view.__idaStorageTrace = [];
+          Object.defineProperty(Storage.prototype, 'setItem', { ...set, value: function(this: Storage, name: string, value: string) { const result = nativeSet.call(this, name, value); if (this === localStorage && name === key) view.__idaStorageTrace!.push(nativeGet.call(this, key)); return result; } });
+          Object.defineProperty(Storage.prototype, 'removeItem', { ...remove, value: function(this: Storage, name: string) { const result = nativeRemove.call(this, name); if (this === localStorage && name === key) view.__idaStorageTrace!.push(nativeGet.call(this, key)); return result; } });
+          view.__idaRestoreStorage = () => { Object.defineProperty(Storage.prototype, 'setItem', set); Object.defineProperty(Storage.prototype, 'removeItem', remove); delete view.__idaRestoreStorage; };
+        }, KEY);
+        auth = await freshLogin(pair.first, ida);
+        await openSaveArea(pair.firstOrganizer);
+        await holdLock(pair.first);
+        await pair.firstOrganizer.getByTestId('free-start-save-open').evaluate(button => (button as HTMLButtonElement).click());
+        await expectPending(pair.first, 1);
+        const initial = await ownSources();
+        expect(initial).toHaveLength(1);
+        expect(initial[0]!.summary).toBe(seed);
+        await pair.firstOrganizer.getByLabel('Brief summary').fill(promotion);
+        await releaseLock(pair.first, 1);
+        await expect.poll(() => pair.first.evaluate(summary => (window as BarrierWindow).__idaStorageTrace?.some(record => record?.includes(summary)) ?? false, promotion)).toBe(true);
+        await expect(pair.firstOrganizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved');
+        await expect.poll(async () => (await ownSources()).map(item => item.summary)).toEqual([promotion]);
+        const promoted = (await ownSources())[0]!;
+        expect(promoted.id).toBe(initial[0]!.id);
+        expect(promoted.version).toBeGreaterThan(initial[0]!.version);
+        await pair.firstOrganizer.getByLabel('Brief summary').fill(later);
+        await expect.poll(async () => (await ownSources()).map(item => item.summary)).toEqual([later]);
+        await expect(pair.firstOrganizer.getByTestId('free-start-save-status')).toHaveAttribute('data-state', 'saved');
+        const latest = (await ownSources())[0]!;
+        expect(latest.id).toBe(promoted.id);
+        expect(latest.version).toBeGreaterThan(promoted.version);
+        expect(await resumeFreeStartDraft(context, latest.id)).toEqual({ ok: true, draft: latest });
+        await expect.poll(() => pair.first.evaluate(key => localStorage.getItem(key), KEY)).toBeNull();
+        await pair.first.evaluate(() => (window as BarrierWindow).__idaRestoreStorage?.());
+        await pair.first.reload();
+        const returned = pair.first.getByTestId('premium-free-start-organizer');
+        await openSaveArea(returned);
+        await returned.getByTestId('free-start-manage-open').click();
+        await returned.getByTestId(`free-start-resume-${latest.id}`).click();
+        await expect(returned.getByLabel('Brief summary')).toHaveValue(later);
+        expect(await ownSources()).toEqual([latest]);
+      } finally {
+        try { await pair.first.evaluate(() => (window as BarrierWindow).__idaRestoreStorage?.()); } finally { try { await deleteSavedDrafts(saved); } finally { try { if (auth) await freshLogout(pair.first, ida, auth); } finally { await closePair(pair); } } }
+      }
+    });
+  });
   // prettier-ignore
   test('keeps discard, generic hosts, no-JavaScript and storage denial truthful', async ({ browser }, info) => {
     test.setTimeout(120_000); const ida = resolveIdaTarget(info);

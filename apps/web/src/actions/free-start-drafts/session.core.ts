@@ -13,8 +13,15 @@ export type FreeStartDraftSessionContext = {
   tenantId: TenantId;
 };
 
+/**
+ * `emailVerified` is an additive draft-admission verdict, not an access decision.
+ *
+ * BetterAuth providers in this workspace omit `requireEmailVerification`, so a valid password
+ * session does not by itself prove a verified email. Submit, lookup and read resolution stay
+ * unchanged for unverified owners; only account draft create/update consults this verdict.
+ */
 export type FreeStartDraftSessionResult =
-  | { ok: true; context: FreeStartDraftSessionContext }
+  | { ok: true; context: FreeStartDraftSessionContext; emailVerified: boolean }
   | {
       ok: false;
       code: 'authRequired' | 'unavailable' | 'unavailableAccountContext';
@@ -82,6 +89,7 @@ export async function resolveFreeStartDraftSession(
 
   return {
     ok: true,
+    emailVerified: user?.emailVerified === true,
     context: {
       accessTenantId: accessTenantId as TenantId,
       actorRole: nonBlank(user?.role),

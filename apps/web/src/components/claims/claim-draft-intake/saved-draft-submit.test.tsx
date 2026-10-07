@@ -3,6 +3,18 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UnrecognizedActionError } from 'next/dist/client/components/unrecognized-action-error';
 import { DormantPreview } from './dormant-preview';
+import { DraftLifecycleCommands } from '@/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-commands';
+import { DraftEditor } from '@/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-editor';
+import type { SavedDraft } from '@/app/[locale]/components/home/free-start-intake-shell/types';
+const draftActions = vi.hoisted(() => ({ remove: vi.fn(), create: vi.fn(), update: vi.fn() }));
+vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: vi.fn(),
+  listFreeStartDrafts: vi.fn(),
+  resumeFreeStartDraft: vi.fn(),
+  deleteFreeStartDraft: draftActions.remove,
+  createFreeStartDraft: draftActions.create,
+  updateFreeStartDraft: draftActions.update,
+}));
 const h = vi.hoisted(() => ({
   lookup: vi.fn(),
   submit: vi.fn(),
@@ -151,6 +163,92 @@ describe('saved draft canonical submit', () => {
     expect(h.submit).toHaveBeenCalledTimes(2);
     expect(h.outcome.mock.calls).toEqual([['rejected'], ['unexpected']]);
   });
+  it.each(['failure', 'exception', 'success'])(
+    'keeps a newer deletion retired after an older rendered Submit %s',
+    async kind => {
+      vi.clearAllMocks();
+      const row: SavedDraft = {
+        ...draft,
+        category: 'vehicle',
+        resumeStep: 'preview',
+        id,
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        version: 3,
+        createdAt: '2026-10-06T13:00:00.000Z',
+        updatedAt: '2026-10-06T13:00:00.000Z',
+      };
+      const editor = new DraftEditor(
+        () => ({
+          account: {
+            emailVerified: true,
+            expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' },
+          },
+          category: 'vehicle',
+          step: 'preview',
+          draft,
+          onReset: vi.fn(),
+          onResume: vi.fn(),
+        }),
+        vi.fn()
+      );
+      editor.initialized = true;
+      editor.patch({ active: row, state: 'saved' });
+      editor.savedFingerprint = editor.fingerprint();
+      editor.getQueue();
+      const commands = new DraftLifecycleCommands(editor);
+      let settle!: (value: unknown) => void,
+        reject!: (reason: unknown) => void,
+        deleteResult!: (value: unknown) => void;
+      h.submit.mockReturnValueOnce(
+        new Promise((yes, no) => {
+          settle = yes;
+          reject = no;
+        })
+      );
+      draftActions.remove.mockReturnValueOnce(
+        new Promise(done => {
+          deleteResult = done;
+        })
+      );
+      view({
+        prepareForContinuation: () => commands.prepareForContinuation(),
+        onContinuationRejected: receipt => commands.releaseContinuation(receipt),
+      });
+      const submit = screen.getByRole('button', { name: submitCopy.label });
+      await waitFor(() => expect(submit).toBeEnabled());
+      fireEvent.click(submit);
+      await waitFor(() =>
+        expect(h.submit).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 3 })
+      );
+      const removing = commands.remove(row);
+      await waitFor(() =>
+        expect(draftActions.remove).toHaveBeenCalledExactlyOnceWith({ id, expectedVersion: 3 })
+      );
+      expect(editor.terminal).toBe(true);
+      if (kind === 'failure') settle({ success: false });
+      else if (kind === 'success') settle({ success: true, claimId: 'c3', claimNumber: 'CLM-3' });
+      else reject(new Error('network'));
+      if (kind === 'success')
+        expect(await screen.findByTestId('claim-created-success')).toHaveAttribute(
+          'data-claim-number',
+          'CLM-3'
+        );
+      else
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          kind === 'failure' ? submitCopy.failed : submitCopy.unexpected
+        );
+      expect(editor.terminal).toBe(true);
+      expect(editor.view.active).toEqual(row);
+      expect(editor.current().draft).toEqual(draft);
+      expect(draftActions.create).not.toHaveBeenCalled();
+      expect(draftActions.update).not.toHaveBeenCalled();
+      deleteResult({ ok: false, code: 'error' });
+      expect(await removing).toBe(false);
+      expect(editor.terminal).toBe(false);
+      commands.dispose();
+    }
+  );
+
   it('offers a native fresh-document continuation after E715 without replaying submission', async () => {
     const error = Object.defineProperty(
       new UnrecognizedActionError('Server Action was not found'),

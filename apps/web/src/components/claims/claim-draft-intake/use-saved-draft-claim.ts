@@ -5,6 +5,7 @@ import {
   lookupSavedDraftClaim,
 } from '@/actions/claims/create-from-saved-draft';
 import { startCriticalAction } from '@/lib/observability/critical-action';
+import { isDraftContinuationCurrent } from '@/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-continuation';
 import { isOutdatedServerAction } from '@/lib/saved-draft-deployment-recovery';
 import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -18,6 +19,8 @@ type LookupState = {
   status: LookupStatus;
 };
 type Options = Readonly<{
+  prepareForContinuation?: () => Promise<{ id: string; version: number } | null>;
+  onContinuationRejected?: (receipt?: { id: string; version: number } | null) => void;
   draftId?: string | null;
   draftVersion?: number | null;
   eligible: boolean;
@@ -93,29 +96,50 @@ export function useSavedDraftClaim(options: Options) {
     setFailure(null);
     startTransition(async () => {
       const action = startCriticalAction('saved_draft_submit');
+      let submittedIdentity = identity;
+      let settled: { id: string; version: number } | null = null;
       try {
+        settled = options.prepareForContinuation
+          ? await options.prepareForContinuation()
+          : { id: draftId, version: draftVersion };
+        if (
+          !settled ||
+          !isSavedDraftId(settled.id) ||
+          !settled.version ||
+          !isDraftContinuationCurrent(settled)
+        ) {
+          action.finish('rejected');
+          options.onContinuationRejected?.(settled);
+          setFailure({ identity, message: failedCopy });
+          return;
+        }
+        submittedIdentity = `${settled.id.toLowerCase()}:${settled.version}`;
         const result = await createClaimFromSavedDraft({
           ...(claimStart ? { claimStart } : {}),
-          id: draftId,
-          expectedVersion: draftVersion,
+          id: settled.id,
+          expectedVersion: settled.version,
         });
         if (result.success) {
           action.finish('success');
           setLookup({
             claim: { id: result.claimId, number: result.claimNumber },
-            identity,
+            identity: submittedIdentity,
             origin: 'user_submit',
             status: 'found',
           });
+          // Recorded success releases only this receipt's own lease; the draft stays editable.
+          options.onContinuationRejected?.(settled);
         } else {
           action.finish('rejected');
-          setFailure({ identity, message: failedCopy });
+          options.onContinuationRejected?.(settled);
+          setFailure({ identity: submittedIdentity, message: failedCopy });
         }
       } catch (error) {
         const needsReload = isOutdatedServerAction(error);
         action.finish(needsReload ? 'stale_deployment' : 'unexpected');
+        options.onContinuationRejected?.(settled);
         setFailure({
-          identity,
+          identity: submittedIdentity,
           message: needsReload ? (outdatedCopy ?? unexpectedCopy) : unexpectedCopy,
           needsReload,
         });

@@ -5,10 +5,15 @@ import { headers } from 'next/headers';
 import {
   createFreeStartDraftCore,
   deleteFreeStartDraftCore,
+  getFreeStartDraftAccountCore,
   listFreeStartDraftsCore,
   resumeFreeStartDraftCore,
   updateFreeStartDraftCore,
 } from './free-start-drafts/lifecycle.core';
+
+export async function getFreeStartDraftAccount() {
+  return getFreeStartDraftAccountCore(await headers());
+}
 
 export async function createFreeStartDraft(input: unknown) {
   return createFreeStartDraftCore(await headers(), input);

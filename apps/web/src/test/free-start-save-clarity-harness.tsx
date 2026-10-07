@@ -7,7 +7,7 @@ import { freeStartLocaleMessages } from '@/messages/free-start-test-messages';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 // prettier-ignore
-const boundaries = vi.hoisted(() => ({ create: vi.fn(), identity: vi.fn(), list: vi.fn(), pack: vi.fn(), remove: vi.fn(), resume: vi.fn(), submit: vi.fn(), update: vi.fn() }));
+const boundaries = vi.hoisted(() => ({ account: vi.fn(), create: vi.fn(), identity: vi.fn(), list: vi.fn(), pack: vi.fn(), remove: vi.fn(), resume: vi.fn(), submit: vi.fn(), update: vi.fn() }));
 // The active locale is read per translation lookup, so one mounted suite can walk all four.
 export const active = { locale: 'en' as keyof typeof freeStartLocaleMessages };
 vi.mock('next-intl', () => ({
@@ -26,6 +26,7 @@ vi.mock('@/lib/support-contacts', () => createSupportContactsMock());
 vi.mock('@/actions/free-start.core', () => ({ submitFreeStartIntake: boundaries.submit }));
 vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: boundaries.pack }));
 vi.mock('@/actions/free-start-drafts', () => ({
+  getFreeStartDraftAccount: boundaries.account,
   createFreeStartDraft: boundaries.create,
   deleteFreeStartDraft: boundaries.remove,
   listFreeStartDrafts: boundaries.list,
@@ -108,8 +109,18 @@ export function setupSaveClarity() {
     vi.clearAllMocks();
     resetPublicIntakeBrowser();
     active.locale = 'en';
+    boundaries.account.mockResolvedValue({
+      ok: true,
+      emailVerified: true,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_public' },
+    });
     boundaries.create.mockResolvedValue({ ok: true, draft: SAVED_DRAFT, idempotent: false });
-    boundaries.list.mockResolvedValue({ ok: true, items: [], nextCursor: null });
+    boundaries.list.mockResolvedValue({
+      ok: true,
+      items: [],
+      nextCursor: null,
+      expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_public' },
+    });
   });
 }
 

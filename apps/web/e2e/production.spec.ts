@@ -1,5 +1,12 @@
 import { E2E_PASSWORD } from '@interdomestik/database';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import {
+  assertSmokeBaselineRestored,
+  assertSmokeSavedWithoutClaim,
+  readSmokeOwnerBaseline,
+  startFreshSmokeDraft,
+  type SmokeOwnerBaseline,
+} from './production-draft-continuity.fixture';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 
@@ -9,6 +16,7 @@ const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: E2E_PASSWORD }
 const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: E2E_PASSWORD };
 const RUN_ID = Date.now();
 let savedDraftId: string | null = null;
+let retainedSmokeOwner: SmokeOwnerBaseline | null = null;
 
 const isMkProject = (testInfo: TestInfo) => testInfo.project.name.includes('mk');
 
@@ -97,19 +105,20 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       const idaTestInfo = resolveIdaTarget(testInfo);
       await page.context().setExtraHTTPHeaders({ 'x-tenant-id': 'tenant_ks' });
       await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, idaTestInfo);
+      retainedSmokeOwner = await readSmokeOwnerBaseline(page);
+      testInfo.annotations.push({
+        type: 'smoke-owner-baseline',
+        description: JSON.stringify({
+          drafts: retainedSmokeOwner.drafts.length,
+          claims: retainedSmokeOwner.claims.length,
+        }),
+      });
       await gotoApp(page, routes.memberNewClaim(idaTestInfo), idaTestInfo, {
         marker: 'new-claim-page-ready',
       });
       const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
       const panel = intake.getByTestId('claim-draft-main-panel');
-      await intake.getByTestId('free-start-manage-open').click();
-      // prettier-ignore
-      const staleDrafts = page.locator('li').filter({ hasText: /^Auto Smoke/ }).getByTestId(/^free-start-delete-/);
-      for (let count = await staleDrafts.count(); count > 0; count--) {
-        await staleDrafts.first().click();
-        await page.getByTestId('free-start-delete-confirm').click();
-        await expect(staleDrafts).toHaveCount(count - 1);
-      }
+      await startFreshSmokeDraft(page, intake, retainedSmokeOwner);
       await intake.getByTestId('claim-draft-category-vehicle').click();
       await intake.getByTestId('claim-draft-category-continue').click();
       await panel.locator('select').nth(0).selectOption('collision');
@@ -119,13 +128,12 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await panel.locator('textarea').fill(title);
       await panel.locator('button').last().click();
       await expect(intake.getByTestId('claim-draft-dormant-preview')).toContainText(title);
-      await expect(intake.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
-      await expect(page.getByTestId('claim-created-success')).toHaveCount(0);
-      await intake.getByTestId('free-start-save-open').click();
-      await expect(intake.getByTestId('free-start-save-status')).toHaveAttribute(
+      await expect(intake.getByTestId('account-draft-status')).toHaveAttribute(
         'data-state',
         'saved'
       );
+      await expect(intake.getByTestId('claim-draft-submit')).toBeEnabled();
+      await expect(page.getByTestId('claim-created-success')).toHaveCount(0);
       await intake.getByTestId('free-start-manage-open').click();
       const resume = page
         .locator('li')
@@ -135,6 +143,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       const testId = await resume.getAttribute('data-testid');
       savedDraftId = testId?.replace('free-start-resume-', '') || null;
       if (!savedDraftId) throw new Error('saved_draft_id_missing');
+      await assertSmokeSavedWithoutClaim(intake, retainedSmokeOwner, savedDraftId, title);
     });
   });
 
@@ -142,7 +151,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
     test('Admin (KS) cannot see the saved dormant draft as a claim', async ({ page }, testInfo) => {
       const title = `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
       const draftId = savedDraftId;
-      if (!draftId) throw new Error('saved_draft_id_missing');
+      if (!draftId || !retainedSmokeOwner) throw new Error('saved_draft_identity_missing');
       const adminUser = isMkProject(testInfo)
         ? { ...ADMIN_MK, tenant: 'tenant_mk' }
         : { ...ADMIN_KS, tenant: 'tenant_ks' };
@@ -176,7 +185,17 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
           'data-state',
           'deleted'
         );
+        await assertSmokeBaselineRestored(retainedSmokeOwner);
+        testInfo.annotations.push({
+          type: 'smoke-exact-cleanup',
+          description: JSON.stringify({
+            drafts: retainedSmokeOwner.drafts.length,
+            claims: retainedSmokeOwner.claims.length,
+            restored: true,
+          }),
+        });
         savedDraftId = null;
+        retainedSmokeOwner = null;
       }
     });
   });

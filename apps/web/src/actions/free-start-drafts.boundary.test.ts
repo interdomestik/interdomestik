@@ -17,13 +17,17 @@ const headers = new Headers({ host: 'ida.interdomestik.com' });
 // prettier-ignore
 const context = { accessTenantId: 'tenant_ks' as const, actorRole: 'member', ownerUserId: 'session-owner', tenantId: 'tenant_ks' as const };
 // prettier-ignore
+const expectedContext = { ownerUserId: context.ownerUserId, tenantId: context.tenantId };
+// prettier-ignore
 const facts = { category: 'vehicle', counterparty: 'Example Insurer', desiredOutcome: 'written_response', incidentDate: '2026-07-17', issueType: 'collision', resumeStep: 'preview', summary: 'Supported event facts only.' } as const;
 
 function sessionDeps(
   overrides: Partial<FreeStartDraftSessionDependencies> = {}
 ): FreeStartDraftSessionDependencies {
   return {
-    getSession: vi.fn().mockResolvedValue({ user: { id: 'owner-1', role: 'member' } }),
+    getSession: vi
+      .fn()
+      .mockResolvedValue({ user: { emailVerified: true, id: 'owner-1', role: 'member' } }),
     isAllowedHost: vi.fn().mockReturnValue(true),
     resolveDefaultTenantId: vi.fn().mockReturnValue('tenant_ks'),
     resolveSessionAccessTenantId: vi.fn().mockReturnValue('tenant_ks'),
@@ -38,7 +42,7 @@ function lifecycleDeps(
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     listDrafts: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
-    resolveSession: vi.fn().mockResolvedValue({ ok: true, context }),
+    resolveSession: vi.fn().mockResolvedValue({ ok: true, context, emailVerified: true }),
     resumeDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     updateDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     ...overrides,
@@ -90,6 +94,7 @@ describe('free-start draft auth/action boundary C07-C12', () => {
   it('C10 derives actor, access tenant and role only from fresh server state', async () => {
     expect(await resolveFreeStartDraftSession(headers, sessionDeps())).toEqual({
       ok: true,
+      emailVerified: true,
       context: {
         accessTenantId: 'tenant_ks',
         actorRole: 'member',
@@ -124,7 +129,7 @@ describe('free-start draft auth/action boundary C07-C12', () => {
       expect(
         await createFreeStartDraftCore(
           headers,
-          { ...facts, clientRequestId: randomUUID(), ...authority },
+          { ...facts, clientRequestId: randomUUID(), expectedContext, ...authority },
           deps
         )
       ).toEqual({ ok: false, code: 'invalid' });
@@ -140,11 +145,16 @@ describe('free-start draft auth/action boundary C07-C12', () => {
       ok: true,
       items: [],
       nextCursor: null,
+      expectedContext,
     });
     expect(listDrafts).toHaveBeenCalledWith(context, { limit: 20 });
     deps.createDraft = vi.fn().mockRejectedValue(new Error('PRIVATE'));
     expect(
-      await createFreeStartDraftCore(headers, { ...facts, clientRequestId: randomUUID() }, deps)
+      await createFreeStartDraftCore(
+        headers,
+        { ...facts, clientRequestId: randomUUID(), expectedContext },
+        deps
+      )
     ).toEqual({ ok: false, code: 'unavailable' });
   });
 });

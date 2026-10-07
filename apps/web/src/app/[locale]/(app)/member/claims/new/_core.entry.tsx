@@ -1,3 +1,4 @@
+import { getFreeStartDraftAccount } from '@/actions/free-start-drafts';
 import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
 import { getSessionSafe } from '@/components/shell/session';
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
@@ -120,6 +121,16 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
     );
   }
 
+  const accountResult = await getFreeStartDraftAccount();
+  const draftAccount =
+    accountResult.ok &&
+    accountResult.expectedContext.ownerUserId === session.user.id &&
+    accountResult.expectedContext.tenantId === tenantId
+      ? {
+          emailVerified: accountResult.emailVerified,
+          expectedContext: accountResult.expectedContext,
+        }
+      : { emailVerified: false, expectedContext: { ownerUserId: session.user.id, tenantId } };
   const freeStartMessages = await loadMessagesForNamespaces(locale, ['freeStart']);
 
   return (
@@ -132,6 +143,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
       <div className="flex-1 p-6">
         <ClaimDraftIntake
           freeStartMessages={freeStartMessages}
+          draftAccount={draftAccount}
           locale={locale}
           initialCategory={preselectedCategory}
           tenantId={tenantId}
