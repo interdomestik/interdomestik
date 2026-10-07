@@ -182,6 +182,23 @@ describe('ClaimDraftIntake', () => {
     await user.click(submit);
     // prettier-ignore
     await waitFor(() => expect(claim.submit).toHaveBeenCalledWith({ id: savedDraft.id, expectedVersion: 1, claimStart }));
+    const success = await screen.findByTestId('claim-created-success');
+    expect(success).toHaveAttribute('data-claim-number', 'CLM-1');
+    // prettier-ignore
+    a.update.mockImplementation(async (input: { expectedVersion: number; summary: string }) => ({ ok: true, draft: { ...savedDraft, summary: input.summary, version: input.expectedVersion + 1 } }));
+    await user.click(screen.getByRole('button', { name: claimCopy.backToDetails }));
+    for (const summary of ['Edited after Submit.', 'Edited again.']) {
+      enter('details.summary', summary);
+      await user.click(await screen.findByTestId('free-start-save-changes'));
+      await waitFor(() => expect(a.update.mock.lastCall?.[0].summary).toBe(summary));
+    }
+    // prettier-ignore
+    const edited = { category: 'vehicle', counterparty: 'Insurer', desiredOutcome: 'repair', id: savedDraft.id, incidentDate: '2026-07-01', issueType: 'collision', resumeStep: 'details', expectedContext: { ownerUserId: 'owner-a', tenantId: 'tenant_ks' } };
+    // prettier-ignore
+    expect(a.update.mock.calls).toEqual([[{ ...edited, expectedVersion: 1, summary: 'Edited after Submit.' }], [{ ...edited, expectedVersion: 2, summary: 'Edited again.' }]]);
+    expect(claim.submit).toHaveBeenCalledOnce();
+    expect(a.create.mock.calls.length + a.delete.mock.calls.length).toBe(0);
+    a.update.mockReset();
   });
 
   it('gives one deliberate Submit priority over a held older manager discovery', async () => {

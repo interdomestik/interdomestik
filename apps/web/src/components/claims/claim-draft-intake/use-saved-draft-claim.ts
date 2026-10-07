@@ -127,6 +127,8 @@ export function useSavedDraftClaim(options: Options) {
             origin: 'user_submit',
             status: 'found',
           });
+          // Recorded success releases only this receipt's own lease; the draft stays editable.
+          options.onContinuationRejected?.(settled);
         } else {
           action.finish('rejected');
           options.onContinuationRejected?.(settled);

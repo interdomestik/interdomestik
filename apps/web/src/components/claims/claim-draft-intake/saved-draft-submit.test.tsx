@@ -163,7 +163,7 @@ describe('saved draft canonical submit', () => {
     expect(h.submit).toHaveBeenCalledTimes(2);
     expect(h.outcome.mock.calls).toEqual([['rejected'], ['unexpected']]);
   });
-  it.each(['failure', 'exception'])(
+  it.each(['failure', 'exception', 'success'])(
     'keeps a newer deletion retired after an older rendered Submit %s',
     async kind => {
       vi.clearAllMocks();
@@ -226,10 +226,17 @@ describe('saved draft canonical submit', () => {
       );
       expect(editor.terminal).toBe(true);
       if (kind === 'failure') settle({ success: false });
+      else if (kind === 'success') settle({ success: true, claimId: 'c3', claimNumber: 'CLM-3' });
       else reject(new Error('network'));
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        kind === 'failure' ? submitCopy.failed : submitCopy.unexpected
-      );
+      if (kind === 'success')
+        expect(await screen.findByTestId('claim-created-success')).toHaveAttribute(
+          'data-claim-number',
+          'CLM-3'
+        );
+      else
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+          kind === 'failure' ? submitCopy.failed : submitCopy.unexpected
+        );
       expect(editor.terminal).toBe(true);
       expect(editor.view.active).toEqual(row);
       expect(editor.current().draft).toEqual(draft);
