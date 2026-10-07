@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitFreeStartIntakeCore } from './submit.core';
 
@@ -19,10 +19,93 @@ vi.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
 }));
 
+// Configuration read by the real tenant resolver; stubbed empty per test and restored after.
+const TENANT_HOST_ENV = [
+  'DEFAULT_PUBLIC_TENANT_ID',
+  'IDA_HOST',
+  'VERCEL_URL',
+  'KS_HOST',
+  'MK_HOST',
+  'AL_HOST',
+  'PILOT_HOST',
+] as const;
+
+// Client tenant/country hints. Outside production the real resolver honours cookie and
+// x-tenant-id hints when a caller passes them, so these cases discriminate.
+const HOSTILE_HINTS = {
+  'x-tenant-id': 'tenant_mk',
+  cookie: 'tenantId=tenant_mk',
+  'x-vercel-ip-country': 'MK',
+  'accept-language': 'mk',
+};
+const KS = 'ks.interdomestik.com';
+const MK = 'mk.interdomestik.com';
+const IDA = 'ida.interdomestik.com';
+const UNKNOWN = 'unknown.example';
+const AL = 'al.interdomestik.com';
+const PILOT = 'pilot.interdomestik.com';
+
+type ScopeCase = { name: string; headers: Record<string, string>; tenantId: string; env: string };
+
+function scopeCase(
+  name: string,
+  headers: Record<string, string>,
+  tenantId: string,
+  env = ''
+): ScopeCase {
+  return { name, headers, tenantId, env };
+}
+
+// Expected values are the technical reservation partition only: tenant_mk stays separate and
+// every other resolved alias (KS, AL, pilot or an unrecognised default) shares tenant_ks.
+// The projection grants no tenant, access, legal, country or booking identity.
+const SCOPE_CASES: readonly ScopeCase[] = [
+  scopeCase('KS canonical host over default', { host: KS }, 'tenant_ks', 'tenant_al'),
+  scopeCase('KS local alias with port', { host: 'ks.localhost:3000' }, 'tenant_ks'),
+  scopeCase('MK canonical host', { host: MK }, 'tenant_mk'),
+  scopeCase('MK nip.io alias', { host: 'mk.127.0.0.1.nip.io' }, 'tenant_mk'),
+  scopeCase('AL canonical host over MK default', { host: AL }, 'tenant_ks', 'tenant_mk'),
+  scopeCase('AL local alias with port', { host: 'al.localhost:3000' }, 'tenant_ks'),
+  scopeCase('pilot canonical host over MK default', { host: PILOT }, 'tenant_ks', 'tenant_mk'),
+  scopeCase('pilot local alias with port', { host: 'pilot.localhost:3000' }, 'tenant_ks'),
+  scopeCase('neutral host, configured default', { host: IDA }, 'tenant_mk', 'tenant_mk'),
+  scopeCase('neutral host, no configured default', { host: IDA }, 'tenant_ks'),
+  scopeCase('neutral host, AL default', { host: IDA }, 'tenant_ks', 'tenant_al'),
+  scopeCase('neutral host, pilot default', { host: IDA }, 'tenant_ks', 'pilot-mk'),
+  scopeCase('missing host, configured default', {}, 'tenant_ks', 'tenant_al'),
+  scopeCase('missing host, MK default', {}, 'tenant_mk', 'tenant_mk'),
+  scopeCase('unknown host, configured default', { host: UNKNOWN }, 'tenant_ks', 'tenant_al'),
+  scopeCase('unknown host, pilot default', { host: UNKNOWN }, 'tenant_ks', 'pilot-mk'),
+  scopeCase('unknown host, unrecognised default', { host: UNKNOWN }, 'tenant_ks', 'tenant_x'),
+  scopeCase('forwarded host over host', { 'x-forwarded-host': MK, host: KS }, 'tenant_mk'),
+  scopeCase('forwarded AL host over MK host', { 'x-forwarded-host': AL, host: MK }, 'tenant_ks'),
+  scopeCase('forwarded pilot over MK host', { 'x-forwarded-host': PILOT, host: MK }, 'tenant_ks'),
+  scopeCase(
+    'empty forwarded host never falls back to host',
+    { 'x-forwarded-host': '', host: MK },
+    'tenant_ks',
+    'tenant_al'
+  ),
+  scopeCase(
+    'empty forwarded host uses the MK default, not the KS host',
+    { 'x-forwarded-host': '', host: KS },
+    'tenant_mk',
+    'tenant_mk'
+  ),
+  scopeCase('hints ignored on unknown host', { ...HOSTILE_HINTS, host: UNKNOWN }, 'tenant_ks'),
+  scopeCase('hints ignored on neutral host', { ...HOSTILE_HINTS, host: IDA }, 'tenant_ks'),
+  scopeCase('hints cannot override host', { ...HOSTILE_HINTS, host: KS }, 'tenant_ks'),
+];
+
 describe('actions/free-start submitFreeStartIntakeCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
+    for (const name of TENANT_HOST_ENV) vi.stubEnv(name, '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   const validInput = {
@@ -55,14 +138,34 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
       expect.objectContaining({
         action: 'free-start.submit',
         scope: {
-          kind: 'public',
-          reason: 'public-free-start-intake-no-tenant-mutation',
+          kind: 'tenant',
+          tenantId: 'tenant_ks',
+          actorUserId: null,
         },
         idempotencyKey: 'free-start-1',
         requestFingerprint: validInput,
       })
     );
   });
+
+  it.each(SCOPE_CASES)(
+    'partitions keyed reservations by request host only: $name',
+    async ({ headers, tenantId, env }) => {
+      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', env);
+      mockRateLimit.mockResolvedValueOnce({ limited: false });
+
+      const result = await submitFreeStartIntakeCore({
+        idempotencyKey: 'free-start-scope',
+        requestHeaders: new Headers(headers),
+        data: validInput,
+      });
+
+      expect(result).toMatchObject({ success: true });
+      expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
+        expect.objectContaining({ scope: { kind: 'tenant', tenantId, actorUserId: null } })
+      );
+    }
+  );
 
   it('rejects issue types that do not match the selected category', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
