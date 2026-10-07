@@ -38,6 +38,7 @@ const facts: DraftState = {
   summary: 'Bounded vehicle facts.',
 };
 const edited: DraftState = { ...facts, summary: 'Edited while the manager opens.' };
+const blank: DraftState = { ...facts, issueType: '', counterparty: '', summary: '' };
 const saved: SavedDraft = {
   ...facts,
   category: 'vehicle',
@@ -113,11 +114,18 @@ beforeEach(() => {
 });
 describe('rendered manager busy ownership', () => {
   it('disables every manager control until the manager operation itself completes', async () => {
-    const view = render(ui(facts));
+    const view = render(ui(blank));
     await waitFor(() => expect(lifecycle.items).toHaveLength(2));
+    expect(actions.create).not.toHaveBeenCalled();
     await act(async () => {
       expect(await lifecycle.resume(saved.id)).toBe(true);
+      view.rerender(ui(facts));
     });
+    expect(actions.resume).toHaveBeenCalledOnce();
+    expect(onResume).toHaveBeenCalledOnce();
+    expect(lifecycle.hasUnsavedChanges).toBe(false);
+    expect(actions.create).not.toHaveBeenCalled();
+    expect(actions.update).not.toHaveBeenCalled();
     const discovery = held<unknown>(),
       update = held<unknown>();
     actions.account.mockReturnValueOnce(discovery.promise);

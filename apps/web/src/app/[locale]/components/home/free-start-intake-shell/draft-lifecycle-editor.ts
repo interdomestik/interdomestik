@@ -195,9 +195,10 @@ export class DraftEditor {
     if (!this.view.active) return 'idle';
     return this.savedFingerprint === this.fingerprint() ? 'saved' : 'dirty';
   }
-  getQueue(): AccountDraftWriteQueue | null {
+  getQueue(rebind = false): AccountDraftWriteQueue | null {
     if (!this.account?.emailVerified || this.terminal || this.awaitingReset) return null;
-    if (this.queue) return this.queue;
+    if (this.queue && !(rebind && this.queue.getWriteFeedback() === 'conflict')) return this.queue;
+    this.queue?.dispose();
     const token = this.token();
     this.queue = createAccountDraftWriteQueue({
       expectedContext: this.account.expectedContext,
@@ -242,19 +243,19 @@ export class DraftEditor {
       this.getQueue()?.enqueue(snapshot);
     else if (this.view.active) this.patch({ state: this.editedState() });
   }
-  async retire(stillCurrent: () => boolean = () => true): Promise<boolean> {
+  async retire(stillCurrent: () => boolean = () => true, recover = false): Promise<boolean> {
     this.terminal = true;
     const queue = this.queue;
     this.retiring++;
-    const safe = queue ? await queue.retire() : true;
+    const safe = queue ? await queue.retire(recover) : true;
     this.retiring--;
     if (!stillCurrent()) {
       if (this.retiring > 0 || this.queue !== queue || this.disposed) return false;
       this.terminal = false;
-      if (safe) {
+      if (safe === true) {
         queue?.dispose();
         this.queue = null;
-      } else this.patch({ state: 'error' });
+      } else this.patch({ state: safe ? 'conflict' : 'error' });
       this.autoSave();
       return false;
     }
@@ -264,6 +265,7 @@ export class DraftEditor {
       return false;
     }
     this.retiredDraft = queue?.getDraft() ?? this.view.active;
+    if (safe !== true) return true; // a held divergent create replay stays frozen until rebind
     queue?.dispose();
     this.queue = null;
     return true;

@@ -177,7 +177,7 @@ export class DraftLifecycleCommands {
     const token = this.editor.token();
     // Checked again after retirement, before any receipt or adoption.
     const live = () => this.ops.live(op) && this.editor.owns(token);
-    if (!(await this.editor.retire(live)) || !live()) return false;
+    if (!(await this.editor.retire(live, true)) || !live()) return false;
     this.editor.terminal = false;
     this.editor.patch({ state: 'loading' });
     let row: SavedDraft | null = null;
@@ -212,7 +212,7 @@ export class DraftLifecycleCommands {
     this.editor.current().onResume(restored);
     this.editor.initialized = true;
     this.editor.explicitRequired = false;
-    this.editor.getQueue()?.adopt(restored);
+    this.editor.getQueue(true)?.adopt(restored);
     return true;
   }
   async remove(draft: SavedDraft) {

@@ -32,7 +32,8 @@ export type AccountDraftWriteQueue = {
   enqueue: (snapshot: DraftWriteSnapshot) => void;
   retry: () => void;
   drain: () => Promise<boolean>;
-  retire: () => Promise<boolean>;
+  /** `recover` holds open only a known divergent create replay for authoritative resume. */
+  retire: (recover?: boolean) => Promise<boolean | 'recovering'>;
   dispose: () => void;
   adopt: (draft: SavedDraft) => boolean;
   getDraft: () => SavedDraft | null;
@@ -211,15 +212,20 @@ export function createAccountDraftWriteQueue(
       await waitUntil(quiescent);
       return !disposed && failed === null && !hasPending();
     },
-    async retire() {
+    async retire(recover = false) {
       if (closed) return true;
       retiring = true;
       await waitUntil(() => !inflight);
       if (closed) return true;
-      if (disposed || uncertainCreate !== null) {
+      // uncertainCreate + conflict means a successful replay proved the create committed under a
+      // known row. Only deliberate authoritative resume may hold that frozen queue open (it cannot
+      // write until adopt), so a failed recovery never creates again. A still-unknown commit
+      // (thrown/unavailable without a successful replay) always refuses.
+      const held = recover && !disposed && uncertainCreate !== null && failed === 'conflict';
+      if (held || disposed || uncertainCreate !== null) {
         retiring = false;
         flush();
-        return false;
+        return held ? 'recovering' : false;
       }
       closed = true;
       flush();
