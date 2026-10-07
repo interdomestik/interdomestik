@@ -13,7 +13,6 @@ import {
 import { createDraftReadController, type DraftReadController } from './draft-lifecycle-reads';
 import { isReviewReadySavedDraft } from './saved-draft-continuation';
 import { draftFingerprint, type SavedDraft } from './types';
-
 type Cursor = DraftEditor['view']['nextCursor'];
 export class DraftLifecycleCommands {
   private readonly reads: DraftReadController;
@@ -61,7 +60,6 @@ export class DraftLifecycleCommands {
           items: cursor ? [...this.editor.view.items, ...result.items] : result.items,
           nextCursor: result.nextCursor,
           readAdmitted: true,
-          // Raw state stays truthful; a live manager hold masks it through `managerBusy`.
           state: this.editor.queue?.getWriteFeedback() ?? this.editor.editedState(),
         });
         this.editor.initialized = true;
@@ -175,7 +173,6 @@ export class DraftLifecycleCommands {
     const context = this.editor.account?.expectedContext;
     if (!context) return this.failure('authRequired');
     const token = this.editor.token();
-    // Checked again after retirement, before any receipt or adoption.
     const live = () => this.ops.live(op) && this.editor.owns(token);
     if (!(await this.editor.retire(live, true)) || !live()) return false;
     this.editor.terminal = false;
@@ -237,7 +234,10 @@ export class DraftLifecycleCommands {
       if (!live()) return false;
       if (!result.ok) {
         this.editor.terminal = false;
-        return this.failure(result.code);
+        const code: string = result.code;
+        if (code !== 'conflict') return this.failure(code);
+        this.editor.patch({ state: 'conflict' });
+        return false;
       }
       if (removingActive) this.editor.reset();
       this.editor.patch({

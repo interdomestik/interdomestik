@@ -1,9 +1,17 @@
-import { act, renderHook } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DraftAccount } from './draft-lifecycle-editor';
+import {
+  blank,
+  configureDefaultActions,
+  QUIET_MS,
+  settle,
+  setup,
+  verified,
+  type Props,
+} from './tests/account-draft-hook-fixtures';
 import { account, held, saved } from './tests/terminal-draft-fixtures';
-import type { CategoryId, DraftState, SavedDraft, StepId } from './types';
-import { useDraftLifecycle } from './use-draft-lifecycle';
+import type { SavedDraft } from './types';
 
 const actions = vi.hoisted(() => ({
   account: vi.fn(),
@@ -22,81 +30,19 @@ vi.mock('@/actions/free-start-drafts', () => ({
   deleteFreeStartDraft: actions.remove,
 }));
 
-type Props = Readonly<{
-  account?: DraftAccount | null;
-  category: CategoryId | null;
-  draft: DraftState;
-  step: StepId;
-}>;
-const QUIET_MS = 250;
-const blank: DraftState = {
-  issueType: '',
-  incidentDate: '',
-  counterparty: '',
-  desiredOutcome: '',
-  summary: '',
-};
-const facts = (summary: string): DraftState => ({
-  ...blank,
-  issueType: 'collision',
-  counterparty: 'Insurer',
-  summary,
-});
 const burst = (prefix: string): string[] =>
   [1, 2, 3, 4].map(length => `${prefix} vehicle facts ${'x'.repeat(length)}.`);
-const verified: Props = { account, category: 'vehicle', draft: blank, step: 'details' };
 const unresolved: Props = { category: 'vehicle', draft: blank, step: 'details' };
 const other: DraftAccount = {
   ...account,
   expectedContext: { ...account.expectedContext, ownerUserId: 'owner-b' },
 };
 
-/** Advances fake time and drains action/queue microtasks inside one act scope; no waitFor. */
-async function settle(ms = 0): Promise<void> {
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(ms);
-    for (let tick = 0; tick < 25; tick += 1) await Promise.resolve();
-  });
-}
-
-function setup(initial: Props = verified) {
-  const onReset = vi.fn(),
-    onResume = vi.fn();
-  let props = initial;
-  const hook = renderHook(
-    (current: Props) => useDraftLifecycle({ ...current, onReset, onResume }),
-    { initialProps: props }
-  );
-  const change = (next: Partial<Props>) => {
-    props = { ...props, ...next };
-    hook.rerender(props);
-  };
-  const type = (summary: string) => change({ draft: facts(summary) });
-  return { hook, onReset, onResume, change, type };
-}
-
 beforeEach(() => {
   vi.resetAllMocks();
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   localStorage.clear();
-  actions.account.mockResolvedValue({ ok: true, ...account });
-  actions.list.mockResolvedValue({
-    ok: true,
-    items: [],
-    nextCursor: null,
-    expectedContext: account.expectedContext,
-  });
-  actions.create.mockResolvedValue({ ok: true, draft: saved });
-  actions.update.mockImplementation(async (input: { expectedVersion: number }) => ({
-    ok: true,
-    draft: { ...saved, version: input.expectedVersion + 1 },
-  }));
-  actions.resume.mockResolvedValue({
-    ok: true,
-    draft: saved,
-    expectedContext: account.expectedContext,
-  });
-  actions.remove.mockResolvedValue({ ok: true });
+  configureDefaultActions(actions);
 });
 afterEach(() => {
   vi.clearAllTimers();

@@ -61,7 +61,8 @@ export class DraftOperations {
   /**
    * Resolves the authoritative account for `op`. A superseded operation (newer intent, owner or
    * tenant generation change, disposal) returns false before accepting a receipt, failing or
-   * changing state. true: verified; 'unverified': signed out/unverified; false: stop.
+   * changing state. true: verified; 'unverified': signed in, unverified; false: stop, including
+   * a non-required signed-out result, so intents cannot reuse a cached account as admission.
    */
   async discover(op: DraftOperation, required = false): Promise<boolean | 'unverified'> {
     const { editor } = this;
@@ -73,7 +74,7 @@ export class DraftOperations {
       if (!result.ok) {
         if (result.code === 'authRequired' && !required) {
           editor.patch({ state: 'idle' });
-          return 'unverified';
+          return false;
         }
         return failDraft(editor, result.code, required);
       }
