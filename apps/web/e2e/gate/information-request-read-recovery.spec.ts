@@ -24,8 +24,6 @@ const PROJECT = 'gate-ks-sq';
 const RETRY_NAME = 'Provo përsëri';
 const DRAFT_PREFIX = 's7-read-recovery-draft';
 const NAV_MARK = '__s7ReadRecoveryNativeNavigation';
-const CARD_ID = 'claim-information-request';
-const TEST_TIMEOUT_MS = 120_000;
 const CATALOG_LABELS = Object.entries({ en, sq, mk, sr }).map(
   ([locale, messages]) => [locale, messages.claims.informationRequests.retryRead] as const
 );
@@ -145,8 +143,7 @@ async function openFailedDetail(
   await until(seam, 'native navigation read was failed', c => c.initialNavigation === 1);
   await expect(page).toHaveURL(url => url.pathname === detailPath);
   await expect(scenario.ready(page)).toHaveCount(1);
-  const sameDocument = await page.evaluate(key => Reflect.get(window, key) === true, NAV_MARK);
-  expect(sameDocument).toBe(true);
+  expect(await page.evaluate(key => Reflect.get(window, key) === true, NAV_MARK)).toBe(true);
   // Initial failure stays armed until the member messaging read and background GET completed.
   if (audience === 'member') {
     const messaging = scenario.messaging(page);
@@ -224,7 +221,7 @@ async function runScenario(
   testInfo: TestInfo,
   audience: ReadResultAudience
 ): Promise<void> {
-  test.setTimeout(TEST_TIMEOUT_MS);
+  test.setTimeout(120_000);
   // KS-owned fixture and SQ labels: other projects skip, while both audiences execute on KS.
   test.skip(testInfo.project.name !== PROJECT, 'The Albanian KS fixture owns this packet');
   expect(routes.getLocale(testInfo)).toBe('sq');
@@ -235,12 +232,14 @@ async function runScenario(
     try {
       await openFailedDetail(page, testInfo, audience, pathname, seam);
       const recovery = visible(page, 'information-request-read-recovery');
+      const region = visible(page, 'information-request-read-region');
       const parts = {
         recovery,
         retry: recovery.getByRole('button', { name: RETRY_NAME }),
         status: recovery.getByRole('status'),
       };
       for (const locator of Object.values(parts)) await expect(locator).toHaveCount(1);
+      await expect(region).toHaveAccessibleName(sq.claims.informationRequests.title);
       const failureText = (await parts.status.innerText()).trim();
       expect(failureText).not.toBe('');
       const drafts = await fillDrafts(page, audience);
@@ -252,7 +251,7 @@ async function runScenario(
         url: page.url(),
         drafts,
         failureText,
-        cards: visible(page, CARD_ID),
+        cards: visible(page, 'claim-information-request'),
       };
       await expectRecovery(ctx, 'failed');
       await expectRecoveryContained(ctx, testInfo);
@@ -273,6 +272,8 @@ async function runScenario(
       seam.release();
       await until(seam, 'successful read was delivered', c => c.deliberatePassed === 1);
       await expect(recovery).toHaveCount(0);
+      await expect(region).toBeFocused();
+      await expect(region).toHaveText(sq.claims.informationRequests.empty);
       await expectSiblings(ctx);
       seam.assertNoError();
       const done = seam.counts();
@@ -293,7 +294,6 @@ test.describe('S7 information request read recovery', () => {
   test('member retries a failed read and keeps drafts', async ({ authenticatedPage }, testInfo) => {
     await runScenario(authenticatedPage, testInfo, 'member');
   });
-
   test('staff retries a failed read and keeps drafts', async ({ staffPage }, testInfo) => {
     await runScenario(staffPage, testInfo, 'staff');
   });

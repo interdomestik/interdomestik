@@ -283,6 +283,7 @@
       "loadError": "Kërkesat për informacion nuk mund të ngarkoheshin. Detajet e tjera të rastit mbeten të disponueshme.",
       "retryRead": "Provo përsëri",
       "loadingRequests": "Po ngarkohen kërkesat për informacion…",
+      "empty": "Nuk ka kërkesa për informacion për këtë rast.",
       "upload": "Ngarko provën e kërkuar",
       "evidenceList": "Provat e dorëzuara për këtë kërkesë",
       "download": "Shkarko",

@@ -283,6 +283,7 @@
       "loadError": "Zahtevi za informacije nisu mogli da se učitaju. Ostali detalji predmeta ostaju dostupni.",
       "retryRead": "Pokušajte ponovo",
       "loadingRequests": "Učitavaju se zahtevi za informacije…",
+      "empty": "Nema zahteva za informacije za ovaj predmet.",
       "upload": "Otpremi traženi dokaz",
       "evidenceList": "Dokazi poslati za ovaj zahtev",
       "download": "Preuzmi",

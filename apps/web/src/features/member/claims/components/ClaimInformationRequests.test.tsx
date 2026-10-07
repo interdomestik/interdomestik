@@ -71,13 +71,19 @@ it('renders the same explicit UTC deadline in different runtime timezones', () =
   expect(renderDeadline('Europe/Berlin')).toBe(serverDeadline);
   expect(renderDeadline('America/Los_Angeles')).toBe(serverDeadline);
 });
-it('does not invent a request in the empty state', () => {
-  const { container } = render(
+it('shows a truthful named empty state without inventing a request', () => {
+  render(
     <NextIntlClientProvider locale="en" messages={en}>
       <ClaimInformationRequests audience="member" claimId="claim-1" requests={[]} />
     </NextIntlClientProvider>
   );
-  expect(container).toBeEmptyDOMElement();
+  const copy = en.claims.informationRequests;
+  const region = screen.getByRole('region', { name: copy.title });
+  expect(region).toHaveTextContent(copy.empty);
+  expect(region).not.toHaveFocus();
+  expect(screen.queryByTestId('claim-information-request')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('claim-information-requests')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });
 
 it.each([

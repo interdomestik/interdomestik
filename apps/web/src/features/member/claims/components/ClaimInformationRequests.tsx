@@ -99,10 +99,19 @@ export function ClaimInformationRequests({
     minute: '2-digit',
     hourCycle: 'h23',
   });
-  if (displayRequests === null) return <InformationRequestReadRecovery />;
-  if (!displayRequests.length) return null;
-  return (
-    <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">
+  // One persistent region across failure, retry and success keeps keyboard focus recoverable.
+  if (displayRequests === null) return <InformationRequestReadRecovery failed />;
+  if (!displayRequests.length) {
+    return (
+      <InformationRequestReadRecovery failed={false}>
+        <p className="text-sm text-muted-foreground" data-testid="information-request-empty">
+          {t('empty')}
+        </p>
+      </InformationRequestReadRecovery>
+    );
+  }
+  const list = (
+    <div data-testid="claim-information-requests" className="space-y-4">
       {announcement ? (
         <output className="block text-sm" aria-live="polite" aria-atomic="true">
           {announcement}
@@ -257,6 +266,7 @@ export function ClaimInformationRequests({
           </Card>
         );
       })}
-    </section>
+    </div>
   );
+  return <InformationRequestReadRecovery failed={false}>{list}</InformationRequestReadRecovery>;
 }
