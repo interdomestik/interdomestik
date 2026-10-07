@@ -30,10 +30,16 @@ function formatFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
  * (`x-forwarded-host ?? host ?? ''`; an empty forwarded host does not fall back) and never
  * reads cookie, x-tenant-id, query or client country hints. It grants no access, legal,
  * booking, identity or membership authority.
+ *
+ * The resolved tenant is projected onto the canonical tenants provisioned by migration0008: tenant_mk stays tenant_mk and every other value, including tenant_ks, tenant_al,
+ * pilot-mk or any future alias, shares the tenant_ks technical partition. This keeps the
+ * reservation tenant FK satisfiable without probing tenants; it does not imply AL/pilot to KS
+ * user, access, legal, country or booking identity.
  */
-function resolveReservationTenantId(requestHeaders: Headers): string {
+function resolveReservationTenantId(requestHeaders: Headers): 'tenant_ks' | 'tenant_mk' {
   const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-  return resolveTenantIdFromSources({ host }, { productionSensitive: true });
+  const tenantId = resolveTenantIdFromSources({ host }, { productionSensitive: true });
+  return tenantId === 'tenant_mk' ? 'tenant_mk' : 'tenant_ks';
 }
 
 export async function submitFreeStartIntakeCore(params: {

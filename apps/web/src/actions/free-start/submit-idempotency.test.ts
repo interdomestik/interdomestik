@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Core-specific adapter integration: real submit core, real idempotency helper and real
 // reservation storage over the shared mock database boundary. The mock simulates the global
@@ -34,6 +34,7 @@ import {
 } from '@/lib/commercial-action-idempotency-test-support';
 
 import { submitFreeStartIntakeCore } from './submit.core';
+import { REQUEST_CASES, viaEachRequest, type RequestCase } from './submit-idempotency-fixtures';
 
 type StoredRow = Record<string, unknown>;
 type Predicate = [op: string, column: string, value?: unknown];
@@ -60,6 +61,11 @@ function submit(overrides: Partial<Parameters<typeof submitFreeStartIntakeCore>[
     data: validInput,
     ...overrides,
   });
+}
+
+function submitVia(request: RequestCase) {
+  vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', request.defaultTenant);
+  return submit({ requestHeaders: new Headers(request.headers) });
 }
 
 function resetStorage(): void {
@@ -123,92 +129,114 @@ describe('submitFreeStartIntakeCore keyed reservation adapter', () => {
     resetStorage();
   });
 
-  it('reserves under the host tenant with a null actor and completes a fresh key', async () => {
-    await expect(submit()).resolves.toEqual(successDto);
-
-    expect(mockRateLimit).toHaveBeenCalledTimes(1);
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'free-start.submit',
-        idempotencyKey: KEY,
-        tenantId: 'tenant_ks',
-        actorUserId: null,
-        status: 'pending',
-      })
-    );
-    expect(updateSet).toHaveBeenCalledWith(
-      expect.objectContaining({ responsePayload: successDto, status: 'completed' })
-    );
-    expect(txEntry.insert).toHaveBeenCalledTimes(1);
-    expect(txEntry.update).toHaveBeenCalledTimes(1);
-    expectOwnTenantStorageOnly(2);
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
-  it('replays a completed same-fingerprint reservation without executing', async () => {
-    const hash = await captureFingerprintHash();
-    const cached = { ...successDto, data: { ...successDto.data, intakeIssue: 'cached_issue' } };
-    seedExistingRow(
-      storedRow({ request_fingerprint_hash_col: hash, response_payload_col: cached })
-    );
+  it.each(REQUEST_CASES)(
+    'reserves a fresh key in the technical partition with a null actor via $name',
+    async request => {
+      await expect(submitVia(request)).resolves.toEqual(successDto);
 
-    await expect(submit()).resolves.toEqual(cached);
+      expect(mockRateLimit).toHaveBeenCalledTimes(1);
+      expect(insertValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'free-start.submit',
+          idempotencyKey: KEY,
+          tenantId: 'tenant_ks',
+          actorUserId: null,
+          status: 'pending',
+        })
+      );
+      expect(updateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ responsePayload: successDto, status: 'completed' })
+      );
+      expect(txEntry.insert).toHaveBeenCalledTimes(1);
+      expect(txEntry.update).toHaveBeenCalledTimes(1);
+      expectOwnTenantStorageOnly(2);
+    }
+  );
 
-    expect(mockRateLimit).not.toHaveBeenCalled();
-    expect(selectWhere).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        ['eq', 'tenant_id_col', 'tenant_ks'],
-        ['isNull', 'actor_user_id_col'],
-      ])
-    );
-    expect(updateSet).not.toHaveBeenCalled();
-    expectOwnTenantStorageOnly(2);
-  });
+  it.each(REQUEST_CASES)(
+    'replays a completed same-fingerprint shared-partition reservation via $name',
+    async request => {
+      const hash = await captureFingerprintHash();
+      const cached = { ...successDto, data: { ...successDto.data, intakeIssue: 'cached_issue' } };
+      seedExistingRow(
+        storedRow({ request_fingerprint_hash_col: hash, response_payload_col: cached })
+      );
 
-  it.each([
-    {
-      name: 'a changed-fingerprint',
-      row: { request_fingerprint_hash_col: 'changed-hash' },
-      code: 'IDEMPOTENCY_KEY_REUSED',
-    },
-    {
-      name: 'a pending same-fingerprint',
-      row: { status_col: 'pending', response_payload_col: {} },
-      code: 'IDEMPOTENCY_IN_PROGRESS',
-    },
-  ])('neither executes nor releases payload for $name reservation', async ({ row, code }) => {
-    const hash = await captureFingerprintHash();
-    seedExistingRow(storedRow({ request_fingerprint_hash_col: hash, ...row }));
+      await expect(submitVia(request)).resolves.toEqual(cached);
 
-    const result = await submit();
+      expect(mockRateLimit).not.toHaveBeenCalled();
+      expect(selectWhere).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          ['eq', 'tenant_id_col', 'tenant_ks'],
+          ['isNull', 'actor_user_id_col'],
+        ])
+      );
+      expect(updateSet).not.toHaveBeenCalled();
+      expectOwnTenantStorageOnly(2);
+    }
+  );
 
-    expect(result).toEqual(expect.objectContaining({ success: false, code }));
-    expect(result).not.toHaveProperty('data');
-    expect(mockRateLimit).not.toHaveBeenCalled();
-    expect(updateSet).not.toHaveBeenCalled();
-    expect(deleteWhere).not.toHaveBeenCalled();
-    expectOwnTenantStorageOnly(2);
-  });
+  it.each(
+    viaEachRequest([
+      {
+        name: 'a changed-fingerprint',
+        row: { request_fingerprint_hash_col: 'changed-hash' },
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      },
+      {
+        name: 'a pending same-fingerprint',
+        row: { status_col: 'pending', response_payload_col: {} },
+        code: 'IDEMPOTENCY_IN_PROGRESS',
+      },
+    ])
+  )(
+    'neither executes nor releases payload for $name reservation via $via',
+    async ({ row, code, request }) => {
+      const hash = await captureFingerprintHash();
+      seedExistingRow(storedRow({ request_fingerprint_hash_col: hash, ...row }));
 
-  it.each([
-    { name: 'foreign-tenant', foreign: { tenant_id_col: 'tenant_mk' } },
-    { name: 'foreign-actor', foreign: { actor_user_id_col: 'user-foreign' } },
-    { name: 'legacy null-tenant public', foreign: { tenant_id_col: null } },
-  ])('fails closed on a $name reservation holding the global key', async ({ foreign }) => {
-    const hash = await captureFingerprintHash();
-    const row = storedRow({ request_fingerprint_hash_col: hash, ...foreign });
-    seedExistingRow({ ...row, response_payload_col: FOREIGN_PAYLOAD });
+      const result = await submitVia(request);
 
-    await expect(submit()).resolves.toEqual({
-      success: false,
-      error: 'Idempotency key is already reserved for a different scope.',
-      code: 'IDEMPOTENCY_SCOPE_CONFLICT',
-    });
+      expect(result).toEqual(expect.objectContaining({ success: false, code }));
+      expect(result).not.toHaveProperty('data');
+      expect(mockRateLimit).not.toHaveBeenCalled();
+      expect(updateSet).not.toHaveBeenCalled();
+      expect(deleteWhere).not.toHaveBeenCalled();
+      expectOwnTenantStorageOnly(2);
+    }
+  );
 
-    expect(mockRateLimit).not.toHaveBeenCalled();
-    expect(updateSet).not.toHaveBeenCalled();
-    expect(deleteWhere).not.toHaveBeenCalled();
-    expectOwnTenantStorageOnly(2);
-  });
+  it.each(
+    viaEachRequest([
+      { name: 'foreign MK-tenant', foreign: { tenant_id_col: 'tenant_mk' } },
+      { name: 'foreign AL-tenant', foreign: { tenant_id_col: 'tenant_al' } },
+      { name: 'foreign pilot-tenant', foreign: { tenant_id_col: 'pilot-mk' } },
+      { name: 'foreign-actor', foreign: { actor_user_id_col: 'user-foreign' } },
+      { name: 'legacy null-tenant public', foreign: { tenant_id_col: null } },
+    ])
+  )(
+    'fails closed on a $name reservation holding the global key via $via',
+    async ({ foreign, request }) => {
+      const hash = await captureFingerprintHash();
+      const row = storedRow({ request_fingerprint_hash_col: hash, ...foreign });
+      seedExistingRow({ ...row, response_payload_col: FOREIGN_PAYLOAD });
+
+      await expect(submitVia(request)).resolves.toEqual({
+        success: false,
+        error: 'Idempotency key is already reserved for a different scope.',
+        code: 'IDEMPOTENCY_SCOPE_CONFLICT',
+      });
+
+      expect(mockRateLimit).not.toHaveBeenCalled();
+      expect(updateSet).not.toHaveBeenCalled();
+      expect(deleteWhere).not.toHaveBeenCalled();
+      expectOwnTenantStorageOnly(2);
+    }
+  );
 
   it.each([
     { name: 'rate-limit', limited: true, data: validInput, code: 'RATE_LIMITED' },
