@@ -242,7 +242,7 @@ export class DraftLifecycleCommands {
       if (removingActive) this.editor.reset();
       this.editor.patch({
         items: this.editor.view.items.filter(item => item.id !== draft.id),
-        state: 'deleted',
+        state: (!removingActive && this.editor.queue?.getWriteFeedback()) || 'deleted',
       });
       return true;
     } catch {
