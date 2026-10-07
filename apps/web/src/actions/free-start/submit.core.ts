@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
+import { resolveTenantIdFromSources } from '@/lib/tenant/tenant-hosts';
 import {
   submitFreeStartIntakeSchema,
   type SubmitFreeStartIntakeInput,
@@ -24,6 +25,17 @@ function formatFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
   );
 }
 
+/**
+ * Technical reservation partition only. Mirrors the server tenant-request host contract
+ * (`x-forwarded-host ?? host ?? ''`; an empty forwarded host does not fall back) and never
+ * reads cookie, x-tenant-id, query or client country hints. It grants no access, legal,
+ * booking, identity or membership authority.
+ */
+function resolveReservationTenantId(requestHeaders: Headers): string {
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
+  return resolveTenantIdFromSources({ host }, { productionSensitive: true });
+}
+
 export async function submitFreeStartIntakeCore(params: {
   idempotencyKey?: string;
   requestHeaders: Headers;
@@ -33,8 +45,9 @@ export async function submitFreeStartIntakeCore(params: {
     return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
       scope: {
-        kind: 'public',
-        reason: 'public-free-start-intake-no-tenant-mutation',
+        kind: 'tenant',
+        tenantId: resolveReservationTenantId(params.requestHeaders),
+        actorUserId: null,
       },
       idempotencyKey: params.idempotencyKey,
       requestFingerprint: params.data,
