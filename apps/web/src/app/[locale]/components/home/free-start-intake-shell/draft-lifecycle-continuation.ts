@@ -1,3 +1,4 @@
+import { invalidateExpiredDraftSource } from './draft-lifecycle-admission';
 import { accountKey, type DraftEditor, type DraftEditorToken } from './draft-lifecycle-editor';
 import type { DraftOperation, DraftOperations } from './draft-lifecycle-operations';
 import type { SavedDraft } from './types';
@@ -60,6 +61,10 @@ export function acknowledgeDraftDeletion(
 ): void {
   if (editor.disposed || accountKey(editor.account) !== owner || !editor.owns(editor.token()))
     return;
+  if (invalidateExpiredDraftSource(editor, id, owner)) {
+    invalidateReads();
+    return;
+  }
   const items = editor.view.items.filter(item => item.id !== id);
   if (editor.view.active?.id !== id) {
     editor.patch({ items });

@@ -1,4 +1,5 @@
 import { getFreeStartDraftAccount } from '@/actions/free-start-drafts';
+import { restoreDraftAdmission, revokeDraftAdmission } from './draft-lifecycle-admission';
 import { releaseOwnedDraftPreparation } from './draft-lifecycle-continuation';
 import type { DraftEditor, DraftEditorView } from './draft-lifecycle-editor';
 import { draftFailureState, type DraftSaveState } from './types';
@@ -72,8 +73,9 @@ export class DraftOperations {
       const result = await getFreeStartDraftAccount();
       if (!current()) return false;
       if (!result.ok) {
-        if (result.code === 'authRequired' && !required) {
-          editor.patch({ state: 'idle' });
+        if (result.code === 'authRequired') {
+          revokeDraftAdmission(editor);
+          if (required) return failDraft(editor, result.code, true);
           return false;
         }
         return failDraft(editor, result.code, required);
@@ -82,7 +84,8 @@ export class DraftOperations {
         return failDraft(editor, 'unavailableAccountContext', required);
       if (!result.emailVerified)
         return required ? failDraft(editor, 'authRequired', true) : 'unverified';
-      return true;
+      const admitted = editor.token();
+      return await restoreDraftAdmission(editor, () => editor.owns(admitted) && this.live(op));
     } catch (error) {
       if (error instanceof Error && error.message === 'secure_save_intent_failed') throw error;
       if (!current()) return false;

@@ -40,6 +40,8 @@ export type AccountDraftWriteQueue = {
   settle: () => Promise<void>;
   adopt: (draft: SavedDraft) => boolean;
   getDraft: () => SavedDraft | null;
+  getAcknowledgedFingerprint: () => string | null;
+  restoreKnownFailure: () => boolean;
   getWriteFeedback: () => DraftSaveState | null;
 };
 
@@ -260,7 +262,24 @@ export function createAccountDraftWriteQueue(
       flush();
       return true;
     },
+    restoreKnownFailure() {
+      if (
+        !closed ||
+        inflight ||
+        disposed ||
+        sealed ||
+        draft === null ||
+        uncertainCreate !== null ||
+        failed === null
+      )
+        return false;
+      // Fresh owner admission can expose explicit retry; failed still prevents the pump.
+      closed = false;
+      retiring = false;
+      return true;
+    },
     getDraft: () => draft,
+    getAcknowledgedFingerprint: () => ackedFingerprint,
     getWriteFeedback: () => (inflight ? 'saving' : failed),
   };
 }

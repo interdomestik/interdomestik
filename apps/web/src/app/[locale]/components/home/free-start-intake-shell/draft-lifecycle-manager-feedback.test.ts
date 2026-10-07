@@ -137,7 +137,7 @@ describe('manager open account context', () => {
     const { editor, commands } = setupManage(owner);
     expect(await commands.openManage()).toBe(false);
     expect(actions.list).not.toHaveBeenCalled();
-    expect(editor.account).toEqual(owner);
+    expect(editor.account).toEqual(owner ? { ...owner, emailVerified: false } : null);
     expect(editor.view).toMatchObject({
       intent: 'manage',
       state: 'idle',

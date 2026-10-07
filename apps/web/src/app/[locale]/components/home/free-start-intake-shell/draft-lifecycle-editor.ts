@@ -17,7 +17,6 @@ import {
   type SavedDraft,
   type StepId,
 } from './types';
-
 export type DraftAccount = Readonly<{ emailVerified: boolean; expectedContext: DraftQueueContext }>;
 export type DraftEditorArgs = Readonly<{
   account?: DraftAccount | null;
@@ -54,8 +53,6 @@ export function receiptMatches(value: unknown, expected: DraftQueueContext): boo
     receipt.tenantId === expected.tenantId
   );
 }
-
-/** Local ownership only. Every server operation still resolves authoritative session/tenant. */
 export class DraftEditor {
   view: DraftEditorView = {
     active: null,
@@ -77,11 +74,12 @@ export class DraftEditor {
   disposed = false;
   savedFingerprint: string | null = null;
   queue: AccountDraftWriteQueue | null = null;
+  queueToken: DraftEditorToken | null = null;
+  admissionRevoked = false;
   retiredDraft: SavedDraft | null = null;
   private propIdentity: string;
   private writeStarted = false;
   private retiring = 0;
-
   constructor(
     readonly current: () => DraftEditorArgs,
     private readonly publish: (view: DraftEditorView) => void
@@ -145,6 +143,7 @@ export class DraftEditor {
       this.explicitRequired = !hadOwner && hasDraftFacts(this.current().draft);
       this.awaitingReset = hadOwner && hasDraftFacts(this.current().draft);
       this.account = next;
+      this.admissionRevoked = false;
       this.patch({
         active: null,
         items: [],
@@ -158,8 +157,8 @@ export class DraftEditor {
       });
       if (hadOwner) this.current().onReset();
     } else {
-      this.account = next;
-      this.patch({ verified: next?.emailVerified === true });
+      this.account = this.admissionRevoked && next ? { ...next, emailVerified: false } : next;
+      this.patch({ verified: this.account?.emailVerified === true });
     }
     return true;
   }
@@ -196,10 +195,11 @@ export class DraftEditor {
     return this.savedFingerprint === this.fingerprint() ? 'saved' : 'dirty';
   }
   getQueue(rebind = false): AccountDraftWriteQueue | null {
+    if (this.admissionRevoked) return null;
     if (!this.account?.emailVerified || this.terminal || this.awaitingReset) return null;
     if (this.queue && !(rebind && this.queue.getWriteFeedback() === 'conflict')) return this.queue;
     this.queue?.dispose();
-    const token = this.token();
+    const token = (this.queueToken = this.token());
     this.queue = createAccountDraftWriteQueue({
       expectedContext: this.account.expectedContext,
       clientRequestId: createUuidV4(),
@@ -250,6 +250,7 @@ export class DraftEditor {
     const safe = queue ? await queue.retire(recover) : true;
     this.retiring--;
     if (!stillCurrent()) {
+      if (this.admissionRevoked) return false;
       if (this.retiring > 0 || this.queue !== queue || this.disposed) return false;
       this.terminal = false;
       if (safe === true) {
@@ -271,6 +272,7 @@ export class DraftEditor {
     return true;
   }
   reset(preserveFacts = false) {
+    this.admissionRevoked = false;
     this.generation++;
     this.savedFingerprint = null;
     this.writeStarted = false;
