@@ -281,6 +281,8 @@
       "fulfilmentError": "The request could not be marked fulfilled. Try again.",
       "incomplete": "Information was missing when this request was created.",
       "loadError": "Information requests could not be loaded. Other case details remain available.",
+      "retryRead": "Try again",
+      "loadingRequests": "Loading information requests…",
       "upload": "Upload requested evidence",
       "evidenceList": "Evidence submitted for this request",
       "download": "Download",

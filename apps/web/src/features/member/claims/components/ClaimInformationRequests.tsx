@@ -6,6 +6,7 @@ import {
   RequestFulfilmentButton,
 } from '@/features/member/claims/components/information-request-staff-actions';
 import { MemberEvidenceDownloadButton } from '@/features/member/claims/components/member-evidence-download-button';
+import { InformationRequestReadRecovery } from '@/features/member/claims/components/information-request-read-recovery';
 import type { PublicInformationRequest } from '@interdomestik/domain-claims';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
@@ -98,12 +99,7 @@ export function ClaimInformationRequests({
     minute: '2-digit',
     hourCycle: 'h23',
   });
-  if (displayRequests === null)
-    return (
-      <output className="block" aria-live="polite" aria-atomic="true">
-        {t('loadError')}
-      </output>
-    );
+  if (displayRequests === null) return <InformationRequestReadRecovery />;
   if (!displayRequests.length) return null;
   return (
     <section aria-label={t('title')} data-testid="claim-information-requests" className="space-y-4">

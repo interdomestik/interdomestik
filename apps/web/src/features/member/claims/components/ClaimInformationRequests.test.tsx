@@ -19,6 +19,7 @@ it('reports a failed read without inventing an empty request list', () => {
     </NextIntlClientProvider>
   );
   expect(screen.getByRole('status')).toHaveTextContent('could not be loaded');
+  expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   expect(screen.queryByTestId('claim-information-request')).not.toBeInTheDocument();
 });
 it.each([

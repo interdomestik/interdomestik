@@ -108,6 +108,8 @@ vi.mock('next-intl/server', async () => {
   };
 });
 
+vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn() }),
   notFound: () => {
