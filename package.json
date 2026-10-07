@@ -254,7 +254,7 @@
     "@commitlint/config-conventional": "^20.5.3",
     "@playwright/mcp": "^0.0.81",
     "@release-it/conventional-changelog": "^10.0.6",
-    "@supabase/supabase-js": "^2.110.9",
+    "@supabase/supabase-js": "^2.117.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.12.2",
     "@upstash/context7-mcp": "^2.3.0",
@@ -281,6 +281,6 @@
   },
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.3"
   }
 }
