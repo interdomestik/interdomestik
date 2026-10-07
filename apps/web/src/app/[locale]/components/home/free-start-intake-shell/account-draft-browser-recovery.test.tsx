@@ -1,32 +1,30 @@
-import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
+import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import enClaims from '@/messages/en/claims.json';
-import enFree from '@/messages/en/freeStart.json';
 import { ANONYMOUS_DRAFT_KEY, writeAnonymousDraft } from './anonymous-draft-recovery';
 import { EMPTY_DRAFT } from './constants';
 import type { DraftAccount } from './draft-lifecycle-editor';
 import type { DraftRestorationLease } from './draft-lifecycle-restoration';
 import { FreeStartIntakeShell } from './index';
+import {
+  account,
+  browserCopy,
+  context,
+  pause,
+  renderShellWith,
+  resetShell,
+  RESUME,
+  saved,
+  summaryLabel,
+} from './tests/account-draft-browser-fixtures';
 import type { CategoryId, DraftState, StepId } from './types';
 import { useDraftLifecycle } from './use-draft-lifecycle';
 
-type BandProps = Readonly<{ recovery: Readonly<{ offer: unknown; resume: () => void }> }>;
 vi.unmock('next-intl');
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href}>{children}</a>
-  ),
-}));
-// Presentation only: the real shell keeps its recovery offer, resume command and lifecycle.
-vi.mock('./anonymous-draft-recovery-band', () => ({
-  AnonymousDraftRecoveryBand: ({ recovery }: BandProps) =>
-    recovery.offer ? (
-      <button type="button" onClick={() => recovery.resume()}>
-        Use browser notes
-      </button>
-    ) : null,
-}));
+// Routing, session and the recovery band are presentation/session doubles only; the real shell,
+// lifecycle hook, recovery queue and native persistence stay unmocked.
+vi.mock('@/i18n/routing', () => import('./tests/account-draft-browser-fixtures'));
+vi.mock('./anonymous-draft-recovery-band', () => import('./tests/account-draft-browser-fixtures'));
+vi.mock('@/lib/auth-client', () => import('./tests/account-draft-browser-fixtures'));
 const a = vi.hoisted(() => ({
   account: vi.fn(),
   create: vi.fn(),
@@ -49,84 +47,15 @@ vi.mock('@/actions/claims/create-from-saved-draft', () => ({
   createClaimFromSavedDraft: a.submit,
   lookupSavedDraftClaim: a.lookup,
 }));
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    useSession: () => ({
-      data: { user: { id: 'owner-a', tenantId: 'tenant_ks' } },
-      isPending: false,
-    }),
-  },
-}));
-const context = { ownerUserId: 'owner-a', tenantId: 'tenant_ks' };
-const account: DraftAccount = { emailVerified: true, expectedContext: context };
-const RESUME = 'Use browser notes';
-const browserCopy = {
-  category: 'property' as const,
-  draft: { ...EMPTY_DRAFT, summary: 'Water damaged the garage.' },
-  resumeStep: 'details' as const,
-};
 const restoredProps = {
   category: browserCopy.category,
   draft: browserCopy.draft,
   step: browserCopy.resumeStep,
 };
-const saved = {
-  ...browserCopy.draft,
-  category: 'property' as const,
-  resumeStep: 'details' as const,
-  clientRequestId: '11111111-1111-4111-8111-111111111111',
-  id: '22222222-2222-4222-8222-222222222222',
-  version: 1,
-  createdAt: '2026-10-07T09:00:00Z',
-  updatedAt: '2026-10-07T09:00:00Z',
-};
-const summaryLabel = enFree.freeStart.details.summary;
-const pause = (ms: number) => act(() => new Promise<void>(resolve => setTimeout(resolve, ms)));
 
-beforeEach(() => {
-  vi.resetAllMocks();
-  localStorage.clear();
-  Object.defineProperty(navigator, 'locks', {
-    configurable: true,
-    value: {
-      request: vi.fn((_name: string, _options: unknown, callback: () => unknown) =>
-        Promise.resolve(callback())
-      ),
-    },
-  });
-  a.account.mockResolvedValue({ ok: true, ...account });
-  a.list.mockResolvedValue({ ok: true, items: [], nextCursor: null, expectedContext: context });
-  a.lookup.mockResolvedValue({ claim: null });
-  a.create.mockResolvedValue({ ok: true, draft: saved });
-  // Preserve immediate evaluation and rejection when the receipt getter throws.
-  a.update.mockImplementation((input: { expectedVersion: number }) => {
-    let draft: Record<string, unknown>;
-    try {
-      draft = { ...saved, ...input, version: input.expectedVersion + 1 };
-    } catch (error) {
-      return Promise.reject(error);
-    }
-    return Promise.resolve({ ok: true, draft });
-  });
-});
+beforeEach(() => resetShell(a));
 
-function renderShell() {
-  return render(
-    <NextIntlClientProvider
-      locale="en"
-      messages={{ ...enFree, ...enClaims, common: { errors: { retry: 'Retry' } }, diaspora: {} }}
-      timeZone="UTC"
-    >
-      <FreeStartIntakeShell
-        initialCategory="vehicle"
-        locale="en"
-        continueHref="/pricing"
-        neutralOtpHost={location.host}
-        draftAccount={account}
-      />
-    </NextIntlClientProvider>
-  );
-}
+const renderShell = () => renderShellWith(FreeStartIntakeShell);
 /** Another tab saves browser notes, so the shell offers them while account facts exist. */
 function offerBrowserCopy() {
   writeAnonymousDraft(localStorage, browserCopy, null);
