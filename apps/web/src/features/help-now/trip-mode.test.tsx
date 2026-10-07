@@ -78,8 +78,22 @@ describe('TripMode', () => {
   it('shows signed status for the accepted MK pack only', () => {
     renderSignedTripMode();
 
-    expect(screen.getByText('Country pack signed off')).toBeInTheDocument();
-    expect(screen.getByText('Signed packs: 1')).toBeInTheDocument();
-    expect(screen.queryByText('Country pack awaiting L2 sign-off')).not.toBeInTheDocument();
+    expect(screen.getByText('Country guidance available')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Reviewed country packs|reviewer|signed off/i)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Country guidance not available yet')).not.toBeInTheDocument();
+  });
+
+  it('localizes Trip Mode labels while keeping the selected dark country status', () => {
+    const copy = getHelpNowCopy('sq');
+    render(<TripMode copy={copy} country="XK" packs={getSignedOffHelpNowPacks()} />);
+
+    expect(screen.getByRole('heading', { name: 'Modaliteti i udhëtimit' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Udhëzimet për këtë vend nuk janë ende të disponueshme')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Paketa vendesh/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Trip Mode|Signed packs/)).not.toBeInTheDocument();
   });
 });

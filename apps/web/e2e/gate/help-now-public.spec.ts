@@ -87,10 +87,51 @@ test.describe('MOB-01 public Help Now route', () => {
       expect(response?.status(), 'MK Help Now should load as a public route').toBe(200);
       await expect(page).toHaveURL(/\/mk\/help-now/);
       await expectOnlyPublicHelpNowSurface(page);
-      await expect(page.getByLabel('Trip country')).toHaveValue('MK');
-      await expect(page.getByText('Signed packs: 1')).toBeVisible();
+      await expect(page.getByLabel('Земја на патување')).toHaveValue('MK');
+      await expect(page.getByText('Упатствата за земјата се достапни')).toBeVisible();
+      await expect(page.getByText(/Одобрени пакети/)).toHaveCount(0);
       await expect(page.getByTestId('help-now-generate-pack')).toBeVisible();
+      const continuation = page.getByTestId('help-now-continue');
+      await expect(continuation).toHaveCount(1);
+      await expect(continuation).toBeVisible();
+      const expectedHref = `${routes.home('mk')}/#free-start-intake`;
+      await expect(continuation).toHaveAttribute('href', expectedHref);
       await expect(page.getByText(/112|192/)).toHaveCount(0);
+      expect(protectedRequests).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('SQ Help Now link opens the home organizer natively', async ({ browser }, testInfo) => {
+    const context = await browser.newContext(publicContextOptions(testInfo));
+    const page = await context.newPage();
+    const protectedRequests = watchProtectedSurfaceRequests(page);
+
+    try {
+      await gotoApp(page, routes.helpNow('sq'), testInfo, { marker: 'help-now-page-ready' });
+      await expectOnlyPublicHelpNowSurface(page);
+      await expect(page.getByLabel('Shteti i udhëtimit')).toHaveValue('XK');
+      await expect(page.getByTestId('help-now-generate-pack')).toHaveCount(0);
+
+      const continuation = page.getByRole('link', { name: 'Organizo të dhënat e ngjarjes' });
+      await expect(continuation).toHaveCount(1);
+      const expectedHref = `${routes.home('sq')}/#free-start-intake`;
+      await expect(continuation).toHaveAttribute('href', expectedHref);
+
+      await continuation.focus();
+      await page.keyboard.press('Enter');
+      await page.waitForURL(/\/sq\/?#free-start-intake$/);
+
+      const shell = page.locator('#free-start-intake');
+      await expect(shell).toBeVisible();
+      await expect(shell).toBeInViewport();
+      await expect(shell.getByTestId('premium-free-start-organizer')).toBeVisible();
+      await expect(page.getByTestId('help-now-page-ready')).toHaveCount(0);
+      for (const role of ['member', 'agent', 'staff', 'admin']) {
+        await expect(page.getByTestId(`${role}-page-ready`)).toHaveCount(0);
+      }
+      expect(new URL(page.url()).search).toBe('');
       expect(protectedRequests).toEqual([]);
     } finally {
       await context.close();

@@ -23,6 +23,13 @@ function bucketFor(count: number): '0' | '1_2' | '3_5' | '6_plus' {
   return '6_plus';
 }
 
+function formatCapturedAt(capturedAt: string, timeLocale: string): string {
+  return new Date(capturedAt).toLocaleTimeString(timeLocale, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
   const [items, setItems] = useState<EvidenceItem[]>([]);
 
@@ -37,7 +44,7 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 id="evidence-title" className="text-lg font-semibold text-slate-950">
-            Evidence Coach
+            {copy.evidenceTitle}
           </h2>
           <p className="mt-1 text-sm text-slate-600">{copy.privacy}</p>
         </div>
@@ -62,8 +69,8 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
               <span className="block font-semibold text-slate-900">{shot}</span>
               <span className="mt-1 block text-slate-600">
                 {existing
-                  ? `${existing.fileName} · ${new Date(existing.capturedAt).toLocaleTimeString()}`
-                  : 'No file selected'}
+                  ? `${existing.fileName} · ${formatCapturedAt(existing.capturedAt, copy.timeLocale)}`
+                  : copy.noFile}
               </span>
               <input
                 className="mt-3 block w-full text-sm"
@@ -88,7 +95,7 @@ export function EvidenceCoach({ copy, onBundleChange }: EvidenceCoachProps) {
         })}
       </div>
       <p className="mt-4 text-xs font-semibold text-emerald-800" data-testid="help-now-local-only">
-        Local metadata checklist · {items.length} items · nothing sent
+        {copy.localCountLabel}: {items.length} · {copy.localCountNote}
       </p>
     </HelpNowPanel>
   );

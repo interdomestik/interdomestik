@@ -35,7 +35,7 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
   const isSavingRef = useRef(false);
 
   return (
-    <HelpNowPanel title="Trip Mode" titleId="trip-mode-title">
+    <HelpNowPanel title={copy.tripTitle} titleId="trip-mode-title">
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {copy.tripChecklist.map(item => (
           <div
@@ -93,7 +93,6 @@ export function TripMode({ copy, country, packs }: TripModeProps) {
       >
         <p className="font-semibold">{currentPack ? copy.signedTitle : copy.darkTitle}</p>
         <p className="mt-1">{currentPack ? copy.signedBody : copy.darkBody}</p>
-        <p className="mt-2 text-xs font-semibold">Signed packs: {packs.length}</p>
       </div>
     </HelpNowPanel>
   );

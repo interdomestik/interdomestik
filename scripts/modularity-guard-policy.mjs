@@ -67,6 +67,10 @@ const STRUCTURED_OWNERS = [
     /^\.codex\/agents\/interdomestik-workflow-coach\.toml$/u,
     'interdomestik-three-agent-trial-contract',
   ],
+  [
+    /^apps\/web\/src\/features\/help-now\/copy-(?:en|sq|mk|sr)\.json$/u,
+    's7-helpnow-localized-copy-contract',
+  ],
 ];
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
