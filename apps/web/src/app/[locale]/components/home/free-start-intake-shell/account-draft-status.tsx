@@ -49,7 +49,7 @@ export function AccountDraftStatus({
       >
         {message}
       </p>
-      {state === 'error' || state === 'dirty' ? (
+      {state === 'error' || state === 'dirty' || state === 'limit' ? (
         <button type="button" onClick={lifecycle.saveChanges} className="min-h-11 underline">
           {copy.saveChanges}
         </button>
