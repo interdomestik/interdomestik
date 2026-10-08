@@ -45,17 +45,22 @@ export function normalizeTenantHost(host: string | null | undefined): string {
   return authority.endsWith('.') ? authority.slice(0, -1) : authority;
 }
 
-export function isKnownIdaFrontDoorHost(host: string | null | undefined): boolean {
+// Exact allowlist only: built-in defaults plus the configured IDA_HOST and VERCEL_URL.
+export function isExactIdaFrontDoorHost(host: string | null | undefined): boolean {
   const normalized = normalizeTenantHost(host);
   const configuredIdaHost = normalizeTenantHost(process.env.IDA_HOST);
   const configuredVercelUrl = normalizeTenantHost(process.env.VERCEL_URL);
 
   return (
-    normalized.startsWith('ida.') ||
     DEFAULT_IDA_FRONT_DOOR_HOSTS.has(normalized) ||
     (configuredIdaHost.length > 0 && normalized === configuredIdaHost) ||
     (configuredVercelUrl.length > 0 && normalized === configuredVercelUrl)
   );
+}
+
+// Legacy broad classifier: any `ida.` prefix also counts as a front door.
+export function isKnownIdaFrontDoorHost(host: string | null | undefined): boolean {
+  return normalizeTenantHost(host).startsWith('ida.') || isExactIdaFrontDoorHost(host);
 }
 
 export function resolveTenantHostContext(host: string): TenantHostContext {
