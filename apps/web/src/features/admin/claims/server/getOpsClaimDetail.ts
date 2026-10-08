@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
-import { isKnownIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
+import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
@@ -63,7 +63,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
   if (
     !hostTenantId &&
     !isNeutralDeploymentHost(requestHost) &&
-    !isKnownIdaFrontDoorHost(requestHost)
+    !isExactIdaFrontDoorHost(requestHost)
   ) {
     return { kind: 'not_found' };
   }

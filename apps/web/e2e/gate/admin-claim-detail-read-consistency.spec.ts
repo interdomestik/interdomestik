@@ -40,33 +40,27 @@ function seedFor(info: TestInfo): Seed {
 }
 
 // The known IDA front door on the actual loopback port; no IDA_HOST override and no tenant header.
-function knownIdaTarget(info: TestInfo): { origin: string; locale: string; navInfo: TestInfo } {
+function knownIdaTarget(info: TestInfo): { origin: string; locale: string } {
   const { BIND_HOST, PORT } = resolvePlaywrightNetwork();
   if (BIND_HOST !== '127.0.0.1') throw new Error('Refusing a non-loopback gate target');
   const origin = new URL(`http://${IDA_HOST}:${PORT}`);
   if (origin.hostname !== IDA_HOST || origin.protocol !== 'http:') {
     throw new Error('Refusing a target that is not the known local IDA front door');
   }
-  const locale = routes.getLocale(info);
-  const navInfo = {
-    ...info,
-    project: {
-      ...info.project,
-      use: { ...info.project.use, baseURL: `${origin.origin}/${locale}`, extraHTTPHeaders: {} },
-    },
-  } as TestInfo;
-  return { origin: origin.origin, locale, navInfo };
+  return { origin: origin.origin, locale: routes.getLocale(info) };
 }
 
 async function loginThroughNormalUi(
   page: Page,
   origin: string,
   locale: string,
-  navInfo: TestInfo,
   info: TestInfo
 ): Promise<void> {
   const admin = account(info, true);
-  await gotoApp(page, `${origin}/${locale}/login`, navInfo, { marker: 'auth-ready' });
+  await gotoApp(page, '/login', info, {
+    baseURL: `${origin}/${locale}`,
+    marker: 'auth-ready',
+  });
   // Fresh storage has no consent choice; decline through the real control before submitting.
   const decline = page.getByTestId('cookie-consent-decline');
   await expect(decline).toBeVisible();
@@ -148,17 +142,23 @@ test.describe('Admin claim detail read consistency', () => {
   test('known IDA front-door admin opens the listed claim natively and keeps it after reload', async ({
     browser,
   }, testInfo) => {
+    // The generic smoke project also matches this file; only gate projects carry a tenant admin.
+    test.skip(
+      !testInfo.project.name.startsWith('gate-'),
+      `Admin claim detail proof runs only in gate projects, not ${testInfo.project.name}`
+    );
     const seed = seedFor(testInfo);
-    const { origin, locale, navInfo } = knownIdaTarget(testInfo);
+    const { origin, locale } = knownIdaTarget(testInfo);
     const context = await browser.newContext({
       extraHTTPHeaders: {},
       storageState: { cookies: [], origins: [] },
     });
     try {
       const page = await context.newPage();
-      await loginThroughNormalUi(page, origin, locale, navInfo, testInfo);
+      await loginThroughNormalUi(page, origin, locale, testInfo);
 
-      await gotoApp(page, `${origin}/${locale}/admin/claims`, navInfo, {
+      await gotoApp(page, '/admin/claims', testInfo, {
+        baseURL: `${origin}/${locale}`,
         marker: 'admin-claims-v2-ready',
       });
       const ready = page.getByTestId('admin-claims-v2-ready').filter({ visible: true });

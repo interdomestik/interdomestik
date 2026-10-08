@@ -72,9 +72,45 @@ describe('getOpsClaimDetail host admission', () => {
     expectAccessThenHomeTenantReads();
   });
 
-  it.each(['ida.interdomestik.com', 'interdomestik-web.vercel.app'])(
-    'admits the known unscoped host %s under the session access tenant',
+  // interdomestik-web.vercel.app is the unchanged NEUTRAL deployment path, not exact IDA evidence.
+  it.each([
+    ['ida.interdomestik.com', 'exact default IDA'],
+    ['interdomestik-web.vercel.app', 'unchanged NEUTRAL deployment'],
+  ])('admits the known unscoped host %s (%s) under the session access tenant', async host => {
+    requestFrom(host);
+    mockSelectChains();
+
+    const result = await getOpsClaimDetail('claim-1');
+
+    expect(result.kind).toBe('ok');
+    expectAccessThenHomeTenantReads();
+  });
+
+  it.each(['ida.localhost:3000', 'IDA.127.0.0.1.NIP.IO:3000', 'ida.interdomestik.com.'])(
+    'admits the exact default IDA host %s after normalization',
     async host => {
+      requestFrom(host);
+      mockSelectChains();
+
+      const result = await getOpsClaimDetail('claim-1');
+
+      expect(result.kind).toBe('ok');
+      expectAccessThenHomeTenantReads();
+    }
+  );
+
+  // Scheme-bearing values miss the neutral host set, so only the exact IDA branch can admit them.
+  it.each([
+    ['IDA_HOST', 'https://staging.interdomestik.com:443', 'STAGING.interdomestik.com.'],
+    [
+      'VERCEL_URL',
+      'https://interdomestik-preview-123.vercel.app',
+      'interdomestik-preview-123.vercel.app:443',
+    ],
+  ] as const)(
+    'admits the exact configured %s through the shared normalizer',
+    async (key, value, host) => {
+      process.env[key] = value;
       requestFrom(host);
       mockSelectChains();
 
@@ -92,6 +128,17 @@ describe('getOpsClaimDetail host admission', () => {
     expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
   });
 
+  it.each(['example.test', 'ida.attacker.invalid', 'ida.interdomestik.com.attacker.invalid'])(
+    'denies the unknown plain, prefix, or suffix host %s before SQL',
+    async host => {
+      process.env.IDA_HOST = 'staging.interdomestik.com';
+      process.env.VERCEL_URL = 'interdomestik-preview-123.vercel.app';
+      requestFrom(host);
+
+      expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    }
+  );
+
   it('keeps forwarded-host priority over an IDA host header', async () => {
     requestFrom('ida.interdomestik.com', 'attacker.invalid');
 
@@ -100,6 +147,13 @@ describe('getOpsClaimDetail host admission', () => {
 
   it('keeps recognized country mismatch denial ahead of IDA admission', async () => {
     process.env.IDA_HOST = 'mk.localhost';
+    requestFrom('mk.localhost:3000');
+
+    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+  });
+
+  it('keeps recognized country mismatch denial ahead of a same-country VERCEL_URL', async () => {
+    process.env.VERCEL_URL = 'mk.localhost';
     requestFrom('mk.localhost:3000');
 
     expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));

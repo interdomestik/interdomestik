@@ -5,7 +5,7 @@ const hoisted = vi.hoisted(() => {
   const eq = vi.fn((left: unknown, right: unknown) => `eq:${String(left)}:${String(right)}`);
   const and = vi.fn((...args: unknown[]) => `and:${args.map(String).join('|')}`);
   const getSession = vi.fn();
-  const headersFn = vi.fn(async () => new Headers([['host', 'ks.localhost:3000']]));
+  const headersFn = vi.fn(() => Promise.resolve(new Headers([['host', 'ks.localhost:3000']])));
   const ensureTenantId = vi.fn(
     (session: { user?: { accessTenantId?: string | null; tenantId?: string | null } }) => {
       const tenantId = session?.user?.accessTenantId?.trim() || session?.user?.tenantId;
@@ -13,15 +13,16 @@ const hoisted = vi.hoisted(() => {
       return tenantId;
     }
   );
-  const withTenantContext = vi.fn(async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-    action({
-      query: {
-        claims: {
-          findFirst: claimsFindFirst,
+  const withTenantContext = vi.fn(
+    async (_ctx: unknown, action: (tx: unknown) => unknown) =>
+      await action({
+        query: {
+          claims: {
+            findFirst: claimsFindFirst,
+          },
         },
-      },
-      select: dbSelect,
-    })
+        select: dbSelect,
+      })
   );
   const mapClaimToOperationalRow = vi.fn(() => ({
     id: 'claim-1',
@@ -216,7 +217,7 @@ export function resetOpsClaimDetailMocks(): void {
   hoisted.claimsFindFirst.mockResolvedValue(createClaim());
   hoisted.withTenantContext.mockImplementation(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      action({
+      await action({
         query: {
           claims: {
             findFirst: hoisted.claimsFindFirst,

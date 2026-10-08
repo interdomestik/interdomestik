@@ -127,7 +127,7 @@ Bounded #1883 admin read recovery remains technically delivered. The additional 
 
 ## Current bounded S7 work
 
-Admin-claims read consistency [#1891](history/2026-09-22-current-tracker-ledger.md#s7-admin-claims-read-consistency-delivery-1891) is technically delivered within its [bounded acceptance](current-program.md#admin-claims-read-consistency-acceptance). The program/tracker now select the [bounded admin-claim detail admission repair](current-program.md#admin-claim-detail-read-consistency-acceptance); its candidate proof remains pending and adds no whole-clause compliance credit.
+Admin-claims read consistency [#1891](history/2026-09-22-current-tracker-ledger.md#s7-admin-claims-read-consistency-delivery-1891) is technically delivered within its [bounded acceptance](current-program.md#admin-claims-read-consistency-acceptance). The program/tracker now select the [bounded admin-claim detail admission repair](current-program.md#admin-claim-detail-read-consistency-acceptance); its exact-host adapter preserves the legacy classifier and existing access boundaries; candidate proof remains pending and adds no whole-clause compliance credit.
 
 Bounded acceptance exercises IDA-SEC-002/003, IDA-TEN-001/002/005/006/008, IDA-IAM-002/003, IDA-CAS-002 and IDA-NFR-006/007/008/010. Bounded delivered credit follows the restricted causal comparison and integrated proof; no whole requirement disposition is promoted.
 
