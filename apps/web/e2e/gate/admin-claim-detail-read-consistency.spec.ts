@@ -15,6 +15,7 @@ const SEEDS = {
     memberName: 'Aleksandar Stojanovski',
     memberEmail: 'member.mk.1@interdomestik.com',
     memberNumber: 'MEM-2026-000001',
+    memberId: 'golden_mk_member_1',
   },
   ks: {
     id: 'golden_ks_track_claim_001',
@@ -23,6 +24,7 @@ const SEEDS = {
     memberName: 'KS Tracking Demo',
     memberEmail: 'member.tracking.ks@interdomestik.com',
     memberNumber: 'MEM-2026-000014',
+    memberId: 'golden_ks_member_tracking',
   },
 } as const;
 
@@ -138,8 +140,17 @@ async function readTimeline(page: Page): Promise<TimelineState> {
   return { kind: 'entries', titles };
 }
 
+async function expectMemberProfile(page: Page, seed: Seed, url: string): Promise<void> {
+  await expect(page).toHaveURL(url);
+  await expect(page.getByTestId('not-found-page')).toHaveCount(0);
+  // UserProfileHeader: the member's name is the page heading, the email sits beneath it.
+  const heading = page.getByRole('heading', { level: 1, name: seed.memberName, exact: true });
+  await expect(heading).toHaveCount(1);
+  await expect(page.getByText(seed.memberEmail, { exact: true })).toHaveCount(1);
+}
+
 test.describe('Admin claim detail read consistency', () => {
-  test('known IDA front-door admin opens the listed claim natively and keeps it after reload', async ({
+  test('known IDA front-door admin opens a listed claim, follows number links and preserves reloads', async ({
     browser,
   }, testInfo) => {
     // The generic smoke project also matches this file; only gate projects carry a tenant admin.
@@ -198,6 +209,28 @@ test.describe('Admin claim detail read consistency', () => {
       await expect(page).toHaveURL(`${origin}/${locale}/admin/claims/${seed.id}`);
       await expectDetail(page, seed, listed);
       expect(await readTimeline(page)).toEqual(before);
+
+      // Header claim-number link: the tenant-scoped resolver lands on the same canonical claim.
+      const resolvedClaim = `${origin}/${locale}/admin/claims/${seed.id}?ref=${encodeURIComponent(seed.claimNumber)}`;
+      await page.locator(`a[href$="/admin/claims/number/${listed.code}"]`).click();
+      await expect(page).toHaveURL(resolvedClaim);
+      await expectDetail(page, seed, listed);
+      expect(await readTimeline(page)).toEqual(before);
+      const reloadedClaim = await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(reloadedClaim?.status()).toBe(200);
+      await expect(page).toHaveURL(resolvedClaim);
+      await expectDetail(page, seed, listed);
+
+      // Header member-number link: resolves to the claimant's canonical admin profile.
+      const memberLink = page.locator(`a[href$="/admin/members/number/${seed.memberNumber}"]`);
+      await expect(memberLink).toHaveCount(1);
+      await expect(memberLink).toHaveText(seed.memberNumber);
+      await memberLink.click();
+      const profile = `${origin}/${locale}/admin/users/${seed.memberId}`;
+      await expectMemberProfile(page, seed, profile);
+      const reloadedProfile = await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(reloadedProfile?.status()).toBe(200);
+      await expectMemberProfile(page, seed, profile);
     } finally {
       await context.close();
     }

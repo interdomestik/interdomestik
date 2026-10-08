@@ -1,7 +1,8 @@
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db.server';
 import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
+import { withTenantContext } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberNumberResolverCore } from './_core';
@@ -21,13 +22,17 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     redirect(`/${locale}/login`);
   }
 
+  // Effective access tenant; a session without scope throws here, before any lookup.
+  const tenantId = ensureTenantId(session);
+  const role = session.user.role ?? null;
+
   const result = await getMemberNumberResolverCore({
     memberNumber,
-    tenantId: session.user.tenantId,
-    role: session.user.role,
-    allowedRoles: [...ADMIN_ALLOWED_ROLES],
-    db,
+    tenantId,
+    role,
+    allowedRoles: ADMIN_ALLOWED_ROLES,
     parseMemberNumber,
+    inTenantContext: lookup => withTenantContext({ tenantId, role }, lookup),
   });
 
   if (!result.ok) {
