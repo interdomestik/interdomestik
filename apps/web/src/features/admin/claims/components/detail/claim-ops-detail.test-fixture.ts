@@ -1,0 +1,40 @@
+import type { ClaimOpsDetail } from '../../types';
+
+/** Shared ClaimOpsDetail DTO for next-action tests; overrides win, dates are created per call. */
+export function makeClaimOpsDetail(overrides: Partial<ClaimOpsDetail> = {}): ClaimOpsDetail {
+  return {
+    id: 'claim-123',
+    code: 'CLAIM-123',
+    claimNumber: 'CLM-XK-KS01-2026-000001',
+    title: 'Test Claim',
+    lifecycleStage: 'processing',
+    stageStartedAt: new Date(),
+    daysInStage: 2,
+    ownerRole: 'staff',
+    ownerName: null,
+    assigneeId: null,
+    isStuck: false,
+    hasSlaBreach: false,
+    isUnassigned: true,
+    waitingOn: 'staff',
+    hasCashPending: false,
+    memberId: 'member-123',
+    memberName: 'John Doe',
+    memberEmail: 'john@example.com',
+    branchCode: 'B01',
+    agentName: null,
+    category: 'auto',
+    status: 'evaluation',
+    description: 'Desc',
+    docs: [],
+    companyName: 'Acme Corp',
+    claimAmount: '1000',
+    currency: 'EUR',
+    createdAt: new Date(),
+    originType: 'portal',
+    originRefId: null,
+    originDisplayName: null,
+    memberNumber: 'MEM-2026-0001',
+    ...overrides,
+  };
+}

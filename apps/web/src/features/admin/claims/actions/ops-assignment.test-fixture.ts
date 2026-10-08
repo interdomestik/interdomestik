@@ -1,5 +1,5 @@
 import { claims } from '@interdomestik/database/schema';
-import { getTableColumns, type SQL } from 'drizzle-orm';
+import { getTableColumns, type SQL, type Table } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { vi, type Mock } from 'vitest';
 
@@ -21,24 +21,29 @@ export function sqlOf(condition: unknown): { sql: string; params: unknown[] } {
   return dialect.sqlToQuery(condition as SQL);
 }
 
-const CLAIM_COLUMN_KEYS: ReadonlyMap<string, string> = new Map(
-  Object.entries(getTableColumns(claims)).map(([key, column]) => [column.name, key])
-);
+function columnKeysOf(table: Table): ReadonlyMap<string, string> {
+  return new Map(Object.entries(getTableColumns(table)).map(([key, column]) => [column.name, key]));
+}
 const GUARD_TERM = /^(?:"[^"]+"\.)?"([^"]+)" (?:= \$(\d+)|(is null))$/i;
+// Drizzle renders and(...) with exactly this separator; any other spelling stays inside one term
+// and fails GUARD_TERM, so exact-string splitting is linear and still fails closed.
+const CONJUNCTION = ' and ';
 
 /**
- * Evaluates a rendered conjunctive update guard (column = $n / column is null) against a concrete
- * claim row, as Postgres would. Any unsupported SQL shape throws, so the evaluator fails closed.
+ * Evaluates a rendered conjunctive predicate (column = $n / column is null) against a concrete
+ * row of `table` (claims by default), as Postgres would. Any unsupported SQL shape throws, so the
+ * evaluator fails closed.
  */
-export function guardMatchesRow(condition: unknown, row: Row): boolean {
+export function guardMatchesRow(condition: unknown, row: Row, table: Table = claims): boolean {
   const { sql, params } = sqlOf(condition);
   if (/\bor\b/i.test(sql)) throw new Error(`Unsupported guard SQL: ${sql}`);
+  const columnKeys = columnKeysOf(table);
   return sql
     .replace(/[()]/g, '')
-    .split(/\s+and\s+/i)
+    .split(CONJUNCTION)
     .every(term => {
       const match = GUARD_TERM.exec(term.trim());
-      const key = match ? CLAIM_COLUMN_KEYS.get(match[1]) : undefined;
+      const key = match ? columnKeys.get(match[1]) : undefined;
       if (!match || !key) throw new Error(`Unsupported guard term: ${term}`);
       if (match[3]) return (row[key] ?? null) === null;
       return row[key] === params[Number(match[2]) - 1];
@@ -74,10 +79,22 @@ export async function createDatabaseModuleMock(withTenantContext: Mock, directDb
   };
 }
 
+/** Arguments recorded by the fake `select().from().where().for()` target lock chain. */
+export type TargetLockRead = Readonly<{
+  fields: Record<string, unknown>;
+  table: unknown;
+  where: unknown;
+  strength: string;
+}>;
+
 export type FakeTxOptions = Readonly<{
-  claim?: Row | undefined;
+  /** Pass `claim: undefined` explicitly for a missing claim; omit for UNASSIGNED_CLAIM. */
+  claim?: Row;
   claimReadError?: Error;
-  target?: { id: string } | undefined;
+  /** Pass `target: undefined` explicitly for no eligible locked row; omit for staff-1. */
+  target?: { id: string };
+  /** Rejects the target FOR SHARE read (e.g. deadlock or serialization failure). */
+  targetLockError?: Error;
   /** Forces the update result regardless of the guard. */
   updatedRows?: Row[];
   /** Actual row at update time; the rendered guard is evaluated against it. */
@@ -93,6 +110,11 @@ export function createFakeTx(options: FakeTxOptions = {}) {
   const auditValues = vi.fn((_row: Row) =>
     options.auditError ? Promise.reject(options.auditError) : Promise.resolve()
   );
+  const targetLock = vi.fn((_read: TargetLockRead): Promise<Array<{ id: string }>> =>
+    options.targetLockError
+      ? Promise.reject(options.targetLockError)
+      : Promise.resolve(target ? [target] : [])
+  );
   const tx = {
     query: {
       claims: {
@@ -100,8 +122,14 @@ export function createFakeTx(options: FakeTxOptions = {}) {
           options.claimReadError ? Promise.reject(options.claimReadError) : Promise.resolve(claim)
         ),
       },
-      user: { findFirst: vi.fn((_args: { where: unknown }) => Promise.resolve(target)) },
     },
+    select: vi.fn((fields: Record<string, unknown>) => ({
+      from: (table: unknown) => ({
+        where: (where: unknown) => ({
+          for: (strength: string) => targetLock({ fields, table, where, strength }),
+        }),
+      }),
+    })),
     update: vi.fn((_table: unknown) => ({
       set: (values: Row) => {
         updateSet(values);
@@ -130,7 +158,7 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     })),
     insert: vi.fn((_table: unknown) => ({ values: auditValues })),
   };
-  return { tx, updateSet, updateWhere, auditValues };
+  return { tx, updateSet, updateWhere, auditValues, targetLock };
 }
 
 /** Routes withTenantContext to the fake tx and records whether the callback returned or threw. */

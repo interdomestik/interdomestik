@@ -8,6 +8,7 @@ import {
 import { AlertCircle, MessageSquare, RefreshCcw, UserCog } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { StaffAssignmentSelect, type StaffAssignmentOption } from './StaffAssignmentSelect';
+import { formatStaffOptionLabel } from './staff-option-label';
 
 export type AssignmentIntent = 'assign' | 'reassign';
 
@@ -70,14 +71,14 @@ export function NextActionSecondary({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {secondary.map((action, idx) => {
+        {secondary.map(action => {
           const Icon = getActionIcon(action.type);
 
           if (action.type === 'assign') {
             if (!canAssign) return null;
             return (
               <StaffAssignmentSelect
-                key={idx}
+                key={action.type}
                 size="compact"
                 staffOptions={allStaff}
                 isPending={isPending}
@@ -91,7 +92,7 @@ export function NextActionSecondary({
             if (!canAssign) return null;
             return (
               <Select
-                key={idx}
+                key={action.type}
                 value=""
                 onValueChange={staffId => onAssign(staffId, 'reassign')}
                 disabled={isPending || allStaff.length === 0}
@@ -106,7 +107,7 @@ export function NextActionSecondary({
                 <SelectContent>
                   {allStaff.map(member => (
                     <SelectItem key={member.id} value={member.id} className="text-xs">
-                      {member.name || member.email}
+                      {formatStaffOptionLabel(member)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -116,7 +117,7 @@ export function NextActionSecondary({
 
           if (action.type === 'update_status') {
             return (
-              <Select key={idx} onValueChange={onStatusUpdate} disabled={isPending}>
+              <Select key={action.type} onValueChange={onStatusUpdate} disabled={isPending}>
                 <SelectTrigger
                   aria-label={getActionLabel(action)}
                   className={SECONDARY_SELECT_TRIGGER_CLASS}
@@ -137,7 +138,7 @@ export function NextActionSecondary({
 
           return (
             <Button
-              key={idx}
+              key={action.type}
               variant="ghost"
               size="sm"
               disabled={isPending}

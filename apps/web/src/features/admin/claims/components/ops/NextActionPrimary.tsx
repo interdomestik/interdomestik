@@ -11,6 +11,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { StaffAssignmentSelect, type StaffAssignmentOption } from './StaffAssignmentSelect';
 
 interface NextActionPrimaryProps {
@@ -69,6 +70,35 @@ export function NextActionPrimary({
     (primary ? t(`actions.${primary.type}.label`, { defaultMessage: primary.type }) : '');
   const currentDesc = describePrimary();
 
+  // Assignment renders the staff selector only for assigners; non-assigners get no control and
+  // the neutral copy from describePrimary.
+  const renderControl = (): ReactNode => {
+    if (!primary) return null;
+    if (primary.type === 'assign') {
+      if (!canAssign) return null;
+      return (
+        <StaffAssignmentSelect
+          staffOptions={staffOptions}
+          isPending={isPending}
+          onSelect={onAssign}
+          className="shadow-sm"
+        />
+      );
+    }
+    return (
+      <Button
+        size="sm"
+        variant={primary.variant || 'default'}
+        onClick={() => onAction(primary.type)}
+        disabled={isPending}
+        className="gap-2 shadow-sm"
+      >
+        {getIcon(primary.type)}
+        {currentLabel}
+      </Button>
+    );
+  };
+
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex flex-col gap-1">
@@ -85,29 +115,7 @@ export function NextActionPrimary({
         <p className="text-sm text-muted-foreground">{currentDesc}</p>
       </div>
 
-      <div className="flex items-center gap-2">
-        {primary?.type === 'assign' ? (
-          canAssign ? (
-            <StaffAssignmentSelect
-              staffOptions={staffOptions}
-              isPending={isPending}
-              onSelect={onAssign}
-              className="shadow-sm"
-            />
-          ) : null
-        ) : primary ? (
-          <Button
-            size="sm"
-            variant={primary.variant || 'default'}
-            onClick={() => onAction(primary.type)}
-            disabled={isPending}
-            className="gap-2 shadow-sm"
-          >
-            {getIcon(primary.type)}
-            {currentLabel}
-          </Button>
-        ) : null}
-      </div>
+      <div className="flex items-center gap-2">{renderControl()}</div>
     </div>
   );
 }

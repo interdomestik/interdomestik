@@ -1,25 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mocks = vi.hoisted(() => ({
-  directDbAccess: [] as string[],
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock('@interdomestik/domain-claims/claims/transition-guard', () => ({
-  isClaimStatusTransitionInGraph: () => true,
-}));
-vi.mock('./ops-status-action', () => ({ updateStatusAction: vi.fn() }));
-vi.mock('@interdomestik/database', async () => {
-  const fixture = await import('./ops-assignment.test-fixture');
-  return fixture.createDatabaseModuleMock(mocks.withTenantContext, mocks.directDbAccess);
-});
-
-import { assignOwner } from './ops-actions';
+import { assignmentActionMocks as mocks, assignOwner } from './ops-assignment.test-bootstrap';
 import { createFakeTx, routeTenantContext, sessionFor } from './ops-assignment.test-fixture';
 
 const GENERIC_ERROR = 'Assignment failed. Please try again.';

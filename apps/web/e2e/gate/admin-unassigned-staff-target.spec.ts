@@ -12,6 +12,9 @@ const catalogs = { en, sq, mk, sr };
 test('admin deliberately assigns an unassigned case to eligible staff and keeps the result after reload', async ({
   adminPage: page,
 }, info) => {
+  // Intentional skip, not a fake pass: this test seeds owned synthetic tenant data through the gate
+  // fixture, so only tenant gate projects (gate-*) run it. Other projects report it as skipped,
+  // never passed. The required KS/MK gate projects still select and run it.
   test.skip(
     !info.project.name.startsWith('gate-'),
     'Synthetic assignment proof is selected by tenant gate projects'
@@ -45,7 +48,8 @@ test('admin deliberately assigns an unassigned case to eligible staff and keeps 
     // Escape is a real non-mutating keyboard cancellation, with focus returned to the trigger.
     await selector.focus();
     await selector.press('ArrowDown');
-    const option = page.getByRole('option', { name: fixture.staffLabel, exact: true });
+    // Options show name plus email so same-name staff stay distinct; the owner header stays plain.
+    const option = page.getByRole('option', { name: fixture.staffOptionLabel, exact: true });
     await expect(option).toHaveCount(1);
     await expect(option).toBeVisible();
     await page.keyboard.press('Escape');

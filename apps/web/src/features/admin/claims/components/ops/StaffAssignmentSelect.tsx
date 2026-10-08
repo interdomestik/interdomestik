@@ -10,6 +10,7 @@ import {
 import { cn } from '@interdomestik/ui/lib/utils';
 import { UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { formatStaffOptionLabel } from './staff-option-label';
 
 export type StaffAssignmentOption = Readonly<{ id: string; name: string | null; email: string }>;
 
@@ -49,7 +50,7 @@ export function StaffAssignmentSelect({
             value={member.id}
             className={isCompact ? 'text-xs' : undefined}
           >
-            {member.name || member.email}
+            {formatStaffOptionLabel(member)}
           </SelectItem>
         ))}
       </SelectContent>

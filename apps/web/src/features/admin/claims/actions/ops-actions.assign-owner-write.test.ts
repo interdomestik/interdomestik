@@ -1,27 +1,12 @@
+import { claims } from '@interdomestik/database/schema';
+import { and, eq, isNull } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mocks = vi.hoisted(() => ({
-  directDbAccess: [] as string[],
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock('@interdomestik/domain-claims/claims/transition-guard', () => ({
-  isClaimStatusTransitionInGraph: () => true,
-}));
-vi.mock('./ops-status-action', () => ({ updateStatusAction: vi.fn() }));
-vi.mock('@interdomestik/database', async () => {
-  const fixture = await import('./ops-assignment.test-fixture');
-  return fixture.createDatabaseModuleMock(mocks.withTenantContext, mocks.directDbAccess);
-});
-
-import { and, claims, eq, isNull } from '@interdomestik/database';
-import { assignOwner } from './ops-actions';
-import { ASSIGNMENT_CONFLICT_ERROR, ASSIGNMENT_TARGET_DENIED_ERROR } from './ops-assignment';
+import {
+  ASSIGNMENT_CONFLICT_ERROR,
+  ASSIGNMENT_TARGET_DENIED_ERROR,
+  assignmentActionMocks as mocks,
+  assignOwner,
+} from './ops-assignment.test-bootstrap';
 import {
   createFakeTx,
   guardMatchesRow,
@@ -95,7 +80,7 @@ describe('assignOwner tenant transaction', () => {
   });
 
   it('reassigns with compare-and-set on the previously read staff member', async () => {
-    const { tx, updateWhere, auditValues } = createFakeTx({
+    const { tx, updateWhere, auditValues, targetLock } = createFakeTx({
       claim: { ...UNASSIGNED_CLAIM, staffId: 'staff-old' },
       target: { id: 'staff-2' },
     });
@@ -108,7 +93,7 @@ describe('assignOwner tenant transaction', () => {
     const guard = sqlOf(updateWhere.mock.calls[0][0]);
     expect(guard.sql).not.toMatch(/is null/i);
     expect(guard.params).toEqual(expect.arrayContaining(['claim-1', 'tenant-1', 'staff-old']));
-    const targetRead = sqlOf(tx.query.user.findFirst.mock.calls[0][0].where);
+    const targetRead = sqlOf(targetLock.mock.calls[0][0].where);
     expect(targetRead.params).toEqual(expect.arrayContaining(['tenant-1', 'staff-2', 'staff']));
     expect(auditValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -129,19 +114,19 @@ describe('assignOwner tenant transaction', () => {
   });
 
   it('denies a missing or foreign claim before target lookup or writes', async () => {
-    const { tx } = createFakeTx({ claim: undefined });
+    const { tx, targetLock } = createFakeTx({ claim: undefined });
     routeTenantContext(mocks.withTenantContext, tx);
 
     await expect(assignOwner('claim-x', 'staff-1', 'en')).resolves.toEqual({
       success: false,
       error: 'Claim not found or access denied',
     });
-    expect(tx.query.user.findFirst).not.toHaveBeenCalled();
+    expect(targetLock).not.toHaveBeenCalled();
     expectNoWritesOrRevalidation(tx);
   });
 
   it('denies a terminal claim before target lookup or writes', async () => {
-    const { tx } = createFakeTx({
+    const { tx, targetLock } = createFakeTx({
       claim: {
         ...UNASSIGNED_CLAIM,
         caseLifecycleState: 'resolved',
@@ -154,7 +139,7 @@ describe('assignOwner tenant transaction', () => {
       success: false,
       error: 'Cannot perform assign on a terminal claim.',
     });
-    expect(tx.query.user.findFirst).not.toHaveBeenCalled();
+    expect(targetLock).not.toHaveBeenCalled();
     expectNoWritesOrRevalidation(tx);
   });
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimOpsDetail } from '../../types';
+import { makeClaimOpsDetail as makeClaim } from '../detail/claim-ops-detail.test-fixture';
 import { getNextActions } from '../detail/getNextActions';
 import { NextActionsCard } from './NextActionsCard';
 
@@ -48,44 +49,12 @@ const STAFF = [
   { id: 'staff-2', name: 'Sara Staff', email: 'sara@example.test' },
   { id: 'staff-3', name: 'Ben Staff', email: 'ben@example.test' },
 ];
-
-function makeClaim(overrides: Partial<ClaimOpsDetail> = {}): ClaimOpsDetail {
-  return {
-    id: 'claim-123',
-    code: 'CLAIM-123',
-    claimNumber: 'CLM-XK-KS01-2026-000001',
-    title: 'Test Claim',
-    lifecycleStage: 'processing',
-    stageStartedAt: new Date(),
-    daysInStage: 2,
-    ownerRole: 'staff',
-    ownerName: null,
-    assigneeId: null,
-    isStuck: false,
-    hasSlaBreach: false,
-    isUnassigned: true,
-    waitingOn: 'staff',
-    hasCashPending: false,
-    memberId: 'member-123',
-    memberName: 'John Doe',
-    memberEmail: 'john@example.com',
-    branchCode: 'B01',
-    agentName: null,
-    category: 'auto',
-    status: 'evaluation',
-    description: 'Desc',
-    docs: [],
-    companyName: 'Acme Corp',
-    claimAmount: '1000',
-    currency: 'EUR',
-    createdAt: new Date(),
-    originType: 'portal',
-    originRefId: null,
-    originDisplayName: null,
-    memberNumber: 'MEM-2026-0001',
-    ...overrides,
-  };
-}
+const SARA_OPTION = 'Sara Staff (sara@example.test)';
+const BEN_OPTION = 'Ben Staff (ben@example.test)';
+const SAME_NAME_STAFF = [
+  { id: 'staff-4', name: 'Alex Staff', email: 'alex.one@example.test' },
+  { id: 'staff-5', name: 'Alex Staff', email: 'alex.two@example.test' },
+];
 
 function renderCard(
   options: { claim?: ClaimOpsDetail; canAssign?: boolean; staff?: typeof STAFF } = {}
@@ -142,7 +111,7 @@ describe('NextActionsCard staff assignment', () => {
     );
     expect(mocks.assignOwner).not.toHaveBeenCalled();
 
-    await choose('Assigned staff', 'Sara Staff');
+    await choose('Assigned staff', SARA_OPTION);
 
     await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith('Action completed'));
     expect(mocks.assignOwner).toHaveBeenCalledTimes(1);
@@ -156,7 +125,7 @@ describe('NextActionsCard staff assignment', () => {
     renderCard();
     const selector = screen.getByRole('combobox', { name: 'Assigned staff' });
 
-    await choose('Assigned staff', 'Sara Staff');
+    await choose('Assigned staff', SARA_OPTION);
     await waitFor(() => expect(selector).toBeDisabled());
 
     settle({ success: false, error: 'Staff member not found or out of scope' });
@@ -165,14 +134,14 @@ describe('NextActionsCard staff assignment', () => {
     );
     await waitFor(() => expect(selector).toBeEnabled());
 
-    await choose('Assigned staff', 'Sara Staff');
+    await choose('Assigned staff', SARA_OPTION);
     await waitFor(() => expect(mocks.assignOwner).toHaveBeenCalledTimes(2));
   });
 
   it('reports unexpected failures truthfully', async () => {
     mocks.assignOwner.mockRejectedValueOnce(new Error('network'));
     renderCard();
-    await choose('Assigned staff', 'Ben Staff');
+    await choose('Assigned staff', BEN_OPTION);
     await waitFor(() =>
       expect(mocks.toastError).toHaveBeenCalledWith('An unexpected error occurred')
     );
@@ -183,7 +152,7 @@ describe('NextActionsCard staff assignment', () => {
     const user = userEvent.setup();
     renderCard({ claim: makeClaim({ hasSlaBreach: true }) });
 
-    await choose('Assigned staff', 'Ben Staff');
+    await choose('Assigned staff', BEN_OPTION);
     await waitFor(() =>
       expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-3', 'en')
     );
@@ -202,10 +171,31 @@ describe('NextActionsCard staff assignment', () => {
     renderCard({ claim: makeClaim({ isUnassigned: false, assigneeId: 'staff-2' }) });
     expect(screen.queryByRole('combobox', { name: 'Assigned staff' })).not.toBeInTheDocument();
 
-    await choose('Reassign', 'Ben Staff');
+    await choose('Reassign', BEN_OPTION);
     await waitFor(() =>
       expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-3', 'en')
     );
+  });
+
+  it('distinguishes same-name staff by email when assigning an unassigned case', async () => {
+    renderCard({ staff: SAME_NAME_STAFF });
+
+    await choose('Assigned staff', 'Alex Staff (alex.two@example.test)');
+
+    await waitFor(() => expect(mocks.assignOwner).toHaveBeenCalledTimes(1));
+    expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-5', 'en');
+  });
+
+  it('distinguishes same-name staff by email when reassigning', async () => {
+    renderCard({
+      staff: SAME_NAME_STAFF,
+      claim: makeClaim({ isUnassigned: false, assigneeId: 'staff-2' }),
+    });
+
+    await choose('Reassign', 'Alex Staff (alex.one@example.test)');
+
+    await waitFor(() => expect(mocks.assignOwner).toHaveBeenCalledTimes(1));
+    expect(mocks.assignOwner).toHaveBeenCalledWith('claim-123', 'staff-4', 'en');
   });
 
   it('renders no actionable assignment control when the actor cannot assign', () => {

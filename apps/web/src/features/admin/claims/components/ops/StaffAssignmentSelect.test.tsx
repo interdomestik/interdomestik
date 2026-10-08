@@ -14,6 +14,11 @@ const STAFF = [
   { id: 'staff-1', name: 'Sara Staff', email: 'sara@example.test' },
   { id: 'staff-2', name: null, email: 'nameless@example.test' },
 ];
+const SARA_OPTION = 'Sara Staff (sara@example.test)';
+const SAME_NAME_STAFF = [
+  { id: 'staff-3', name: 'Alex Staff', email: 'alex.one@example.test' },
+  { id: 'staff-4', name: 'Alex Staff', email: 'alex.two@example.test' },
+];
 
 beforeAll(() => {
   Object.assign(Element.prototype, {
@@ -63,12 +68,22 @@ describe('StaffAssignmentSelect', () => {
     expect(trigger).toHaveTextContent('Select staff');
   });
 
+  it('distinguishes same-name staff by email and commits the chosen id', async () => {
+    const user = userEvent.setup();
+    const { trigger, onSelect } = renderSelect({ staffOptions: SAME_NAME_STAFF });
+    await user.click(trigger);
+    expect(await screen.findAllByRole('option')).toHaveLength(2);
+    await user.click(screen.getByRole('option', { name: 'Alex Staff (alex.two@example.test)' }));
+    expect(onSelect.mock.calls).toEqual([['staff-4']]);
+    expect(trigger).toHaveTextContent('Select staff');
+  });
+
   it('allows retrying the same choice', async () => {
     const user = userEvent.setup();
     const { trigger, onSelect } = renderSelect();
     for (let attempt = 0; attempt < 2; attempt += 1) {
       await user.click(trigger);
-      await user.click(await screen.findByRole('option', { name: 'Sara Staff' }));
+      await user.click(await screen.findByRole('option', { name: SARA_OPTION }));
     }
     expect(onSelect.mock.calls).toEqual([['staff-1'], ['staff-1']]);
   });
@@ -90,7 +105,7 @@ describe('StaffAssignmentSelect', () => {
     const { trigger, onSelect } = renderSelect();
     trigger.focus();
     await user.keyboard('{Enter}');
-    const first = await screen.findByRole('option', { name: 'Sara Staff' });
+    const first = await screen.findByRole('option', { name: SARA_OPTION });
     await waitFor(() => expect(first).toHaveFocus());
     await user.keyboard('{Enter}');
     expect(onSelect).toHaveBeenCalledWith('staff-1');

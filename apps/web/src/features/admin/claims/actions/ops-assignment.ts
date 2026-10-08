@@ -36,19 +36,31 @@ function buildAssignmentGuard(read: AssignmentGuardSnapshot) {
   );
 }
 
-async function findAssignableStaff(tx: TenantTransaction, tenantId: string, staffId: string) {
+// FOR SHARE holds the eligible target row until this transaction ends, so a concurrent role or
+// tenant change (UPDATE, or the role writers' FOR UPDATE lock) cannot commit between this check and
+// the assignment write and audit. A change that commits first makes the re-checked predicate return
+// no row. FOR KEY SHARE would not block non-key role changes.
+async function findAssignableStaff(
+  tx: TenantTransaction,
+  tenantId: string,
+  staffId: string
+): Promise<{ id: string } | undefined> {
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by withTenant inside tenant transaction
-  return tx.query.user.findFirst({
-    where: withTenant(
-      tenantId,
-      user.tenantId,
-      and(eq(user.id, staffId), eq(user.role, ASSIGNMENT_TARGET_ROLE))
-    ),
-    columns: { id: true },
-  });
+  const [target] = await tx
+    .select({ id: user.id })
+    .from(user)
+    .where(
+      withTenant(
+        tenantId,
+        user.tenantId,
+        and(eq(user.id, staffId), eq(user.role, ASSIGNMENT_TARGET_ROLE))
+      )
+    )
+    .for('share');
+  return target;
 }
 
-/** Claim read, target validation, CAS update and audit share one tenant transaction. */
+/** Claim read, locked target validation, CAS update and audit share one tenant transaction. */
 export async function assignClaimOwnerInTransaction(
   tx: TenantTransaction,
   params: AssignClaimOwnerParams

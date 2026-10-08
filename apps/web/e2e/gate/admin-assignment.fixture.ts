@@ -11,6 +11,7 @@ import {
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { formatStaffOptionLabel } from '../../src/features/admin/claims/components/ops/staff-option-label';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
 export async function withAdminAssignmentFixture<T>(
@@ -21,6 +22,7 @@ export async function withAdminAssignmentFixture<T>(
       title: string;
       staffId: string;
       staffLabel: string;
+      staffOptionLabel: string;
       readState: () => Promise<{
         staffId: string | null;
         assignedById: string | null;
@@ -61,6 +63,7 @@ export async function withAdminAssignmentFixture<T>(
       title,
       staffId: staff.id,
       staffLabel: staff.name || staff.email,
+      staffOptionLabel: formatStaffOptionLabel(staff),
       readState: async () => {
         const row = await db.query.claims.findFirst({ where: scope });
         if (!row) throw new Error('Owned assignment fixture missing');

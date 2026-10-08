@@ -1,26 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mocks = vi.hoisted(() => ({
-  directDbAccess: [] as string[],
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock('@interdomestik/domain-claims/claims/transition-guard', () => ({
-  isClaimStatusTransitionInGraph: () => true,
-}));
-vi.mock('./ops-status-action', () => ({ updateStatusAction: vi.fn() }));
-vi.mock('@interdomestik/database', async () => {
-  const fixture = await import('./ops-assignment.test-fixture');
-  return fixture.createDatabaseModuleMock(mocks.withTenantContext, mocks.directDbAccess);
-});
-
-import { assignOwner, unassignOwner } from './ops-actions';
-import { ASSIGNMENT_TARGET_DENIED_ERROR } from './ops-assignment';
+import {
+  ASSIGNMENT_TARGET_DENIED_ERROR,
+  assignmentActionMocks as mocks,
+  assignOwner,
+  unassignOwner,
+} from './ops-assignment.test-bootstrap';
 import { createFakeTx, routeTenantContext, sessionFor, sqlOf } from './ops-assignment.test-fixture';
 
 function expectNoAssignmentSideEffects() {
@@ -91,7 +75,7 @@ describe('assignOwner tenant and target input', () => {
     mocks.getSession.mockResolvedValue(
       sessionFor('tenant_admin', { tenantId: 'tenant-home', accessTenantId: 'tenant-access' })
     );
-    const { tx, auditValues } = createFakeTx();
+    const { tx, auditValues, targetLock } = createFakeTx();
     routeTenantContext(mocks.withTenantContext, tx);
 
     await expect(assignOwner('claim-1', 'staff-1', 'en')).resolves.toMatchObject({
@@ -103,7 +87,7 @@ describe('assignOwner tenant and target input', () => {
       expect.any(Function)
     );
     const claimRead = sqlOf(tx.query.claims.findFirst.mock.calls[0][0].where);
-    const targetRead = sqlOf(tx.query.user.findFirst.mock.calls[0][0].where);
+    const targetRead = sqlOf(targetLock.mock.calls[0][0].where);
     expect(claimRead.params).toContain('tenant-access');
     expect(claimRead.params).not.toContain('tenant-home');
     expect(targetRead.params).toEqual(
