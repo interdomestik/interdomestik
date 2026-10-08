@@ -127,7 +127,9 @@ Bounded #1883 admin read recovery remains technically delivered. The additional 
 
 ## Current bounded S7 work
 
-Admin-claims read consistency [#1891](history/2026-09-22-current-tracker-ledger.md#s7-admin-claims-read-consistency-delivery-1891) is technically delivered within its [bounded acceptance](current-program.md#admin-claims-read-consistency-acceptance). The program/tracker now select the [bounded admin-claim detail admission repair](current-program.md#admin-claim-detail-read-consistency-acceptance); its exact-host adapter preserves the legacy classifier and existing access boundaries; candidate proof remains pending and adds no whole-clause compliance credit.
+The selected [staff navigation-feedback continuity repair](current-program.md#staff-claims-navigation-feedback-continuity-acceptance) exercises IDA-NFR-006/008/010 through truthful current completion and keyboard/native activation ownership. Existing search/session/access and delivered detail behavior remain credited; candidate proof is pending and no whole-clause disposition is promoted.
+
+Admin-claims list consistency [#1891](history/2026-09-22-current-tracker-ledger.md#s7-admin-claims-read-consistency-delivery-1891) remains technically delivered. The bounded exact-host detail repair [#1893](history/2026-09-22-current-tracker-ledger.md#s7-admin-claim-detail-read-consistency-delivery-1893) is technically delivered with restricted/native/protected/exact-main staging and same-admin case proof. Its additive exact classifier preserves legacy consumers and existing access boundaries. The already-authorized staff/member acceptance remains open; no whole-clause disposition is promoted.
 
 Bounded acceptance exercises IDA-SEC-002/003, IDA-TEN-001/002/005/006/008, IDA-IAM-002/003, IDA-CAS-002 and IDA-NFR-006/007/008/010. Bounded delivered credit follows the restricted causal comparison and integrated proof; no whole requirement disposition is promoted.
 
