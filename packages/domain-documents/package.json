@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
-    "@supabase/supabase-js": "^2.110.9",
-    "drizzle-orm": "^0.45.2",
+    "@supabase/supabase-js": "^2.117.2",
+    "drizzle-orm": "^0.45.3",
     "nanoid": "^5.1.16"
   },
   "devDependencies": {
