@@ -11,19 +11,31 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { StaffAssignmentSelect, type StaffAssignmentOption } from './StaffAssignmentSelect';
 
 interface NextActionPrimaryProps {
-  primary: {
+  readonly primary: {
     type: string;
     label?: string;
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | null;
   } | null;
-  isPending: boolean;
-  onAction: (type: string) => void;
+  readonly isPending: boolean;
+  readonly canAssign: boolean;
+  readonly staffOptions: readonly StaffAssignmentOption[];
+  readonly onAssign: (staffId: string) => void;
+  readonly onAction: (type: string) => void;
 }
 
-export function NextActionPrimary({ primary, isPending, onAction }: NextActionPrimaryProps) {
+export function NextActionPrimary({
+  primary,
+  isPending,
+  canAssign,
+  staffOptions,
+  onAssign,
+  onAction,
+}: NextActionPrimaryProps) {
   const t = useTranslations('admin.claims_page.next_actions');
+  const tAssignment = useTranslations('admin.claims_page.assignment');
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -45,12 +57,17 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
     }
   };
 
+  const describePrimary = (): string => {
+    if (!primary) return t('no_action');
+    // Assignment targets an explicitly chosen staff member; the self-ownership copy does not apply.
+    if (primary.type === 'assign') return tAssignment('placeholder');
+    return t(`actions.${primary.type}.description`, { defaultMessage: '' });
+  };
+
   const currentLabel =
     primary?.label ||
     (primary ? t(`actions.${primary.type}.label`, { defaultMessage: primary.type }) : '');
-  const currentDesc = primary
-    ? t(`actions.${primary.type}.description`, { defaultMessage: '' })
-    : t('no_action');
+  const currentDesc = describePrimary();
 
   return (
     <div className="flex items-center justify-between gap-4">
@@ -69,7 +86,16 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
       </div>
 
       <div className="flex items-center gap-2">
-        {primary && (
+        {primary?.type === 'assign' ? (
+          canAssign ? (
+            <StaffAssignmentSelect
+              staffOptions={staffOptions}
+              isPending={isPending}
+              onSelect={onAssign}
+              className="shadow-sm"
+            />
+          ) : null
+        ) : primary ? (
           <Button
             size="sm"
             variant={primary.variant || 'default'}
@@ -80,7 +106,7 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
             {getIcon(primary.type)}
             {currentLabel}
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

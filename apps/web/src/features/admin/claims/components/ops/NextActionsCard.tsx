@@ -16,15 +16,17 @@ import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
 import { NextActionBadges } from './NextActionBadges';
 import { NextActionPrimary } from './NextActionPrimary';
-import { NextActionSecondary } from './NextActionSecondary';
+import { NextActionSecondary, type AssignmentIntent } from './NextActionSecondary';
+import type { StaffAssignmentOption } from './StaffAssignmentSelect';
 import { OpsStatusUpdateModal } from './OpsStatusUpdateModal';
 
 type NextActionsCardProps = Readonly<{
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
   locale: string;
-  currentUserId: string;
-  allStaff: { id: string; name: string | null; email: string }[];
+  currentUserId?: string;
+  allStaff: readonly StaffAssignmentOption[];
+  canAssign?: boolean;
   onAction?: (actionType: string) => void;
 }>;
 
@@ -32,8 +34,8 @@ export function NextActionsCard({
   claim,
   nextActions,
   locale,
-  currentUserId,
   allStaff,
+  canAssign = false,
   onAction,
 }: NextActionsCardProps) {
   const { primary, secondary } = nextActions;
@@ -47,15 +49,20 @@ export function NextActionsCard({
     return null;
   }
 
-  const handleAssign = (userId: string) => {
+  const handleAssign = (staffId: string, intent: AssignmentIntent) => {
+    if (isPending) return;
     startTransition(async () => {
-      onAction?.('reassign'); // Ops tracking
-      const result = await assignOwner(claim.id, userId, locale);
-      if (!result.success) {
-        toast.error(result.error || t('toast.failed'));
-      } else {
-        globalThis.location.reload();
-        toast.success(t('toast.completed'));
+      onAction?.(intent); // Ops tracking
+      try {
+        const result = await assignOwner(claim.id, staffId, locale);
+        if (!result.success) {
+          toast.error(result.error || t('toast.failed'));
+        } else {
+          globalThis.location.reload();
+          toast.success(t('toast.completed'));
+        }
+      } catch {
+        toast.error(t('toast.unexpected_error'));
       }
     });
   };
@@ -72,9 +79,6 @@ export function NextActionsCard({
       let result;
       try {
         switch (type) {
-          case 'assign':
-            result = await assignOwner(claim.id, currentUserId, locale);
-            break;
           case 'ack_sla':
             result = await markSlaAcknowledged(claim.id, locale);
             break;
@@ -144,11 +148,15 @@ export function NextActionsCard({
               <NextActionPrimary
                 primary={primary}
                 isPending={isPending}
+                canAssign={canAssign}
+                staffOptions={allStaff}
+                onAssign={staffId => handleAssign(staffId, 'assign')}
                 onAction={handleActionClick}
               />
               <NextActionSecondary
                 secondary={secondary}
                 allStaff={allStaff}
+                canAssign={canAssign}
                 allowedTransitions={nextActions.allowedTransitions}
                 isPending={isPending}
                 onAction={handleActionClick}

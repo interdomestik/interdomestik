@@ -1,18 +1,35 @@
 'use server';
 
-import { and, auditLog, claimMessages, claims, db, desc, eq } from '@interdomestik/database';
+import {
+  and,
+  auditLog,
+  claimMessages,
+  claims,
+  db,
+  desc,
+  eq,
+  withTenantContext,
+} from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { nanoid } from 'nanoid';
 import {
   assertCanMutateClaim,
   assertRowsAffected,
+  canAssignClaimOwner,
   getActionSession,
   getClaimForMutation,
   logAudit,
   OpsActionResponse,
   revalidateClaim,
 } from './action-helpers';
+import { ASSIGNMENT_TARGET_DENIED_ERROR, assignClaimOwnerInTransaction } from './ops-assignment';
 import { updateStatusAction } from './ops-status-action';
+
+const ASSIGNMENT_FAILED_ERROR = 'Assignment failed. Please try again.';
+const EXPECTED_ASSIGN_DENIALS: ReadonlySet<string> = new Set([
+  'Claim not found or access denied',
+  'Cannot perform assign on a terminal claim.',
+]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Assignment Actions
@@ -27,40 +44,39 @@ export async function assignOwner(
     const ctx = await getActionSession();
     if (!ctx) return { success: false, error: 'Unauthorized' };
 
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'assign');
+    const actorId = ctx.session.user.id;
+    const actorRole = ctx.session.user.role;
+    if (!canAssignClaimOwner(actorRole)) return { success: false, error: 'Unauthorized' };
 
-    const updated = await db
-      .update(claims)
-      .set({
-        staffId,
-        assignedAt: new Date(),
-        assignedById: ctx.session.user.id,
-        updatedAt: new Date(),
+    const targetStaffId = typeof staffId === 'string' ? staffId.trim() : '';
+    if (!targetStaffId || targetStaffId === actorId) {
+      return { success: false, error: ASSIGNMENT_TARGET_DENIED_ERROR };
+    }
+
+    const result = await withTenantContext({ tenantId: ctx.tenantId, role: actorRole }, tx =>
+      assignClaimOwnerInTransaction(tx, {
+        actorId,
+        actorRole,
+        claimId,
+        staffId: targetStaffId,
+        tenantId: ctx.tenantId,
       })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({
-        id: claims.id,
-        staffId: claims.staffId,
-        assignedAt: claims.assignedAt,
-        assignedById: claims.assignedById,
-      });
+    );
 
-    assertRowsAffected(updated);
+    if (result.success) {
+      // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
+      revalidateClaim(locale, claimId);
+    }
 
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'assign_owner', claimId, {
-      previousStaffId: claim.staffId,
-      newStaffId: staffId,
-      claimNumber: claim.claimNumber,
-    });
-
-    // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
-    revalidateClaim(locale, claimId);
-
-    return { success: true, data: updated[0] };
+    return result;
   } catch (error: unknown) {
-    console.error('Action Failed:', error);
-    return { success: false, error: (error as Error).message };
+    const message = error instanceof Error ? error.message : undefined;
+    if (message !== undefined && EXPECTED_ASSIGN_DENIALS.has(message)) {
+      return { success: false, error: message };
+    }
+    // Never log or return the raw error: Drizzle messages embed SQL and bound params.
+    console.error('Action Failed: assignOwner', error instanceof Error ? error.name : typeof error);
+    return { success: false, error: ASSIGNMENT_FAILED_ERROR };
   }
 }
 
@@ -68,6 +84,9 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
   try {
     const ctx = await getActionSession();
     if (!ctx) return { success: false, error: 'Unauthorized' };
+    if (!canAssignClaimOwner(ctx.session.user.role)) {
+      return { success: false, error: 'Unauthorized' };
+    }
 
     const claim = await getClaimForMutation(claimId, ctx.tenantId);
     assertCanMutateClaim(claim, ctx.session.user.role, 'assign');
