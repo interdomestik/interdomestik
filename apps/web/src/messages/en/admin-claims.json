@@ -128,6 +128,8 @@
       },
       "pagination_info": "Page {page} of {total} ({count} claims)",
       "access_denied": "Access denied. You do not have permission to view claims.",
+      "read_failed": "We couldn't load the claims. Your filters are unchanged. Try again.",
+      "read_result": "Claims found: {count}.",
       "ops_center": {
         "title": "Operational Center",
         "data_age": "Updated {seconds}s ago",

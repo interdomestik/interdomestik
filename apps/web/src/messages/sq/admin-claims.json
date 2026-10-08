@@ -132,6 +132,8 @@
       },
       "pagination_info": "Faqja {page} nga {total} ({count} kërkesa)",
       "access_denied": "Qasja e refuzuar. Nuk keni leje për të parë kërkesat.",
+      "read_failed": "Kërkesat nuk u ngarkuan. Filtrat tuaj nuk kanë ndryshuar. Provoni përsëri.",
+      "read_result": "Kërkesa të gjetura: {count}.",
       "ops_center": {
         "title": "Qendra Operacionale e Kërkesave",
         "data_age": "Përditësuar {seconds}s më parë",

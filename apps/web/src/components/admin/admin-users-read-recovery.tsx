@@ -8,9 +8,18 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from 'reac
 export function AdminUsersReadRecovery({
   message,
   children,
+  headingId = 'admin-users-heading',
+  regionTestId = 'admin-users-read-region',
+  recoveryTestId = 'admin-users-read-recovery',
+  narrowPresentation = false,
 }: Readonly<{
   message: string | null;
   children: ReactNode;
+  headingId?: string;
+  regionTestId?: string;
+  recoveryTestId?: string;
+  /** Claims-only: tighter padding and a wrapping retry label below sm. */
+  narrowPresentation?: boolean;
 }>) {
   const router = useRouter();
   const t = useTranslations('common');
@@ -61,14 +70,16 @@ export function AdminUsersReadRecovery({
     <section
       ref={region}
       tabIndex={-1}
-      aria-labelledby="admin-users-heading"
-      data-testid="admin-users-read-region"
+      aria-labelledby={headingId}
+      data-testid={regionTestId}
       className="min-w-0 space-y-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
     >
       {message && (
         <div
-          data-testid="admin-users-read-recovery"
-          className="flex min-w-0 flex-col items-start gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+          data-testid={recoveryTestId}
+          className={`flex min-w-0 flex-col items-start gap-3 rounded-lg border sm:flex-row sm:items-center sm:justify-between ${
+            narrowPresentation ? 'p-2 sm:p-4' : 'p-4'
+          }`}
         >
           <p role="alert" className="min-w-0 break-words">
             {message}
@@ -78,7 +89,11 @@ export function AdminUsersReadRecovery({
             type="button"
             aria-disabled={isPending}
             aria-busy={isPending}
-            className="shrink-0"
+            className={
+              narrowPresentation
+                ? 'shrink-0 max-sm:h-auto max-sm:min-h-10 max-sm:max-w-full max-sm:whitespace-normal max-sm:[overflow-wrap:anywhere] max-sm:py-2 max-sm:text-center'
+                : 'shrink-0'
+            }
             onClick={event => {
               if (isPending) return;
               setHasRetried(true);

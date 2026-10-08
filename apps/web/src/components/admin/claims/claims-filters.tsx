@@ -15,6 +15,15 @@ const SEARCH_PARAM = 'search';
 // committing a literal term.
 const ALL_VALUE = 'all';
 
+// Below sm the shared bar's nowrap tab links and fixed paddings can exceed a narrow, enlarged-text
+// column; let labels wrap naturally (nothing is clipped or hidden). Tab links are the only anchors.
+const NARROW_BAR_CLASSES = [
+  'rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm',
+  'max-sm:p-2',
+  'max-sm:[&_a]:h-auto max-sm:[&_a]:min-h-9 max-sm:[&_a]:max-w-full max-sm:[&_a]:whitespace-normal',
+  'max-sm:[&_a]:[overflow-wrap:anywhere] max-sm:[&_a]:py-1.5 max-sm:[&_a]:text-center',
+].join(' ');
+
 /** Admin claims param policy: drop pagination, honour the 'all' sentinel and
  * always land on the list view. Returns a query string with no leading '?'. */
 function buildClaimsListQuery(currentParams: URLSearchParams, updates: SearchParamUpdates): string {
@@ -179,7 +188,7 @@ export function AdminClaimsFilters() {
                     data-state={isActive ? 'on' : 'off'}
                     data-testid={`assigned-filter-${option.value}`}
                     className={[
-                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all max-sm:max-w-full max-sm:[overflow-wrap:anywhere]',
                       isActive
                         ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
                         : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
@@ -209,7 +218,7 @@ export function AdminClaimsFilters() {
                     data-state={isActive ? 'on' : 'off'}
                     data-testid={`diaspora-filter-${option.value}`}
                     className={[
-                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                      'px-3 py-1.5 rounded-md text-sm font-medium transition-all max-sm:max-w-full max-sm:[overflow-wrap:anywhere]',
                       isActive
                         ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
                         : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
@@ -222,7 +231,7 @@ export function AdminClaimsFilters() {
             </div>
           </div>
         }
-        className="rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm"
+        className={NARROW_BAR_CLASSES}
       />
     </div>
   );

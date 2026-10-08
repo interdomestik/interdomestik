@@ -10,12 +10,7 @@ export type { WaitingOn } from '@/features/claims/policy';
  * Maps to business lifecycle semantics, not raw statuses.
  */
 export type LifecycleStage =
-  | 'intake'
-  | 'verification'
-  | 'processing'
-  | 'negotiation'
-  | 'legal'
-  | 'completed';
+  'intake' | 'verification' | 'processing' | 'negotiation' | 'legal' | 'completed';
 
 export type OwnerRole = 'staff' | 'agent' | 'member' | 'system';
 export type ClaimOriginType = 'portal' | 'agent' | 'admin' | 'api';
@@ -69,17 +64,24 @@ export interface LifecycleStats {
 
 /**
  * Admin Claims V2 response DTO.
+ * `error` means the read failed and must not be rendered as an empty list or zero counts.
  */
-export interface AdminClaimsV2Response {
-  rows: ClaimOperationalRow[];
-  stats: LifecycleStats;
-  pagination: {
-    page: number;
-    perPage: number;
-    totalCount: number;
-    totalPages: number;
-  };
-}
+export type AdminClaimsV2Response =
+  | {
+      kind: 'ok';
+      rows: ClaimOperationalRow[];
+      stats: LifecycleStats;
+      pagination: {
+        page: number;
+        perPage: number;
+        totalCount: number;
+        totalPages: number;
+      };
+    }
+  | {
+      kind: 'error';
+      error: 'read_failed';
+    };
 
 /**
  * Filter parameters for V2 admin claims list.
