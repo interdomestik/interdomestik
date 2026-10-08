@@ -49,6 +49,7 @@ describe('admin user profile core', () => {
     const result = await getAdminUserProfileCore({
       userId: 'any-user',
       tenantId: null,
+      actor: { role: 'tenant_admin', branchId: null },
       recentClaimsLimit: 5,
     });
 
