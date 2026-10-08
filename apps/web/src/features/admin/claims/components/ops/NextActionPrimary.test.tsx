@@ -23,12 +23,12 @@ vi.mock('./StaffAssignmentSelect', () => ({
   StaffAssignmentSelect: () => <div data-testid="staff-assignment-select" />,
 }));
 
-function renderPrimary(primary: { type: string } | null) {
+function renderPrimary(primary: { type: string } | null, canAssign = true) {
   render(
     <NextActionPrimary
       primary={primary}
       isPending={false}
-      canAssign={true}
+      canAssign={canAssign}
       staffOptions={[]}
       onAssign={vi.fn()}
       onAction={vi.fn()}
@@ -42,6 +42,15 @@ describe('NextActionPrimary description', () => {
     expect(screen.getByText('Select staff')).toBeInTheDocument();
     expect(screen.queryByText('Take ownership of this claim')).not.toBeInTheDocument();
     expect(screen.getByTestId('staff-assignment-select')).toBeInTheDocument();
+  });
+
+  it('shows neutral copy and no assignment control when assignment is unavailable', () => {
+    renderPrimary({ type: 'assign' }, false);
+    expect(screen.getByText('No action required')).toBeInTheDocument();
+    expect(screen.queryByText('Select staff')).not.toBeInTheDocument();
+    expect(screen.queryByText('Take ownership of this claim')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('staff-assignment-select')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('keeps other primary descriptions unchanged', () => {

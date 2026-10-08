@@ -60,7 +60,7 @@ export function NextActionPrimary({
   const describePrimary = (): string => {
     if (!primary) return t('no_action');
     // Assignment targets an explicitly chosen staff member; the self-ownership copy does not apply.
-    if (primary.type === 'assign') return tAssignment('placeholder');
+    if (primary.type === 'assign') return canAssign ? tAssignment('placeholder') : t('no_action');
     return t(`actions.${primary.type}.description`, { defaultMessage: '' });
   };
 
