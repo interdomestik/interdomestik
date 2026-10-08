@@ -146,7 +146,11 @@ async function expectMemberProfile(page: Page, seed: Seed, url: string): Promise
   // UserProfileHeader: the member's name is the page heading, the email sits beneath it.
   const heading = page.getByRole('heading', { level: 1, name: seed.memberName, exact: true });
   await expect(heading).toHaveCount(1);
-  await expect(page.getByText(seed.memberEmail, { exact: true })).toHaveCount(1);
+  // The heading's identity group also owns this profile's contact row.
+  const identityGroup = heading.locator('xpath=../..');
+  const email = identityGroup.getByText(seed.memberEmail, { exact: true });
+  await expect(email).toHaveCount(1);
+  await expect(email).toBeVisible();
 }
 
 test.describe('Admin claim detail read consistency', () => {
