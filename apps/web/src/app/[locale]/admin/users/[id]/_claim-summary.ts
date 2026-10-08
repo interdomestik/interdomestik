@@ -42,11 +42,13 @@ export async function getAdminUserClaimSummary(args: {
     adminClaimsBranchCondition(args.scope)
   );
   const [claimCounts, recentClaims] = await Promise.all([
+    // db-access-guard: tenant-scoped -- reason: shared where limits tenant/member/branch; mounted core supplies its tenant transaction
     db
       .select({ status: claimLifecycleStatusSql(), total: count() })
       .from(claims)
       .where(where)
       .groupBy(claimLifecycleStatusSql()),
+    // db-access-guard: tenant-scoped -- reason: shared where limits tenant/member/branch; mounted core supplies its tenant transaction
     db
       .select({
         id: claims.id,
