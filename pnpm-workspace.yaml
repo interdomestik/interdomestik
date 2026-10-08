@@ -11,7 +11,7 @@ allowBuilds:
   supabase: true
 
 overrides:
-  next: 16.3.6
+  next: 16.3.8
   axios: ^1.13.5
   body-parser: 2.3.0
   fast-xml-parser: 5.7.0
@@ -64,4 +64,4 @@ overrides:
   '@opentelemetry/exporter-prometheus': 0.217.0
 
 patchedDependencies:
-  next@16.3.6: patches/next@16.3.6.patch
+  next@16.3.8: patches/next@16.3.8.patch
