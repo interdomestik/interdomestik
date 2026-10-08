@@ -127,9 +127,9 @@ Bounded #1883 admin read recovery remains technically delivered. The additional 
 
 ## Current bounded S7 work
 
-Current bounded work is [admin-claims read consistency](current-program.md#admin-claims-read-consistency-acceptance). Requirement credit remains pending causal reproduction and matching proof; the program/tracker govern status.
+Admin-claims read consistency [#1891](history/2026-09-22-current-tracker-ledger.md#s7-admin-claims-read-consistency-delivery-1891) is technically delivered within its [bounded acceptance](current-program.md#admin-claims-read-consistency-acceptance). The program/tracker now select the [bounded admin-claim detail admission repair](current-program.md#admin-claim-detail-read-consistency-acceptance); its candidate proof remains pending and adds no whole-clause compliance credit.
 
-Bounded acceptance exercises IDA-SEC-002/003, IDA-TEN-001/002/005/006/008, IDA-IAM-002/003, IDA-CAS-002 and IDA-NFR-006/007/008/010. Delivered credit is pending causal reproduction and matching proof; no whole requirement disposition is promoted.
+Bounded acceptance exercises IDA-SEC-002/003, IDA-TEN-001/002/005/006/008, IDA-IAM-002/003, IDA-CAS-002 and IDA-NFR-006/007/008/010. Bounded delivered credit follows the restricted causal comparison and integrated proof; no whole requirement disposition is promoted.
 
 #1890 is technically delivered; [historical scope/proof and remaining limitations](history/2026-09-22-current-tracker-ledger.md#s7-information-request-read-recovery-delivery-1890) remain credited.
 
@@ -185,6 +185,8 @@ exact main `b0dfc1858` passed [staging CD 36744876702](https://github.com/interd
 #1850 admin-list tenant/RLS and #1851 grantable-role protection are also delivered. #1845 fulfilment,
 #1842 queue and #1841 next action remain credited. None establishes conflict policy, legal deadlines,
 whole S7 or staff/member user acceptance.
+
+#1891 credits only the exercised tenant/branch-scoped claims read and localized recovery behavior. The complete policy chain and own claimant/staff/name/email search were verified with the same nonowner, nonbypass role; no policy or privileged fallback was added. Public Ops stats still return zeros on read failure under the preserved compatibility wrapper. Human staging cause/session/access posture, private/human acceptance, whole clauses/S7/SRS and numeric performance budgets remain open.
 
 ## Current bounded S6 work
 
