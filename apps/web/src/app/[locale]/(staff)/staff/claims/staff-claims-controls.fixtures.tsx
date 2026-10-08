@@ -41,12 +41,12 @@ export function Link({
   onClick,
   prefetch: _prefetch,
   ...props
-}: {
+}: Readonly<{
   children: ReactNode;
   href: string;
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
   prefetch?: boolean;
-}) {
+}>) {
   return (
     <a href={href} onClick={onClick} {...props}>
       {children}
@@ -135,10 +135,10 @@ type RenderControls = (props: ControlsProps) => ReactElement;
 function RoutedStaffClaims({
   initialHref,
   renderControls,
-}: {
+}: Readonly<{
   initialHref: string;
   renderControls: RenderControls;
-}) {
+}>) {
   const [route, setRoute] = useState<Route>(() => settledRoute(initialHref));
 
   useLayoutEffect(() => {
@@ -176,6 +176,7 @@ export function resetNavigationHarness() {
 export async function interact(run: () => void) {
   await act(async () => {
     run();
+    await Promise.resolve();
   });
 }
 
@@ -189,6 +190,7 @@ export async function completeNavigation(href: string) {
   outstandingNavigations.splice(index, 1);
   await act(async () => {
     navigation.resolve();
+    await Promise.resolve();
   });
 }
 
@@ -196,6 +198,7 @@ export async function completeNavigation(href: string) {
 export async function traverseHistory(href: string) {
   await act(async () => {
     startTransition(() => setCommittedRoute?.(settledRoute(href)));
+    await Promise.resolve();
   });
 }
 
