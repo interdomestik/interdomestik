@@ -80,7 +80,7 @@ export type AdminUserProfileResult = { kind: 'not_found' } | AdminUserProfileOk;
 type DbClient = typeof db | TenantTransaction;
 
 async function getMemberWithAgent(dbClient: DbClient, where: SQL) {
-  return dbClient.query.user.findFirst({
+  return await dbClient.query.user.findFirst({
     where,
     with: {
       agent: true,
