@@ -3,9 +3,7 @@
 import { Link, useRouter } from '@/i18n/routing';
 import { Button, Input } from '@interdomestik/ui';
 import type { FormEvent, MouseEvent } from 'react';
-import { useEffect, useState, useTransition } from 'react';
-
-const PENDING_FEEDBACK_TIMEOUT_MS = 10_000;
+import { useLayoutEffect, useRef, useState, useTransition } from 'react';
 
 type HiddenField = {
   name: string;
@@ -62,35 +60,40 @@ export function StaffClaimsControls({
   statusOptions,
 }: Readonly<Props>) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  // The router runs the navigation inside this transition, so isPending stays
+  // true until the destination tree commits (or a history traversal supersedes
+  // it). It is the only signal that releases the controls; no timer does.
+  const [isNavigationPending, startTransition] = useTransition();
   const [pendingKind, setPendingKind] = useState<PendingKind | null>(null);
+  // Synchronous owner claim: a duplicate activation in the same event turn runs
+  // before isPending re-renders, so it has to see the claim immediately.
+  const navigationOwnerRef = useRef(false);
 
-  useEffect(() => {
-    if (!pendingKind) {
-      return;
+  useLayoutEffect(() => {
+    // Released in the commit that settles the transition, before the browser
+    // can deliver the next activation.
+    if (!isNavigationPending) {
+      navigationOwnerRef.current = false;
     }
+  });
 
-    const timeout = setTimeout(() => setPendingKind(null), PENDING_FEEDBACK_TIMEOUT_MS);
-    return () => clearTimeout(timeout);
-  }, [pendingKind]);
+  const activePendingKind = isNavigationPending ? pendingKind : null;
 
   function navigateTo(href: string, kind: PendingKind) {
+    navigationOwnerRef.current = true;
     setPendingKind(kind);
     startTransition(() => {
       router.push(href);
     });
   }
 
-  function buildSearchHref(form: HTMLFormElement) {
-    const formData = new FormData(form);
+  function buildSearchHref(search: string) {
     const params = new URLSearchParams();
 
     for (const field of hiddenFields) {
       params.set(field.name, field.value);
     }
 
-    const rawSearch = formData.get('search');
-    const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
     if (search) {
       params.set('search', search);
     }
@@ -100,17 +103,25 @@ export function StaffClaimsControls({
   }
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    if (event.defaultPrevented || pendingKind) {
+    if (event.defaultPrevented || navigationOwnerRef.current) {
       event.preventDefault();
       return;
     }
 
     event.preventDefault();
-    navigateTo(buildSearchHref(event.currentTarget), 'search');
+    const rawSearch = new FormData(event.currentTarget).get('search');
+    const href = buildSearchHref(typeof rawSearch === 'string' ? rawSearch.trim() : '');
+    // The committed canonical query already shows this result; pushing it again
+    // would only produce busy feedback for a navigation that changes nothing.
+    if (href === buildSearchHref(currentSearch ?? '')) {
+      return;
+    }
+
+    navigateTo(href, 'search');
   }
 
   function startFilterPending(event: MouseEvent<HTMLAnchorElement>, option: FilterOption) {
-    if ((pendingKind || option.isActive) && isPrimaryNavigationClick(event)) {
+    if ((navigationOwnerRef.current || option.isActive) && isPrimaryNavigationClick(event)) {
       event.preventDefault();
       return;
     }
@@ -125,7 +136,7 @@ export function StaffClaimsControls({
 
   function renderFilterOptions(options: FilterOption[]) {
     return options.map(option => {
-      const isDisabled = Boolean(pendingKind || option.isActive);
+      const isDisabled = Boolean(activePendingKind || option.isActive);
 
       return (
         <Button
@@ -149,11 +160,11 @@ export function StaffClaimsControls({
     });
   }
 
-  const pendingLabel = pendingKind === 'search' ? pendingSearchLabel : pendingFilterLabel;
+  const pendingLabel = activePendingKind === 'search' ? pendingSearchLabel : pendingFilterLabel;
 
   return (
     <section
-      aria-busy={pendingKind ? 'true' : undefined}
+      aria-busy={activePendingKind ? 'true' : undefined}
       className="rounded-lg border bg-white p-4 shadow-sm"
       data-testid="staff-claims-filters"
     >
@@ -174,7 +185,7 @@ export function StaffClaimsControls({
         />
         <div className="flex items-center gap-2">
           <Button
-            disabled={Boolean(pendingKind)}
+            disabled={Boolean(activePendingKind)}
             type="submit"
             data-testid="staff-claims-search-submit"
           >
@@ -184,13 +195,13 @@ export function StaffClaimsControls({
             <Button asChild type="button" variant="ghost">
               <Link
                 href={clearSearchHref}
-                aria-disabled={pendingKind ? 'true' : undefined}
+                aria-disabled={activePendingKind ? 'true' : undefined}
                 onClick={event => {
                   if (event.defaultPrevented || !isPrimaryNavigationClick(event)) {
                     return;
                   }
 
-                  if (pendingKind) {
+                  if (navigationOwnerRef.current) {
                     event.preventDefault();
                     return;
                   }
@@ -199,7 +210,7 @@ export function StaffClaimsControls({
                   navigateTo(clearSearchHref, 'filter');
                 }}
                 prefetch={false}
-                tabIndex={pendingKind ? -1 : undefined}
+                tabIndex={activePendingKind ? -1 : undefined}
               >
                 {clearSearchLabel}
               </Link>
@@ -208,7 +219,7 @@ export function StaffClaimsControls({
         </div>
       </form>
 
-      {pendingKind ? (
+      {activePendingKind ? (
         <div
           className="mt-3 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-900"
           data-testid="staff-claims-pending"
