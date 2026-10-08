@@ -9,6 +9,7 @@ import { EvidencePanel } from '@/features/admin/claims/components/ops/EvidencePa
 import { NextActionsCard } from '@/features/admin/claims/components/ops/NextActionsCard';
 import { getOpsClaimDetail } from '@/features/admin/claims/server/getOpsClaimDetail';
 import { auth } from '@/lib/auth';
+import { isAdmin } from '@/lib/roles';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { setRequestLocale } from 'next-intl/server';
@@ -36,8 +37,16 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
   if (result.kind === 'not_found') return notFound();
 
   const data = result.data;
+  const canAssign = isAdmin(session.user.role);
   const staffResult = await getStaff();
+  if (canAssign && !staffResult.success) {
+    // A failed read is not "no eligible staff": surface it through the route error/retry boundary
+    // instead of rendering a silently disabled assignment control.
+    throw new Error('Failed to load assignable staff');
+  }
+  // Non-assigning viewers (branch managers) cannot read staff; they only lose header names.
   const staff = staffResult.success ? (staffResult.data ?? []) : [];
+  const assignableStaff = staff.filter(member => member.role === 'staff');
 
   // Compute Deterministic Next Actions
   const nextActions = getNextActions(data, session.user.id);
@@ -70,7 +79,8 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
             nextActions={nextActions}
             locale={locale}
             currentUserId={session.user.id}
-            allStaff={staff}
+            allStaff={assignableStaff}
+            canAssign={canAssign}
           />
 
           {/* 2. Messaging (Communication) */}

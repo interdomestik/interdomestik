@@ -11,19 +11,32 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
+import { StaffAssignmentSelect, type StaffAssignmentOption } from './StaffAssignmentSelect';
 
 interface NextActionPrimaryProps {
-  primary: {
+  readonly primary: {
     type: string;
     label?: string;
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | null;
   } | null;
-  isPending: boolean;
-  onAction: (type: string) => void;
+  readonly isPending: boolean;
+  readonly canAssign: boolean;
+  readonly staffOptions: readonly StaffAssignmentOption[];
+  readonly onAssign: (staffId: string) => void;
+  readonly onAction: (type: string) => void;
 }
 
-export function NextActionPrimary({ primary, isPending, onAction }: NextActionPrimaryProps) {
+export function NextActionPrimary({
+  primary,
+  isPending,
+  canAssign,
+  staffOptions,
+  onAssign,
+  onAction,
+}: NextActionPrimaryProps) {
   const t = useTranslations('admin.claims_page.next_actions');
+  const tAssignment = useTranslations('admin.claims_page.assignment');
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -45,12 +58,46 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
     }
   };
 
+  const describePrimary = (): string => {
+    if (!primary) return t('no_action');
+    // Assignment targets an explicitly chosen staff member; the self-ownership copy does not apply.
+    if (primary.type === 'assign') return canAssign ? tAssignment('placeholder') : t('no_action');
+    return t(`actions.${primary.type}.description`, { defaultMessage: '' });
+  };
+
   const currentLabel =
     primary?.label ||
     (primary ? t(`actions.${primary.type}.label`, { defaultMessage: primary.type }) : '');
-  const currentDesc = primary
-    ? t(`actions.${primary.type}.description`, { defaultMessage: '' })
-    : t('no_action');
+  const currentDesc = describePrimary();
+
+  // Assignment renders the staff selector only for assigners; non-assigners get no control and
+  // the neutral copy from describePrimary.
+  const renderControl = (): ReactNode => {
+    if (!primary) return null;
+    if (primary.type === 'assign') {
+      if (!canAssign) return null;
+      return (
+        <StaffAssignmentSelect
+          staffOptions={staffOptions}
+          isPending={isPending}
+          onSelect={onAssign}
+          className="shadow-sm"
+        />
+      );
+    }
+    return (
+      <Button
+        size="sm"
+        variant={primary.variant || 'default'}
+        onClick={() => onAction(primary.type)}
+        disabled={isPending}
+        className="gap-2 shadow-sm"
+      >
+        {getIcon(primary.type)}
+        {currentLabel}
+      </Button>
+    );
+  };
 
   return (
     <div className="flex items-center justify-between gap-4">
@@ -68,20 +115,7 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
         <p className="text-sm text-muted-foreground">{currentDesc}</p>
       </div>
 
-      <div className="flex items-center gap-2">
-        {primary && (
-          <Button
-            size="sm"
-            variant={primary.variant || 'default'}
-            onClick={() => onAction(primary.type)}
-            disabled={isPending}
-            className="gap-2 shadow-sm"
-          >
-            {getIcon(primary.type)}
-            {currentLabel}
-          </Button>
-        )}
-      </div>
+      <div className="flex items-center gap-2">{renderControl()}</div>
     </div>
   );
 }

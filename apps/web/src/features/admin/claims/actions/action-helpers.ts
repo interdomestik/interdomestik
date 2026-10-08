@@ -1,7 +1,8 @@
 // Action helpers — shared by ops-actions.ts server actions
 
 import { auth } from '@/lib/auth';
-import { and, auditLog, claims, db, eq } from '@interdomestik/database';
+import { isAdmin } from '@/lib/roles';
+import { and, auditLog, claims, db, eq, type TenantTransaction } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { isClaimStatusTransitionInGraph } from '@interdomestik/domain-claims/claims/transition-guard';
@@ -19,6 +20,11 @@ export type OpsActionResponse =
   { success: true; message?: string; data?: unknown } | { success: false; error: string };
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
+
+// Optional executors let one action run its reads/writes inside a tenant transaction.
+// Callers that omit them keep the existing direct `db` behavior.
+export type ClaimReadExecutor = Pick<TenantTransaction, 'query'>;
+export type AuditWriteExecutor = Pick<TenantTransaction, 'insert'>;
 
 export interface ActionContext {
   session: Awaited<ReturnType<typeof auth.api.getSession>> & { user: { id: string; role: string } };
@@ -41,8 +47,12 @@ export async function getActionSession() {
 // Claim Fetching + Guards
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getClaimForMutation(claimId: string, tenantId: string) {
-  const claim = await db.query.claims.findFirst({
+export async function getClaimForMutation(
+  claimId: string,
+  tenantId: string,
+  executor: ClaimReadExecutor = db
+) {
+  const claim = await executor.query.claims.findFirst({
     where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
   });
 
@@ -61,6 +71,12 @@ export function assertCanMutateClaim(
   if (isTerminal && intent !== 'status_change') {
     throw new Error(`Cannot perform ${intent} on a terminal claim.`);
   }
+}
+
+// Admin ops assignment is limited to the exercised session role; persisted grants and the
+// broader staff-domain claims.assign capability do not widen this admin action.
+export function canAssignClaimOwner(actorRole: string | null | undefined): boolean {
+  return isAdmin(actorRole);
 }
 
 export function assertTransitionAllowed(currentStatus: ClaimStatus, newStatus: ClaimStatus) {
@@ -84,10 +100,11 @@ export async function logAudit(
   actorId: string,
   action: string,
   entityId: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  executor: AuditWriteExecutor = db
 ) {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db.insert(auditLog).values({
+  await executor.insert(auditLog).values({
     id: nanoid(),
     tenantId,
     actorId,
