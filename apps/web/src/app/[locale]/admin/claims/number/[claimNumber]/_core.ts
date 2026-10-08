@@ -1,6 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { isValidClaimNumber } from '@interdomestik/database/claim-number';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { and } from 'drizzle-orm';
 
 import {
@@ -8,6 +7,7 @@ import {
   canViewAdminClaims,
   type ClaimsVisibilityContext,
 } from '@/features/admin/claims/server/claimVisibility';
+import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 
 /** Relational-query surface of the transaction supplied by withTenantContext. */
 export type ClaimNumberLookupTx = Pick<TenantTransaction, 'query'>;
@@ -35,8 +35,9 @@ function normalizeClaimNumber(claimNumber: string): string | null {
 
 /**
  * Core logic for resolving a claim number to an ID.
- * Validates visibility and format before any lookup, then checks tenant- and branch-scoped
- * existence only through the supplied tenant transaction.
+ * Validates visibility and format before any lookup, then checks access-tenant- and
+ * branch-scoped existence only through the supplied tenant transaction. An explicit row
+ * access tenant always wins; only a NULL access tenant falls back to the home tenant.
  */
 export async function getClaimNumberResolverCore(params: {
   claimNumber: string;
@@ -59,13 +60,13 @@ export async function getClaimNumberResolverCore(params: {
   // 3. Lookup Claim
   const branchCondition = adminClaimsBranchCondition(visibility);
   const claimId = await inTenantContext(async tx => {
-    // db-access-guard: tenant-scoped -- reason: explicit tenant and admin branch predicates inside withTenantContext
+    // db-access-guard: tenant-scoped -- reason: explicit access-tenant and admin branch predicates inside withTenantContext
     const claim = await tx.query.claims.findFirst({
       where: (c, { eq }) =>
-        withTenant(
-          visibility.tenantId,
-          c.tenantId,
-          and(eq(c.claimNumber, normalizedNumber), branchCondition)
+        and(
+          eq(c.claimNumber, normalizedNumber),
+          matchesAccessTenant(c, visibility.tenantId),
+          branchCondition
         ),
       columns: {
         id: true,

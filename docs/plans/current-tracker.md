@@ -106,7 +106,7 @@ member/staff/admin observations bound to the delivered SHA; technical proof and 
 
 ### Current acceptance
 
-Current selected acceptance is [admin number-lookup context continuity](current-program.md#admin-number-lookup-context-continuity-acceptance). Its local causal baseline is accepted; implementation and candidate proof are pending. Existing #1895 automated journey credit remains below and must not be replayed.
+Current selected acceptance is [admin number-lookup context continuity](current-program.md#admin-number-lookup-context-continuity-acceptance). Its local causal baseline is accepted; [#1896](https://github.com/interdomestik/interdomestik/pull/1896) is under current-head review. The verified claim-row access/home divergence correction and test-fixture quality correction require renewed candidate proof before delivery. Existing #1895 automated journey credit remains below and must not be replayed.
 
 Current technical acceptance for [admin unassigned staff-target continuity](current-program.md#admin-unassigned-staff-target-continuity-acceptance) passed. [#1895 history](history/2026-09-22-current-tracker-ledger.md#s7-admin-unassigned-staff-target-continuity-delivery-1895) records the actual approved assignment and one TEST-S7 journey, including the preserved failed initial observation and successful read-only continuation. External inbox receipt, broader private acceptance, human sign-off, field budgets and visual choice remain separate open gates.
 

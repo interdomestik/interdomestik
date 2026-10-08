@@ -1,13 +1,12 @@
 import { claims } from '@interdomestik/database/schema';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { and, eq, type SQL } from 'drizzle-orm';
+import { eq, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsVisibilityContext } from '@/features/admin/claims/server/claimVisibility';
 import { getClaimNumberResolverCore, type ClaimNumberTenantRunner } from './_core';
 
-type WhereBuilder = (c: typeof claims, ops: { eq: typeof eq }) => SQL;
+type WhereBuilder = (c: typeof claims, ops: { eq: typeof eq }) => SQL | undefined;
 
 const dialect = new PgDialect();
 const NUMBER = 'CLM-KS-2024-000001';
@@ -18,6 +17,25 @@ const ADMIN: ClaimsVisibilityContext = {
   branchId: null,
 };
 const MANAGER: ClaimsVisibilityContext = { ...ADMIN, role: 'branch_manager', branchId: 'b-own' };
+
+/** Renders a single column exactly as the dialect qualifies it, so table naming is not assumed. */
+function col(column: SQLWrapper): string {
+  return dialect.sqlToQuery(sql`${column}`).sql;
+}
+
+function normalize(text: string): string {
+  return text.replaceAll(/\s+/g, ' ').replaceAll('( ', '(').replaceAll(' )', ')').trim();
+}
+
+const ACCESS = col(claims.accessTenantId);
+const HOME = col(claims.tenantId);
+// Index-friendly access equality, with the home tenant consulted only when access is NULL.
+const ACCESS_PREDICATE = `(${ACCESS} = $2 OR (${ACCESS} IS NULL AND ${HOME} = $3))`;
+
+function expectedSql(withBranch = false): string {
+  const branch = withBranch ? ` and ${col(claims.branchId)} = $4` : '';
+  return `(${col(claims.claimNumber)} = $1 and ${ACCESS_PREDICATE}${branch})`;
+}
 
 describe('getClaimNumberResolverCore', () => {
   const tx = { query: { claims: { findFirst: vi.fn() } } };
@@ -33,13 +51,10 @@ describe('getClaimNumberResolverCore', () => {
 
   function renderedWhere() {
     const [{ where }] = tx.query.claims.findFirst.mock.calls[0] as [{ where: WhereBuilder }];
-    return dialect.sqlToQuery(where(claims, { eq }));
-  }
-
-  function expectedWhere(branch?: SQL) {
-    return dialect.sqlToQuery(
-      withTenant('t1', claims.tenantId, and(eq(claims.claimNumber, NUMBER), branch))
-    );
+    const condition = where(claims, { eq });
+    expect(condition).toBeDefined();
+    const query = dialect.sqlToQuery(condition as SQL);
+    return { sql: normalize(query.sql), params: query.params };
   }
 
   it('resolves valid claim number', async () => {
@@ -48,33 +63,58 @@ describe('getClaimNumberResolverCore', () => {
     expect(result.claimId).toBe('c123');
   });
 
+  it('projects only the claim id', async () => {
+    tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
+    await resolve(NUMBER);
+    const [{ columns }] = tx.query.claims.findFirst.mock.calls[0] as [{ columns: object }];
+    expect(columns).toEqual({ id: true });
+  });
+
   it.each(['admin', 'tenant_admin', 'super_admin'])(
-    'keeps %s tenant-wide with no branch predicate',
+    'keeps %s access-tenant-wide with no branch predicate',
     async role => {
       tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
       await resolve(NUMBER, { ...ADMIN, role });
       expect(inTenantContext).toHaveBeenCalledTimes(1);
-      expect(renderedWhere()).toEqual(expectedWhere());
+      expect(renderedWhere()).toEqual({ sql: expectedSql(), params: [NUMBER, 't1', 't1'] });
     }
   );
+
+  it('binds the access predicate to the visibility tenant on both branches of the OR', async () => {
+    tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
+    await resolve(NUMBER, { ...ADMIN, tenantId: 'tenant_ks' });
+    expect(renderedWhere().params).toEqual([NUMBER, 'tenant_ks', 'tenant_ks']);
+  });
+
+  it('consults the home tenant only when the row access tenant is NULL', async () => {
+    tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
+    await resolve(NUMBER);
+    const { sql: where } = renderedWhere();
+    // An explicit access tenant is compared directly and never widened by a home match.
+    expect(where).toContain(`${ACCESS} = $2 OR (${ACCESS} IS NULL AND ${HOME} = $3)`);
+    expect(where.split(HOME)).toHaveLength(2);
+    expect(where.replace(ACCESS_PREDICATE, '')).not.toContain(HOME);
+    expect(where.toLowerCase()).not.toContain('coalesce');
+  });
 
   it('normalizes an encoded lowercase number before the lookup', async () => {
     tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
     expect((await resolve('%20clm-ks-2024-000001')).claimId).toBe('c123');
-    expect(renderedWhere()).toEqual(expectedWhere());
+    expect(renderedWhere()).toEqual({ sql: expectedSql(), params: [NUMBER, 't1', 't1'] });
   });
 
-  it('binds a branch manager lookup to the own branch', async () => {
+  it('binds a branch manager lookup to the own branch alongside the access predicate', async () => {
     tx.query.claims.findFirst.mockResolvedValue({ id: 'c123' });
     expect((await resolve(NUMBER, MANAGER)).claimId).toBe('c123');
-    expect(renderedWhere()).toEqual(expectedWhere(eq(claims.branchId, 'b-own')));
-    expect(renderedWhere()).not.toEqual(expectedWhere(eq(claims.branchId, 'b-other')));
+    const rendered = renderedWhere();
+    expect(rendered).toEqual({ sql: expectedSql(true), params: [NUMBER, 't1', 't1', 'b-own'] });
+    expect(rendered.params).not.toContain('b-other');
   });
 
   it('denies an other-branch claim the branch predicate filters out', async () => {
     tx.query.claims.findFirst.mockResolvedValue(undefined);
     expect((await resolve(NUMBER, MANAGER)).claimId).toBeNull();
-    expect(renderedWhere().params).toEqual(['t1', NUMBER, 'b-own']);
+    expect(renderedWhere().params).toEqual([NUMBER, 't1', 't1', 'b-own']);
   });
 
   it('denies a branch manager without a branch before any lookup', async () => {
