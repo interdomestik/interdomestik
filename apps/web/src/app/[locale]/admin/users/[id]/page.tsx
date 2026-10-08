@@ -30,6 +30,7 @@ export default async function MemberProfilePage({
       searchParams={sp}
       tenantId={tenantId}
       actorRole={session.user?.role ?? null}
+      actorBranchId={session.user?.branchId ?? null}
       tenantClassificationOptions={tenantClassificationOptions}
     />
   );

@@ -4,9 +4,17 @@ import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claim
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq } from 'drizzle-orm';
 
+import {
+  adminClaimsBranchCondition,
+  type ClaimsVisibilityContext,
+} from '@/features/admin/claims/server/claimVisibility';
+
 import type { AdminUserClaimCounts } from './_core';
 
 type DbClient = Pick<typeof defaultDb, 'select'>;
+
+/** Granted actor scope; a branch manager previews only own-branch claims of the member. */
+export type AdminUserClaimSummaryScope = Pick<ClaimsVisibilityContext, 'role' | 'branchId'>;
 
 function computeClaimCounts(rows: Array<{ status: string | null; total: unknown }>) {
   const counts: AdminUserClaimCounts = { total: 0, open: 0, resolved: 0, rejected: 0 };
@@ -23,15 +31,21 @@ function computeClaimCounts(rows: Array<{ status: string | null; total: unknown 
 export async function getAdminUserClaimSummary(args: {
   db?: DbClient;
   recentClaimsLimit: number;
+  scope: AdminUserClaimSummaryScope;
   tenantId: string;
   userId: string;
 }) {
   const db = args.db ?? defaultDb;
+  const where = and(
+    eq(claims.userId, args.userId),
+    eq(claims.tenantId, args.tenantId),
+    adminClaimsBranchCondition(args.scope)
+  );
   const [claimCounts, recentClaims] = await Promise.all([
     db
       .select({ status: claimLifecycleStatusSql(), total: count() })
       .from(claims)
-      .where(and(eq(claims.userId, args.userId), eq(claims.tenantId, args.tenantId)))
+      .where(where)
       .groupBy(claimLifecycleStatusSql()),
     db
       .select({
@@ -44,7 +58,7 @@ export async function getAdminUserClaimSummary(args: {
         createdAt: claims.createdAt,
       })
       .from(claims)
-      .where(and(eq(claims.userId, args.userId), eq(claims.tenantId, args.tenantId)))
+      .where(where)
       .orderBy(desc(claims.createdAt))
       .limit(args.recentClaimsLimit),
   ]);

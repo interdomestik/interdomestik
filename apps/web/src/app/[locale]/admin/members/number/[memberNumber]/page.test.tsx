@@ -42,10 +42,33 @@ describe('MemberNumberResolverPage', () => {
     }
   );
 
-  it('carries the actual session role for an allowed branch manager', async () => {
+  it('carries the actual session role and branch for an allowed branch manager', async () => {
     mocks.getSession.mockResolvedValue(session({ role: 'branch_manager', branchId: 'b1' }));
     expect(await navigate()).toBe('redirect:/sq/admin/users/user-1');
     expectTenantContext('tenant-access', 'branch_manager');
+    expect(lookupParams()).toEqual(['MEM-2026-000001', 'tenant-access', 'b1']);
+  });
+
+  it('returns notFound when the branch-scoped lookup excludes the member', async () => {
+    mocks.getSession.mockResolvedValue(session({ role: 'branch_manager', branchId: 'b1' }));
+    mocks.txFindFirst.mockResolvedValue(undefined);
+    expect(await navigate('MEM-2026-000001', 'mk')).toBe('notFound');
+    expect(lookupParams()).toEqual(['MEM-2026-000001', 'tenant-access', 'b1']);
+  });
+
+  it.each([null, ''])(
+    'returns notFound without a lookup for a branch manager with branch %j',
+    async branchId => {
+      mocks.getSession.mockResolvedValue(session({ role: 'branch_manager', branchId }));
+      expect(await navigate()).toBe('notFound');
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps admin lookups tenant-wide when the session carries a branch', async () => {
+    mocks.getSession.mockResolvedValue(session({ role: 'tenant_admin', branchId: 'b1' }));
+    expect(await navigate()).toBe('redirect:/sq/admin/users/user-1');
+    expect(lookupParams()).toEqual(['MEM-2026-000001', 'tenant-access']);
   });
 
   it('falls back to the session tenant when no access tenant is present', async () => {
@@ -60,7 +83,7 @@ describe('MemberNumberResolverPage', () => {
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it.each(['agent', 'staff', 'member', null])(
+  it.each(['agent', 'staff', 'member', 'global_support', 'auditor', null])(
     'returns notFound without a lookup for role %s',
     async role => {
       mocks.getSession.mockResolvedValue(session({ role }));

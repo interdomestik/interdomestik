@@ -69,7 +69,9 @@ export function canViewAdminClaims(context: ClaimsVisibilityContext): boolean {
  * Returns the own-branch condition, a deny-all condition when the branch is missing,
  * or undefined for roles without branch scoping.
  */
-export function adminClaimsBranchCondition(context: ClaimsVisibilityContext): SQL | undefined {
+export function adminClaimsBranchCondition(
+  context: Pick<ClaimsVisibilityContext, 'role' | 'branchId'>
+): SQL | undefined {
   if (context.role !== 'branch_manager') {
     return undefined;
   }

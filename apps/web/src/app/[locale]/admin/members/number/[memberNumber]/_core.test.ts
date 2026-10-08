@@ -2,6 +2,9 @@ import { user } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
+
 import { getMemberNumberResolverCore, type MemberNumberTenantRunner } from './_core';
 
 const dialect = new PgDialect();
@@ -23,11 +26,17 @@ describe('getMemberNumberResolverCore', () => {
       memberNumber: 'MEM-2024-000001',
       tenantId: 't1',
       role: 'tenant_admin',
+      branchId: null,
       allowedRoles: ['tenant_admin'],
       parseMemberNumber: mockParse,
       inTenantContext,
       ...overrides,
     });
+  }
+
+  function lookupWhere(): SQL {
+    const [{ where }] = tx.query.user.findFirst.mock.calls[0] as [{ where: SQL }];
+    return where;
   }
 
   it('resolves valid member number for allowed role', async () => {
@@ -86,5 +95,84 @@ describe('getMemberNumberResolverCore', () => {
     inTenantContext.mockRejectedValueOnce(new Error('rls role not ready'));
     await expect(resolve()).rejects.toThrow('rls role not ready');
     expect(tx.query.user.findFirst).not.toHaveBeenCalled();
+  });
+
+  describe('branch-scoped member reads', () => {
+    const branchManager = {
+      role: 'branch_manager',
+      allowedRoles: ADMIN_ALLOWED_ROLES,
+    } as const;
+
+    it('adds the actor branch predicate with bound tenant and branch params', async () => {
+      tx.query.user.findFirst.mockResolvedValue({ id: 'member-a' });
+      expect(await resolve({ ...branchManager, branchId: 'b-A' })).toEqual({
+        ok: true,
+        userId: 'member-a',
+      });
+      const query = dialect.sqlToQuery(lookupWhere());
+      expect(query).toEqual(
+        dialect.sqlToQuery(
+          and(
+            eq(user.memberNumber, 'MEM-2024-000001'),
+            eq(user.tenantId, 't1'),
+            eq(user.branchId, 'b-A')
+          )!
+        )
+      );
+      expect(query.params).toEqual(['MEM-2024-000001', 't1', 'b-A']);
+    });
+
+    it('returns NOT_FOUND when the branch predicate excludes another-branch or unassigned members', async () => {
+      tx.query.user.findFirst.mockResolvedValue(undefined);
+      expect(await resolve({ ...branchManager, branchId: 'b-A' })).toEqual({
+        ok: false,
+        error: 'NOT_FOUND',
+      });
+      expect(dialect.sqlToQuery(lookupWhere()).params).toEqual(['MEM-2024-000001', 't1', 'b-A']);
+    });
+
+    it('binds the session access tenant, never another tenant', async () => {
+      tx.query.user.findFirst.mockResolvedValue(undefined);
+      await resolve({ ...branchManager, branchId: 'b-A', tenantId: 't-foreign' });
+      expect(dialect.sqlToQuery(lookupWhere()).params).toEqual([
+        'MEM-2024-000001',
+        't-foreign',
+        'b-A',
+      ]);
+    });
+
+    it.each([null, ''])(
+      'returns FORBIDDEN before parsing or a transaction for missing branch %j',
+      async branchId => {
+        expect(await resolve({ ...branchManager, branchId })).toEqual({
+          ok: false,
+          error: 'FORBIDDEN',
+        });
+        expect(mockParse).not.toHaveBeenCalled();
+        expect(inTenantContext).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(['admin', 'tenant_admin', 'super_admin'])(
+      'keeps %s tenant-wide even when the session carries a branch',
+      async role => {
+        tx.query.user.findFirst.mockResolvedValue({ id: 'member-b' });
+        expect(await resolve({ role, branchId: 'b-A', allowedRoles: ADMIN_ALLOWED_ROLES })).toEqual(
+          { ok: true, userId: 'member-b' }
+        );
+        expect(dialect.sqlToQuery(lookupWhere()).params).toEqual(['MEM-2024-000001', 't1']);
+      }
+    );
+
+    it.each(['staff', 'agent', 'member', 'global_support', 'auditor'])(
+      'returns FORBIDDEN without a transaction for %s even if a caller admits it',
+      async role => {
+        expect(await resolve({ role, branchId: 'b-A', allowedRoles: [role] })).toEqual({
+          ok: false,
+          error: 'FORBIDDEN',
+        });
+        expect(inTenantContext).not.toHaveBeenCalled();
+      }
+    );
   });
 });

@@ -10,7 +10,13 @@ import {
   type MembershipLifecycleBucket,
   type MembershipLifecycleInput,
 } from '@interdomestik/domain-membership-billing';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, type SQL } from 'drizzle-orm';
+
+import {
+  memberReadWhere,
+  resolveMemberReadScope,
+  type MemberReadActor,
+} from '@/features/admin/members/server/member-read-scope';
 
 import { getAdminUserClaimSummary } from './_claim-summary';
 
@@ -73,9 +79,9 @@ export type AdminUserProfileResult = { kind: 'not_found' } | AdminUserProfileOk;
 
 type DbClient = typeof db | TenantTransaction;
 
-async function getMemberWithAgent(dbClient: DbClient, userId: string, tenantId: string) {
+async function getMemberWithAgent(dbClient: DbClient, where: SQL) {
   return dbClient.query.user.findFirst({
-    where: and(eq(userTable.id, userId), eq(userTable.tenantId, tenantId)),
+    where,
     with: {
       agent: true,
     },
@@ -85,30 +91,41 @@ async function getMemberWithAgent(dbClient: DbClient, userId: string, tenantId: 
 export async function getAdminUserProfileCore(args: {
   userId: string;
   tenantId: string | null;
+  actor: MemberReadActor;
   recentClaimsLimit: number;
 }): Promise<AdminUserProfileResult> {
   if (!args.tenantId) return { kind: 'not_found' };
 
-  return withTenantContext({ tenantId: args.tenantId, role: 'admin' }, async tx => {
-    const member = await getMemberWithAgent(tx, args.userId, args.tenantId!);
+  // Denied roles and branch managers without a branch never open a transaction.
+  const scope = resolveMemberReadScope({ tenantId: args.tenantId, actor: args.actor });
+  if (!scope.ok) return { kind: 'not_found' };
+  const { tenantId } = scope;
+
+  return withTenantContext({ tenantId, role: scope.role }, async tx => {
+    const member = await getMemberWithAgent(
+      tx,
+      memberReadWhere(scope, eq(userTable.id, args.userId))
+    );
 
     if (!member) return { kind: 'not_found' };
 
     const [subscription, preferences, claimSummary] = await Promise.all([
       tx.query.subscriptions.findFirst({
-        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, args.tenantId!)),
+        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
         orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
       }),
       tx.query.userNotificationPreferences.findFirst({
         where: and(
           eq(userNotificationPreferences.userId, member.id),
-          eq(userNotificationPreferences.tenantId, args.tenantId!)
+          eq(userNotificationPreferences.tenantId, tenantId)
         ),
       }),
       getAdminUserClaimSummary({
         db: tx,
         recentClaimsLimit: args.recentClaimsLimit,
-        tenantId: args.tenantId!,
+        // The granted scope, not the raw actor: full-tenant roles carry no branch here.
+        scope: { role: scope.role, branchId: scope.branchId },
+        tenantId,
         userId: member.id,
       }),
     ]);

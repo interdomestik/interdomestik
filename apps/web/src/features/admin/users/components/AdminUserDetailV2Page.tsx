@@ -34,6 +34,7 @@ type AdminUserDetailV2PageProps = Readonly<{
   searchParams: Record<string, string | string[] | undefined>;
   tenantId: string | null;
   actorRole: string | null;
+  actorBranchId: string | null;
   tenantClassificationOptions: AdminTenantOption[];
 }>;
 
@@ -84,6 +85,7 @@ export async function AdminUserDetailV2Page({
   searchParams,
   tenantId,
   actorRole,
+  actorBranchId,
   tenantClassificationOptions,
 }: AdminUserDetailV2PageProps) {
   setRequestLocale(locale);
@@ -93,6 +95,7 @@ export async function AdminUserDetailV2Page({
   const result = await getAdminUserProfileCore({
     userId: id,
     tenantId,
+    actor: { role: actorRole, branchId: actorBranchId },
     recentClaimsLimit: RECENT_CLAIMS_LIMIT,
   });
   if (result.kind === 'not_found') {

@@ -25,11 +25,13 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
   // Effective access tenant; a session without scope throws here, before any lookup.
   const tenantId = ensureTenantId(session);
   const role = session.user.role ?? null;
+  const branchId = session.user.branchId ?? null;
 
   const result = await getMemberNumberResolverCore({
     memberNumber,
     tenantId,
     role,
+    branchId,
     allowedRoles: ADMIN_ALLOWED_ROLES,
     parseMemberNumber,
     inTenantContext: lookup => runNumberResolverInTenantContext({ tenantId, role }, lookup),
