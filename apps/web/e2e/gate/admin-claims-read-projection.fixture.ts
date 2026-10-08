@@ -91,7 +91,7 @@ function readSuccess(props: Json) {
   const [filter, output, content] = children as unknown[];
   if (!isElement(filter)) invalid('filter child missing');
   const filterProps = filter[3];
-  const keys = Object.keys(filterProps).sort();
+  const keys = Object.keys(filterProps).sort((a, b) => a.localeCompare(b));
   // The production build adds these observed source-only Sentry attributes; preserve them.
   const instrumented =
     keys.join(',') === 'data-sentry-element,data-sentry-source-file' &&

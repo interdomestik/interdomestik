@@ -46,7 +46,7 @@ const CATALOGS = {
 } satisfies Record<string, CatalogSource>;
 
 function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 // Placeholder-aware pattern of a catalog message: {name} becomes a captured integer.
@@ -54,7 +54,7 @@ function templatePattern(template: string, anchored: boolean): RegExp {
   const source = template
     .split(/\{\w+\}/)
     .map(escape)
-    .join('(\\d+)');
+    .join(String.raw`(\d+)`);
   return new RegExp(anchored ? `^${source}$` : source);
 }
 
@@ -245,11 +245,14 @@ export async function expectNarrowFit(page: Page, parts: Parts, testInfo: TestIn
       ['filters', parts.filters],
     ];
     const table: ({ name: string } & ReturnType<typeof measureFit>)[] = [];
-    for (const [name, target] of targets) {
+    // Strictly serial: each target is counted, scrolled and measured only after the previous one
+    // finished, because concurrent scrolling would race the geometry being measured.
+    await targets.reduce<Promise<void>>(async (previous, [name, target]) => {
+      await previous;
       await expect(target).toHaveCount(1);
       await target.scrollIntoViewIfNeeded();
       table.push({ name, ...(await target.evaluate(measureFit)) });
-    }
+    }, Promise.resolve());
     await testInfo.attach('admin-claims-read-recovery-fit', {
       body: JSON.stringify({ rootFontPx: scaled, rows: table }),
       contentType: 'application/json',
