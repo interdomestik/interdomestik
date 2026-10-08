@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => {
 });
 
 // Registered when this module is evaluated, so import it before the page under test.
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('next/navigation', () => ({
   redirect: (url: string) => {
     throw new mocks.NavigationSignal(`redirect:${url}`);
@@ -25,7 +25,9 @@ vi.mock('next/navigation', () => ({
     throw new mocks.NavigationSignal('notFound');
   },
 }));
-vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock('next-intl/server', () => ({
+  getTranslations: () => Promise.resolve((key: string) => key),
+}));
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
 vi.mock('@interdomestik/database', () => ({
   db: {

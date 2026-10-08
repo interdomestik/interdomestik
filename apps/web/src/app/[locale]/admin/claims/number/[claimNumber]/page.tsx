@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
 import { canViewAdminClaims, resolveClaimsVisibility } from '@/features/admin/claims/server';
-import { withTenantContext } from '@interdomestik/database';
+import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -46,7 +46,8 @@ export default async function ClaimNumberResolverPage({ params }: Props) {
   const { claimId } = await getClaimNumberResolverCore({
     claimNumber,
     visibility,
-    inTenantContext: lookup => withTenantContext({ tenantId, role: visibility.role }, lookup),
+    inTenantContext: lookup =>
+      runNumberResolverInTenantContext({ tenantId, role: visibility.role }, lookup),
   });
 
   if (!claimId) {

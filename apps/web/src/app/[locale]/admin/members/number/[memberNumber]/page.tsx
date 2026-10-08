@@ -1,7 +1,7 @@
+import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
 import { auth } from '@/lib/auth';
 import { ADMIN_ALLOWED_ROLES } from '@/lib/rbac-portals';
-import { withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -32,7 +32,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     role,
     allowedRoles: ADMIN_ALLOWED_ROLES,
     parseMemberNumber,
-    inTenantContext: lookup => withTenantContext({ tenantId, role }, lookup),
+    inTenantContext: lookup => runNumberResolverInTenantContext({ tenantId, role }, lookup),
   });
 
   if (!result.ok) {
