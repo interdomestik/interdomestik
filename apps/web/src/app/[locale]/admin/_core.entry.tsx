@@ -108,7 +108,11 @@ export default async function AdminLayout({
               </header>
               {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
               <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                <div className="container mx-auto">{children}</div>
+                {/* Only a visible claims list drops this gutter; Next retains inactive pages with
+                    display:none, which must not alter other admin pages after navigation. */}
+                <div className="container mx-auto max-sm:has-[>[data-admin-claims-list]:not([style*='display:_none'])]:px-0">
+                  {children}
+                </div>
               </div>
             </SidebarInset>
           </SidebarProvider>

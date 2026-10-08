@@ -1,5 +1,7 @@
 // v2.0.2-admin-claims-ops — RBAC + Tenant Visibility
+import { claims } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { eq, sql, type SQL } from 'drizzle-orm';
 
 /**
  * Resolved visibility context for claims queries.
@@ -55,5 +57,21 @@ export async function resolveClaimsVisibility(
  */
 export function canViewAdminClaims(context: ClaimsVisibilityContext): boolean {
   const allowedRoles = ['admin', 'tenant_admin', 'super_admin', 'branch_manager'];
-  return context.role !== null && allowedRoles.includes(context.role);
+  if (context.role === null || !allowedRoles.includes(context.role)) {
+    return false;
+  }
+  // A branch manager without a branch has no scope; fail closed instead of widening to the tenant.
+  return context.role !== 'branch_manager' || Boolean(context.branchId);
+}
+
+/**
+ * Branch-manager claim scope for admin claims queries.
+ * Returns the own-branch condition, a deny-all condition when the branch is missing,
+ * or undefined for roles without branch scoping.
+ */
+export function adminClaimsBranchCondition(context: ClaimsVisibilityContext): SQL | undefined {
+  if (context.role !== 'branch_manager') {
+    return undefined;
+  }
+  return context.branchId ? eq(claims.branchId, context.branchId) : sql`false`;
 }

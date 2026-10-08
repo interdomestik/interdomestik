@@ -12,6 +12,7 @@ interface AdminPageHeaderProps {
   tenantName?: string;
   actions?: ReactNode;
   className?: string;
+  headingId?: string;
 }
 
 // Map app locale codes to Intl.DateTimeFormat locale codes
@@ -28,6 +29,7 @@ export function AdminPageHeader({
   tenantName,
   actions,
   className,
+  headingId,
 }: AdminPageHeaderProps) {
   const locale = useLocale();
   const intlLocale = LOCALE_MAP[locale] ?? 'en-US';
@@ -48,7 +50,9 @@ export function AdminPageHeader({
     >
       <div className="space-y-0.5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+          <h1 id={headingId} className="text-2xl font-semibold tracking-tight text-slate-900">
+            {title}
+          </h1>
           {tenantName && (
             <Badge
               variant="outline"

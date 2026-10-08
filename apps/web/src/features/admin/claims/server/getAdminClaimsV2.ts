@@ -1,17 +1,20 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import {
   buildDiasporaOriginClaimIdsSubquery,
   parseDiasporaOriginFromPublicNote,
 } from '@interdomestik/domain-claims';
-import { claimLifecycleStatusIn, claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import {
+  claimLifecycleStatusIn,
+  claimLifecycleStatusSql,
+} from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { branches, claimStageHistory, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, count, desc, eq, ilike, inArray, or, SQL } from 'drizzle-orm';
 
 import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
 import type { AdminClaimsV2Filters, AdminClaimsV2Response, LifecycleStage } from '../types';
-import type { ClaimsVisibilityContext } from './claimVisibility';
-import { getAdminClaimStats } from './getAdminClaimStats';
+import { adminClaimsBranchCondition, type ClaimsVisibilityContext } from './claimVisibility';
+import { readAdminClaimStats } from './getAdminClaimStats';
 
 const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, string[]> = {
   intake: ['draft', 'submitted'],
@@ -26,8 +29,9 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
   const { tenantId, role, branchId, userId } = context;
   const conditions: SQL[] = [eq(claims.tenantId, tenantId)];
 
-  if (role === 'branch_manager' && branchId) {
-    conditions.push(eq(claims.branchId, branchId));
+  const branchCondition = adminClaimsBranchCondition(context);
+  if (branchCondition) {
+    conditions.push(branchCondition);
   } else if (role === 'staff') {
     if (branchId) {
       conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);
@@ -66,7 +70,7 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
 
 /**
  * Main V2 list loader.
- * Returns UI-ready operational DTOs with lifecycle stats.
+ * Returns UI-ready operational DTOs with lifecycle stats, or a typed read failure.
  */
 export async function getAdminClaimsV2(
   context: ClaimsVisibilityContext,
@@ -78,133 +82,135 @@ export async function getAdminClaimsV2(
   const offset = (page - 1) * perPage;
 
   try {
-    const conditions = buildConditions(context, filters);
-    if (filters.diasporaOrigin === 'diaspora') {
-      conditions.push(inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(context.tenantId)));
-    }
-    const staff = aliasedTable(user, 'staff');
+    return await withTenantContext(
+      { tenantId: context.tenantId, role: context.role },
+      async (tx): Promise<AdminClaimsV2Response> => {
+        const conditions = buildConditions(context, filters);
+        if (filters.diasporaOrigin === 'diaspora') {
+          conditions.push(
+            inArray(claims.id, buildDiasporaOriginClaimIdsSubquery(context.tenantId))
+          );
+        }
+        const staff = aliasedTable(user, 'staff');
 
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built by admin claims visibility context before this DB call
-    const rawRows = await db
-      .select({
-        claim: {
-          id: claims.id,
-          claimNumber: claims.claimNumber,
-          userId: claims.userId,
-          title: claims.title,
-          status: claimLifecycleStatusSql(),
-          caseLifecycleState: claims.caseLifecycleState,
-          recoveryLifecycleState: claims.recoveryLifecycleState,
-          createdAt: claims.createdAt,
-          updatedAt: claims.updatedAt,
-          assignedAt: claims.assignedAt,
-          category: claims.category,
-          currency: claims.currency,
-          origin: claims.origin,
-          originRefId: claims.originRefId,
-          statusUpdatedAt: claims.statusUpdatedAt,
-        },
-        claimant: {
-          name: user.name,
-          email: user.email,
-        },
-        staff: {
-          name: staff.name,
-          email: staff.email,
-        },
-        branch: {
-          id: branches.id,
-          code: branches.code,
-          name: branches.name,
-        },
-      })
-      .from(claims)
-      .leftJoin(user, eq(claims.userId, user.id))
-      .leftJoin(staff, eq(claims.staffId, staff.id))
-      .leftJoin(branches, eq(claims.branchId, branches.id))
-      .where(and(...conditions))
-      .orderBy(desc(claims.updatedAt), desc(claims.id))
-      .limit(perPage)
-      .offset(offset);
+        // db-access-guard: tenant-scoped -- reason: tenant predicate built by admin claims visibility context before this DB call
+        const rawRows = await tx
+          .select({
+            claim: {
+              id: claims.id,
+              claimNumber: claims.claimNumber,
+              userId: claims.userId,
+              title: claims.title,
+              status: claimLifecycleStatusSql(),
+              caseLifecycleState: claims.caseLifecycleState,
+              recoveryLifecycleState: claims.recoveryLifecycleState,
+              createdAt: claims.createdAt,
+              updatedAt: claims.updatedAt,
+              assignedAt: claims.assignedAt,
+              category: claims.category,
+              currency: claims.currency,
+              origin: claims.origin,
+              originRefId: claims.originRefId,
+              statusUpdatedAt: claims.statusUpdatedAt,
+            },
+            claimant: {
+              name: user.name,
+              email: user.email,
+            },
+            staff: {
+              name: staff.name,
+              email: staff.email,
+            },
+            branch: {
+              id: branches.id,
+              code: branches.code,
+              name: branches.name,
+            },
+          })
+          .from(claims)
+          .leftJoin(user, eq(claims.userId, user.id))
+          .leftJoin(staff, eq(claims.staffId, staff.id))
+          .leftJoin(branches, eq(claims.branchId, branches.id))
+          .where(and(...conditions))
+          .orderBy(desc(claims.updatedAt), desc(claims.id))
+          .limit(perPage)
+          .offset(offset);
 
-    const claimIds = rawRows.map(row => row.claim.id);
-    const diasporaOriginsByClaimId = new Map<
-      string,
-      NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>
-    >();
+        const claimIds = rawRows.map(row => row.claim.id);
+        const diasporaOriginsByClaimId = new Map<
+          string,
+          NonNullable<ReturnType<typeof parseDiasporaOriginFromPublicNote>>
+        >();
 
-    if (claimIds.length > 0) {
-      const historyRows = await db
-        .select({
-          claimId: claimStageHistory.claimId,
-          note: claimStageHistory.note,
-        })
-        .from(claimStageHistory)
-        .where(
-          and(
-            eq(claimStageHistory.tenantId, context.tenantId),
-            inArray(claimStageHistory.claimId, claimIds)
-          )
-        )
-        .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+        if (claimIds.length > 0) {
+          const historyRows = await tx
+            .select({
+              claimId: claimStageHistory.claimId,
+              note: claimStageHistory.note,
+            })
+            .from(claimStageHistory)
+            .where(
+              and(
+                eq(claimStageHistory.tenantId, context.tenantId),
+                inArray(claimStageHistory.claimId, claimIds)
+              )
+            )
+            .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
 
-      for (const historyRow of historyRows) {
-        if (diasporaOriginsByClaimId.has(historyRow.claimId)) {
-          continue;
+          for (const historyRow of historyRows) {
+            if (diasporaOriginsByClaimId.has(historyRow.claimId)) {
+              continue;
+            }
+
+            const diasporaOrigin = parseDiasporaOriginFromPublicNote(historyRow.note);
+            if (diasporaOrigin !== null) {
+              diasporaOriginsByClaimId.set(historyRow.claimId, diasporaOrigin);
+            }
+          }
         }
 
-        const diasporaOrigin = parseDiasporaOriginFromPublicNote(historyRow.note);
-        if (diasporaOrigin !== null) {
-          diasporaOriginsByClaimId.set(historyRow.claimId, diasporaOrigin);
-        }
+        const enrichedRows = rawRows.map(row => ({
+          ...row,
+          claim: {
+            ...row.claim,
+            diasporaCountry: diasporaOriginsByClaimId.get(row.claim.id)?.country ?? null,
+          },
+        }));
+
+        // Map to operational rows
+        const rows = mapClaimsToOperationalRows(enrichedRows as RawClaimRow[]);
+
+        // Get stats (separate query for all lifecycle counts, same transaction)
+        const stats = await readAdminClaimStats(tx, context);
+
+        // Total count for pagination (with filters applied)
+        // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+        const [{ totalCount }] = await tx
+          .select({ totalCount: count() })
+          .from(claims)
+          .leftJoin(user, eq(claims.userId, user.id))
+          .where(and(...conditions));
+
+        return {
+          kind: 'ok',
+          rows,
+          stats,
+          pagination: {
+            page,
+            perPage,
+            totalCount: Number(totalCount ?? 0),
+            totalPages: Math.ceil(Number(totalCount ?? 0) / perPage),
+          },
+        };
       }
-    }
-
-    const enrichedRows = rawRows.map(row => ({
-      ...row,
-      claim: {
-        ...row.claim,
-        diasporaCountry: diasporaOriginsByClaimId.get(row.claim.id)?.country ?? null,
-      },
-    }));
-
-    // Map to operational rows
-    const rows = mapClaimsToOperationalRows(enrichedRows as RawClaimRow[]);
-
-    // Get stats (separate query for all lifecycle counts)
-    const stats = await getAdminClaimStats(context);
-
-    // Total count for pagination (with filters applied)
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    const [{ totalCount }] = await db
-      .select({ totalCount: count() })
-      .from(claims)
-      .leftJoin(user, eq(claims.userId, user.id))
-      .where(and(...conditions));
-
-    return {
-      rows,
-      stats,
-      pagination: {
-        page,
-        perPage,
-        totalCount: Number(totalCount ?? 0),
-        totalPages: Math.ceil(Number(totalCount ?? 0) / perPage),
-      },
-    };
+    );
   } catch (error) {
     Sentry.captureException(error, {
       extra: {
         tenantId: context.tenantId,
         action: 'getAdminClaimsV2',
-        filters,
       },
     });
-    // Return empty result on error
-    return {
-      rows: [],
-      stats: { intake: 0, verification: 0, processing: 0, negotiation: 0, legal: 0, completed: 0 },
-      pagination: { page, perPage, totalCount: 0, totalPages: 0 },
-    };
+    return { kind: 'error', error: 'read_failed' };
   }
 }

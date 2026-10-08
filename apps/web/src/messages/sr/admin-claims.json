@@ -129,6 +129,8 @@
       },
       "pagination_info": "Stranica {page} od {total} ({count} zahteva)",
       "access_denied": "Pristup odbijen. Nemate dozvolu za pregled zahteva.",
+      "read_failed": "Zahtevi nisu učitani. Vaši filteri nisu promenjeni. Pokušajte ponovo.",
+      "read_result": "Pronađeni zahtevi: {count}.",
       "ops_center": {
         "title": "Operativni centar",
         "data_age": "Ažurirano pre {seconds}s",
