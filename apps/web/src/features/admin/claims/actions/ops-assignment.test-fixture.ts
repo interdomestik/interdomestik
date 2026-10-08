@@ -110,11 +110,10 @@ export function createFakeTx(options: FakeTxOptions = {}) {
   const auditValues = vi.fn((_row: Row) =>
     options.auditError ? Promise.reject(options.auditError) : Promise.resolve()
   );
-  const targetLock = vi.fn((_read: TargetLockRead): Promise<Array<{ id: string }>> =>
-    options.targetLockError
-      ? Promise.reject(options.targetLockError)
-      : Promise.resolve(target ? [target] : [])
-  );
+  const targetLock = vi.fn((_read: TargetLockRead): Promise<Array<{ id: string }>> => {
+    if (options.targetLockError) return Promise.reject(options.targetLockError);
+    return Promise.resolve(target ? [target] : []);
+  });
   const tx = {
     query: {
       claims: {
