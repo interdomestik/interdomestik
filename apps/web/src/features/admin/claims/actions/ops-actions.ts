@@ -18,10 +18,17 @@ import {
   canAssignClaimOwner,
   getActionSession,
   getClaimForMutation,
+  getOpsMutationContext,
+  lockClaimForOpsMutation,
   logAudit,
   OpsActionResponse,
   revalidateClaim,
 } from './action-helpers';
+import {
+  completeCommittedOpsAction,
+  OPS_ACTION_UNAUTHORIZED_ERROR,
+  toSafeOpsActionError,
+} from './ops-action-outcome';
 import { ASSIGNMENT_TARGET_DENIED_ERROR, assignClaimOwnerInTransaction } from './ops-assignment';
 import { updateStatusAction } from './ops-status-action';
 
@@ -30,6 +37,12 @@ const EXPECTED_ASSIGN_DENIALS: ReadonlySet<string> = new Set([
   'Claim not found or access denied',
   'Cannot perform assign on a terminal claim.',
 ]);
+
+const INVALID_REMINDER_CHANNEL_ERROR = 'Invalid reminder channel';
+const REMINDER_CHANNELS: ReadonlySet<string> = new Set(['email', 'sms']);
+const REMINDER_COOLDOWN_MINUTES = 10;
+
+type ReminderTransactionOutcome = { recorded: true } | { recorded: false; error: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Assignment Actions
@@ -139,28 +152,36 @@ export async function markSlaAcknowledged(
   locale: string
 ): Promise<OpsActionResponse> {
   try {
-    const ctx = await getActionSession();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
+    // Exercised admin-family role is checked before any claim read or tenant transaction.
+    const ctx = await getOpsMutationContext();
+    if (!ctx) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
 
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'sla_ack');
+    // Claim read, internal acknowledgement note and audit share one tenant transaction.
+    await withTenantContext({ tenantId: ctx.tenantId, role: ctx.actorRole }, async tx => {
+      // Keep terminal eligibility valid through the acknowledgement commit.
+      await lockClaimForOpsMutation(tx, claimId, ctx.tenantId);
+      const claim = await getClaimForMutation(claimId, ctx.tenantId, tx);
+      assertCanMutateClaim(claim, ctx.actorRole, 'sla_ack');
 
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-    await db.insert(claimMessages).values({
-      id: nanoid(),
-      tenantId: ctx.tenantId,
-      claimId,
-      senderId: ctx.session.user.id,
-      content: '⚡ SLA Breach Acknowledged',
-      isInternal: true,
-      createdAt: new Date(),
+      // db-access-guard: tenant-scoped -- reason: trusted access tenant of the enclosing tenant transaction
+      await tx.insert(claimMessages).values({
+        id: nanoid(),
+        tenantId: ctx.tenantId,
+        claimId,
+        senderId: ctx.actorId,
+        content: '⚡ SLA Breach Acknowledged',
+        isInternal: true,
+        createdAt: new Date(),
+      });
+
+      await logAudit(ctx.tenantId, ctx.actorId, 'acknowledge_sla', claimId, {}, tx);
     });
 
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'acknowledge_sla', claimId, {});
-    revalidateClaim(locale, claimId);
-    return { success: true };
+    return completeCommittedOpsAction('markSlaAcknowledged', () =>
+      revalidateClaim(locale, claimId)
+    );
   } catch (error: unknown) {
-    return { success: false, error: (error as Error).message };
+    return toSafeOpsActionError('markSlaAcknowledged', error);
   }
 }
 
@@ -170,47 +191,68 @@ export async function sendMemberReminder(
   locale: string
 ): Promise<OpsActionResponse> {
   try {
-    const ctx = await getActionSession();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
-
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'poke');
-
-    // Rate limit check
-    const lastPoke = await db.query.auditLog.findFirst({
-      where: and(
-        eq(auditLog.entityId, claimId),
-        eq(auditLog.action, 'send_reminder'),
-        eq(auditLog.tenantId, ctx.tenantId)
-      ),
-      orderBy: [desc(auditLog.createdAt)],
-    });
-
-    if (lastPoke?.createdAt) {
-      const minutes = Math.floor((Date.now() - lastPoke.createdAt.getTime()) / 60_000);
-      if (minutes < 10) {
-        return {
-          success: false,
-          error: `Rate limited. Last reminder sent ${minutes} minutes ago.`,
-        };
-      }
+    // Exercised admin-family role is checked before any claim read or tenant transaction.
+    const ctx = await getOpsMutationContext();
+    if (!ctx) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
+    // Runtime input from the client is untrusted even though the parameter is typed.
+    if (typeof channel !== 'string' || !REMINDER_CHANNELS.has(channel)) {
+      return { success: false, error: INVALID_REMINDER_CHANNEL_ERROR };
     }
 
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'send_reminder', claimId, { channel });
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-    await db.insert(claimMessages).values({
-      id: nanoid(),
-      tenantId: ctx.tenantId,
-      claimId,
-      senderId: ctx.session.user.id,
-      content: `📤 Sent ${channel} reminder to member.`,
-      isInternal: true,
-      createdAt: new Date(),
-    });
+    // Records an internal follow-up note and audit only; no email/SMS provider is called here.
+    const outcome = await withTenantContext<ReminderTransactionOutcome>(
+      { tenantId: ctx.tenantId, role: ctx.actorRole },
+      async tx => {
+        // Row lock serializes cooldown eligibility per claim so concurrent attempts cannot both
+        // pass the window; the rate-limit read, note and audit then commit or roll back together.
+        await lockClaimForOpsMutation(tx, claimId, ctx.tenantId);
+        const claim = await getClaimForMutation(claimId, ctx.tenantId, tx);
+        assertCanMutateClaim(claim, ctx.actorRole, 'poke');
 
-    revalidateClaim(locale, claimId);
-    return { success: true };
+        const lastPoke = await tx.query.auditLog.findFirst({
+          where: and(
+            eq(auditLog.entityId, claimId),
+            eq(auditLog.action, 'send_reminder'),
+            eq(auditLog.tenantId, ctx.tenantId)
+          ),
+          orderBy: [desc(auditLog.createdAt)],
+        });
+
+        if (lastPoke?.createdAt) {
+          const minutes = Math.floor((Date.now() - lastPoke.createdAt.getTime()) / 60_000);
+          if (minutes < REMINDER_COOLDOWN_MINUTES) {
+            return {
+              recorded: false,
+              error: `Rate limited. Last reminder recorded ${minutes} minutes ago.`,
+            };
+          }
+        }
+
+        // db-access-guard: tenant-scoped -- reason: trusted access tenant of the enclosing tenant transaction
+        await tx.insert(claimMessages).values({
+          id: nanoid(),
+          tenantId: ctx.tenantId,
+          claimId,
+          senderId: ctx.actorId,
+          content: `📤 ${channel} reminder recorded for member follow-up (no automatic delivery).`,
+          isInternal: true,
+          createdAt: new Date(),
+        });
+        await logAudit(
+          ctx.tenantId,
+          ctx.actorId,
+          'send_reminder',
+          claimId,
+          { channel, delivery: 'internal_record_only' },
+          tx
+        );
+        return { recorded: true };
+      }
+    );
+
+    if (!outcome.recorded) return { success: false, error: outcome.error };
+    return completeCommittedOpsAction('sendMemberReminder', () => revalidateClaim(locale, claimId));
   } catch (error: unknown) {
-    return { success: false, error: (error as Error).message };
+    return toSafeOpsActionError('sendMemberReminder', error);
   }
 }

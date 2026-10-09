@@ -187,8 +187,8 @@
             "description": "Zatraži pažnju menadžera."
           },
           "message_poke": {
-            "label": "Pošalji podsetnik",
-            "description": "Član ne odgovara."
+            "label": "Zabeleži podsetnik",
+            "description": "Dodaj internu belešku za podsetnik u istoriju predmeta."
           },
           "review_blockers": {
             "label": "Pregledaj blokade",

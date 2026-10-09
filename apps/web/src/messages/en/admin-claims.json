@@ -180,8 +180,8 @@
           "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
           "escalate": { "label": "Escalate", "description": "Request manager attention." },
           "message_poke": {
-            "label": "Send Reminder",
-            "description": "Member has been unresponsive."
+            "label": "Record reminder",
+            "description": "Add an internal reminder to the case timeline."
           },
           "review_blockers": {
             "label": "Review Blockers",

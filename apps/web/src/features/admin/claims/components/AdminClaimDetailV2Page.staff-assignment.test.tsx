@@ -2,7 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type StaffRow = Readonly<{ id: string; name: string | null; email: string; role: string }>;
-type CardProps = Readonly<{ allStaff: readonly StaffRow[]; canAssign?: boolean }>;
+type CardProps = Readonly<{
+  allStaff: readonly StaffRow[];
+  canAssign?: boolean;
+  readOnly?: boolean;
+}>;
 type HeaderProps = Readonly<{ allStaff: readonly StaffRow[] }>;
 
 const mocks = vi.hoisted(() => ({
@@ -149,4 +153,52 @@ describe('AdminClaimDetailV2Page staff assignment data', () => {
 
     expect(lastCardProps()).toMatchObject({ allStaff: [], canAssign: false });
   });
+});
+
+describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
+  it.each(['admin', 'tenant_admin', 'super_admin'])(
+    'forwards an editable ops card to %s',
+    async role => {
+      signIn(role);
+      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
+
+      await renderPage();
+
+      expect(lastCardProps()).toMatchObject({ canAssign: true, readOnly: false });
+    }
+  );
+
+  it('forwards an explicit read-only card to a branch manager', async () => {
+    signIn('branch_manager', 'branch-1');
+    mocks.getStaff.mockResolvedValue({
+      success: false,
+      error: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+    });
+
+    await renderPage();
+
+    expect(lastCardProps()).toMatchObject({ canAssign: false, readOnly: true });
+  });
+
+  it('renders no card for a branch manager without a branch', async () => {
+    signIn('branch_manager', null);
+
+    await expect(AdminClaimDetailV2Page({ id: 'claim-1', locale: 'en' })).rejects.toThrow(
+      'NEXT_NOT_FOUND'
+    );
+    expect(mocks.nextActionsCard).not.toHaveBeenCalled();
+  });
+
+  it.each(['staff', 'agent', 'member'])(
+    'forwards a read-only card to a %s viewer admitted by visibility',
+    async role => {
+      signIn(role);
+      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
+
+      await renderPage();
+
+      expect(lastCardProps()).toMatchObject({ canAssign: false, readOnly: true });
+    }
+  );
 });

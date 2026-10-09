@@ -187,8 +187,8 @@
           },
           "escalate": { "label": "Eskalo", "description": "Kërko vëmendjen e menaxherit." },
           "message_poke": {
-            "label": "Dërgo Kujtesë",
-            "description": "Anëtari nuk është përgjigjur."
+            "label": "Regjistro kujtesë",
+            "description": "Shto një kujtesë të brendshme në historikun e rastit."
           },
           "review_blockers": {
             "label": "Shiko Bllokuesit",

@@ -11,13 +11,13 @@ import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { TERMINAL_STATUSES } from '../types';
+import { OpsDomainDenialError, type OpsActionResult } from './ops-action-outcome';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type OpsActionResponse =
-  { success: true; message?: string; data?: unknown } | { success: false; error: string };
+export type OpsActionResponse = OpsActionResult;
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
 
@@ -25,6 +25,15 @@ export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
 // Callers that omit them keep the existing direct `db` behavior.
 export type ClaimReadExecutor = Pick<TenantTransaction, 'query'>;
 export type AuditWriteExecutor = Pick<TenantTransaction, 'insert'>;
+export type ClaimLockExecutor = Pick<TenantTransaction, 'select'>;
+
+export type OpsMutationContext = Readonly<{
+  actorId: string;
+  actorRole: string;
+  tenantId: string;
+}>;
+
+const CLAIM_NOT_FOUND_ERROR = 'Claim not found or access denied';
 
 export interface ActionContext {
   session: Awaited<ReturnType<typeof auth.api.getSession>> & { user: { id: string; role: string } };
@@ -43,6 +52,19 @@ export async function getActionSession() {
   return { session, tenantId };
 }
 
+// Admin ops claim mutations (status change, SLA acknowledgement, internal reminder) admit only
+// the exercised session admin family. This runs before any claim/resource read or tenant
+// transaction; client canAssign/readOnly flags, persisted role grants, host, locale and the
+// session home tenant never widen it. Auth session retrieval itself is the only prior I/O.
+export async function getOpsMutationContext(): Promise<OpsMutationContext | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const actorId = session?.user?.id;
+  const actorRole = session?.user?.role;
+  if (!session || !actorId || typeof actorRole !== 'string' || !isAdmin(actorRole)) return null;
+  // ensureTenantId keeps the canonical effective access tenant (explicit access, then home).
+  return { actorId, actorRole, tenantId: ensureTenantId(session) };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Claim Fetching + Guards
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,9 +79,29 @@ export async function getClaimForMutation(
   });
 
   if (!claim) {
-    throw new Error('Claim not found or access denied');
+    throw new OpsDomainDenialError(CLAIM_NOT_FOUND_ERROR);
   }
   return { ...claim, status: claimStatusFromLifecycleFields(claim) };
+}
+
+// Serializes ops effects on one claim (e.g. the reminder cooldown) with a row lock taken inside
+// the caller's tenant transaction. The predicate is the same home-tenant writer anchor as
+// getClaimForMutation: it never coalesces the access tenant or widens transferred-claim authority.
+export async function lockClaimForOpsMutation(
+  executor: ClaimLockExecutor,
+  claimId: string,
+  tenantId: string
+): Promise<void> {
+  // db-access-guard: tenant-scoped -- reason: tenantId is the trusted access tenant of the enclosing tenant transaction
+  const locked = await executor
+    .select({ id: claims.id })
+    .from(claims)
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
+    .limit(1)
+    .for('update');
+  if (locked.length === 0) {
+    throw new OpsDomainDenialError(CLAIM_NOT_FOUND_ERROR);
+  }
 }
 
 export function assertCanMutateClaim(
@@ -69,7 +111,7 @@ export function assertCanMutateClaim(
 ) {
   const isTerminal = TERMINAL_STATUSES.includes(claim.status as ClaimStatus);
   if (isTerminal && intent !== 'status_change') {
-    throw new Error(`Cannot perform ${intent} on a terminal claim.`);
+    throw new OpsDomainDenialError(`Cannot perform ${intent} on a terminal claim.`);
   }
 }
 
@@ -81,7 +123,7 @@ export function canAssignClaimOwner(actorRole: string | null | undefined): boole
 
 export function assertTransitionAllowed(currentStatus: ClaimStatus, newStatus: ClaimStatus) {
   if (!isClaimStatusTransitionInGraph(currentStatus, newStatus)) {
-    throw new Error(`Illegal transition from ${currentStatus} to ${newStatus}`);
+    throw new OpsDomainDenialError(`Illegal transition from ${currentStatus} to ${newStatus}`);
   }
 }
 
