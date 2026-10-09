@@ -3,6 +3,7 @@ import { E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { advanceOpsToCard, expectSingleActive } from './test/tenant-reader-context-ops';
 
 type GateSeed = {
   ops: { branch: string; claimId: string; title: string };
@@ -60,7 +61,8 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     const seed = gateSeed(testInfo.project.name);
     const locale = routes.getLocale(testInfo);
     const { branch, claimId, title } = seed.ops;
-    const claimPath = `/${locale}/admin/claims/${claimId}`;
+    const opsPath = `/${locale}/admin/claims`;
+    const claimPath = `${opsPath}/${claimId}`;
 
     await loginAs('admin');
     await gotoApp(
@@ -70,27 +72,42 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
       { marker: 'ops-center-page' }
     );
 
-    await expect(page.getByTestId('ops-center-page')).toBeVisible();
+    await expect(page).toHaveURL(
+      url =>
+        url.pathname === opsPath &&
+        url.searchParams.get('view') === 'ops' &&
+        url.searchParams.get('branch') === branch
+    );
+
+    const ops = page.getByTestId('ops-center-page').filter({ visible: true });
+    await expectSingleActive(ops);
     await expect(page.getByTestId('error-boundary')).toHaveCount(0);
 
     // Real KPI: total open is numeric and positive (first span is the value).
-    const totalOpenValue = page.getByTestId('kpi-total-open').locator('span').first();
+    const kpi = ops.getByTestId('kpi-total-open').filter({ visible: true });
+    await expectSingleActive(kpi);
+    const totalOpenValue = kpi.locator('span').first();
     await expect(totalOpenValue).toHaveText(/^[1-9]\d*$/);
 
-    const card = page.locator(`a[data-testid="claim-operational-card"][href="${claimPath}"]`);
-    await expect(card).toHaveCount(1);
-    await expect(card).toBeVisible();
+    const card = ops
+      .locator(`a[data-testid="claim-operational-card"][href="${claimPath}"]`)
+      .filter({ visible: true });
+
+    // The prioritized list shows one page at a time, so the exact card may sit on a
+    // later page of the bounded pool; follow the real load-more link to reach it.
+    await advanceOpsToCard(page, ops, totalOpenValue, card, opsPath, branch);
+    await expectSingleActive(card);
     await card.click();
 
-    const heading = page.getByRole('heading', { level: 1, name: title, exact: true });
+    const heading = page
+      .getByRole('heading', { level: 1, name: title, exact: true })
+      .filter({ visible: true });
     await expect(page).toHaveURL(url => url.pathname === claimPath);
-    await expect(heading).toHaveCount(1);
-    await expect(heading).toBeVisible();
+    await expectSingleActive(heading);
 
     await page.reload();
     await expect(page).toHaveURL(url => url.pathname === claimPath);
-    await expect(heading).toHaveCount(1);
-    await expect(heading).toBeVisible();
+    await expectSingleActive(heading);
     await expect(page.getByTestId('not-found-page')).toHaveCount(0);
     await expect(page.getByTestId('error-boundary')).toHaveCount(0);
   });
@@ -100,44 +117,57 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     loginAs,
   }, testInfo) => {
     const { member } = gateSeed(testInfo.project.name);
+    const locale = routes.getLocale(testInfo);
 
     await loginAs('agent');
 
     // /agent/members: start unfiltered, then drive the real search input.
     await gotoApp(page, routes.agentMembers(testInfo), testInfo);
-    const ready = page.getByTestId('agent-members-ready');
-    const membersInput = page.getByTestId('agent-members-search-input');
-    await expect(ready).toBeVisible();
-    await expect(page).toHaveURL(url => url.searchParams.get('q') === null);
+    await expect(page).toHaveURL(
+      url => url.pathname === `/${locale}/agent/members` && url.searchParams.get('q') === null
+    );
+
+    // The search input renders inside the ready section.
+    const ready = page.getByTestId('agent-members-ready').filter({ visible: true });
+    const membersInput = ready.getByTestId('agent-members-search-input');
+    const membersList = ready.getByTestId('agent-members-list');
+    await expectSingleActive(ready);
+    await expectSingleActive(membersInput);
     await expect(membersInput).toBeEnabled();
 
     await membersInput.fill(member.name);
     await expect(page).toHaveURL(url => url.searchParams.get('q') === member.name);
-    await expect(ready).toBeVisible();
+    await expectSingleActive(ready);
     await expect(membersInput).toBeEnabled();
     await expect(membersInput).toHaveValue(member.name);
-    await expect(page.getByTestId('agent-members-no-results')).toHaveCount(0);
-    await expect(page.getByTestId('agent-members-list')).toBeVisible();
+    await expect(ready.getByTestId('agent-members-no-results')).toHaveCount(0);
+    await expectSingleActive(membersList);
 
     // Each row renders two href-identical anchors; scope to the member-name link.
     const memberLink = ready.locator(
       `a[data-testid="agent-member-link"][href$="/agent/members/${member.id}"]`
     );
-    await expect(memberLink).toHaveCount(1);
-    await expect(memberLink).toBeVisible();
+    await expectSingleActive(memberLink);
 
     await page.reload();
     await expect(page).toHaveURL(url => url.searchParams.get('q') === member.name);
-    await expect(ready).toBeVisible();
+    await expectSingleActive(ready);
+    await expectSingleActive(membersInput);
     await expect(membersInput).toBeEnabled();
     await expect(membersInput).toHaveValue(member.name);
-    await expect(memberLink).toHaveCount(1);
-    await expect(memberLink).toBeVisible();
+    await expectSingleActive(memberLink);
 
     // /agent/clients: real search input, email query, settled busy state.
     await gotoApp(page, routes.agentClients(testInfo), testInfo);
-    const input = page.getByTestId('agent-clients-search-input');
-    const region = page.getByTestId('agent-clients-search-region');
+    await expect(page).toHaveURL(
+      url => url.pathname === `/${locale}/agent/clients` && url.searchParams.get('search') === null
+    );
+
+    // The search input renders inside the search region.
+    const region = page.getByTestId('agent-clients-search-region').filter({ visible: true });
+    const input = region.getByTestId('agent-clients-search-input');
+    await expectSingleActive(region);
+    await expectSingleActive(input);
     await expect(input).toBeEnabled();
     await input.fill(member.email);
 
@@ -145,17 +175,19 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     await expect(region).toHaveAttribute('aria-busy', 'false');
     await expect(input).toBeEnabled();
 
-    const clientLink = page.locator(`a[href$="/agent/clients/${member.id}"]`);
-    await expect(clientLink).toHaveCount(1);
-    await expect(clientLink).toBeVisible();
+    const clientLink = page.locator(`a[href$="/agent/clients/${member.id}"]`).filter({
+      visible: true,
+    });
+    await expectSingleActive(clientLink);
 
     await page.reload();
     await expect(page).toHaveURL(url => url.searchParams.get('search') === member.email);
+    await expectSingleActive(region);
     await expect(region).toHaveAttribute('aria-busy', 'false');
+    await expectSingleActive(input);
     await expect(input).toBeEnabled();
     await expect(input).toHaveValue(member.email);
-    await expect(clientLink).toHaveCount(1);
-    await expect(clientLink).toBeVisible();
+    await expectSingleActive(clientLink);
   });
 
   test('admin verification list opens the exact cash attempt drawer from the real read API', async ({
@@ -163,6 +195,7 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     loginAs,
   }, testInfo) => {
     const { lead } = gateSeed(testInfo.project.name);
+    const locale = routes.getLocale(testInfo);
     const apiPath = `/api/verification/${lead.attemptId}`;
     const isDetailsGet = (response: Response) =>
       response.request().method() === 'GET' && new URL(response.url()).pathname === apiPath;
@@ -173,13 +206,15 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
       expect(body.id).toBe(lead.attemptId);
     };
 
-    const drawer = page.getByTestId('ops-drawer');
+    // Close assertions use the raw testid so any remaining instance still fails.
+    const anyDrawer = page.getByTestId('ops-drawer');
+    const drawer = anyDrawer.filter({ visible: true });
     const expectDrawerTerminal = async () => {
-      await expect(drawer).toBeVisible();
+      await expectSingleActive(drawer);
       // Summary: the unique seeded email (strict locator fails if not unique).
       await expect(drawer.getByText(lead.email, { exact: true })).toBeVisible();
-      await expect(drawer.getByTestId('ops-documents-panel')).toBeVisible();
-      await expect(drawer.getByTestId('ops-timeline')).toBeVisible();
+      await expectSingleActive(drawer.getByTestId('ops-documents-panel').filter({ visible: true }));
+      await expectSingleActive(drawer.getByTestId('ops-timeline').filter({ visible: true }));
       await expect
         .poll(async () => {
           const documents = await drawer.getByTestId('ops-documents-empty').count();
@@ -197,7 +232,12 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
       marker: 'verification-ops-page',
     });
 
-    const search = page.getByTestId('verification-search-input');
+    await expect(page).toHaveURL(url => url.pathname === `/${locale}/admin/leads`);
+    await expectSingleActive(page.getByTestId('verification-ops-page').filter({ visible: true }));
+
+    // Search may render outside the table, so own it at page level.
+    const search = page.getByTestId('verification-search-input').filter({ visible: true });
+    await expectSingleActive(search);
     await expect(search).toBeEnabled();
     await search.fill(lead.email);
     await expect(page).toHaveURL(url => url.searchParams.get('query') === lead.email);
@@ -206,8 +246,10 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
 
     const row = page
       .getByTestId('cash-verification-row')
+      .filter({ visible: true })
       .filter({ has: page.getByText(lead.email, { exact: true }) });
     await expect(row).toHaveCount(1);
+    await expect(row).toBeVisible();
 
     // Row click is the supported details contract (VerificationTableV2 onClick).
     const [openResponse] = await Promise.all([
@@ -226,7 +268,7 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     await expectDrawerTerminal();
 
     await page.keyboard.press('Escape');
-    await expect(drawer).toHaveCount(0);
+    await expect(anyDrawer).toHaveCount(0);
     // Only `selected` is deleted; the search query is preserved.
     await expect(page).toHaveURL(url => url.searchParams.get('selected') === null);
     await expect(page).toHaveURL(url => url.searchParams.get('query') === lead.email);
