@@ -10,6 +10,8 @@ const hoisted = vi.hoisted(() => ({
   isNull: vi.fn((field: unknown) => ({ op: 'isNull', field })),
   or: vi.fn(),
   select: vi.fn(),
+  globalSelect: vi.fn(),
+  withTenantContext: vi.fn(),
   sql: vi.fn(() => null),
 }));
 
@@ -26,7 +28,11 @@ vi.mock('drizzle-orm', () => ({
   sql: hoisted.sql,
 }));
 
-vi.mock('@interdomestik/database', () => ({ db: { select: hoisted.select } }));
+// Reads run on the tenant transaction (`select`); the global handle must stay unused.
+vi.mock('@interdomestik/database', () => ({
+  db: { select: hoisted.globalSelect },
+  withTenantContext: hoisted.withTenantContext,
+}));
 
 vi.mock('@interdomestik/database/schema', () => ({
   auditLog: {
@@ -102,7 +108,13 @@ const ctx = {
 } as never;
 
 describe('verification payment proof document lifecycle filters', () => {
-  beforeEach(vi.clearAllMocks);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) =>
+        callback({ select: hoisted.select })
+    );
+  });
 
   it('filters soft-deleted payment proof documents from request joins', async () => {
     const requestsQuery = chain([]);
@@ -118,6 +130,7 @@ describe('verification payment proof document lifecycle filters', () => {
         ]),
       })
     );
+    expect(hoisted.globalSelect).not.toHaveBeenCalled();
   });
 
   it('filters soft-deleted payment proof documents from detail document lists', async () => {
@@ -144,5 +157,7 @@ describe('verification payment proof document lifecycle filters', () => {
         ]),
       })
     );
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.globalSelect).not.toHaveBeenCalled();
   });
 });

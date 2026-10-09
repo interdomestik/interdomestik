@@ -1,4 +1,5 @@
 import { getAgentMembersListReadModel } from '@/features/agent/members/server/get-agent-members-read-model';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 type AgentMembersSearchParams = {
   q?: string;
@@ -7,7 +8,9 @@ type AgentMembersSearchParams = {
 type AgentMembersSession = {
   user: {
     id: string;
-    tenantId: string;
+    role?: string | null;
+    tenantId?: string | null;
+    accessTenantId?: string | null;
   };
 };
 
@@ -21,9 +24,11 @@ export async function getAgentMembersPageData({
   const rawSearch = typeof searchParams?.q === 'string' ? searchParams.q : '';
   const search = rawSearch.trim() || undefined;
 
+  // Effective access tenant and the actual verified role travel to the tenant transaction.
   const { members } = await getAgentMembersListReadModel({
     agentId: session.user.id,
-    tenantId: session.user.tenantId,
+    tenantId: ensureTenantId(session),
+    role: session.user.role ?? null,
     query: search,
   });
 

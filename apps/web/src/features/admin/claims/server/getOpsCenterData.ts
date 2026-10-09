@@ -1,38 +1,15 @@
 // Phase 2.8: Operational Center Data Loader (Option B: Pool → Sort → Slice)
-import { db } from '@interdomestik/database';
-import type { ClaimStatus } from '@interdomestik/database/constants';
-import { branches, claims, user } from '@interdomestik/database/schema';
-import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import { withTenantContext } from '@interdomestik/database';
 import * as Sentry from '@sentry/nextjs';
-import { aliasedTable, and, desc, eq, ilike, inArray, or, sql, SQL } from 'drizzle-orm';
 
-import { isMemberNumberSearch } from '../../members/utils/memberNumber';
-import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
-import type {
-  ClaimOperationalRow,
-  LifecycleStage,
-  OpsCenterFilters,
-  OpsCenterResponse,
-} from '../types';
-import {
-  isStaffOwnedStatus,
-  isTerminalStatus,
-  OPS_PAGE_SIZE,
-  OPS_POOL_LIMIT,
-  TERMINAL_STATUSES,
-} from '../types';
-import type { ClaimsVisibilityContext } from './claimVisibility';
+import { mapClaimsToOperationalRows } from '../mappers';
+import type { ClaimOperationalRow, OpsCenterFilters, OpsCenterResponse } from '../types';
+import { isStaffOwnedStatus, isTerminalStatus, OPS_PAGE_SIZE, OPS_POOL_LIMIT } from '../types';
+import { canViewAdminClaims, type ClaimsVisibilityContext } from './claimVisibility';
+import { computeAssigneeOverview, computeKPIsFromPool } from './computeKPIs';
 import { getAdminClaimStats } from './getAdminClaimStats';
 import { sortByPriority } from './prioritySort';
-
-const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
-  intake: ['draft', 'submitted'],
-  verification: ['verification'],
-  processing: ['evaluation'],
-  negotiation: ['negotiation'],
-  legal: ['court'],
-  completed: ['resolved', 'rejected'],
-};
+import { readOpsCenterPoolRows } from './readOpsCenterPool';
 
 // Helper uses canonical isTerminalStatus from types
 
@@ -71,79 +48,6 @@ function filterByPriority(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DB WHERE conditions for pool fetch
-// ─────────────────────────────────────────────────────────────────────────────
-function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCenterFilters): SQL[] {
-  const { tenantId, role, branchId, userId } = context;
-  const conditions: SQL[] = [eq(claims.tenantId, tenantId)];
-
-  // Role-based scoping
-  if (role === 'branch_manager' && branchId) {
-    conditions.push(eq(claims.branchId, branchId));
-  } else if (role === 'staff') {
-    if (branchId) {
-      conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);
-    } else {
-      conditions.push(eq(claims.staffId, userId));
-    }
-  }
-
-  // Exclude terminal statuses (ops = open claims only)
-  conditions.push(lifecycleSql.claimLifecycleStatusNotIn(TERMINAL_STATUSES));
-
-  // Lifecycle filter (affects KPIs too)
-  if (filters.lifecycle) {
-    const statuses = LIFECYCLE_STATUS_MAP[filters.lifecycle];
-    if (statuses?.length) {
-      conditions.push(lifecycleSql.claimLifecycleStatusIn(statuses));
-    }
-  }
-
-  // Branch filter
-  if (filters.branch) {
-    conditions.push(eq(branches.code, filters.branch));
-  }
-
-  // Pool anchor for stable pagination
-  if (filters.poolAnchor) {
-    conditions.push(
-      sql`(${claims.updatedAt}, ${claims.id}) <= (${filters.poolAnchor.updatedAt}::timestamp, ${filters.poolAnchor.id})`
-    );
-  }
-
-  // Search filter (Pool Defining)
-  // Affects pool fetch and KPIs
-  if (filters.search) {
-    const term = filters.search.trim().toUpperCase();
-    if (term) {
-      if (isMemberNumberSearch(term)) {
-        // Global Member Number Search (Tenant-Capped)
-        // Find users matching the MEM- prefix, then filter claims by those userIds.
-        // We use a subquery to keep it efficient and atomic in one query.
-        // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-        const memberSubquery = db
-          .select({ id: user.id })
-          .from(user)
-          .where(ilike(user.memberNumber, `${term}%`));
-
-        conditions.push(inArray(claims.userId, memberSubquery));
-      } else {
-        // Standard Claim Search
-        conditions.push(
-          or(
-            eq(claims.claimNumber, term), // Exact match (fastest)
-            ilike(claims.claimNumber, `${term}%`), // Prefix match
-            ilike(claims.title, `%${term}%`) // Fallback title match
-          )!
-        );
-      }
-    }
-  }
-
-  return conditions;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Helper: Filter sorted pool by assignee (In-Memory)
 // Phase 2.8: Decoupled from SQL to preserve Global KPIs in sidebar
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,8 +75,26 @@ function filterByAssignee(
   return rows;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-import { computeAssigneeOverview, computeKPIsFromPool } from './computeKPIs';
+function emptyOpsCenterResponse(): OpsCenterResponse {
+  return {
+    kpis: {
+      slaBreach: 0,
+      unassigned: 0,
+      stuck: 0,
+      totalOpen: 0,
+      waitingOnMember: 0,
+      assignedToMe: 0,
+      needsAction: 0,
+    },
+    prioritized: [],
+    stats: { intake: 0, verification: 0, processing: 0, negotiation: 0, legal: 0, completed: 0 },
+    assignees: [],
+    unassignedSummary: { countOpen: 0, countNeedsAction: 0 },
+    meSummary: { countOpen: 0, countNeedsAction: 0 },
+    fetchedAt: new Date().toISOString(),
+    hasMore: false,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Loader: getOpsCenterData
@@ -181,69 +103,34 @@ export async function getOpsCenterData(
   context: ClaimsVisibilityContext,
   filters: OpsCenterFilters = {}
 ): Promise<OpsCenterResponse> {
+  // Resource admission before any transaction; no ops scope means no reads.
+  if (!canViewAdminClaims(context)) {
+    return emptyOpsCenterResponse();
+  }
+
   const page = filters.page ?? 0;
 
   try {
-    const conditions = buildPoolConditions(context, filters);
-    const staff = aliasedTable(user, 'staff');
-    const agent = aliasedTable(user, 'agent'); // Added agent alias
+    // Step 1: Fetch the bounded pool in one tenant transaction on the callback tx.
+    // The callback must finish (releasing the connection) before stats are read:
+    // getAdminClaimStats opens its own tenant transaction, so calling it inside this
+    // callback would nest a second connection and can deadlock a max-1 pool.
+    const rawRows = await withTenantContext(
+      { tenantId: context.tenantId, role: context.role },
+      tx => readOpsCenterPoolRows(tx, context, filters)
+    );
 
-    // Step 1: Fetch bounded pool (DB ordering by updatedAt for stability)
-    // Fetch LIMIT + 1 to detect if there are more items in the DB
-    // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-    const rawRows = await db
-      .select({
-        claim: {
-          id: claims.id,
-          title: claims.title,
-          status: lifecycleSql.claimLifecycleStatusSql(),
-          caseLifecycleState: claims.caseLifecycleState,
-          recoveryLifecycleState: claims.recoveryLifecycleState,
-          createdAt: claims.createdAt,
-          updatedAt: claims.updatedAt,
-          assignedAt: claims.assignedAt,
-          userId: claims.userId, // Added for linking
-          claimNumber: claims.claimNumber,
-          staffId: claims.staffId, // Critical: needed for isUnassigned computation
-          category: claims.category,
-          currency: claims.currency,
-          statusUpdatedAt: claims.statusUpdatedAt,
-          origin: claims.origin,
-          originRefId: claims.originRefId,
-        },
-        claimant: {
-          name: user.name,
-          email: user.email,
-          memberNumber: user.memberNumber,
-        },
-        staff: {
-          name: staff.name,
-          email: staff.email,
-        },
-        branch: {
-          id: branches.id,
-          code: branches.code,
-          name: branches.name,
-        },
-        agent: {
-          name: agent.name,
-        },
-      })
-      .from(claims)
-      .leftJoin(user, eq(claims.userId, user.id))
-      .leftJoin(staff, eq(claims.staffId, staff.id))
-      .leftJoin(branches, eq(claims.branchId, branches.id))
-      .leftJoin(agent, eq(claims.agentId, agent.id)) // Join on agentId (indexed)
-      .where(and(...conditions))
-      .orderBy(desc(claims.updatedAt), desc(claims.id))
-      .limit(OPS_POOL_LIMIT + 1);
+    // Step 1b: Lifecycle stats, sequentially after the pool transaction is released.
+    // getAdminClaimStats reports and absorbs a stats-only failure (zero stats), so a
+    // valid pool and KPIs are preserved.
+    const stats = await getAdminClaimStats(context);
 
     // Determine if pool logic was curtailed by limit
     const poolMayHaveMore = rawRows.length > OPS_POOL_LIMIT;
     const effectiveRows = poolMayHaveMore ? rawRows.slice(0, OPS_POOL_LIMIT) : rawRows;
 
     // Step 2: Map to operational rows (computes risk flags)
-    const pool = mapClaimsToOperationalRows(effectiveRows as RawClaimRow[]);
+    const pool = mapClaimsToOperationalRows(effectiveRows);
 
     // Step 3: Compute KPIs from pool (global, before priority filter)
     const kpis = computeKPIsFromPool(pool, context.userId);
@@ -285,9 +172,6 @@ export async function getOpsCenterData(
       ? (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length
       : (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length || poolMayHaveMore;
 
-    // Get lifecycle stats
-    const stats = await getAdminClaimStats(context);
-
     return {
       kpis,
       prioritized,
@@ -302,23 +186,6 @@ export async function getOpsCenterData(
     Sentry.captureException(error, {
       extra: { tenantId: context.tenantId, action: 'getOpsCenterData', filters },
     });
-    return {
-      kpis: {
-        slaBreach: 0,
-        unassigned: 0,
-        stuck: 0,
-        totalOpen: 0,
-        waitingOnMember: 0,
-        assignedToMe: 0,
-        needsAction: 0,
-      },
-      prioritized: [],
-      stats: { intake: 0, verification: 0, processing: 0, negotiation: 0, legal: 0, completed: 0 },
-      assignees: [],
-      unassignedSummary: { countOpen: 0, countNeedsAction: 0 },
-      meSummary: { countOpen: 0, countNeedsAction: 0 },
-      fetchedAt: new Date().toISOString(),
-      hasMore: false,
-    };
+    return emptyOpsCenterResponse();
   }
 }

@@ -1,18 +1,25 @@
-import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { CashVerificationRequestDTO, VerificationView } from '../types';
+import { resolveVerificationReadScope, type VerificationReadContext } from './read-access';
 
 // 1. Query: Get Verification Requests (Queue or History)
 // OPS-GRADE: Strict tenant + RBAC scoping + Search + Pagination(limit)
 export async function getVerificationRequests(
-  ctx: ProtectedActionContext,
+  ctx: VerificationReadContext,
   params: { view: VerificationView; query?: string }
 ): Promise<CashVerificationRequestDTO[]> {
-  const { tenantId, userRole, scope } = ctx;
+  const { tenantId, userRole } = ctx;
   const { view, query } = params;
+
+  // RBAC: resource admission before any transaction (throws FORBIDDEN for other roles)
+  const readScope = resolveVerificationReadScope(ctx);
+  // Staff/BM without a branch have no scope
+  if (readScope.kind === 'none') {
+    return [];
+  }
 
   const conditions = [
     eq(leadPaymentAttempts.tenantId, tenantId),
@@ -41,66 +48,13 @@ export async function getVerificationRequests(
     );
   }
 
-  // RBAC Filter
-  if (userRole === 'branch_manager' || userRole === 'staff') {
-    // If staff/BM, strictly limit to their branch
-    if (!scope.branchId) {
-      return [];
-    }
-    conditions.push(eq(memberLeads.branchId, scope.branchId));
+  // If staff/BM, strictly limit to their branch
+  if (readScope.kind === 'branch') {
+    conditions.push(eq(memberLeads.branchId, readScope.branchId));
   }
 
   // Verifier Alias for History Join
   const verifier = aliasedTable(user, 'verifier');
-
-  // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before verification list query
-  let queryBuilder = db
-    .select({
-      id: leadPaymentAttempts.id,
-      leadId: memberLeads.id,
-      firstName: memberLeads.firstName,
-      lastName: memberLeads.lastName,
-      email: memberLeads.email,
-      amount: leadPaymentAttempts.amount,
-      currency: leadPaymentAttempts.currency,
-      status: leadPaymentAttempts.status,
-      isResubmission: leadPaymentAttempts.isResubmission,
-      createdAt: leadPaymentAttempts.createdAt,
-      updatedAt: leadPaymentAttempts.updatedAt,
-      // Branch Info
-      branchId: branches.id,
-      branchCode: branches.code,
-      branchName: branches.name,
-      // Agent Info
-      agentId: user.id, // Original 'user' table is Agent via join below
-      agentName: user.name,
-      agentEmail: user.email,
-      // Document Info
-      documentId: documents.id,
-      documentPath: documents.storagePath,
-      // Audit Info
-      verificationNote: leadPaymentAttempts.verificationNote,
-      verifierName: view === 'history' ? verifier.name : sql<null>`null`,
-    })
-    .from(leadPaymentAttempts)
-    .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
-    .innerJoin(branches, eq(memberLeads.branchId, branches.id))
-    .innerJoin(user, eq(memberLeads.agentId, user.id)) // Join agent
-    .leftJoin(
-      documents,
-      and(
-        eq(documents.entityId, leadPaymentAttempts.id),
-        eq(documents.entityType, 'payment_attempt'),
-        eq(documents.tenantId, tenantId),
-        isNull(documents.deletedAt)
-      )
-    );
-
-  // Conditional Join for Verifier (Only in History)
-  if (view === 'history') {
-    // Drizzle chain allows dynamic joins.
-    queryBuilder = queryBuilder.leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id));
-  }
 
   // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
   // For Resubmission: Should bubble to top?
@@ -114,10 +68,63 @@ export async function getVerificationRequests(
   // Limit: Keep UI fast
   const limit = view === 'history' ? 50 : 100;
 
-  const rows = await queryBuilder
-    .where(and(...conditions))
-    .orderBy(...orderBy)
-    .limit(limit);
+  return withTenantContext({ tenantId, role: userRole }, async tx => {
+    let queryBuilder = tx
+      .select({
+        id: leadPaymentAttempts.id,
+        leadId: memberLeads.id,
+        firstName: memberLeads.firstName,
+        lastName: memberLeads.lastName,
+        email: memberLeads.email,
+        amount: leadPaymentAttempts.amount,
+        currency: leadPaymentAttempts.currency,
+        status: leadPaymentAttempts.status,
+        isResubmission: leadPaymentAttempts.isResubmission,
+        createdAt: leadPaymentAttempts.createdAt,
+        updatedAt: leadPaymentAttempts.updatedAt,
+        // Branch Info
+        branchId: branches.id,
+        branchCode: branches.code,
+        branchName: branches.name,
+        // Agent Info
+        agentId: user.id, // Original 'user' table is Agent via join below
+        agentName: user.name,
+        agentEmail: user.email,
+        // Document Info
+        documentId: documents.id,
+        documentPath: documents.storagePath,
+        // Audit Info
+        verificationNote: leadPaymentAttempts.verificationNote,
+        verifierName: view === 'history' ? verifier.name : sql<null>`null`,
+      })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
+      .innerJoin(branches, eq(memberLeads.branchId, branches.id))
+      .innerJoin(user, eq(memberLeads.agentId, user.id)) // Join agent
+      .leftJoin(
+        documents,
+        and(
+          eq(documents.entityId, leadPaymentAttempts.id),
+          eq(documents.entityType, 'payment_attempt'),
+          eq(documents.tenantId, tenantId),
+          isNull(documents.deletedAt)
+        )
+      );
 
-  return rows as CashVerificationRequestDTO[];
+    // Conditional Join for Verifier (Only in History)
+    if (view === 'history') {
+      // Drizzle chain allows dynamic joins.
+      queryBuilder = queryBuilder.leftJoin(
+        verifier,
+        eq(leadPaymentAttempts.verifiedBy, verifier.id)
+      );
+    }
+
+    const rows = await queryBuilder
+      .where(and(...conditions))
+      .orderBy(...orderBy)
+      .limit(limit);
+
+    return rows as CashVerificationRequestDTO[];
+  });
 }

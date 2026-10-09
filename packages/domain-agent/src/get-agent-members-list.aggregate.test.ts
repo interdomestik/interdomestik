@@ -35,6 +35,8 @@ const mocks = vi.hoisted(() => {
       userId: 'claims.user_id',
     },
     db: { select: vi.fn() },
+    tx: { select: vi.fn() },
+    withTenantContext: vi.fn(),
     user: {
       id: 'user.id',
       memberNumber: 'user.member_number',
@@ -57,6 +59,7 @@ vi.mock('@interdomestik/database', () => ({
   or: mocks.or,
   sql: mocks.sql,
   user: mocks.user,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
@@ -68,7 +71,10 @@ import { getAgentMembersList } from './get-agent-members-list';
 describe('getAgentMembersList aggregate query', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.db.select.mockReturnValue(mocks.chain);
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
+    );
+    mocks.tx.select.mockReturnValue(mocks.chain);
     mocks.chain.from.mockReturnValue(mocks.chain);
     mocks.chain.innerJoin.mockReturnValue(mocks.chain);
     mocks.chain.leftJoin.mockReturnValue(mocks.chain);
@@ -82,6 +88,7 @@ describe('getAgentMembersList aggregate query', () => {
     await getAgentMembersList({
       agentId: 'agent-zero-claims',
       tenantId: 'tenant-1',
+      role: 'agent',
     });
 
     const aggregateCall = mocks.sql.mock.calls.find(([strings]) =>
@@ -99,5 +106,23 @@ describe('getAgentMembersList aggregate query', () => {
       'negotiation',
       'court',
     ]);
+  });
+
+  it('runs the aggregate through the tenant transaction with the home-tenant claim relation', async () => {
+    await getAgentMembersList({ agentId: 'agent-1', tenantId: 'tenant-mk', role: 'agent' });
+
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
+      tenantId: 'tenant-mk',
+      role: 'agent',
+    });
+    expect(mocks.tx.select).toHaveBeenCalledTimes(1);
+    expect(mocks.db.select).not.toHaveBeenCalled();
+    expect(mocks.chain.leftJoin).toHaveBeenCalledWith(mocks.claims, {
+      conditions: [
+        { left: mocks.claims.userId, right: mocks.user.id },
+        { left: mocks.claims.tenantId, right: mocks.agentClients.tenantId },
+      ],
+    });
   });
 });

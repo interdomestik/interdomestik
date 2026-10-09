@@ -1,5 +1,4 @@
-import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { aliasedTable, and, desc, eq, isNull } from 'drizzle-orm';
@@ -8,14 +7,19 @@ import {
   CashVerificationRequestDTO,
   VerificationTimelineEvent,
 } from '../types';
+import { resolveVerificationReadScope, type VerificationReadContext } from './read-access';
 
 type VerificationDetailsRow = Omit<CashVerificationRequestDTO, 'documentId' | 'documentPath'>;
 
 export async function getVerificationRequestDetails(
-  ctx: ProtectedActionContext,
+  ctx: VerificationReadContext,
   attemptId: string
 ): Promise<CashVerificationDetailsDTO | null> {
-  const { tenantId, userRole, scope } = ctx;
+  const { tenantId, userRole } = ctx;
+
+  // RBAC: resource admission before any transaction (throws FORBIDDEN for other roles)
+  const readScope = resolveVerificationReadScope(ctx);
+  if (readScope.kind === 'none') return null;
 
   const verifier = aliasedTable(user, 'verifier');
 
@@ -24,75 +28,81 @@ export async function getVerificationRequestDetails(
     eq(leadPaymentAttempts.tenantId, tenantId),
   ];
 
-  if (userRole === 'staff' || userRole === 'branch_manager') {
-    if (!scope.branchId) return null;
-    conditions.push(eq(memberLeads.branchId, scope.branchId));
+  if (readScope.kind === 'branch') {
+    conditions.push(eq(memberLeads.branchId, readScope.branchId));
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before verification details query
-  const [row] = (await db
-    .select({
-      id: leadPaymentAttempts.id,
-      leadId: memberLeads.id,
-      firstName: memberLeads.firstName,
-      lastName: memberLeads.lastName,
-      email: memberLeads.email,
-      amount: leadPaymentAttempts.amount,
-      currency: leadPaymentAttempts.currency,
-      status: leadPaymentAttempts.status,
-      isResubmission: leadPaymentAttempts.isResubmission,
-      createdAt: leadPaymentAttempts.createdAt,
-      updatedAt: leadPaymentAttempts.updatedAt,
-      branchId: branches.id,
-      branchCode: branches.code,
-      branchName: branches.name,
-      agentId: user.id,
-      agentName: user.name,
-      agentEmail: user.email,
-      verificationNote: leadPaymentAttempts.verificationNote,
-      verifierName: verifier.name,
-    })
-    .from(leadPaymentAttempts)
-    .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
-    .innerJoin(branches, eq(memberLeads.branchId, branches.id))
-    .innerJoin(user, eq(memberLeads.agentId, user.id))
-    .leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id))
-    .where(and(...conditions))) as VerificationDetailsRow[];
+  const records = await withTenantContext({ tenantId, role: userRole }, async tx => {
+    const [row] = (await tx
+      .select({
+        id: leadPaymentAttempts.id,
+        leadId: memberLeads.id,
+        firstName: memberLeads.firstName,
+        lastName: memberLeads.lastName,
+        email: memberLeads.email,
+        amount: leadPaymentAttempts.amount,
+        currency: leadPaymentAttempts.currency,
+        status: leadPaymentAttempts.status,
+        isResubmission: leadPaymentAttempts.isResubmission,
+        createdAt: leadPaymentAttempts.createdAt,
+        updatedAt: leadPaymentAttempts.updatedAt,
+        branchId: branches.id,
+        branchCode: branches.code,
+        branchName: branches.name,
+        agentId: user.id,
+        agentName: user.name,
+        agentEmail: user.email,
+        verificationNote: leadPaymentAttempts.verificationNote,
+        verifierName: verifier.name,
+      })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
+      .innerJoin(branches, eq(memberLeads.branchId, branches.id))
+      .innerJoin(user, eq(memberLeads.agentId, user.id))
+      .leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id))
+      .where(and(...conditions))) as VerificationDetailsRow[];
 
-  if (!row) return null;
+    // Denied or nonexistent parent: no child reads.
+    if (!row) return null;
 
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(
-      and(
-        eq(documents.entityType, 'payment_attempt'),
-        eq(documents.entityId, attemptId),
-        eq(documents.tenantId, tenantId),
-        isNull(documents.deletedAt)
+    const docs = await tx
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.entityType, 'payment_attempt'),
+          eq(documents.entityId, attemptId),
+          eq(documents.tenantId, tenantId),
+          isNull(documents.deletedAt)
+        )
       )
-    )
-    .orderBy(desc(documents.uploadedAt));
+      .orderBy(desc(documents.uploadedAt));
 
-  const logs = await db
-    .select({
-      id: auditLog.id,
-      action: auditLog.action,
-      createdAt: auditLog.createdAt,
-      metadata: auditLog.metadata,
-      actorName: user.name,
-    })
-    .from(auditLog)
-    .leftJoin(user, eq(auditLog.actorId, user.id))
-    .where(
-      and(
-        eq(auditLog.entityType, 'payment_attempt'),
-        eq(auditLog.entityId, attemptId),
-        eq(auditLog.tenantId, tenantId)
+    const logs = await tx
+      .select({
+        id: auditLog.id,
+        action: auditLog.action,
+        createdAt: auditLog.createdAt,
+        metadata: auditLog.metadata,
+        actorName: user.name,
+      })
+      .from(auditLog)
+      .leftJoin(user, eq(auditLog.actorId, user.id))
+      .where(
+        and(
+          eq(auditLog.entityType, 'payment_attempt'),
+          eq(auditLog.entityId, attemptId),
+          eq(auditLog.tenantId, tenantId)
+        )
       )
-    )
-    .orderBy(desc(auditLog.createdAt));
+      .orderBy(desc(auditLog.createdAt));
 
+    return { row, docs, logs };
+  });
+
+  if (!records) return null;
+
+  const { row, docs, logs } = records;
   const timeline: VerificationTimelineEvent[] = [];
 
   timeline.push({

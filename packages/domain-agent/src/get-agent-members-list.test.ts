@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => {
   return {
     chain,
     sql: vi.fn(),
-    select: vi.fn(),
     asc: vi.fn(value => ({ value, op: 'asc' })),
     ilike: vi.fn((column, value) => ({ column, value, op: 'ilike' })),
     or: vi.fn((...conditions) => ({ conditions, op: 'or' })),
@@ -42,7 +41,10 @@ const mocks = vi.hoisted(() => {
       updatedAt: 'user.updated_at',
       role: 'user.role',
     },
+    // The global handle must never be used; reads go through the tenant transaction.
     db: { select: vi.fn() },
+    tx: { select: vi.fn() },
+    withTenantContext: vi.fn(),
   };
 });
 
@@ -58,6 +60,7 @@ vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   sql: mocks.sql,
   user: mocks.user,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/lifecycle-read-sql', () => ({
@@ -68,7 +71,11 @@ import { getAgentMembersList } from './get-agent-members-list';
 
 describe('getAgentMembersList', () => {
   beforeEach(() => {
-    mocks.db.select.mockReturnValue(mocks.chain);
+    vi.clearAllMocks();
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx)
+    );
+    mocks.tx.select.mockReturnValue(mocks.chain);
     mocks.chain.from.mockReturnValue(mocks.chain);
     mocks.chain.innerJoin.mockReturnValue(mocks.chain);
     mocks.chain.leftJoin.mockReturnValue(mocks.chain);
@@ -93,6 +100,7 @@ describe('getAgentMembersList', () => {
     const result = await getAgentMembersList({
       agentId: 'agent-1',
       tenantId: 'tenant-1',
+      role: 'agent',
       query: 'Arb',
     });
 
@@ -124,6 +132,7 @@ describe('getAgentMembersList', () => {
     const result = await getAgentMembersList({
       agentId: 'agent-1',
       tenantId: 'tenant-1',
+      role: 'agent',
       query: '000010',
     });
 
@@ -140,6 +149,7 @@ describe('getAgentMembersList', () => {
     const result = await getAgentMembersList({
       agentId: 'agent-2',
       tenantId: 'tenant-2',
+      role: 'agent',
       query: 'zzz',
     });
 
@@ -152,10 +162,39 @@ describe('getAgentMembersList', () => {
     await getAgentMembersList({
       agentId: 'agent-3',
       tenantId: 'tenant-3',
+      role: 'agent',
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-3');
   });
+
+  it('reads inside one tenant transaction as the verified agent, never the global handle', async () => {
+    mocks.chain.limit.mockResolvedValue([]);
+
+    await getAgentMembersList({ agentId: 'agent-5', tenantId: 'tenant-mk', role: 'agent' });
+
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toStrictEqual({
+      tenantId: 'tenant-mk',
+      role: 'agent',
+    });
+    expect(mocks.tx.select).toHaveBeenCalledTimes(1);
+    expect(mocks.chain.limit).toHaveBeenCalledWith(50);
+    expect(mocks.db.select).not.toHaveBeenCalled();
+  });
+
+  it.each(['admin', 'super_admin', 'tenant_admin', 'member', null])(
+    'rejects role %j before any transaction or query',
+    async role => {
+      await expect(
+        getAgentMembersList({ agentId: 'agent-6', tenantId: 'tenant-mk', role })
+      ).rejects.toThrow('Forbidden');
+
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.tx.select).not.toHaveBeenCalled();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    }
+  );
 
   it('enforces assignee + tenant + member role scope and deterministic ordering tie-break', async () => {
     mocks.chain.limit.mockResolvedValue([]);
@@ -163,6 +202,7 @@ describe('getAgentMembersList', () => {
     await getAgentMembersList({
       agentId: 'agent-4',
       tenantId: 'tenant-4',
+      role: 'agent',
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-4');
@@ -208,10 +248,12 @@ describe('getAgentMembersList', () => {
     const esetResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent',
       tenantId: 'pilot-mk',
+      role: 'agent',
     });
     const bekimResult = await getAgentMembersList({
       agentId: 'golden_pilot_mk_agent_2',
       tenantId: 'pilot-mk',
+      role: 'agent',
     });
 
     expect(esetResult.members).toHaveLength(7);

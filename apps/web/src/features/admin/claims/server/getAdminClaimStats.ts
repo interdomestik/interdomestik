@@ -4,7 +4,9 @@ import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claims } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import * as Sentry from '@sentry/nextjs';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, sql } from 'drizzle-orm';
+
+import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 
 import type { LifecycleStats } from '../types';
 import { adminClaimsBranchCondition, type ClaimsVisibilityContext } from './claimVisibility';
@@ -18,12 +20,14 @@ const COMPLETED_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
 
 /**
  * Reads claim counts per lifecycle stage inside the caller's tenant transaction.
+ * Claims are scoped by effective access tenant (home tenant only when access is unset).
  * Errors propagate to the caller.
  */
 export async function readAdminClaimStats(
   tx: TenantTransaction,
   context: ClaimsVisibilityContext
 ): Promise<LifecycleStats> {
+  // db-access-guard: tenant-scoped -- reason: explicit access-tenant and branch predicates; callers supply their withTenantContext transaction
   const [result] = await tx
     .select({
       intake: count(sql`CASE WHEN ${claimLifecycleStatusIn(INTAKE_STATUSES)} THEN 1 END`),
@@ -36,7 +40,7 @@ export async function readAdminClaimStats(
       completed: count(sql`CASE WHEN ${claimLifecycleStatusIn(COMPLETED_STATUSES)} THEN 1 END`),
     })
     .from(claims)
-    .where(and(eq(claims.tenantId, context.tenantId), adminClaimsBranchCondition(context)));
+    .where(and(matchesAccessTenant(claims, context.tenantId), adminClaimsBranchCondition(context)));
 
   return {
     intake: Number(result?.intake ?? 0),
