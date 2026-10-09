@@ -6,9 +6,15 @@ export function installOpsBrowserGlobals(reload: () => void) {
   vi.stubGlobal(
     'ResizeObserver',
     class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe() {
+        // Layout observation is intentionally inert in these jsdom interaction tests.
+      }
+      unobserve() {
+        // No observation is registered by this test-only stub.
+      }
+      disconnect() {
+        // No observer resources are allocated by this test-only stub.
+      }
     }
   );
   Object.assign(Element.prototype, {
