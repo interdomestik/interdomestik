@@ -109,7 +109,8 @@ const RFC_5987_EXTRA_CHARS = /['()*]/g;
 export function encodeContentDispositionFilename(value: string) {
   return encodeURIComponent(value).replace(
     RFC_5987_EXTRA_CHARS,
-    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+    // The pattern matches only ASCII ['()*], so codePointAt equals charCodeAt and is defined.
+    character => `%${(character.codePointAt(0) as number).toString(16).toUpperCase()}`
   );
 }
 

@@ -25,6 +25,7 @@ test('ordinary member evidence remains downloadable only by the assigned staff a
   browser,
   staffPage,
 }, testInfo) => {
+  // Intentional: only the gate-ks-sq project can create this isolated KS fixture; others skip.
   test.skip(testInfo.project.name !== 'gate-ks-sq', 'This journey owns an isolated KS fixture');
   test.setTimeout(120_000);
   await withInformationRequestFixture(async fixture => {

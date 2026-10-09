@@ -154,6 +154,21 @@ async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
   }
 }
 
+function confirmUploadFailure(err: unknown): ConfirmUploadResult {
+  if (err instanceof ClaimDocumentUploadConflictError) {
+    return {
+      success: false,
+      error: 'Upload changed. Reload the case and check its documents.',
+      status: 409,
+    };
+  }
+  if (err instanceof InformationRequestUploadConflictError) {
+    return { success: false, error: err.message, status: 409 };
+  }
+  console.error('confirmUpload error:', err);
+  return { success: false, error: 'Failed to save document metadata', status: 500 };
+}
+
 export async function confirmUpload(params: ConfirmUploadParams): Promise<ConfirmUploadResult> {
   const {
     claimId,
@@ -251,17 +266,6 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     revalidatePathForAllLocales('/member/documents');
     return { success: true };
   } catch (err) {
-    if (err instanceof ClaimDocumentUploadConflictError) {
-      return {
-        success: false,
-        error: 'Upload changed. Reload the case and check its documents.',
-        status: 409,
-      };
-    }
-    if (err instanceof InformationRequestUploadConflictError) {
-      return { success: false, error: err.message, status: 409 };
-    }
-    console.error('confirmUpload error:', err);
-    return { success: false, error: 'Failed to save document metadata', status: 500 };
+    return confirmUploadFailure(err);
   }
 }

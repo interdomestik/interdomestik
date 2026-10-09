@@ -16,12 +16,6 @@ export { ClaimDocumentUploadConflictError } from './claim-document-upload-confli
 
 export type UploadCategory = 'evidence' | 'legal';
 
-/**
- * Trusted, server-derived role of the actor confirming an upload. Member confirmations preserve the
- * canonical member actor; other admitted upload actors retain their verified session role.
- */
-export type ClaimDocumentActorRole = string;
-
 type AiExtractionConsentCapture = {
   granted: boolean;
   locale: string;
@@ -31,10 +25,12 @@ type AiExtractionConsentCapture = {
 
 export type PersistClaimDocumentParams = {
   /**
+   * Trusted, server-derived role of the confirming actor. Member confirmations preserve the
+   * canonical member actor; other admitted upload actors retain their verified session role.
    * Required for ordinary uploads. Optional only so request-linked member writes keep their fixed
    * member transaction role; a non-member role is rejected for that member-only path.
    */
-  actorRole?: ClaimDocumentActorRole;
+  actorRole?: string;
   aiExtractionConsent?: AiExtractionConsentCapture;
   /** Trusted member-surface owner expectation; never accepted from the confirmation payload. */
   expectedClaimOwnerId?: string;
@@ -66,9 +62,7 @@ export class ClaimDocumentActorRoleError extends Error {
   }
 }
 
-function resolveMetadataTransactionRole(
-  params: PersistClaimDocumentParams
-): ClaimDocumentActorRole {
+function resolveMetadataTransactionRole(params: PersistClaimDocumentParams): string {
   if (params.informationRequestId) {
     // Request-linked evidence is a member-only write whose audit row records actorRole 'member'.
     if (params.actorRole && params.actorRole !== 'member') throw new ClaimDocumentActorRoleError();

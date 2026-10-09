@@ -40,6 +40,15 @@ import {
   SignedUploadIdentityChangedError,
 } from './use-signed-upload-retry';
 
+function uploadFailureMessage(
+  error: unknown,
+  identityChangedMessage: () => string,
+  fallback: string
+): string {
+  if (error instanceof SignedUploadIdentityChangedError) return identityChangedMessage();
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function SharedEvidenceUploadDialog({
   categoryFieldId,
   claimId,
@@ -181,11 +190,11 @@ export function SharedEvidenceUploadDialog({
       setLastFailure(true);
       console.error('Upload flow error', error);
       toast.error(
-        error instanceof SignedUploadIdentityChangedError
-          ? tClaims('uploadRecovery.identityChanged')
-          : error instanceof Error
-            ? error.message
-            : messages.uploadFailed
+        uploadFailureMessage(
+          error,
+          () => tClaims('uploadRecovery.identityChanged'),
+          messages.uploadFailed
+        )
       );
     } finally {
       signedUpload.release(attempt);
@@ -245,12 +254,15 @@ export function SharedEvidenceUploadDialog({
           ) : null}
         </div>
         {lastFailure || !signedUpload.identityMatches ? (
-          <div role="status" data-testid="upload-recovery" className="space-y-2 text-sm">
-            <p>{tClaims('uploadRecovery.description')}</p>
-            <a className="underline underline-offset-4" href={pending?.recoveryHref ?? pathname}>
+          <output data-testid="upload-recovery" className="block space-y-2 text-sm">
+            <span className="block">{tClaims('uploadRecovery.description')}</span>
+            <a
+              className="inline-block underline underline-offset-4"
+              href={pending?.recoveryHref ?? pathname}
+            >
               {tClaims('uploadRecovery.action')}
             </a>
-          </div>
+          </output>
         ) : null}
         <DialogFooter className="sm:justify-start">
           <Button

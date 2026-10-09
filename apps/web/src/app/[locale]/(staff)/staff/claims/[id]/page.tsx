@@ -24,7 +24,7 @@ import { notFound } from 'next/navigation';
 
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { OpsDocumentsPanel } from '@/components/ops';
+import { StaffClaimDocumentsSection } from './staff-claim-documents-section';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
@@ -218,37 +218,25 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         <h2 className={SECTION_HEADING} id={`${SECTION_REQUESTS}-title`}>
           {tClaims('details.workspace.requests')}
         </h2>
-        {isAssignedStaff && claimStatus === 'verification' ? (
+        {isAssignedStaff && claimStatus === 'verification' && (
           <ClaimInformationRequestForm claimId={id} />
-        ) : null}
+        )}
         <ClaimInformationRequests
           audience="staff"
           canAcknowledge={isAssignedStaff}
           claimId={id}
           requests={informationRequests}
         />
-        {assignedDocuments ? (
-          <div data-testid="staff-claim-documents">
-            <OpsDocumentsPanel
-              title={tEvidence('detail.evidence')}
-              documents={assignedDocuments.map(doc => ({
-                id: doc.id,
-                name: doc.name,
-                url: doc.url,
-              }))}
-              emptyLabel={tEvidence('detail.documentsEmpty')}
-              viewLabel={tEvidence('informationRequests.download')}
-            />
-          </div>
-        ) : isAssignedStaff ? (
-          <div data-testid="staff-claim-documents-error" role="status" className="space-y-2">
-            <h3 className="font-medium">{tEvidence('detail.evidence')}</h3>
-            <p>{tCommon('errors.generic')}</p>
-            <a className="underline" href={`/${locale}/staff/claims/${encodeURIComponent(id)}`}>
-              {tCommon('tryAgain')}
-            </a>
-          </div>
-        ) : null}
+        <StaffClaimDocumentsSection
+          documents={assignedDocuments}
+          emptyLabel={tEvidence('detail.documentsEmpty')}
+          errorLabel={tCommon('errors.generic')}
+          isAssignedStaff={isAssignedStaff}
+          retryHref={`/${locale}/staff/claims/${encodeURIComponent(id)}`}
+          retryLabel={tCommon('tryAgain')}
+          title={tEvidence('detail.evidence')}
+          viewLabel={tEvidence('informationRequests.download')}
+        />
       </section>
 
       {isStaff ? (

@@ -40,18 +40,42 @@ const fake = vi.hoisted(() => {
       }
       rowsOf(name).push({ ...values });
     };
+    // Each body runs when called and reports failure through the returned Promise, as the previous
+    // async functions did. Only the plain insert is deferred, and only until it is awaited.
+    const readTable = (name: string, predicate?: Predicate) =>
+      new Promise<Row[]>(resolve => {
+        state.reads.push({ predicate, table: name });
+        if (state.faults.selectTable === name) throw new Error(`permission denied for ${name}`);
+        resolve(
+          rowsOf(name)
+            .filter(row => matches(row, predicate))
+            .map(row => ({ ...row }))
+        );
+      });
+    const returningInserted = (name: string, values: Row) =>
+      new Promise<Row[]>(resolve => {
+        if (rowsOf(name).some(row => row.id === values.id)) {
+          resolve([]);
+          return;
+        }
+        insertRow(name, values);
+        resolve([{ id: values.id }]);
+      });
+    // Created only when the thenable is awaited; a synchronous throw becomes a rejection.
+    const deferInsert = (name: string, values: Row) =>
+      Promise.resolve().then(() => insertRow(name, values));
+    // Intentional lazy thenable modeling Drizzle's awaitable insert().values(): the plain insert
+    // runs only when awaited, and onConflictDoNothing().returning() never triggers it.
+    const insertBuilder = (name: string, values: Row) => ({
+      onConflictDoNothing: () => ({ returning: () => returningInserted(name, values) }),
+      then: (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) =>
+        deferInsert(name, values).then(resolve, reject),
+    });
     return {
       select: () => {
         let source = '';
         let predicate: Predicate | undefined;
-        const read = async () => {
-          state.reads.push({ predicate, table: source });
-          if (state.faults.selectTable === source)
-            throw new Error(`permission denied for ${source}`);
-          return rowsOf(source)
-            .filter(row => matches(row, predicate))
-            .map(row => ({ ...row }));
-        };
+        const read = () => readTable(source, predicate);
         const chain: Chain = {
           for: read,
           from: target => {
@@ -67,19 +91,7 @@ const fake = vi.hoisted(() => {
         return chain;
       },
       insert: (target: Table) => ({
-        values: (values: Row) => ({
-          onConflictDoNothing: () => ({
-            returning: async () => {
-              if (rowsOf(target.tableName).some(row => row.id === values.id)) return [];
-              insertRow(target.tableName, values);
-              return [{ id: values.id }];
-            },
-          }),
-          then: (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) =>
-            Promise.resolve()
-              .then(() => insertRow(target.tableName, values))
-              .then(resolve, reject),
-        }),
+        values: (values: Row) => insertBuilder(target.tableName, values),
       }),
     };
   };

@@ -107,12 +107,12 @@ export function useSignedUploadRetry({
   };
   const attemptRef = useRef<symbol | null>(null);
   const pendingRef = useRef<PendingSignedUpload | null>(null);
-  const [pending, setPendingState] = useState<PendingSignedUpload | null>(null);
+  const [pending, setPending] = useState<PendingSignedUpload | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const keepPending = (next: PendingSignedUpload | null) => {
     pendingRef.current = next;
-    setPendingState(next);
+    setPending(next);
   };
 
   /** Synchronous guard: admits one attempt before React commits the disabled button. */

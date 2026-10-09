@@ -109,7 +109,7 @@ vi.mock('next-intl/server', async () => {
 });
 
 vi.mock('@/features/staff/claims/server/get-assigned-claim-documents', () => ({
-  getAssignedStaffClaimDocuments: vi.fn(async () => []),
+  getAssignedStaffClaimDocuments: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
