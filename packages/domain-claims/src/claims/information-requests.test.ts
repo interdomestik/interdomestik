@@ -158,6 +158,32 @@ describe('information request contract', () => {
     ).toEqual([]);
     expect(h.transaction).not.toHaveBeenCalled();
   });
+  it.each(['staff', 'member', 'user'])('reads the explicit access tenant for %s', async role => {
+    h.rows = [[]];
+    const actor = { user: { ...session.user, role, accessTenantId: 'tenant-access' } };
+    await getInformationRequests(actor, input.claimId);
+    expect(h.transaction).toHaveBeenCalledWith(
+      { tenantId: 'tenant-access', role },
+      expect.any(Function)
+    );
+    expect(h.insert).not.toHaveBeenCalled();
+  });
+
+  it('accepts access-only sessions and denies a session with neither tenant before querying', async () => {
+    h.rows = [[]];
+    const actor = { user: { ...session.user, tenantId: null, accessTenantId: 'tenant-access' } };
+    await getInformationRequests(actor, input.claimId);
+    expect(h.transaction).toHaveBeenCalledWith(
+      { tenantId: 'tenant-access', role: 'staff' },
+      expect.any(Function)
+    );
+    h.transaction.mockClear();
+    await expect(
+      getInformationRequests({ user: { ...session.user, tenantId: null } }, input.claimId)
+    ).resolves.toEqual([]);
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
   it('groups request-linked evidence and derives explicit acknowledgement progress', async () => {
     h.rows = [
       [

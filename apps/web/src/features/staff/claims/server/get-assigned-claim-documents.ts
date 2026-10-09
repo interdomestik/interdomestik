@@ -1,6 +1,11 @@
-import { claimDocuments, claims, withTenantContext } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimInformationRequestEvidence,
+  claims,
+  withTenantContext,
+} from '@interdomestik/database';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 
 export type AssignedStaffClaimDocument = {
   fileSize: number;
@@ -63,7 +68,21 @@ export async function getAssignedStaffClaimDocuments(args: {
         fileSize: claimDocuments.fileSize,
       })
       .from(claimDocuments)
-      .where(and(eq(claimDocuments.claimId, assignment.id), eq(claimDocuments.tenantId, tenantId)))
+      .leftJoin(
+        claimInformationRequestEvidence,
+        and(
+          eq(claimInformationRequestEvidence.tenantId, tenantId),
+          eq(claimInformationRequestEvidence.claimId, assignment.id),
+          eq(claimInformationRequestEvidence.documentId, claimDocuments.id)
+        )
+      )
+      .where(
+        and(
+          eq(claimDocuments.claimId, assignment.id),
+          eq(claimDocuments.tenantId, tenantId),
+          isNull(claimInformationRequestEvidence.documentId)
+        )
+      )
       .orderBy(desc(claimDocuments.createdAt));
 
     return rows.map(row => ({

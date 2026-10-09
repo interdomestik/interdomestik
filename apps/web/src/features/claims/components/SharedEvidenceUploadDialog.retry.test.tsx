@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SignedUploadIdentityChangedError } from './use-signed-upload-retry';
 import { SharedEvidenceUploadDialog } from './SharedEvidenceUploadDialog';
 
 const mocks = vi.hoisted(() => ({
@@ -141,6 +142,36 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
       expect.objectContaining({ documentId: 'file-id', documentName: 'evidence.pdf' })
     );
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Uploaded');
+  });
+
+  it('localizes identity-change recovery without claiming a saved upload', async () => {
+    mocks.confirmUpload.mockRejectedValueOnce(new SignedUploadIdentityChangedError());
+    openDialog();
+    prepareDraft();
+    clickUpload();
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith('uploadRecovery.identityChanged')
+    );
+    expect(screen.getByTestId('upload-recovery')).toBeVisible();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+  });
+
+  it('offers the original-page recovery after a direct response is lost without claiming deduplication', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('Response lost')));
+    openDialog();
+    fireEvent.change(screen.getByLabelText('File'), {
+      target: { files: [new File(['image'], 'evidence.heic', { type: 'image/heic' })] },
+    });
+    clickUpload();
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Response lost'));
+    expect(screen.getByRole('link', { name: 'uploadRecovery.action' })).toHaveAttribute(
+      'href',
+      '/en/member/claims/claim-1'
+    );
+    expect(mocks.generateUploadUrl).not.toHaveBeenCalled();
+    expect(mocks.confirmUpload).not.toHaveBeenCalled();
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it('admits a single intent, transfer, and confirm for rapid clicks while pending', async () => {

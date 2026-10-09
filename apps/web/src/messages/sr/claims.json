@@ -1,9 +1,10 @@
 {
-  "uploadRecovery": {
-    "description": "Документ је можда већ сачуван. Поновни покушај користи исту датотеку. Ако се не заврши, поново учитајте првобитну страницу и проверите документе пре новог отпремања.",
-    "action": "Учитај првобитну страницу и провери документе"
-  },
   "claims": {
+    "uploadRecovery": {
+      "identityChanged": "Vratite se na prvobitni predmet da biste razrešili ovo otpremanje.",
+      "description": "Zadržite trenutnu datoteku pri ponovnom pokušaju. Ako otpremanje ne može da se završi, ponovo učitajte prvobitnu stranicu i proverite dokumente pre novog otpremanja.",
+      "action": "Учитај првобитну страницу и провери документе"
+    },
     "title": "Moji Zahtevi",
     "description": "Upravljajte svojim zahtevima za odštetu i pratite njihov status.",
     "new": "Novi Zahtev",

@@ -37,6 +37,7 @@ import {
   type SignedStorageUploader,
   type SignedUploadDraft,
   useSignedUploadRetry,
+  SignedUploadIdentityChangedError,
 } from './use-signed-upload-retry';
 
 export function SharedEvidenceUploadDialog({
@@ -179,7 +180,13 @@ export function SharedEvidenceUploadDialog({
     } catch (error) {
       setLastFailure(true);
       console.error('Upload flow error', error);
-      toast.error(error instanceof Error ? error.message : messages.uploadFailed);
+      toast.error(
+        error instanceof SignedUploadIdentityChangedError
+          ? tClaims('uploadRecovery.identityChanged')
+          : error instanceof Error
+            ? error.message
+            : messages.uploadFailed
+      );
     } finally {
       signedUpload.release(attempt);
     }
@@ -237,10 +244,10 @@ export function SharedEvidenceUploadDialog({
             />
           ) : null}
         </div>
-        {pending && (lastFailure || !signedUpload.identityMatches) ? (
+        {lastFailure || !signedUpload.identityMatches ? (
           <div role="status" data-testid="upload-recovery" className="space-y-2 text-sm">
             <p>{tClaims('uploadRecovery.description')}</p>
-            <a className="underline underline-offset-4" href={pending.recoveryHref}>
+            <a className="underline underline-offset-4" href={pending?.recoveryHref ?? pathname}>
               {tClaims('uploadRecovery.action')}
             </a>
           </div>

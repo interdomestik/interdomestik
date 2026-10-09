@@ -27,6 +27,13 @@ export class SignedUploadRetryError extends Error {
   }
 }
 
+export class SignedUploadIdentityChangedError extends SignedUploadRetryError {
+  constructor() {
+    super('Return to the original case to resolve this upload.', 409);
+    this.name = 'SignedUploadIdentityChangedError';
+  }
+}
+
 export type SignedUploadConfirmation = Readonly<Parameters<ConfirmUploadFn>[0]>;
 
 export type SignedUploadTarget = Readonly<{
@@ -95,7 +102,7 @@ export function useSignedUploadRetry({
     confirmation.informationRequestId === identityRef.current.informationRequestId;
   const assertCurrentIdentity = (confirmation: SignedUploadConfirmation) => {
     if (!matchesCurrentIdentity(confirmation)) {
-      throw new SignedUploadRetryError('Return to the original case to resolve this upload.', 409);
+      throw new SignedUploadIdentityChangedError();
     }
   };
   const attemptRef = useRef<symbol | null>(null);

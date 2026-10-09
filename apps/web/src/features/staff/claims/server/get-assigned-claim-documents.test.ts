@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type QueryChain = {
   from: (table: unknown) => QueryChain;
+  leftJoin: (table: unknown, predicate: unknown) => QueryChain;
   limit: (count: number) => Promise<unknown[]>;
   orderBy: (order: unknown) => Promise<unknown[]>;
   where: (predicate: unknown) => QueryChain;
@@ -15,6 +16,7 @@ type StaffUser = {
 
 const hoisted = vi.hoisted(() => ({
   froms: [] as unknown[],
+  joins: [] as unknown[],
   limit: vi.fn(),
   orderBy: vi.fn(),
   selections: [] as unknown[],
@@ -34,6 +36,11 @@ vi.mock('@interdomestik/database', () => ({
     name: 'claim_documents.name',
     tenantId: 'claim_documents.tenant_id',
   },
+  claimInformationRequestEvidence: {
+    tenantId: 'link.tenant_id',
+    claimId: 'link.claim_id',
+    documentId: 'link.document_id',
+  },
   claims: { id: 'claims.id', staffId: 'claims.staff_id', tenantId: 'claims.tenant_id' },
   withTenantContext: hoisted.withTenantContext,
 }));
@@ -42,6 +49,7 @@ vi.mock('drizzle-orm', () => ({
   and: (...args: unknown[]) => ({ op: 'and', args }),
   desc: (column: unknown) => ({ op: 'desc', column }),
   eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
+  isNull: (column: unknown) => ({ op: 'isNull', column }),
 }));
 
 import { getAssignedStaffClaimDocuments } from './get-assigned-claim-documents';
@@ -52,6 +60,10 @@ const tx = {
     const chain: QueryChain = {
       from: table => {
         hoisted.froms.push(table);
+        return chain;
+      },
+      leftJoin: (table, predicate) => {
+        hoisted.joins.push({ table, predicate });
         return chain;
       },
       limit: hoisted.limit,
@@ -76,7 +88,8 @@ function read(session = staff()) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  for (const list of [hoisted.froms, hoisted.selections, hoisted.wheres]) list.length = 0;
+  for (const list of [hoisted.froms, hoisted.selections, hoisted.wheres, hoisted.joins])
+    list.length = 0;
   hoisted.withTenantContext.mockImplementation(
     async (_context: unknown, action: (handle: typeof tx) => Promise<unknown>) => action(tx)
   );
@@ -138,8 +151,21 @@ describe('getAssignedStaffClaimDocuments', () => {
         args: [
           { op: 'eq', left: 'claim_documents.claim_id', right: 'claim-1' },
           { op: 'eq', left: 'claim_documents.tenant_id', right: 'tenant-a' },
+          { op: 'isNull', column: 'link.document_id' },
         ],
       },
+    ]);
+    expect(hoisted.joins).toEqual([
+      expect.objectContaining({
+        predicate: {
+          op: 'and',
+          args: [
+            { op: 'eq', left: 'link.tenant_id', right: 'tenant-a' },
+            { op: 'eq', left: 'link.claim_id', right: 'claim-1' },
+            { op: 'eq', left: 'link.document_id', right: 'claim_documents.id' },
+          ],
+        },
+      }),
     ]);
     expect(hoisted.orderBy).toHaveBeenCalledWith({
       op: 'desc',

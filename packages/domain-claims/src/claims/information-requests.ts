@@ -10,6 +10,7 @@ import {
   withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 import type { ClaimsSession } from './types';
 
@@ -102,8 +103,13 @@ export async function createInformationRequest(
 /** Both reads are ownership-scoped, including when a caller supplies another claim ID. */
 export async function getInformationRequests(session: ClaimsSession | null, claimId: string) {
   const actor = session?.user;
-  if (!actor?.tenantId || !['staff', 'member', 'user'].includes(actor.role ?? '')) return [];
-  const tenantId = actor.tenantId;
+  if (!actor || !['staff', 'member', 'user'].includes(actor.role ?? '')) return [];
+  let tenantId: string;
+  try {
+    tenantId = ensureAccessTenantId(session!);
+  } catch {
+    return [];
+  }
   return withTenantContext({ tenantId, role: actor.role! }, async tx => {
     const rows = await tx
       // Public projection excludes private correlation and staff identity.

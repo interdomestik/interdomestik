@@ -248,7 +248,7 @@ export async function persistClaimDocumentMetadata(
         })
       : await insertOrdinaryDocument(tx, params);
     // An exact replay of an already committed upload adds no consent row; callers skip AI queueing
-    // for false, so the original commit's consent and workflows remain authoritative.
+    // for false. The committed consent is retained; a replay does not repair a missed AI queue step.
     if (!created) return false;
 
     if (params.aiExtractionConsent?.granted === true) {
