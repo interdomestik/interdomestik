@@ -8,6 +8,7 @@ import {
   isNull,
   withTenantContext,
 } from '@interdomestik/database';
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -29,7 +30,11 @@ export async function acknowledgeInformationRequestEvidence(
   session: ClaimsSession | null,
   input: unknown
 ): Promise<AcknowledgeInformationRequestEvidenceResult> {
-  if (session?.user.role !== 'staff' || !session.user.tenantId) {
+  if (session?.user.role !== 'staff') return { success: false, error: 'access_denied' };
+  let tenantId: string;
+  try {
+    tenantId = ensureAccessTenantId(session);
+  } catch {
     return { success: false, error: 'access_denied' };
   }
   const parsed = acknowledgeInformationRequestEvidenceInput.safeParse(input);
@@ -37,7 +42,6 @@ export async function acknowledgeInformationRequestEvidence(
 
   const data = parsed.data;
   const actorId = session.user.id;
-  const tenantId = session.user.tenantId;
   return withTenantContext({ tenantId, role: 'staff' }, async tx => {
     const [claim] = await tx
       .select({ staffId: claims.staffId })

@@ -121,3 +121,29 @@ describe('information request evidence acknowledgement', () => {
     expect(h.auditValues).not.toHaveBeenCalled();
   });
 });
+
+it.each([
+  { tenantId: 'tenant-home', accessTenantId: 'tenant-access' },
+  { tenantId: null, accessTenantId: 'tenant-access' },
+])('uses the verified access tenant for assigned-staff writes %j', async tenant => {
+  const actor = { user: { ...staffSession.user, ...tenant } };
+  const result = await acknowledgeInformationRequestEvidence(actor, input);
+  expect(result.success).toBe(true);
+  expect(h.transaction).toHaveBeenCalledWith(
+    { tenantId: 'tenant-access', role: 'staff' },
+    expect.any(Function)
+  );
+  expect(h.auditValues).toHaveBeenCalledWith(
+    expect.objectContaining({ tenantId: 'tenant-access' })
+  );
+});
+
+it('denies whitespace-only tenant scope before any transaction', async () => {
+  await expect(
+    acknowledgeInformationRequestEvidence(
+      { user: { ...staffSession.user, tenantId: ' ', accessTenantId: ' ' } },
+      input
+    )
+  ).resolves.toEqual({ success: false, error: 'access_denied' });
+  expect(h.transaction).not.toHaveBeenCalled();
+});

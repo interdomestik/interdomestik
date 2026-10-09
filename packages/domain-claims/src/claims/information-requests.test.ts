@@ -232,3 +232,29 @@ describe('information request contract', () => {
     ]);
   });
 });
+
+it.each([
+  { tenantId: 'tenant-home', accessTenantId: 'tenant-access' },
+  { tenantId: null, accessTenantId: 'tenant-access' },
+])('uses the verified access tenant for assigned-staff writes %j', async tenant => {
+  const actor = { user: { ...session.user, ...tenant } };
+  const result = await createInformationRequest(actor, input);
+  expect(result.success).toBe(true);
+  expect(h.transaction).toHaveBeenCalledWith(
+    { tenantId: 'tenant-access', role: 'staff' },
+    expect.any(Function)
+  );
+  expect(h.insert.mock.results[0].value.values).toHaveBeenCalledWith(
+    expect.objectContaining({ tenantId: 'tenant-access' })
+  );
+});
+
+it('denies whitespace-only tenant scope before any transaction', async () => {
+  await expect(
+    createInformationRequest(
+      { user: { ...session.user, tenantId: ' ', accessTenantId: ' ' } },
+      input
+    )
+  ).resolves.toEqual({ success: false, error: 'access_denied' });
+  expect(h.transaction).not.toHaveBeenCalled();
+});

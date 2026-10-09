@@ -39,13 +39,16 @@ export async function createInformationRequest(
   session: ClaimsSession | null,
   input: unknown
 ): Promise<InformationRequestResult> {
-  if (session?.user.role !== 'staff' || !session.user.tenantId) {
+  if (session?.user.role !== 'staff') return { success: false, error: 'access_denied' };
+  let tenantId: string;
+  try {
+    tenantId = ensureAccessTenantId(session);
+  } catch {
     return { success: false, error: 'access_denied' };
   }
   const parsed = informationRequestInput.safeParse(input);
   if (!parsed.success) return { success: false, error: 'invalid_input' };
   const data = parsed.data;
-  const tenantId = session.user.tenantId;
   const actorId = session.user.id;
   return withTenantContext({ tenantId, role: 'staff' }, async tx => {
     const [claim] = await tx
