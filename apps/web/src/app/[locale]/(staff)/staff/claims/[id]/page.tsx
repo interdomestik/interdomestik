@@ -1,3 +1,4 @@
+import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
@@ -23,9 +24,11 @@ import { notFound } from 'next/navigation';
 
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { OpsDocumentsPanel } from '@/components/ops';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
+import { getAssignedStaffClaimDocuments } from '@/features/staff/claims/server/get-assigned-claim-documents';
 import { getPublicStatusHistoryCore } from './_core';
 
 interface PageProps {
@@ -44,6 +47,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   setRequestLocale(locale);
   const tClaims = await getTranslations('agent-claims.claims');
   const tStatus = await getTranslations('claims-tracking.status');
+  const tEvidence = await getTranslations('claims');
+  const tCommon = await getTranslations('common');
 
   const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimDetailsPage'), locale);
   // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.
@@ -51,11 +56,18 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
+  let tenantId: string;
+  try {
+    tenantId = ensureAccessTenantId(session);
+  } catch {
+    return notFound();
+  }
+
   const detail = await getStaffClaimDetail({
     branchId: session.user.branchId ?? null,
     claimId: id,
     staffId: session.user.id,
-    tenantId: session.user.tenantId,
+    tenantId,
   });
 
   if (!detail) return notFound();
@@ -63,12 +75,12 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
     getPublicStatusHistoryCore({
       claimId: id,
-      tenantId: session.user.tenantId,
+      tenantId,
     }),
     session.user.role === 'staff'
       ? getStaffAssignmentOptions({
           branchId: session.user.branchId ?? null,
-          tenantId: session.user.tenantId,
+          tenantId,
         })
       : Promise.resolve([]),
     session.user.role === 'staff'
@@ -94,6 +106,11 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     initialMessagesResult.success === true &&
     Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
   const initialReadFailed = isStaff && !serverReadSucceeded;
+  // Ordinary case evidence for the currently assigned staff only. The reader re-checks the staff
+  // role and exact assignment inside the tenant transaction; failure stays distinct from empty.
+  const assignedDocuments = isAssignedStaff
+    ? await getAssignedStaffClaimDocuments({ claimId: id, session }).catch(() => null)
+    : null;
   // Phase derivation stays operative; only this route's generic verification copy is neutral so it
   // never implies an outstanding member duty. The request card remains the source of real duties.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
@@ -210,6 +227,28 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           claimId={id}
           requests={informationRequests}
         />
+        {assignedDocuments ? (
+          <div data-testid="staff-claim-documents">
+            <OpsDocumentsPanel
+              title={tEvidence('detail.evidence')}
+              documents={assignedDocuments.map(doc => ({
+                id: doc.id,
+                name: doc.name,
+                url: doc.url,
+              }))}
+              emptyLabel={tEvidence('detail.documentsEmpty')}
+              viewLabel={tEvidence('informationRequests.download')}
+            />
+          </div>
+        ) : isAssignedStaff ? (
+          <div data-testid="staff-claim-documents-error" role="status" className="space-y-2">
+            <h3 className="font-medium">{tEvidence('detail.evidence')}</h3>
+            <p>{tCommon('errors.generic')}</p>
+            <a className="underline" href={`/${locale}/staff/claims/${encodeURIComponent(id)}`}>
+              {tCommon('tryAgain')}
+            </a>
+          </div>
+        ) : null}
       </section>
 
       {isStaff ? (

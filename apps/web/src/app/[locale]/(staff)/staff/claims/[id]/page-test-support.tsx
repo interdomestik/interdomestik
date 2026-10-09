@@ -71,6 +71,11 @@ const hoisted = vi.hoisted(() => ({
   ),
   getStaffAssignmentOptionsMock: vi.fn(() => Promise.resolve([])),
   getMessagesForClaimCoreMock: vi.fn(() => Promise.resolve({ success: true, messages: [] })),
+  getAssignedStaffClaimDocumentsMock: vi.fn(
+    (): Promise<
+      Array<{ fileSize: number; fileType: string; id: string; name: string; url: string }>
+    > => Promise.resolve([])
+  ),
   messagingPanelMock: vi.fn(
     ({
       allowInternal,
@@ -217,6 +222,10 @@ vi.mock('./_core', () => ({
 
 vi.mock('@/features/staff/claims/assignment-options', () => ({
   getStaffAssignmentOptions: hoisted.getStaffAssignmentOptionsMock,
+}));
+
+vi.mock('@/features/staff/claims/server/get-assigned-claim-documents', () => ({
+  getAssignedStaffClaimDocuments: hoisted.getAssignedStaffClaimDocumentsMock,
 }));
 
 vi.mock('@/actions/messages/get.core', () => ({

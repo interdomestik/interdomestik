@@ -1,4 +1,8 @@
 {
+  "uploadRecovery": {
+    "description": "This upload may already be saved. Retry keeps the same file. If retry cannot complete, reload the original page and check its documents before starting another upload.",
+    "action": "Reload original page and check documents"
+  },
   "claims": {
     "title": "My Claims",
     "description": "Manage your consumer complaints and track their status.",

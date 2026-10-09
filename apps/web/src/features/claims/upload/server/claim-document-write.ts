@@ -6,14 +6,21 @@ import {
   claimInformationRequestEvidence,
   claimInformationRequests,
   claims,
-  db,
   eq,
   type TenantTransaction,
   withTenantContext,
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
+import { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
+export { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
 
 export type UploadCategory = 'evidence' | 'legal';
+
+/**
+ * Trusted, server-derived role of the actor confirming an upload. Member confirmations preserve the
+ * canonical member actor; other admitted upload actors retain their verified session role.
+ */
+export type ClaimDocumentActorRole = string;
 
 type AiExtractionConsentCapture = {
   granted: boolean;
@@ -23,7 +30,14 @@ type AiExtractionConsentCapture = {
 };
 
 export type PersistClaimDocumentParams = {
+  /**
+   * Required for ordinary uploads. Optional only so request-linked member writes keep their fixed
+   * member transaction role; a non-member role is rejected for that member-only path.
+   */
+  actorRole?: ClaimDocumentActorRole;
   aiExtractionConsent?: AiExtractionConsentCapture;
+  /** Trusted member-surface owner expectation; never accepted from the confirmation payload. */
+  expectedClaimOwnerId?: string;
   category: UploadCategory;
   claimId: string;
   fileId: string;
@@ -45,6 +59,40 @@ export class InformationRequestUploadConflictError extends Error {
   }
 }
 
+export class ClaimDocumentActorRoleError extends Error {
+  constructor() {
+    super('A trusted upload actor role is required to persist claim document metadata.');
+    this.name = 'ClaimDocumentActorRoleError';
+  }
+}
+
+function resolveMetadataTransactionRole(
+  params: PersistClaimDocumentParams
+): ClaimDocumentActorRole {
+  if (params.informationRequestId) {
+    // Request-linked evidence is a member-only write whose audit row records actorRole 'member'.
+    if (params.actorRole && params.actorRole !== 'member') throw new ClaimDocumentActorRoleError();
+    return 'member';
+  }
+  if (!params.actorRole) throw new ClaimDocumentActorRoleError();
+  return params.actorRole;
+}
+
+function documentValues(params: PersistClaimDocumentParams) {
+  return {
+    id: params.fileId,
+    tenantId: params.tenantId,
+    claimId: params.claimId,
+    name: params.originalName,
+    filePath: params.storagePath,
+    fileType: params.mimeType,
+    fileSize: params.fileSize,
+    bucket: params.resolvedBucket,
+    category: params.category,
+    uploadedBy: params.userId,
+  };
+}
+
 function matchesExistingDocument(
   row: typeof claimDocuments.$inferSelect,
   params: PersistClaimDocumentParams
@@ -60,6 +108,60 @@ function matchesExistingDocument(
     row.category === params.category &&
     row.uploadedBy === params.userId
   );
+}
+
+/**
+ * Reads only the caller's own document for this exact tenant, claim, and uploader. A row with the
+ * same id outside that scope reads as absent, so the replay fails closed without exposing it.
+ */
+async function existingDocumentMatches(
+  tx: TenantTransaction,
+  params: PersistClaimDocumentParams
+): Promise<boolean> {
+  const [existingDocument] = await tx
+    .select()
+    .from(claimDocuments)
+    .where(
+      and(
+        eq(claimDocuments.id, params.fileId),
+        eq(claimDocuments.tenantId, params.tenantId),
+        eq(claimDocuments.claimId, params.claimId),
+        eq(claimDocuments.uploadedBy, params.userId)
+      )
+    )
+    .limit(1);
+  return Boolean(existingDocument && matchesExistingDocument(existingDocument, params));
+}
+
+async function insertOrdinaryDocument(
+  tx: TenantTransaction,
+  params: PersistClaimDocumentParams
+): Promise<boolean> {
+  if (params.expectedClaimOwnerId !== undefined) {
+    const [claim] = await tx
+      .select({ userId: claims.userId })
+      .from(claims)
+      .where(and(eq(claims.id, params.claimId), eq(claims.tenantId, params.tenantId)))
+      .for('update');
+    if (
+      claim?.userId !== params.expectedClaimOwnerId ||
+      params.userId !== params.expectedClaimOwnerId
+    ) {
+      throw new ClaimDocumentUploadConflictError();
+    }
+  }
+  // db-access-guard: tenant-scoped -- reason: document metadata copies tenant, claim, and uploader scope from the validated upload session.
+  const [created] = await tx
+    .insert(claimDocuments)
+    .values(documentValues(params))
+    .onConflictDoNothing({ target: claimDocuments.id })
+    .returning({ id: claimDocuments.id });
+  if (created) return true;
+
+  // Each signed intent mints its own id, so an existing row is either this exact upload already
+  // committed behind a lost response (settled as not created) or a conflict that is never overwritten.
+  if (await existingDocumentMatches(tx, params)) return false;
+  throw new ClaimDocumentUploadConflictError();
 }
 
 async function insertRequestLinkedDocument(
@@ -90,33 +192,12 @@ async function insertRequestLinkedDocument(
   // db-access-guard: tenant-scoped -- reason: document values use the tenant validated by the locked claim and open request reads above.
   const [created] = await tx
     .insert(claimDocuments)
-    .values({
-      id: params.fileId,
-      tenantId: params.tenantId,
-      claimId: params.claimId,
-      name: params.originalName,
-      filePath: params.storagePath,
-      fileType: params.mimeType,
-      fileSize: params.fileSize,
-      bucket: params.resolvedBucket,
-      category: params.category,
-      uploadedBy: params.userId,
-    })
+    .values(documentValues(params))
     .onConflictDoNothing({ target: claimDocuments.id })
     .returning({ id: claimDocuments.id });
 
   if (!created) {
-    const [existingDocument] = await tx
-      .select()
-      .from(claimDocuments)
-      .where(
-        and(
-          eq(claimDocuments.id, params.fileId),
-          eq(claimDocuments.tenantId, params.tenantId),
-          eq(claimDocuments.claimId, params.claimId)
-        )
-      )
-      .limit(1);
+    const documentMatches = await existingDocumentMatches(tx, params);
     const [existingLink] = await tx
       .select({ requestId: claimInformationRequestEvidence.requestId })
       .from(claimInformationRequestEvidence)
@@ -128,11 +209,7 @@ async function insertRequestLinkedDocument(
         )
       )
       .limit(1);
-    if (
-      existingDocument &&
-      matchesExistingDocument(existingDocument, params) &&
-      existingLink?.requestId === params.informationRequestId
-    ) {
+    if (documentMatches && existingLink?.requestId === params.informationRequestId) {
       return false;
     }
     throw new InformationRequestUploadConflictError();
@@ -164,27 +241,15 @@ export async function persistClaimDocumentMetadata(
   params: PersistClaimDocumentParams
 ): Promise<boolean> {
   const persist = async (tx: TenantTransaction): Promise<boolean> => {
-    if (params.informationRequestId) {
-      const created = await insertRequestLinkedDocument(tx, {
-        ...params,
-        informationRequestId: params.informationRequestId,
-      });
-      if (!created) return false;
-    } else {
-      // db-access-guard: tenant-scoped -- reason: document metadata copies tenant, claim, and uploader scope from the validated upload session.
-      await tx.insert(claimDocuments).values({
-        id: params.fileId,
-        tenantId: params.tenantId,
-        claimId: params.claimId,
-        name: params.originalName,
-        filePath: params.storagePath,
-        fileType: params.mimeType,
-        fileSize: params.fileSize,
-        bucket: params.resolvedBucket,
-        category: params.category,
-        uploadedBy: params.userId,
-      });
-    }
+    const created = params.informationRequestId
+      ? await insertRequestLinkedDocument(tx, {
+          ...params,
+          informationRequestId: params.informationRequestId,
+        })
+      : await insertOrdinaryDocument(tx, params);
+    // An exact replay of an already committed upload adds no consent row; callers skip AI queueing
+    // for false, so the original commit's consent and workflows remain authoritative.
+    if (!created) return false;
 
     if (params.aiExtractionConsent?.granted === true) {
       const now = new Date();
@@ -209,10 +274,10 @@ export async function persistClaimDocumentMetadata(
     return true;
   };
 
-  if (params.informationRequestId) {
-    return withTenantContext({ tenantId: params.tenantId, role: 'member' }, persist);
-  }
-
-  // db-access-guard: tenant-scoped -- reason: ordinary upload transaction writes only document metadata and optional consent rows scoped by validated tenant, user, claim, and document ids.
-  return db.transaction(persist);
+  // Resolve the trusted role before any transaction opens so a missing or mismatched role fails
+  // without partial writes. Ordinary and request-linked writes share one tenant-bound transaction
+  // with the optional consent row, so either both persist or neither does.
+  const role = resolveMetadataTransactionRole(params);
+  // db-access-guard: tenant-scoped -- reason: metadata and consent writes run under the validated tenant context and trusted actor role.
+  return withTenantContext({ tenantId: params.tenantId, role }, persist);
 }

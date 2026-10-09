@@ -36,6 +36,7 @@ vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   validateConfirmedClaimUpload: hoisted.validateConfirmedClaimUpload,
 }));
 
+import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 import { confirmAdminUpload, generateAdminUploadUrl } from './evidence-upload';
 
 describe('admin claim evidence upload actions', () => {
@@ -165,6 +166,29 @@ describe('admin claim evidence upload actions', () => {
       expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
     );
   });
+  it('returns a safe conflict without revalidation when persisted metadata differs', async () => {
+    hoisted.persistClaimDocumentAndQueueWorkflows.mockRejectedValueOnce(
+      new ClaimDocumentUploadConflictError()
+    );
+    await expect(
+      confirmAdminUpload({
+        claimId: 'claim-1',
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+        originalName: 'evidence.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        fileId: 'file-id',
+        uploadIntentToken: 'upload-intent-token',
+        uploadedBucket: 'claim-evidence',
+      })
+    ).resolves.toEqual({
+      success: false,
+      error: 'Upload changed. Reload the case and check its documents.',
+      status: 409,
+    });
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it('rejects forged upload metadata before persistence', async () => {
     hoisted.validateConfirmedClaimUpload.mockResolvedValueOnce({
       success: false,

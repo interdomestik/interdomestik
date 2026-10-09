@@ -56,6 +56,7 @@ function mockLegacyDocumentAccess(uploadedBy = 'user-1'): void {
 }
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, action) => action({ select: hoisted.dbSelect })),
   db: {
     select: hoisted.dbSelect,
   },

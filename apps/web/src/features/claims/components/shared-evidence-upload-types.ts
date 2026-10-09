@@ -12,9 +12,9 @@ type UploadUrlSuccess = {
   deterministicE2E?: true;
 };
 
-type UploadUrlFailure = { success: false; error: string };
+type UploadUrlFailure = { success: false; error: string; status?: number };
 type ConfirmUploadSuccess = { success: true };
-type ConfirmUploadFailure = { success: false; error: string };
+type ConfirmUploadFailure = { success: false; error: string; status?: number };
 
 export type GenerateUploadUrlFn = (
   claimId: string,

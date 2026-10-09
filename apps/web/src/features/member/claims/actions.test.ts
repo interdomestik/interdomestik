@@ -1,145 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const hoisted = vi.hoisted(() => {
-  const and = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
-  const eq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
-
-  return {
-    authGetSession: vi.fn(),
-    headers: vi.fn(),
-    ensureTenantId: vi.fn(),
-    resolveEvidenceBucketName: vi.fn(),
-    findOwnedMemberUploadClaim: vi.fn(),
-    findOwnedMemberInformationRequest: vi.fn(),
-    createSignedUploadUrl: vi.fn(),
-    listStorageObjects: vi.fn(),
-    storageFrom: vi.fn(),
-    insertValues: vi.fn(),
-    insert: vi.fn(),
-    transaction: vi.fn(),
-    revalidatePath: vi.fn(),
-    queueClaimDocumentAiWorkflows: vi.fn(),
-    emitClaimAiRunRequestedService: vi.fn(),
-    markClaimAiRunDispatchFailedService: vi.fn(),
-    and,
-    eq,
-  };
-});
-
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.authGetSession,
-    },
-  },
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headers,
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantId,
-}));
-
-vi.mock('@/lib/storage/evidence-bucket', () => ({
-  DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
-  resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
-}));
-
-vi.mock('@/features/claims/upload/server/access', () => ({
-  findOwnedMemberInformationRequest: hoisted.findOwnedMemberInformationRequest,
-  findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  createAdminClient: () => ({
-    storage: {
-      from: hoisted.storageFrom,
-    },
-  }),
-  db: {
-    insert: hoisted.insert,
-    transaction: hoisted.transaction,
-  },
-  claimDocuments: 'claim_documents',
-  claimDocumentAiExtractionConsents: 'claim_document_ai_extraction_consents',
-}));
-
-vi.mock('@interdomestik/domain-claims/claims/ai-workflows', () => ({
-  queueClaimDocumentAiWorkflows: hoisted.queueClaimDocumentAiWorkflows,
-}));
-
-vi.mock('@/lib/ai/claim-workflows', () => ({
-  emitClaimAiRunRequestedService: hoisted.emitClaimAiRunRequestedService,
-  markClaimAiRunDispatchFailedService: hoisted.markClaimAiRunDispatchFailedService,
-}));
-
-vi.mock('drizzle-orm', () => ({
-  and: hoisted.and,
-  eq: hoisted.eq,
-}));
-
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    storage: {
-      from: hoisted.storageFrom,
-    },
-  }),
-}));
-
-vi.mock('next/cache', () => ({
-  revalidatePath: hoisted.revalidatePath,
-}));
-
+import { getUploadActionMocks } from './actions.test-support';
 import { confirmUpload, generateUploadUrl } from './actions';
+import { describe, expect, it } from 'vitest';
 import { createConfirmUploadParams } from './actions.test-fixtures';
 
+const hoisted = getUploadActionMocks();
+
 describe('member claim upload actions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    hoisted.headers.mockResolvedValue(new Headers());
-    hoisted.authGetSession.mockResolvedValue({
-      user: { id: 'member-1', tenantId: 'tenant-1', role: 'member' },
-    });
-    hoisted.ensureTenantId.mockReturnValue('tenant-1');
-    hoisted.resolveEvidenceBucketName.mockReturnValue('claim-evidence');
-    hoisted.findOwnedMemberUploadClaim.mockResolvedValue({ id: 'claim-1' });
-    hoisted.findOwnedMemberInformationRequest.mockResolvedValue({ id: 'request-1' });
-    hoisted.storageFrom.mockReturnValue({
-      createSignedUploadUrl: hoisted.createSignedUploadUrl,
-      list: hoisted.listStorageObjects,
-    });
-    hoisted.createSignedUploadUrl.mockResolvedValue({
-      data: { signedUrl: 'https://signed.example.com/upload', token: 'upload-token-1' },
-      error: null,
-    });
-    hoisted.listStorageObjects.mockResolvedValue({
-      data: [
-        {
-          name: 'uuid-1.pdf',
-          metadata: { size: 1024, mimetype: 'application/pdf' },
-        },
-      ],
-      error: null,
-    });
-    hoisted.insert.mockReturnValue({
-      values: hoisted.insertValues,
-    });
-    hoisted.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
-      callback({
-        insert: hoisted.insert,
-      })
-    );
-    hoisted.insertValues.mockResolvedValue(undefined);
-    hoisted.queueClaimDocumentAiWorkflows.mockResolvedValue([]);
-
-    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
-    vi.stubEnv('BETTER_AUTH_SECRET', 'upload-intent-test-secret-32-chars-minimum');
-  });
-
   it('creates an upload URL for claims owned by the member', async () => {
     const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
 
@@ -221,6 +87,7 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
+      role: 'member',
       claimId: 'claim-1',
       tenantId: 'tenant-1',
       userId: 'member-1',
@@ -235,6 +102,7 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
+      role: 'member',
       claimId: 'claim-1',
       tenantId: 'tenant-1',
       userId: 'member-1',
@@ -247,7 +115,11 @@ describe('member claim upload actions', () => {
     );
 
     expect(result).toEqual({ success: true });
-    expect(hoisted.transaction).toHaveBeenCalledTimes(2);
+    expect(hoisted.transaction).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'member' },
+      expect.any(Function)
+    );
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(

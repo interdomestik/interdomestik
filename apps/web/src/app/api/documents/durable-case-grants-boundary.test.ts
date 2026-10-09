@@ -16,6 +16,9 @@ const mockDb = { select: vi.fn() };
 const mockDeps: DocumentAccessDeps = {
   db: mockDb as unknown as DocumentAccessDeps['db'],
   storage: { createSignedUrl: vi.fn(), download: vi.fn() },
+  // The same mock serves as the tenant-bound transaction for normal-tenant reads.
+  withTenantContext: (async (_context: unknown, action: (tx: never) => Promise<unknown>) =>
+    action(mockDb as never)) as unknown as DocumentAccessDeps['withTenantContext'],
 };
 const session = { user: { id: 'local-legal-1', role: 'staff', tenantId: 't1' } };
 

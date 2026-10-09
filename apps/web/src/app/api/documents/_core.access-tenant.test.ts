@@ -24,6 +24,9 @@ import { getDocumentAccessCore, type DocumentAccessDeps } from './_core';
 const mockDb = { select: vi.fn() };
 const mockDeps: DocumentAccessDeps = {
   db: mockDb as unknown as DocumentAccessDeps['db'],
+  // The same mock serves as the tenant-bound transaction for normal-tenant reads.
+  withTenantContext: (async (_context: unknown, action: (tx: never) => Promise<unknown>) =>
+    action(mockDb as never)) as unknown as DocumentAccessDeps['withTenantContext'],
   storage: {
     createSignedUrl: vi.fn(),
     download: vi.fn(),

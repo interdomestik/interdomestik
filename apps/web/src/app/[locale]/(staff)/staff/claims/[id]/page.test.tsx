@@ -157,4 +157,91 @@ describe('StaffClaimDetailsPage', () => {
     expect(screen.queryByTestId('staff-claim-action-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('staff-information-request-form')).not.toBeInTheDocument();
   });
+
+  it('shows ordinary case evidence with canonical links to the assigned staff', async () => {
+    hoisted.getAssignedStaffClaimDocumentsMock.mockResolvedValueOnce([
+      {
+        id: 'doc-1',
+        name: 'evidence.pdf',
+        fileType: 'application/pdf',
+        fileSize: 1024,
+        url: '/api/documents/doc-1/download',
+      },
+    ]);
+
+    await renderPage('en');
+
+    const panel = within(screen.getByTestId('staff-claim-documents'));
+    expect(panel.getByText('detail.evidence')).toBeInTheDocument();
+    expect(panel.getByText('evidence.pdf')).toBeInTheDocument();
+    expect(panel.getByRole('link', { name: 'informationRequests.download' })).toHaveAttribute(
+      'href',
+      '/api/documents/doc-1/download'
+    );
+    expect(hoisted.getAssignedStaffClaimDocumentsMock).toHaveBeenLastCalledWith({
+      claimId: 'claim-1',
+      session: expect.objectContaining({
+        user: expect.objectContaining({ id: 'staff-1', role: 'staff', tenantId: 'tenant-ks' }),
+      }),
+    });
+  });
+
+  it('shows the localized empty evidence state for the assigned staff', async () => {
+    await renderPage('en');
+
+    expect(
+      within(screen.getByTestId('staff-claim-documents')).getByText('detail.documentsEmpty')
+    ).toBeInTheDocument();
+  });
+
+  it('renders no evidence panel and issues no read for a wrong assignee', async () => {
+    const callsBefore = hoisted.getAssignedStaffClaimDocumentsMock.mock.calls.length;
+    const detail = await hoisted.getStaffClaimDetailMock.getMockImplementation()!();
+    hoisted.getStaffClaimDetailMock.mockResolvedValueOnce({
+      ...detail,
+      claim: { ...detail.claim, staffId: 'other-staff' },
+    });
+
+    await renderPage('en');
+
+    expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-documents')).not.toBeInTheDocument();
+    expect(hoisted.getAssignedStaffClaimDocumentsMock.mock.calls).toHaveLength(callsBefore);
+  });
+
+  it('renders no evidence panel and issues no read for branch managers', async () => {
+    const callsBefore = hoisted.getAssignedStaffClaimDocumentsMock.mock.calls.length;
+    hoisted.getSessionMock.mockResolvedValueOnce({
+      user: {
+        id: 'manager-1',
+        tenantId: 'tenant-ks',
+        role: 'branch_manager',
+        branchId: 'branch-a',
+      },
+    });
+
+    await renderPage('en');
+
+    expect(screen.queryByTestId('staff-claim-documents')).not.toBeInTheDocument();
+    expect(hoisted.getAssignedStaffClaimDocumentsMock.mock.calls).toHaveLength(callsBefore);
+  });
+
+  it('keeps the workspace ready and exposes a truthful retry when evidence cannot load', async () => {
+    hoisted.getAssignedStaffClaimDocumentsMock.mockRejectedValueOnce(
+      new Error('private DB detail')
+    );
+
+    await renderPage('en');
+
+    expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-documents')).not.toBeInTheDocument();
+    const failure = within(screen.getByTestId('staff-claim-documents-error'));
+    expect(failure.getByText('errors.generic')).toBeInTheDocument();
+    expect(failure.getByRole('link', { name: 'tryAgain' })).toHaveAttribute(
+      'href',
+      '/en/staff/claims/claim-1'
+    );
+    expect(screen.queryByText('detail.documentsEmpty')).not.toBeInTheDocument();
+    expect(screen.queryByText(/private DB detail/)).not.toBeInTheDocument();
+  });
 });

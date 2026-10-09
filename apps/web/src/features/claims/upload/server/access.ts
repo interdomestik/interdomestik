@@ -75,22 +75,27 @@ export async function findAccessibleAdminUploadClaim(args: {
 }
 
 export async function findOwnedMemberUploadClaim(args: {
+  role?: string;
   claimId: string;
   tenantId: string;
   userId: string;
 }): Promise<MemberClaimOwnershipRecord | null> {
-  const claim = await db.query.claims.findFirst({
-    where: and(
-      eq(claims.id, args.claimId),
-      eq(claims.tenantId, args.tenantId),
-      eq(claims.userId, args.userId)
-    ),
-    columns: {
-      id: true,
-    },
-  });
+  // Member upload ownership is read under the member tenant context so RLS evaluates the same
+  // exact id, home-tenant, and owner predicates that the member claim detail already satisfies.
+  return withTenantContext({ tenantId: args.tenantId, role: args.role ?? 'member' }, async tx => {
+    const claim = await tx.query.claims.findFirst({
+      where: and(
+        eq(claims.id, args.claimId),
+        eq(claims.tenantId, args.tenantId),
+        eq(claims.userId, args.userId)
+      ),
+      columns: {
+        id: true,
+      },
+    });
 
-  return claim ?? null;
+    return claim ?? null;
+  });
 }
 
 export async function findOwnedMemberInformationRequest(args: {

@@ -11,7 +11,8 @@ import {
 } from './access-policy';
 import { hasDurableCaseScopedDocumentGrant } from './durable-case-grants';
 
-type DatabaseClient = typeof DatabaseModule.db;
+// Normal-tenant reads pass the tenant-bound transaction opened by getDocumentAccessCore.
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 type GrantDocumentClass = Parameters<typeof hasCaseScopedDocumentGrant>[0]['documentClass'];
 const FALLBACK_DOCUMENT_CLASS: GrantDocumentClass = 'other';
 

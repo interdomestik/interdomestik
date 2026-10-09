@@ -1,4 +1,8 @@
 {
+  "uploadRecovery": {
+    "description": "Ky dokument mund të jetë ruajtur tashmë. Riprova përdor të njëjtin skedar. Nëse riprova nuk përfundon, ringarkoni faqen fillestare dhe kontrolloni dokumentet para një ngarkimi tjetër.",
+    "action": "Ringarko faqen fillestare dhe kontrollo dokumentet"
+  },
   "claims": {
     "title": "Paneli i Kërkesave të Mia",
     "description": "Ndiq rrjedhën e verifikimit dhe vendimet për kërkesat e tua.",
