@@ -1,5 +1,7 @@
 'use server';
 
+import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
+
 import { findAccessibleAdminUploadClaim } from '@/features/claims/upload/server/access';
 import {
   createSignedUploadUrl,
@@ -10,18 +12,12 @@ import {
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
-const ALLOWED_ADMIN_UPLOAD_ROLES = new Set([
-  'admin',
-  'super_admin',
-  'tenant_admin',
-  'branch_manager',
-  'staff',
-]);
+type AdminUploadRole = 'admin' | 'super_admin' | 'tenant_admin' | 'branch_manager' | 'staff';
 
-function isAdminUploadRole(role: string | null | undefined): boolean {
-  return role ? ALLOWED_ADMIN_UPLOAD_ROLES.has(role) : false;
+function isAdminUploadRole(role: string | null | undefined): role is AdminUploadRole {
+  return isStaffOrHigher(role);
 }
 
 type UploadContext =
@@ -46,8 +42,7 @@ export type GenerateAdminUploadUrlResult =
   | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
 
 export type ConfirmAdminUploadResult =
-  | { success: true }
-  | { success: false; error: string; status: 401 | 404 | 409 | 500 };
+  { success: true } | { success: false; error: string; status: 401 | 404 | 409 | 500 };
 
 export type ConfirmAdminUploadParams = {
   claimId: string;
@@ -161,6 +156,11 @@ export async function confirmAdminUpload(
   }
 
   const { session, tenantId, resolvedBucket } = uploadContext;
+  // The verified session role is the trusted metadata transaction role; never form input.
+  const actorRole = session.user.role;
+  if (!isAdminUploadRole(actorRole)) {
+    return { success: false, error: 'Unauthorized', status: 401 };
+  }
   const claim = await findAccessibleAdminUploadClaim({
     branchId: session.user.branchId ?? null,
     claimId,
@@ -206,11 +206,19 @@ export async function confirmAdminUpload(
       storagePath,
       tenantId,
       userId: session.user.id,
+      actorRole,
     });
 
     revalidateAdminEvidencePaths(claimId);
     return { success: true };
   } catch (error) {
+    if (error instanceof ClaimDocumentUploadConflictError) {
+      return {
+        success: false,
+        error: 'Upload changed. Reload the case and check its documents.',
+        status: 409,
+      };
+    }
     console.error('[admin/claims] confirmAdminUpload error', error);
     return { success: false, error: 'Failed to save document metadata', status: 500 };
   }

@@ -158,6 +158,32 @@ describe('information request contract', () => {
     ).toEqual([]);
     expect(h.transaction).not.toHaveBeenCalled();
   });
+  it.each(['staff', 'member', 'user'])('reads the explicit access tenant for %s', async role => {
+    h.rows = [[]];
+    const actor = { user: { ...session.user, role, accessTenantId: 'tenant-access' } };
+    await getInformationRequests(actor, input.claimId);
+    expect(h.transaction).toHaveBeenCalledWith(
+      { tenantId: 'tenant-access', role },
+      expect.any(Function)
+    );
+    expect(h.insert).not.toHaveBeenCalled();
+  });
+
+  it('accepts access-only sessions and denies a session with neither tenant before querying', async () => {
+    h.rows = [[]];
+    const actor = { user: { ...session.user, tenantId: null, accessTenantId: 'tenant-access' } };
+    await getInformationRequests(actor, input.claimId);
+    expect(h.transaction).toHaveBeenCalledWith(
+      { tenantId: 'tenant-access', role: 'staff' },
+      expect.any(Function)
+    );
+    h.transaction.mockClear();
+    await expect(
+      getInformationRequests({ user: { ...session.user, tenantId: null } }, input.claimId)
+    ).resolves.toEqual([]);
+    expect(h.transaction).not.toHaveBeenCalled();
+  });
+
   it('groups request-linked evidence and derives explicit acknowledgement progress', async () => {
     h.rows = [
       [
@@ -205,4 +231,30 @@ describe('information request contract', () => {
       },
     ]);
   });
+});
+
+it.each([
+  { tenantId: 'tenant-home', accessTenantId: 'tenant-access' },
+  { tenantId: null, accessTenantId: 'tenant-access' },
+])('uses the verified access tenant for assigned-staff writes %j', async tenant => {
+  const actor = { user: { ...session.user, ...tenant } };
+  const result = await createInformationRequest(actor, input);
+  expect(result.success).toBe(true);
+  expect(h.transaction).toHaveBeenCalledWith(
+    { tenantId: 'tenant-access', role: 'staff' },
+    expect.any(Function)
+  );
+  expect(h.insert.mock.results[0].value.values).toHaveBeenCalledWith(
+    expect.objectContaining({ tenantId: 'tenant-access' })
+  );
+});
+
+it('denies whitespace-only tenant scope before any transaction', async () => {
+  await expect(
+    createInformationRequest(
+      { user: { ...session.user, tenantId: ' ', accessTenantId: ' ' } },
+      input
+    )
+  ).resolves.toEqual({ success: false, error: 'access_denied' });
+  expect(h.transaction).not.toHaveBeenCalled();
 });

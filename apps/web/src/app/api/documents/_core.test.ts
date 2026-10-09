@@ -6,11 +6,18 @@ import {
   safeFilename,
 } from './_core';
 
+// Normal-tenant reads run on the explicit tenant-bound transaction handle (`mockDb`); the base
+// client is reserved for the cross-tenant grant fallback after that transaction is released.
 const mockDb = { select: vi.fn() };
+const mockBaseDb = { select: vi.fn() };
 const mockStorage = { createSignedUrl: vi.fn(), download: vi.fn() };
+const mockWithTenantContext = vi.fn(
+  async (_context: unknown, action: (tx: never) => Promise<unknown>) => action(mockDb as never)
+);
 const mockDeps: DocumentAccessDeps = {
-  db: mockDb as unknown as DocumentAccessDeps['db'],
+  db: mockBaseDb as unknown as DocumentAccessDeps['db'],
   storage: mockStorage,
+  withTenantContext: mockWithTenantContext as unknown as DocumentAccessDeps['withTenantContext'],
 };
 
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 't1' } };
@@ -77,6 +84,7 @@ function setupMocks(poly: unknown[] = [], legacy: unknown[] = []) {
   mockDb.select.mockReset().mockReturnValue(createSelectMock([], true));
   mockDb.select.mockReturnValueOnce(createSelectMock(poly));
   mockDb.select.mockReturnValueOnce(createSelectMock(legacy, true));
+  mockBaseDb.select.mockReset().mockReturnValue(createSelectMock([]));
 }
 
 async function execAccess(
@@ -211,6 +219,10 @@ describe('getDocumentAccessCore Hardening', () => {
       const session = { user: { ...memberSession.user, tenantId: 'wrong' } };
       const res = await execAccess(session, 'doc1');
       expect(res).toEqual({ ok: false, code: 'NOT_FOUND', message: 'Document not found' });
+      expect(mockWithTenantContext).toHaveBeenCalledWith(
+        { accessTenantId: 'wrong', role: 'member', tenantId: 'wrong' },
+        expect.any(Function)
+      );
     });
   });
 
@@ -228,6 +240,7 @@ describe('getDocumentAccessCore Hardening', () => {
     it('allows claim owner access to legacy docs', async () => {
       setupMocks([], [{ doc: legacyDoc, ...branchScopedClaimRow }]);
       expect((await execAccess(memberSession, 'doc1')).ok).toBe(true);
+      expect(mockBaseDb.select).not.toHaveBeenCalled();
     });
 
     it('allows assigned agent access to legacy docs', async () => {

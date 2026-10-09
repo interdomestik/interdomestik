@@ -17,7 +17,10 @@ vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: hoisted.authGetSession } },
 }));
 vi.mock('next/headers', () => ({ headers: hoisted.headers }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenantId }));
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
+  ensureTenantId: hoisted.ensureTenantId,
+}));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: hoisted.resolveTenantFromHost,
 }));
@@ -36,6 +39,7 @@ vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   validateConfirmedClaimUpload: hoisted.validateConfirmedClaimUpload,
 }));
 
+import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 import { confirmAdminUpload, generateAdminUploadUrl } from './evidence-upload';
 
 describe('admin claim evidence upload actions', () => {
@@ -68,6 +72,32 @@ describe('admin claim evidence upload actions', () => {
     hoisted.persistClaimDocumentAndQueueWorkflows.mockResolvedValue(undefined);
     hoisted.validateConfirmedClaimUpload.mockResolvedValue({ success: true });
   });
+
+  it.each(['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'staff'])(
+    'preserves canonical %s role admission before claim scoping',
+    async role => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'actor-1', tenantId: 'tenant-1', role },
+      });
+      expect(
+        (await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)).success
+      ).toBe(true);
+      expect(hoisted.findAccessibleAdminUploadClaim).toHaveBeenCalledOnce();
+    }
+  );
+
+  it.each(['member', 'user', 'agent', 'unknown', null, undefined])(
+    'rejects excluded role %s before claim access',
+    async role => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'actor-1', tenantId: 'tenant-1', role },
+      });
+      expect(
+        await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)
+      ).toEqual({ success: false, error: 'Unauthorized', status: 401 });
+      expect(hoisted.findAccessibleAdminUploadClaim).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects upload URL issuance when the admin host tenant drifts', async () => {
     hoisted.resolveTenantFromHost.mockReturnValueOnce('tenant-2');
@@ -165,6 +195,29 @@ describe('admin claim evidence upload actions', () => {
       expect.not.objectContaining({ aiExtractionConsent: expect.anything() })
     );
   });
+  it('returns a safe conflict without revalidation when persisted metadata differs', async () => {
+    hoisted.persistClaimDocumentAndQueueWorkflows.mockRejectedValueOnce(
+      new ClaimDocumentUploadConflictError()
+    );
+    await expect(
+      confirmAdminUpload({
+        claimId: 'claim-1',
+        storagePath: 'pii/tenants/tenant-1/claims/claim-1/file.pdf',
+        originalName: 'evidence.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 1024,
+        fileId: 'file-id',
+        uploadIntentToken: 'upload-intent-token',
+        uploadedBucket: 'claim-evidence',
+      })
+    ).resolves.toEqual({
+      success: false,
+      error: 'Upload changed. Reload the case and check its documents.',
+      status: 409,
+    });
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+  });
+
   it('rejects forged upload metadata before persistence', async () => {
     hoisted.validateConfirmedClaimUpload.mockResolvedValueOnce({
       success: false,

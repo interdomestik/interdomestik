@@ -13,6 +13,7 @@ export type ClaimsSession = {
     id: string;
     role?: string | null;
     tenantId?: string | null;
+    accessTenantId?: string | null;
     email?: string | null;
   };
 };

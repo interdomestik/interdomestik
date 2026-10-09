@@ -1,6 +1,9 @@
 'use server';
 
+import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
+
 import { auth } from '@/lib/auth';
+import { resolveMemberActorRoleOnSession } from '@/app/[locale]/(app)/member/actor-role-on-session';
 import {
   createSignedUploadUrl,
   InformationRequestUploadConflictError,
@@ -49,6 +52,8 @@ export async function generateUploadUrl(
     return { success: false, error: 'Unauthorized', status: 401 };
   }
 
+  const actorRole = resolveMemberActorRoleOnSession(session.user.role);
+  if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
   const tenantId = ensureTenantId(session);
   let evidenceBucket: string;
   try {
@@ -64,6 +69,7 @@ export async function generateUploadUrl(
   }
 
   const claim = await findOwnedMemberUploadClaim({
+    role: actorRole,
     claimId,
     tenantId,
     userId: session.user.id,
@@ -110,6 +116,7 @@ export type ConfirmUploadResult =
 type ConfirmUploadContext =
   | {
       success: true;
+      actorRole: string;
       session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
       tenantId: string;
       resolvedBucket: string;
@@ -125,9 +132,13 @@ async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
     return { success: false, error: 'Unauthorized', status: 401 };
   }
 
+  const actorRole = resolveMemberActorRoleOnSession(session.user.role);
+  if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
+
   try {
     return {
       success: true,
+      actorRole,
       session,
       tenantId: ensureTenantId(session),
       resolvedBucket: resolveEvidenceBucketName(),
@@ -141,6 +152,21 @@ async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
     });
     return { success: false, error: message, status: 500 };
   }
+}
+
+function confirmUploadFailure(err: unknown): ConfirmUploadResult {
+  if (err instanceof ClaimDocumentUploadConflictError) {
+    return {
+      success: false,
+      error: 'Upload changed. Reload the case and check its documents.',
+      status: 409,
+    };
+  }
+  if (err instanceof InformationRequestUploadConflictError) {
+    return { success: false, error: err.message, status: 409 };
+  }
+  console.error('confirmUpload error:', err);
+  return { success: false, error: 'Failed to save document metadata', status: 500 };
 }
 
 export async function confirmUpload(params: ConfirmUploadParams): Promise<ConfirmUploadResult> {
@@ -159,13 +185,14 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   if (!uploadContext.success) {
     return uploadContext;
   }
-  const { session, tenantId, resolvedBucket } = uploadContext;
+  const { actorRole, session, tenantId, resolvedBucket } = uploadContext;
 
   if (informationRequestId && !informationRequestIdSchema.safeParse(informationRequestId).success) {
     return { success: false, error: 'Invalid information request', status: 400 };
   }
 
   const claim = await findOwnedMemberUploadClaim({
+    role: actorRole,
     claimId,
     tenantId,
     userId: session.user.id,
@@ -225,6 +252,10 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
       storagePath,
       tenantId,
       userId: session.user.id,
+      // Ordinary uploads retain the canonical actor derived from the verified session.
+      // Request-linked writes retain their existing fixed member transaction/audit contract.
+      actorRole: informationRequestId ? undefined : actorRole,
+      expectedClaimOwnerId: session.user.id,
       aiExtractionConsent: buildMemberAiExtractionConsent(params),
     });
 
@@ -235,10 +266,6 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
     revalidatePathForAllLocales('/member/documents');
     return { success: true };
   } catch (err) {
-    if (err instanceof InformationRequestUploadConflictError) {
-      return { success: false, error: err.message, status: 409 };
-    }
-    console.error('confirmUpload error:', err);
-    return { success: false, error: 'Failed to save document metadata', status: 500 };
+    return confirmUploadFailure(err);
   }
 }

@@ -21,6 +21,7 @@ const mockSelectChain = {
 };
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, action) => action({ select: hoisted.dbSelect })),
   db: { select: hoisted.dbSelect },
   documents: { id: 'id', tenantId: 'tenant_id' },
   claimDocuments: { tenantId: 'claim_documents.tenant_id' },

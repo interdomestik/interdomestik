@@ -1,5 +1,10 @@
 {
   "claims": {
+    "uploadRecovery": {
+      "identityChanged": "Kthehuni te rasti fillestar për ta zgjidhur këtë ngarkim.",
+      "description": "Mbajeni skedarin aktual gjatë riprovimit. Nëse ngarkimi nuk përfundon, ringarkoni faqen fillestare dhe kontrolloni dokumentet para se të nisni një ngarkim tjetër.",
+      "action": "Ringarko faqen fillestare dhe kontrollo dokumentet"
+    },
     "title": "Paneli i Kërkesave të Mia",
     "description": "Ndiq rrjedhën e verifikimit dhe vendimet për kërkesat e tua.",
     "new": "Kërkesë e Re për Dëmshpërblim",

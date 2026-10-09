@@ -5,7 +5,8 @@ import { and, eq } from 'drizzle-orm';
 import { isFullTenantClaimsRole } from './access-policy';
 import { canReadPolymorphicClaimDocument } from './claim-document-access';
 
-type DatabaseClient = typeof DatabaseModule.db;
+// Normal-tenant reads pass the tenant-bound transaction opened by getDocumentAccessCore.
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 
 export type PolymorphicDocumentRow = {
   id: string;

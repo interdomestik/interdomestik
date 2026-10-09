@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   EVIDENCE_FILE_ACCEPT,
@@ -32,6 +33,21 @@ import type {
   EvidenceCategory,
   SharedEvidenceUploadDialogProps,
 } from './shared-evidence-upload-types';
+import {
+  type SignedStorageUploader,
+  type SignedUploadDraft,
+  useSignedUploadRetry,
+  SignedUploadIdentityChangedError,
+} from './use-signed-upload-retry';
+
+function uploadFailureMessage(
+  error: unknown,
+  identityChangedMessage: () => string,
+  fallback: string
+): string {
+  if (error instanceof SignedUploadIdentityChangedError) return identityChangedMessage();
+  return error instanceof Error ? error.message : fallback;
+}
 
 export function SharedEvidenceUploadDialog({
   categoryFieldId,
@@ -45,11 +61,13 @@ export function SharedEvidenceUploadDialog({
   onUploadSuccess,
   trigger,
 }: SharedEvidenceUploadDialogProps) {
+  const tClaims = useTranslations('claims');
+  const pathname = usePathname();
+  const [lastFailure, setLastFailure] = useState(false);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<EvidenceCategory>('evidence');
   const [aiExtractionConsentGranted, setAiExtractionConsentGranted] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = useMemo(() => {
@@ -61,7 +79,38 @@ export function SharedEvidenceUploadDialog({
     }
   }, []);
 
+  const uploadToStorage: SignedStorageUploader = async (target, uploadFile, contentType) => {
+    if (!supabase) {
+      throw new Error(messages.storageUnavailable);
+    }
+    const { error: uploadError } = await supabase.storage
+      .from(target.bucket)
+      .uploadToSignedUrl(target.path, target.token, uploadFile, {
+        contentType,
+        upsert: true,
+        cacheControl: '3600',
+      });
+    if (uploadError) {
+      throw new Error(uploadError.message || messages.uploadFailed);
+    }
+  };
+
+  const signedUpload = useSignedUploadRetry({
+    claimId,
+    confirmUpload,
+    generateUploadUrl,
+    informationRequestId,
+    locale,
+    recoveryHref: pathname,
+    uploadToStorage,
+  });
+  const { pending, uploading } = signedUpload;
+  // A pending signed upload pins its original file, category, and consent until it settles.
+  const locked = uploading || pending !== null;
+  const pendingFileId = `${fileFieldId}-pending-file`;
+
   useEffect(() => {
+    // Only the unsubmitted draft resets on close; a pending signed upload keeps its identity.
     if (!open) {
       setFile(null);
       setAiExtractionConsentGranted(false);
@@ -78,16 +127,20 @@ export function SharedEvidenceUploadDialog({
     setAiExtractionConsentGranted(false);
   };
 
-  const handleDirectUpload = async (selectedFile: File, selectedCategory: EvidenceCategory) => {
+  const usesDirectUpload = (selectedFile: File) =>
+    !informationRequestId &&
+    resolveUploadMimeType(selectedFile) !== resolveStorageUploadContentType(selectedFile);
+
+  const handleDirectUpload = async (draft: SignedUploadDraft) => {
     const formData = new FormData();
     formData.append('claimId', claimId);
-    formData.append('category', selectedCategory);
+    formData.append('category', draft.category);
     formData.append('locale', locale);
-    formData.append('file', selectedFile);
+    formData.append('file', draft.file);
     if (informationRequestId) {
       formData.append('informationRequestId', informationRequestId);
     }
-    formData.append('aiExtractionConsentGranted', String(aiExtractionConsentGranted));
+    formData.append('aiExtractionConsentGranted', String(draft.consentGranted));
 
     const response = await fetch('/api/claims/evidence-upload', {
       method: 'POST',
@@ -107,98 +160,44 @@ export function SharedEvidenceUploadDialog({
     return body.fileId;
   };
 
-  const handleSignedUpload = async (selectedFile: File, selectedCategory: EvidenceCategory) => {
-    const resolvedMimeType = resolveUploadMimeType(selectedFile);
-    const storageContentType = resolveStorageUploadContentType(selectedFile);
-    const uploadFile =
-      storageContentType === resolvedMimeType
-        ? selectedFile
-        : new File([selectedFile], selectedFile.name, {
-            type: storageContentType,
-            lastModified: selectedFile.lastModified,
-          });
-
-    if (resolvedMimeType !== storageContentType && !informationRequestId) {
-      return handleDirectUpload(selectedFile, selectedCategory);
-    }
-
-    const uploadUrlResult = informationRequestId
-      ? await generateUploadUrl(
-          claimId,
-          selectedFile.name,
-          resolvedMimeType,
-          selectedFile.size,
-          informationRequestId,
-          storageContentType
-        )
-      : await generateUploadUrl(claimId, selectedFile.name, resolvedMimeType, selectedFile.size);
-
-    if (!uploadUrlResult.success) {
-      throw new Error(uploadUrlResult.error);
-    }
-
-    if (!uploadUrlResult.deterministicE2E) {
-      if (!supabase) {
-        throw new Error(messages.storageUnavailable);
-      }
-
-      const { error: uploadError } = await supabase.storage
-        .from(uploadUrlResult.bucket)
-        .uploadToSignedUrl(uploadUrlResult.path, uploadUrlResult.token, uploadFile, {
-          contentType: storageContentType,
-          upsert: true,
-          cacheControl: '3600',
-        });
-
-      if (uploadError) {
-        throw new Error(uploadError.message || messages.uploadFailed);
-      }
-    }
-
-    const confirmResult = await confirmUpload({
-      claimId,
-      storagePath: uploadUrlResult.path,
-      originalName: selectedFile.name,
-      mimeType: resolvedMimeType,
-      fileSize: selectedFile.size,
-      fileId: uploadUrlResult.id,
-      informationRequestId,
-      uploadIntentToken: uploadUrlResult.intentToken,
-      storageContentType,
-      uploadedBucket: uploadUrlResult.bucket,
-      category: selectedCategory,
-      aiExtractionConsentGranted,
-      aiExtractionConsentLocale: locale,
-    });
-
-    if (!confirmResult.success) {
-      throw new Error(confirmResult.error);
-    }
-    return uploadUrlResult.id;
-  };
-
   const handleUpload = async () => {
-    if (!file) {
+    const pendingUpload = signedUpload.getPending();
+    const draft: SignedUploadDraft | null =
+      pendingUpload ??
+      (file ? { category, consentGranted: aiExtractionConsentGranted, file } : null);
+    if (!draft) {
       fileInputRef.current?.click();
       return;
     }
 
-    setUploading(true);
+    const attempt = signedUpload.acquire();
+    if (!attempt) return;
+    setLastFailure(false);
     try {
-      const documentId = await handleSignedUpload(file, category);
+      const documentId =
+        !pendingUpload && usesDirectUpload(draft.file)
+          ? await handleDirectUpload(draft)
+          : await signedUpload.uploadSigned(draft);
       onUploadSuccess?.({
         documentId,
-        documentName: file.name,
+        documentName: draft.file.name,
         submittedAt: new Date().toISOString(),
       });
       toast.success(messages.uploadSuccess);
       resetDialog();
       router.refresh();
     } catch (error) {
+      setLastFailure(true);
       console.error('Upload flow error', error);
-      toast.error(error instanceof Error ? error.message : messages.uploadFailed);
+      toast.error(
+        uploadFailureMessage(
+          error,
+          () => tClaims('uploadRecovery.identityChanged'),
+          messages.uploadFailed
+        )
+      );
     } finally {
-      setUploading(false);
+      signedUpload.release(attempt);
     }
   };
 
@@ -214,9 +213,9 @@ export function SharedEvidenceUploadDialog({
           <div className="flex flex-col space-y-1.5">
             <Label htmlFor={categoryFieldId}>{messages.documentTypeLabel}</Label>
             <Select
-              value={category}
+              value={pending?.category ?? category}
               onValueChange={value => setCategory(value as EvidenceCategory)}
-              disabled={uploading}
+              disabled={locked}
             >
               <SelectTrigger id={categoryFieldId}>
                 <SelectValue placeholder={messages.documentTypePlaceholder} />
@@ -234,22 +233,44 @@ export function SharedEvidenceUploadDialog({
               id={fileFieldId}
               type="file"
               accept={EVIDENCE_FILE_ACCEPT}
+              aria-describedby={pending ? pendingFileId : undefined}
               onChange={handleFileChange}
-              disabled={uploading}
+              disabled={locked}
             />
+            {pending ? (
+              <p id={pendingFileId} className="text-sm text-muted-foreground">
+                {pending.file.name}
+              </p>
+            ) : null}
           </div>
           {messages.aiExtractionConsent ? (
             <AiExtractionConsentField
               id={`${fileFieldId}-ai-consent`}
-              checked={aiExtractionConsentGranted}
-              disabled={uploading}
+              checked={pending?.consentGranted ?? aiExtractionConsentGranted}
+              disabled={locked}
               label={messages.aiExtractionConsent}
               onCheckedChange={setAiExtractionConsentGranted}
             />
           ) : null}
         </div>
+        {lastFailure || !signedUpload.identityMatches ? (
+          <output data-testid="upload-recovery" className="block space-y-2 text-sm">
+            <span className="block">{tClaims('uploadRecovery.description')}</span>
+            <a
+              className="inline-block underline underline-offset-4"
+              href={pending?.recoveryHref ?? pathname}
+            >
+              {tClaims('uploadRecovery.action')}
+            </a>
+          </output>
+        ) : null}
         <DialogFooter className="sm:justify-start">
-          <Button type="button" variant="default" onClick={handleUpload} disabled={uploading}>
+          <Button
+            type="button"
+            variant="default"
+            onClick={handleUpload}
+            disabled={uploading || !signedUpload.identityMatches}
+          >
             {uploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {messages.uploading}

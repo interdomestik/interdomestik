@@ -1,5 +1,10 @@
 {
   "claims": {
+    "uploadRecovery": {
+      "identityChanged": "Return to the original case to resolve this upload.",
+      "description": "Keep the current file while retrying. If this upload cannot complete, reload the original page and check its documents before starting another upload.",
+      "action": "Reload original page and check documents"
+    },
     "title": "My Claims",
     "description": "Manage your consumer complaints and track their status.",
     "new": "New Claim",
