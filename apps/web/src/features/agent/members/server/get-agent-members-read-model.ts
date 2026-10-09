@@ -15,6 +15,7 @@ export type AgentMembersListReadModel = {
 export async function getAgentMembersListReadModel(params: {
   agentId: string;
   tenantId: string;
+  role: string | null;
   query?: string;
 }): Promise<AgentMembersListReadModel> {
   const { members } = await getAgentMembersList(params);

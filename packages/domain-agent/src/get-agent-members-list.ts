@@ -3,13 +3,13 @@ import {
   and,
   asc,
   claims,
-  db,
   desc,
   eq,
   ilike,
   or,
   sql,
   user,
+  withTenantContext,
 } from '@interdomestik/database';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 
@@ -40,52 +40,69 @@ export type AgentMembersListResult = {
 
 export async function getAgentMembersList(params: {
   agentId: string;
+  /** Verified effective access tenant of the agent session. */
   tenantId: string;
+  /** Verified session role; only agents may read their member list. */
+  role: string | null;
   query?: string;
   limit?: number;
   cursor?: string | null;
 }): Promise<AgentMembersListResult> {
-  const { agentId, tenantId, limit = 50, query } = params;
+  const { agentId, tenantId, role, limit = 50, query } = params;
+
+  if (role !== 'agent') {
+    throw new Error('Forbidden: agent members list requires the agent role');
+  }
+
   const normalizedQuery = query?.trim();
 
   const searchFilter = normalizedQuery
     ? or(ilike(user.name, `%${normalizedQuery}%`), ilike(user.memberNumber, `%${normalizedQuery}%`))
     : undefined;
 
-  const rows = await db
-    .select({
-      memberId: agentClients.memberId,
-      name: user.name,
-      membershipNumber: user.memberNumber,
-      userUpdatedAt: user.updatedAt,
-      joinedAt: agentClients.joinedAt,
-      activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.id} is not null and ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
-      lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
-    })
-    .from(agentClients)
-    .innerJoin(user, eq(agentClients.memberId, user.id))
-    .leftJoin(claims, and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId)))
-    .where(
-      and(
-        eq(agentClients.agentId, agentId),
-        eq(agentClients.tenantId, tenantId),
-        eq(agentClients.status, 'active'),
-        eq(user.role, 'member'),
-        ...(searchFilter ? [searchFilter] : [])
-      )
-    )
-    .groupBy(
-      agentClients.memberId,
-      user.name,
-      user.memberNumber,
-      user.updatedAt,
-      agentClients.joinedAt
-    )
-    .orderBy(
-      desc(sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`),
-      asc(agentClients.memberId)
-    )
-    .limit(limit);
+  const rows = await withTenantContext(
+    { tenantId, role },
+    async tx =>
+      await tx
+        .select({
+          memberId: agentClients.memberId,
+          name: user.name,
+          membershipNumber: user.memberNumber,
+          userUpdatedAt: user.updatedAt,
+          joinedAt: agentClients.joinedAt,
+          activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.id} is not null and ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
+          lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
+        })
+        .from(agentClients)
+        .innerJoin(user, eq(agentClients.memberId, user.id))
+        .leftJoin(
+          claims,
+          and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId))
+        )
+        .where(
+          and(
+            eq(agentClients.agentId, agentId),
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.status, 'active'),
+            eq(user.role, 'member'),
+            ...(searchFilter ? [searchFilter] : [])
+          )
+        )
+        .groupBy(
+          agentClients.memberId,
+          user.name,
+          user.memberNumber,
+          user.updatedAt,
+          agentClients.joinedAt
+        )
+        .orderBy(
+          desc(
+            sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`
+          ),
+          asc(agentClients.memberId)
+        )
+        .limit(limit)
+  );
 
   const members = rows.map(row => {
     const lastUpdated = row.lastClaimUpdatedAt ?? row.userUpdatedAt ?? row.joinedAt ?? null;

@@ -45,6 +45,10 @@ const STAGE_STATUSES = {
   completed: ['resolved', 'rejected'],
 };
 
+// Effective access tenant: explicit access wins; home tenant only when access IS NULL.
+const ACCESS_TENANT_SQL =
+  '( "claim"."access_tenant_id" = $1 OR ("claim"."access_tenant_id" IS NULL AND "claim"."tenant_id" = $2) )';
+
 function createContext(overrides: Partial<ClaimsVisibilityContext> = {}): ClaimsVisibilityContext {
   return {
     tenantId: 'tenant-A',
@@ -78,7 +82,8 @@ function compile(query: SQL | undefined) {
 
 function capturedCondition(where: ReturnType<typeof createTx>['where']) {
   expect(where).toHaveBeenCalledTimes(1);
-  return compile(where.mock.calls[0]?.[0] as SQL | undefined);
+  const compiled = compile(where.mock.calls[0]?.[0] as SQL | undefined);
+  return { sql: compiled.sql.replace(/\s+/g, ' '), params: compiled.params };
 }
 
 describe('readAdminClaimStats', () => {
@@ -143,16 +148,28 @@ describe('readAdminClaimStats', () => {
     }
   });
 
+  it('scopes by effective access tenant and uses the home tenant only when access is NULL', async () => {
+    const { tx, where } = createTx();
+
+    await readAdminClaimStats(tx, createContext({ tenantId: 'tenant-MK' }));
+
+    const compiled = capturedCondition(where);
+    expect(compiled.sql).toBe(ACCESS_TENANT_SQL);
+    expect(compiled.params).toEqual(['tenant-MK', 'tenant-MK']);
+    // No bare home-tenant clause that would drop transferred-in claims.
+    expect(compiled.sql.match(/"claim"\."tenant_id"/g)).toHaveLength(1);
+  });
+
   it.each(['admin', 'tenant_admin', 'super_admin'])(
-    'scopes %s stats to the tenant with no extra branch condition',
+    'scopes %s stats to the access tenant with no extra branch condition',
     async role => {
       const { tx, where } = createTx();
 
       await readAdminClaimStats(tx, createContext({ role, branchId: 'branch-1' }));
 
       const compiled = capturedCondition(where);
-      expect(compiled.sql).toBe('"claim"."tenant_id" = $1');
-      expect(compiled.params).toEqual(['tenant-A']);
+      expect(compiled.sql).toBe(ACCESS_TENANT_SQL);
+      expect(compiled.params).toEqual(['tenant-A', 'tenant-A']);
     }
   );
 
@@ -165,18 +182,18 @@ describe('readAdminClaimStats', () => {
     );
 
     const compiled = capturedCondition(where);
-    expect(compiled.sql).toBe('"claim"."tenant_id" = $1');
-    expect(compiled.params).toEqual(['tenant-A']);
+    expect(compiled.sql).toBe(ACCESS_TENANT_SQL);
+    expect(compiled.params).toEqual(['tenant-A', 'tenant-A']);
   });
 
-  it('scopes branch manager stats to the explicit tenant and own branch', async () => {
+  it('scopes branch manager stats to the access tenant and own branch', async () => {
     const { tx, where } = createTx();
 
     await readAdminClaimStats(tx, createContext({ role: 'branch_manager', branchId: 'branch-1' }));
 
     const compiled = capturedCondition(where);
-    expect(compiled.sql).toBe('("claim"."tenant_id" = $1 and "claim"."branch_id" = $2)');
-    expect(compiled.params).toEqual(['tenant-A', 'branch-1']);
+    expect(compiled.sql).toBe(`(${ACCESS_TENANT_SQL} and "claim"."branch_id" = $3)`);
+    expect(compiled.params).toEqual(['tenant-A', 'tenant-A', 'branch-1']);
   });
 
   it.each([null, ''])(
@@ -187,8 +204,8 @@ describe('readAdminClaimStats', () => {
       await readAdminClaimStats(tx, createContext({ role: 'branch_manager', branchId }));
 
       const compiled = capturedCondition(where);
-      expect(compiled.sql).toBe('("claim"."tenant_id" = $1 and false)');
-      expect(compiled.params).toEqual(['tenant-A']);
+      expect(compiled.sql).toBe(`(${ACCESS_TENANT_SQL} and false)`);
+      expect(compiled.params).toEqual(['tenant-A', 'tenant-A']);
     }
   );
 
@@ -239,7 +256,7 @@ describe('getAdminClaimStats', () => {
     });
     // The only read goes through the transaction handed to the callback.
     expect(select).toHaveBeenCalledTimes(1);
-    expect(capturedCondition(where).params).toEqual(['tenant-A', 'branch-1']);
+    expect(capturedCondition(where).params).toEqual(['tenant-A', 'tenant-A', 'branch-1']);
     expect(hoisted.captureException).not.toHaveBeenCalled();
   });
 

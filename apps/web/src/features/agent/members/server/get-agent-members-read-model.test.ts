@@ -29,12 +29,14 @@ describe('getAgentMembersListReadModel', () => {
     const result = await getAgentMembersListReadModel({
       agentId: 'agent-1',
       tenantId: 'tenant-1',
+      role: 'agent',
       query: 'Arben',
     });
 
     expect(mocks.getAgentMembersList).toHaveBeenCalledWith({
       agentId: 'agent-1',
       tenantId: 'tenant-1',
+      role: 'agent',
       query: 'Arben',
     });
     expect(result).toEqual({
@@ -56,8 +58,18 @@ describe('getAgentMembersListReadModel', () => {
     const result = await getAgentMembersListReadModel({
       agentId: 'agent-2',
       tenantId: 'tenant-2',
+      role: 'agent',
     });
 
     expect(result).toEqual({ members: [] });
+  });
+
+  it('propagates domain role rejection without mapping', async () => {
+    const failure = new Error('Forbidden: agent members list requires the agent role');
+    mocks.getAgentMembersList.mockRejectedValueOnce(failure);
+
+    await expect(
+      getAgentMembersListReadModel({ agentId: 'user-1', tenantId: 'tenant-1', role: 'member' })
+    ).rejects.toBe(failure);
   });
 });
