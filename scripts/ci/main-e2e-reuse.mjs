@@ -117,7 +117,7 @@ function lane(source, name) {
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
 // The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
-const PR_WORKFLOW_SHA256 = 'adc10a0a5378004473712c82af0af059d4fdc75e63fd440b2891261f16aadcd5';
+const PR_WORKFLOW_SHA256 = '8d2c777b83fde4dfcc62b82e90f91fb515b48a2c7a96c927cfff75ab751e7412';
 const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {
@@ -144,7 +144,7 @@ function usesWorkflowDatabase(block, command) {
   );
 }
 const POSTGRES_CONTRACT =
-  'postgres:16|POSTGRES_USER: postgres|POSTGRES_DB: interdomestik_test|5432:5432|pg_isready -U postgres -d interdomestik_test';
+  'public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d|POSTGRES_USER: postgres|POSTGRES_DB: interdomestik_test|5432:5432|pg_isready -U postgres -d interdomestik_test';
 const usesCorrectedPostgres = block =>
   POSTGRES_CONTRACT.split('|').every(value => block.includes(value));
 export function inspectRepositoryParity(input) {
