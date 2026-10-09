@@ -1,5 +1,4 @@
 // Phase 2.8: Operational Center Data Loader (Option B: Pool → Sort → Slice)
-import { withTenantContext } from '@interdomestik/database';
 import * as Sentry from '@sentry/nextjs';
 
 import { mapClaimsToOperationalRows } from '../mappers';
@@ -8,8 +7,8 @@ import { isStaffOwnedStatus, isTerminalStatus, OPS_PAGE_SIZE, OPS_POOL_LIMIT } f
 import { canViewAdminClaims, type ClaimsVisibilityContext } from './claimVisibility';
 import { computeAssigneeOverview, computeKPIsFromPool } from './computeKPIs';
 import { getAdminClaimStats } from './getAdminClaimStats';
+import { loadOpsCenterPool } from './loadOpsCenterPool';
 import { sortByPriority } from './prioritySort';
-import { readOpsCenterPoolRows } from './readOpsCenterPool';
 
 // Helper uses canonical isTerminalStatus from types
 
@@ -111,16 +110,13 @@ export async function getOpsCenterData(
   const page = filters.page ?? 0;
 
   try {
-    // Step 1: Fetch the bounded pool in one tenant transaction on the callback tx.
-    // The callback must finish (releasing the connection) before stats are read:
-    // getAdminClaimStats opens its own tenant transaction, so calling it inside this
-    // callback would nest a second connection and can deadlock a max-1 pool.
-    const rawRows = await withTenantContext(
-      { tenantId: context.tenantId, role: context.role },
-      tx => readOpsCenterPoolRows(tx, context, filters)
-    );
+    // Step 1: Fetch the complete bounded pool. The access-tenant pool transaction and any
+    // home-tenant reads derived from admitted claims run sequentially, each released before
+    // the next opens. Stats are read only afterwards: getAdminClaimStats opens its own tenant
+    // transaction, so nesting it would need a second connection and can deadlock a max-1 pool.
+    const rawRows = await loadOpsCenterPool(context, filters);
 
-    // Step 1b: Lifecycle stats, sequentially after the pool transaction is released.
+    // Step 1b: Lifecycle stats, sequentially after the pool transactions are released.
     // getAdminClaimStats reports and absorbs a stats-only failure (zero stats), so a
     // valid pool and KPIs are preserved.
     const stats = await getAdminClaimStats(context);

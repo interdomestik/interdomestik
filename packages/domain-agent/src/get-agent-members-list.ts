@@ -60,41 +60,48 @@ export async function getAgentMembersList(params: {
     ? or(ilike(user.name, `%${normalizedQuery}%`), ilike(user.memberNumber, `%${normalizedQuery}%`))
     : undefined;
 
-  const rows = await withTenantContext({ tenantId, role }, async tx =>
-    tx
-      .select({
-        memberId: agentClients.memberId,
-        name: user.name,
-        membershipNumber: user.memberNumber,
-        userUpdatedAt: user.updatedAt,
-        joinedAt: agentClients.joinedAt,
-        activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.id} is not null and ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
-        lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
-      })
-      .from(agentClients)
-      .innerJoin(user, eq(agentClients.memberId, user.id))
-      .leftJoin(claims, and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId)))
-      .where(
-        and(
-          eq(agentClients.agentId, agentId),
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.status, 'active'),
-          eq(user.role, 'member'),
-          ...(searchFilter ? [searchFilter] : [])
+  const rows = await withTenantContext(
+    { tenantId, role },
+    async tx =>
+      await tx
+        .select({
+          memberId: agentClients.memberId,
+          name: user.name,
+          membershipNumber: user.memberNumber,
+          userUpdatedAt: user.updatedAt,
+          joinedAt: agentClients.joinedAt,
+          activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.id} is not null and ${claimLifecycleStatusIn([...ACTIVE_STATUSES])} then 1 else 0 end), 0)`,
+          lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
+        })
+        .from(agentClients)
+        .innerJoin(user, eq(agentClients.memberId, user.id))
+        .leftJoin(
+          claims,
+          and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId))
         )
-      )
-      .groupBy(
-        agentClients.memberId,
-        user.name,
-        user.memberNumber,
-        user.updatedAt,
-        agentClients.joinedAt
-      )
-      .orderBy(
-        desc(sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`),
-        asc(agentClients.memberId)
-      )
-      .limit(limit)
+        .where(
+          and(
+            eq(agentClients.agentId, agentId),
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.status, 'active'),
+            eq(user.role, 'member'),
+            ...(searchFilter ? [searchFilter] : [])
+          )
+        )
+        .groupBy(
+          agentClients.memberId,
+          user.name,
+          user.memberNumber,
+          user.updatedAt,
+          agentClients.joinedAt
+        )
+        .orderBy(
+          desc(
+            sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`
+          ),
+          asc(agentClients.memberId)
+        )
+        .limit(limit)
   );
 
   const members = rows.map(row => {

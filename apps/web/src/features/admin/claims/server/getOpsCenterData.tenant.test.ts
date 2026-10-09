@@ -1,46 +1,16 @@
-import type { TenantTransaction } from '@interdomestik/database';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  withTenantContext: vi.fn(),
-  captureException: vi.fn(),
-  globalDbReads: [] as string[],
-}));
-
-// Any access to the imported global handles is a defect: reads must use the callback tx.
-vi.mock('@interdomestik/database', async () => {
-  const schema = await vi.importActual<typeof import('@interdomestik/database/schema')>(
-    '@interdomestik/database/schema'
-  );
-  const forbidden = new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        if (typeof prop === 'symbol' || prop === 'then') return undefined;
-        hoisted.globalDbReads.push(String(prop));
-        throw new Error(`global database handle used: ${String(prop)}`);
-      },
-    }
-  );
-  return {
-    claims: schema.claims,
-    db: forbidden,
-    dbRls: forbidden,
-    withTenantContext: hoisted.withTenantContext,
-  };
-});
-
-vi.mock('@sentry/nextjs', () => ({ captureException: hoisted.captureException }));
+import { hoisted, runInTx } from './ops-pool.test-fixtures';
 
 import {
   createRecordingTenantTransaction as createRecordingTx,
   type Compiled,
 } from '@/test/recording-tenant-transaction';
 import { mapClaimsToOperationalRows } from '../mappers';
-import type { RawClaimRow } from '../mappers/mapClaimToOperationalRow';
 import type { ClaimsVisibilityContext } from './claimVisibility';
 import { computeKPIsFromPool } from './computeKPIs';
 import { getOpsCenterData } from './getOpsCenterData';
+import type { OpsCenterPoolRow } from './readOpsCenterPool';
 
 const ZERO_STATS = {
   intake: 0,
@@ -50,30 +20,6 @@ const ZERO_STATS = {
   legal: 0,
   completed: 0,
 };
-
-/**
- * Runs every withTenantContext call on the given tx and tracks transaction lifetimes,
- * so tests can prove transactions never overlap (a max-1 pool would deadlock on nesting).
- */
-function runInTx(tx: TenantTransaction) {
-  const events: Array<'open' | 'close'> = [];
-  let active = 0;
-  let maxActive = 0;
-  hoisted.withTenantContext.mockImplementation(
-    async (_context: unknown, callback: (tx: TenantTransaction) => Promise<unknown>) => {
-      active += 1;
-      maxActive = Math.max(maxActive, active);
-      events.push('open');
-      try {
-        return await callback(tx);
-      } finally {
-        active -= 1;
-        events.push('close');
-      }
-    }
-  );
-  return { events, getMaxActive: () => maxActive };
-}
 
 const flat = (value: string) => value.replace(/\s+/g, ' ');
 
@@ -87,8 +33,10 @@ function expectAccessTenantPredicate(query: Compiled | undefined, tenantId: stri
   expect(match).not.toBeNull();
   expect(query?.params[Number(match?.[1]) - 1]).toBe(tenantId);
   expect(query?.params[Number(match?.[2]) - 1]).toBe(tenantId);
-  // Home tenant is consulted only as the NULL-access fallback.
-  expect(sqlText.match(/"claim"\."tenant_id"/g)).toHaveLength(1);
+  // Home tenant is consulted only as the NULL-access fallback in the predicate
+  // (the pool also projects the home tenant internally for the home-reference fallback).
+  const whereText = sqlText.slice(sqlText.indexOf(' where '));
+  expect(whereText.match(/"claim"\."tenant_id"/g)).toHaveLength(1);
 }
 
 function createContext(overrides: Partial<ClaimsVisibilityContext> = {}): ClaimsVisibilityContext {
@@ -104,7 +52,7 @@ const STATS_ROW = {
   completed: '1',
 };
 
-function createPoolRow(id: string, claimNumber: string): RawClaimRow {
+function createPoolRow(id: string, claimNumber: string): OpsCenterPoolRow {
   const now = new Date();
   return {
     claim: {
@@ -134,6 +82,7 @@ function createPoolRow(id: string, claimNumber: string): RawClaimRow {
     staff: null,
     branch: { id: null, code: null, name: null },
     agent: null,
+    home: { tenantId: 'tenant-mk', branchId: null, agentId: null },
   };
 }
 
@@ -207,18 +156,20 @@ describe('getOpsCenterData tenant transaction', () => {
   });
 
   it('builds the member-number subquery from the pool transaction', async () => {
-    const { tx, select, executed } = createRecordingTx([[], [STATS_ROW]]);
-    runInTx(tx);
+    const { tx, select, executed } = createRecordingTx([[], [], [STATS_ROW]]);
+    const tracker = runInTx(tx);
 
     await getOpsCenterData(createContext(), { search: 'mem-2026-000002' });
 
-    // subquery + pool + stats are all built on a callback tx; only pool and stats are awaited.
-    expect(select).toHaveBeenCalledTimes(3);
-    expect(executed).toHaveLength(2);
-    expect(flat(executed[0]?.sql ?? '')).toMatch(
+    // transferred scan + subquery + pool + stats are all built on a callback tx; with no
+    // transferred candidate the pool runs in the scan's access transaction (scan, pool, stats awaited).
+    expect(select).toHaveBeenCalledTimes(4);
+    expect(executed).toHaveLength(3);
+    expect(tracker.events).toEqual(['open', 'close', 'open', 'close']);
+    expect(flat(executed[1]?.sql ?? '')).toMatch(
       /"claim"\."userId" in \(select .+ from "user" where .*"member_number" ilike \$\d+\)/
     );
-    expect(executed[0]?.params).toContain('MEM-2026-000002%');
+    expect(executed[1]?.params).toContain('MEM-2026-000002%');
     expect(hoisted.globalDbReads).toEqual([]);
   });
 

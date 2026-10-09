@@ -48,7 +48,10 @@ const GATE_SEEDS: Record<string, GateSeed> = {
 };
 
 function gateSeed(projectName: string): GateSeed {
-  const seed = GATE_SEEDS[projectName];
+  // gate-mk-contract shares the MK host, locale and storageState with gate-mk-mk.
+  const seedKey = projectName === 'gate-mk-contract' ? 'gate-mk-mk' : projectName;
+  const seed = GATE_SEEDS[seedKey];
+  // Unknown projects lack deterministic fixtures; maintained KS, MK and MK-contract projects run.
   test.skip(!seed, `tenant reader context is only maintained for ${Object.keys(GATE_SEEDS)}`);
   return seed;
 }
@@ -122,7 +125,9 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     await loginAs('agent');
 
     // /agent/members: start unfiltered, then drive the real search input.
-    await gotoApp(page, routes.agentMembers(testInfo), testInfo);
+    await gotoApp(page, routes.agentMembers(testInfo), testInfo, {
+      marker: 'agent-members-ready',
+    });
     await expect(page).toHaveURL(
       url => url.pathname === `/${locale}/agent/members` && url.searchParams.get('q') === null
     );
@@ -158,7 +163,9 @@ test.describe('Tenant reader context (mounted caller continuity)', () => {
     await expectSingleActive(memberLink);
 
     // /agent/clients: real search input, email query, settled busy state.
-    await gotoApp(page, routes.agentClients(testInfo), testInfo);
+    await gotoApp(page, routes.agentClients(testInfo), testInfo, {
+      marker: 'agent-clients-search-region',
+    });
     await expect(page).toHaveURL(
       url => url.pathname === `/${locale}/agent/clients` && url.searchParams.get('search') === null
     );
