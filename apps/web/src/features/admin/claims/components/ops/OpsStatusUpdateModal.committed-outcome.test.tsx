@@ -1,9 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installOpsBrowserGlobals } from './ops-browser.test-fixture';
 import en from '@/messages/en/admin-claims.json';
+import sq from '@/messages/sq/admin-claims.json';
+import mk from '@/messages/mk/admin-claims.json';
+import sr from '@/messages/sr/admin-claims.json';
 import { OpsStatusUpdateModal } from './OpsStatusUpdateModal';
 
 // The global setup mocks next-intl; this file uses the real English catalog.
@@ -20,26 +24,41 @@ vi.mock('../../actions/ops-actions', () => ({ updateStatus: mocks.updateStatus }
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError, success: mocks.toastSuccess } }));
 
 const SERVER_TEXT = 'Server says: Saved. Reload the page if the latest state is not shown.';
-const MESSAGES = {
-  ...en,
-  claims: { status: { verification: 'Verification', negotiation: 'Negotiation' } },
-  common: { errors: { generic: 'Something went wrong' } },
-};
+const CATALOGS = { en, sq, mk, sr };
 
-function renderModal() {
-  const props = { onOpenChange: vi.fn(), onCommittedRefreshPending: vi.fn() };
-  render(
-    <NextIntlClientProvider locale="en" messages={MESSAGES} onError={() => undefined}>
-      <OpsStatusUpdateModal
-        claimId="claim-123"
-        isOpen
-        onOpenChange={props.onOpenChange}
-        allowedTransitions={['verification', 'negotiation']}
-        locale="en"
-        onCommittedRefreshPending={props.onCommittedRefreshPending}
-      />
-    </NextIntlClientProvider>
-  );
+function renderModal(locale: keyof typeof CATALOGS = 'en') {
+  const props = {
+    onOpenChange: vi.fn(),
+    onCommittedRefreshPending: vi.fn(),
+    onTranslationError: vi.fn(),
+  };
+  function OwnedModal() {
+    const [isOpen, setIsOpen] = useState(true);
+    return (
+      <NextIntlClientProvider
+        locale={locale}
+        messages={{
+          ...CATALOGS[locale],
+          claims: { status: { verification: 'Verification', negotiation: 'Negotiation' } },
+          common: { errors: { generic: 'Something went wrong' } },
+        }}
+        onError={props.onTranslationError}
+      >
+        <OpsStatusUpdateModal
+          claimId="claim-123"
+          isOpen={isOpen}
+          onOpenChange={open => {
+            props.onOpenChange(open);
+            setIsOpen(open);
+          }}
+          allowedTransitions={['verification', 'negotiation']}
+          locale={locale}
+          onCommittedRefreshPending={props.onCommittedRefreshPending}
+        />
+      </NextIntlClientProvider>
+    );
+  }
+  render(<OwnedModal />);
   return props;
 }
 
@@ -130,4 +149,30 @@ describe('OpsStatusUpdateModal committed-write refresh-pending outcome', () => {
     expect(mocks.reload).not.toHaveBeenCalled();
     expect(props.onCommittedRefreshPending).not.toHaveBeenCalled();
   });
+});
+
+describe('OpsStatusUpdateModal real-catalog cancellation', () => {
+  it.each([
+    ['en', 'Cancel'],
+    ['sq', 'Anulo'],
+    ['mk', 'Откажи'],
+    ['sr', 'Otkaži'],
+  ] as const)(
+    'closes the %s dialog without a mutation or translation error',
+    async (locale, label) => {
+      const props = renderModal(locale);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: label }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(props.onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+      expect(props.onTranslationError).not.toHaveBeenCalled();
+      expect(mocks.updateStatus).not.toHaveBeenCalled();
+      expect(props.onCommittedRefreshPending).not.toHaveBeenCalled();
+      expect(mocks.reload).not.toHaveBeenCalled();
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+      expect(mocks.toastError).not.toHaveBeenCalled();
+    }
+  );
 });

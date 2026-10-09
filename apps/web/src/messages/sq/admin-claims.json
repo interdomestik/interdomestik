@@ -222,16 +222,6 @@
         },
         "committed_refresh_pending": "Ndryshimi u ruajt. Rifreskoni faqen për të parë gjendjen më të fundit. Mos e përsërisni këtë veprim."
       },
-      "status_modal": {
-        "title": "Përditëso statusin e kërkesës",
-        "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
-        "placeholder": "Zgjidh statusin e ri...",
-        "cancel": "Anulo",
-        "confirm": "Konfirmo përditësimin",
-        "success": "Statusi u përditësua me sukses",
-        "error": "Përditësimi i statusit dështoi",
-        "unexpected_error": "Ndodhi një gabim i papritur"
-      },
       "evidence": {
         "title": "Evidenca",
         "upload_button": "Ngarko",
@@ -265,7 +255,10 @@
         "title": "Përditëso statusin e kërkesës",
         "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
         "placeholder": "Zgjidh statusin e ri...",
-        "confirm": "Konfirmo përditësimin"
+        "confirm": "Konfirmo përditësimin",
+        "cancel": "Anulo",
+        "error": "Përditësimi i statusit dështoi",
+        "unexpected_error": "Ndodhi një gabim i papritur"
       },
       "detail": {
         "fields": {

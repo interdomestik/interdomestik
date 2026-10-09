@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import {
   and,
   claims,
@@ -22,6 +23,21 @@ import srClaims from '../../src/messages/sr/claims.json';
 
 const catalogs = { en, sq, mk, sr };
 const claimCatalogs = { en: enClaims, sq: sqClaims, mk: mkClaims, sr: srClaims };
+
+async function expectOpsReady(page: Page, title: string) {
+  const shell = page.getByTestId('dashboard-page-ready').filter({ visible: true });
+  await expect(shell).toHaveCount(1);
+  const heading = shell.getByRole('heading', { level: 1, name: title, exact: true });
+  await expect(heading).toHaveCount(1);
+  await expect(heading).toBeVisible();
+  const panel = shell.getByTestId('ops-next-actions');
+  await expect(panel).toHaveCount(1);
+  await expect(panel).toBeVisible();
+  // Streaming may retain an outside-shell node; two live cards must still fail.
+  await expect(page.getByTestId('ops-next-actions').filter({ visible: true })).toHaveCount(1);
+  await expect(panel).toHaveAttribute('aria-busy', 'false');
+  return panel;
+}
 
 test('admin Ops commits status and internal notes, preserves cooldown, and keeps branch manager read-only', async ({
   adminPage: page,
@@ -58,11 +74,7 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         marker: 'admin-page-ready',
       });
       expect(response?.status()).toBe(200);
-      const heading = page.getByRole('heading', { level: 1, name: fixture.title, exact: true });
-      await expect(heading).toHaveCount(1);
-      const panel = page.getByTestId('ops-next-actions');
-      await expect(panel).toHaveCount(1);
-      await expect(panel).toHaveAttribute('aria-busy', 'false');
+      const panel = await expectOpsReady(page, fixture.title);
       const status = panel.getByRole('combobox', {
         name: copy.actions.update_status.label,
         exact: true,
@@ -84,8 +96,7 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         exact: true,
       });
       await Promise.all([page.waitForEvent('load'), verification.click()]);
-      await expect(heading).toHaveCount(1);
-      await expect(panel).toHaveAttribute('aria-busy', 'false');
+      await expectOpsReady(page, fixture.title);
       expect((await db.query.claims.findFirst({ where: scope }))?.caseLifecycleState).toBe(
         'verification'
       );
@@ -104,7 +115,7 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         exact: true,
       });
       await Promise.all([page.waitForEvent('load'), reminder.click()]);
-      await expect(panel).toHaveAttribute('aria-busy', 'false');
+      await expectOpsReady(page, fixture.title);
       const recorded = await fixture.readState();
       expect(recorded.messageCount).toBe(1);
       expect(recorded.audits.map(audit => audit.action).sort()).toEqual([
@@ -119,7 +130,7 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
       );
       await reminder.click();
       expect((await actionResponse).ok()).toBe(true);
-      await expect(panel).toHaveAttribute('aria-busy', 'false');
+      await expectOpsReady(page, fixture.title);
       await expect(page.getByText(/^Rate limited\. Last reminder recorded/)).toBeVisible();
       expect((await fixture.readState()).messageCount).toBe(1);
       expect((await fixture.readState()).audits).toHaveLength(2);
@@ -132,14 +143,14 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         })
         .where(scope);
       await page.reload({ waitUntil: 'domcontentloaded' });
-      await expect(heading).toHaveCount(1);
+      await expectOpsReady(page, fixture.title);
       const acknowledge = panel.getByRole('button', {
         name: copy.actions.ack_sla.label,
         exact: true,
       });
       await expect(acknowledge).toHaveCount(1);
       await Promise.all([page.waitForEvent('load'), acknowledge.click()]);
-      await expect(panel).toHaveAttribute('aria-busy', 'false');
+      await expectOpsReady(page, fixture.title);
       const acknowledged = await fixture.readState();
       expect(acknowledged.messageCount).toBe(2);
       expect(acknowledged.audits.map(audit => audit.action).sort()).toEqual([
@@ -154,15 +165,13 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         marker: 'admin-page-ready',
       });
       expect(branchResponse?.status()).toBe(200);
-      await expect(
-        branchPage.getByRole('heading', { level: 1, name: fixture.title, exact: true })
-      ).toHaveCount(1);
-      const readOnlyPanel = branchPage.getByTestId('ops-next-actions');
-      await expect(readOnlyPanel).toHaveAttribute('aria-busy', 'false');
+      const readOnlyPanel = await expectOpsReady(branchPage, fixture.title);
       await expect(readOnlyPanel.getByRole('combobox')).toHaveCount(0);
       await expect(readOnlyPanel.getByRole('button')).toHaveCount(0);
       await expect(branchPage.getByRole('dialog')).toHaveCount(0);
       await branchPage.reload({ waitUntil: 'domcontentloaded' });
+      await expectOpsReady(branchPage, fixture.title);
+      await expect(readOnlyPanel.getByRole('combobox')).toHaveCount(0);
       await expect(readOnlyPanel.getByRole('button')).toHaveCount(0);
       expect((await fixture.readState()).audits).toHaveLength(3);
       expect((await fixture.readState()).messageCount).toBe(2);

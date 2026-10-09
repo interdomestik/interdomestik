@@ -215,16 +215,6 @@
         },
         "committed_refresh_pending": "Your change was saved. Refresh the page to see the latest state. Do not repeat this action."
       },
-      "status_modal": {
-        "title": "Update Claim Status",
-        "description": "Select the new status for this claim. This action will be logged.",
-        "placeholder": "Select new status...",
-        "cancel": "Cancel",
-        "confirm": "Confirm Update",
-        "success": "Status updated successfully",
-        "error": "Failed to update status",
-        "unexpected_error": "An unexpected error occurred"
-      },
       "evidence": {
         "title": "Evidence",
         "upload_button": "Upload",
@@ -258,7 +248,10 @@
         "title": "Update Claim Status",
         "description": "Select the new status for this claim. This action will be logged.",
         "placeholder": "Select new status...",
-        "confirm": "Confirm Update"
+        "confirm": "Confirm Update",
+        "cancel": "Cancel",
+        "error": "Failed to update status",
+        "unexpected_error": "An unexpected error occurred"
       },
       "detail": {
         "fields": {
