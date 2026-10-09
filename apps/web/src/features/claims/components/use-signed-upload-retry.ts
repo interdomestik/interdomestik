@@ -211,6 +211,7 @@ export function useSignedUploadRetry({
     // A changed mounted claim/request must never submit the previous pending identity.
     assertCurrentIdentity(current.confirmation);
     const result = await confirmUpload(current.confirmation);
+    assertCurrentIdentity(current.confirmation);
     if (!result.success) throw new SignedUploadRetryError(result.error, result.status);
     if (pendingRef.current === current) keepPending(null);
     return current.confirmation.fileId;

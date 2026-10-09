@@ -1,3 +1,4 @@
+import { cloneElement } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignedUploadIdentityChangedError } from './use-signed-upload-retry';
@@ -67,7 +68,7 @@ const messages = {
 };
 
 function openDialog() {
-  render(
+  const element = (
     <SharedEvidenceUploadDialog
       categoryFieldId="category"
       claimId="claim-1"
@@ -80,7 +81,10 @@ function openDialog() {
       trigger={<button type="button">Open</button>}
     />
   );
+  const view = render(element);
   fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+  return (props: { claimId?: string; informationRequestId?: string }) =>
+    view.rerender(cloneElement(element, props));
 }
 
 function prepareDraft() {
@@ -120,20 +124,17 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
 describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
   it('replays the original confirmation after a thrown response without a new intent', async () => {
     mocks.confirmUpload.mockRejectedValueOnce(new Error('Network response lost'));
     openDialog();
     prepareDraft();
-
     clickUpload();
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Network response lost'));
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(mocks.onUploadSuccess).not.toHaveBeenCalled();
     expectOriginalDraftLocked();
-
     clickUpload();
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
     expectSameConfirmations(2);
@@ -143,7 +144,6 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     );
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Uploaded');
   });
-
   it('localizes identity-change recovery without claiming a saved upload', async () => {
     mocks.confirmUpload.mockRejectedValueOnce(new SignedUploadIdentityChangedError());
     openDialog();
@@ -265,4 +265,36 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     expect(mocks.onUploadSuccess).not.toHaveBeenCalled();
     expectOriginalDraftLocked();
   });
+  it.each([{ claimId: 'different' }, { informationRequestId: 'request-2' }])(
+    'suppresses stale confirmation success after mounted identity changes to %j',
+    async next => {
+      let settle!: (value: { success: true }) => void;
+      mocks.confirmUpload.mockReturnValueOnce(
+        new Promise(resolve => {
+          settle = resolve;
+        })
+      );
+      const rerender = openDialog();
+      prepareDraft();
+      clickUpload();
+      await waitFor(() => expect(mocks.confirmUpload).toHaveBeenCalledTimes(1));
+      rerender(next);
+      await act(async () => {
+        settle({ success: true });
+      });
+      await waitFor(() =>
+        expect(mocks.toastError).toHaveBeenCalledWith('uploadRecovery.identityChanged')
+      );
+      expectOriginalDraftLocked();
+      expectSameConfirmations(1);
+      expect(screen.getByRole('dialog')).toBeVisible();
+      expect(screen.getByRole('link', { name: 'uploadRecovery.action' })).toHaveAttribute(
+        'href',
+        '/en/member/claims/claim-1'
+      );
+      expect(mocks.onUploadSuccess).not.toHaveBeenCalled();
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+    }
+  );
 });

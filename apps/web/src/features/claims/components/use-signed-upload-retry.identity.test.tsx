@@ -101,4 +101,45 @@ describe('pending signed upload ownership', () => {
       expect(result.current.identityMatches).toBe(false);
     }
   );
+
+  it.each([
+    { claimId: 'different', informationRequestId: undefined },
+    { claimId: 'original', informationRequestId: 'new-request' },
+  ])('retains pending recovery when identity changes during confirmation to %j', async next => {
+    const { result, rerender, confirmUpload, generateUploadUrl, uploadToStorage } = setup();
+    let settle!: (value: { success: true }) => void;
+    confirmUpload.mockReturnValueOnce(
+      new Promise(resolve => {
+        settle = resolve;
+      })
+    );
+    let outcome!: Promise<unknown>;
+    await act(async () => {
+      outcome = result.current.uploadSigned(draft).catch(error => error);
+    });
+    const pending = result.current.pending;
+    expect(pending?.stage).toBe('confirm');
+    rerender(next);
+    let error: unknown;
+    await act(async () => {
+      settle({ success: true });
+      error = await outcome;
+    });
+    expect(error).toMatchObject({ name: 'SignedUploadIdentityChangedError', status: 409 });
+    expect(result.current.pending).toBe(pending);
+    expect(result.current.pending?.recoveryHref).toBe('/en/member/claims/original');
+    expect(result.current.identityMatches).toBe(false);
+    expect(confirmUpload).toHaveBeenCalledTimes(1);
+    expect(generateUploadUrl).toHaveBeenCalledTimes(1);
+    expect(uploadToStorage).toHaveBeenCalledTimes(1);
+    rerender({ claimId: 'original', informationRequestId: undefined });
+    confirmUpload.mockResolvedValueOnce({ success: true });
+    await act(async () => {
+      await expect(result.current.uploadSigned(draft)).resolves.toBe('file-1');
+    });
+    expect(confirmUpload.mock.calls[1]?.[0]).toBe(pending?.confirmation);
+    expect(result.current.pending).toBeNull();
+    expect(generateUploadUrl).toHaveBeenCalledTimes(1);
+    expect(uploadToStorage).toHaveBeenCalledTimes(1);
+  });
 });
