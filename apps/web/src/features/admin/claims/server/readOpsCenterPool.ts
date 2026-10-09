@@ -159,7 +159,8 @@ function refFilterCondition(
 }
 
 function localMatchSql(condition: SQL | undefined): SQL<boolean> {
-  return sql<boolean>`coalesce(${condition ?? sql`false`}, false)`;
+  const fallbackCondition = condition ?? sql`false`;
+  return sql<boolean>`coalesce(${fallbackCondition}, false)`;
 }
 
 /**
