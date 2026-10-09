@@ -23,11 +23,11 @@ export type LoginEntryTiming = {
 
 export type LoginEntryTimingEnv = {
   readonly [key: string]: string | undefined;
-  readonly VERCEL_ENV?: string | undefined;
-  readonly COMMIT_SHA?: string | undefined;
-  readonly LOGIN_ENTRY_TIMING_TARGET_SHA?: string | undefined;
-  readonly LOGIN_ENTRY_TIMING_ISSUED_AT?: string | undefined;
-  readonly LOGIN_ENTRY_TIMING_EXPIRES_AT?: string | undefined;
+  readonly VERCEL_ENV?: string;
+  readonly COMMIT_SHA?: string;
+  readonly LOGIN_ENTRY_TIMING_TARGET_SHA?: string;
+  readonly LOGIN_ENTRY_TIMING_ISSUED_AT?: string;
+  readonly LOGIN_ENTRY_TIMING_EXPIRES_AT?: string;
 };
 
 export type LoginEntryTimingDeps = {
@@ -55,7 +55,7 @@ type LoginEntryTimingRecord = {
 
 const MAX_WINDOW_MS = 3_600_000;
 const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
-const EPOCH_MS_PATTERN = /^(?:0|[1-9][0-9]*)$/;
+const EPOCH_MS_PATTERN = /^(?:0|[1-9]\d*)$/;
 
 const DURATION_KEYS: readonly DurationKey[] = [
   'entry_ms',
