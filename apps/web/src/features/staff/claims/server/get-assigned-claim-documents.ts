@@ -32,7 +32,8 @@ export function buildAssignedStaffDocumentUrl(documentId: string): string {
 /**
  * Ordinary claim evidence for the currently assigned staff member only. The staff role and the
  * exact claim + tenant + staffId assignment are checked inside the tenant transaction before any
- * document metadata is read; every other viewer receives no documents and no links.
+ * document metadata is read. The document statement rechecks that assignment at its own snapshot;
+ * every other viewer receives no documents and no links.
  */
 export async function getAssignedStaffClaimDocuments(args: {
   claimId: string;
@@ -59,7 +60,7 @@ export async function getAssignedStaffClaimDocuments(args: {
       .limit(1);
     if (!assignment) return [];
 
-    // db-access-guard: tenant-scoped -- reason: documents are read only for the assigned claim in the same tenant.
+    // db-access-guard: tenant-scoped -- reason: the document statement itself rechecks exact claim, tenant, and current staff assignment.
     const rows = await tx
       .select({
         id: claimDocuments.id,
@@ -68,6 +69,14 @@ export async function getAssignedStaffClaimDocuments(args: {
         fileSize: claimDocuments.fileSize,
       })
       .from(claimDocuments)
+      .innerJoin(
+        claims,
+        and(
+          eq(claims.id, claimDocuments.claimId),
+          eq(claims.tenantId, tenantId),
+          eq(claims.staffId, staffId)
+        )
+      )
       .leftJoin(
         claimInformationRequestEvidence,
         and(

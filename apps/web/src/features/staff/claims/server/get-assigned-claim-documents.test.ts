@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type QueryChain = {
   from: (table: unknown) => QueryChain;
+  innerJoin: (table: unknown, predicate: unknown) => QueryChain;
   leftJoin: (table: unknown, predicate: unknown) => QueryChain;
   limit: (count: number) => Promise<unknown[]>;
   orderBy: (order: unknown) => Promise<unknown[]>;
@@ -60,6 +61,10 @@ const tx = {
     const chain: QueryChain = {
       from: table => {
         hoisted.froms.push(table);
+        return chain;
+      },
+      innerJoin: (table, predicate) => {
+        hoisted.joins.push({ table, predicate });
         return chain;
       },
       leftJoin: (table, predicate) => {
@@ -156,6 +161,17 @@ describe('getAssignedStaffClaimDocuments', () => {
       },
     ]);
     expect(hoisted.joins).toEqual([
+      {
+        table: expect.objectContaining({ id: 'claims.id' }),
+        predicate: {
+          op: 'and',
+          args: [
+            { op: 'eq', left: 'claims.id', right: 'claim_documents.claim_id' },
+            { op: 'eq', left: 'claims.tenant_id', right: 'tenant-a' },
+            { op: 'eq', left: 'claims.staff_id', right: 'staff-1' },
+          ],
+        },
+      },
       expect.objectContaining({
         predicate: {
           op: 'and',
