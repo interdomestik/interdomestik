@@ -212,7 +212,8 @@
           "failed": "Action failed",
           "completed": "Action completed",
           "unexpected_error": "An unexpected error occurred"
-        }
+        },
+        "committed_refresh_pending": "Your change was saved. Refresh the page to see the latest state. Do not repeat this action."
       },
       "status_modal": {
         "title": "Update Claim Status",

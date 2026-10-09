@@ -4,14 +4,22 @@ import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 // action tests exercise the real sanitizer and post-commit truthfulness instead of mocks.
 
 export type OpsActionResult =
-  { success: true; message?: string; data?: unknown } | { success: false; error: string };
+  | { success: true; message?: string; data?: unknown; refreshPending?: true }
+  | { success: false; error: string };
 
 export type OpsActionFailure = Extract<OpsActionResult, { success: false }>;
+
+// Structured marker for a committed write whose post-commit revalidation failed. Clients drive the
+// refresh-pending UI from this flag only; they never compare or display the message text.
+export type OpsCommittedRefreshPendingResult = Extract<OpsActionResult, { success: true }> & {
+  refreshPending: true;
+};
 
 export const OPS_ACTION_UNAUTHORIZED_ERROR = 'Unauthorized';
 export const OPS_ACTION_FAILED_ERROR = 'Action failed. Please try again.';
 export const OPS_CLAIM_CHANGED_ERROR =
   'This claim changed before the update could be saved. Reload and try again.';
+// Compatibility/privacy-safe text only. UI copy is localized client-side and keyed off refreshPending.
 export const OPS_COMMITTED_REFRESH_PENDING_MESSAGE =
   'Saved. Reload the page if the latest state is not shown.';
 
@@ -51,7 +59,8 @@ export function toSafeOpsActionError(
 
 // Called only after the tenant transaction committed. A revalidation failure must not relabel
 // the persisted mutation as failed (which would invite a duplicate retry); report success with
-// a refresh hint instead, and never re-run the mutation.
+// a structured refreshPending marker instead, and never re-run the mutation. The message string
+// is kept for compatibility only; the marker is what drives the UI.
 export function completeCommittedOpsAction(
   actionName: 'updateStatus' | 'markSlaAcknowledged' | 'sendMemberReminder',
   revalidate: () => void
@@ -60,7 +69,23 @@ export function completeCommittedOpsAction(
     revalidate();
   } catch {
     console.error(`Revalidation failed after commit: ${actionName}`, 'revalidation_failure');
-    return { success: true, message: OPS_COMMITTED_REFRESH_PENDING_MESSAGE };
+    return {
+      success: true,
+      message: OPS_COMMITTED_REFRESH_PENDING_MESSAGE,
+      refreshPending: true,
+    };
   }
   return { success: true };
+}
+
+// Client-safe structural guard. Only the typed marker counts; message text is never inspected.
+export function isCommittedRefreshPending(
+  result: unknown
+): result is OpsCommittedRefreshPendingResult {
+  return (
+    typeof result === 'object' &&
+    result !== null &&
+    (result as { success?: unknown }).success === true &&
+    (result as { refreshPending?: unknown }).refreshPending === true
+  );
 }

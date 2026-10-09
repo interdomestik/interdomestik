@@ -137,6 +137,7 @@ describe('markSlaAcknowledged inside the tenant transaction', () => {
     await expect(markSlaAcknowledged('claim-1', 'en')).resolves.toEqual({
       success: true,
       message: 'Saved. Reload the page if the latest state is not shown.',
+      refreshPending: true,
     });
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
     expect(insertedInto(claimMessages)).toHaveLength(1);

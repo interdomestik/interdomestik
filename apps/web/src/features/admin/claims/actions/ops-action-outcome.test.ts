@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   OpsDomainDenialError,
   completeCommittedOpsAction,
+  isCommittedRefreshPending,
   toSafeOpsActionError,
 } from './ops-action-outcome';
 
@@ -28,6 +29,7 @@ describe('safe Ops outcomes', () => {
     expect(result).toEqual({
       success: true,
       message: 'Saved. Reload the page if the latest state is not shown.',
+      refreshPending: true,
     });
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(JSON.stringify([result, log.mock.calls])).not.toContain(SENTINEL);
@@ -35,6 +37,29 @@ describe('safe Ops outcomes', () => {
       'Revalidation failed after commit: sendMemberReminder',
       'revalidation_failure'
     );
+  });
+  it('returns a plain success without the refresh marker when revalidation works', () => {
+    const refresh = vi.fn();
+    const result = completeCommittedOpsAction('updateStatus', refresh);
+    expect(result).toEqual({ success: true });
+    expect(result).not.toHaveProperty('refreshPending');
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('recognises only the structured marker, never the message text', () => {
+    expect(isCommittedRefreshPending({ success: true, refreshPending: true })).toBe(true);
+    expect(
+      isCommittedRefreshPending({
+        success: true,
+        message: 'Saved. Reload the page if the latest state is not shown.',
+      })
+    ).toBe(false);
+    expect(isCommittedRefreshPending({ success: false, error: 'x', refreshPending: true })).toBe(
+      false
+    );
+    expect(isCommittedRefreshPending({ success: true, refreshPending: 'true' })).toBe(false);
+    expect(isCommittedRefreshPending({ success: true })).toBe(false);
+    expect(isCommittedRefreshPending(null)).toBe(false);
+    expect(isCommittedRefreshPending(undefined)).toBe(false);
   });
   it('does not trust arbitrary domain-denial payloads', () => {
     expect(toSafeOpsActionError('markSlaAcknowledged', new OpsDomainDenialError(SENTINEL))).toEqual(

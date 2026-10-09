@@ -253,6 +253,7 @@ describe('updateStatusAction', () => {
     await expect(updateStatusAction('claim-1', 'negotiation', 'sq')).resolves.toEqual({
       success: true,
       message: 'Saved. Reload the page if the latest state is not shown.',
+      refreshPending: true,
     });
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
     expect(mocks.transitionAdminClaimStatusInTransaction).toHaveBeenCalledTimes(1);

@@ -219,7 +219,8 @@
           "failed": "Veprimi dështoi",
           "completed": "Veprimi u krye",
           "unexpected_error": "Ndodhi një gabim i papritur"
-        }
+        },
+        "committed_refresh_pending": "Ndryshimi u ruajt. Rifreskoni faqen për të parë gjendjen më të fundit. Mos e përsërisni këtë veprim."
       },
       "status_modal": {
         "title": "Përditëso statusin e kërkesës",

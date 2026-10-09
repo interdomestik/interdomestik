@@ -1,11 +1,13 @@
 'use client';
 
 import { OpsActionBar } from '@/components/ops';
+import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { isCommittedRefreshPending } from '../../actions/ops-action-outcome';
 import {
   assignOwner,
   markSlaAcknowledged,
@@ -68,16 +70,39 @@ export function NextActionsCard({
   const { primary, secondary } = nextActions;
   const [isPending, startTransition] = useTransition();
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  // Set only from the structured committed-write marker. Once set, the saved operation must not be
+  // offered again until the user manually refreshes the page.
+  const [refreshPending, setRefreshPending] = useState(false);
 
   const t = useTranslations('admin.claims_page.next_actions');
+  const tOps = useTranslations('admin.claims_page.ops_center');
 
   // Logic to hide card if there's truly nothing to show
   if (!primary && secondary.length === 0 && !claim.isStuck && !claim.hasSlaBreach) {
     return null;
   }
 
-  const visibleActions = readOnly ? toReadOnlyNextActions(nextActions) : nextActions;
-  const canAssignHere = canAssign && !readOnly;
+  // Mutation controls are suppressed for read-only viewers and while a committed write awaits a
+  // manual refresh; navigation-only actions remain.
+  const mutationsSuppressed = readOnly || refreshPending;
+  const visibleActions = mutationsSuppressed ? toReadOnlyNextActions(nextActions) : nextActions;
+  const canAssignHere = canAssign && !mutationsSuppressed;
+
+  // Shared success path for status/SLA/reminder/reopen. A committed write whose revalidation failed
+  // shows the persistent warning instead of reloading or toasting a generic success.
+  const finishSuccessfulMutation = (result: unknown) => {
+    if (isCommittedRefreshPending(result)) {
+      setRefreshPending(true);
+      return;
+    }
+    globalThis.location.reload();
+    toast.success(t('toast.completed'));
+  };
+
+  // Plain page reload only; never re-invokes a mutation.
+  const handleManualRefresh = () => {
+    globalThis.location.reload();
+  };
 
   const handleAssign = (staffId: string, intent: AssignmentIntent) => {
     if (isPending || !canAssignHere) return;
@@ -99,7 +124,7 @@ export function NextActionsCard({
 
   const handleActionClick = (type: string) => {
     // Server actions re-check the exercised role; this keeps read-only viewers from invoking them.
-    if (readOnly && !isReadOnlySafeAction(type)) return;
+    if (mutationsSuppressed && !isReadOnlySafeAction(type)) return;
     onAction?.(type);
 
     if (type === 'update_status') {
@@ -130,8 +155,7 @@ export function NextActionsCard({
         if (result && !result.success) {
           toast.error(result.error || t('toast.failed'));
         } else if (result && result.success) {
-          globalThis.location.reload();
-          toast.success(t('toast.completed'));
+          finishSuccessfulMutation(result);
         }
       } catch {
         toast.error(t('toast.unexpected_error'));
@@ -140,28 +164,28 @@ export function NextActionsCard({
   };
 
   const handleStatusDirectUpdate = (status: string) => {
-    if (readOnly) return;
+    if (mutationsSuppressed) return;
     startTransition(async () => {
       onAction?.('update_status_direct');
       const result = await updateStatus(claim.id, status as never, locale);
       if (!result.success) {
         toast.error(result.error || t('toast.failed'));
       } else {
-        globalThis.location.reload();
-        toast.success(t('toast.completed'));
+        finishSuccessfulMutation(result);
       }
     });
   };
 
   return (
     <>
-      {!readOnly && (
+      {!readOnly && !refreshPending && (
         <OpsStatusUpdateModal
           claimId={claim.id}
           isOpen={isStatusModalOpen}
           onOpenChange={setIsStatusModalOpen}
           allowedTransitions={nextActions.allowedTransitions}
           locale={locale}
+          onCommittedRefreshPending={() => setRefreshPending(true)}
         />
       )}
 
@@ -179,6 +203,19 @@ export function NextActionsCard({
       >
         <CardContent className="p-4 flex flex-col gap-4">
           <NextActionBadges claim={claim} nextActions={nextActions} />
+
+          {refreshPending && (
+            <div
+              role="status"
+              data-testid="ops-next-actions-committed-warning"
+              className="flex flex-col gap-3 rounded-md border bg-muted/50 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p>{t('committed_refresh_pending')}</p>
+              <Button type="button" variant="outline" size="sm" onClick={handleManualRefresh}>
+                {tOps('refresh')}
+              </Button>
+            </div>
+          )}
 
           <OpsActionBar className="border-0 pt-0 mt-0">
             <div className="flex flex-col gap-4 w-full">

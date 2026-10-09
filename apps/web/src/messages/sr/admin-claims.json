@@ -222,7 +222,8 @@
           "failed": "Akcija nije uspela",
           "completed": "Akcija završena",
           "unexpected_error": "Došlo je do neočekivane greške"
-        }
+        },
+        "committed_refresh_pending": "Promena je sačuvana. Osvežite stranicu da biste videli najnovije stanje. Ne ponavljajte akciju."
       },
       "status_modal": {
         "title": "Ažuriraj status zahteva",
