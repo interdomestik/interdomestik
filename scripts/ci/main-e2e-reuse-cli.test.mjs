@@ -26,6 +26,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
 const MEMBER_PORTAL_E2E_TREE = '5468dfaebd2e284d506eec07713ad5d2729f8711';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
+const POSTGRES_IMAGE =
+  'public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d';
 const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =
   'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
@@ -157,7 +159,8 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     ['sharedFlags', 'laneSource', prLane, 'pr: gateLane([ksSq, mkContract], false)'],
     ['commandChain', 'playwrightConfig', 'gate-mk-contract', 'gate-mk-contract-drift'],
     ['databaseSubstrate', 'prWorkflow', database, '127.0.0.1:54322/postgres'],
-    ['databaseSubstrate', 'prWorkflow', 'image: postgres:16', 'image: postgres:17'],
+    ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, 'postgres:17'],
+    ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, `${POSTGRES_IMAGE.slice(0, -1)}0`],
     ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
     ['commandChain', 'packageJson', prGateScript, '"e2e:gate:pr": "true"'],
     ...helperDrifts,
@@ -245,7 +248,6 @@ test('default git lookup ignores a writable PATH executable', () => {
     rmSync(directory, { force: true, recursive: true });
   }
 });
-
 test('PR gate skip and failure-tolerating workflow semantics reject reuse before provider lookup', async () => {
   const current = sources();
   for (const [before, after] of [
@@ -273,7 +275,6 @@ test('PR gate skip and failure-tolerating workflow semantics reject reuse before
     assert.equal(requested, false);
   }
 });
-
 test('pre-install E2E resolver starts without node_modules', () => {
   const directory = realpathSync(mkdtempSync(path.join(tmpdir(), 'reuse-preinstall-')));
   try {

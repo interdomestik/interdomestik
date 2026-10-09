@@ -21,6 +21,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { isCommittedRefreshPending } from '../../actions/ops-action-outcome';
 import { updateStatus } from '../../actions/ops-actions';
 
 type OpsStatusUpdateModalProps = Readonly<{
@@ -29,6 +30,11 @@ type OpsStatusUpdateModalProps = Readonly<{
   onOpenChange: (open: boolean) => void;
   allowedTransitions: ClaimStatus[];
   locale: string;
+  /**
+   * Called when the status change was committed but the post-commit refresh failed. The owner
+   * shows the persistent localized warning; this modal then neither toasts nor reloads.
+   */
+  onCommittedRefreshPending: () => void;
 }>;
 
 export function OpsStatusUpdateModal({
@@ -37,6 +43,7 @@ export function OpsStatusUpdateModal({
   onOpenChange,
   allowedTransitions,
   locale,
+  onCommittedRefreshPending,
 }: OpsStatusUpdateModalProps) {
   const tStatus = useTranslations('claims.status');
   const tModal = useTranslations('admin.claims_page.status_modal');
@@ -52,6 +59,11 @@ export function OpsStatusUpdateModal({
     startTransition(async () => {
       try {
         const result = await updateStatus(claimId, selectedStatus as ClaimStatus, locale);
+        if (isCommittedRefreshPending(result)) {
+          onOpenChange(false);
+          onCommittedRefreshPending();
+          return;
+        }
         if (result.success) {
           toast.success(tStatusForm('success'));
           globalThis.location.reload();

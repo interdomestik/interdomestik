@@ -38,6 +38,9 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
 
   const data = result.data;
   const canAssign = isAdmin(session.user.role);
+  // Ops mutations (status, SLA, reminder, assignment) are admitted only for the exercised admin
+  // family on the server; every other viewer, including branch managers, gets a read-only card.
+  const opsReadOnly = !isAdmin(session.user.role) || visibility.role === 'branch_manager';
   const staffResult = await getStaff();
   if (canAssign && !staffResult.success) {
     // A failed read is not "no eligible staff": surface it through the route error/retry boundary
@@ -81,6 +84,7 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
             currentUserId={session.user.id}
             allStaff={assignableStaff}
             canAssign={canAssign}
+            readOnly={opsReadOnly}
           />
 
           {/* 2. Messaging (Communication) */}

@@ -5,6 +5,7 @@ import type { SQLWrapper } from 'drizzle-orm';
 import {
   transitionClaimStatusInTransaction,
   type TransitionClaimStatusResult,
+  type TransitionTx,
 } from '../claims/transition';
 import type { ClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import type { CaseLifecycleState, RecoveryLifecycleState } from '../claims/lifecycle-state';
@@ -49,17 +50,24 @@ function requiredTransitionCondition(params: TransitionAdminClaimStatusParams): 
   ) as SQLWrapper;
 }
 
+// Runs the canonical admin status transition on the caller's supplied transaction (for example a
+// tenant-context transaction that also writes the operational audit). It opens no transaction.
+export async function transitionAdminClaimStatusInTransaction(
+  tx: TransitionTx,
+  params: TransitionAdminClaimStatusParams
+): Promise<TransitionClaimStatusResult> {
+  return transitionClaimStatusInTransaction(tx, {
+    actor: params.actor,
+    claimId: params.claimId,
+    requiredWhereCondition: requiredTransitionCondition(params),
+    tenantId: params.tenantId,
+    toStatus: params.toStatus,
+  });
+}
+
 export async function transitionAdminClaimStatus(
   params: TransitionAdminClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
   // db-access-guard: tenant-scoped -- reason: transition helper applies tenant-scoped CAS.
-  return db.transaction(tx =>
-    transitionClaimStatusInTransaction(tx, {
-      actor: params.actor,
-      claimId: params.claimId,
-      requiredWhereCondition: requiredTransitionCondition(params),
-      tenantId: params.tenantId,
-      toStatus: params.toStatus,
-    })
-  );
+  return db.transaction(tx => transitionAdminClaimStatusInTransaction(tx, params));
 }

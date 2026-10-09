@@ -180,8 +180,8 @@
           "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
           "escalate": { "label": "Escalate", "description": "Request manager attention." },
           "message_poke": {
-            "label": "Send Reminder",
-            "description": "Member has been unresponsive."
+            "label": "Record reminder",
+            "description": "Add an internal reminder to the case timeline."
           },
           "review_blockers": {
             "label": "Review Blockers",
@@ -212,17 +212,8 @@
           "failed": "Action failed",
           "completed": "Action completed",
           "unexpected_error": "An unexpected error occurred"
-        }
-      },
-      "status_modal": {
-        "title": "Update Claim Status",
-        "description": "Select the new status for this claim. This action will be logged.",
-        "placeholder": "Select new status...",
-        "cancel": "Cancel",
-        "confirm": "Confirm Update",
-        "success": "Status updated successfully",
-        "error": "Failed to update status",
-        "unexpected_error": "An unexpected error occurred"
+        },
+        "committed_refresh_pending": "Your change was saved. Refresh the page to see the latest state. Do not repeat this action."
       },
       "evidence": {
         "title": "Evidence",
@@ -257,7 +248,10 @@
         "title": "Update Claim Status",
         "description": "Select the new status for this claim. This action will be logged.",
         "placeholder": "Select new status...",
-        "confirm": "Confirm Update"
+        "confirm": "Confirm Update",
+        "cancel": "Cancel",
+        "error": "Failed to update status",
+        "unexpected_error": "An unexpected error occurred"
       },
       "detail": {
         "fields": {

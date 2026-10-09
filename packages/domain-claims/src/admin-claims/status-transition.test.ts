@@ -30,7 +30,10 @@ vi.mock('../claims/transition', () => ({
   transitionClaimStatusInTransaction: mocks.transition,
 }));
 
-import { transitionAdminClaimStatus } from './status-transition';
+import {
+  transitionAdminClaimStatus,
+  transitionAdminClaimStatusInTransaction,
+} from './status-transition';
 
 describe('transitionAdminClaimStatus', () => {
   beforeEach(() => {
@@ -126,5 +129,42 @@ describe('transitionAdminClaimStatus', () => {
         },
       })
     );
+  });
+
+  it('runs on the supplied transaction without opening its own', async () => {
+    const suppliedTx = { supplied: true };
+
+    await transitionAdminClaimStatusInTransaction(suppliedTx as never, {
+      actor: { id: 'admin-1', role: 'tenant_admin' },
+      expectedCaseLifecycleState: 'evaluation',
+      expectedLifecycleAuthority: 'lifecycle',
+      expectedRecoveryLifecycleState: 'not_started',
+      expectedStatus: 'evaluation',
+      claimId: 'claim-1',
+      tenantId: 'tenant-1',
+      toStatus: 'court',
+    });
+
+    expect(mocks.dbTransaction).not.toHaveBeenCalled();
+    expect(mocks.transition).toHaveBeenCalledTimes(1);
+    expect(mocks.transition).toHaveBeenCalledWith(suppliedTx, {
+      actor: { id: 'admin-1', role: 'tenant_admin' },
+      claimId: 'claim-1',
+      requiredWhereCondition: {
+        op: 'and',
+        conditions: [
+          {
+            op: 'and',
+            conditions: [
+              { op: 'eq', left: 'claims.case_lifecycle_state', right: 'evaluation' },
+              { op: 'eq', left: 'claims.recovery_lifecycle_state', right: 'not_started' },
+            ],
+          },
+          { op: 'sql' },
+        ],
+      },
+      tenantId: 'tenant-1',
+      toStatus: 'court',
+    });
   });
 });

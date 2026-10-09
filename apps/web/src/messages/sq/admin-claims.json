@@ -187,8 +187,8 @@
           },
           "escalate": { "label": "Eskalo", "description": "Kërko vëmendjen e menaxherit." },
           "message_poke": {
-            "label": "Dërgo Kujtesë",
-            "description": "Anëtari nuk është përgjigjur."
+            "label": "Regjistro kujtesë",
+            "description": "Shto një kujtesë të brendshme në historikun e rastit."
           },
           "review_blockers": {
             "label": "Shiko Bllokuesit",
@@ -219,17 +219,8 @@
           "failed": "Veprimi dështoi",
           "completed": "Veprimi u krye",
           "unexpected_error": "Ndodhi një gabim i papritur"
-        }
-      },
-      "status_modal": {
-        "title": "Përditëso statusin e kërkesës",
-        "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
-        "placeholder": "Zgjidh statusin e ri...",
-        "cancel": "Anulo",
-        "confirm": "Konfirmo përditësimin",
-        "success": "Statusi u përditësua me sukses",
-        "error": "Përditësimi i statusit dështoi",
-        "unexpected_error": "Ndodhi një gabim i papritur"
+        },
+        "committed_refresh_pending": "Ndryshimi u ruajt. Rifreskoni faqen për të parë gjendjen më të fundit. Mos e përsërisni këtë veprim."
       },
       "evidence": {
         "title": "Evidenca",
@@ -264,7 +255,10 @@
         "title": "Përditëso statusin e kërkesës",
         "description": "Zgjidh statusin e ri për këtë kërkesë. Ky veprim do të regjistrohet.",
         "placeholder": "Zgjidh statusin e ri...",
-        "confirm": "Konfirmo përditësimin"
+        "confirm": "Konfirmo përditësimin",
+        "cancel": "Anulo",
+        "error": "Përditësimi i statusit dështoi",
+        "unexpected_error": "Ndodhi një gabim i papritur"
       },
       "detail": {
         "fields": {
