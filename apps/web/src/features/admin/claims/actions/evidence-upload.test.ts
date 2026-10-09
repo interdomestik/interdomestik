@@ -17,7 +17,10 @@ vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: hoisted.authGetSession } },
 }));
 vi.mock('next/headers', () => ({ headers: hoisted.headers }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenantId }));
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
+  ensureTenantId: hoisted.ensureTenantId,
+}));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({
   resolveTenantFromHost: hoisted.resolveTenantFromHost,
 }));
@@ -69,6 +72,32 @@ describe('admin claim evidence upload actions', () => {
     hoisted.persistClaimDocumentAndQueueWorkflows.mockResolvedValue(undefined);
     hoisted.validateConfirmedClaimUpload.mockResolvedValue({ success: true });
   });
+
+  it.each(['admin', 'super_admin', 'tenant_admin', 'branch_manager', 'staff'])(
+    'preserves canonical %s role admission before claim scoping',
+    async role => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'actor-1', tenantId: 'tenant-1', role },
+      });
+      expect(
+        (await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)).success
+      ).toBe(true);
+      expect(hoisted.findAccessibleAdminUploadClaim).toHaveBeenCalledOnce();
+    }
+  );
+
+  it.each(['member', 'user', 'agent', 'unknown', null, undefined])(
+    'rejects excluded role %s before claim access',
+    async role => {
+      hoisted.authGetSession.mockResolvedValue({
+        user: { id: 'actor-1', tenantId: 'tenant-1', role },
+      });
+      expect(
+        await generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)
+      ).toEqual({ success: false, error: 'Unauthorized', status: 401 });
+      expect(hoisted.findAccessibleAdminUploadClaim).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects upload URL issuance when the admin host tenant drifts', async () => {
     hoisted.resolveTenantFromHost.mockReturnValueOnce('tenant-2');

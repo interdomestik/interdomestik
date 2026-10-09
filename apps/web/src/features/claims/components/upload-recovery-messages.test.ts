@@ -24,6 +24,11 @@ describe('upload recovery message namespace', () => {
           throw error;
         },
       });
+      if (locale === 'sr') {
+        for (const value of Object.values(messages.claims.uploadRecovery)) {
+          expect(value).not.toMatch(/\p{Script=Cyrillic}/u);
+        }
+      }
       for (const key of ['description', 'action', 'identityChanged'] as const) {
         expect(t(`uploadRecovery.${key}`)).toBe(messages.claims.uploadRecovery[key]);
         expect(t(`uploadRecovery.${key}`).length).toBeGreaterThan(0);

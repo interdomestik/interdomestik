@@ -26,7 +26,6 @@
     "apps/web/src/app/api/verification/[id]/_core.ts:41:24:admin,super_admin,branch_manager,tenant_admin,staff",
     "apps/web/src/components/admin/admin-sidebar.tsx:96:16:super_admin,tenant_admin,admin",
     "apps/web/src/components/admin/admin-sidebar.tsx:113:10:super_admin,tenant_admin,admin",
-    "apps/web/src/features/admin/claims/actions/evidence-upload.ts:15:44:admin,super_admin,tenant_admin,branch_manager,staff",
     "apps/web/src/features/admin/claims/server/claimVisibility.ts:59:24:admin,tenant_admin,super_admin,branch_manager",
     "apps/web/src/features/admin/dashboard-v2/components/AdminDashboardV2Page.tsx:51:8:admin,tenant_admin,super_admin",
     "apps/web/src/features/admin/verification/components/VerificationPage.tsx:21:24:admin,super_admin,branch_manager,tenant_admin,staff",

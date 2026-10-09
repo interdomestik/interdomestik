@@ -3,7 +3,7 @@
     "uploadRecovery": {
       "identityChanged": "Vratite se na prvobitni predmet da biste razrešili ovo otpremanje.",
       "description": "Zadržite trenutnu datoteku pri ponovnom pokušaju. Ako otpremanje ne može da se završi, ponovo učitajte prvobitnu stranicu i proverite dokumente pre novog otpremanja.",
-      "action": "Учитај првобитну страницу и провери документе"
+      "action": "Ponovo učitaj prvobitnu stranicu i proveri dokumente"
     },
     "title": "Moji Zahtevi",
     "description": "Upravljajte svojim zahtevima za odštetu i pratite njihov status.",

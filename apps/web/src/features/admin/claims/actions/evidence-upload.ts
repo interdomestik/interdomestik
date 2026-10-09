@@ -12,20 +12,12 @@ import {
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
-const ADMIN_UPLOAD_ROLES = [
-  'admin',
-  'super_admin',
-  'tenant_admin',
-  'branch_manager',
-  'staff',
-] as const;
-type AdminUploadRole = (typeof ADMIN_UPLOAD_ROLES)[number];
-const ALLOWED_ADMIN_UPLOAD_ROLES: ReadonlySet<string> = new Set<string>(ADMIN_UPLOAD_ROLES);
+type AdminUploadRole = 'admin' | 'super_admin' | 'tenant_admin' | 'branch_manager' | 'staff';
 
 function isAdminUploadRole(role: string | null | undefined): role is AdminUploadRole {
-  return role ? ALLOWED_ADMIN_UPLOAD_ROLES.has(role) : false;
+  return isStaffOrHigher(role);
 }
 
 type UploadContext =

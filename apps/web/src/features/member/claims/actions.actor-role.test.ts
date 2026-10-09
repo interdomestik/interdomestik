@@ -1,4 +1,4 @@
-import { getUploadActionMocks } from './actions.test-support';
+import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
 import { describe, expect, it } from 'vitest';
 import { createConfirmUploadParams } from './actions.test-fixtures';
