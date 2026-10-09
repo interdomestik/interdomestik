@@ -205,16 +205,15 @@ export function NextActionsCard({
           <NextActionBadges claim={claim} nextActions={nextActions} />
 
           {refreshPending && (
-            <div
-              role="status"
+            <output
               data-testid="ops-next-actions-committed-warning"
               className="flex flex-col gap-3 rounded-md border bg-muted/50 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
             >
-              <p>{t('committed_refresh_pending')}</p>
+              <span>{t('committed_refresh_pending')}</span>
               <Button type="button" variant="outline" size="sm" onClick={handleManualRefresh}>
                 {tOps('refresh')}
               </Button>
-            </div>
+            </output>
           )}
 
           <OpsActionBar className="border-0 pt-0 mt-0">
