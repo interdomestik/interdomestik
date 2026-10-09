@@ -25,7 +25,7 @@ export function StaffClaimDocumentsSection({
   retryLabel,
   title,
   viewLabel,
-}: StaffClaimDocumentsSectionProps) {
+}: Readonly<StaffClaimDocumentsSectionProps>) {
   if (documents) {
     return (
       <div data-testid="staff-claim-documents">
