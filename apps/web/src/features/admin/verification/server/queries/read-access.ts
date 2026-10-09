@@ -1,4 +1,5 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
+import { isStaffOrHigher } from '@interdomestik/shared-auth';
 
 /**
  * Trusted, server-derived context for verification reads.
@@ -13,9 +14,6 @@ export type VerificationReadContext = {
 export type VerificationReadScope =
   { kind: 'tenant' } | { kind: 'branch'; branchId: string } | { kind: 'none' };
 
-const TENANT_WIDE_ROLES = new Set(['admin', 'super_admin', 'tenant_admin']);
-const BRANCH_SCOPED_ROLES = new Set(['branch_manager', 'staff']);
-
 function verificationReadForbidden(): Error {
   const error = new Error('Forbidden: verification reads require an operations role');
   (error as Error & { code?: string }).code = 'FORBIDDEN';
@@ -28,13 +26,13 @@ function verificationReadForbidden(): Error {
  * branch resolve to `none` so callers return their existing empty shape.
  */
 export function resolveVerificationReadScope(ctx: VerificationReadContext): VerificationReadScope {
-  if (TENANT_WIDE_ROLES.has(ctx.userRole)) {
-    return { kind: 'tenant' };
+  if (!isStaffOrHigher(ctx.userRole)) {
+    throw verificationReadForbidden();
   }
-  if (BRANCH_SCOPED_ROLES.has(ctx.userRole)) {
+  if (ctx.userRole === 'branch_manager' || ctx.userRole === 'staff') {
     return ctx.scope.branchId ? { kind: 'branch', branchId: ctx.scope.branchId } : { kind: 'none' };
   }
-  throw verificationReadForbidden();
+  return { kind: 'tenant' };
 }
 
 /**
