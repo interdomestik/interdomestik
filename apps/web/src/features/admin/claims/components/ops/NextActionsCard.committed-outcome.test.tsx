@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider, createTranslator } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installOpsBrowserGlobals } from './ops-browser.test-fixture';
 import en from '@/messages/en/admin-claims.json';
 import mk from '@/messages/mk/admin-claims.json';
 import sq from '@/messages/sq/admin-claims.json';
@@ -120,20 +121,7 @@ function expectMutationsSuppressed() {
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubGlobal('location', { href: 'http://localhost/', reload: mocks.reload });
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
-  Object.assign(Element.prototype, {
-    hasPointerCapture: () => false,
-    releasePointerCapture: () => undefined,
-    scrollIntoView: () => undefined,
-  });
+  installOpsBrowserGlobals(mocks.reload);
 });
 afterEach(() => {
   vi.unstubAllGlobals();

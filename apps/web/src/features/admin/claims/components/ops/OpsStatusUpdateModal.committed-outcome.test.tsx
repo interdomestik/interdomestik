@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { installOpsBrowserGlobals } from './ops-browser.test-fixture';
 import en from '@/messages/en/admin-claims.json';
 import { OpsStatusUpdateModal } from './OpsStatusUpdateModal';
 
@@ -51,20 +52,7 @@ async function confirmNegotiation() {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubGlobal('location', { href: 'http://localhost/', reload: mocks.reload });
-  vi.stubGlobal(
-    'ResizeObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-  );
-  Object.assign(Element.prototype, {
-    hasPointerCapture: () => false,
-    releasePointerCapture: () => undefined,
-    scrollIntoView: () => undefined,
-  });
+  installOpsBrowserGlobals(mocks.reload);
 });
 
 afterEach(() => {
