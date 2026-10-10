@@ -106,7 +106,7 @@ function legacyOrigin(edit = () => {}) {
   git(origin, 'init', '-q', '-b', 'main');
   for (const file of legacyFiles)
     writeFixture(origin, file, runGit(['-C', rootDir, 'show', `${LEGACY_BASE}:${file}`]));
-  writeFixture(origin, 'pnpm-lock.yaml', fixtureLock(tsTarball));
+  writeFixture(origin, 'pnpm-lock.yaml', fixtureLock());
   writeFixture(origin, 'apps/web/src/old.ts', ambient);
   const seeded = legacyCommand(origin, ['--write-baseline']);
   assert.equal(seeded.status, 0, seeded.stderr);
@@ -121,7 +121,7 @@ const epochFiles = [
     .filter(name => /^(db-access-|source-)[^/]*\.mjs$/u.test(name) && !/test/u.test(name))
     .map(name => `scripts/ci/${name}`),
 ];
-function epochOrigin(lock = fixtureLock(tsTarball)) {
+function epochOrigin(lock = fixtureLock()) {
   const origin = tmp('origin');
   git(origin, 'init', '-q', '-b', 'main');
   writeFixture(

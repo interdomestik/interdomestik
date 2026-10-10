@@ -3,26 +3,20 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { rootDir, writeFixture } from './db-access-guard-test-utils.mjs';
-import { runGit } from './db-access-git.mjs';
+import { writeFixture } from './db-access-guard-test-utils.mjs';
 import {
-  LEGACY_BASE,
-  TS,
   audit,
   step,
   ambient,
   tmp,
   git,
   commit,
-  fixtureLock,
   legacyFiles,
   legacyOrigin,
   legacyCommand,
-  epochOrigin,
   checkout,
   route,
   sentinelModule,
-  tsTarball,
 } from './db-access-protected-test-utils.mjs';
 
 test('route is unconditional, precedes candidate setup/install, and takes identity only from event expressions', () => {

@@ -11,14 +11,26 @@ const protectedLock = runGit(
   ['-C', rootDir, 'show', '278e33ab0dd448547fa81d4b0ff122b4d69c901e:pnpm-lock.yaml'],
   { encoding: 'utf8' }
 );
-const block = /^  typescript@5\.9\.3:\n((?: {4,}.*\n|\n)*)/mu.exec(protectedLock)?.[1];
-const expected = /integrity: (sha512-[A-Za-z0-9+/=]+)/u.exec(block ?? '')?.[1];
+const lockLines = protectedLock.split('\n');
+const header = '  typescript@5.9.3:';
+const start = lockLines.indexOf(header);
+assert.ok(
+  start >= 0 && lockLines.lastIndexOf(header) === start,
+  'protected TypeScript block must be unique'
+);
+const block = [];
+for (let index = start + 1; index < lockLines.length; index++) {
+  const line = lockLines[index];
+  if (line.length > 0 && !line.startsWith('    ')) break;
+  block.push(line);
+}
+const expected = /integrity: (sha512-[A-Za-z0-9+/=]+)/u.exec(block.join('\n'))?.[1];
 assert.ok(expected, 'actual protected TypeScript integrity must exist');
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'db-guard-registry-'));
 process.on('exit', () => fs.rmSync(home, { recursive: true, force: true }));
 const cache = path.join(rootDir, 'tmp', 'db-access-protected', 'typescript-5.9.3.tgz');
 fs.mkdirSync(path.dirname(cache), { recursive: true });
-if (!process.env.DB_PROTECTED_TEST_TARBALL && !fs.existsSync(cache)) {
+if (!fs.existsSync(cache)) {
   const download = path.join(home, 'download.tgz');
   const result = spawnSync(
     '/usr/bin/curl',
@@ -54,7 +66,7 @@ if (!process.env.DB_PROTECTED_TEST_TARBALL && !fs.existsSync(cache)) {
   assert.equal(sri, expected);
   fs.renameSync(download, cache);
 }
-export const tsTarball = path.resolve(process.env.DB_PROTECTED_TEST_TARBALL ?? cache);
+export const tsTarball = path.resolve(cache);
 assert.equal(
   'sha512-' + createHash('sha512').update(fs.readFileSync(tsTarball)).digest('base64'),
   expected
