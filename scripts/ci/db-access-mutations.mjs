@@ -3,6 +3,12 @@ import { externalValue } from './db-access-external.mjs';
 import { canonicalQueryChain } from './db-access-inventory.mjs';
 import { isFunction, unwrap, runtimeFingerprint } from './db-access-source.mjs';
 
+function directReference(node) {
+  let parent = node.parent;
+  while (parent && unwrap(parent) === node) parent = parent.parent;
+  return parent && ts.isCallExpression(parent) && unwrap(parent.expression) === node;
+}
+
 export function collectMutationEffects(model) {
   const calls = new Map();
   const opaqueCalls = [];
@@ -75,11 +81,6 @@ export function collectMutationEffects(model) {
     return decl && ts.isVariableDeclaration(decl) && decl.initializer
       ? externalOrigin(decl.initializer, seen)
       : undefined;
-  }
-  function directReference(node) {
-    let parent = node.parent;
-    while (parent && unwrap(parent) === node) parent = parent.parent;
-    return parent && ts.isCallExpression(parent) && unwrap(parent.expression) === node;
   }
   for (const sf of model.parsed.values())
     model.walk(sf, node => {

@@ -18,11 +18,11 @@ export function createProvenance(model) {
       const property = node.properties.find(
         item => item.name?.getText().replace(/^['"]|['"]$/gu, '') === key
       );
-      return property && ts.isPropertyAssignment(property)
-        ? clientIdentity(property.initializer, seen)
-        : property && ts.isShorthandPropertyAssignment(property)
-          ? clientIdentity(property.name, seen)
-          : UNKNOWN;
+      if (property && ts.isPropertyAssignment(property))
+        return clientIdentity(property.initializer, seen);
+      if (property && ts.isShorthandPropertyAssignment(property))
+        return clientIdentity(property.name, seen);
+      return UNKNOWN;
     }
     const rawDecl = model.rawDeclaration(node);
     if (rawDecl && ts.isNamespaceImport(rawDecl)) {
@@ -64,8 +64,11 @@ export function createProvenance(model) {
       ? clientIdentity(decl.initializer, seen)
       : UNKNOWN;
   }
-  const handleUnion = values =>
-    values.includes(true) ? true : values.includes(UNKNOWN) ? UNKNOWN : false;
+  const handleUnion = values => {
+    if (values.includes(true)) return true;
+    if (values.includes(UNKNOWN)) return UNKNOWN;
+    return false;
+  };
   function tenantHandle(raw, seen = new Set(), budget = { remaining: 2048 }) {
     const node = unwrap(raw);
     if (!node) return false;
@@ -93,19 +96,13 @@ export function createProvenance(model) {
       return tenantHandle(node.expression, seen, budget);
     if (ts.isObjectLiteralExpression(node))
       return handleUnion(
-        node.properties.map(item =>
-          tenantHandle(
-            ts.isPropertyAssignment(item)
-              ? item.initializer
-              : ts.isShorthandPropertyAssignment(item)
-                ? item.name
-                : ts.isSpreadAssignment(item)
-                  ? item.expression
-                  : undefined,
-            seen,
-            budget
-          )
-        )
+        node.properties.map(item => {
+          let value;
+          if (ts.isPropertyAssignment(item)) value = item.initializer;
+          else if (ts.isShorthandPropertyAssignment(item)) value = item.name;
+          else if (ts.isSpreadAssignment(item)) value = item.expression;
+          return tenantHandle(value, seen, budget);
+        })
       );
     if (ts.isArrayLiteralExpression(node))
       return handleUnion(node.elements.map(item => tenantHandle(item, seen, budget)));

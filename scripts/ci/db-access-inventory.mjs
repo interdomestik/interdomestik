@@ -88,11 +88,17 @@ export function collectInventory(model, provenance, trustedSources) {
       while (call && unwrap(call) === node) call = call.parent;
       const invoked = call && ts.isCallExpression(call) && unwrap(call.expression) === node;
       const indirect = property && method !== 'query' && !invoked;
-      const receiver = escapedHandle
-        ? 'tenant-context'
-        : ambient
-          ? client
-          : provenance.provenance(node.expression);
+      let receiver;
+      if (escapedHandle) receiver = 'tenant-context';
+      else if (ambient) receiver = client;
+      else receiver = provenance.provenance(node.expression);
+      let tenantPosture = 'unclassified';
+      if (receiver === 'tenant-context') tenantPosture = receiver;
+      else if (receiver === 'dbAdmin' || receiver === 'dbRls') tenantPosture = 'admin-privileged';
+      let handleReason;
+      if (escapedHandle) handleReason = 'tenant transaction handle escapes callback';
+      else if (unsupportedHandle)
+        handleReason = 'unsupported returned handle analysis bound, cycle or mutated value';
       const owner = ownerOf(node);
       const target = invoked ? call.arguments[0] : undefined;
       const claimName =
@@ -108,23 +114,14 @@ export function collectInventory(model, provenance, trustedSources) {
         line: position.line + 1,
         callee: node.getText(),
         method,
-        tenantPosture:
-          receiver === 'tenant-context'
-            ? receiver
-            : receiver === 'dbAdmin' || receiver === 'dbRls'
-              ? 'admin-privileged'
-              : 'unclassified',
+        tenantPosture,
         tenantPostureReason:
           receiver === 'tenant-context'
             ? 'tenant-context: proven-symbol-invocations'
             : `unclassified: ${receiver}`,
         isDirectDbAlias: receiver !== 'tenant-context',
         claimsUpdateTarget,
-        ...(escapedHandle
-          ? { reason: 'tenant transaction handle escapes callback' }
-          : unsupportedHandle
-            ? { reason: 'unsupported returned handle analysis bound, cycle or mutated value' }
-            : {}),
+        ...(handleReason ? { reason: handleReason } : {}),
         risk: file.startsWith('packages/domain-') ? 'domain-wrapper' : 'app-layer',
         source: node.getText(),
         identity: digest(`${file}|${fingerprint}|${node.pos}|${method}`),

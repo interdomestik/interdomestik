@@ -111,8 +111,11 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const counts = {};
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
+  let status = 'pass';
+  if (graph.incomplete.length) status = 'incomplete';
+  else if (failingNewEntries.length) status = 'fail';
   return {
-    status: graph.incomplete.length ? 'incomplete' : failingNewEntries.length ? 'fail' : 'pass',
+    status,
     trustedCommit: adoption.commit,
     trustedTree: adoption.tree,
     historicalBaselineSha256: digest(baselineBytes),

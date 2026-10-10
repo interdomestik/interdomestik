@@ -34,6 +34,33 @@ export const BUILTIN_CALLS = new Set([
   'clearInterval',
   'fetch',
 ]);
+
+function merge(results) {
+  return {
+    functions: [...new Set(results.flatMap(item => item.functions))],
+    unknown: results.some(item => item.unknown),
+  };
+}
+
+function valuePosition(node) {
+  const parent = node.parent;
+  if (!parent) return false;
+  if (ts.isPropertyAccessExpression(parent))
+    return parent.name !== node && parent.expression !== node;
+  if (parent.name === node && (ts.isDeclaration(parent) || ts.isPropertyAssignment(parent)))
+    return false;
+  if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isJsxAttribute(parent))
+    return false;
+  if ((ts.isCallExpression(parent) || ts.isNewExpression(parent)) && parent.expression === node)
+    return false;
+  let ancestor = parent;
+  while (ancestor && !ts.isSourceFile(ancestor)) {
+    if (ts.isTypeNode(ancestor)) return false;
+    ancestor = ancestor.parent;
+  }
+  return true;
+}
+
 export function createReferences(model, provenance) {
   function dynamicModule(raw, seen = new Set()) {
     const node = unwrap(raw);
@@ -64,16 +91,12 @@ export function createReferences(model, provenance) {
         : merge([resolve(node.left, seen), resolve(node.right, seen)]);
     if (ts.isObjectLiteralExpression(node))
       return merge(
-        node.properties.map(item =>
-          resolve(
-            ts.isPropertyAssignment(item)
-              ? item.initializer
-              : ts.isShorthandPropertyAssignment(item)
-                ? item.name
-                : item,
-            seen
-          )
-        )
+        node.properties.map(item => {
+          let value = item;
+          if (ts.isPropertyAssignment(item)) value = item.initializer;
+          else if (ts.isShorthandPropertyAssignment(item)) value = item.name;
+          return resolve(value, seen);
+        })
       );
     if (ts.isArrayLiteralExpression(node))
       return merge(node.elements.map(item => resolve(item, seen)));
@@ -110,30 +133,6 @@ export function createReferences(model, provenance) {
         );
     }
     return { functions: [], unknown: false };
-  }
-  function merge(results) {
-    return {
-      functions: [...new Set(results.flatMap(item => item.functions))],
-      unknown: results.some(item => item.unknown),
-    };
-  }
-  function valuePosition(node) {
-    const parent = node.parent;
-    if (!parent) return false;
-    if (ts.isPropertyAccessExpression(parent))
-      return parent.name !== node && parent.expression !== node;
-    if (parent.name === node && (ts.isDeclaration(parent) || ts.isPropertyAssignment(parent)))
-      return false;
-    if (ts.isImportSpecifier(parent) || ts.isExportSpecifier(parent) || ts.isJsxAttribute(parent))
-      return false;
-    if ((ts.isCallExpression(parent) || ts.isNewExpression(parent)) && parent.expression === node)
-      return false;
-    let ancestor = parent;
-    while (ancestor && !ts.isSourceFile(ancestor)) {
-      if (ts.isTypeNode(ancestor)) return false;
-      ancestor = ancestor.parent;
-    }
-    return true;
   }
   function localImport(expression) {
     const symbol = model.symbol(expression);
