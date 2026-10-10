@@ -4,145 +4,192 @@ import {
   createTempRepo,
   readReport,
   runGuard,
-  writeEmptyBaseline,
+  scan,
   writeFixture,
 } from './db-access-guard-test-utils.mjs';
 
-function scanFixture(roots, relativePath, lines) {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, relativePath, lines);
-  const result = runGuard(tempRoot, [`--roots=${roots}`, '--baseline=db-access-baseline.json']);
-  return { result, report: readReport(tempRoot) };
-}
-
-function scanWeb(relativePath, lines) {
-  return scanFixture('apps/web/src', `apps/web/src/${relativePath}`, lines);
-}
-
-function scanPackages(relativePath, lines) {
-  return scanFixture('packages', `packages/${relativePath}`, lines);
-}
-
-function assertFailingFile(report, fileName) {
-  assert.ok(report.failingNewEntries.some(entry => entry.file.endsWith(fileName)));
-}
-
-test('T-302c classifies aliased raw dbRls imports as privileged', () => {
-  const { result, report } = scanWeb('app/api/example/raw-rls.ts', [
-    "import { dbRls as rawRlsDb } from '@interdomestik/database';",
-    'const assignedRawRlsDb = rawRlsDb;',
-    'export async function rawRlsRead() { return assignedRawRlsDb.select().from(user); }',
+test('canonical aliases and lexical nested tenant transactions are approved', () => {
+  const { result, report } = scan([
+    'import { withTenantContext as scoped } from "@interdomestik/database";',
+    'export function read(tenantId) { return scoped({tenantId}, async tx => {',
+    'await tx.transaction(async nested => nested.select().from(user));',
+    'return tx.query.user.findFirst({});',
+    '}); }',
   ]);
-
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(report.newEntries[0].tenantPostureReason, 'admin-privileged: dbRls');
+  assert.equal(report.newEntries.length, 3);
+  assert.ok(report.newEntries.every(entry => entry.tenantPosture === 'tenant-context'));
 });
 
-test('T-302c classifies dbRls transaction callback aliases as privileged', () => {
-  const { result, report } = scanWeb('app/api/example/raw-rls-transaction.ts', [
-    "import { dbRls } from '@interdomestik/database';",
-    'export async function rawRlsTransactionRead() {',
-    '  return dbRls.transaction(async tx => tx.select().from(user));',
-    '}',
-  ]);
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.ok(
-    report.newEntries.some(
-      entry =>
-        entry.callee === 'tx.select' && entry.tenantPostureReason === 'admin-privileged: dbRls'
-    )
-  );
-});
-
-test('T-302c rejects new raw privileged clients outside approved paths', () => {
-  const { result, report } = scanWeb('features/example/raw-admin.ts', [
-    "import { dbAdmin } from '@interdomestik/database';",
-    'export async function rawAdminRead() { return dbAdmin.select().from(user); }',
-  ]);
-
-  assert.equal(result.status, 1);
-  assert.equal(report.failingNewEntries[0].tenantPostureReason, 'admin-privileged: dbAdmin');
-});
-
-test('T-302c blocks direct and aliased claim updates outside the transition command', () => {
+test('same-name fake, shadowed callback and plain global transactions are rejected', () => {
   const cases = [
-    {
-      expectedFile: 'not-transition.ts',
-      importLine: "import { db, claims } from '@interdomestik/database';",
-      relativePath: 'domain-claims/src/claims/not-transition.ts',
-      setupLine: null,
-      updateLine: 'return db.update(claims);',
-    },
-    {
-      expectedFile: 'aliased-not-transition.ts',
-      importLine: "import { db, claims as claimRows } from '@interdomestik/database';",
-      relativePath: 'domain-claims/src/claims/aliased-not-transition.ts',
-      setupLine: 'const directDb = db;',
-      updateLine: 'return directDb.update(claimRows);',
-    },
+    [
+      'function withTenantContext(c, fn) { return fn(db); }',
+      'export function read(t){ return withTenantContext(t, async tx=>tx.select()); }',
+    ],
+    [
+      'import { withTenantContext } from "@interdomestik/database";',
+      'export function read(t){ return withTenantContext(t, async tx => { function nested(tx){ return tx.select(); } return nested(db); }); }',
+    ],
+    ['export function read(){ return db.transaction(async tx=>tx.select()); }'],
   ];
-
-  for (const testCase of cases) {
-    const { result, report } = scanPackages(testCase.relativePath, [
-      testCase.importLine,
-      ...(testCase.setupLine ? [testCase.setupLine] : []),
-      'export async function unsafeClaimWrite() {',
-      '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-      `  ${testCase.updateLine}`,
-      '}',
-    ]);
-
-    assert.equal(result.status, 1);
-    assertFailingFile(report, testCase.expectedFile);
+  for (const lines of cases) {
+    const { result } = scan(['import { db } from "@interdomestik/database";', ...lines]);
+    assert.equal(result.status, 1, lines.join('\n'));
   }
 });
 
-test('T-302c blocks direct transaction claim updates outside the transition command', () => {
-  const { result, report } = scanPackages('domain-claims/src/claims/tx-not-transition.ts', [
-    "import { db, claims } from '@interdomestik/database';",
-    'export async function unsafeTransactionClaimWrite() {',
-    '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-    '  return db.transaction(async tx => {',
-    '    // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-    '    return tx.update(claims);',
-    '  });',
-    '}',
+test('received tx helpers and forwarding are traced through each actual invocation', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/helper.ts', [
+    'export function leaf(tx){ return tx.select().from(user); }',
+    'export function forward(tx){ return leaf(tx); }',
   ]);
+  writeFixture(root, 'apps/web/src/caller.ts', [
+    'import { withTenantContext } from "@interdomestik/database";',
+    'import { forward } from "./helper";',
+    'export function read(t){ return withTenantContext(t, async tx => forward(tx)); }',
+  ]);
+  assert.equal(runGuard(root).status, 0);
+  writeFixture(root, 'apps/web/src/unsafe.ts', [
+    'import { db } from "@interdomestik/database";',
+    'import { forward } from "./helper";',
+    'export function unsafe(){ return forward(db); }',
+  ]);
+  assert.equal(runGuard(root).status, 1);
+  assert.ok(readReport(root).failingNewEntries.some(entry => entry.file.endsWith('helper.ts')));
+});
 
-  assert.equal(result.status, 1);
-  assert.ok(
-    report.failingNewEntries.some(
-      entry =>
-        entry.callee === 'tx.update' &&
-        entry.isDirectDbAlias &&
-        entry.claimsUpdateTarget &&
-        entry.tenantPostureReason === 'tenant-scoped: directive'
-    )
+test('object received tx and destructured forwarding retain actual argument provenance', () => {
+  const { result } = scan([
+    'import { withTenantContext } from "@interdomestik/database";',
+    'function leaf({tx}) { return tx.select().from(user); }',
+    'function forward(params) { return leaf({tx:params.tx}); }',
+    'export function read(t){ return withTenantContext(t, async tx=>forward({tx})); }',
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('default, wrong, escaped, reassigned and fallback clients never become received tenant tx', () => {
+  for (const [helper, invocation] of [
+    ['function leaf(tx = db){ return tx.select(); }', 'leaf(tx)'],
+    ['function leaf(tx){ return tx.select(); }', 'leaf({})'],
+    ['function leaf(tx){ return tx.select(); }', 'leaf(db)'],
+    ['function leaf(tx){ tx = db; return tx.select(); }', 'leaf(tx)'],
+    ['function leaf(tx){ return (tx ?? db).select(); }', 'leaf(tx)'],
+    ['function leaf(tx){ return tx.select(); }', 'opaque(leaf)'],
+  ]) {
+    const { result } = scan([
+      'import { db, withTenantContext } from "@interdomestik/database";',
+      helper,
+      `export function read(t){ return withTenantContext(t, async tx=>${invocation}); }`,
+    ]);
+    assert.equal(result.status, 1, helper + invocation);
+  }
+});
+
+test('raw dbRls/dbAdmin are rejected even in API paths and with candidate directives', () => {
+  for (const client of ['dbAdmin', 'dbRls']) {
+    const { result, report } = scan(
+      [
+        `import { ${client} as raw } from "@interdomestik/database";`,
+        '// db-access-guard: system-exempt -- reason: candidate API exception',
+        'export function read(){ return raw.select().from(user); }',
+      ],
+      'apps/web/src/app/api/new/route.ts'
+    );
+    assert.equal(result.status, 1);
+    assert.equal(report.failingNewEntries[0].tenantPosture, 'admin-privileged');
+  }
+});
+
+test('claims transition prohibition survives aliases, schema-qualified targets and directives', () => {
+  for (const target of ['claims', 'claimRows', 'schema.claims']) {
+    const { result, report } = scan([
+      'import { db, claims, claims as claimRows } from "@interdomestik/database";',
+      'import * as schema from "@interdomestik/database/schema";',
+      '// db-access-guard: tenant-scoped -- reason: candidate approval',
+      `export function write(){ return db.update(${target}).set({status:"closed"}); }`,
+    ]);
+    assert.equal(result.status, 1);
+    assert.ok(report.failingNewEntries.some(entry => entry.claimsUpdateTarget));
+  }
+});
+
+test('type-only typeof method references are absent from executable operation inventory', () => {
+  const { result, report } = scan([
+    'import { db } from "@interdomestik/database";',
+    'type Query = typeof db.query;',
+    'type Update = ReturnType<typeof db.update>;',
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(report.scannedCount, 0);
+});
+
+test('const context/tx aliases and named re-export barrels preserve proven symbols', () => {
+  const root = createTempRepo();
+  writeFixture(
+    root,
+    'apps/web/src/tenant-barrel.ts',
+    'export {withTenantContext as scoped} from "@interdomestik/database";'
   );
+  writeFixture(root, 'apps/web/src/consumer.ts', [
+    'import {scoped} from "./tenant-barrel";',
+    'const run = scoped;',
+    'export function read(t){return run(t,async tx=>{const exact = tx; return exact.select();});}',
+  ]);
+  assert.equal(runGuard(root).status, 0);
 });
 
-test('T-302c blocks privileged client claim updates even in approved API paths', () => {
-  const { result, report } = scanWeb('app/api/example/raw-claim-transition.ts', [
-    "import { dbAdmin, claims } from '@interdomestik/database';",
-    'export async function unsafePrivilegedClaimWrite() { return dbAdmin.update(claims); }',
-  ]);
-
-  assert.equal(result.status, 1);
-  assertFailingFile(report, 'raw-claim-transition.ts');
+test('object mutation and escaping closures never inherit a completed callback transaction', () => {
+  for (const lines of [
+    [
+      'function helper(params){params.tx = db; return params.tx.select();}',
+      'export function read(t){return withTenantContext(t,async tx=>helper({tx}));}',
+    ],
+    ['export function read(t){return withTenantContext(t,async tx=>()=>tx.select());}'],
+    [
+      'export function read(t){return withTenantContext(t,async tx=>setTimeout(()=>tx.select(),1));}',
+    ],
+    [
+      'export function read(t){return withTenantContext(t,async tx=>{const alias=tx;return ()=>alias.select();});}',
+    ],
+    [
+      'export function read(t){return withTenantContext(t,async tx=>{const obj={tx};return ()=>obj.tx.select();});}',
+    ],
+    [
+      'let saved; export function read(t){return withTenantContext(t,async tx=>{saved=tx;});} export function later(){return saved.select();}',
+    ],
+  ]) {
+    const { result } = scan([
+      'import {db,withTenantContext} from "@interdomestik/database";',
+      ...lines,
+    ]);
+    assert.equal(result.status, 1, lines.join('\n'));
+  }
 });
 
-test('T-302c blocks schema-qualified direct claim updates outside the transition command', () => {
-  const { result, report } = scanPackages('domain-claims/src/claims/schema-qualified.ts', [
-    "import { db } from '@interdomestik/database';",
-    "import * as schema from '@interdomestik/database/schema';",
-    'export async function unsafeSchemaClaimWrite() {',
-    '  // db-access-guard: tenant-scoped -- reason: legacy helper provided tenant proof',
-    '  return db.update(schema.claims);',
-    '}',
+test('withTenantDb and lone nested tx are safe; mixed ambient and type-only fake helpers are not', () => {
+  const positive = scan([
+    'import {withTenantDb} from "@interdomestik/database";',
+    'export function read(t){return withTenantDb(t,async tx=>tx.transaction(async inner=>inner.select()));}',
   ]);
-
-  assert.equal(result.status, 1);
-  assertFailingFile(report, 'schema-qualified.ts');
+  assert.equal(positive.result.status, 0, positive.result.stderr);
+  for (const helper of [
+    'function leaf(tx){const safe=tx.select();return db.select();}',
+    'function leaf(tx){return dbRls.select();}',
+  ]) {
+    const { result } = scan([
+      'import {db,dbRls,withTenantContext} from "@interdomestik/database";',
+      helper,
+      'export function read(t){return withTenantContext(t,async tx=>leaf(tx));}',
+    ]);
+    assert.equal(result.status, 1);
+  }
+  const fake = scan([
+    'import type {withTenantContext as ContextType} from "@interdomestik/database";',
+    'function withTenantContext(c,fn){return fn({});}',
+    'export function read(t){return withTenantContext(t,async tx=>tx.select());}',
+  ]);
+  assert.equal(fake.result.status, 1);
 });
