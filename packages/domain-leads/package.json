@@ -20,7 +20,7 @@
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.3",
     "nanoid": "^5.1.16",
     "zod": "^4.2.1"
   },
