@@ -1,386 +1,251 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import {
   createTempRepo,
-  readBaseline,
   readReport,
   readText,
-  runAppGuard,
+  rootDir,
   runGuard,
-  writeEmptyBaseline,
+  scan,
+  sealFixture,
   writeFixture,
 } from './db-access-guard-test-utils.mjs';
 
-test('db access guard is wired into PR verification and full local checks', () => {
-  const packageJson = JSON.parse(readText('package.json'));
-  const baseline = JSON.parse(readText('scripts/ci/db-access-baseline.json'));
+const ambient = [
+  'import { db } from "@interdomestik/database";',
+  'export function old() { return db.query.user.findFirst({ where: () => true }); }',
+];
 
-  assert.equal(packageJson.scripts['check:db-access'], 'node scripts/check-db-access-guard.mjs');
-  assert.match(packageJson.scripts['check:all'], /pnpm check:db-access/);
-  assert.match(packageJson.scripts['pr:verify'], /pnpm check:db-access/);
-  assert.equal(baseline.version, 2);
-  assert.ok(baseline.counts?.byTenantPosture);
-  assert.ok(Array.isArray(baseline.entries));
-  assert.ok(baseline.entries.length > 0);
+test('existing guard remains selected by mandatory lanes and baseline bytes stay historical', () => {
+  const pkg = JSON.parse(readText('package.json'));
+  assert.equal(pkg.scripts['check:db-access'], 'node scripts/check-db-access-guard.mjs');
+  assert.match(pkg.scripts['pr:verify'], /pnpm check:db-access/u);
+  assert.match(pkg.scripts['check:all'], /pnpm check:db-access/u);
+  assert.equal(JSON.parse(readText('scripts/ci/db-access-baseline.json')).entries.length, 604);
 });
 
-test('db access guard fails only when direct db access is added beyond the baseline', () => {
-  const tempRoot = createTempRepo();
-
-  writeFixture(tempRoot, 'apps/web/src/features/example/existing.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function existing() {',
-    '  return db.query.user.findFirst({ where: () => true });',
-    '}',
-  ]);
-
-  const baselineResult = runAppGuard(tempRoot, ['--write-baseline']);
-  assert.equal(baselineResult.status, 0, baselineResult.stderr);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-
-  writeFixture(tempRoot, 'apps/web/src/features/example/new.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function newlyAdded() {',
-    '  return db.select().from(user);',
-    '}',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stderr, /sensitive new direct DB access/u);
-  assert.match(failingResult.stdout, /new\.ts:3 select/u);
+test('unchanged old operations retain debt without rebaselining; new ambient operations fail', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/old.ts', ambient);
+  sealFixture(root);
+  assert.equal(runGuard(root).status, 0);
+  writeFixture(root, 'apps/web/src/new.ts', ambient);
+  assert.equal(runGuard(root).status, 1);
+  assert.ok(readReport(root).failingNewEntries.some(entry => entry.file.endsWith('new.ts')));
 });
 
-test('db access guard catches multiline chains and new domain-package direct access', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/multiline.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function multiline() {',
-    '  return db',
-    '    .select()',
-    '    .from(user);',
+test('full multiline predicate, owner, role, control and duplicate changes invalidate historical identity', () => {
+  const original = [
+    'import { db } from "@interdomestik/database";',
+    'export function read(owner, role) {',
+    ' if (role !== "admin") throw Error("denied");',
+    ' return db.select()',
+    ' .from(user).where(eq(user.owner, owner));',
     '}',
-  ]);
-  writeFixture(tempRoot, 'packages/domain-example/src/unsafe-wrapper.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function unsafeDomainWrapper() {',
-    '  return db.query.user.findMany({});',
-    '}',
-  ]);
-
-  const failingResult = runGuard(tempRoot, [
-    '--roots=apps/web/src,packages',
-    '--baseline=db-access-baseline.json',
-  ]);
-  assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stdout, /multiline\.ts:3 select/u);
-  assert.match(failingResult.stdout, /unsafe-wrapper\.ts:3 query \[domain-wrapper\]/u);
+  ];
+  for (const revised of [
+    original.join('\n').replace('eq(user.owner, owner)', 'true'),
+    original.join('\n').replace('role !== "admin"', 'false'),
+    original.join('\n').replace('owner));', '"foreign"));'),
+    original.join('\n') + '\nexport function duplicate(){ return db.select().from(user); }',
+  ]) {
+    const root = createTempRepo();
+    writeFixture(root, 'apps/web/src/old.ts', original);
+    sealFixture(root);
+    writeFixture(root, 'apps/web/src/old.ts', revised);
+    assert.equal(runGuard(root).status, 1, revised);
+  }
 });
 
-test('db access guard excludes e2e-only API setup routes from production posture baseline', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/app/api/e2e/branches/_core.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function resetE2eBranches() {',
-    '  await db.delete(branches);',
+test('comments, formatting and erased type-only edits preserve unchanged debt', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/old.ts', ambient);
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/old.ts', [
+    '// comment',
+    'import { db } from "@interdomestik/database";',
+    'type OnlyType = string;',
+    'export function old(): unknown {',
+    'return db.query.user.findFirst({where:()=>true});',
     '}',
   ]);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-  const report = readReport(tempRoot);
-  assert.equal(report.scannedCount, 0);
+  assert.equal(runGuard(root).status, 0);
 });
 
-test('db access guard catches new transaction callback alias writes', () => {
-  const tempRoot = createTempRepo();
-
-  writeFixture(tempRoot, 'apps/web/src/features/example/existing.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function existing() {',
-    '  return db.transaction(async tx => {',
-    '    return tx.insert(existingTable).values({ id: "existing" });',
-    '  });',
-    '}',
+test('changes to referenced query constants invalidate consumers', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/predicate.ts', 'export const admitted = true;');
+  writeFixture(root, 'apps/web/src/old.ts', [
+    'import { db } from "@interdomestik/database";',
+    'import { admitted } from "./predicate";',
+    'export function old() { return db.select().from(user).where(admitted); }',
   ]);
-
-  const baselineResult = runAppGuard(tempRoot, ['--write-baseline']);
-  assert.equal(baselineResult.status, 0, baselineResult.stderr);
-
-  writeFixture(tempRoot, 'apps/web/src/features/example/new-transaction.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function newlyAdded() {',
-    '  return db.transaction(async tx => {',
-    '    await tx.update(user).set({ name: "new" });',
-    '  });',
-    '}',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stdout, /new-transaction\.ts:3 transaction/u);
-  assert.match(failingResult.stdout, /new-transaction\.ts:4 update/u);
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/predicate.ts', 'export const admitted = false;');
+  assert.equal(runGuard(root).status, 1);
 });
 
-test('db access guard catches aliased db imports and local aliases', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/aliased.ts', [
-    "import { db as database } from '@interdomestik/database';",
-    'export async function aliasedImport() {',
-    '  return database.select().from(user);',
-    '}',
-  ]);
-  writeFixture(tempRoot, 'apps/web/src/features/example/assigned.ts', [
-    "import { db } from '@/lib/db.server';",
-    'const database = db;',
-    'export async function assignedAlias() {',
-    '  return database.query.user.findFirst({});',
-    '}',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  assert.match(failingResult.stdout, /aliased\.ts:3 select/u);
-  assert.match(failingResult.stdout, /assigned\.ts:4 query/u);
+test('new tenant predicates and directives provide no transaction exemption', () => {
+  for (const directive of [
+    '',
+    '// db-access-guard: system-exempt -- reason: candidate approval',
+    '// db-access-guard: tenant-scoped -- reason: local assertion',
+  ]) {
+    const { result, report } = scan([
+      'import { db } from "@interdomestik/database";',
+      'export function read(tenantId) {',
+      directive,
+      'return db.select().from(user).where(eq(user.tenantId, tenantId));',
+      '}',
+    ]);
+    assert.equal(result.status, 1);
+    assert.equal(report.failingNewCount, 1);
+  }
 });
 
-test('db access guard ignores type-only typeof db method references', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/types.ts', [
-    "import { db } from '@interdomestik/database';",
-    'type QueryReference = typeof db.query.user;',
-    'type UpdateReference = Awaited<ReturnType<typeof db.update>>;',
-  ]);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
+test('candidate baseline cannot wash debt or new operations', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'scripts/ci/db-access-baseline.json', '{"entries":[{"permission":"all"}]}');
+  assert.equal(runGuard(root).status, 1);
+  assert.match(readReport(root).incomplete[0].reason, /baseline modified/u);
 });
 
-test('db access guard classifies withTenantContext callback transaction aliases', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/tenant-context.ts', [
-    "import { withTenantContext } from '@interdomestik/database';",
-    'export async function tenantScoped(tenantId) {',
-    '  return withTenantContext({ tenantId }, async tenantTx => tenantTx.select().from(user));',
-    '}',
-  ]);
-  writeFixture(tempRoot, 'apps/web/src/features/example/tenant-context-block.ts', [
-    "import { withTenantDb } from '@interdomestik/database';",
-    'export async function tenantScopedBlock(tenantId) {',
-    '  return withTenantDb({ tenantId }, async tx => {',
-    '    await tx.transaction(async nestedTx => nestedTx.update(user).set({ name: "safe" }));',
-    '    return tx.delete(user).where(eq(user.tenantId, tenantId));',
-    '  });',
-    '}',
-  ]);
+test('all four critical helper bodies are protected, independently of export/callsite spelling', () => {
+  for (const file of ['tenant', 'db', 'rls-role-assertion', 'rls-role-readiness']) {
+    const root = createTempRepo();
+    writeFixture(root, `packages/database/src/${file}.ts`, 'export const degraded = true;');
+    assert.equal(runGuard(root).status, 1);
+    assert.match(readReport(root).incomplete[0].reason, /critical tenant helper/u);
+  }
+});
 
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-  const report = readReport(tempRoot);
-  assert.equal(report.counts.byTenantPosture['tenant-context'], 4);
-  assert.equal(report.newEntries.length, 4);
-  assert.equal(report.failingNewEntries.length, 0);
-  assert.ok(
-    report.newEntries.some(
-      entry => entry.tenantPostureReason === 'tenant-context: callback-tx-alias'
-    )
+test('missing/wrong trusted commit, tree or blob digest fails incomplete', () => {
+  for (const field of ['commit', 'tree', 'digest']) {
+    const root = createTempRepo();
+    const adoption = JSON.parse(requireText(root, '.fixture-adoption.json'));
+    if (field === 'digest') adoption.files['packages/database/src/tenant.ts'] = '0'.repeat(64);
+    else adoption[field] = '0'.repeat(40);
+    writeFixture(root, '.fixture-adoption.json', JSON.stringify(adoption));
+    assert.equal(runGuard(root).status, 1);
+    assert.equal(readReport(root).status, 'incomplete');
+  }
+});
+
+function requireText(root, file) {
+  return fs.readFileSync(path.join(root, file), 'utf8');
+}
+
+test('production CLI rejects trust/root/baseline/roots overrides and write-baseline', () => {
+  const root = createTempRepo();
+  for (const arg of [
+    '--trust=HEAD',
+    '--root=.',
+    '--baseline=custom.json',
+    '--roots=apps',
+    '--write-baseline',
+  ]) {
+    const result = spawnSync(
+      process.execPath,
+      [path.join(rootDir, 'scripts/check-db-access-guard.mjs'), arg],
+      { cwd: root, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /unsupported guard override/u);
+  }
+});
+
+test('actual production CLI authenticates root epoch and preserves604 original entries', () => {
+  const result = spawnSync(
+    process.execPath,
+    ['scripts/check-db-access-guard.mjs', '--report=tmp/db-access-guard/production-contract.json'],
+    { cwd: rootDir, encoding: 'utf8', timeout: 90000 }
   );
-  assert.ok(
-    report.newEntries.some(
-      entry => entry.tenantPostureReason === 'tenant-context: callback-tx-block'
-    )
-  );
-});
-
-test('db access guard keeps plain db.transaction aliases as direct access', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/plain-transaction.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function unsafe() {',
-    '  return db.transaction(async tx => {',
-    '    await tx.update(user).set({ name: "unsafe" });',
-    '  });',
-    '}',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  const report = readReport(tempRoot);
-  assert.equal(report.failingNewEntries.length, 2);
-  assert.ok(
-    report.failingNewEntries.every(
-      entry => entry.tenantPostureReason === 'unclassified: no-recognized-context'
-    )
-  );
-});
-
-test('db access guard does not leak tenant context aliases outside callback boundaries', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/mixed-context.ts', [
-    "import { db, withTenantContext } from '@interdomestik/database';",
-    'export async function mixedContext(tenantId) {',
-    '  await withTenantContext({ tenantId }, async tenantTx => tenantTx.select().from(user));',
-    '  await helper({ tx: { update: () => null } });',
-    '  return db.transaction(async tx => {',
-    '    await tx.update(user).set({ name: "unsafe" });',
-    '  });',
-    '}',
-    'async function helper(params) { return params.tx.update(user); }',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  const report = readReport(tempRoot);
-  assert.equal(report.counts.byTenantPosture['tenant-context'], 1);
-  assert.ok(
-    report.failingNewEntries.some(
-      entry => entry.callee === 'tx.update' && entry.tenantPosture === 'unclassified'
-    )
-  );
-  assert.ok(report.newEntries.every(entry => !entry.source.includes('params.tx')));
-});
-
-test('db access guard recognizes only same-statement tenant predicates with non-literal tenant ids', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/predicate-read.ts', [
-    "import { db } from '@interdomestik/database';",
-    "import { withTenant } from '@interdomestik/database/tenant-security';",
-    'export async function safeRead(tenantId) {',
-    '  return db.query.claims.findMany({',
-    "    where: (table, { eq }) => withTenant(tenantId, table.tenantId, eq(table.status, 'open')),",
-    '  });',
-    '}',
-  ]);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-  assert.match(passingResult.stdout, /non-failing new direct DB access entries/u);
-  let report = readReport(tempRoot);
-  assert.equal(report.newEntries[0].tenantPosture, 'tenant-predicate');
-  assert.equal(report.newEntries[0].tenantPostureReason, 'tenant-predicate: in-where-clause');
-
-  writeFixture(tempRoot, 'apps/web/src/features/example/predicate-write.ts', [
-    "import { db } from '@interdomestik/database';",
-    "import { withTenant } from '@interdomestik/database/tenant-security';",
-    'export async function unsafeWrite(tenantId) {',
-    '  return db.update(claims).set({ updatedAt: new Date() }).where(withTenant(tenantId, claims.tenantId));',
-    '}',
-  ]);
-  const writeFailingResult = runAppGuard(tempRoot);
-  assert.equal(writeFailingResult.status, 1);
-  report = readReport(tempRoot);
-  assert.ok(
-    report.failingNewEntries.some(
-      entry =>
-        entry.file.endsWith('predicate-write.ts') && entry.tenantPosture === 'tenant-predicate'
-    )
-  );
-});
-
-test('db access guard rejects hard-coded and split-statement tenant predicates', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/hard-coded.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function hardCoded() {',
-    "  return db.select().from(claims).where(eq(claims.tenantId, 'tenant_ks'));",
-    '}',
-  ]);
-  writeFixture(tempRoot, 'apps/web/src/features/example/split-statement.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function split(tenantId) {',
-    '  const scope = eq(claims.tenantId, tenantId);',
-    '  return db.select().from(claims).where(scope);',
-    '}',
-  ]);
-  writeFixture(tempRoot, 'apps/web/src/features/example/wrong-with-tenant-column.ts', [
-    "import { db } from '@interdomestik/database';",
-    "import { withTenant } from '@interdomestik/database/tenant-security';",
-    'export async function wrongColumn(tenantId) {',
-    '  return db.query.claims.findMany({',
-    '    where: () => withTenant(tenantId, claims.ownerId),',
-    '  });',
-    '}',
-  ]);
-
-  const failingResult = runAppGuard(tempRoot);
-  assert.equal(failingResult.status, 1);
-  const report = readReport(tempRoot);
-  assert.equal(report.failingNewEntries.length, 3);
-  assert.ok(report.failingNewEntries.every(entry => entry.tenantPosture === 'unclassified'));
-});
-
-test('db access guard supports explicit system-exempt directives and dbAdmin posture', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/app/api/example/system.ts', [
-    "import { db, dbAdmin as adminDb } from '@interdomestik/database';",
-    'export async function systemJob() {',
-    '  // db-access-guard: system-exempt -- reason: cron iterates tenants from sealed list',
-    '  await db.update(systemJobs).set({ status: "archived" });',
-    '  await adminDb.delete(auditLog);',
-    '}',
-  ]);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-  const report = readReport(tempRoot);
-  assert.equal(report.counts.byTenantPosture['system-exempt'], 1);
-  assert.equal(report.counts.byTenantPosture['admin-privileged'], 1);
-  assert.equal(report.newEntries[0].tenantPostureDetail, 'cron iterates tenants from sealed list');
-  assert.ok(
-    report.newEntries.some(entry => entry.tenantPostureReason === 'admin-privileged: dbAdmin')
-  );
-});
-
-test('db access guard supports explicit tenant-scoped directives with audit details', () => {
-  const tempRoot = createTempRepo();
-  writeEmptyBaseline(tempRoot);
-  writeFixture(tempRoot, 'apps/web/src/features/example/tenant-scoped.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function tenantScoped(tenantId) {',
-    '  // db-access-guard: tenant-scoped -- reason: tenantId from validated function param tenantId',
-    '  await db.insert(claims).values({ tenantId });',
-    '}',
-  ]);
-
-  const passingResult = runAppGuard(tempRoot);
-  assert.equal(passingResult.status, 0, passingResult.stderr);
-  const report = readReport(tempRoot);
-  assert.equal(report.counts.byTenantPosture['tenant-scoped'], 1);
-  assert.equal(report.newEntries[0].tenantPostureReason, 'tenant-scoped: directive');
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(readText('tmp/db-access-guard/production-contract.json'));
+  assert.equal(report.trustedCommit, '278e33ab0dd448547fa81d4b0ff122b4d69c901e');
+  assert.equal(report.trustedTree, '4f9330417466b4f7bee68349e7183db22a5260ff');
   assert.equal(
-    report.newEntries[0].tenantPostureDetail,
-    'tenantId from validated function param tenantId'
+    report.historicalBaselineSha256,
+    '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9'
   );
 });
 
-test('db access guard writes v2 baselines with posture counts and per-entry posture fields', () => {
-  const tempRoot = createTempRepo();
-  writeFixture(tempRoot, 'apps/web/src/features/example/existing.ts', [
-    "import { db } from '@interdomestik/database';",
-    'export async function existing(tenantId) {',
-    '  return db.select().from(claims).where(eq(claims.tenantId, tenantId));',
-    '}',
-  ]);
+test('unrelated executable presentation edits conservatively invalidate ambient debt (explicit epoch-A limit)', () => {
+  const root = createTempRepo();
+  const body = [...ambient, 'export const heading = "Before";'];
+  writeFixture(root, 'apps/web/src/old.ts', body);
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/old.ts', body.join('\n').replace('Before', 'After'));
+  assert.equal(runGuard(root).status, 1);
+  assert.match(readReport(root).limits[0], /conservatively invalidate/u);
+});
 
-  const baselineResult = runAppGuard(tempRoot, ['--write-baseline']);
-  assert.equal(baselineResult.status, 0, baselineResult.stderr);
-  const baseline = readBaseline(tempRoot);
-  assert.equal(baseline.version, 2);
-  assert.equal(baseline.policy, 'see docs/dev/db-access-guard.md');
-  assert.equal(baseline.counts.byTenantPosture['tenant-predicate'], 1);
-  assert.equal(baseline.entries[0].callee, 'db.select');
-  assert.equal(baseline.entries[0].tenantPosture, 'tenant-predicate');
-  assert.equal(baseline.entries[0].tenantPostureReason, 'tenant-predicate: in-where-clause');
+test('remediation and removal of historical ambient debt are positive changes', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/old.ts', ambient);
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/old.ts', [
+    'import {withTenantContext} from "@interdomestik/database";',
+    'export function old(t){return withTenantContext(t,async tx=>tx.query.user.findFirst({}));}',
+  ]);
+  assert.equal(runGuard(root).status, 0);
+  writeFixture(root, 'apps/web/src/old.ts', 'export function old(){return null;}');
+  assert.equal(runGuard(root).status, 0);
+});
+
+test('formerly scoped predicate, context role and terminating admission weakening cannot inherit safe posture', () => {
+  for (const [oldValue, newValue] of [
+    ['eq(user.owner,owner)', 'true'],
+    ['role:"member"', 'role:"admin"'],
+    ['if(!admitted)throw Error("deny");', ''],
+  ]) {
+    const root = createTempRepo();
+    const original = [
+      'import {withTenantContext} from "@interdomestik/database";',
+      'export function read(tenantId,owner,admitted){if(!admitted)throw Error("deny"); return withTenantContext({tenantId,role:"member"},async tx=>tx.select().from(user).where(eq(user.owner,owner)));}',
+    ];
+    writeFixture(root, 'apps/web/src/old.ts', original);
+    sealFixture(root);
+    writeFixture(root, 'apps/web/src/old.ts', original.join('\n').replace(oldValue, newValue));
+    assert.equal(runGuard(root).status, 1);
+    assert.ok(
+      readReport(root).failingNewEntries.some(entry =>
+        /scoped executable controls/u.test(entry.reason ?? '')
+      )
+    );
+  }
+});
+
+test('candidate tsconfig paths and environment trust selectors cannot counterfeit root context', () => {
+  const root = createTempRepo();
+  writeFixture(
+    root,
+    'apps/web/tsconfig.json',
+    JSON.stringify({ compilerOptions: { paths: { '@interdomestik/database': ['./src/fake.ts'] } } })
+  );
+  assert.equal(runGuard(root).status, 1);
+  assert.match(readReport(root).incomplete[0].reason, /resolver boundary.*tsconfig/u);
+  const result = spawnSync(
+    process.execPath,
+    [path.join(rootDir, 'scripts/check-db-access-guard.mjs')],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, DB_ACCESS_GUARD_TRUST_ROOT: 'HEAD' } }
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /environment override/u);
+});
+
+test('candidate symlinks and self-authored exclusion catalogs cannot hide source', () => {
+  const root = createTempRepo();
+  fs.mkdirSync(path.join(root, 'apps/web/src'), { recursive: true });
+  fs.symlinkSync('/etc/passwd', path.join(root, 'apps/web/src/escape.ts'));
+  assert.equal(runGuard(root).status, 1);
+  assert.match(readReport(root).incomplete[0].reason, /symlink/u);
+  const catalog = createTempRepo();
+  writeFixture(catalog, 'scripts/ci/db-access-constants.mjs', 'export const DIRECT_DB_METHODS=[];');
+  writeFixture(catalog, 'scripts/ci/db-access-catalog.json', '{"approved":["*"]}');
+  writeFixture(catalog, 'apps/web/src/new.ts', ambient);
+  assert.equal(runGuard(catalog).status, 1);
 });

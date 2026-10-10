@@ -58,7 +58,12 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
     findStep(audit, 'Run Audits').if,
     "needs.validation-surface.outputs.run_broad == 'true'"
   );
-  assert.ok(findStep(audit, 'Report quick draft lane'));
+  const governance = findStep(audit, 'Run lightweight governance audits');
+  assert.equal(governance.env.RUN_BROAD, '${{ needs.validation-surface.outputs.run_broad }}');
+  assert.match(
+    governance.run,
+    /if \[\[ "\$RUN_BROAD" != "true" \]\]; then[\s\S]*echo "Heavy audit lane skipped\."[\s\S]*echo "Reason: \$\{\{ needs\.validation-surface\.outputs\.certification_reason \}\}"[\s\S]*fi/u
+  );
 });
 
 test('required PR E2E context wraps a service-free preflight and conditional heavy runner', () => {

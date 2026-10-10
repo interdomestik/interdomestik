@@ -1,8 +1,8 @@
 {
   "version": 1,
   "workflowDigests": {
-    ".github/workflows/ci.yml": "39c433d419a98cf36758adc57d9f129fd0ce96f51288115d97db7761b05ec957",
-    ".github/workflows/security.yml": "72e957bba4773deb3212d6db1d16f398c8fed53e538c6a060ca04f07f688195a",
+    ".github/workflows/ci.yml": "e89d5cbd733e87b42b1d337875d829de42d807b974ec2c2d0aac52359de0b6c8",
+    ".github/workflows/security.yml": "4fb57012d21e9728ada15aee103fc8cbb35b048801353366b345498e6a97ff5b",
     ".github/workflows/e2e-pr.yml": "76f6bc3ddc5adc407041d4d060ef4fa9935b1d79b6bbd5253c0846f49d092ecf",
     ".github/workflows/sonar-main-gate.yml": "1f041528aeba76428e7d47877387fd42e3aab32928507ca51ebeec06dcfe8b60",
     ".github/workflows/pilot-gate.yml": "6e631d37667e72a12fc63d0c31b5faeb6c5f36453c03ce3f0b7e6b973e4282c1",

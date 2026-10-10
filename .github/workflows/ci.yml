@@ -48,7 +48,204 @@ jobs:
     permissions: { actions: read, contents: read, pull-requests: read }
     steps:
       # prettier-ignore
-      - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}", persist-credentials: false } } # v6.0.1
+      - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { ref: "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}", persist-credentials: false, fetch-depth: 0 } } # v6.0.1
+      # Authority for tenant DB access: the protected base guard, materialized outside the
+      # candidate before any candidate setup/install. Candidate scripts/entrypoints never select it.
+      - name: Protected base DB access guard
+        id: protected_db_access
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SHA: ${{ github.sha }}
+          CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof' && github.event.pull_request.head.sha || github.sha }}
+          EVENT_REF: ${{ github.ref }}
+          PUSH_AFTER: ${{ github.event.after }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          TS_EXPECTED_VERSION: '5.9.3'
+          DATABASE_URL: ''
+          BETTER_AUTH_SECRET: ''
+          TURBO_TOKEN: ''
+          TURBO_TEAM: ''
+          TURBO_REMOTE_CACHE_SIGNATURE_KEY: ''
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::protected DB access guard incomplete: $*" >&2; exit 1; }
+          hex='^[0-9a-f]{40}$'
+          [[ "$DEFAULT_BRANCH" =~ ^(main|master)$ ]] || fail "default branch '$DEFAULT_BRANCH'"
+          [[ "$TS_EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "typescript version"
+          case "$EVENT_NAME" in
+            pull_request)
+              [[ "$EVENT_SHA" =~ $hex && "$EVENT_REF" =~ ^refs/pull/[0-9]+/merge$ && "$PR_BASE_SHA" =~ $hex && "$PR_BASE_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || fail "pull_request base identity"
+              anchor="$PR_BASE_SHA" ;;
+            push)
+              [[ "$EVENT_SHA" =~ $hex && "$PUSH_AFTER" == "$EVENT_SHA" && "$EVENT_REF" == "refs/heads/$DEFAULT_BRANCH" ]] || fail "push identity"
+              anchor="$EVENT_SHA" ;;
+            *) fail "unsupported event '$EVENT_NAME'" ;;
+          esac
+          [[ "$CANDIDATE_SHA" =~ $hex ]] || fail "candidate identity"
+          ws="$(cd "${GITHUB_WORKSPACE:?}" && pwd -P)"
+          temp_root="$(cd "${RUNNER_TEMP:?}" && pwd -P)"
+          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; esac
+          [[ -d "$ws/.git" && ! -L "$ws/.git" && ! -e "$ws/.git/shallow" ]] || fail "workspace history is not a full local repository"
+          node_bin="$(command -v node)" || fail "runner node missing"
+          node_bin="$(cd "$(dirname "$node_bin")" && pwd -P)/$(basename "$node_bin")"
+          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; esac
+          work="$(cd "$(mktemp -d "$temp_root/db-guard-protected.XXXXXXXX")" && pwd -P)"
+          mkdir -m 0700 "$work/home" "$work/out"
+          git_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 /usr/bin/git)
+          node_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C TZ=UTC CI=true "$node_bin" --no-addons)
+          [[ "$("${git_[@]}" -C "$ws" rev-parse HEAD)" == "$CANDIDATE_SHA" ]] || fail "candidate checkout identity"
+          "${git_[@]}" init -q --bare "$work/git"
+          gd=("${git_[@]}" --git-dir="$work/git")
+          "${gd[@]}" -c protocol.file.allow=always -c fetch.fsckObjects=true -c transfer.fsckObjects=true \
+            fetch -q --no-tags --no-write-fetch-head "file://$ws/.git" '+refs/remotes/origin/*:refs/protected/*' \
+            || fail "cannot copy protected refs into fresh repository"
+          [[ "$("${gd[@]}" rev-parse --is-shallow-repository)" == false ]] || fail "shallow protected history"
+          "${gd[@]}" rev-parse -q --verify "refs/protected/$DEFAULT_BRANCH^{commit}" >/dev/null || fail "protected default ref missing"
+          [[ "$("${gd[@]}" cat-file -t "$anchor" 2>/dev/null || true)" == commit ]] || fail "missing anchor object $anchor"
+          if [[ "$EVENT_NAME" == push ]]; then
+            "${gd[@]}" merge-base --is-ancestor "$anchor" "refs/protected/$DEFAULT_BRANCH" || fail "push commit not on $DEFAULT_BRANCH"
+            protected="$anchor"
+          else
+            protected="$("${gd[@]}" merge-base "$anchor" "refs/protected/$DEFAULT_BRANCH")" || fail "no protected merge-base"
+            if [[ "$PR_BASE_REF" == "$DEFAULT_BRANCH" && "$protected" != "$anchor" ]]; then fail "base sha not on $DEFAULT_BRANCH"; fi
+          fi
+          [[ "$protected" =~ $hex ]] || fail "protected identity"
+          tgz="$work/typescript.tgz"
+          if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
+            # Local test seam only; the tarball is still bound to the protected lock integrity.
+            [[ "${GITHUB_ACTIONS:-}" != true ]] || fail "fixture seam under GitHub Actions"
+            cp -- "$DB_GUARD_FIXTURE_TYPESCRIPT_TGZ" "$tgz"
+          else
+            env -i PATH=/usr/bin:/bin HOME="$work/home" /usr/bin/timeout --signal=TERM --kill-after=5s 180s \
+              /usr/bin/curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+                --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 --retry-all-errors --max-filesize 40000000 \
+                --output "$tgz" "https://registry.npmjs.org/typescript/-/typescript-$TS_EXPECTED_VERSION.tgz" \
+              || fail "typescript download"
+          fi
+          cat > "$work/bootstrap.mjs" <<'BOOTSTRAP'
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { pathToFileURL } from 'node:url';
+
+          const [work, sha, tsVersion] = process.argv.slice(2);
+          const env = { PATH: '/usr/bin:/bin', HOME: `${work}/home`, LC_ALL: 'C', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' };
+          const run = (file, args) => execFileSync(file, args, { env, maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+          const git = args => run('/usr/bin/git', [`--git-dir=${work}/git`, ...args]);
+          const fail = reason => { throw new Error(reason); };
+          const out = `${work}/protected`;
+          try {
+            const tree = new Map();
+            for (const row of git(['ls-tree', '-rz', '--full-tree', sha]).toString().split('\0').filter(Boolean)) {
+              const tab = row.indexOf('\t');
+              const [mode, kind, oid] = row.slice(0, tab).split(' ');
+              tree.set(row.slice(tab + 1), { mode, kind, oid });
+            }
+            const blob = file => {
+              const item = tree.get(file);
+              if (!item || item.kind !== 'blob' || !['100644', '100755'].includes(item.mode))
+                fail(`protected closure missing or non-regular ${file}`);
+              return git(['cat-file', 'blob', item.oid]);
+            };
+            // Compiler bytes are authenticated before any parser or protected module executes.
+            const lock = blob('pnpm-lock.yaml').toString('utf8');
+            const importer = /^importers:\n(?:\n)?  \.:\n([\s\S]*?)(?=^ {0,2}\S)/mu.exec(lock)?.[1] ?? fail('protected lock root importer missing');
+            const version = /^      typescript:\n        specifier: [^\n]+\n        version: ([^\n]+)$/mu.exec(importer)?.[1];
+            if (version !== tsVersion) fail(`protected lock typescript ${version} is not ${tsVersion}`);
+            const packageBlocks = [...lock.matchAll(new RegExp(`^  typescript@${tsVersion.replaceAll('.', '\\.')}:\\n((?: {4,}.*\\n|\\n)*)`, 'gmu'))];
+            if (packageBlocks.length !== 1) fail('protected lock typescript package missing or ambiguous');
+            const pinned = [...packageBlocks[0][1].matchAll(/\bintegrity:\s*(sha512-[A-Za-z0-9+/]+={0,2})/gu)];
+            if (pinned.length !== 1) fail('protected lock typescript integrity missing or ambiguous');
+            const tgz = `${work}/typescript.tgz`;
+            if ('sha512-' + createHash('sha512').update(fs.readFileSync(tgz)).digest('base64') !== pinned[0][1])
+              fail('typescript tarball does not match protected lock integrity');
+            const names = run('/usr/bin/tar', ['-tzf', tgz]).toString().split('\n').filter(Boolean);
+            if (!names.length || names.some(name => !name.startsWith('package/') || name.split('/').includes('..')))
+              fail('typescript tarball layout');
+            const kinds = run('/usr/bin/tar', ['-tvzf', tgz]).toString().split('\n').filter(Boolean);
+            if (kinds.some(row => !/^[d-]/u.test(row))) fail('typescript tarball non-regular member');
+            const stage = `${work}/ts-stage`;
+            fs.mkdirSync(stage);
+            run('/usr/bin/tar', ['-xzf', tgz, '-C', stage, '--no-same-owner', '--no-same-permissions']);
+            (function walk(dir) {
+              for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, item.name);
+                if (item.isDirectory()) walk(full);
+                else if (!item.isFile()) fail(`typescript tarball non-regular ${full}`);
+              }
+            })(stage);
+            const manifest = JSON.parse(fs.readFileSync(`${stage}/package/package.json`, 'utf8'));
+            if (manifest.name !== 'typescript' || manifest.version !== tsVersion) fail('typescript manifest mismatch');
+            const { default: ts } = await import(pathToFileURL(`${stage}/package/lib/typescript.js`).href);
+            // Generation and every executable import come only from the protected tree.
+            const generation = tree.has('scripts/ci/db-access-evaluator.mjs') ? 'epoch' : 'legacy';
+            const files = new Map();
+            const pending = ['scripts/check-db-access-guard.mjs'];
+            while (pending.length) {
+              const file = pending.pop();
+              if (files.has(file)) continue;
+              if (files.size >= 200) fail('protected closure bound exceeded');
+              const bytes = blob(file);
+              files.set(file, bytes);
+              const sf = ts.createSourceFile(file, bytes.toString('utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+              if (sf.parseDiagnostics.length) fail(`protected closure parse error ${file}`);
+              function visit(node) {
+                if (ts.isCallExpression(node)) {
+                  const callee = node.expression.getText(sf);
+                  if (node.expression.kind === ts.SyntaxKind.ImportKeyword || /^(?:require|createRequire|import\.meta\.resolve|process\.dlopen)$/u.test(callee))
+                    fail(`dynamic loading in protected ${file}`);
+                }
+                if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+                  if (!ts.isStringLiteral(node.moduleSpecifier)) fail(`unsupported specifier in protected ${file}`);
+                  const spec = node.moduleSpecifier.text;
+                  if (!spec.startsWith('node:') && spec !== 'typescript') {
+                    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), spec));
+                    if (!/^\.\.?\//u.test(spec) || target.startsWith('../') || !target.endsWith('.mjs'))
+                      fail(`unsupported specifier ${spec} in protected ${file}`);
+                    pending.push(target);
+                  }
+                }
+                ts.forEachChild(node, visit);
+              }
+              visit(sf);
+            }
+            if (generation === 'legacy') files.set('scripts/ci/db-access-baseline.json', blob('scripts/ci/db-access-baseline.json'));
+            for (const [file, bytes] of files) {
+              fs.mkdirSync(path.dirname(path.join(out, file)), { recursive: true });
+              fs.writeFileSync(path.join(out, file), bytes, { flag: 'wx', mode: 0o444 });
+            }
+            fs.mkdirSync(`${out}/node_modules`, { recursive: true });
+            fs.renameSync(`${stage}/package`, `${out}/node_modules/typescript`);
+            process.stdout.write(generation);
+          } catch (error) {
+            console.error(`incomplete: ${error instanceof Error ? error.message : String(error)}`);
+            process.exit(1);
+          }
+          BOOTSTRAP
+          generation="$("${node_[@]}" "$work/bootstrap.mjs" "$work" "$protected" "$TS_EXPECTED_VERSION")" || fail "protected closure"
+          chmod -R a-w "$work/protected"
+          entry="$work/protected/scripts/check-db-access-guard.mjs"
+          cd "$ws"
+          set +e
+          case "$generation" in
+            legacy)
+              report="$work/out/report.json"
+              "${node_[@]}" "$entry" "--baseline=$work/protected/scripts/ci/db-access-baseline.json" "--report=$report" ;;
+            epoch)
+              report="$ws/tmp/db-access-guard/protected-base.json"
+              "${node_[@]}" "$entry" "--report=tmp/db-access-guard/protected-base.json" ;;
+            *) false ;;
+          esac
+          status=$?
+          set -e
+          [[ "$status" == 0 ]] || fail "protected $generation guard at $protected exited $status"
+          "${node_[@]}" -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.exit(r.status === "pass" && r.scannedCount > 0 ? 0 : 1)' "$report" \
+            || fail "protected report is not a passing scan"
+          echo "Protected DB access guard passed ($generation @ $protected)."
       - uses: ./.github/actions/setup
       # prettier-ignore
       - { name: Certify OD17 exact-head public shell, if: "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/ida-t115-od17-performance-proof'", env: { GH_TOKEN: '${{ github.token }}', EXPECTED_HEAD_SHA: '${{ github.event.pull_request.head.sha }}', EXPECTED_TRUSTED_MAIN_SHA: '${{ github.event.pull_request.base.sha }}', PULL_NUMBER: '${{ github.event.pull_request.number }}' }, run: pnpm od17:verify }
@@ -67,6 +264,8 @@ jobs:
           fi
           if [[ "$RUN_BROAD" != "true" ]]; then
             node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
+            echo "Heavy audit lane skipped."
+            echo "Reason: ${{ needs.validation-surface.outputs.certification_reason }}"
           fi
       - name: Run Audits
         if: needs.validation-surface.outputs.run_broad == 'true'
@@ -74,6 +273,7 @@ jobs:
           node scripts/check-env-ci.mjs
           pnpm test:ci:contracts
           pnpm check:e2e-contracts
+          # Candidate evidence only; protected_db_access is the independent authority.
           pnpm check:db-access
           pnpm check:architecture-boundaries
           pnpm lint:production-warnings
@@ -82,11 +282,6 @@ jobs:
           # Contract Compliance: pnpm check remains the Golden Path marker.
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
-      - name: Report quick draft lane
-        if: needs.validation-surface.outputs.run_broad != 'true'
-        run: |
-          echo "Heavy audit lane skipped."
-          echo "Reason: ${{ needs.validation-surface.outputs.certification_reason }}"
   static:
     needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true'
