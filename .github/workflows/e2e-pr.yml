@@ -45,7 +45,7 @@ jobs:
     needs: [e2e-preflight]
     if: needs.e2e-preflight.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     services:
       postgres:
         image: public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d

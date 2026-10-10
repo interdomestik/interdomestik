@@ -166,7 +166,7 @@ export async function AdminUserDetailV2Page({
         <PreferencesCard preferences={preferences ?? null} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ClaimsStatsCard counts={counts} />
         <RecentClaimsCard recentClaims={recentClaims} queryString={backQuery} />
       </div>

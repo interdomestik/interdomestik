@@ -91,9 +91,11 @@ vi.mock('@/actions/free-start-drafts', () => ({
   resumeFreeStartDraft: seams.resume,
   updateFreeStartDraft: seams.update,
 }));
-vi.mock('next-intl', () => ({ useTranslations: (name?: string) => homeTranslations()(name) }));
+// prettier-ignore
+vi.mock('next-intl', () => ({ useLocale: () => 'en', useTranslations: (name?: string) => homeTranslations()(name) }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: seams.replace }) }));
-vi.mock('@/i18n/routing', () => createRoutingLinkMock());
+// prettier-ignore
+vi.mock('@/i18n/routing', () => ({ ...createRoutingLinkMock(), getPathname: ({ href, locale }: { href: string; locale: string }) => `/${locale}${href}`, routing: { defaultLocale: 'sq', locales: ['sq', 'en', 'mk', 'sr'] } }));
 vi.mock('@/actions/free-start.core', () => ({ submitFreeStartIntake: seams.submit }));
 vi.mock('@/actions/claim-pack.core', () => ({ generateClaimPackAction: seams.pack }));
 

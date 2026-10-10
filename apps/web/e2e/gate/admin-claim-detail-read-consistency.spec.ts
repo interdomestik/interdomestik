@@ -4,6 +4,10 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { resolvePlaywrightNetwork } from '../../playwright-network';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import {
+  expectEmptyMemberProfileResponsiveGeometry,
+  expectMemberProfileResponsiveGeometry,
+} from './test/admin-profile-geometry';
 import { account, interactiveLogin } from './test/login-handoff-page';
 
 // Maintained golden seeds (packages/database/src/seed-golden/claims.ts and users.ts).
@@ -26,6 +30,12 @@ const SEEDS = {
     memberNumber: 'MEM-2026-000014',
     memberId: 'golden_ks_member_tracking',
   },
+} as const;
+
+const KS_EMPTY_MEMBER = {
+  memberId: 'golden_ks_empty_member',
+  memberName: 'KS Empty Member',
+  memberEmail: 'member.ks.empty@interdomestik.com',
 } as const;
 
 type Seed = (typeof SEEDS)[keyof typeof SEEDS];
@@ -140,7 +150,11 @@ async function readTimeline(page: Page): Promise<TimelineState> {
   return { kind: 'entries', titles };
 }
 
-async function expectMemberProfile(page: Page, seed: Seed, url: string): Promise<void> {
+async function expectMemberProfile(
+  page: Page,
+  seed: Readonly<{ memberName: string; memberEmail: string }>,
+  url: string
+): Promise<void> {
   await expect(page).toHaveURL(url);
   await expect(page.getByTestId('not-found-page')).toHaveCount(0);
   // UserProfileHeader: the member's name is the page heading, the email sits beneath it.
@@ -235,6 +249,23 @@ test.describe('Admin claim detail read consistency', () => {
       const reloadedProfile = await page.reload({ waitUntil: 'domcontentloaded' });
       expect(reloadedProfile?.status()).toBe(200);
       await expectMemberProfile(page, seed, profile);
+      await expectMemberProfileResponsiveGeometry(page, seed);
+
+      if (testInfo.project.name === 'gate-ks-sq') {
+        const emptyProfile = `${origin}/${locale}/admin/users/${KS_EMPTY_MEMBER.memberId}`;
+        const emptyResponse = await gotoApp(
+          page,
+          `/admin/users/${KS_EMPTY_MEMBER.memberId}`,
+          testInfo,
+          {
+            baseURL: `${origin}/${locale}`,
+            marker: 'body',
+          }
+        );
+        expect(emptyResponse?.status()).toBe(200);
+        await expectMemberProfile(page, KS_EMPTY_MEMBER, emptyProfile);
+        await expectEmptyMemberProfileResponsiveGeometry(page, KS_EMPTY_MEMBER.memberName);
+      }
     } finally {
       await context.close();
     }
