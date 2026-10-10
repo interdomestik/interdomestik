@@ -16,7 +16,38 @@ import {
   workflowPath,
 } from './pnpm-audit-fixtures.mjs';
 
-// Runs the actual security.yml informational and blocking shell steps against stub pnpm.
+// Runs trusted literal copies of the security.yml informational and blocking shell steps against
+// stub pnpm. The literals are certified identical to the workflow's extracted scripts at module
+// load, and only the literals (never workflow-derived text) are ever passed to the shell.
+
+const REPORT_SCRIPT = [
+  'audit_status=0',
+  'pnpm audit --prod || audit_status=$?',
+  'echo "pnpm audit --prod exited with status ${audit_status} (informational; enforcement is the high+ gate)."',
+  'exit 0',
+].join('\n');
+
+const GATE_SCRIPT = [
+  'set -euo pipefail',
+  '',
+  'attempt() {',
+  '  audit_json="$(pnpm audit --prod --audit-level=high --json || true)"',
+  '  printf \'%s\\n\' "${audit_json}" | node scripts/pnpm-audit-gate.mjs',
+  '}',
+  '',
+  'for i in 1 2 3; do',
+  '  if attempt; then',
+  '    exit 0',
+  '  fi',
+  '  echo "pnpm audit gate failed (attempt ${i}/3). Retrying..." >&2',
+  '  sleep $((i * 5))',
+  'done',
+  '',
+  'echo "pnpm audit gate failed after retries." >&2',
+  'exit 1',
+].join('\n');
+
+const SCRIPTS = Object.freeze({ report: REPORT_SCRIPT, gate: GATE_SCRIPT });
 
 function stepBlock(text, name) {
   const start = text.indexOf(`- name: ${name}\n`);
@@ -33,6 +64,7 @@ function withoutComments(block) {
     .trimEnd();
 }
 
+// Comparison only: the extracted body is never executed.
 function runBody(block) {
   const lines = block.split('\n');
   const start = lines.findIndex(line => /^\s*run: \|\s*$/.test(line));
@@ -47,9 +79,22 @@ function runBody(block) {
   return body.map(line => line.slice(indent)).join('\n');
 }
 
+// Only trailing whitespace is normalized; all other whitespace is meaningful.
+function assertScriptMatches(block, literal, label) {
+  assert.equal(
+    runBody(block).trimEnd(),
+    literal.trimEnd(),
+    `${label} script differs from the trusted literal; update the literal deliberately`
+  );
+}
+
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const reportStep = stepBlock(workflow, 'pnpm audit (prod) report (non-blocking)');
 const gateStep = stepBlock(workflow, 'pnpm audit (prod, high+) gate');
+
+// Runs at module initialization, before any test or subprocess, so a mutated workflow cannot run.
+assertScriptMatches(reportStep, REPORT_SCRIPT, 'report');
+assertScriptMatches(gateStep, GATE_SCRIPT, 'gate');
 
 test('security workflow: report succeeds deliberately; gate stays blocking with retries', () => {
   const report = withoutComments(reportStep);
@@ -71,6 +116,25 @@ test('security workflow: report succeeds deliberately; gate stays blocking with 
   assert.match(gate, /pnpm audit gate failed after retries\.[^\n]*\n\s*exit 1$/);
 });
 
+test('workflow script drift from the trusted literals is rejected', () => {
+  const mutations = [
+    [reportStep, REPORT_SCRIPT, 'report', 'audit_status=0', 'audit_status=0\n          id'],
+    [reportStep, REPORT_SCRIPT, 'report', 'exit 0', 'exit 1'],
+    [gateStep, GATE_SCRIPT, 'gate', 'sleep $((i * 5))', 'sleep 0'],
+    [gateStep, GATE_SCRIPT, 'gate', '|| true)', '|| true) '],
+    [gateStep, GATE_SCRIPT, 'gate', 'for i in 1 2 3', 'for i in 1'],
+  ];
+  for (const [block, literal, label, from, to] of mutations) {
+    const mutated = block.split(from).join(to);
+    assert.notEqual(mutated, block, `mutation did not apply: ${from}`);
+    assert.throws(() => assertScriptMatches(mutated, literal, label), /trusted literal/);
+  }
+
+  // Trailing whitespace and trailing blank lines are the only tolerated differences.
+  assert.doesNotThrow(() => assertScriptMatches(`${gateStep}\n\n  `, GATE_SCRIPT, 'gate'));
+  assert.throws(() => runStep('workflow', makeStubs('', 0)), /unknown step label/);
+});
+
 function makeStubs(output, exitCode) {
   const dir = tempDir();
   const log = path.join(dir, 'pnpm.log');
@@ -85,8 +149,10 @@ function makeStubs(output, exitCode) {
   return { dir, log };
 }
 
-function runStep(block, stubs) {
-  return spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', runBody(block)], {
+// `label` is a closed internal enum selecting a trusted literal; no file-derived text is spawned.
+function runStep(label, stubs) {
+  if (!Object.hasOwn(SCRIPTS, label)) throw new Error(`unknown step label: ${label}`);
+  return spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', SCRIPTS[label]], {
     cwd: repoRoot,
     encoding: 'utf8',
     env: {
@@ -105,7 +171,7 @@ const posixOnly = { skip: process.platform === 'win32' };
 test('report step exits 0 and reports the pnpm audit status', posixOnly, () => {
   for (const exitCode of [1, 0]) {
     const stubs = makeStubs('2 vulnerabilities found\n', exitCode);
-    const result = runStep(reportStep, stubs);
+    const result = runStep('report', stubs);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, new RegExp(`exited with status ${exitCode} \\(informational`));
     assert.deepEqual(calls(stubs), ['audit --prod']);
@@ -118,7 +184,7 @@ test('gate step passes authentic clean reports on the first attempt', posixOnly,
     pnpmReport([advisory(1116008, 'high', [REAL_SCOPED_PATH])]),
   ]) {
     const stubs = makeStubs(output, 1);
-    const result = runStep(gateStep, stubs);
+    const result = runStep('gate', stubs);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(calls(stubs), ['audit --prod --audit-level=high --json']);
   }
@@ -138,7 +204,7 @@ test(
     ];
     for (const output of outputs) {
       const stubs = makeStubs(output, 1);
-      const result = runStep(gateStep, stubs);
+      const result = runStep('gate', stubs);
       assert.equal(result.status, 1);
       assert.match(result.stderr, /pnpm audit gate failed after retries\./);
       assert.equal(calls(stubs).length, 3);
