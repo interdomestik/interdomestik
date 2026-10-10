@@ -190,6 +190,7 @@ test(
   'candidate-local hostile PATH never executes during real fixtures, trust or production CLI',
   { timeout: 180000 },
   () => {
+    fs.mkdirSync(path.join(rootDir, 'tmp'), { recursive: true });
     const owned = fs.mkdtempSync(path.join(rootDir, 'tmp', 'git-sentinel-'));
     const bin = path.join(owned, 'node_modules', '.bin'),
       sentinel = path.join(owned, 'invoked');

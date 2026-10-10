@@ -13,6 +13,7 @@ import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
 import { inspectChangedEdges } from './db-access-graph.mjs';
+import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
 const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
@@ -30,7 +31,7 @@ function invalidateConsumers(model, inventory) {
         ts.isStringLiteral(node.moduleSpecifier)
       ) {
         const target = model.moduleFile(node.moduleSpecifier.text, file);
-        if (target && !node.isTypeOnly && !node.importClause?.isTypeOnly) dependencies.add(target);
+        if (target && !isErasedTypeEdge(node)) dependencies.add(target);
       }
       if (
         ts.isCallExpression(node) &&

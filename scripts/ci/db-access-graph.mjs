@@ -9,6 +9,7 @@ import {
 } from './db-access-references.mjs';
 import { isFunction, unwrap } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
+import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
 export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
   const failures = [];
@@ -84,16 +85,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
         node.moduleSpecifier &&
         ts.isStringLiteral(node.moduleSpecifier)
       ) {
-        const bindings = node.importClause?.namedBindings;
-        const onlyTypes =
-          node.isTypeOnly ||
-          node.importClause?.isTypeOnly ||
-          (bindings &&
-            ts.isNamedImports(bindings) &&
-            !node.importClause.name &&
-            bindings.elements.length > 0 &&
-            bindings.elements.every(item => item.isTypeOnly));
-        if (!onlyTypes) moduleEffect(node.moduleSpecifier);
+        if (!isErasedTypeEdge(node)) moduleEffect(node.moduleSpecifier);
         return;
       }
       if (
