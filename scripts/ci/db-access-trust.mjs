@@ -1,9 +1,9 @@
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 import { ADOPTION } from './db-access-adoption.mjs';
+import { runGit } from './db-access-git.mjs';
 
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 export const SOURCE = /\.[cm]?[jt]sx?$/u;
@@ -19,16 +19,7 @@ export const historicalExclusion = file =>
   );
 
 function git(repoRoot, args, input) {
-  return execFileSync('git', ['--no-replace-objects', '-C', repoRoot, ...args], {
-    input,
-    maxBuffer: 96 * 1024 * 1024,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: {
-      ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))),
-      GIT_CONFIG_GLOBAL: '/dev/null',
-      GIT_CONFIG_NOSYSTEM: '1',
-    },
-  });
+  return runGit(['--no-replace-objects', '-C', repoRoot, ...args], { input });
 }
 
 // Exported for the test-only harness. Production CLI always passes ADOPTION.

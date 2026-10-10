@@ -1,9 +1,10 @@
-import { spawnSync, execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { digest } from './db-access-trust.mjs';
+import { runGit } from './db-access-git.mjs';
 
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const harness = path.join(rootDir, 'scripts/ci/db-access-guard-test-harness.mjs');
@@ -20,7 +21,7 @@ export function writeFixture(root, file, lines) {
 export function createTempRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-db-access-'));
   temporary.add(root);
-  execFileSync('git', ['init', '-q', root]);
+  runGit(['init', '-q', root]);
   writeFixture(
     root,
     'apps/web/package.json',
@@ -81,8 +82,8 @@ export function createTempRepo() {
   return root;
 }
 export function sealFixture(root) {
-  execFileSync('git', ['-C', root, 'add', '.']);
-  execFileSync('git', [
+  runGit(['-C', root, 'add', '.']);
+  runGit([
     '-C',
     root,
     '-c',
@@ -96,7 +97,7 @@ export function sealFixture(root) {
     'trusted fixture',
     '--allow-empty',
   ]);
-  const git = args => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim();
+  const git = args => runGit(['-C', root, ...args], { encoding: 'utf8' }).trim();
   const critical = ['tenant', 'db', 'rls-role-assertion', 'rls-role-readiness'].map(
     file => `packages/database/src/${file}.ts`
   );

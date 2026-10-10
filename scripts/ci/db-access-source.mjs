@@ -3,6 +3,12 @@ import ts from 'typescript';
 import { digest, SOURCE, ROOT } from './db-access-trust.mjs';
 
 const EXTENSIONS = ['', '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '/index.ts', '/index.tsx'];
+const SUBSTITUTIONS = new Map([
+  ['.js', ['.ts', '.tsx', '.js', '.jsx']],
+  ['.jsx', ['.tsx', '.ts', '.jsx', '.js']],
+  ['.mjs', ['.mts', '.mjs']],
+  ['.cjs', ['.cts', '.cjs']],
+]);
 const VIRTUAL = '/__db_guard__/';
 const normalize = name => path.posix.normalize(name).replace(/^\/__db_guard__\//u, '');
 export const unwrap = raw => {
@@ -49,7 +55,12 @@ export function createSourceModel(sources, approvedSources = sources) {
     if (manifest.name) packages.set(manifest.name, { base: path.posix.dirname(file), ...manifest });
   }
   function exists(base) {
-    return EXTENSIONS.map(ext => base + ext).find(file => sources.has(file));
+    const executable = file => sources.has(file) && !/\.d\.[cm]?ts$/u.test(file);
+    const extension = path.posix.extname(base);
+    const substitutes = SUBSTITUTIONS.get(extension);
+    if (substitutes)
+      return substitutes.map(ext => base.slice(0, -extension.length) + ext).find(executable);
+    return EXTENSIONS.map(ext => base + ext).find(executable);
   }
   function moduleFile(name, from) {
     if (name.startsWith('.')) return exists(path.posix.join(path.posix.dirname(from), name));
@@ -69,7 +80,7 @@ export function createSourceModel(sources, approvedSources = sources) {
         const [prefix, suffix] = pattern.split('*');
         if (key.startsWith(prefix) && key.endsWith(suffix)) {
           const part = key.slice(prefix.length, key.length - suffix.length);
-          target = typeof value === 'string' ? value.replace('*', part) : undefined;
+          target = typeof value === 'string' ? value.replaceAll('*', () => part) : undefined;
         }
       }
     }
