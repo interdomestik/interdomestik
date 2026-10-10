@@ -1,15 +1,271 @@
+# Org-ruleset required workflow, pinned by repository, path and reviewed commit.
+# Independent tenant DB access authority for pull requests into main. It always executes one
+# immutable approved guard source (fixed commit and tree) against the exact synthetic merge commit.
+# The event base is validated data only and never executes; candidate workflows, local actions,
+# package scripts, dependencies, compilers and modules never execute.
 name: Tenant Guard Required
 on:
   pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-permissions: { contents: read }
+permissions:
+  contents: read
 jobs:
-  tenant-db-access:
+  tenant-guard:
     name: Protected tenant DB access guard (exact merge)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - name: Fail closed mutable-source sentinel
+      # prettier-ignore
+      - { uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8, with: { fetch-depth: 0, persist-credentials: false } } # v6.0.1
+      - name: Approved DB access guard on exact merge
+        id: protected_db_access
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REPO: ${{ github.repository }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REPO: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          TS_EXPECTED_VERSION: '5.9.3'
         run: |
-          echo 'S7 owned source-ref sentinel: immutable ruleset pin must ignore this revision'
-          exit 1
+          set -euo pipefail
+          fail() { echo "::error::protected DB access guard incomplete: $*" >&2; exit 1; }
+          hex='^[0-9a-f]{40}$'
+          pr_number='^[1-9][0-9]{0,9}$'
+          expected_repo='interdomestik/interdomestik'
+          expected_branch='main'
+          # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
+          source_commit='e113a98f4ec33093986cb4bb5e3ac77fcde856fa'
+          source_tree='d201a534ed5f6cf06dab87268b9ccb6068908b47'
+          # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
+          for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
+            [[ -n "${!name:-}" ]] || fail "missing $name"
+          done
+          [[ "$EVENT_NAME" == pull_request ]] || fail "unsupported event"
+          [[ "$EVENT_REPO" == "$expected_repo" && "$PR_BASE_REPO" == "$expected_repo" ]] || fail "repository identity"
+          [[ "$DEFAULT_BRANCH" == "$expected_branch" && "$PR_BASE_REF" == "$expected_branch" ]] || fail "base branch identity"
+          [[ "$PR_NUMBER" =~ $pr_number && "$EVENT_REF" == "refs/pull/$PR_NUMBER/merge" ]] || fail "pull request merge ref identity"
+          [[ "$EVENT_SHA" =~ $hex && "$PR_BASE_SHA" =~ $hex && "$PR_HEAD_SHA" =~ $hex ]] || fail "merge/base/head object identity"
+          [[ "$EVENT_SHA" != "$PR_BASE_SHA" && "$EVENT_SHA" != "$PR_HEAD_SHA" && "$PR_BASE_SHA" != "$PR_HEAD_SHA" ]] \
+            || fail "merge/base/head identities are not distinct"
+          [[ "$TS_EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "typescript version"
+          ws="$(cd "${GITHUB_WORKSPACE:?}" && pwd -P)"
+          temp_root="$(cd "${RUNNER_TEMP:?}" && pwd -P)"
+          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; esac
+          [[ -d "$ws/.git" && ! -L "$ws/.git" && ! -e "$ws/.git/shallow" ]] || fail "workspace history is not a full local repository"
+          node_bin="$(command -v node)" || fail "runner node missing"
+          node_bin="$(cd "$(dirname "$node_bin")" && pwd -P)/$(basename "$node_bin")"
+          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; esac
+          work="$(cd "$(mktemp -d "$temp_root/db-guard-protected.XXXXXXXX")" && pwd -P)"
+          mkdir -m 0700 "$work/home" "$work/out"
+          git_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 /usr/bin/git)
+          node_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C TZ=UTC CI=true "$node_bin" --no-addons)
+          # The scanned working tree is the exact synthetic merge commit, never the candidate head alone.
+          [[ "$("${git_[@]}" -C "$ws" rev-parse --verify HEAD)" == "$EVENT_SHA" ]] || fail "workspace checkout is not the exact merge commit"
+          ws_status="$("${git_[@]}" -C "$ws" status --porcelain=v1 --untracked-files=all)" || fail "workspace status"
+          [[ -z "$ws_status" ]] || fail "workspace differs from the merge commit"
+          "${git_[@]}" init -q --bare "$work/git"
+          gd=("${git_[@]}" --git-dir="$work/git")
+          "${gd[@]}" -c protocol.file.allow=always -c fetch.fsckObjects=true -c transfer.fsckObjects=true \
+            fetch -q --no-tags --no-write-fetch-head "file://$ws/.git" '+refs/remotes/origin/*:refs/protected/*' '+HEAD:refs/merge/head' \
+            || fail "cannot copy protected refs and merge commit into fresh repository"
+          [[ "$("${gd[@]}" rev-parse --is-shallow-repository)" == false ]] || fail "shallow protected history"
+          "${gd[@]}" rev-parse -q --verify "refs/protected/$expected_branch^{commit}" >/dev/null || fail "protected default ref missing"
+          [[ "$("${gd[@]}" rev-parse -q --verify 'refs/merge/head^{commit}' || true)" == "$EVENT_SHA" ]] || fail "merge commit identity"
+          for object in "$PR_BASE_SHA" "$PR_HEAD_SHA"; do
+            [[ "$("${gd[@]}" cat-file -t "$object" 2>/dev/null || true)" == commit ]] || fail "missing base/head commit object"
+          done
+          parents="$("${gd[@]}" rev-list --max-count=1 --parents "$EVENT_SHA")" || fail "merge commit parents"
+          read -r merge_commit first_parent second_parent extra_parents <<<"$parents"
+          [[ "$merge_commit" == "$EVENT_SHA" && "$first_parent" == "$PR_BASE_SHA" && "$second_parent" == "$PR_HEAD_SHA" && -z "$extra_parents" ]] \
+            || fail "merge commit parents are not exactly (base, head)"
+          # The event base is the validated first parent on protected main. It is data only, never executable source.
+          "${gd[@]}" merge-base --is-ancestor "$PR_BASE_SHA" "refs/protected/$expected_branch" || fail "base commit not on protected $expected_branch"
+          # The approved source is located only by its fixed identity among the fetched origin refs (authority branch).
+          [[ "$("${gd[@]}" cat-file -t "$source_commit" 2>/dev/null || true)" == commit ]] || fail "approved guard source commit missing"
+          [[ "$("${gd[@]}" rev-parse -q --verify "$source_commit^{tree}" || true)" == "$source_tree" ]] || fail "approved guard source tree mismatch"
+          [[ -n "$("${gd[@]}" for-each-ref --count=1 --contains "$source_commit" --format='%(refname)' refs/protected/ 2>/dev/null || true)" ]] \
+            || fail "approved guard source unreachable from fetched origin refs"
+          "${gd[@]}" rev-list --objects --missing=error "$source_tree" >/dev/null 2>&1 || fail "approved guard source objects incomplete"
+          merge_tree="$("${gd[@]}" rev-parse --verify "$EVENT_SHA^{tree}")" || fail "merge tree"
+          base_tree="$("${gd[@]}" rev-parse --verify "$PR_BASE_SHA^{tree}")" || fail "base tree"
+          head_tree="$("${gd[@]}" rev-parse --verify "$PR_HEAD_SHA^{tree}")" || fail "head tree"
+          [[ "$("${git_[@]}" -C "$ws" rev-parse --verify 'HEAD^{tree}')" == "$merge_tree" ]] || fail "workspace tree is not the merge tree"
+          echo "event=pull_request repo=$expected_repo pr=$PR_NUMBER base_ref=$expected_branch"
+          echo "merge=$EVENT_SHA tree=$merge_tree"
+          echo "base=$PR_BASE_SHA tree=$base_tree role=event-base parent=1 executable=no"
+          echo "head=$PR_HEAD_SHA tree=$head_tree role=candidate parent=2 executable=no"
+          echo "source=$source_commit tree=$source_tree role=approved-guard executable=yes"
+          tgz="$work/typescript.tgz"
+          if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
+            # Local test seam only; the tarball is still bound to the approved source lock integrity.
+            [[ "${GITHUB_ACTIONS:-}" != true ]] || fail "fixture seam under GitHub Actions"
+            cp -- "$DB_GUARD_FIXTURE_TYPESCRIPT_TGZ" "$tgz"
+          else
+            env -i PATH=/usr/bin:/bin HOME="$work/home" /usr/bin/timeout --signal=TERM --kill-after=5s 180s \
+              /usr/bin/curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
+                --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 --retry-all-errors --max-filesize 40000000 \
+                --output "$tgz" "https://registry.npmjs.org/typescript/-/typescript-$TS_EXPECTED_VERSION.tgz" \
+              || fail "typescript download"
+          fi
+          cat > "$work/bootstrap.mjs" <<'BOOTSTRAP'
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { pathToFileURL } from 'node:url';
+
+          const [work, sha, expectedTree, tsVersion] = process.argv.slice(2);
+          const env = { PATH: '/usr/bin:/bin', HOME: `${work}/home`, LC_ALL: 'C', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_NO_REPLACE_OBJECTS: '1' };
+          const run = (file, args) => execFileSync(file, args, { env, maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+          const git = args => run('/usr/bin/git', [`--git-dir=${work}/git`, ...args]);
+          const fail = reason => { throw new Error(reason); };
+          const out = `${work}/protected`;
+          try {
+            if (git(['rev-parse', `${sha}^{tree}`]).toString().trim() !== expectedTree) fail('approved guard source tree mismatch');
+            const tree = new Map();
+            for (const row of git(['ls-tree', '-rz', '--full-tree', sha]).toString().split('\0').filter(Boolean)) {
+              const tab = row.indexOf('\t');
+              const [mode, kind, oid] = row.slice(0, tab).split(' ');
+              tree.set(row.slice(tab + 1), { mode, kind, oid });
+            }
+            const blob = file => {
+              const item = tree.get(file);
+              if (!item || item.kind !== 'blob' || !['100644', '100755'].includes(item.mode))
+                fail(`protected closure missing or non-regular ${file}`);
+              return git(['cat-file', 'blob', item.oid]);
+            };
+            // The approved engine baseline is the original full adoption baseline, byte-identical.
+            const baseline = blob('scripts/ci/db-access-baseline.json');
+            if (createHash('sha256').update(baseline).digest('hex') !== '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9'
+              || JSON.parse(baseline.toString('utf8')).entries?.length !== 604)
+              fail('approved engine baseline authentication failed');
+            // Compiler bytes are authenticated against the approved source lock before any parser or guard module executes.
+            const uniqueBlock = (lines, header, childPrefix) => {
+              let start = -1;
+              for (let index = 0; index < lines.length; index++) {
+                if (lines[index] !== header) continue;
+                if (start !== -1) fail(`protected lock ambiguous ${header.trim()}`);
+                start = index;
+              }
+              if (start === -1) fail(`protected lock missing ${header.trim()}`);
+              const body = [];
+              for (let index = start + 1; index < lines.length; index++) {
+                const line = lines[index];
+                if (line !== '' && !line.startsWith(childPrefix)) break;
+                body.push(line);
+              }
+              return body;
+            };
+            const lock = blob('pnpm-lock.yaml').toString('utf8').split('\n');
+            const importers = uniqueBlock(lock, 'importers:', '  ');
+            const importer = uniqueBlock(importers, '  .:', '    ');
+            const dependency = uniqueBlock(importer, '      typescript:', '        ');
+            const specifiers = dependency.filter(line => /^        specifier: [^\n]+$/u.test(line));
+            const versions = dependency.filter(line => /^        version: [^\n]+$/u.test(line));
+            if (specifiers.length !== 1 || versions.length !== 1) fail('protected lock typescript dependency missing or ambiguous');
+            const version = versions[0].slice('        version: '.length);
+            if (version !== tsVersion) fail(`protected lock typescript ${version} is not ${tsVersion}`);
+            const packages = uniqueBlock(lock, 'packages:', '  ');
+            const packageBlock = uniqueBlock(packages, `  typescript@${tsVersion}:`, '    ');
+            const pinned = [...packageBlock.join('\n').matchAll(/\bintegrity:\s*(sha512-[A-Za-z0-9+/]+={0,2})/gu)];
+            if (pinned.length !== 1) fail('protected lock typescript integrity missing or ambiguous');
+            const tgz = `${work}/typescript.tgz`;
+            if ('sha512-' + createHash('sha512').update(fs.readFileSync(tgz)).digest('base64') !== pinned[0][1])
+              fail('typescript tarball does not match protected lock integrity');
+            const names = run('/usr/bin/tar', ['-tzf', tgz]).toString().split('\n').filter(Boolean);
+            if (!names.length || names.some(name => !name.startsWith('package/') || name.split('/').includes('..')))
+              fail('typescript tarball layout');
+            const kinds = run('/usr/bin/tar', ['-tvzf', tgz]).toString().split('\n').filter(Boolean);
+            if (kinds.some(row => !/^[d-]/u.test(row))) fail('typescript tarball non-regular member');
+            const stage = `${work}/ts-stage`;
+            fs.mkdirSync(stage);
+            run('/usr/bin/tar', ['-xzf', tgz, '-C', stage, '--no-same-owner', '--no-same-permissions']);
+            (function walk(dir) {
+              for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, item.name);
+                if (item.isDirectory()) walk(full);
+                else if (!item.isFile()) fail(`typescript tarball non-regular ${full}`);
+              }
+            })(stage);
+            const manifest = JSON.parse(fs.readFileSync(`${stage}/package/package.json`, 'utf8'));
+            if (manifest.name !== 'typescript' || manifest.version !== tsVersion) fail('typescript manifest mismatch');
+            const { default: ts } = await import(pathToFileURL(`${stage}/package/lib/typescript.js`).href);
+            // Every executable import comes only from the approved source tree.
+            const files = new Map();
+            const pending = ['scripts/check-db-access-guard.mjs'];
+            while (pending.length) {
+              const file = pending.pop();
+              if (files.has(file)) continue;
+              if (files.size >= 200) fail('protected closure bound exceeded');
+              const bytes = blob(file);
+              files.set(file, bytes);
+              const sf = ts.createSourceFile(file, bytes.toString('utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+              if (sf.parseDiagnostics.length) fail(`protected closure parse error ${file}`);
+              function visit(node) {
+                if (ts.isCallExpression(node)) {
+                  const callee = node.expression.getText(sf);
+                  if (node.expression.kind === ts.SyntaxKind.ImportKeyword || /^(?:require|createRequire|import\.meta\.resolve|process\.dlopen)$/u.test(callee))
+                    fail(`dynamic loading in protected ${file}`);
+                }
+                if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+                  if (!ts.isStringLiteral(node.moduleSpecifier)) fail(`unsupported specifier in protected ${file}`);
+                  const spec = node.moduleSpecifier.text;
+                  if (!spec.startsWith('node:') && spec !== 'typescript') {
+                    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), spec));
+                    if (!/^\.\.?\//u.test(spec) || target.startsWith('../') || !target.endsWith('.mjs'))
+                      fail(`unsupported specifier ${spec} in protected ${file}`);
+                    pending.push(target);
+                  }
+                }
+                ts.forEachChild(node, visit);
+              }
+              visit(sf);
+            }
+            for (const [file, bytes] of files) {
+              fs.mkdirSync(path.dirname(path.join(out, file)), { recursive: true });
+              fs.writeFileSync(path.join(out, file), bytes, { flag: 'wx', mode: 0o444 });
+            }
+            fs.mkdirSync(`${out}/node_modules`, { recursive: true });
+            fs.renameSync(`${stage}/package`, `${out}/node_modules/typescript`);
+          } catch (error) {
+            console.error(`incomplete: ${error instanceof Error ? error.message : String(error)}`);
+            process.exit(1);
+          }
+          BOOTSTRAP
+          "${node_[@]}" "$work/bootstrap.mjs" "$work" "$source_commit" "$source_tree" "$TS_EXPECTED_VERSION" || fail "approved guard closure"
+          chmod -R a-w "$work/protected"
+          "${gd[@]}" cat-file blob "$source_commit:scripts/ci/db-access-baseline.json" > "$work/out/source-baseline.json" \
+            || fail "approved baseline missing"
+          entry="$work/protected/scripts/check-db-access-guard.mjs"
+          cd "$ws"
+          # The approved CLI requires a workspace-relative report; the candidate cannot pre-seed or redirect it.
+          report="$ws/tmp/db-access-guard/protected-base.json"
+          for candidate_path in "$ws/tmp" "$ws/tmp/db-access-guard" "$report"; do
+            [[ ! -L "$candidate_path" ]] || fail "symlinked protected report path"
+          done
+          [[ ! -e "$report" ]] || fail "pre-existing protected report in workspace"
+          echo "approved guard source=$source_commit executes on merge=$EVENT_SHA"
+          set +e
+          "${node_[@]}" "$entry" "--report=tmp/db-access-guard/protected-base.json"
+          status=$?
+          set -e
+          [[ "$status" == 0 ]] || fail "approved guard $source_commit exited $status"
+          summary="$("${node_[@]}" -e '
+            const fs = require("fs");
+            const read = file => JSON.parse(fs.readFileSync(file, "utf8"));
+            const r = read(process.argv[1]);
+            const b = read(process.argv[2]);
+            const ok = r !== null && typeof r === "object" && r.status === "pass"
+              && Number.isSafeInteger(r.scannedCount) && r.scannedCount > 0
+              && Number.isSafeInteger(r.newCount) && r.newCount >= 0
+              && Array.isArray(r.failingNewEntries) && r.failingNewEntries.length === 0
+              && b !== null && typeof b === "object" && Array.isArray(b.entries);
+            if (!ok) process.exit(1);
+            process.stdout.write(`scanned=${r.scannedCount} new=${r.newCount} failing_new=0 source_baseline_entries=${b.entries.length}`);
+          ' "$report" "$work/out/source-baseline.json")" || fail "protected report is not a passing scan"
+          echo "Protected DB access guard passed (source $source_commit) on merge $EVENT_SHA: $summary"
