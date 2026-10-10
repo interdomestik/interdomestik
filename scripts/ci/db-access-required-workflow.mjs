@@ -21,7 +21,7 @@ export function embedded(start, end) {
   const run = guardStep.run;
   const from = run.indexOf(start);
   const to = run.indexOf(end, from + start.length);
-  if (from < 0 || to < 0 || run.indexOf(start, from + 1) >= 0)
+  if (from < 0 || to < 0 || run.includes(start, from + 1))
     throw new Error(`embedded fragment ${start} is missing or ambiguous`);
   return run.slice(from, to);
 }

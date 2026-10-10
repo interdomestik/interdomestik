@@ -204,7 +204,7 @@ export function headOnlyScan(pr) {
   for (const file of git(rootDir, 'ls-tree', '-r', '--name-only', SOURCE_COMMIT, 'scripts/').split(
     '\n'
   ))
-    if (file.endsWith('.mjs') && !/\.test\.mjs$/u.test(file))
+    if (file.endsWith('.mjs') && !file.endsWith('.test.mjs'))
       writeFile(guard, file, showAt(SOURCE_COMMIT, file));
   const report = 'tmp/db-access-guard/head-only.json';
   const result = withCompiler(guard, () =>

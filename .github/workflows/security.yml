@@ -33,10 +33,16 @@ jobs:
         run: pnpm security:guard
 
       # Non-blocking: report all production vulnerabilities for visibility.
-      # This is informational only and should not fail CI.
+      # pnpm audit exits 1 whenever any advisory exists, so the status is recorded
+      # and the step succeeds deliberately (no failure annotation). Enforcement
+      # lives solely in the fail-closed high/critical gate below.
       - name: pnpm audit (prod) report (non-blocking)
-        continue-on-error: true
-        run: pnpm audit --prod
+        shell: bash
+        run: |
+          audit_status=0
+          pnpm audit --prod || audit_status=$?
+          echo "pnpm audit --prod exited with status ${audit_status} (informational; enforcement is the high+ gate)."
+          exit 0
 
       # Blocking: fail only on HIGH/CRITICAL production vulnerabilities.
       # Retry a couple times to avoid flaky registry/network failures.
