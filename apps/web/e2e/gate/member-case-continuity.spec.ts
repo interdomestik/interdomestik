@@ -11,6 +11,51 @@ const READING_ORDER_SELECTORS = [
   '#member-claim-detail-history',
 ];
 
+test('returning member hero opens the member portal through native mobile document navigation', async ({
+  page,
+  loginAs,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'gate-ks-sq', 'SQ returning-member gate');
+  await loginAs('member');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'public-entry-hero' });
+
+  const memberPath = routes.member(testInfo);
+  const primary = page
+    .getByTestId('public-entry-hero')
+    .getByRole('link', { name: 'Hap hapësirën time' });
+  await expect(primary).toBeVisible();
+  await expect(primary).toHaveAttribute('href', memberPath);
+  await expect(primary).not.toHaveAttribute('target');
+  await expect(primary).not.toHaveAttribute('download');
+
+  const [request, response] = await Promise.all([
+    page.waitForRequest(candidate => {
+      return (
+        candidate.isNavigationRequest() &&
+        candidate.frame() === page.mainFrame() &&
+        candidate.resourceType() === 'document' &&
+        new URL(candidate.url()).pathname === memberPath
+      );
+    }),
+    page.waitForResponse(candidate => {
+      const candidateRequest = candidate.request();
+      return (
+        candidateRequest.isNavigationRequest() &&
+        candidateRequest.frame() === page.mainFrame() &&
+        candidateRequest.resourceType() === 'document' &&
+        new URL(candidate.url()).pathname === memberPath
+      );
+    }),
+    primary.click(),
+  ]);
+
+  expect(request.resourceType()).toBe('document');
+  expect(response.status()).toBe(200);
+  await expect(page).toHaveURL(new RegExp(`${memberPath}$`));
+  await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+});
+
 test('member owned cases remain accessible across dashboard, list and mobile account menu', async ({
   page,
   loginAs,

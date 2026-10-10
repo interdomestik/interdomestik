@@ -1,8 +1,8 @@
-import { Link } from '@/i18n/routing';
+import { getPathname, routing } from '@/i18n/routing';
 import { PUBLIC_FREE_START_ANCHOR_HREF } from '@/lib/public-membership-entry';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { ArrowRight } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { PublicSituationActions, PublicSupportPanel } from './public-entry-actions';
 
 type HeroSectionProps = Readonly<{
@@ -12,11 +12,31 @@ type HeroSectionProps = Readonly<{
   tenantId?: string | null;
 }>;
 
+type RoutingLocale = (typeof routing.locales)[number];
+
+function isRoutingLocale(locale: string | undefined): locale is RoutingLocale {
+  return routing.locales.some(candidate => candidate === locale);
+}
+
+function resolveRoutingLocale(locale: string | undefined, activeLocale: string): RoutingLocale {
+  if (isRoutingLocale(locale)) return locale;
+  if (isRoutingLocale(activeLocale)) return activeLocale;
+  return routing.defaultLocale;
+}
+
 function MemberContinuation({
+  locale,
   primaryHref,
   secondaryHref,
-}: Pick<HeroSectionProps, 'primaryHref' | 'secondaryHref'>) {
+}: Pick<HeroSectionProps, 'locale' | 'primaryHref' | 'secondaryHref'>) {
   const t = useTranslations('hero.publicEntry');
+  const activeLocale = useLocale();
+  const routingLocale = resolveRoutingLocale(locale, activeLocale);
+  const memberHref = getPathname({ href: primaryHref ?? '/member', locale: routingLocale });
+  const secondaryDocumentHref = secondaryHref
+    ? getPathname({ href: secondaryHref, locale: routingLocale })
+    : null;
+
   return (
     <div className="mx-auto w-full max-w-[90rem] px-4 py-16 sm:px-6 lg:px-10 xl:px-14">
       <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#006A70]">
@@ -30,20 +50,21 @@ function MemberContinuation({
       </h1>
       <p className="mt-6 max-w-2xl text-lg leading-8 text-[#334D5C]">{t('memberSubtitle')}</p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Link
-          href={primaryHref ?? '/member'}
+        {/* Document navigation keeps protected member entry aligned with the public account action. */}
+        <a
+          href={memberHref}
           className="inline-flex min-h-12 items-center justify-center gap-3 bg-[#006A70] px-6 py-3 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006A70] focus-visible:ring-offset-2"
         >
           {t('memberPrimary')}
           <ArrowRight aria-hidden="true" className="h-5 w-5" />
-        </Link>
-        {secondaryHref ? (
-          <Link
-            href={secondaryHref}
+        </a>
+        {secondaryDocumentHref ? (
+          <a
+            href={secondaryDocumentHref}
             className="inline-flex min-h-12 items-center justify-center border border-[#006A70] px-6 py-3 font-semibold text-[#005F64] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006A70] focus-visible:ring-offset-2"
           >
             {t('memberSecondary')}
-          </Link>
+          </a>
         ) : null}
       </div>
     </div>
@@ -67,7 +88,11 @@ export function HeroSection({
       data-testid="public-entry-hero"
     >
       {isMemberContinuation ? (
-        <MemberContinuation primaryHref={primaryHref} secondaryHref={secondaryHref} />
+        <MemberContinuation
+          locale={locale}
+          primaryHref={primaryHref}
+          secondaryHref={secondaryHref}
+        />
       ) : (
         <div className="mx-auto grid w-full max-w-[90rem] gap-x-12 gap-y-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,0.82fr)_minmax(32rem,1.18fr)] lg:px-10 lg:py-16 xl:gap-x-20 xl:px-14">
           <div className="min-w-0 lg:pt-3">
