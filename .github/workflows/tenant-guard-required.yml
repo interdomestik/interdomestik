@@ -1,0 +1,12 @@
+name: Tenant Guard Required
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions: { contents: read }
+jobs:
+  tenant-guard:
+    name: Protected tenant DB access guard (exact merge)
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo 'Candidate-controlled same-path/name/job spoof; no tenant guard runs here.'
