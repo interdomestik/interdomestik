@@ -1,69 +1,28 @@
 import ts from 'typescript';
+import { createClientSymbols } from './db-access-client-symbols.mjs';
 import { isFunction, ownerOf, unwrap } from './db-access-source.mjs';
 import { collectMutationEffects } from './db-access-mutations.mjs';
+import { createDispatch } from './db-access-dispatch.mjs';
+import { createContextualProvenance } from './db-access-contextual.mjs';
+import { canonicalQueryChain } from './db-access-inventory.mjs';
+import { withInvocationEvidence } from './db-access-invocation-evidence.mjs';
 
 const UNKNOWN = 'unknown';
-const CONTEXT_FILE = 'packages/database/src/tenant.ts';
 const DB_FILE = 'packages/database/src/db.ts';
 const same = values =>
   values.length && values.every(value => value === values[0]) ? values[0] : UNKNOWN;
 export function createProvenance(model) {
-  const { calls, mutations, unsafeMutations, escapedFns, isMutated, environmentChanges, finish } =
-    collectMutationEffects(model);
-  function clientProperty(raw, key, seen) {
-    const node = unwrap(raw);
-    if (!node || seen.has(node) || seen.size > 64) return UNKNOWN;
-    seen = new Set(seen).add(node);
-    if (ts.isObjectLiteralExpression(node)) {
-      const property = node.properties.find(
-        item => item.name?.getText().replace(/^['"]|['"]$/gu, '') === key
-      );
-      if (property && ts.isPropertyAssignment(property))
-        return clientIdentity(property.initializer, seen);
-      if (property && ts.isShorthandPropertyAssignment(property))
-        return clientIdentity(property.name, seen);
-      return UNKNOWN;
-    }
-    const rawDecl = model.rawDeclaration(node);
-    if (rawDecl && ts.isNamespaceImport(rawDecl)) {
-      const imported = rawDecl.parent.parent;
-      const file = model.moduleFile(imported.moduleSpecifier.text, model.fileOf(node));
-      return file ? clientIdentity(model.exportDeclaration(file, key), seen) : UNKNOWN;
-    }
-    const decl = model.declaration(node);
-    return decl && ts.isVariableDeclaration(decl) && decl.initializer
-      ? clientProperty(decl.initializer, key, seen)
-      : UNKNOWN;
-  }
-  function clientIdentity(raw, seen = new Set()) {
-    const node = unwrap(raw);
-    if (!node || seen.has(node) || seen.size > 64) return UNKNOWN;
-    seen = new Set(seen).add(node);
-    const decl = model.declaration(node);
-    const named = decl ?? (ts.isVariableDeclaration(node.parent) ? node.parent : undefined);
-    if (
-      named &&
-      model.fileOf(named) === DB_FILE &&
-      ['db', 'dbRls', 'dbAdmin'].includes(named.name?.text)
-    )
-      return named.name.text;
-    if (ts.isPropertyAccessExpression(node)) {
-      const identity = clientProperty(node.expression, node.name.text, seen);
-      if (identity !== UNKNOWN) return identity;
-    }
-    if (!decl) return UNKNOWN;
-    if (ts.isShorthandPropertyAssignment(decl)) return clientIdentity(decl.name, seen);
-    if (ts.isPropertyAssignment(decl)) return clientIdentity(decl.initializer, seen);
-    if (ts.isBindingElement(decl) && ts.isObjectBindingPattern(decl.parent)) {
-      const holder = decl.parent.parent;
-      return holder.initializer
-        ? clientProperty(holder.initializer, (decl.propertyName ?? decl.name).text, seen)
-        : UNKNOWN;
-    }
-    return ts.isVariableDeclaration(decl) && decl.initializer
-      ? clientIdentity(decl.initializer, seen)
-      : UNKNOWN;
-  }
+  const {
+    calls,
+    mutations,
+    unsafeMutations,
+    escapedFns,
+    isMutated,
+    environmentChanges,
+    analysisUnknown,
+    finish,
+  } = collectMutationEffects(model);
+  const { clientIdentity, canonical } = createClientSymbols(model, mutations);
   const handleUnion = values => {
     if (values.includes(true)) return true;
     if (values.includes(UNKNOWN)) return UNKNOWN;
@@ -139,21 +98,6 @@ export function createProvenance(model) {
     return handleUnion(
       (calls.get(fn) ?? []).map(call => tenantHandle(call.arguments[index], seen, budget))
     );
-  }
-  function canonical(node, seen = new Set()) {
-    node = unwrap(node);
-    if (!node || seen.has(node) || mutations.has(model.symbol(node))) return false;
-    seen.add(node);
-    const decl = model.declaration(node);
-    if (!decl) return false;
-    if (
-      model.fileOf(decl) === CONTEXT_FILE &&
-      ['withTenantContext', 'withTenantDb'].includes(decl.name?.text)
-    )
-      return true;
-    return ts.isVariableDeclaration(decl) && decl.initializer
-      ? canonical(decl.initializer, seen)
-      : false;
   }
   function argumentValue(argument, keys, seen, use = argument) {
     argument = unwrap(argument);
@@ -280,8 +224,7 @@ export function createProvenance(model) {
     }
     return UNKNOWN;
   }
-  finish({ provenance });
-  return {
+  const legacy = {
     provenance,
     canonical,
     clientIdentity,
@@ -292,5 +235,12 @@ export function createProvenance(model) {
     escapedFns,
     isMutated,
     environmentChanges,
+    analysisUnknown,
   };
+  legacy.queryBoundary = expression => canonicalQueryChain(expression, legacy);
+  const dispatch = createDispatch(model, legacy);
+  const contextual = createContextualProvenance(model, legacy, dispatch);
+  const result = contextual.facade(undefined);
+  finish(result);
+  return withInvocationEvidence(result, model);
 }

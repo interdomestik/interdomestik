@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { callForExpression, dispatchCoverage } from './db-access-coverage.mjs';
 import { trustedSchemaColumn } from './db-access-external.mjs';
 // Fixed epoch policy; candidate constants/catalogs are comparison inputs, not permission.
 export const DIRECT_DB_METHODS = [
@@ -99,6 +100,12 @@ export function collectInventory(model, provenance, trustedSources) {
       if (escapedHandle) handleReason = 'tenant transaction handle escapes callback';
       else if (unsupportedHandle)
         handleReason = 'unsupported returned handle analysis bound, cycle or mutated value';
+      const coverage =
+        !ambient && !escapedHandle && !unsupportedHandle && !indirect
+          ? dispatchCoverage(provenance, callForExpression(node))
+          : { covered: false, alternatives: [] };
+      if (coverage.covered && tenantPosture !== 'tenant-context')
+        tenantPosture = 'covered-dispatch-alternatives';
       const owner = ownerOf(node);
       const target = invoked ? call.arguments[0] : undefined;
       const claimName =
@@ -116,9 +123,11 @@ export function collectInventory(model, provenance, trustedSources) {
         method,
         tenantPosture,
         tenantPostureReason:
-          receiver === 'tenant-context'
-            ? 'tenant-context: proven-symbol-invocations'
-            : `unclassified: ${receiver}`,
+          coverage.covered && receiver !== 'tenant-context'
+            ? 'covered alternatives: canonical transaction or source-resolved callable; every local body remains inspected'
+            : receiver === 'tenant-context'
+              ? 'tenant-context: proven-symbol-invocations'
+              : `unclassified: ${receiver}`,
         isDirectDbAlias: receiver !== 'tenant-context',
         claimsUpdateTarget,
         ...(handleReason ? { reason: handleReason } : {}),
@@ -126,6 +135,17 @@ export function collectInventory(model, provenance, trustedSources) {
         source: node.getText(),
         identity: digest(`${file}|${fingerprint}|${node.pos}|${method}`),
         historicalDebt: identical,
+        dispatchAlternatives: coverage.alternatives.map(item => ({
+          kind: item.kind,
+          unknown: item.unknown,
+          reasons: item.reasons,
+          targets: item.targets.map(target => ({
+            file: model.fileOf(target.functionNode),
+            start: target.functionNode.pos,
+            callStart: target.callNode.pos,
+          })),
+        })),
+        _dispatchCovered: coverage.covered,
         _indirect: indirect || escapedHandle,
         _incomplete: unsupportedHandle,
         _node: node,
@@ -138,6 +158,7 @@ export function collectInventory(model, provenance, trustedSources) {
 
 export function isUnsafe(entry) {
   if (entry._indirect) return true; // Extracted/bound query methods have unsupported receiver/lifetime.
+  if (entry._dispatchCovered) return false; // Every source-local body is still traversed by graph.
   if (
     entry.claimsUpdateTarget &&
     entry.isDirectDbAlias &&

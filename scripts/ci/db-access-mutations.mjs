@@ -1,7 +1,9 @@
 import ts from 'typescript';
 import { externalValue } from './db-access-external.mjs';
+import { dispatchCoverage } from './db-access-coverage.mjs';
 import { canonicalQueryChain } from './db-access-inventory.mjs';
-import { isFunction, unwrap, runtimeFingerprint } from './db-access-source.mjs';
+import { createSourceLookups } from './db-access-mutation-source-lookups.mjs';
+import { isFunction, unwrap } from './db-access-source.mjs';
 
 function directReference(node) {
   let parent = node.parent;
@@ -16,13 +18,21 @@ export function collectMutationEffects(model) {
   const unsafeMutations = new Set(); // Explicit writes or changed opaque calls; never historical schema precision.
   const escapedFns = new Set();
   const environmentChanges = new Set();
+  const analysisUnknown = new Set();
+  // Immutable per-collection lookups keyed by AST node identity. Mutation membership stays live below.
+  const { sourceSymbol, sourceFile, sourceDeclaration, sourceQueryOperator, changed, rootSymbol } =
+    createSourceLookups(model);
+  // Completed invalidations per AST node: 1 = non-strict, 2 = strict (subsumes non-strict).
+  // A node is marked only after its entire traversal returned, so a thrown traversal is retried.
+  const completedInvalidations = new WeakMap();
+  const externalOrigins = new WeakMap();
   function globalRoot(raw, seen = new Set()) {
     const node = unwrap(raw);
     if (!node || seen.has(node) || seen.size > 64) return false;
     seen = new Set(seen).add(node);
     if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
       return globalRoot(node.expression, seen);
-    const decl = model.declaration(node);
+    const decl = sourceDeclaration(node);
     if (decl && ts.isVariableDeclaration(decl) && decl.initializer)
       return globalRoot(decl.initializer, seen);
     return (
@@ -31,19 +41,12 @@ export function collectMutationEffects(model) {
       !decl
     );
   }
-  function changed(node) {
-    const file = model.fileOf(node),
-      before = model.approvedSources.get(file),
-      after = model.sources.get(file);
-    return (
-      before === undefined ||
-      (before !== after && runtimeFingerprint(before) !== runtimeFingerprint(after))
-    );
-  }
   function invalidate(raw, strict = false) {
     const node = unwrap(raw);
     if (!node) return;
-    if (globalRoot(node) && changed(node)) environmentChanges.add(model.fileOf(node));
+    const tier = strict ? 2 : 1;
+    if ((completedInvalidations.get(node) ?? 0) >= tier) return;
+    if (globalRoot(node) && changed(node)) environmentChanges.add(sourceFile(node));
     if (ts.isArrayLiteralExpression(node)) node.elements.forEach(item => invalidate(item, strict));
     else if (ts.isObjectLiteralExpression(node)) {
       for (const item of node.properties) {
@@ -56,36 +59,44 @@ export function collectMutationEffects(model) {
     else if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node))
       invalidate(node.expression, strict);
     else {
-      const symbol = model.symbol(node);
+      const symbol = sourceSymbol(node);
       if (symbol?.declarations?.length) {
         mutations.add(symbol);
         if (strict) unsafeMutations.add(symbol);
       }
     }
+    completedInvalidations.set(node, tier);
   }
   function isMutated(raw) {
-    let node = unwrap(raw);
-    while (node && (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)))
-      node = unwrap(node.expression);
-    return !!node && mutations.has(model.symbol(node));
+    const node = unwrap(raw);
+    if (!node) return false;
+    return mutations.has(rootSymbol(node));
   }
-  function externalOrigin(raw, seen = new Set()) {
+  function externalOrigin(raw) {
+    const node = unwrap(raw);
+    if (!node) return undefined;
+    if (externalOrigins.has(node)) return externalOrigins.get(node);
+    const result = traceExternalOrigin(node);
+    externalOrigins.set(node, result);
+    return result;
+  }
+  function traceExternalOrigin(raw, seen = new Set()) {
     const node = unwrap(raw);
     if (!node || seen.has(node) || seen.size > 64) return undefined;
     seen = new Set(seen).add(node);
     const external = model.externalName(node);
     if (external) return external;
     if (ts.isCallExpression(node) || ts.isPropertyAccessExpression(node))
-      return externalOrigin(node.expression, seen);
-    const decl = model.declaration(node);
+      return traceExternalOrigin(node.expression, seen);
+    const decl = sourceDeclaration(node);
     return decl && ts.isVariableDeclaration(decl) && decl.initializer
-      ? externalOrigin(decl.initializer, seen)
+      ? traceExternalOrigin(decl.initializer, seen)
       : undefined;
   }
   for (const sf of model.parsed.values())
     model.walk(sf, node => {
       if (ts.isCallExpression(node)) {
-        const decl = model.declaration(unwrap(node.expression));
+        const decl = sourceDeclaration(unwrap(node.expression));
         if (decl && isFunction(decl)) {
           const list = calls.get(decl) ?? [];
           list.push(node);
@@ -109,7 +120,7 @@ export function collectMutationEffects(model) {
       )
         invalidate(node.operand, true);
       if (!ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node)) return;
-      const decl = model.declaration(node);
+      const decl = sourceDeclaration(node);
       if (!decl || !isFunction(decl) || node === decl.name) return;
       let ancestor = node.parent;
       while (ancestor && !ts.isSourceFile(ancestor)) {
@@ -126,68 +137,144 @@ export function collectMutationEffects(model) {
       if (!directReference(node)) escapedFns.add(decl);
     });
   function finish(provenance) {
-    let previous = -1;
-    while (previous !== mutations.size + unsafeMutations.size) {
-      previous = mutations.size + unsafeMutations.size;
-      for (const node of opaqueCalls) {
-        const external = externalOrigin(node.expression);
-        const declarative =
-          (!changed(node) && externalValue(model, node.expression, { isMutated })) ||
-          (external &&
-            !changed(node) &&
-            ['drizzle-orm', 'drizzle-orm/pg-core'].includes(external.module) &&
-            [
-              'pgEnum',
-              'pgTable',
-              'relations',
-              'index',
-              'uniqueIndex',
-              'check',
-              'foreignKey',
-              'primaryKey',
-              'unique',
-              'eq',
-              'and',
-              'or',
-              'asc',
-              'desc',
-              'ilike',
-              'inArray',
-              'isNull',
-              'sql',
-            ].includes(external.name));
-        if (
-          !declarative &&
-          !(model.isQueryOperator(node.expression) && !isMutated(node.expression)) &&
-          !canonicalQueryChain(node.expression, provenance)
-        )
-          for (const argument of node.arguments) {
-            const target = model.declaration(unwrap(argument));
-            if (target && isFunction(target)) continue; // Passing a function escapes its invocation provenance, not its binding.
-            if (changed(node) || !target || model.fileOf(target) === model.fileOf(node))
-              invalidate(argument, changed(node));
-          }
+    let previous;
+    // Scheduling evidence is local to this invocation and never memoizes origin, resolver or
+    // mutation answers. mutations only receives additions during this synchronous
+    // collectMutationEffects lifetime, so its size identifies a generation for this invocation
+    // only. unsafeMutations is separate monotone strictness consumed by propagation; it is not an
+    // input to dispatch construction or to opaque-call reads.
+    let dispatchGeneration, completedSweep;
+    for (let round = 0; round < 32; round++) {
+      if (dispatchGeneration !== mutations.size) {
+        // Rebuild on the first round and after every mutations addition. A new dispatch snapshot
+        // discards completed opaque-sweep evidence.
+        completedSweep = undefined;
+        dispatchGeneration = mutations.size;
+        provenance.dispatch?.reset();
       }
+      const state = provenance.dispatch?.state();
+      // Construction adds no mutations; if that ever changed, the next round rebuilds.
+      if (dispatchGeneration !== mutations.size) dispatchGeneration = undefined;
+      for (const reason of state?.reasons ?? []) analysisUnknown.add(reason);
+      const beforeMutations = `${mutations.size}:${unsafeMutations.size}`;
+      const signature = JSON.stringify([
+        mutations.size,
+        unsafeMutations.size,
+        state?.escaped.size,
+        [...(state?.callers ?? [])].map(([fn, list]) => [sourceFile(fn), fn.pos, list.length]),
+        [...analysisUnknown].sort(),
+      ]);
+      if (signature === previous) return;
+      previous = signature;
+      // A completed sweep is reused only for the same generation and the same retained dispatch
+      // snapshot: every read it made would repeat and every invalidation it made is idempotent.
+      const reuseSweep =
+        completedSweep !== undefined &&
+        completedSweep.state === state &&
+        completedSweep.generation === mutations.size &&
+        dispatchGeneration === mutations.size;
+      if (!reuseSweep) {
+        // An interrupted sweep, or one that adds mutations, never becomes completed evidence.
+        completedSweep = undefined;
+        const sweepGeneration = mutations.size;
+        for (const node of opaqueCalls) {
+          const external = externalOrigin(node.expression);
+          const declarative =
+            (!changed(node) && externalValue(model, node.expression, { isMutated })) ||
+            (external &&
+              !changed(node) &&
+              ['drizzle-orm', 'drizzle-orm/pg-core'].includes(external.module) &&
+              [
+                'pgEnum',
+                'pgTable',
+                'relations',
+                'index',
+                'uniqueIndex',
+                'check',
+                'foreignKey',
+                'primaryKey',
+                'unique',
+                'eq',
+                'and',
+                'or',
+                'asc',
+                'desc',
+                'ilike',
+                'inArray',
+                'isNull',
+                'sql',
+              ].includes(external.name));
+          if (
+            !declarative &&
+            !(sourceQueryOperator(node.expression) && !isMutated(node.expression)) &&
+            !canonicalQueryChain(node.expression, provenance) &&
+            !dispatchCoverage(provenance, node).covered
+          )
+            for (const argument of node.arguments) {
+              // Actual closure/parameter origins share the invocation registry used by dispatch.
+              for (const variant of state?.byCall.get(node) ?? []) {
+                const origins = state.effects.origins(argument, variant.context);
+                for (const item of origins.values) {
+                  const declaration = sourceDeclaration(item.node);
+                  if (
+                    (!declaration || !isFunction(declaration)) &&
+                    (changed(node) || !declaration || sourceFile(declaration) === sourceFile(node))
+                  )
+                    invalidate(item.node, changed(node));
+                }
+              }
+              const target = sourceDeclaration(unwrap(argument));
+              if (target && isFunction(target)) continue; // Passing a function escapes its invocation provenance, not its binding.
+              if (changed(node) || !target || sourceFile(target) === sourceFile(node))
+                invalidate(argument, changed(node));
+            }
+        }
+        if (sweepGeneration === mutations.size && dispatchGeneration === sweepGeneration)
+          completedSweep = { state, generation: sweepGeneration };
+      }
+      // The full initializer/caller propagation walk runs on every round, including rounds that
+      // reuse the sweep, so strict-only unsafeMutations growth reaches every syntax and resolved
+      // method/factory/closure caller.
       for (const sf of model.parsed.values())
         model.walk(sf, node => {
           if (ts.isVariableDeclaration(node) && node.initializer && isMutated(node.name))
-            invalidate(node.initializer, unsafeMutations.has(model.symbol(node.name)));
+            invalidate(node.initializer, unsafeMutations.has(sourceSymbol(node.name)));
           if (ts.isParameter(node) && isFunction(node.parent)) {
             let mutated = false,
               strict = false;
             model.walk(node.name, part => {
               if (isMutated(part)) mutated = true;
-              if (unsafeMutations.has(model.symbol(part))) strict = true;
+              if (unsafeMutations.has(sourceSymbol(part))) strict = true;
             });
-            if (mutated)
+            if (mutated) {
+              // Preserve syntax callers AND every resolved method/factory/closure caller.
               for (const call of calls.get(node.parent) ?? [])
                 invalidate(
                   call.arguments[node.parent.parameters.indexOf(node)],
                   strict || changed(call)
                 );
+              for (const call of state?.callers.get(node.parent) ?? []) {
+                const argument = call.argumentBindings.get(node);
+                const origins = state.effects.origins(argument, call.callerContext);
+                for (const item of origins.values)
+                  invalidate(item.node, strict || changed(call.callNode));
+                invalidate(argument, strict || changed(call.callNode));
+              }
+            }
           }
         });
+      if (beforeMutations === `${mutations.size}:${unsafeMutations.size}`) return;
     }
+    analysisUnknown.add('mutation-dispatch-settlement-bound');
   }
-  return { calls, mutations, unsafeMutations, escapedFns, isMutated, environmentChanges, finish };
+  return {
+    analysisUnknown,
+    calls,
+    mutations,
+    unsafeMutations,
+    escapedFns,
+    isMutated,
+    environmentChanges,
+    finish,
+  };
 }
