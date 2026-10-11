@@ -29,6 +29,15 @@ export function createClientSymbols(model, mutations) {
       ? clientProperty(decl.initializer, key, seen)
       : UNKNOWN;
   }
+  // An object destructuring element resolves through its holder's actual initializer only;
+  // undefined means the declaration is not such an element.
+  function bindingIdentity(decl, seen) {
+    if (!ts.isBindingElement(decl) || !ts.isObjectBindingPattern(decl.parent)) return undefined;
+    const holder = decl.parent.parent;
+    return holder.initializer
+      ? clientProperty(holder.initializer, (decl.propertyName ?? decl.name).text, seen)
+      : UNKNOWN;
+  }
   function clientIdentity(raw, seen = new Set()) {
     const node = unwrap(raw);
     if (!node || seen.has(node) || seen.size > 64) return UNKNOWN;
@@ -48,12 +57,8 @@ export function createClientSymbols(model, mutations) {
     if (!decl) return UNKNOWN;
     if (ts.isShorthandPropertyAssignment(decl)) return clientIdentity(decl.name, seen);
     if (ts.isPropertyAssignment(decl)) return clientIdentity(decl.initializer, seen);
-    if (ts.isBindingElement(decl) && ts.isObjectBindingPattern(decl.parent)) {
-      const holder = decl.parent.parent;
-      return holder.initializer
-        ? clientProperty(holder.initializer, (decl.propertyName ?? decl.name).text, seen)
-        : UNKNOWN;
-    }
+    const bound = bindingIdentity(decl, seen);
+    if (bound !== undefined) return bound;
     return ts.isVariableDeclaration(decl) && decl.initializer
       ? clientIdentity(decl.initializer, seen)
       : UNKNOWN;

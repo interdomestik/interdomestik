@@ -40,6 +40,20 @@ export const createFrame = (owner, parent, invocation = {}) => ({
   ...invocation,
 });
 
+// Records a failure reason once per resolution context; always yields undefined.
+function fail(ctx, reason) {
+  if (!ctx.reasons.includes(reason)) ctx.reasons.push(reason);
+  return undefined;
+}
+
+// One function declaration with a body among overload signatures, else a single declaration.
+function selectDeclaration(declarations) {
+  const bodies = declarations.filter(item => ts.isFunctionDeclaration(item) && item.body);
+  const overloads = declarations.every(item => ts.isFunctionDeclaration(item));
+  if (overloads && bodies.length === 1) return bodies[0];
+  return declarations.length === 1 ? declarations[0] : undefined;
+}
+
 // Exact parameter -> argument bindings of every invocation frame lexically enclosing a value.
 // Open call-site frames contribute none; frames nest lexically, so no parameter is overwritten.
 export function closureOf(env) {
@@ -75,12 +89,11 @@ export function createValueEvaluator(
     invocations: [],
   });
 
-  function fail(ctx, reason) {
-    if (!ctx.reasons.includes(reason)) ctx.reasons.push(reason);
-    return undefined;
-  }
+  // Live queries: escape is asked only when the node is not mutated.
   function unsafe(ctx, node) {
-    const reason = isMutated(node) ? 'mutated' : isEscaped(node) ? 'escaped' : undefined;
+    let reason;
+    if (isMutated(node)) reason = 'mutated';
+    else if (isEscaped(node)) reason = 'escaped';
     if (reason) fail(ctx, `${reason}:${kindName(node)}`);
     return Boolean(reason);
   }
@@ -92,14 +105,7 @@ export function createValueEvaluator(
   function localDeclaration(ctx, node) {
     const declarations = model.symbol(node)?.declarations ?? [];
     if (!declarations.length) return fail(ctx, 'unresolved-symbol');
-    const bodies = declarations.filter(item => ts.isFunctionDeclaration(item) && item.body);
-    const overloads = declarations.every(item => ts.isFunctionDeclaration(item));
-    const decl =
-      overloads && bodies.length === 1
-        ? bodies[0]
-        : declarations.length === 1
-          ? declarations[0]
-          : undefined;
+    const decl = selectDeclaration(declarations);
     if (!decl) return fail(ctx, 'ambiguous-declaration');
     const file = decl.getSourceFile();
     if (file !== node.getSourceFile() || !parsedFiles.has(file))

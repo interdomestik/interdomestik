@@ -39,16 +39,11 @@ export function handleArguments(provenance, args, opaque, origin, incomplete) {
   }
 }
 
-export function inspectCallChannels(
-  model,
-  provenance,
-  callee,
-  args,
-  invocation,
-  origin,
-  incomplete,
-  call
-) {
+// site = { callee, args, invocation, call }: the callee expression, the arguments it receives,
+// the invocation consulted for environment string methods and the actual call node. Each caller
+// supplies its own values; nothing is recomputed or reinterpreted here.
+export function inspectCallChannels(model, provenance, site, origin, incomplete) {
+  const { callee, args, invocation, call } = site;
   const coverage =
     call && ts.isCallExpression(call)
       ? dispatchCoverage(provenance, call, provenance.context)

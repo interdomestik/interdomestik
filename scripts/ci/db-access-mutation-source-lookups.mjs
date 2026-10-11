@@ -1,6 +1,13 @@
 import ts from 'typescript';
 import { runtimeFingerprint, unwrap } from './db-access-source.mjs';
 
+// Reads once per node into a caller-owned store. The answer is written only after read returns,
+// so an exception is never cached; undefined and false answers are cached.
+function cached(store, node, read) {
+  if (!store.has(node)) store.set(node, read(node));
+  return store.get(node);
+}
+
 // Per-collection lookups over one fixed source model. Candidate and approved snapshots do not
 // change during a collection, so every answer below is a pure function of AST node identity (never
 // source text or file name). Answers, including undefined and false, are written only after the
@@ -15,10 +22,6 @@ export function createSourceLookups(model) {
   const roots = new WeakMap();
   const changedNodes = new WeakMap();
   const changedByFile = new Map();
-  function cached(store, node, read) {
-    if (!store.has(node)) store.set(node, read(node));
-    return store.get(node);
-  }
   const sourceSymbol = node => cached(symbols, node, value => model.symbol(value));
   const sourceFile = node => cached(files, node, value => model.fileOf(value));
   const sourceDeclaration = node => cached(declarations, node, value => model.declaration(value));

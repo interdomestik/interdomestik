@@ -1,6 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { digest, SOURCE, ROOT } from './db-access-trust.mjs';
+import { createLexicalLookups } from './db-access-source-symbol.mjs';
 
 const EXTENSIONS = ['', '.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '/index.ts', '/index.tsx'];
 const SUBSTITUTIONS = new Map([
@@ -141,27 +142,8 @@ export function createSourceModel(sources, approvedSources = sources) {
   );
   const checker = program.getTypeChecker();
   const fileOf = node => normalize(node.getSourceFile().fileName);
-  function symbol(node) {
-    let result = ts.isShorthandPropertyAssignment(node.parent)
-      ? checker.getShorthandAssignmentValueSymbol(node.parent)
-      : checker.getSymbolAtLocation(node);
-    const seen = new Set();
-    while (result && result.flags & ts.SymbolFlags.Alias) {
-      if (seen.has(result)) return undefined;
-      seen.add(result);
-      result = checker.getAliasedSymbol(result);
-    }
-    return result;
-  }
-  function declaration(node) {
-    if (isFunction(node)) return node;
-    const resolved = symbol(node);
-    const decl = resolved?.valueDeclaration ?? resolved?.declarations?.[0];
-    if (decl && ts.isVariableDeclaration(decl)) {
-      return decl.initializer && isFunction(decl.initializer) ? decl.initializer : decl;
-    }
-    return decl;
-  }
+  // One private lexical symbol memo per model instance; declaration() reuses it but stays uncached.
+  const { symbol, declaration } = createLexicalLookups(checker, isFunction);
   function exportDeclaration(file, name) {
     const sf = parsed.get(file);
     const module = sf && checker.getSymbolAtLocation(sf);

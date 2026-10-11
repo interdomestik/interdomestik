@@ -41,7 +41,10 @@ const IMPORTS = [
 ].join(' ');
 const ORIGIN = [
   "import {eq} from 'drizzle-orm';",
-  ...Array.from({ length: 72 }, (_, i) => `const a${i} = ${i ? `a${i - 1}` : 'eq'};`),
+  ...Array.from({ length: 72 }, (_, i) => {
+    const previous = i ? `a${i - 1}` : 'eq';
+    return `const a${i} = ${previous};`;
+  }),
   'const cycleA=cycleB;const cycleB=cycleA;const missing=42;',
 ].join('\n');
 
@@ -70,7 +73,7 @@ const encode = text => `data:text/javascript;base64,${Buffer.from(text).toString
 const link = text =>
   text
     .replaceAll(`from 'typescript'`, () => `from '${typescriptUrl}'`)
-    .replace(/from '[.][/]([^']+)'/gu, (_, file) => `from '${new URL(file, moduleRoot).href}'`);
+    .replace(/from '\.\/([^']+)'/gu, (_, file) => `from '${new URL(file, moduleRoot).href}'`);
 
 // Counters plus an in-memory hook. The candidate exposes its helper aliases; the reference falls
 // back to the model methods those helpers replace.

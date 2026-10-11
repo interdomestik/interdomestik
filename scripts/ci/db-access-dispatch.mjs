@@ -4,6 +4,7 @@ import { createLocalInvocations } from './db-access-invocations.mjs';
 import { createInvocationEffects } from './db-access-invocation-effects.mjs';
 import { createReferences } from './db-access-references.mjs';
 import { isFunction, ownerOf } from './db-access-source.mjs';
+import { compareCodeUnits } from './db-access-order.mjs';
 import {
   checkDispatchLimits,
   createDependencyMemo,
@@ -17,6 +18,27 @@ import {
 // semantic expansion, charged against maxEntries per round; exhaustion fails closed for every
 // call. Within one build, a (call, frame token) resolution and its unknown-call escape effects are
 // reused only while every escape answer they observed is unchanged (db-access-dispatch-budget.mjs).
+
+// Canonical, query-boundary, mutation and reference answers are build-invariant. Stores are
+// build-local; a value is written only after compute returns, so an exception is never cached.
+function once(store, call, compute) {
+  if (!store.has(call)) store.set(call, Boolean(compute()));
+  return store.get(call);
+}
+
+// Canonical round signature. compareCodeUnits is the default sort order spelled explicitly; the
+// context entries are [location, keys] tuples compared by their whole comma-joined string.
+function roundSignature(next, openFns, escaped, reasons, loc) {
+  return JSON.stringify({
+    contexts: [...next]
+      .map(([fn, values]) => [loc(fn), [...values.keys()].sort(compareCodeUnits)])
+      .sort(compareCodeUnits),
+    openFns: [...openFns].map(loc).sort(compareCodeUnits),
+    escaped: [...escaped].map(loc).sort(compareCodeUnits),
+    reasons: [...reasons].sort(compareCodeUnits),
+  });
+}
+
 export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 20000 } = {}) {
   checkDispatchLimits({ maxRounds, maxEntries });
   const callNodes = [];
@@ -32,6 +54,8 @@ export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 200
     if (current) return current;
     if (busy) throw new Error('recursive dispatch construction');
     busy = true;
+    // contexts, previous, final, reasons and cache are reassigned per round; every helper below
+    // reads the current binding when it runs.
     let contexts = new Map(),
       previous,
       final,
@@ -50,12 +74,6 @@ export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 200
       contextKeys = new WeakMap(),
       canonicalCalls = new Map(),
       boundaryCalls = new Map();
-    // Canonical, query-boundary, mutation and reference answers are build-invariant. reset()
-    // discards every memo before mutation settlement changes them.
-    function once(store, call, compute) {
-      if (!store.has(call)) store.set(call, Boolean(compute()));
-      return store.get(call);
-    }
     const isCanonical = call => once(canonicalCalls, call, () => legacy.canonical(call.expression));
     const isBoundary = call =>
       once(boundaryCalls, call, () => legacy.queryBoundary?.(call.expression));
@@ -128,79 +146,70 @@ export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 200
       for (const fn of entry.effects.value.open) openFns.add(fn);
       for (const fn of entry.effects.value.escapes) escaped.add(fn);
     }
-    for (let round = 0; round < maxRounds; round++) {
-      const byCall = new Map(),
-        next = new Map(),
-        callers = new Map(),
-        generation = new Map();
-      const budget = createDispatchBudget(maxEntries);
-      reasons = new Set();
-      function add(target) {
-        budget.spend();
-        const fn = target.functionNode;
-        const ancestry = ancestors.get(target.callerContext) ?? [];
-        const identity = `${loc(fn)}:${contextKey(target.definingContext)}`;
-        if (ancestry.includes(identity)) return false;
-        ancestors.set(target.context, [...ancestry, identity]);
-        const key = JSON.stringify([loc(fn), loc(target.callNode), contextKey(target.context)]);
-        const bucket = next.get(fn) ?? new Map();
-        if (!bucket.has(key)) bucket.set(key, target);
-        next.set(fn, bucket);
-        const calls = callers.get(fn) ?? [];
-        calls.push(target);
-        callers.set(fn, calls);
-        return true;
-      }
-      for (const call of callNodes) {
-        const owner = ownerOf(call);
-        const known = contexts.get(owner);
-        const frames =
-          known?.size && !escaped.has(owner)
-            ? [...known.values()].map(item => item.context)
-            : [undefined];
-        if (openFns.has(owner) && !frames.includes(undefined)) frames.push(undefined);
-        const canonical = isCanonical(call);
-        const variants = [];
-        for (const [index, context] of frames.entries()) {
-          // The first frame is source traversal; every further frame is charged expansion.
-          if (index > 0 && !budget.spend()) break;
-          // Canonical callbacks are a separately authenticated boundary, not invocations of
-          // the frozen helper implementation with its synthetic internal action({}) value.
-          const entry = canonical ? undefined : resolveEntry(call, context, generation);
-          const raw = entry
-            ? entry.resolution.value
-            : { functions: [], targets: [], unknown: true, reasons: ['canonical-boundary'] };
-          const result = { ...raw, targets: [...raw.targets], reasons: [...raw.reasons] };
-          for (const target of result.targets) {
-            const intermediates = target.resolutionInvocations.map(add);
-            if (!add(target) || intermediates.includes(false)) {
-              result.unknown = true;
-              result.reasons = [...result.reasons, 'recursive-dispatch-context'];
-            }
-          }
-          if (result.unknown && entry) release(entry, call, context);
-          variants.push({ ...result, callNode: call, context });
-          if (budget.exhausted) break;
-        }
-        byCall.set(call, variants);
-        if (budget.exhausted) {
-          reasons.add('dispatch-entry-bound');
-          break;
+    // Round-scoped state is explicit: round = { byCall, next, callers, generation, budget }.
+    // Ancestry is keyed by the defining frame; it is recorded before the bucket insert and the
+    // callers push.
+    function addTarget(round, target) {
+      round.budget.spend();
+      const fn = target.functionNode;
+      const ancestry = ancestors.get(target.callerContext) ?? [];
+      const identity = `${loc(fn)}:${contextKey(target.definingContext)}`;
+      if (ancestry.includes(identity)) return false;
+      ancestors.set(target.context, [...ancestry, identity]);
+      const key = JSON.stringify([loc(fn), loc(target.callNode), contextKey(target.context)]);
+      const bucket = round.next.get(fn) ?? new Map();
+      if (!bucket.has(key)) bucket.set(key, target);
+      round.next.set(fn, bucket);
+      const calls = round.callers.get(fn) ?? [];
+      calls.push(target);
+      round.callers.set(fn, calls);
+      return true;
+    }
+    // One frame of one call. Intermediaries register before their target.
+    function frameVariant(round, call, context, canonical) {
+      // Canonical callbacks are a separately authenticated boundary, not invocations of
+      // the frozen helper implementation with its synthetic internal action({}) value.
+      const entry = canonical ? undefined : resolveEntry(call, context, round.generation);
+      const raw = entry
+        ? entry.resolution.value
+        : { functions: [], targets: [], unknown: true, reasons: ['canonical-boundary'] };
+      const result = { ...raw, targets: [...raw.targets], reasons: [...raw.reasons] };
+      for (const target of result.targets) {
+        const intermediates = target.resolutionInvocations.map(item => addTarget(round, item));
+        if (!addTarget(round, target) || intermediates.includes(false)) {
+          result.unknown = true;
+          result.reasons = [...result.reasons, 'recursive-dispatch-context'];
         }
       }
-      cache = generation;
-      const signature = JSON.stringify({
-        contexts: [...next].map(([fn, values]) => [loc(fn), [...values.keys()].sort()]).sort(),
-        openFns: [...openFns].map(loc).sort(),
-        escaped: [...escaped].map(loc).sort(),
-        reasons: [...reasons].sort(),
-      });
-      final = {
+      if (result.unknown && entry) release(entry, call, context);
+      return { ...result, callNode: call, context };
+    }
+    // Every frame of one call against the current contexts and live escape/open state.
+    function expandCall(round, call) {
+      const owner = ownerOf(call);
+      const known = contexts.get(owner);
+      const frames =
+        known?.size && !escaped.has(owner)
+          ? [...known.values()].map(item => item.context)
+          : [undefined];
+      if (openFns.has(owner) && !frames.includes(undefined)) frames.push(undefined);
+      const canonical = isCanonical(call);
+      const variants = [];
+      for (const [index, context] of frames.entries()) {
+        // The first frame is source traversal; every further frame is charged expansion.
+        if (index > 0 && !round.budget.spend()) break;
+        variants.push(frameVariant(round, call, context, canonical));
+        if (round.budget.exhausted) break;
+      }
+      return variants;
+    }
+    function roundState(round, index, signature) {
+      return {
         resolver,
         effects,
-        byCall,
-        contexts: next,
-        callers,
+        byCall: round.byCall,
+        contexts: round.next,
+        callers: round.callers,
         escaped,
         openFns,
         reasons,
@@ -208,13 +217,33 @@ export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 200
         budget: Object.freeze({
           sourceCalls: callNodes.length,
           maxEntries,
-          expansion: budget.spent,
-          rounds: round + 1,
+          expansion: round.budget.spent,
+          rounds: index + 1,
         }),
       };
+    }
+    for (let index = 0; index < maxRounds; index++) {
+      const round = {
+        byCall: new Map(),
+        next: new Map(),
+        callers: new Map(),
+        generation: new Map(),
+        budget: createDispatchBudget(maxEntries),
+      };
+      reasons = new Set();
+      for (const call of callNodes) {
+        round.byCall.set(call, expandCall(round, call));
+        if (round.budget.exhausted) {
+          reasons.add('dispatch-entry-bound');
+          break;
+        }
+      }
+      cache = round.generation;
+      const signature = roundSignature(round.next, openFns, escaped, reasons, loc);
+      final = roundState(round, index, signature);
       if (final.settled || reasons.size) break;
       previous = signature;
-      contexts = next;
+      contexts = round.next;
     }
     if (!final.settled && !final.reasons.size) final.reasons.add('dispatch-round-bound');
     busy = false;

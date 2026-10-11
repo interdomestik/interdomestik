@@ -2,7 +2,7 @@ import ts from 'typescript';
 import { inspectGraphCall } from './db-access-graph-calls.mjs';
 import { handleArguments, inspectTagChannels } from './db-access-channels.mjs';
 import { BUILTIN_CONSTRUCTORS, createReferences, frameworkEntry } from './db-access-references.mjs';
-import { isFunction, unwrap } from './db-access-source.mjs';
+import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
@@ -26,32 +26,20 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
   const localImport = references.localImport;
   const steps = new Map();
   const initialized = new Map();
-  function inspect(
-    owner,
-    origin,
-    stack = new Map(),
-    depth = 0,
-    invocation,
-    context,
-    definingContext
-  ) {
-    if (isFunction(owner) && !context && provenance.dispatch) {
-      const state = provenance.dispatch.state();
-      const callers = provenance.dispatch.contextsFor(owner);
-      if (callers.length && !state.escaped.has(owner) && !state.openFns.has(owner)) {
-        for (const caller of callers)
-          inspect(
-            owner,
-            origin,
-            stack,
-            depth,
-            caller.callNode,
-            caller.context,
-            caller.definingContext
-          );
-        return;
-      }
-    }
+  // An unframed function with actual dispatch callers is inspected once per caller frame unless
+  // it escaped or is also opened directly. Returns true when it fanned out.
+  function inspectDispatchContexts(owner, origin, stack, depth, context) {
+    if (!isFunction(owner) || context || !provenance.dispatch) return false;
+    const state = provenance.dispatch.state();
+    const callers = provenance.dispatch.contextsFor(owner);
+    if (!callers.length || state.escaped.has(owner) || state.openFns.has(owner)) return false;
+    for (const caller of callers)
+      inspect(owner, origin, stack, depth, caller.callNode, caller.context, caller.definingContext);
+    return true;
+  }
+  // Every caller passes stack and depth; each outer root starts with a fresh Map and depth 0.
+  function inspect(owner, origin, stack, depth, invocation, context, definingContext) {
+    if (inspectDispatchContexts(owner, origin, stack, depth, context)) return;
     const frame = definingContext ?? context;
     if (stack.get(owner)?.has(frame)) {
       incomplete.push({ file: origin, reason: 'recursive executable edge' });
@@ -101,6 +89,34 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
           depth + 1
         );
       }
+    }
+    // A component tag is one executable edge, resolved and inspected exactly once here. The
+    // generic value visit of the same tag identity would inspect it again, so this handler also
+    // keeps that visit's unknown-reference diagnostic before skipping only the tag identity.
+    // Props, spreads, children and expressions are still visited with the current context.
+    // A found function never cancels an unknown result. A closing tag invokes nothing.
+    function visitJsx(node) {
+      if (ts.isJsxClosingElement(node)) return true;
+      if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) return false;
+      const tag = node.tagName;
+      if (!ts.isPropertyAccessExpression(tag) && !/^[A-Z]/u.test(tag.getText())) return false;
+      const referenced = references.resolve(tag);
+      if (referenced.functions.length)
+        for (const fn of referenced.functions) inspect(fn, origin, stack, depth + 1);
+      else if (localImport(tag))
+        incomplete.push({ file: origin, reason: `unresolved JSX edge ${tag.getText()}` });
+      if (!ts.isIdentifier(tag) && !ts.isPropertyAccessExpression(tag)) return false;
+      if (
+        referenced.unknown &&
+        references.valuePosition(tag) &&
+        !scoped.canonical(tag) &&
+        (isFunction(owner) || inventory.changed.has(model.fileOf(owner)))
+      )
+        incomplete.push({ file: origin, reason: 'mutated or unsupported executable reference' });
+      ts.forEachChild(node, child => {
+        if (child !== tag) visit(child);
+      });
+      return true;
     }
     function visit(node) {
       if (node !== owner && isFunction(node)) return; // Traverse only the symbol actually invoked.
@@ -190,17 +206,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
         if (callback.unknown) incomplete.push({ file: origin, reason: 'unsupported JSX callback' });
         for (const fn of callback.functions) inspect(fn, origin, stack, depth + 1);
       }
-      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-        if (ts.isPropertyAccessExpression(node.tagName) || /^[A-Z]/u.test(node.tagName.getText())) {
-          const called = targets(node.tagName);
-          if (called.length) for (const fn of called) inspect(fn, origin, stack, depth + 1);
-          else if (localImport(node.tagName))
-            incomplete.push({
-              file: origin,
-              reason: `unresolved JSX edge ${node.tagName.getText()}`,
-            });
-        }
-      }
+      if (visitJsx(node)) return;
       if (
         ts.isElementAccessExpression(node) &&
         (ts.isCallExpression(node.parent) || ts.isJsxOpeningElement(node.parent))
@@ -218,7 +224,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       incomplete.push({ file, reason: 'parse diagnostics in changed source' });
       continue;
     }
-    inspect(sf, file);
+    inspect(sf, file, new Map(), 0);
     if (
       frameworkEntry(file) ||
       sf.statements.some(
@@ -231,11 +237,11 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       for (const exported of model.exportedDeclarations(file)) {
         const resolved = references.resolve(exported);
         if (resolved.unknown) incomplete.push({ file, reason: 'unsupported framework export' });
-        for (const fn of resolved.functions) inspect(fn, file);
+        for (const fn of resolved.functions) inspect(fn, file, new Map(), 0);
       }
     }
     model.walk(sf, node => {
-      if (isFunction(node)) inspect(node, file);
+      if (isFunction(node)) inspect(node, file, new Map(), 0);
     });
   }
   return { failures, incomplete };

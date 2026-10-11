@@ -14,6 +14,11 @@ export function callForExpression(raw) {
     ? node.parent
     : undefined;
 }
+// Fail closed: anything neither canonical nor fully source-resolved stays unknown-ambient.
+function alternativeKind(canonical, result) {
+  if (canonical) return 'canonical-tx';
+  return !result.unknown && result.targets.length ? 'source-local' : 'unknown-ambient';
+}
 // Each actual alternative must be covered independently. No union becomes tenant-context merely
 // because one caller has a transaction; local bodies remain executable graph work.
 export function dispatchCoverage(provenance, call, context) {
@@ -21,12 +26,7 @@ export function dispatchCoverage(provenance, call, context) {
   const alternatives = provenance.dispatch.variants(call, context).map(result => {
     const scoped = provenance.forContext ? provenance.forContext(result.context) : provenance;
     const canonical = canonicalQueryChain(call.expression, scoped);
-    const kind = canonical
-      ? 'canonical-tx'
-      : !result.unknown && result.targets.length
-        ? 'source-local'
-        : 'unknown-ambient';
-    return { ...result, kind };
+    return { ...result, kind: alternativeKind(canonical, result) };
   });
   return {
     covered: alternatives.length > 0 && alternatives.every(item => item.kind !== 'unknown-ambient'),

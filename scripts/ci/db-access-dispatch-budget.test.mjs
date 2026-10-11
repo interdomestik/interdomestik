@@ -194,22 +194,27 @@ test('rebuild after reset reproduces identical context identities', () => {
 
 const LEGACY_CALLS = 12000;
 const NEW_CALLS = 8600;
+const SOURCE_CALL = 'String(1);';
 const database = `import {db,withTenantContext} from '@interdomestik/database';`;
 // Keep the same >20k source-call proof across ordinary sized modules. A single giant function
 // instead exercises the separately retained graph traversal pathology, not the dispatch budget.
+// sourceCalls counts the String(1) invocations actually written, not the module entry calls.
 function writeBulkModules(root, prefix, count) {
   const imports = [],
     calls = [];
+  let sourceCalls = 0;
   for (let index = 0, remaining = count; remaining > 0; index++) {
     const size = Math.min(100, remaining);
     const name = `${prefix}${index}`;
     const file = `${prefix}-${index}`;
-    writeFixture(root, `apps/web/src/${file}.ts`, bulk(name, size));
+    const text = bulk(name, size);
+    writeFixture(root, `apps/web/src/${file}.ts`, text);
+    sourceCalls += text.split(SOURCE_CALL).length - 1;
     imports.push(`import {${name}} from '../${file}';`);
     calls.push(`${name}();`);
     remaining -= size;
   }
-  return { imports, calls };
+  return { imports, calls, sourceCalls };
 }
 
 for (const [label, example, expected] of [
@@ -226,11 +231,14 @@ for (const [label, example, expected] of [
   ],
 ])
   test(`authenticated CLI beyond the former global bound: ${label}`, () => {
-    assert.ok(LEGACY_CALLS + NEW_CALLS > FORMER_GLOBAL_BOUND);
     const root = createTempRepo();
     const legacy = writeBulkModules(root, 'bulkLegacy', LEGACY_CALLS);
     sealFixture(root);
     const added = writeBulkModules(root, 'bulkNew', NEW_CALLS);
+    // Derived from the written fixtures: the source-call total really exceeds the former bound.
+    assert.equal(legacy.sourceCalls, LEGACY_CALLS);
+    assert.equal(added.sourceCalls, NEW_CALLS);
+    assert.ok(legacy.sourceCalls + added.sourceCalls > FORMER_GLOBAL_BOUND);
     writeFixture(
       root,
       'apps/web/src/app/page.tsx',

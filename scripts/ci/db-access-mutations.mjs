@@ -3,6 +3,7 @@ import { externalValue } from './db-access-external.mjs';
 import { dispatchCoverage } from './db-access-coverage.mjs';
 import { canonicalQueryChain } from './db-access-inventory.mjs';
 import { createSourceLookups } from './db-access-mutation-source-lookups.mjs';
+import { compareCodeUnits } from './db-access-order.mjs';
 import { isFunction, unwrap } from './db-access-source.mjs';
 
 function directReference(node) {
@@ -136,6 +137,25 @@ export function collectMutationEffects(model) {
       if (ts.isVariableDeclaration(node.parent) && node.parent.name === node) return;
       if (!directReference(node)) escapedFns.add(decl);
     });
+  // A mutated parameter invalidates the argument of every syntax caller first, then every
+  // resolved method/factory/closure caller of the current dispatch state, in their list order.
+  function propagateMutatedParameter(node, state) {
+    let mutated = false,
+      strict = false;
+    model.walk(node.name, part => {
+      if (isMutated(part)) mutated = true;
+      if (unsafeMutations.has(sourceSymbol(part))) strict = true;
+    });
+    if (!mutated) return;
+    for (const call of calls.get(node.parent) ?? [])
+      invalidate(call.arguments[node.parent.parameters.indexOf(node)], strict || changed(call));
+    for (const call of state?.callers.get(node.parent) ?? []) {
+      const argument = call.argumentBindings.get(node);
+      const origins = state.effects.origins(argument, call.callerContext);
+      for (const item of origins.values) invalidate(item.node, strict || changed(call.callNode));
+      invalidate(argument, strict || changed(call.callNode));
+    }
+  }
   function finish(provenance) {
     let previous;
     // Scheduling evidence is local to this invocation and never memoizes origin, resolver or
@@ -162,7 +182,7 @@ export function collectMutationEffects(model) {
         unsafeMutations.size,
         state?.escaped.size,
         [...(state?.callers ?? [])].map(([fn, list]) => [sourceFile(fn), fn.pos, list.length]),
-        [...analysisUnknown].sort(),
+        [...analysisUnknown].sort(compareCodeUnits),
       ]);
       if (signature === previous) return;
       previous = signature;
@@ -239,29 +259,8 @@ export function collectMutationEffects(model) {
         model.walk(sf, node => {
           if (ts.isVariableDeclaration(node) && node.initializer && isMutated(node.name))
             invalidate(node.initializer, unsafeMutations.has(sourceSymbol(node.name)));
-          if (ts.isParameter(node) && isFunction(node.parent)) {
-            let mutated = false,
-              strict = false;
-            model.walk(node.name, part => {
-              if (isMutated(part)) mutated = true;
-              if (unsafeMutations.has(sourceSymbol(part))) strict = true;
-            });
-            if (mutated) {
-              // Preserve syntax callers AND every resolved method/factory/closure caller.
-              for (const call of calls.get(node.parent) ?? [])
-                invalidate(
-                  call.arguments[node.parent.parameters.indexOf(node)],
-                  strict || changed(call)
-                );
-              for (const call of state?.callers.get(node.parent) ?? []) {
-                const argument = call.argumentBindings.get(node);
-                const origins = state.effects.origins(argument, call.callerContext);
-                for (const item of origins.values)
-                  invalidate(item.node, strict || changed(call.callNode));
-                invalidate(argument, strict || changed(call.callNode));
-              }
-            }
-          }
+          if (ts.isParameter(node) && isFunction(node.parent))
+            propagateMutatedParameter(node, state);
         });
       if (beforeMutations === `${mutations.size}:${unsafeMutations.size}`) return;
     }

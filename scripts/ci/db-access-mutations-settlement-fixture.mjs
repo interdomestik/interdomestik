@@ -90,7 +90,7 @@ const encode = text => `data:text/javascript;base64,${Buffer.from(text).toString
 const link = text =>
   text
     .replaceAll(`from 'typescript'`, () => `from '${typescriptUrl}'`)
-    .replace(/from '[.][/]([^']+)'/gu, (_, file) => `from '${new URL(file, moduleRoot).href}'`);
+    .replace(/from '\.\/([^']+)'/gu, (_, file) => `from '${new URL(file, moduleRoot).href}'`);
 const loaded = new Map();
 
 export function load(kind, transform = 'once') {
@@ -161,7 +161,9 @@ export function expectedSchedule(rounds) {
   });
 }
 
-export const sortedNames = values => [...values].map(symbol => ts.symbolName(symbol)).sort();
+// Symbol names are strings; this local comparator is the default code-unit order.
+export const sortedNames = values =>
+  [...values].map(symbol => ts.symbolName(symbol)).sort((a, b) => Number(a > b) - Number(a < b));
 
 // Ordered evidence: mutations, strictness, environment, unknowns, dispatch alternatives, callers,
 // contexts, argument/closure bindings and resolution intermediaries.
@@ -230,11 +232,11 @@ export const CASES = [
   ['reverse-strict-34-dispatch-bound', { [FILE]: chain(34, true) }],
   [
     'reverse-strict-40-settlement-bound',
-    { [FILE]: chain(40, true).replace(/f([0-9]+)[(](p[0-9]+|root)[)];/gu, 'f$1($2, 0);') },
+    { [FILE]: chain(40, true).replace(/f(\d+)\((p\d+|root)\);/gu, 'f$1($2, 0);') },
   ],
   [
     'late-mutation-after-stable-opaque',
-    { [FILE]: chain(6, false).replaceAll(/opaque[(]p[1-9][0-9]*[)]; /gu, '') },
+    { [FILE]: chain(6, false).replaceAll(/opaque\(p[1-9]\d*\); /gu, '') },
   ],
   [
     'alias-mutation-growth',

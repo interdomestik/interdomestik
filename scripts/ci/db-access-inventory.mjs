@@ -16,6 +16,14 @@ export const DIRECT_DB_METHODS = [
 import { digest } from './db-access-trust.mjs';
 import { ownerOf, runtimeFingerprint, unwrap } from './db-access-source.mjs';
 
+const COVERED_TEXT =
+  'covered alternatives: canonical transaction or source-resolved callable; every local body remains inspected';
+function postureReason(covered, receiver) {
+  if (covered && receiver !== 'tenant-context') return COVERED_TEXT;
+  if (receiver === 'tenant-context') return 'tenant-context: proven-symbol-invocations';
+  return `unclassified: ${receiver}`;
+}
+
 export function collectInventory(model, provenance, trustedSources) {
   const entries = [];
   const changed = new Set();
@@ -122,12 +130,7 @@ export function collectInventory(model, provenance, trustedSources) {
         callee: node.getText(),
         method,
         tenantPosture,
-        tenantPostureReason:
-          coverage.covered && receiver !== 'tenant-context'
-            ? 'covered alternatives: canonical transaction or source-resolved callable; every local body remains inspected'
-            : receiver === 'tenant-context'
-              ? 'tenant-context: proven-symbol-invocations'
-              : `unclassified: ${receiver}`,
+        tenantPostureReason: postureReason(coverage.covered, receiver),
         isDirectDbAlias: receiver !== 'tenant-context',
         claimsUpdateTarget,
         ...(handleReason ? { reason: handleReason } : {}),

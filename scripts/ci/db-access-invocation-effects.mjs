@@ -4,6 +4,24 @@ import { ownReturns } from './db-access-invocation-shapes.mjs';
 
 // Ordered capture-plan marker for a this/super receiver reference inside a captured body.
 const RECEIVER_CAPTURE = Symbol('effect-receiver-capture');
+const LOGICAL_OPERATORS = [
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.AmpersandAmpersandToken,
+  ts.SyntaxKind.QuestionQuestionToken,
+];
+const LITERAL_KEYWORDS = [
+  ts.SyntaxKind.TrueKeyword,
+  ts.SyntaxKind.FalseKeyword,
+  ts.SyntaxKind.NullKeyword,
+];
+const isLogical = node =>
+  ts.isBinaryExpression(node) && LOGICAL_OPERATORS.includes(node.operatorToken.kind);
+const isLiteralLeaf = node =>
+  ts.isStringLiteral(node) ||
+  ts.isNumericLiteral(node) ||
+  ts.isBigIntLiteral(node) ||
+  ts.isNoSubstitutionTemplateLiteral(node) ||
+  LITERAL_KEYWORDS.includes(node.kind);
 
 export function walkOwned(root, visit) {
   function walk(node) {
@@ -87,53 +105,25 @@ export function createInvocationEffects(model, resolver, maxSteps = 512) {
         seen.get(node).delete(frame);
       }
     }
+    // Ordered syntax dispatch. The push order of values and unknown is observable evidence.
     function follow(node, frame) {
       if (ts.isConditionalExpression(node)) {
         visit(node.whenTrue, frame);
         visit(node.whenFalse, frame);
         return;
       }
-      if (
-        ts.isBinaryExpression(node) &&
-        [
-          ts.SyntaxKind.BarBarToken,
-          ts.SyntaxKind.AmpersandAmpersandToken,
-          ts.SyntaxKind.QuestionQuestionToken,
-        ].includes(node.operatorToken.kind)
-      ) {
+      if (isLogical(node)) {
         visit(node.left, frame);
         visit(node.right, frame);
         return;
       }
-      if (
-        ts.isStringLiteral(node) ||
-        ts.isNumericLiteral(node) ||
-        ts.isBigIntLiteral(node) ||
-        ts.isNoSubstitutionTemplateLiteral(node) ||
-        [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(
-          node.kind
-        )
-      )
-        return;
+      if (isLiteralLeaf(node)) return;
       if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
         visit(node.expression, frame);
         return;
       }
       if (ts.isObjectLiteralExpression(node)) {
-        for (const item of node.properties) {
-          if (item.name && ts.isComputedPropertyName(item.name)) {
-            unknown.push('effect-computed-property');
-            visit(item.name.expression, frame);
-          }
-          if (ts.isGetAccessorDeclaration(item) || ts.isSetAccessorDeclaration(item))
-            unknown.push('effect-accessor');
-          if (ts.isPropertyAssignment(item)) visit(item.initializer, frame);
-          else if (ts.isShorthandPropertyAssignment(item)) visit(item.name, frame);
-          else if (ts.isSpreadAssignment(item)) {
-            unknown.push('effect-spread');
-            visit(item.expression, frame);
-          } else if (isFunction(item)) capture(item, frame);
-        }
+        followObjectLiteral(node, frame);
         return;
       }
       if (ts.isArrayLiteralExpression(node)) {
@@ -144,33 +134,61 @@ export function createInvocationEffects(model, resolver, maxSteps = 512) {
         capture(node, frame);
         return;
       }
+      followReference(node, frame);
+    }
+    function followObjectLiteral(node, frame) {
+      for (const item of node.properties) {
+        if (item.name && ts.isComputedPropertyName(item.name)) {
+          unknown.push('effect-computed-property');
+          visit(item.name.expression, frame);
+        }
+        if (ts.isGetAccessorDeclaration(item) || ts.isSetAccessorDeclaration(item))
+          unknown.push('effect-accessor');
+        if (ts.isPropertyAssignment(item)) visit(item.initializer, frame);
+        else if (ts.isShorthandPropertyAssignment(item)) visit(item.name, frame);
+        else if (ts.isSpreadAssignment(item)) {
+          unknown.push('effect-spread');
+          visit(item.expression, frame);
+        } else if (isFunction(item)) capture(item, frame);
+      }
+    }
+    function followReference(node, frame) {
       const decl = model.declaration(node);
-      if (decl && ts.isParameter(decl)) {
-        const binding = resolver.bindingsFor(frame)?.find(item => item.parameter === decl);
-        if (binding) visit(binding.argument, binding.callerContext);
-        else {
-          values.push({ node, context: frame });
-          unknown.push('unbound-effect-parameter');
-        }
-      } else if (decl && ts.isVariableDeclaration(decl) && decl.initializer) {
+      if (decl && ts.isParameter(decl)) followParameter(node, decl, frame);
+      else if (decl && ts.isVariableDeclaration(decl) && decl.initializer)
+        followVariable(node, decl, frame);
+      else if (ts.isIdentifier(node)) followIdentifier(node, decl, frame);
+      else if (ts.isCallExpression(node)) followCall(node, frame);
+      else unknown.push(`unsupported-effect:${ts.SyntaxKind[node.kind]}`);
+    }
+    function followParameter(node, decl, frame) {
+      const binding = resolver.bindingsFor(frame)?.find(item => item.parameter === decl);
+      if (binding) visit(binding.argument, binding.callerContext);
+      else {
         values.push({ node, context: frame });
-        if (!(decl.parent.flags & ts.NodeFlags.Const)) unknown.push('effect-mutable-alias');
-        visit(decl.initializer, frame);
-      } else if (ts.isIdentifier(node)) {
-        values.push({ node, context: frame });
-        if (decl && isFunction(decl)) visit(decl, frame);
-        else unknown.push('unresolved-effect-identifier');
-      } else if (ts.isCallExpression(node)) {
-        values.push({ node, context: frame });
-        const result = resolver.resolveCall(node, frame);
-        if (result.unknown) unknown.push('effect-call-result');
-        for (const target of result.targets) {
-          const body = target.functionNode.body;
-          if (ts.isBlock(body)) {
-            for (const statement of ownReturns(body)) visit(statement.expression, target.context);
-          } else visit(body, target.context);
-        }
-      } else unknown.push(`unsupported-effect:${ts.SyntaxKind[node.kind]}`);
+        unknown.push('unbound-effect-parameter');
+      }
+    }
+    function followVariable(node, decl, frame) {
+      values.push({ node, context: frame });
+      if ((decl.parent.flags & ts.NodeFlags.Const) === 0) unknown.push('effect-mutable-alias');
+      visit(decl.initializer, frame);
+    }
+    function followIdentifier(node, decl, frame) {
+      values.push({ node, context: frame });
+      if (decl && isFunction(decl)) visit(decl, frame);
+      else unknown.push('unresolved-effect-identifier');
+    }
+    function followCall(node, frame) {
+      values.push({ node, context: frame });
+      const result = resolver.resolveCall(node, frame);
+      if (result.unknown) unknown.push('effect-call-result');
+      for (const target of result.targets) {
+        const body = target.functionNode.body;
+        if (ts.isBlock(body)) {
+          for (const statement of ownReturns(body)) visit(statement.expression, target.context);
+        } else visit(body, target.context);
+      }
     }
     function perform(event, frame) {
       if (event === RECEIVER_CAPTURE) unknown.push('effect-receiver-capture');
