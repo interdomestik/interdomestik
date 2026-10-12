@@ -4,7 +4,17 @@ import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 const TEST_SOURCE =
   /(?:(?:^|\/)(?:__tests__|__mocks__|tests?|e2e)\/|\.(?:test|spec|e2e)\.[cm]?[jt]sx?$)/u;
 const UNKNOWN_LOADERS = new Set(['eval', 'Function', 'require', 'createRequire']);
-const LOADER_HOSTS = new Set(['global', 'globalThis', 'module', 'process']);
+const LOADER_HOSTS = new Set([
+  'global',
+  'globalThis',
+  'module',
+  'process',
+  'window',
+  'self',
+  'frames',
+  'parent',
+  'top',
+]);
 const compareCodeUnits = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
 
 function staticPropertyName(node) {

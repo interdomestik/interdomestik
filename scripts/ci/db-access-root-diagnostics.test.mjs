@@ -168,6 +168,11 @@ test('computed and reflected loader spellings stay unproven without verdict drif
     'const target="../../diagnostic-leaf.test";export default function Page(){const key="req"+"uire";return globalThis[key](target);}',
     'const target="../../diagnostic-leaf.test";export default function Page(){const suffix="uire";return globalThis[`req${suffix}`](target);}',
     'const target="../../diagnostic-leaf.test";export default function Page(){const key="req"+"uire";const load=Reflect.get(globalThis,key);return load(target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return window[key](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return self[key](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return frames[key](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return parent[key](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return top[key](target);}',
   ]) {
     const { result, report } = diagnosticFixture({ productionSource });
     assert.equal(result.status, 0, JSON.stringify(report));
