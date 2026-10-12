@@ -2,9 +2,10 @@ import ts from 'typescript';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
 const TEST_SOURCE =
-  /(^|\/)(?:__tests__|__mocks__|tests?|e2e)\/|\.(?:test|spec|e2e)\.[cm]?[jt]sx?$/u;
+  /(?:(?:^|\/)(?:__tests__|__mocks__|tests?|e2e)\/|\.(?:test|spec|e2e)\.[cm]?[jt]sx?$)/u;
 const UNKNOWN_LOADERS = new Set(['eval', 'Function', 'require', 'createRequire']);
 const LOADER_HOSTS = new Set(['global', 'globalThis', 'module', 'process']);
+const compareCodeUnits = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
 
 function staticPropertyName(node) {
   return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
@@ -190,13 +191,13 @@ export function analyzeModuleTargets(model) {
 function productionReachability(moduleTargets) {
   const production = [...moduleTargets.dependencies.keys()]
     .filter(file => !TEST_SOURCE.test(file))
-    .sort();
+    .sort(compareCodeUnits);
   const reached = new Set(production);
   const predecessor = new Map();
   const queue = [...production];
   for (let index = 0; index < queue.length; index += 1) {
     const file = queue[index];
-    for (const target of [...(moduleTargets.dependencies.get(file) ?? [])].sort()) {
+    for (const target of [...(moduleTargets.dependencies.get(file) ?? [])].sort(compareCodeUnits)) {
       if (reached.has(target)) continue;
       reached.add(target);
       predecessor.set(target, file);
@@ -221,7 +222,7 @@ export function rootDiagnostics(moduleTargets, directChanges, firstInvalidatingD
   const productionUnknowns = moduleTargets.unknowns.filter(item => reached.has(item.file));
   const testConsumerRoots = [...firstInvalidatingDependency.keys()]
     .filter(file => !directChanges.has(file) && TEST_SOURCE.test(file))
-    .sort()
+    .sort(compareCodeUnits)
     .map(file => {
       if (reached.has(file)) {
         return {
