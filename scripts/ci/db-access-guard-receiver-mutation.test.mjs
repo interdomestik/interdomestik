@@ -79,9 +79,8 @@ export async function run(): Promise<unknown> {
     'setter transaction escape'
   );
   assert.ok(
-    report.failingNewEntries.some(entry =>
-      ['local.select', 'state.client.select'].includes(entry.callee)
-    ) || report.incomplete.some(entry => /local\.select|state\.client\.select/u.test(entry.reason)),
+    report.failingNewEntries.some(entry => entry.callee === 'local.select') ||
+      report.incomplete.some(entry => entry.reason.includes('local.select')),
     JSON.stringify(report)
   );
 });
@@ -97,10 +96,8 @@ export function run(): unknown { return local.execute(sql\`select 1\`); }`,
     'setter ambient DB escape'
   );
   assert.ok(
-    report.failingNewEntries.some(entry =>
-      ['local.execute', 'state.client.execute'].includes(entry.callee)
-    ) ||
-      report.incomplete.some(entry => /local\.execute|state\.client\.execute/u.test(entry.reason)),
+    report.failingNewEntries.some(entry => entry.callee === 'local.execute') ||
+      report.incomplete.some(entry => entry.reason.includes('local.execute')),
     JSON.stringify(report)
   );
 });

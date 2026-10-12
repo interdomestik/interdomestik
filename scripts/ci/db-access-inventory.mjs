@@ -72,13 +72,6 @@ export function collectInventory(model, provenance, trustedSources) {
       let call = node.parent;
       while (call && unwrap(call) === node) call = call.parent;
       const invoked = call && ts.isCallExpression(call) && unwrap(call.expression) === node;
-      const coverage =
-        property && invoked
-          ? dispatchCoverage(provenance, callForExpression(node))
-          : { covered: false, alternatives: [] };
-      const receiverKind = property
-        ? classifyReceiver(model, provenance, node.expression, coverage)
-        : undefined;
       const client = provenance.clientIdentity(property ? node.expression : node);
       const ambient = ['db', 'dbRls', 'dbAdmin'].includes(client);
       const method = property ? node.name.text : 'escape';
@@ -116,16 +109,18 @@ export function collectInventory(model, provenance, trustedSources) {
       if (escapedHandle) handleReason = 'tenant transaction handle escapes callback';
       else if (unsupportedHandle)
         handleReason = 'unsupported returned handle analysis bound, cycle or mutated value';
+      const canReportCoverage =
+        property && invoked && !ambient && !escapedHandle && !unsupportedHandle && !indirect;
+      const coverage = canReportCoverage
+        ? dispatchCoverage(provenance, callForExpression(node))
+        : { covered: false, alternatives: [] };
+      const receiverKind = canReportCoverage
+        ? classifyReceiver(model, provenance, node.expression, coverage)
+        : undefined;
       // Coverage records which bodies must be traversed. It is reportable only after independent
       // DB receiver proof and never upgrades an unknown/source-local receiver to safe.
       const effectiveCoverage =
-        !ambient &&
-        !escapedHandle &&
-        !unsupportedHandle &&
-        !indirect &&
-        receiverKind === PROVEN_DB_RECEIVER
-          ? coverage
-          : { covered: false, alternatives: [] };
+        receiverKind === PROVEN_DB_RECEIVER ? coverage : { covered: false, alternatives: [] };
       if (effectiveCoverage.covered && tenantPosture !== 'tenant-context')
         tenantPosture = 'covered-dispatch-alternatives';
       const owner = ownerOf(node);
