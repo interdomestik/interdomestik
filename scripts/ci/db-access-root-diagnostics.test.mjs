@@ -33,6 +33,18 @@ function onlyDiagnostic(report) {
   return report.rootDiagnostics.testConsumerRoots[0];
 }
 
+function assertUnprovenDynamicLoader(productionSource) {
+  const { result, report } = diagnosticFixture({ productionSource });
+  assert.equal(result.status, 0, JSON.stringify(report));
+  assert.equal(onlyDiagnostic(report).classification, 'unproven');
+  assert.ok(
+    report.rootDiagnostics.analysisUnknowns.some(
+      item => item.file === PAGE && item.code === 'unsupported-dynamic-loader'
+    )
+  );
+  return report;
+}
+
 test('unchanged test consumers without a proved production path remain unproven', () => {
   const { result, report } = diagnosticFixture({});
 
@@ -154,14 +166,7 @@ test('production-reachable unknowns in test helpers and camouflaged loaders stay
     'import target=require("../../diagnostic-leaf.test");export default function Page(){return target;}',
     'import {createRequire as make} from "node:module";const target="../../diagnostic-leaf.test";const load=make(import.meta.url);export default function Page(){return load(target);}',
   ]) {
-    const { result, report } = diagnosticFixture({ productionSource });
-    assert.equal(result.status, 0, JSON.stringify(report));
-    assert.equal(onlyDiagnostic(report).classification, 'unproven');
-    assert.ok(
-      report.rootDiagnostics.analysisUnknowns.some(
-        item => item.file === PAGE && item.code === 'unsupported-dynamic-loader'
-      )
-    );
+    assertUnprovenDynamicLoader(productionSource);
   }
 });
 
@@ -176,17 +181,10 @@ test('computed and reflected loader spellings stay unproven without verdict drif
     'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return parent[key](target);}',
     'const target="../../diagnostic-leaf.test";export default function Page(){const key="e"+"val";return top[key](target);}',
   ]) {
-    const { result, report } = diagnosticFixture({ productionSource });
-    assert.equal(result.status, 0, JSON.stringify(report));
+    const report = assertUnprovenDynamicLoader(productionSource);
     assert.equal(report.status, 'pass');
     assert.equal(report.failingNewCount, 0);
     assert.deepEqual(report.incomplete, []);
-    assert.equal(onlyDiagnostic(report).classification, 'unproven');
-    assert.ok(
-      report.rootDiagnostics.analysisUnknowns.some(
-        item => item.file === PAGE && item.code === 'unsupported-dynamic-loader'
-      )
-    );
   }
 });
 
