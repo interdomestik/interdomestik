@@ -106,6 +106,49 @@ test('new tenant predicates and directives provide no transaction exemption', ()
   }
 });
 
+test('report compacts repeated incomplete reasons by file without losing verdict or ambient failures', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/first.ts', [
+    'import {db} from "@interdomestik/database";',
+    'export function unsafe(){db.select(); return unknownOne();}',
+    'export function second(){return unknownOne();}',
+  ]);
+  writeFixture(root, 'apps/web/src/second.ts', 'export function third(){return unknownOne();}');
+  const result = runGuard(root);
+  const report = readReport(root);
+  assert.equal(result.status, 1);
+  assert.equal(report.status, 'incomplete');
+  assert.equal(report.incompleteRawCount, 5);
+  assert.deepEqual(report.incomplete, [
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unresolved local edge db.select',
+      occurrences: 1,
+    },
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unsupported received property executable edge db.select',
+      occurrences: 1,
+    },
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unknown executable edge unknownOne',
+      occurrences: 2,
+    },
+    {
+      file: 'apps/web/src/second.ts',
+      reason: 'unknown executable edge unknownOne',
+      occurrences: 1,
+    },
+  ]);
+  assert.equal(
+    report.incomplete.reduce((total, item) => total + item.occurrences, 0),
+    report.incompleteRawCount
+  );
+  assert.equal(report.failingNewCount, 1);
+  assert.equal(report.failingNewEntries[0].method, 'select');
+});
+
 test('candidate baseline cannot wash debt or new operations', () => {
   const root = createTempRepo();
   writeFixture(root, 'scripts/ci/db-access-baseline.json', '{"entries":[{"permission":"all"}]}');

@@ -19,6 +19,23 @@ const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
   Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('_')));
 
+function compactIncomplete(items) {
+  const firstByKey = new Map();
+  const compact = [];
+  for (const item of items) {
+    const key = JSON.stringify([item.file, item.reason]);
+    const prior = firstByKey.get(key);
+    if (prior) {
+      prior.occurrences += 1;
+    } else {
+      const first = { ...item, occurrences: 1 };
+      firstByKey.set(key, first);
+      compact.push(first);
+    }
+  }
+  return compact;
+}
+
 function invalidateConsumers(model, inventory) {
   let changed = true;
   const imports = new Map();
@@ -125,7 +142,8 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     failingNewCount: failingNewEntries.length,
     newEntries: newEntries.map(publicEntry),
     failingNewEntries,
-    incomplete: graph.incomplete,
+    incomplete: compactIncomplete(graph.incomplete),
+    incompleteRawCount: graph.incomplete.length,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
     limits: [
