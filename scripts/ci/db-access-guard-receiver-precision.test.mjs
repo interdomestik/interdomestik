@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { scan } from './db-access-guard-test-utils.mjs';
+import {
+  createTempRepo,
+  readReport,
+  runGuard,
+  scan,
+  writeFixture,
+} from './db-access-guard-test-utils.mjs';
 
 const DATABASE = '@interdomestik/database';
 
@@ -23,7 +29,7 @@ function assertFailClosed(source, label) {
   return report;
 }
 
-test('stable unshadowed URLSearchParams delete calls are proven non-DB receivers', () => {
+test('URLSearchParams delete receivers remain unknown without a sealed runtime prototype', () => {
   for (const [label, source] of [
     [
       'stable alias',
@@ -38,9 +44,12 @@ test('stable unshadowed URLSearchParams delete calls are proven non-DB receivers
       'export function clean(search){const first=new URLSearchParams(search);const second=first;second.delete("page");return second.toString();}',
     ],
   ]) {
-    const report = assertPass(source, label);
-    assert.equal(report.scannedCount, 0, label);
-    assert.equal(report.newCount, 0, label);
+    const report = assertFailClosed(source, label);
+    assert.ok(
+      report.failingNewEntries.some(entry => entry.method === 'delete') ||
+        report.incomplete.some(entry => entry.reason.includes('receiver')),
+      `${label}\n${JSON.stringify(report)}`
+    );
   }
 });
 
@@ -96,6 +105,65 @@ test('receiver proof does not trust names, annotations, shadows, reassignment or
     ],
   ];
   for (const [label, source] of cases) assertFailClosed(source, label);
+});
+
+test('receiver proof rejects prototype mutation reached through any URLSearchParams instance', () => {
+  const prefix = 'import {remove} from "external-library";';
+  const suffix = 'export function clean(){return new URLSearchParams().delete("page");}';
+  for (const [label, mutation] of [
+    ['direct __proto__ computed write', 'new URLSearchParams().__proto__["delete"]=remove;'],
+    [
+      'constructor prototype computed write',
+      'new URLSearchParams().constructor.prototype["delete"]=remove;',
+    ],
+    [
+      'aliased __proto__ computed write',
+      'const params=new URLSearchParams();params.__proto__["delete"]=remove;',
+    ],
+    [
+      'Object.getPrototypeOf alias write',
+      'const proto=Object.getPrototypeOf(new URLSearchParams());proto["delete"]=remove;',
+    ],
+    [
+      'Object.assign prototype write',
+      'Object.assign(Object.getPrototypeOf(new URLSearchParams()),{["delete"]:remove});',
+    ],
+    [
+      'computed global constructor destructuring',
+      'const {["URLSearchParams"]:ctor}=globalThis;ctor.prototype["delete"]=remove;',
+    ],
+  ])
+    assertFailClosed(`${prefix}${mutation}${suffix}`, label);
+});
+
+test('cross-source URLSearchParams poisoning cannot make delete a proven non-DB call', () => {
+  for (const [label, poison] of [
+    [
+      'prototype write in imported module',
+      'import {remove} from "external-library";URLSearchParams.prototype["delete"]=remove;',
+    ],
+    [
+      'constructor replacement in imported module',
+      'import {Client} from "external-library";URLSearchParams=Client;',
+    ],
+  ]) {
+    const root = createTempRepo();
+    writeFixture(root, 'apps/web/src/poison.ts', poison);
+    writeFixture(
+      root,
+      'apps/web/src/example.ts',
+      'import "./poison";export function clean(){return new URLSearchParams().delete("page");}'
+    );
+    const result = runGuard(root);
+    const report = readReport(root);
+    assert.equal(result.status, 1, `${label}\n${JSON.stringify(report)}`);
+    assert.notEqual(report.status, 'pass', label);
+    assert.ok(
+      report.failingNewEntries.some(entry => entry.method === 'delete') ||
+        report.incomplete.some(entry => entry.reason.includes('receiver')),
+      `${label}\n${JSON.stringify(report)}`
+    );
+  }
 });
 
 test('optional, computed and extracted delete capabilities remain unsupported', () => {
