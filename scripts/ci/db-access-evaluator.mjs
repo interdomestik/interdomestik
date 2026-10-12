@@ -38,6 +38,7 @@ function compactIncomplete(items) {
 
 function invalidateConsumers(model, inventory) {
   let changed = true;
+  const firstInvalidatingDependency = new Map();
   const imports = new Map();
   for (const [file, sf] of model.parsed) {
     const dependencies = new Set();
@@ -64,17 +65,52 @@ function invalidateConsumers(model, inventory) {
   while (changed) {
     changed = false;
     for (const [file, dependencies] of imports) {
-      if (
-        !inventory.changed.has(file) &&
-        [...dependencies].some(target => inventory.changed.has(target))
-      ) {
+      const witness = !inventory.changed.has(file)
+        ? [...dependencies].find(target => inventory.changed.has(target))
+        : undefined;
+      if (witness) {
         inventory.changed.add(file);
+        firstInvalidatingDependency.set(file, witness);
         changed = true;
       }
     }
   }
   for (const entry of inventory.entries)
     if (inventory.changed.has(entry.file)) entry.historicalDebt = false;
+  return firstInvalidatingDependency;
+}
+
+function mountEvidence(directChanges, firstInvalidatingDependency, graph, incomplete) {
+  const paths = new Set([...directChanges, ...firstInvalidatingDependency.keys()]);
+  for (const failure of graph.failures) paths.add(failure.mountedFrom);
+  const files = [...paths].sort();
+  const ids = new Map(files.map((file, id) => [file, id]));
+  const roots = files.map((file, id) => {
+    const dependency = firstInvalidatingDependency.get(file);
+    return {
+      id,
+      file,
+      changeKind: directChanges.has(file) ? 'runtime-source' : 'runtime-consumer',
+      ...(dependency ? { firstInvalidatingDependencyId: ids.get(dependency) } : {}),
+    };
+  });
+  const operations = new Map();
+  for (const failure of graph.failures) {
+    const rootsForOperation = operations.get(failure.identity) ?? new Set();
+    rootsForOperation.add(ids.get(failure.mountedFrom));
+    operations.set(failure.identity, rootsForOperation);
+  }
+  return {
+    version: 1,
+    analysisIncomplete: incomplete,
+    roots,
+    operations: [...operations]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([identity, observedRootIds]) => ({
+        identity,
+        observedRootIds: [...observedRootIds].sort((left, right) => left - right),
+      })),
+  };
 }
 
 // Test harness may supply a real pinned fixture epoch; no CLI option exposes it.
@@ -97,7 +133,8 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const model = createSourceModel(sources, trusted);
   const provenance = createProvenance(model);
   const inventory = collectInventory(model, provenance, trusted);
-  invalidateConsumers(model, inventory);
+  const directChanges = new Set(inventory.changed);
+  const firstInvalidatingDependency = invalidateConsumers(model, inventory);
   const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical);
   const newEntries = inventory.entries.filter(entry => !entry.historicalDebt);
   // A transaction proves connection context, not equivalent owner/role/admission controls.
@@ -114,6 +151,14 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     );
   }
   const changedScopedControls = newEntries.filter(entry => priorScoped.has(entry.file));
+  // A single operation may be reached from several changed roots. Keep every witness in the
+  // diagnostic report even though the verdict counts the operation identity only once.
+  const mountsByIdentity = new Map();
+  for (const entry of graph.failures) {
+    const mounts = mountsByIdentity.get(entry.identity) ?? new Set();
+    mounts.add(entry.mountedFrom);
+    mountsByIdentity.set(entry.identity, mounts);
+  }
   const failures = new Map();
   for (const entry of [
     ...newEntries.filter(isUnsafe),
@@ -124,7 +169,12 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     })),
   ])
     failures.set(entry.identity, entry);
-  const failingNewEntries = [...failures.values()].map(publicEntry);
+  const failingNewEntries = [...failures.values()].map(entry => {
+    const publicFailure = publicEntry(entry);
+    const mounts = mountsByIdentity.get(entry.identity);
+    if (mounts) publicFailure.mountedFromAll = [...mounts];
+    return publicFailure;
+  });
   const counts = {};
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
@@ -142,6 +192,12 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     failingNewCount: failingNewEntries.length,
     newEntries: newEntries.map(publicEntry),
     failingNewEntries,
+    mountEvidence: mountEvidence(
+      directChanges,
+      firstInvalidatingDependency,
+      graph,
+      graph.incomplete.length > 0
+    ),
     incomplete: compactIncomplete(graph.incomplete),
     incompleteRawCount: graph.incomplete.length,
     reviewedBoundaryChanges,

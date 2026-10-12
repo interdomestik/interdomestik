@@ -149,6 +149,59 @@ test('report compacts repeated incomplete reasons by file without losing verdict
   assert.equal(report.failingNewEntries[0].method, 'select');
 });
 
+test('one historical operation retains every changed mount origin in the report', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/old.ts', ambient);
+  sealFixture(root);
+  for (const name of ['first', 'second'])
+    writeFixture(
+      root,
+      `apps/web/src/${name}.ts`,
+      'import { old } from "./old"; export function read() { return old(); }'
+    );
+  assert.equal(runGuard(root).status, 1);
+  const report = readReport(root);
+  const old = report.failingNewEntries.find(entry => entry.file === 'apps/web/src/old.ts');
+  assert.ok(old);
+  assert.deepEqual(old.mountedFromAll, ['apps/web/src/first.ts', 'apps/web/src/second.ts']);
+  const witness = report.mountEvidence.operations.find(item => item.identity === old.identity);
+  assert.ok(witness);
+  assert.deepEqual(
+    witness.observedRootIds.map(id => report.mountEvidence.roots[id].file),
+    old.mountedFromAll
+  );
+  assert.equal(report.mountEvidence.analysisIncomplete, report.status === 'incomplete');
+});
+
+test('mount evidence identifies direct source changes and transitive invalidated consumers', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/leaf.ts', ambient);
+  writeFixture(
+    root,
+    'apps/web/src/middle.ts',
+    'import { old } from "./leaf"; export function middle() { return old(); }'
+  );
+  writeFixture(
+    root,
+    'apps/web/src/page.ts',
+    'import { middle } from "./middle"; export function page() { return middle(); }'
+  );
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/leaf.ts', [...ambient, 'export const display = "new";']);
+  assert.equal(runGuard(root).status, 1);
+  const report = readReport(root);
+  const roots = new Map(report.mountEvidence.roots.map(item => [item.file, item]));
+  const leaf = roots.get('apps/web/src/leaf.ts');
+  const middle = roots.get('apps/web/src/middle.ts');
+  const page = roots.get('apps/web/src/page.ts');
+  assert.equal(leaf.changeKind, 'runtime-source');
+  assert.equal(middle.changeKind, 'runtime-consumer');
+  assert.equal(page.changeKind, 'runtime-consumer');
+  assert.equal(middle.firstInvalidatingDependencyId, leaf.id);
+  assert.equal(page.firstInvalidatingDependencyId, middle.id);
+  assert.ok(report.failingNewCount > 0);
+});
+
 test('candidate baseline cannot wash debt or new operations', () => {
   const root = createTempRepo();
   writeFixture(root, 'scripts/ci/db-access-baseline.json', '{"entries":[{"permission":"all"}]}');
