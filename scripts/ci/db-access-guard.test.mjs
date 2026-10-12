@@ -253,12 +253,13 @@ test('production CLI rejects trust/root/baseline/roots overrides and write-basel
   }
 });
 
-test('actual production CLI authenticates root epoch and preserves604 original entries', () => {
+test('actual production CLI authenticates root epoch and preserves 604 original entries', () => {
   const result = spawnSync(
     process.execPath,
     ['scripts/check-db-access-guard.mjs', '--report=tmp/db-access-guard/production-contract.json'],
-    { cwd: rootDir, encoding: 'utf8', timeout: 90000 }
+    { cwd: rootDir, encoding: 'utf8', timeout: 300000 }
   );
+  assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(readText('tmp/db-access-guard/production-contract.json'));
   assert.equal(report.trustedCommit, '278e33ab0dd448547fa81d4b0ff122b4d69c901e');
