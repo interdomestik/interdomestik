@@ -33,7 +33,7 @@ function onlyDiagnostic(report) {
   return report.rootDiagnostics.testConsumerRoots[0];
 }
 
-test('unchanged test consumers with no literal production target are diagnostic-only disconnected roots', () => {
+test('unchanged test consumers without a proved production path remain unproven', () => {
   const { result, report } = diagnosticFixture({});
 
   assert.equal(result.status, 0, JSON.stringify(report));
@@ -42,7 +42,8 @@ test('unchanged test consumers with no literal production target are diagnostic-
   assert.deepEqual(report.incomplete, []);
   assert.deepEqual(onlyDiagnostic(report), {
     file: TEST_ROOT,
-    classification: 'literal-disconnected',
+    classification: 'unproven',
+    evidence: 'boundedModuleGraph',
   });
   assert.deepEqual(
     report.mountEvidence.roots.map(item => item.file),
@@ -66,7 +67,7 @@ test('static, side-effect and literal dynamic module targets diagnose production
   }
 });
 
-test('erased type-only targets do not counterfeit production reachability', () => {
+test('erased type-only targets do not counterfeit proved production reachability', () => {
   const { result, report } = diagnosticFixture({
     productionSource:
       'import type {Fixture} from "../../diagnostic-leaf.test"; export default function Page(){return null;}',
@@ -75,7 +76,8 @@ test('erased type-only targets do not counterfeit production reachability', () =
   assert.equal(result.status, 0, JSON.stringify(report));
   assert.deepEqual(onlyDiagnostic(report), {
     file: TEST_ROOT,
-    classification: 'literal-disconnected',
+    classification: 'unproven',
+    evidence: 'boundedModuleGraph',
   });
 });
 
@@ -188,7 +190,22 @@ test('computed and reflected loader spellings stay unproven without verdict drif
   }
 });
 
-test('lexically shadowed loader names do not taint a disconnected test root', () => {
+test('aliases, casts and shadowed browser names never certify disconnection', () => {
+  for (const productionSource of [
+    'const host=window;const key="e"+"val";export default function Page(){return host[key]("../../diagnostic-leaf.test");}',
+    'const key="e"+"val";export default function Page(){return (window as any)[key]("../../diagnostic-leaf.test");}',
+    'const key="e"+"val";export default function Page(){return Reflect.get(window as any,key)("../../diagnostic-leaf.test");}',
+    'const parent={value:1};const key="value";export default function Page(){return parent[key];}',
+  ]) {
+    const { result, report } = diagnosticFixture({ productionSource });
+    assert.equal(result.status, 0, JSON.stringify(report));
+    assert.equal(report.status, 'pass');
+    assert.deepEqual(report.incomplete, []);
+    assert.equal(onlyDiagnostic(report).classification, 'unproven');
+  }
+});
+
+test('lexically shadowed loader names do not add unsupported-loader evidence', () => {
   const { result, report } = diagnosticFixture({
     productionSource: [
       'const Function=1;',
@@ -203,7 +220,8 @@ test('lexically shadowed loader names do not taint a disconnected test root', ()
   assert.deepEqual(report.rootDiagnostics.analysisUnknowns, []);
   assert.deepEqual(onlyDiagnostic(report), {
     file: TEST_ROOT,
-    classification: 'literal-disconnected',
+    classification: 'unproven',
+    evidence: 'boundedModuleGraph',
   });
 });
 

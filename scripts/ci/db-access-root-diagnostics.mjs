@@ -241,10 +241,11 @@ export function rootDiagnostics(moduleTargets, directChanges, firstInvalidatingD
           witnessPath: witnessPath(file, predecessor),
         };
       }
-      if (productionUnknowns.length) {
-        return { file, classification: 'unproven', evidence: 'analysisUnknowns' };
-      }
-      return { file, classification: 'literal-disconnected' };
+      return {
+        file,
+        classification: 'unproven',
+        evidence: productionUnknowns.length ? 'analysisUnknowns' : 'boundedModuleGraph',
+      };
     });
   return { version: 1, analysisUnknowns: productionUnknowns, testConsumerRoots };
 }
