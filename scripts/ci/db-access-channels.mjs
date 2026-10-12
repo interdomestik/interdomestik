@@ -8,6 +8,11 @@ import {
   trustedSchemaSqlValue,
 } from './db-access-external.mjs';
 import { unwrap } from './db-access-source.mjs';
+import {
+  classifyReceiver,
+  isDirectNonOptionalCall,
+  PROVEN_NON_DB_RECEIVER,
+} from './db-access-receiver.mjs';
 
 // Only used for an unresolved member, after canonical/query/known DSL boundaries are checked.
 // A locally resolved factory root does not resolve the member of its opaque return value.
@@ -48,10 +53,14 @@ export function inspectCallChannels(model, provenance, site, origin, incomplete)
     call && ts.isCallExpression(call)
       ? dispatchCoverage(provenance, call, provenance.context)
       : { covered: false };
+  const receiverKind = ts.isPropertyAccessExpression(callee)
+    ? classifyReceiver(model, provenance, callee.expression, coverage)
+    : undefined;
   // Only actual fully-covered alternatives suppress unresolved receiver channels. Graph still
   // traverses each local body; no method-name or filename exception is introduced.
   const supported =
     coverage.covered ||
+    (receiverKind === PROVEN_NON_DB_RECEIVER && isDirectNonOptionalCall(callee, call)) ||
     canonicalQueryChain(callee, provenance) ||
     externalValue(model, callee, provenance) ||
     trustedSchemaChain(model, provenance, callee);

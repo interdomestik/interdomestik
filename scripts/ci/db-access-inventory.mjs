@@ -15,6 +15,11 @@ export const DIRECT_DB_METHODS = [
 ];
 import { digest } from './db-access-trust.mjs';
 import { ownerOf, runtimeFingerprint, unwrap } from './db-access-source.mjs';
+import {
+  classifyReceiver,
+  isDirectNonOptionalCall,
+  PROVEN_NON_DB_RECEIVER,
+} from './db-access-receiver.mjs';
 
 const COVERED_TEXT =
   'covered alternatives: canonical transaction or source-resolved callable; every local body remains inspected';
@@ -68,6 +73,16 @@ export function collectInventory(model, provenance, trustedSources) {
         ancestor = ancestor.parent;
       }
       const property = ts.isPropertyAccessExpression(node);
+      let call = node.parent;
+      while (call && unwrap(call) === node) call = call.parent;
+      const invoked = call && ts.isCallExpression(call) && unwrap(call.expression) === node;
+      const coverage =
+        property && invoked
+          ? dispatchCoverage(provenance, callForExpression(node))
+          : { covered: false, alternatives: [] };
+      const receiverKind = property
+        ? classifyReceiver(model, provenance, node.expression, coverage)
+        : undefined;
       const client = provenance.clientIdentity(property ? node.expression : node);
       const ambient = ['db', 'dbRls', 'dbAdmin'].includes(client);
       const method = property ? node.name.text : 'escape';
@@ -76,6 +91,13 @@ export function collectInventory(model, provenance, trustedSources) {
         !escapedHandle &&
         !unsupportedHandle &&
         (!property || !DIRECT_DB_METHODS.includes(method))
+      )
+        return;
+      if (
+        property &&
+        DIRECT_DB_METHODS.includes(method) &&
+        receiverKind === PROVEN_NON_DB_RECEIVER &&
+        isDirectNonOptionalCall(node, call)
       )
         return;
       if (!property && !escapedHandle && !unsupportedHandle) {
@@ -93,9 +115,6 @@ export function collectInventory(model, provenance, trustedSources) {
         )
           return;
       }
-      let call = node.parent;
-      while (call && unwrap(call) === node) call = call.parent;
-      const invoked = call && ts.isCallExpression(call) && unwrap(call.expression) === node;
       const indirect = property && method !== 'query' && !invoked;
       let receiver;
       if (escapedHandle) receiver = 'tenant-context';
@@ -108,11 +127,11 @@ export function collectInventory(model, provenance, trustedSources) {
       if (escapedHandle) handleReason = 'tenant transaction handle escapes callback';
       else if (unsupportedHandle)
         handleReason = 'unsupported returned handle analysis bound, cycle or mutated value';
-      const coverage =
+      const effectiveCoverage =
         !ambient && !escapedHandle && !unsupportedHandle && !indirect
-          ? dispatchCoverage(provenance, callForExpression(node))
+          ? coverage
           : { covered: false, alternatives: [] };
-      if (coverage.covered && tenantPosture !== 'tenant-context')
+      if (effectiveCoverage.covered && tenantPosture !== 'tenant-context')
         tenantPosture = 'covered-dispatch-alternatives';
       const owner = ownerOf(node);
       const target = invoked ? call.arguments[0] : undefined;
@@ -130,7 +149,7 @@ export function collectInventory(model, provenance, trustedSources) {
         callee: node.getText(),
         method,
         tenantPosture,
-        tenantPostureReason: postureReason(coverage.covered, receiver),
+        tenantPostureReason: postureReason(effectiveCoverage.covered, receiver),
         isDirectDbAlias: receiver !== 'tenant-context',
         claimsUpdateTarget,
         ...(handleReason ? { reason: handleReason } : {}),
@@ -138,7 +157,7 @@ export function collectInventory(model, provenance, trustedSources) {
         source: node.getText(),
         identity: digest(`${file}|${fingerprint}|${node.pos}|${method}`),
         historicalDebt: identical,
-        dispatchAlternatives: coverage.alternatives.map(item => ({
+        dispatchAlternatives: effectiveCoverage.alternatives.map(item => ({
           kind: item.kind,
           unknown: item.unknown,
           reasons: item.reasons,
@@ -148,7 +167,7 @@ export function collectInventory(model, provenance, trustedSources) {
             callStart: target.callNode.pos,
           })),
         })),
-        _dispatchCovered: coverage.covered,
+        _dispatchCovered: effectiveCoverage.covered,
         _indirect: indirect || escapedHandle,
         _incomplete: unsupportedHandle,
         _node: node,
