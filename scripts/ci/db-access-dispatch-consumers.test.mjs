@@ -27,8 +27,9 @@ for (const order of [
   'read(local);withTenantContext({},tx=>read(tx));',
   'withTenantContext({},tx=>read(tx));read(local);',
 ]) {
-  test(`authenticated mixed actual caller alternatives retain distinct postures: ${order}`, () => {
-    const report = accepted(`${tenant} function read(tx:any){return tx.select();}
+  test(`authenticated mixed source-local and canonical DB-named receivers fail closed: ${order}`, () => {
+    // A canonical alternative cannot certify the dynamically mutable local alternative.
+    const report = rejected(`${tenant} function read(tx:any){return tx.select();}
  const local={select(){return 1;}};${order}`);
     const entry = report.newEntries.find(item => item.callee === 'tx.select');
     assert.equal(entry.tenantPosture, 'covered-dispatch-alternatives');
@@ -39,8 +40,9 @@ for (const order of [
     );
   });
 }
-test('authenticated immutable factory, destructuring and finite own self-return methods', () => {
-  const report = accepted(`${tenant}function read(tx:any){return tx.select().where().limit();}
+test('authenticated local factory alternative stays unknown beside a canonical transaction', () => {
+  // Finite source dispatch proves traversal, not that the local receiver retains its own method.
+  const report = rejected(`${tenant}function read(tx:any){return tx.select().where().limit();}
  function createTx(){const select=()=>{const chain={where(){return chain;},limit(){return 1;}};return chain;};const tx={select};return{tx};}
  const {tx}=createTx();read(tx);withTenantContext({},tx=>read(tx));`);
   assert.ok(
@@ -141,7 +143,7 @@ test('unknown caller in hidden test filename remains fully scanned', () => {
   );
 });
 for (const ambient of [false, true])
-  test(`authenticated direct source import uses callee lexical module (ambient=${ambient})`, () => {
+  test(`authenticated direct source import keeps mutable DB-named local method unknown (ambient=${ambient})`, () => {
     const root = createTempRepo();
     writeFixture(
       root,
@@ -155,9 +157,15 @@ for (const ambient of [false, true])
     );
     const result = runGuard(root),
       report = readReport(root);
-    assert.equal(result.status, ambient ? 1 : 0, JSON.stringify(report));
-    assert.equal(report.status === 'pass', !ambient);
-    if (ambient) assert.ok(report.failingNewEntries.some(item => item.callee === 'db.select'));
+    // Source resolution selects bodies for traversal; it cannot prove an own method survives
+    // runtime deletion, prototype replacement, setters or equivalent cross-source effects.
+    assert.equal(result.status, 1, JSON.stringify(report));
+    assert.notEqual(report.status, 'pass');
+    assert.ok(
+      report.failingNewEntries.some(
+        item => item.callee === (ambient ? 'db.select' : 'local.select')
+      )
+    );
   });
 test('authenticated mutable source export cannot hide a replacement behind its initializer', () => {
   const root = createTempRepo();

@@ -15,14 +15,10 @@ export const DIRECT_DB_METHODS = [
 ];
 import { digest } from './db-access-trust.mjs';
 import { ownerOf, runtimeFingerprint, unwrap } from './db-access-source.mjs';
-import {
-  classifyReceiver,
-  isDirectNonOptionalCall,
-  PROVEN_NON_DB_RECEIVER,
-} from './db-access-receiver.mjs';
+import { classifyReceiver, PROVEN_DB_RECEIVER } from './db-access-receiver.mjs';
 
 const COVERED_TEXT =
-  'covered alternatives: canonical transaction or source-resolved callable; every local body remains inspected';
+  'covered alternatives on a proven DB receiver; every local body remains inspected';
 function postureReason(covered, receiver) {
   if (covered && receiver !== 'tenant-context') return COVERED_TEXT;
   if (receiver === 'tenant-context') return 'tenant-context: proven-symbol-invocations';
@@ -93,13 +89,6 @@ export function collectInventory(model, provenance, trustedSources) {
         (!property || !DIRECT_DB_METHODS.includes(method))
       )
         return;
-      if (
-        property &&
-        DIRECT_DB_METHODS.includes(method) &&
-        receiverKind === PROVEN_NON_DB_RECEIVER &&
-        isDirectNonOptionalCall(node, call)
-      )
-        return;
       if (!property && !escapedHandle && !unsupportedHandle) {
         if (
           (node.parent.name === node &&
@@ -127,8 +116,14 @@ export function collectInventory(model, provenance, trustedSources) {
       if (escapedHandle) handleReason = 'tenant transaction handle escapes callback';
       else if (unsupportedHandle)
         handleReason = 'unsupported returned handle analysis bound, cycle or mutated value';
+      // Coverage records which bodies must be traversed. It is reportable only after independent
+      // DB receiver proof and never upgrades an unknown/source-local receiver to safe.
       const effectiveCoverage =
-        !ambient && !escapedHandle && !unsupportedHandle && !indirect
+        !ambient &&
+        !escapedHandle &&
+        !unsupportedHandle &&
+        !indirect &&
+        receiverKind === PROVEN_DB_RECEIVER
           ? coverage
           : { covered: false, alternatives: [] };
       if (effectiveCoverage.covered && tenantPosture !== 'tenant-context')
@@ -167,7 +162,6 @@ export function collectInventory(model, provenance, trustedSources) {
             callStart: target.callNode.pos,
           })),
         })),
-        _dispatchCovered: effectiveCoverage.covered,
         _indirect: indirect || escapedHandle,
         _incomplete: unsupportedHandle,
         _node: node,
@@ -180,7 +174,6 @@ export function collectInventory(model, provenance, trustedSources) {
 
 export function isUnsafe(entry) {
   if (entry._indirect) return true; // Extracted/bound query methods have unsupported receiver/lifetime.
-  if (entry._dispatchCovered) return false; // Every source-local body is still traversed by graph.
   if (
     entry.claimsUpdateTarget &&
     entry.isDirectDbAlias &&
