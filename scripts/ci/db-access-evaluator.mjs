@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import ts from 'typescript';
 import { ADOPTION } from './db-access-adoption.mjs';
 import {
   authenticateSnapshot,
@@ -13,7 +12,8 @@ import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
 import { inspectChangedEdges } from './db-access-graph.mjs';
-import { isErasedTypeEdge } from './db-access-module-edges.mjs';
+import { writeGuardReport } from './db-access-report.mjs';
+import { analyzeModuleTargets, rootDiagnostics } from './db-access-root-diagnostics.mjs';
 
 const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
@@ -36,35 +36,12 @@ function compactIncomplete(items) {
   return compact;
 }
 
-function invalidateConsumers(model, inventory) {
+function invalidateConsumers(dependenciesByFile, inventory) {
   let changed = true;
   const firstInvalidatingDependency = new Map();
-  const imports = new Map();
-  for (const [file, sf] of model.parsed) {
-    const dependencies = new Set();
-    model.walk(sf, node => {
-      if (
-        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-        node.moduleSpecifier &&
-        ts.isStringLiteral(node.moduleSpecifier)
-      ) {
-        const target = model.moduleFile(node.moduleSpecifier.text, file);
-        if (target && !isErasedTypeEdge(node)) dependencies.add(target);
-      }
-      if (
-        ts.isCallExpression(node) &&
-        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-        ts.isStringLiteral(node.arguments[0])
-      ) {
-        const target = model.moduleFile(node.arguments[0].text, file);
-        if (target) dependencies.add(target);
-      }
-    });
-    imports.set(file, dependencies);
-  }
   while (changed) {
     changed = false;
-    for (const [file, dependencies] of imports) {
+    for (const [file, dependencies] of dependenciesByFile) {
       const witness = !inventory.changed.has(file)
         ? [...dependencies].find(target => inventory.changed.has(target))
         : undefined;
@@ -134,7 +111,8 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const provenance = createProvenance(model);
   const inventory = collectInventory(model, provenance, trusted);
   const directChanges = new Set(inventory.changed);
-  const firstInvalidatingDependency = invalidateConsumers(model, inventory);
+  const moduleTargets = analyzeModuleTargets(model);
+  const firstInvalidatingDependency = invalidateConsumers(moduleTargets.dependencies, inventory);
   const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical);
   const newEntries = inventory.entries.filter(entry => !entry.historicalDebt);
   // A transaction proves connection context, not equivalent owner/role/admission controls.
@@ -198,6 +176,7 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
       graph,
       graph.incomplete.length > 0
     ),
+    rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
     incomplete: compactIncomplete(graph.incomplete),
     incompleteRawCount: graph.incomplete.length,
     reviewedBoundaryChanges,
@@ -250,7 +229,12 @@ export function runGuardCli({ repoRoot, argv = [], adoption = ADOPTION }) {
   if (fs.existsSync(output) && fs.lstatSync(output).isSymbolicLink())
     throw new Error('incomplete: report file symlink');
   fs.mkdirSync(path.dirname(output), { recursive: true });
-  fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
+  try {
+    report = writeGuardReport(output, report, adoption);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
   if (report.status === 'pass')
     console.log(
       `DB access guard passed: ${report.scannedCount} operations; historical baseline ${report.baselineCount}.`
