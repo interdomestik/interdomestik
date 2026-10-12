@@ -3,6 +3,18 @@ import fs from 'node:fs';
 
 const OMIT = Symbol('omit');
 
+function writeAll(descriptor, text) {
+  const bytes = Buffer.from(text);
+  let offset = 0;
+  while (offset < bytes.length) {
+    const written = fs.writeSync(descriptor, bytes, offset, bytes.length - offset);
+    if (!Number.isInteger(written) || written <= 0 || written > bytes.length - offset) {
+      throw new Error('Guard report write made no valid progress');
+    }
+    offset += written;
+  }
+}
+
 function normalized(value, key, arrayItem) {
   let candidate = value;
   if (candidate && typeof candidate === 'object' && typeof candidate.toJSON === 'function') {
@@ -17,17 +29,17 @@ function normalized(value, key, arrayItem) {
 
 function writeJsonValue(descriptor, value, depth, ancestors) {
   if (value === null || typeof value !== 'object') {
-    fs.writeSync(descriptor, JSON.stringify(value));
+    writeAll(descriptor, JSON.stringify(value));
     return;
   }
   if (ancestors.has(value)) throw new TypeError('Converting circular structure to JSON');
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      fs.writeSync(descriptor, '[');
+      writeAll(descriptor, '[');
       for (let index = 0; index < value.length; index += 1) {
-        if (index > 0) fs.writeSync(descriptor, ',');
-        fs.writeSync(descriptor, `\n${'  '.repeat(depth + 1)}`);
+        if (index > 0) writeAll(descriptor, ',');
+        writeAll(descriptor, `\n${'  '.repeat(depth + 1)}`);
         writeJsonValue(
           descriptor,
           normalized(value[index], String(index), true),
@@ -35,23 +47,23 @@ function writeJsonValue(descriptor, value, depth, ancestors) {
           ancestors
         );
       }
-      if (value.length > 0) fs.writeSync(descriptor, `\n${'  '.repeat(depth)}`);
-      fs.writeSync(descriptor, ']');
+      if (value.length > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
+      writeAll(descriptor, ']');
       return;
     }
 
-    fs.writeSync(descriptor, '{');
+    writeAll(descriptor, '{');
     let count = 0;
     for (const key of Object.keys(value)) {
       const child = normalized(value[key], key, false);
       if (child === OMIT) continue;
-      if (count > 0) fs.writeSync(descriptor, ',');
-      fs.writeSync(descriptor, `\n${'  '.repeat(depth + 1)}${JSON.stringify(key)}: `);
+      if (count > 0) writeAll(descriptor, ',');
+      writeAll(descriptor, `\n${'  '.repeat(depth + 1)}${JSON.stringify(key)}: `);
       writeJsonValue(descriptor, child, depth + 1, ancestors);
       count += 1;
     }
-    if (count > 0) fs.writeSync(descriptor, `\n${'  '.repeat(depth)}`);
-    fs.writeSync(descriptor, '}');
+    if (count > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
+    writeAll(descriptor, '}');
   } finally {
     ancestors.delete(value);
   }
@@ -65,13 +77,21 @@ function writeJsonAtomically(output, report) {
     const value = normalized(report, '', false);
     if (value === OMIT) throw new TypeError('Guard report is not JSON serializable');
     writeJsonValue(descriptor, value, 0, new Set());
-    fs.writeSync(descriptor, '\n');
+    writeAll(descriptor, '\n');
     fs.closeSync(descriptor);
     descriptor = undefined;
     fs.renameSync(temporary, output);
   } catch (error) {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-    fs.rmSync(temporary, { force: true });
+    try {
+      if (descriptor !== undefined) fs.closeSync(descriptor);
+    } catch {
+      // Preserve the write failure as the reason for the fail-closed report.
+    }
+    try {
+      fs.rmSync(temporary, { force: true });
+    } catch {
+      // Preserve the original failure; the fallback report still decides the verdict.
+    }
     throw error;
   }
 }

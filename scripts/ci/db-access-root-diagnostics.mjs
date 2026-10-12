@@ -1,8 +1,59 @@
 import ts from 'typescript';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
-const TEST_SOURCE = /(^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$/u;
+const TEST_SOURCE =
+  /(^|\/)(?:__tests__|__mocks__|tests?|e2e)\/|\.(?:test|spec|e2e)\.[cm]?[jt]sx?$/u;
 const UNKNOWN_LOADERS = new Set(['eval', 'Function', 'require', 'createRequire']);
+const LOADER_HOSTS = new Set(['global', 'globalThis', 'module', 'process']);
+
+function staticPropertyName(node) {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+    ? node.text
+    : undefined;
+}
+
+function rootIdentifier(node) {
+  let current = node;
+  while (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current))
+    current = current.expression;
+  return ts.isIdentifier(current) ? current.text : undefined;
+}
+
+function identifierLoader(model, node) {
+  if (!ts.isIdentifier(node) || !UNKNOWN_LOADERS.has(node.text)) return undefined;
+  const external = model.externalName(node);
+  if (external?.module === 'node:module' && external.name === 'createRequire') {
+    return 'createRequire';
+  }
+  return model.declaration(node) ? undefined : node.text;
+}
+
+function directLoader(model, node) {
+  if (ts.isIdentifier(node)) return identifierLoader(model, node);
+  if (ts.isPropertyAccessExpression(node)) return identifierLoader(model, node.name);
+  return undefined;
+}
+
+function reflectedLoader(model, node) {
+  if (!ts.isCallExpression(node)) return undefined;
+  const callee = node.expression;
+  const isReflectGet =
+    (ts.isPropertyAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression) &&
+      callee.expression.text === 'Reflect' &&
+      callee.name.text === 'get') ||
+    (ts.isElementAccessExpression(callee) &&
+      ts.isIdentifier(callee.expression) &&
+      callee.expression.text === 'Reflect' &&
+      staticPropertyName(callee.argumentExpression) === 'get');
+  if (!isReflectGet) return undefined;
+  if (model.declaration(callee.expression)) return undefined;
+  const property = node.arguments[1] && staticPropertyName(node.arguments[1]);
+  const host = node.arguments[0] && rootIdentifier(node.arguments[0]);
+  if (property !== undefined && !UNKNOWN_LOADERS.has(property)) return undefined;
+  if (property === undefined && !LOADER_HOSTS.has(host)) return undefined;
+  return property ?? 'Reflect.get(computed)';
+}
 
 function location(source, node) {
   return source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
@@ -70,8 +121,17 @@ export function analyzeModuleTargets(model) {
         return;
       }
       if (ts.isCallExpression(node)) {
-        const loader = node.expression.getText().split('.').at(-1);
-        if (UNKNOWN_LOADERS.has(loader)) {
+        const reflected = reflectedLoader(model, node);
+        if (reflected) {
+          unknowns.push({
+            file,
+            line: location(source, node),
+            code: 'unsupported-dynamic-loader',
+            loader: reflected,
+          });
+        }
+        const loader = directLoader(model, node.expression);
+        if (loader) {
           unknowns.push({
             file,
             line: location(source, node),
@@ -80,25 +140,28 @@ export function analyzeModuleTargets(model) {
           });
         }
       }
-      if (ts.isIdentifier(node) && UNKNOWN_LOADERS.has(node.text)) {
+      if (ts.isIdentifier(node)) {
+        const loader = identifierLoader(model, node);
+        if (!loader) return;
         unknowns.push({
           file,
           line: location(source, node),
           code: 'unsupported-dynamic-loader',
-          loader: node.text,
+          loader,
         });
       }
-      if (
-        ts.isElementAccessExpression(node) &&
-        ts.isStringLiteral(node.argumentExpression) &&
-        UNKNOWN_LOADERS.has(node.argumentExpression.text)
-      ) {
-        unknowns.push({
-          file,
-          line: location(source, node),
-          code: 'unsupported-dynamic-loader',
-          loader: node.argumentExpression.text,
-        });
+      if (ts.isElementAccessExpression(node)) {
+        const property = staticPropertyName(node.argumentExpression);
+        const computedLoader =
+          property === undefined && LOADER_HOSTS.has(rootIdentifier(node.expression));
+        if (UNKNOWN_LOADERS.has(property) || computedLoader) {
+          unknowns.push({
+            file,
+            line: location(source, node),
+            code: 'unsupported-dynamic-loader',
+            loader: property ?? 'computed-property',
+          });
+        }
       }
       if (ts.isImportEqualsDeclaration(node) && !node.isTypeOnly) {
         unknowns.push({
@@ -109,8 +172,8 @@ export function analyzeModuleTargets(model) {
         });
       }
       if (ts.isNewExpression(node)) {
-        const loader = node.expression.getText().split('.').at(-1);
-        if (UNKNOWN_LOADERS.has(loader)) {
+        const loader = directLoader(model, node.expression);
+        if (loader) {
           unknowns.push({
             file,
             line: location(source, node),

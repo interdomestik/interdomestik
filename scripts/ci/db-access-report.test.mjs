@@ -37,6 +37,45 @@ test('streamed guard report preserves JSON.stringify schema, order and formattin
   assert.equal(fs.readFileSync(output, 'utf8'), `${JSON.stringify(report, null, 2)}\n`);
 });
 
+test('streamed guard report completes short byte writes without splitting UTF-8', () => {
+  const output = temporaryOutput('short-writes.json');
+  const report = {
+    status: 'pass',
+    labels: ['Shënim për anëtarin', 'доказ', '🛡️'],
+    nested: { çështja: 'përfunduar' },
+  };
+  const originalWrite = fs.writeSync;
+  fs.writeSync = (descriptor, bytes, offset, length, position) =>
+    originalWrite(descriptor, bytes, offset, Math.min(length, 1), position);
+  try {
+    assert.strictEqual(writeGuardReport(output, report, adoption), report);
+  } finally {
+    fs.writeSync = originalWrite;
+  }
+
+  assert.equal(fs.readFileSync(output, 'utf8'), `${JSON.stringify(report, null, 2)}\n`);
+});
+
+test('a write with no progress cannot return a passing report', () => {
+  const output = temporaryOutput('stalled-write.json');
+  fs.writeFileSync(output, '{"status":"fail"}\n');
+  const originalWrite = fs.writeSync;
+  fs.writeSync = () => 0;
+  try {
+    assert.throws(
+      () => writeGuardReport(output, { status: 'pass' }, adoption),
+      /incomplete: report write failed:.*no valid progress/u
+    );
+  } finally {
+    fs.writeSync = originalWrite;
+  }
+  assert.equal(fs.readFileSync(output, 'utf8'), '{"status":"fail"}\n');
+  assert.equal(
+    fs.readdirSync(path.dirname(output)).filter(file => file.includes('.tmp-')).length,
+    0
+  );
+});
+
 test('serialization defects replace stale output with an explicit incomplete report', () => {
   const output = temporaryOutput('report.json');
   fs.writeFileSync(output, '{"status":"pass"}\n');

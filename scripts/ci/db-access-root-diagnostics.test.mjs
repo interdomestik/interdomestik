@@ -163,13 +163,57 @@ test('production-reachable unknowns in test helpers and camouflaged loaders stay
   }
 });
 
+test('computed and reflected loader spellings stay unproven without verdict drift', () => {
+  for (const productionSource of [
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="req"+"uire";return globalThis[key](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const suffix="uire";return globalThis[`req${suffix}`](target);}',
+    'const target="../../diagnostic-leaf.test";export default function Page(){const key="req"+"uire";const load=Reflect.get(globalThis,key);return load(target);}',
+  ]) {
+    const { result, report } = diagnosticFixture({ productionSource });
+    assert.equal(result.status, 0, JSON.stringify(report));
+    assert.equal(report.status, 'pass');
+    assert.equal(report.failingNewCount, 0);
+    assert.deepEqual(report.incomplete, []);
+    assert.equal(onlyDiagnostic(report).classification, 'unproven');
+    assert.ok(
+      report.rootDiagnostics.analysisUnknowns.some(
+        item => item.file === PAGE && item.code === 'unsupported-dynamic-loader'
+      )
+    );
+  }
+});
+
+test('lexically shadowed loader names do not taint a disconnected test root', () => {
+  const { result, report } = diagnosticFixture({
+    productionSource: [
+      'const Function=1;',
+      'const require=(value)=>value;',
+      'const createRequire=()=>()=>null;',
+      'export default function Page(){return [Function,require("safe"),createRequire()()];}',
+    ].join(''),
+  });
+
+  assert.equal(result.status, 0, JSON.stringify(report));
+  assert.equal(report.status, 'pass');
+  assert.deepEqual(report.rootDiagnostics.analysisUnknowns, []);
+  assert.deepEqual(onlyDiagnostic(report), {
+    file: TEST_ROOT,
+    classification: 'literal-disconnected',
+  });
+});
+
 test('test-like filenames only add diagnostics and never demote an existing guard verdict', () => {
   const outcomes = [];
-  for (const testRoot of [
-    'apps/web/src/diagnostic-consumer.ts',
-    'apps/web/src/diagnostic-consumer.test.ts',
-    'apps/web/src/diagnostic-consumer.spec.ts',
-    'apps/web/src/__tests__/diagnostic-consumer.ts',
+  for (const [testRoot, expectedDiagnostic] of [
+    ['apps/web/src/diagnostic-consumer.ts', false],
+    ['apps/web/src/diagnostic-consumer.test.ts', true],
+    ['apps/web/src/diagnostic-consumer.spec.ts', true],
+    ['apps/web/src/diagnostic-consumer.e2e.ts', true],
+    ['apps/web/src/__tests__/diagnostic-consumer.ts', true],
+    ['apps/web/src/__mocks__/diagnostic-consumer.ts', true],
+    ['apps/web/src/test/diagnostic-consumer.ts', true],
+    ['apps/web/src/tests/diagnostic-consumer.ts', true],
+    ['apps/web/src/e2e/diagnostic-consumer.ts', true],
   ]) {
     const root = createTempRepo();
     writeFixture(root, LEAF, [
@@ -180,7 +224,9 @@ test('test-like filenames only add diagnostics and never demote an existing guar
       root,
       testRoot,
       `import {read} from ${JSON.stringify(
-        testRoot.includes('/__tests__/') ? '../diagnostic-leaf' : './diagnostic-leaf'
+        testRoot.startsWith('apps/web/src/diagnostic-consumer')
+          ? './diagnostic-leaf'
+          : '../diagnostic-leaf'
       )};export function consume(){return read();}`
     );
     sealFixture(root);
@@ -197,12 +243,7 @@ test('test-like filenames only add diagnostics and never demote an existing guar
       failingNewCount: report.failingNewCount,
       incompleteRawCount: report.incompleteRawCount,
     });
-    const ordinary =
-      testRoot.endsWith('.ts') &&
-      !testRoot.includes('.test.') &&
-      !testRoot.includes('.spec.') &&
-      !testRoot.includes('/__tests__/');
-    assert.equal(report.rootDiagnostics.testConsumerRoots.length, ordinary ? 0 : 1);
+    assert.equal(report.rootDiagnostics.testConsumerRoots.length, expectedDiagnostic ? 1 : 0);
   }
 
   assert.equal(
