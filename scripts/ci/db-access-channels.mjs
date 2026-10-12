@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { dispatchCoverage } from './db-access-coverage.mjs';
 import { canonicalQueryChain } from './db-access-inventory.mjs';
 import {
   environmentStringMethod,
@@ -38,16 +39,19 @@ export function handleArguments(provenance, args, opaque, origin, incomplete) {
   }
 }
 
-export function inspectCallChannels(
-  model,
-  provenance,
-  callee,
-  args,
-  invocation,
-  origin,
-  incomplete
-) {
+// site = { callee, args, invocation, call }: the callee expression, the arguments it receives,
+// the invocation consulted for environment string methods and the actual call node. Each caller
+// supplies its own values; nothing is recomputed or reinterpreted here.
+export function inspectCallChannels(model, provenance, site, origin, incomplete) {
+  const { callee, args, invocation, call } = site;
+  const coverage =
+    call && ts.isCallExpression(call)
+      ? dispatchCoverage(provenance, call, provenance.context)
+      : { covered: false };
+  // Only actual fully-covered alternatives suppress unresolved receiver channels. Graph still
+  // traverses each local body; no method-name or filename exception is introduced.
   const supported =
+    coverage.covered ||
     canonicalQueryChain(callee, provenance) ||
     externalValue(model, callee, provenance) ||
     trustedSchemaChain(model, provenance, callee);

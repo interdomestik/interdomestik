@@ -1,13 +1,8 @@
 import ts from 'typescript';
-import { handleArguments, inspectCallChannels, inspectTagChannels } from './db-access-channels.mjs';
-import { externalValue } from './db-access-external.mjs';
-import {
-  BUILTIN_CALLS,
-  BUILTIN_CONSTRUCTORS,
-  createReferences,
-  frameworkEntry,
-} from './db-access-references.mjs';
-import { isFunction, unwrap } from './db-access-source.mjs';
+import { inspectGraphCall } from './db-access-graph-calls.mjs';
+import { handleArguments, inspectTagChannels } from './db-access-channels.mjs';
+import { BUILTIN_CONSTRUCTORS, createReferences, frameworkEntry } from './db-access-references.mjs';
+import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
@@ -17,6 +12,8 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     file,
     reason: 'unsupported mutable global environment root',
   }));
+  for (const reason of provenance.analysisUnknown ?? [])
+    incomplete.push({ file: '<analysis>', reason });
   const byOwner = new Map();
   for (const entry of inventory.entries) {
     const list = byOwner.get(entry._owner) ?? [];
@@ -24,13 +21,27 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     byOwner.set(entry._owner, list);
   }
   const references = createReferences(model, provenance);
-  const target = expression => references.resolve(expression).functions[0];
+  const targets = expression => references.resolve(expression).functions;
   const externalImport = expression => model.externalBinding(expression);
   const localImport = references.localImport;
   const steps = new Map();
   const initialized = new Map();
-  function inspect(owner, origin, stack = new Set(), depth = 0, invocation) {
-    if (stack.has(owner)) {
+  // An unframed function with actual dispatch callers is inspected once per caller frame unless
+  // it escaped or is also opened directly. Returns true when it fanned out.
+  function inspectDispatchContexts(owner, origin, stack, depth, context) {
+    if (!isFunction(owner) || context || !provenance.dispatch) return false;
+    const state = provenance.dispatch.state();
+    const callers = provenance.dispatch.contextsFor(owner);
+    if (!callers.length || state.escaped.has(owner) || state.openFns.has(owner)) return false;
+    for (const caller of callers)
+      inspect(owner, origin, stack, depth, caller.callNode, caller.context, caller.definingContext);
+    return true;
+  }
+  // Every caller passes stack and depth; each outer root starts with a fresh Map and depth 0.
+  function inspect(owner, origin, stack, depth, invocation, context, definingContext) {
+    if (inspectDispatchContexts(owner, origin, stack, depth, context)) return;
+    const frame = definingContext ?? context;
+    if (stack.get(owner)?.has(frame)) {
       incomplete.push({ file: origin, reason: 'recursive executable edge' });
       return;
     }
@@ -40,7 +51,8 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       incomplete.push({ file: origin, reason: 'graph bound exceeded' });
       return;
     }
-    stack = new Set(stack).add(owner);
+    stack = new Map(stack).set(owner, new Set(stack.get(owner) ?? []).add(frame));
+    const scoped = provenance.forContext?.(context) ?? provenance;
     for (const entry of byOwner.get(owner) ?? []) {
       if (entry._incomplete) incomplete.push({ file: origin, reason: entry.reason });
       else if (isUnsafe(entry))
@@ -73,10 +85,38 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
         inspect(
           target,
           origin,
-          new Set([...stack].filter(item => !ts.isSourceFile(item))),
+          new Map([...stack].filter(([item]) => !ts.isSourceFile(item))),
           depth + 1
         );
       }
+    }
+    // A component tag is one executable edge, resolved and inspected exactly once here. The
+    // generic value visit of the same tag identity would inspect it again, so this handler also
+    // keeps that visit's unknown-reference diagnostic before skipping only the tag identity.
+    // Props, spreads, children and expressions are still visited with the current context.
+    // A found function never cancels an unknown result. A closing tag invokes nothing.
+    function visitJsx(node) {
+      if (ts.isJsxClosingElement(node)) return true;
+      if (!ts.isJsxOpeningElement(node) && !ts.isJsxSelfClosingElement(node)) return false;
+      const tag = node.tagName;
+      if (!ts.isPropertyAccessExpression(tag) && !/^[A-Z]/u.test(tag.getText())) return false;
+      const referenced = references.resolve(tag);
+      if (referenced.functions.length)
+        for (const fn of referenced.functions) inspect(fn, origin, stack, depth + 1);
+      else if (localImport(tag))
+        incomplete.push({ file: origin, reason: `unresolved JSX edge ${tag.getText()}` });
+      if (!ts.isIdentifier(tag) && !ts.isPropertyAccessExpression(tag)) return false;
+      if (
+        referenced.unknown &&
+        references.valuePosition(tag) &&
+        !scoped.canonical(tag) &&
+        (isFunction(owner) || inventory.changed.has(model.fileOf(owner)))
+      )
+        incomplete.push({ file: origin, reason: 'mutated or unsupported executable reference' });
+      ts.forEachChild(node, child => {
+        if (child !== tag) visit(child);
+      });
+      return true;
     }
     function visit(node) {
       if (node !== owner && isFunction(node)) return; // Traverse only the symbol actually invoked.
@@ -91,13 +131,16 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       if (
         (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) &&
         references.valuePosition(node) &&
-        !provenance.canonical(node) &&
+        !scoped.canonical(node) &&
         (isFunction(owner) || inventory.changed.has(model.fileOf(owner)))
       ) {
         const referenced = references.resolve(node);
         if (referenced.unknown)
           incomplete.push({ file: origin, reason: 'mutated or unsupported executable reference' });
-        for (const fn of referenced.functions) inspect(fn, origin, stack, depth + 1);
+        // A value may contain its own methods. Merely retaining that identity does not
+        // execute it recursively; actual call edges below still enforce the stack bound.
+        for (const fn of referenced.functions)
+          if (!stack.has(fn)) inspect(fn, origin, stack, depth + 1);
       }
       if (ts.isNewExpression(node)) {
         if (
@@ -110,9 +153,12 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
           const referenced = references.resolve(arg);
           if (referenced.unknown)
             incomplete.push({ file: origin, reason: 'unsupported constructor callback' });
-          for (const fn of referenced.functions) inspect(fn, origin, stack, depth + 1);
+          // A value may contain its own methods. Merely retaining that identity does not
+          // execute it recursively; actual call edges below still enforce the stack bound.
+          for (const fn of referenced.functions)
+            if (!stack.has(fn)) inspect(fn, origin, stack, depth + 1);
         }
-        handleArguments(provenance, node.arguments ?? [], true, origin, incomplete);
+        handleArguments(scoped, node.arguments ?? [], true, origin, incomplete);
       }
       if (ts.isTaggedTemplateExpression(node)) {
         const tagged = references.resolve(node.tag);
@@ -131,120 +177,36 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
               incomplete.push({ file: origin, reason: 'unsupported tagged callback container' });
             for (const fn of callback.functions) inspect(fn, origin, stack, depth + 1);
           }
-        inspectTagChannels(model, provenance, node, origin, incomplete);
+        inspectTagChannels(model, scoped, node, origin, incomplete);
       }
-      if (ts.isCallExpression(node)) {
-        const resolved = references.resolve(node.expression);
-        if (resolved.unknown || provenance.isMutated(node.expression))
-          incomplete.push({ file: origin, reason: 'mutated executable callee' });
-        for (const fn of resolved.functions.slice(1)) inspect(fn, origin, stack, depth + 1, node);
-        const callee = unwrap(node.expression);
-        if (
-          !ts.isIdentifier(callee) &&
-          !ts.isPropertyAccessExpression(callee) &&
-          callee.kind !== ts.SyntaxKind.ImportKeyword &&
-          !resolved.functions.length
-        )
-          incomplete.push({ file: origin, reason: 'unsupported callee form' });
-        if (
-          ['eval', 'Function', 'require', 'createRequire'].includes(
-            callee.getText().split('.').at(-1)
-          )
-        )
-          incomplete.push({ file: origin, reason: 'unsupported dynamic code/module loader' });
-        if (
-          node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-          ts.isStringLiteral(node.arguments[0])
-        )
-          moduleEffect(node.arguments[0]);
-        if (provenance.canonical(node.expression)) {
-          const callback = node.arguments[1];
-          if (!callback || !isFunction(callback) || callback.asteriskToken)
-            incomplete.push({ file: origin, reason: 'unsupported tenant callback' });
-          else inspect(callback, origin, stack, depth + 1);
-          // Context object is executable, too.
-          if (node.arguments[0]) visit(node.arguments[0]);
-          return;
-        }
-        if (
-          node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-          !ts.isStringLiteral(node.arguments[0])
-        ) {
-          incomplete.push({ file: origin, reason: 'nonliteral dynamic import' });
-          return;
-        }
-        const called = target(node.expression);
-        if (called && isFunction(called)) inspect(called, origin, stack, depth + 1, node);
-        else if (
-          model.declaration(node.expression) &&
-          ts.isParameter(model.declaration(node.expression)) &&
-          !externalValue(model, node.expression, provenance)
-        ) {
-          incomplete.push({ file: origin, reason: 'unsupported received executable callback' });
-        } else if (
-          localImport(node.expression) &&
-          !model.externalBinding(node.expression) &&
-          !externalValue(model, node.expression, provenance)
-        )
-          incomplete.push({
-            file: origin,
-            reason: `unresolved local edge ${node.expression.getText()}`,
-          });
-        else if (
-          ts.isIdentifier(node.expression) &&
-          !externalImport(node.expression) &&
-          !model.externalBinding(node.expression) &&
-          !externalValue(model, node.expression, provenance) &&
-          !BUILTIN_CALLS.has(node.expression.text)
-        ) {
-          incomplete.push({
-            file: origin,
-            reason: `unknown executable edge ${node.expression.getText()}`,
-          });
-        }
-        // Named/forwarded callbacks are executable edges too, not merely inline arrows.
-        for (const arg of node.arguments) {
-          const callback = references.resolve(arg);
-          if (callback.unknown)
-            incomplete.push({ file: origin, reason: 'unsupported callback container' });
-          for (const fn of callback.functions) inspect(fn, origin, stack, depth + 1);
-          if (
-            ts.isIdentifier(arg) &&
-            model.declaration(arg) &&
-            ts.isParameter(model.declaration(arg)) &&
-            !called &&
-            !model.isQueryOperator(node.expression) &&
-            provenance.provenance(arg) !== 'tenant-context'
-          )
-            incomplete.push({ file: origin, reason: 'unsupported forwarded callback/value' });
-        }
-        if (!called)
-          inspectCallChannels(
-            model,
-            provenance,
-            callee,
-            node.arguments,
-            invocation,
-            origin,
-            incomplete
-          );
-      }
+      if (
+        ts.isCallExpression(node) &&
+        inspectGraphCall({
+          model,
+          scoped,
+          references,
+          context,
+          node,
+          origin,
+          stack,
+          depth,
+          invocation,
+          inspect,
+          incomplete,
+          visit,
+          moduleEffect,
+          targets,
+          externalImport,
+          localImport,
+        })
+      )
+        return;
       if (ts.isJsxAttribute(node) && node.initializer && ts.isJsxExpression(node.initializer)) {
         const callback = references.resolve(node.initializer.expression);
         if (callback.unknown) incomplete.push({ file: origin, reason: 'unsupported JSX callback' });
         for (const fn of callback.functions) inspect(fn, origin, stack, depth + 1);
       }
-      if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-        if (ts.isPropertyAccessExpression(node.tagName) || /^[A-Z]/u.test(node.tagName.getText())) {
-          const called = target(node.tagName);
-          if (called && isFunction(called)) inspect(called, origin, stack, depth + 1);
-          else if (localImport(node.tagName))
-            incomplete.push({
-              file: origin,
-              reason: `unresolved JSX edge ${node.tagName.getText()}`,
-            });
-        }
-      }
+      if (visitJsx(node)) return;
       if (
         ts.isElementAccessExpression(node) &&
         (ts.isCallExpression(node.parent) || ts.isJsxOpeningElement(node.parent))
@@ -262,7 +224,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       incomplete.push({ file, reason: 'parse diagnostics in changed source' });
       continue;
     }
-    inspect(sf, file);
+    inspect(sf, file, new Map(), 0);
     if (
       frameworkEntry(file) ||
       sf.statements.some(
@@ -275,11 +237,11 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       for (const exported of model.exportedDeclarations(file)) {
         const resolved = references.resolve(exported);
         if (resolved.unknown) incomplete.push({ file, reason: 'unsupported framework export' });
-        for (const fn of resolved.functions) inspect(fn, file);
+        for (const fn of resolved.functions) inspect(fn, file, new Map(), 0);
       }
     }
     model.walk(sf, node => {
-      if (isFunction(node)) inspect(node, file);
+      if (isFunction(node)) inspect(node, file, new Map(), 0);
     });
   }
   return { failures, incomplete };
