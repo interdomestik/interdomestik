@@ -6,11 +6,10 @@ import { createDispatch } from './db-access-dispatch.mjs';
 import { createContextualProvenance } from './db-access-contextual.mjs';
 import { canonicalQueryChain } from './db-access-inventory.mjs';
 import { withInvocationEvidence } from './db-access-invocation-evidence.mjs';
+import { createProvenanceBudget } from './db-access-provenance-budget.mjs';
 
 const UNKNOWN = 'unknown';
 const DB_FILE = 'packages/database/src/db.ts';
-const same = values =>
-  values.length && values.every(value => value === values[0]) ? values[0] : UNKNOWN;
 export function createProvenance(model) {
   const {
     calls,
@@ -22,6 +21,7 @@ export function createProvenance(model) {
     analysisUnknown,
     finish,
   } = collectMutationEffects(model);
+  const work = createProvenanceBudget(analysisUnknown);
   const { clientIdentity, canonical } = createClientSymbols(model, mutations);
   const handleUnion = values => {
     if (values.includes(true)) return true;
@@ -31,7 +31,8 @@ export function createProvenance(model) {
   function tenantHandle(raw, seen = new Set(), budget = { remaining: 2048 }) {
     const node = unwrap(raw);
     if (!node) return false;
-    if (--budget.remaining < 0 || seen.has(node) || seen.size > 64) return UNKNOWN;
+    if (--budget.remaining < 0) return UNKNOWN;
+    if (!work.enter() || seen.has(node) || seen.size > 64) return UNKNOWN;
     seen = new Set(seen).add(node);
     if (provenance(node) === 'tenant-context') return true;
     if (ts.isAwaitExpression(node)) return tenantHandle(node.expression, seen, budget);
@@ -84,6 +85,7 @@ export function createProvenance(model) {
     return stale;
   }
   function parameterHandle(parameter, seen, budget) {
+    if (!work.enter()) return UNKNOWN;
     const fn = parameter.parent;
     const index = fn.parameters.indexOf(parameter);
     // An opaque call can taint provenance without making the original callback handle disappear.
@@ -101,7 +103,7 @@ export function createProvenance(model) {
   }
   function argumentValue(argument, keys, seen, use = argument) {
     argument = unwrap(argument);
-    if (!argument || mutations.has(model.symbol(argument))) return UNKNOWN;
+    if (!argument || !work.enter() || mutations.has(model.symbol(argument))) return UNKNOWN;
     if (!keys.length) return provenance(argument, seen, use);
     if (seen.has(argument) || seen.size > 64) return UNKNOWN;
     seen = new Set(seen).add(argument);
@@ -123,6 +125,7 @@ export function createProvenance(model) {
     return UNKNOWN;
   }
   function parameterValue(parameter, keys, seen) {
+    if (!work.enter()) return UNKNOWN;
     if (isMutated(parameter.name) || escapedFns.has(parameter.parent)) return UNKNOWN;
     if (parameter.initializer || parameter.dotDotDotToken || !isFunction(parameter.parent))
       return UNKNOWN;
@@ -144,10 +147,17 @@ export function createProvenance(model) {
     }
     const invocations = calls.get(fn) ?? [];
     if (!invocations.length) return UNKNOWN;
-    return same(invocations.map(call => argumentValue(call.arguments[index], keys, seen)));
+    let known;
+    for (const call of invocations) {
+      const value = argumentValue(call.arguments[index], keys, seen);
+      // The join cannot recover from UNKNOWN or disagreement. No later caller can prove it.
+      if (value === UNKNOWN || (known !== undefined && value !== known)) return UNKNOWN;
+      known = value;
+    }
+    return known;
   }
   function lexicalLifetime(use, parameter, seen = new Set()) {
-    if (seen.has(use) || seen.size > 64) return false;
+    if (!work.enter() || seen.has(use) || seen.size > 64) return false;
     seen = new Set(seen).add(use);
     const origin = parameter.parent;
     const owner = ownerOf(use);
@@ -178,6 +188,7 @@ export function createProvenance(model) {
     const symbol = model.symbol(name);
     let escaped = false;
     model.walk(origin, node => {
+      if (!work.enter()) return;
       if (!ts.isIdentifier(node) || node === name || model.symbol(node) !== symbol) return;
       if (!(ts.isCallExpression(node.parent) && node.parent.expression === node)) escaped = true;
     });
@@ -185,7 +196,7 @@ export function createProvenance(model) {
   }
   function provenance(raw, seen = new Set(), use = raw) {
     const node = unwrap(raw);
-    if (!node || seen.has(node) || seen.size > 64) return UNKNOWN;
+    if (!node || !work.enter() || seen.has(node) || seen.size > 64) return UNKNOWN;
     seen = new Set(seen).add(node);
     if (ts.isPropertyAccessExpression(node)) {
       if (mutations.has(model.symbol(node.expression))) return UNKNOWN;
@@ -225,10 +236,10 @@ export function createProvenance(model) {
     return UNKNOWN;
   }
   const legacy = {
-    provenance,
+    provenance: (...args) => work.run(() => provenance(...args)),
     canonical,
     clientIdentity,
-    tenantHandle,
+    tenantHandle: (...args) => work.run(() => tenantHandle(...args)),
     calls,
     mutations,
     unsafeMutations,
@@ -239,7 +250,7 @@ export function createProvenance(model) {
   };
   legacy.queryBoundary = expression => canonicalQueryChain(expression, legacy);
   const dispatch = createDispatch(model, legacy);
-  const contextual = createContextualProvenance(model, legacy, dispatch);
+  const contextual = createContextualProvenance(model, legacy, dispatch, work);
   const result = contextual.facade(undefined);
   finish(result);
   return withInvocationEvidence(result, model);

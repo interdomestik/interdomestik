@@ -134,30 +134,35 @@ export function createReferences(model, provenance) {
     }
     return { functions: [], unknown: false };
   }
+  // Source import names are immutable for this parsed model. Keep declaration and executable
+  // resolution live; only avoid rewalking the whole source for every unresolved reference.
+  const importedNames = new WeakMap();
+  function localNames(sf) {
+    if (importedNames.has(sf)) return importedNames.get(sf);
+    const names = new Set();
+    model.walk(sf, node => {
+      if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return;
+      const specifier = node.moduleSpecifier.text;
+      if (
+        !specifier.startsWith('.') &&
+        !specifier.startsWith('@/') &&
+        !specifier.startsWith('@interdomestik/')
+      )
+        return;
+      model.walk(node.importClause ?? node, binding => {
+        if (ts.isIdentifier(binding)) names.add(binding.text);
+      });
+    });
+    importedNames.set(sf, names);
+    return names;
+  }
   function localImport(expression) {
     const symbol = model.symbol(expression);
     const declarations = symbol?.declarations ?? [];
     // Unresolved local/workspace imports cannot become safe merely because the checker has no symbol.
-    for (const sf of [expression.getSourceFile()]) {
-      let found = false;
-      model.walk(sf, node => {
-        if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return;
-        const specifier = node.moduleSpecifier.text;
-        if (
-          !specifier.startsWith('.') &&
-          !specifier.startsWith('@/') &&
-          !specifier.startsWith('@interdomestik/')
-        )
-          return;
-        model.walk(node.importClause ?? node, binding => {
-          if (ts.isIdentifier(binding) && binding.text === expression.getText().split('.')[0])
-            found = true;
-        });
-      });
-      if (found && !declarations.length) return true;
-      if (found && !resolve(expression).functions.length) return true;
-    }
-    return false;
+    if (!localNames(expression.getSourceFile()).has(expression.getText().split('.')[0]))
+      return false;
+    return !declarations.length || !resolve(expression).functions.length;
   }
   return { resolve, valuePosition, localImport };
 }

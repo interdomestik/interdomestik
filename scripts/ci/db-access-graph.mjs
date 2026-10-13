@@ -5,6 +5,8 @@ import { BUILTIN_CONSTRUCTORS, createReferences, frameworkEntry } from './db-acc
 import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
+import { createIncompleteCollector } from './db-access-incomplete.mjs';
+import { createGraphProvenance } from './db-access-graph-provenance.mjs';
 
 // Test-named modules are ordinary graph roots when changed and are traversed when production
 // imports them. The recognizer only labels production-to-test witnesses; it grants no exemption.
@@ -28,12 +30,11 @@ export const testOnlySource = file =>
 export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
   const failures = [];
   const reachedTestSources = new Set();
-  const incomplete = [...provenance.environmentChanges].map(file => ({
-    file,
-    reason: 'unsupported mutable global environment root',
-  }));
-  for (const reason of provenance.analysisUnknown ?? [])
-    incomplete.push({ file: '<analysis>', reason });
+  const incomplete = createIncompleteCollector();
+  for (const file of provenance.environmentChanges)
+    incomplete.push({ file, reason: 'unsupported mutable global environment root' });
+  const initialUnknown = new Set(provenance.analysisUnknown);
+  for (const reason of initialUnknown) incomplete.push({ file: '<analysis>', reason });
   const byOwner = new Map();
   for (const entry of inventory.entries) {
     const list = byOwner.get(entry._owner) ?? [];
@@ -41,6 +42,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     byOwner.set(entry._owner, list);
   }
   const references = createReferences(model, provenance);
+  const forContext = createGraphProvenance(provenance);
   const targets = expression => references.resolve(expression).functions;
   const externalImport = expression => model.externalBinding(expression);
   const localImport = references.localImport;
@@ -74,7 +76,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       return;
     }
     stack = new Map(stack).set(owner, new Set(stack.get(owner) ?? []).add(frame));
-    const scoped = provenance.forContext?.(context) ?? provenance;
+    const scoped = forContext(context);
     for (const entry of byOwner.get(owner) ?? []) {
       if (entry._incomplete) incomplete.push({ file: origin, reason: entry.reason });
       else if (isUnsafe(entry))
@@ -269,5 +271,13 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       if (isFunction(node)) inspect(node, file, new Map(), 0);
     });
   }
-  return { failures, incomplete, reachedTestSources };
+  // A provenance query first made during traversal may exhaust after the initial snapshot.
+  for (const reason of provenance.analysisUnknown ?? [])
+    if (!initialUnknown.has(reason)) incomplete.push({ file: '<analysis>', reason });
+  return {
+    failures,
+    incomplete: incomplete.entries,
+    incompleteRawCount: incomplete.rawCount,
+    reachedTestSources,
+  };
 }

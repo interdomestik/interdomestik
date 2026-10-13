@@ -19,23 +19,6 @@ const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
   Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('_')));
 
-function compactIncomplete(items) {
-  const firstByKey = new Map();
-  const compact = [];
-  for (const item of items) {
-    const key = JSON.stringify([item.file, item.reason]);
-    const prior = firstByKey.get(key);
-    if (prior) {
-      prior.occurrences += 1;
-    } else {
-      const first = { ...item, occurrences: 1 };
-      firstByKey.set(key, first);
-      compact.push(first);
-    }
-  }
-  return compact;
-}
-
 function invalidateConsumers(dependenciesByFile, inventory) {
   let changed = true;
   const firstInvalidatingDependency = new Map();
@@ -127,7 +110,13 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   let priorScoped = new Set();
   if ([...inventory.changed].some(file => trusted.has(file))) {
     const beforeModel = createSourceModel(trusted, trusted);
-    const before = collectInventory(beforeModel, createProvenance(beforeModel), trusted);
+    const beforeProvenance = createProvenance(beforeModel);
+    const before = collectInventory(beforeModel, beforeProvenance, trusted);
+    // An incomplete adoption classification cannot erase the prior scoped-control obligation.
+    for (const reason of beforeProvenance.analysisUnknown) {
+      graph.incomplete.push({ file: '<adoption-analysis>', reason, occurrences: 1 });
+      graph.incompleteRawCount += 1;
+    }
     priorScoped = new Set(
       before.entries
         .filter(entry => entry.tenantPosture === 'tenant-context')
@@ -183,8 +172,8 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
       graph.incomplete.length > 0
     ),
     rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
-    incomplete: compactIncomplete(graph.incomplete),
-    incompleteRawCount: graph.incomplete.length,
+    incomplete: graph.incomplete,
+    incompleteRawCount: graph.incompleteRawCount,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
     limits: [
