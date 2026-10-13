@@ -15,7 +15,11 @@ const LOADER_HOSTS = new Set([
   'parent',
   'top',
 ]);
-const compareCodeUnits = (left, right) => (left < right ? -1 : left > right ? 1 : 0);
+function compareCodeUnits(left, right) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
 
 function staticPropertyName(node) {
   return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
@@ -68,6 +72,40 @@ function reflectedLoader(model, node) {
 
 function location(source, node) {
   return source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+}
+
+function recordLoader(unknowns, file, source, node, loader) {
+  if (!loader) return;
+  unknowns.push({
+    file,
+    line: location(source, node),
+    code: 'unsupported-dynamic-loader',
+    loader,
+  });
+}
+
+function inspectDynamicLoader(model, source, file, node, unknowns) {
+  if (ts.isCallExpression(node)) {
+    recordLoader(unknowns, file, source, node, reflectedLoader(model, node));
+    recordLoader(unknowns, file, source, node, directLoader(model, node.expression));
+  }
+  if (ts.isIdentifier(node)) {
+    recordLoader(unknowns, file, source, node, identifierLoader(model, node));
+  }
+  if (ts.isElementAccessExpression(node)) {
+    const property = staticPropertyName(node.argumentExpression);
+    const computedLoader =
+      property === undefined && LOADER_HOSTS.has(rootIdentifier(node.expression));
+    if (UNKNOWN_LOADERS.has(property) || computedLoader) {
+      recordLoader(unknowns, file, source, node, property ?? 'computed-property');
+    }
+  }
+  if (ts.isImportEqualsDeclaration(node) && !node.isTypeOnly) {
+    recordLoader(unknowns, file, source, node, 'require');
+  }
+  if (ts.isNewExpression(node)) {
+    recordLoader(unknowns, file, source, node, directLoader(model, node.expression));
+  }
 }
 
 function sortedUniqueUnknowns(items) {
@@ -131,68 +169,7 @@ export function analyzeModuleTargets(model) {
         }
         return;
       }
-      if (ts.isCallExpression(node)) {
-        const reflected = reflectedLoader(model, node);
-        if (reflected) {
-          unknowns.push({
-            file,
-            line: location(source, node),
-            code: 'unsupported-dynamic-loader',
-            loader: reflected,
-          });
-        }
-        const loader = directLoader(model, node.expression);
-        if (loader) {
-          unknowns.push({
-            file,
-            line: location(source, node),
-            code: 'unsupported-dynamic-loader',
-            loader,
-          });
-        }
-      }
-      if (ts.isIdentifier(node)) {
-        const loader = identifierLoader(model, node);
-        if (!loader) return;
-        unknowns.push({
-          file,
-          line: location(source, node),
-          code: 'unsupported-dynamic-loader',
-          loader,
-        });
-      }
-      if (ts.isElementAccessExpression(node)) {
-        const property = staticPropertyName(node.argumentExpression);
-        const computedLoader =
-          property === undefined && LOADER_HOSTS.has(rootIdentifier(node.expression));
-        if (UNKNOWN_LOADERS.has(property) || computedLoader) {
-          unknowns.push({
-            file,
-            line: location(source, node),
-            code: 'unsupported-dynamic-loader',
-            loader: property ?? 'computed-property',
-          });
-        }
-      }
-      if (ts.isImportEqualsDeclaration(node) && !node.isTypeOnly) {
-        unknowns.push({
-          file,
-          line: location(source, node),
-          code: 'unsupported-dynamic-loader',
-          loader: 'require',
-        });
-      }
-      if (ts.isNewExpression(node)) {
-        const loader = directLoader(model, node.expression);
-        if (loader) {
-          unknowns.push({
-            file,
-            line: location(source, node),
-            code: 'unsupported-dynamic-loader',
-            loader,
-          });
-        }
-      }
+      inspectDynamicLoader(model, source, file, node, unknowns);
     });
   }
   return { dependencies, unknowns: sortedUniqueUnknowns(unknowns) };
@@ -205,8 +182,7 @@ function productionReachability(moduleTargets) {
   const reached = new Set(production);
   const predecessor = new Map();
   const queue = [...production];
-  for (let index = 0; index < queue.length; index += 1) {
-    const file = queue[index];
+  for (const file of queue) {
     for (const target of [...(moduleTargets.dependencies.get(file) ?? [])].sort(compareCodeUnits)) {
       if (reached.has(target)) continue;
       reached.add(target);

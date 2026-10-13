@@ -27,6 +27,32 @@ function normalized(value, key, arrayItem) {
   return candidate;
 }
 
+function writeJsonArray(descriptor, value, depth, ancestors) {
+  writeAll(descriptor, '[');
+  for (let index = 0; index < value.length; index += 1) {
+    if (index > 0) writeAll(descriptor, ',');
+    writeAll(descriptor, `\n${'  '.repeat(depth + 1)}`);
+    writeJsonValue(descriptor, normalized(value[index], String(index), true), depth + 1, ancestors);
+  }
+  if (value.length > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
+  writeAll(descriptor, ']');
+}
+
+function writeJsonObject(descriptor, value, depth, ancestors) {
+  writeAll(descriptor, '{');
+  let count = 0;
+  for (const key of Object.keys(value)) {
+    const child = normalized(value[key], key, false);
+    if (child === OMIT) continue;
+    if (count > 0) writeAll(descriptor, ',');
+    writeAll(descriptor, `\n${'  '.repeat(depth + 1)}${JSON.stringify(key)}: `);
+    writeJsonValue(descriptor, child, depth + 1, ancestors);
+    count += 1;
+  }
+  if (count > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
+  writeAll(descriptor, '}');
+}
+
 function writeJsonValue(descriptor, value, depth, ancestors) {
   if (value === null || typeof value !== 'object') {
     writeAll(descriptor, JSON.stringify(value));
@@ -35,35 +61,8 @@ function writeJsonValue(descriptor, value, depth, ancestors) {
   if (ancestors.has(value)) throw new TypeError('Converting circular structure to JSON');
   ancestors.add(value);
   try {
-    if (Array.isArray(value)) {
-      writeAll(descriptor, '[');
-      for (let index = 0; index < value.length; index += 1) {
-        if (index > 0) writeAll(descriptor, ',');
-        writeAll(descriptor, `\n${'  '.repeat(depth + 1)}`);
-        writeJsonValue(
-          descriptor,
-          normalized(value[index], String(index), true),
-          depth + 1,
-          ancestors
-        );
-      }
-      if (value.length > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
-      writeAll(descriptor, ']');
-      return;
-    }
-
-    writeAll(descriptor, '{');
-    let count = 0;
-    for (const key of Object.keys(value)) {
-      const child = normalized(value[key], key, false);
-      if (child === OMIT) continue;
-      if (count > 0) writeAll(descriptor, ',');
-      writeAll(descriptor, `\n${'  '.repeat(depth + 1)}${JSON.stringify(key)}: `);
-      writeJsonValue(descriptor, child, depth + 1, ancestors);
-      count += 1;
-    }
-    if (count > 0) writeAll(descriptor, `\n${'  '.repeat(depth)}`);
-    writeAll(descriptor, '}');
+    if (Array.isArray(value)) writeJsonArray(descriptor, value, depth, ancestors);
+    else writeJsonObject(descriptor, value, depth, ancestors);
   } finally {
     ancestors.delete(value);
   }

@@ -60,7 +60,11 @@ function invalidateConsumers(dependenciesByFile, inventory) {
 function mountEvidence(directChanges, firstInvalidatingDependency, graph, incomplete) {
   const paths = new Set([...directChanges, ...firstInvalidatingDependency.keys()]);
   for (const failure of graph.failures) paths.add(failure.mountedFrom);
-  const files = [...paths].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  const files = [...paths].sort((left, right) => {
+    if (left < right) return -1;
+    if (left > right) return 1;
+    return 0;
+  });
   const ids = new Map(files.map((file, id) => [file, id]));
   const roots = files.map((file, id) => {
     const dependency = firstInvalidatingDependency.get(file);
