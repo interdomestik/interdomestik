@@ -25,7 +25,7 @@ function graphFor(sources, trusted = new Map()) {
   return { model, inventory, graph: inspectChangedEdges(model, provenance, inventory) };
 }
 
-test('a changed test fixture is inventoried but is not opened as a product graph root', () => {
+test('a changed source-proved non-DB Set test fixture is opened as a graph root and passes', () => {
   const { model, inventory, graph } = graphFor([[FIXTURE, fakeFixture]]);
   assert.ok(model.parsed.has(FIXTURE));
   assert.ok(inventory.changed.has(FIXTURE));
@@ -62,15 +62,22 @@ test('a production page importing a test fixture still inspects its executable D
   );
 });
 
-test('production evaluator leaves isolated test mocks off product roots but follows an import', () => {
+test('production evaluator rejects isolated DB-looking test mocks and follows an import', () => {
   const root = createTempRepo();
   const fixture = 'apps/web/src/features/claims/mock-db.test.ts';
   writeFixture(root, fixture, [
     'const mocks = { db: { select: () => [] } };',
     'export function readMock() { return mocks.db.select(); }',
   ]);
-  assert.equal(runGuard(root).status, 0);
-  assert.equal(readReport(root).failingNewCount, 0);
+  assert.equal(runGuard(root).status, 1);
+  const isolated = readReport(root);
+  assert.notEqual(isolated.status, 'pass');
+  assert.ok(
+    isolated.failingNewEntries.some(
+      entry => entry.file === fixture && entry.callee === 'mocks.db.select'
+    ),
+    JSON.stringify(isolated.failingNewEntries.map(({ file, callee }) => ({ file, callee })))
+  );
 
   writeFixture(
     root,
@@ -81,8 +88,17 @@ test('production evaluator leaves isolated test mocks off product roots but foll
   const report = readReport(root);
   assert.ok(
     report.failingNewEntries.some(
-      entry => entry.file === fixture && entry.callee === 'mocks.db.select'
+      entry =>
+        entry.file === fixture &&
+        entry.callee === 'mocks.db.select' &&
+        entry.mountedFromAll?.includes(PAGE)
     ),
-    JSON.stringify(report.failingNewEntries.map(({ file, callee }) => ({ file, callee })))
+    JSON.stringify(
+      report.failingNewEntries.map(({ file, callee, mountedFromAll }) => ({
+        file,
+        callee,
+        mountedFromAll,
+      }))
+    )
   );
 });

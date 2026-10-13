@@ -11,7 +11,7 @@ import {
 import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
-import { inspectChangedEdges, testOnlySource } from './db-access-graph.mjs';
+import { inspectChangedEdges } from './db-access-graph.mjs';
 import { writeGuardReport } from './db-access-report.mjs';
 import { analyzeModuleTargets, rootDiagnostics } from './db-access-root-diagnostics.mjs';
 
@@ -118,8 +118,8 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const moduleTargets = analyzeModuleTargets(model);
   const firstInvalidatingDependency = invalidateConsumers(moduleTargets.dependencies, inventory);
   const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical);
-  const productReachable = entry =>
-    !testOnlySource(entry.file) || graph.reachedTestSources.has(entry.file);
+  // A test filename never exempts an inventoried operation, so DB-looking mocks stay unsafe
+  // until separately source-proved precision exists.
   const newEntries = inventory.entries.filter(entry => !entry.historicalDebt);
   // A transaction proves connection context, not equivalent owner/role/admission controls.
   // Existing scoped files are immutable at executable granularity in this epoch;
@@ -134,9 +134,7 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
         .map(entry => entry.file)
     );
   }
-  const changedScopedControls = newEntries.filter(
-    entry => priorScoped.has(entry.file) && productReachable(entry)
-  );
+  const changedScopedControls = newEntries.filter(entry => priorScoped.has(entry.file));
   // A single operation may be reached from several changed roots. Keep every witness in the
   // diagnostic report even though the verdict counts the operation identity only once.
   const mountsByIdentity = new Map();
@@ -147,7 +145,7 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   }
   const failures = new Map();
   for (const entry of [
-    ...newEntries.filter(entry => productReachable(entry) && isUnsafe(entry)),
+    ...newEntries.filter(entry => isUnsafe(entry)),
     ...graph.failures,
     ...changedScopedControls.map(entry => ({
       ...entry,

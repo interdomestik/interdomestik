@@ -6,8 +6,8 @@ import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
-// Test modules remain in the source model and are traversed when production imports them.
-// Their own test runner entry points are not product entry points.
+// Test-named modules are ordinary graph roots when changed and are traversed when production
+// imports them. The recognizer only labels production-to-test witnesses; it grants no exemption.
 // The three recognizers are kept as separate simple checks; together they match exactly the
 // original single alternation. The support suffix is tested on the final path segment's stem.
 const TEST_DIRECTORY = /(?:^|\/)__tests__\//u;
@@ -28,9 +28,10 @@ export const testOnlySource = file =>
 export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
   const failures = [];
   const reachedTestSources = new Set();
-  const incomplete = [...provenance.environmentChanges]
-    .filter(file => !testOnlySource(file))
-    .map(file => ({ file, reason: 'unsupported mutable global environment root' }));
+  const incomplete = [...provenance.environmentChanges].map(file => ({
+    file,
+    reason: 'unsupported mutable global environment root',
+  }));
   for (const reason of provenance.analysisUnknown ?? [])
     incomplete.push({ file: '<analysis>', reason });
   const byOwner = new Map();
@@ -241,34 +242,13 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     if (isFunction(owner)) for (const parameter of owner.parameters) visit(parameter);
     visit(isFunction(owner) ? owner.body : owner);
   }
-  // A changed test module is not a product root: its mock-heavy executable edges are not walked,
-  // and production importers (including invalidated consumers) still traverse it above. Any
-  // inventoried use of an ambient client in it fails without graph traversal: a call, computed or
-  // extracted member, escaped/destructured identifier, tagged template or mocking reference alike.
-  // Whether a reference stays inert depends on test-runner runtime semantics the source cannot prove.
-  const ambientUse = node =>
-    ['db', 'dbRls', 'dbAdmin'].includes(
-      provenance.clientIdentity(ts.isPropertyAccessExpression(node) ? node.expression : node)
-    );
-  for (const entry of inventory.entries)
-    if (
-      testOnlySource(entry.file) &&
-      inventory.changed.has(entry.file) &&
-      isUnsafe(entry) &&
-      ambientUse(entry._node)
-    )
-      failures.push({
-        ...entry,
-        mountedFrom: entry.file,
-        reason: entry.reason ?? 'changed test module uses ambient client',
-      });
+  // Every changed source is a root, test-named or not: a filename never grants a verdict exemption.
   for (const file of inventory.changed) {
     const sf = model.parsed.get(file);
     if (sf.parseDiagnostics.length) {
       incomplete.push({ file, reason: 'parse diagnostics in changed source' });
       continue;
     }
-    if (testOnlySource(file)) continue;
     inspect(sf, file, new Map(), 0);
     if (
       frameworkEntry(file) ||
