@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { scan } from './db-access-guard-test-utils.mjs';
 const context = `import {db,withTenantContext} from '@interdomestik/database';`;
+// Finite source dispatch still cannot prove a DB-named method keeps its own implementation after
+// runtime deletion, prototype replacement, setter effects or equivalent cross-source mutation.
 const cases = [
   [
-    'distinct defining frames of returned closures',
-    0,
+    'returned-closure DB-named receiver stays unknown despite distinct defining frames',
+    1,
     `function lift(next:any){return()=>next();}function leaf(){return{select(){return 1;}};}const a=lift(leaf);const b=lift(a);b().select();`,
   ],
   [
-    'finite own method chain with same method AST',
-    0,
+    'own-chain DB-named receiver stays unknown despite a finite method AST',
+    1,
     `function link(next:any){return{go(){return next.go();}};}const end={go(){return{select(){return 1;}};}};const a=link(end);const b=link(a);b.go().select();`,
   ],
   [

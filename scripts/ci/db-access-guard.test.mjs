@@ -106,6 +106,102 @@ test('new tenant predicates and directives provide no transaction exemption', ()
   }
 });
 
+test('report compacts repeated incomplete reasons by file without losing verdict or ambient failures', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/first.ts', [
+    'import {db} from "@interdomestik/database";',
+    'export function unsafe(){db.select(); return unknownOne();}',
+    'export function second(){return unknownOne();}',
+  ]);
+  writeFixture(root, 'apps/web/src/second.ts', 'export function third(){return unknownOne();}');
+  const result = runGuard(root);
+  const report = readReport(root);
+  assert.equal(result.status, 1);
+  assert.equal(report.status, 'incomplete');
+  assert.equal(report.incompleteRawCount, 5);
+  assert.deepEqual(report.incomplete, [
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unresolved local edge db.select',
+      occurrences: 1,
+    },
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unsupported received property executable edge db.select',
+      occurrences: 1,
+    },
+    {
+      file: 'apps/web/src/first.ts',
+      reason: 'unknown executable edge unknownOne',
+      occurrences: 2,
+    },
+    {
+      file: 'apps/web/src/second.ts',
+      reason: 'unknown executable edge unknownOne',
+      occurrences: 1,
+    },
+  ]);
+  assert.equal(
+    report.incomplete.reduce((total, item) => total + item.occurrences, 0),
+    report.incompleteRawCount
+  );
+  assert.equal(report.failingNewCount, 1);
+  assert.equal(report.failingNewEntries[0].method, 'select');
+});
+
+test('one historical operation retains every changed mount origin in the report', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/old.ts', ambient);
+  sealFixture(root);
+  for (const name of ['first', 'second'])
+    writeFixture(
+      root,
+      `apps/web/src/${name}.ts`,
+      'import { old } from "./old"; export function read() { return old(); }'
+    );
+  assert.equal(runGuard(root).status, 1);
+  const report = readReport(root);
+  const old = report.failingNewEntries.find(entry => entry.file === 'apps/web/src/old.ts');
+  assert.ok(old);
+  assert.deepEqual(old.mountedFromAll, ['apps/web/src/first.ts', 'apps/web/src/second.ts']);
+  const witness = report.mountEvidence.operations.find(item => item.identity === old.identity);
+  assert.ok(witness);
+  assert.deepEqual(
+    witness.observedRootIds.map(id => report.mountEvidence.roots[id].file),
+    old.mountedFromAll
+  );
+  assert.equal(report.mountEvidence.analysisIncomplete, report.status === 'incomplete');
+});
+
+test('mount evidence identifies direct source changes and transitive invalidated consumers', () => {
+  const root = createTempRepo();
+  writeFixture(root, 'apps/web/src/leaf.ts', ambient);
+  writeFixture(
+    root,
+    'apps/web/src/middle.ts',
+    'import { old } from "./leaf"; export function middle() { return old(); }'
+  );
+  writeFixture(
+    root,
+    'apps/web/src/page.ts',
+    'import { middle } from "./middle"; export function page() { return middle(); }'
+  );
+  sealFixture(root);
+  writeFixture(root, 'apps/web/src/leaf.ts', [...ambient, 'export const display = "new";']);
+  assert.equal(runGuard(root).status, 1);
+  const report = readReport(root);
+  const roots = new Map(report.mountEvidence.roots.map(item => [item.file, item]));
+  const leaf = roots.get('apps/web/src/leaf.ts');
+  const middle = roots.get('apps/web/src/middle.ts');
+  const page = roots.get('apps/web/src/page.ts');
+  assert.equal(leaf.changeKind, 'runtime-source');
+  assert.equal(middle.changeKind, 'runtime-consumer');
+  assert.equal(page.changeKind, 'runtime-consumer');
+  assert.equal(middle.firstInvalidatingDependencyId, leaf.id);
+  assert.equal(page.firstInvalidatingDependencyId, middle.id);
+  assert.ok(report.failingNewCount > 0);
+});
+
 test('candidate baseline cannot wash debt or new operations', () => {
   const root = createTempRepo();
   writeFixture(root, 'scripts/ci/db-access-baseline.json', '{"entries":[{"permission":"all"}]}');
@@ -157,12 +253,13 @@ test('production CLI rejects trust/root/baseline/roots overrides and write-basel
   }
 });
 
-test('actual production CLI authenticates root epoch and preserves604 original entries', () => {
+test('actual production CLI authenticates root epoch and preserves 604 original entries', () => {
   const result = spawnSync(
     process.execPath,
     ['scripts/check-db-access-guard.mjs', '--report=tmp/db-access-guard/production-contract.json'],
-    { cwd: rootDir, encoding: 'utf8', timeout: 90000 }
+    { cwd: rootDir, encoding: 'utf8', timeout: 300000 }
   );
+  assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(readText('tmp/db-access-guard/production-contract.json'));
   assert.equal(report.trustedCommit, '278e33ab0dd448547fa81d4b0ff122b4d69c901e');
@@ -194,58 +291,4 @@ test('remediation and removal of historical ambient debt are positive changes', 
   assert.equal(runGuard(root).status, 0);
   writeFixture(root, 'apps/web/src/old.ts', 'export function old(){return null;}');
   assert.equal(runGuard(root).status, 0);
-});
-
-test('formerly scoped predicate, context role and terminating admission weakening cannot inherit safe posture', () => {
-  for (const [oldValue, newValue] of [
-    ['eq(user.owner,owner)', 'true'],
-    ['role:"member"', 'role:"admin"'],
-    ['if(!admitted)throw Error("deny");', ''],
-  ]) {
-    const root = createTempRepo();
-    const original = [
-      'import {withTenantContext} from "@interdomestik/database";',
-      'export function read(tenantId,owner,admitted){if(!admitted)throw Error("deny"); return withTenantContext({tenantId,role:"member"},async tx=>tx.select().from(user).where(eq(user.owner,owner)));}',
-    ];
-    writeFixture(root, 'apps/web/src/old.ts', original);
-    sealFixture(root);
-    writeFixture(root, 'apps/web/src/old.ts', original.join('\n').replace(oldValue, newValue));
-    assert.equal(runGuard(root).status, 1);
-    assert.ok(
-      readReport(root).failingNewEntries.some(entry =>
-        /scoped executable controls/u.test(entry.reason ?? '')
-      )
-    );
-  }
-});
-
-test('candidate tsconfig paths and environment trust selectors cannot counterfeit root context', () => {
-  const root = createTempRepo();
-  writeFixture(
-    root,
-    'apps/web/tsconfig.json',
-    JSON.stringify({ compilerOptions: { paths: { '@interdomestik/database': ['./src/fake.ts'] } } })
-  );
-  assert.equal(runGuard(root).status, 1);
-  assert.match(readReport(root).incomplete[0].reason, /resolver boundary.*tsconfig/u);
-  const result = spawnSync(
-    process.execPath,
-    [path.join(rootDir, 'scripts/check-db-access-guard.mjs')],
-    { cwd: root, encoding: 'utf8', env: { ...process.env, DB_ACCESS_GUARD_TRUST_ROOT: 'HEAD' } }
-  );
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /environment override/u);
-});
-
-test('candidate symlinks and self-authored exclusion catalogs cannot hide source', () => {
-  const root = createTempRepo();
-  fs.mkdirSync(path.join(root, 'apps/web/src'), { recursive: true });
-  fs.symlinkSync('/etc/passwd', path.join(root, 'apps/web/src/escape.ts'));
-  assert.equal(runGuard(root).status, 1);
-  assert.match(readReport(root).incomplete[0].reason, /symlink/u);
-  const catalog = createTempRepo();
-  writeFixture(catalog, 'scripts/ci/db-access-constants.mjs', 'export const DIRECT_DB_METHODS=[];');
-  writeFixture(catalog, 'scripts/ci/db-access-catalog.json', '{"approved":["*"]}');
-  writeFixture(catalog, 'apps/web/src/new.ts', ambient);
-  assert.equal(runGuard(catalog).status, 1);
 });

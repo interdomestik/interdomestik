@@ -40,9 +40,9 @@ for (const reached of [false, true])
 const context = 'import {db,withTenantContext} from "@interdomestik/database";';
 for (const [label, source, expected] of [
   [
-    'finite same-AST distinct closure frames',
+    'finite same-AST distinct closure frames keep a DB-named receiver unknown',
     'function lift(next:any){return()=>next();}function leaf(){return{select(){return 1;}};}const a=lift(leaf);const b=lift(a);b().select();',
-    0,
+    1,
   ],
   [
     'unknown sibling remains unknown',
@@ -70,6 +70,11 @@ for (const [label, source, expected] of [
       assert.equal(report.status, 'pass');
       assert.deepEqual(report.incomplete, []);
     }
+    if (label.includes('finite same-AST'))
+      assert.ok(
+        !report.incomplete.some(item => /recursive|bound|cycle/u.test(item.reason)),
+        JSON.stringify(report)
+      );
     if (label.includes('transaction'))
       assert.ok(
         report.newEntries.some(

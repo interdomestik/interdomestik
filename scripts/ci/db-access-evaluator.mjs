@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import ts from 'typescript';
 import { ADOPTION } from './db-access-adoption.mjs';
 import {
   authenticateSnapshot,
@@ -13,51 +12,86 @@ import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
 import { inspectChangedEdges } from './db-access-graph.mjs';
-import { isErasedTypeEdge } from './db-access-module-edges.mjs';
+import { writeGuardReport } from './db-access-report.mjs';
+import { analyzeModuleTargets, rootDiagnostics } from './db-access-root-diagnostics.mjs';
 
 const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
   Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('_')));
 
-function invalidateConsumers(model, inventory) {
-  let changed = true;
-  const imports = new Map();
-  for (const [file, sf] of model.parsed) {
-    const dependencies = new Set();
-    model.walk(sf, node => {
-      if (
-        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-        node.moduleSpecifier &&
-        ts.isStringLiteral(node.moduleSpecifier)
-      ) {
-        const target = model.moduleFile(node.moduleSpecifier.text, file);
-        if (target && !isErasedTypeEdge(node)) dependencies.add(target);
-      }
-      if (
-        ts.isCallExpression(node) &&
-        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-        ts.isStringLiteral(node.arguments[0])
-      ) {
-        const target = model.moduleFile(node.arguments[0].text, file);
-        if (target) dependencies.add(target);
-      }
-    });
-    imports.set(file, dependencies);
+function compactIncomplete(items) {
+  const firstByKey = new Map();
+  const compact = [];
+  for (const item of items) {
+    const key = JSON.stringify([item.file, item.reason]);
+    const prior = firstByKey.get(key);
+    if (prior) {
+      prior.occurrences += 1;
+    } else {
+      const first = { ...item, occurrences: 1 };
+      firstByKey.set(key, first);
+      compact.push(first);
+    }
   }
+  return compact;
+}
+
+function invalidateConsumers(dependenciesByFile, inventory) {
+  let changed = true;
+  const firstInvalidatingDependency = new Map();
   while (changed) {
     changed = false;
-    for (const [file, dependencies] of imports) {
-      if (
-        !inventory.changed.has(file) &&
-        [...dependencies].some(target => inventory.changed.has(target))
-      ) {
+    for (const [file, dependencies] of dependenciesByFile) {
+      const witness = !inventory.changed.has(file)
+        ? [...dependencies].find(target => inventory.changed.has(target))
+        : undefined;
+      if (witness) {
         inventory.changed.add(file);
+        firstInvalidatingDependency.set(file, witness);
         changed = true;
       }
     }
   }
   for (const entry of inventory.entries)
     if (inventory.changed.has(entry.file)) entry.historicalDebt = false;
+  return firstInvalidatingDependency;
+}
+
+function mountEvidence(directChanges, firstInvalidatingDependency, graph, incomplete) {
+  const paths = new Set([...directChanges, ...firstInvalidatingDependency.keys()]);
+  for (const failure of graph.failures) paths.add(failure.mountedFrom);
+  const files = [...paths].sort((left, right) => {
+    if (left < right) return -1;
+    if (left > right) return 1;
+    return 0;
+  });
+  const ids = new Map(files.map((file, id) => [file, id]));
+  const roots = files.map((file, id) => {
+    const dependency = firstInvalidatingDependency.get(file);
+    return {
+      id,
+      file,
+      changeKind: directChanges.has(file) ? 'runtime-source' : 'runtime-consumer',
+      ...(dependency ? { firstInvalidatingDependencyId: ids.get(dependency) } : {}),
+    };
+  });
+  const operations = new Map();
+  for (const failure of graph.failures) {
+    const rootsForOperation = operations.get(failure.identity) ?? new Set();
+    rootsForOperation.add(ids.get(failure.mountedFrom));
+    operations.set(failure.identity, rootsForOperation);
+  }
+  return {
+    version: 1,
+    analysisIncomplete: incomplete,
+    roots,
+    operations: [...operations]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([identity, observedRootIds]) => ({
+        identity,
+        observedRootIds: [...observedRootIds].sort((left, right) => left - right),
+      })),
+  };
 }
 
 // Test harness may supply a real pinned fixture epoch; no CLI option exposes it.
@@ -80,8 +114,12 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const model = createSourceModel(sources, trusted);
   const provenance = createProvenance(model);
   const inventory = collectInventory(model, provenance, trusted);
-  invalidateConsumers(model, inventory);
+  const directChanges = new Set(inventory.changed);
+  const moduleTargets = analyzeModuleTargets(model);
+  const firstInvalidatingDependency = invalidateConsumers(moduleTargets.dependencies, inventory);
   const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical);
+  // A test filename never exempts an inventoried operation, so DB-looking mocks stay unsafe
+  // until separately source-proved precision exists.
   const newEntries = inventory.entries.filter(entry => !entry.historicalDebt);
   // A transaction proves connection context, not equivalent owner/role/admission controls.
   // Existing scoped files are immutable at executable granularity in this epoch;
@@ -97,9 +135,17 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     );
   }
   const changedScopedControls = newEntries.filter(entry => priorScoped.has(entry.file));
+  // A single operation may be reached from several changed roots. Keep every witness in the
+  // diagnostic report even though the verdict counts the operation identity only once.
+  const mountsByIdentity = new Map();
+  for (const entry of graph.failures) {
+    const mounts = mountsByIdentity.get(entry.identity) ?? new Set();
+    mounts.add(entry.mountedFrom);
+    mountsByIdentity.set(entry.identity, mounts);
+  }
   const failures = new Map();
   for (const entry of [
-    ...newEntries.filter(isUnsafe),
+    ...newEntries.filter(entry => isUnsafe(entry)),
     ...graph.failures,
     ...changedScopedControls.map(entry => ({
       ...entry,
@@ -107,7 +153,12 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     })),
   ])
     failures.set(entry.identity, entry);
-  const failingNewEntries = [...failures.values()].map(publicEntry);
+  const failingNewEntries = [...failures.values()].map(entry => {
+    const publicFailure = publicEntry(entry);
+    const mounts = mountsByIdentity.get(entry.identity);
+    if (mounts) publicFailure.mountedFromAll = [...mounts];
+    return publicFailure;
+  });
   const counts = {};
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
@@ -125,7 +176,15 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     failingNewCount: failingNewEntries.length,
     newEntries: newEntries.map(publicEntry),
     failingNewEntries,
-    incomplete: graph.incomplete,
+    mountEvidence: mountEvidence(
+      directChanges,
+      firstInvalidatingDependency,
+      graph,
+      graph.incomplete.length > 0
+    ),
+    rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
+    incomplete: compactIncomplete(graph.incomplete),
+    incompleteRawCount: graph.incomplete.length,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
     limits: [
@@ -176,7 +235,12 @@ export function runGuardCli({ repoRoot, argv = [], adoption = ADOPTION }) {
   if (fs.existsSync(output) && fs.lstatSync(output).isSymbolicLink())
     throw new Error('incomplete: report file symlink');
   fs.mkdirSync(path.dirname(output), { recursive: true });
-  fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
+  try {
+    report = writeGuardReport(output, report, adoption);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
   if (report.status === 'pass')
     console.log(
       `DB access guard passed: ${report.scannedCount} operations; historical baseline ${report.baselineCount}.`
