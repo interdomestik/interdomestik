@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { testOnlySource } from './db-access-graph.mjs';
 import {
   createTempRepo,
   readReport,
@@ -38,6 +39,53 @@ function rejectedTestOnly(file, lines, extra = {}) {
   return report;
 }
 const testOnlyFile = file => /\.test(?:-support)?\.ts$/u.test(file);
+
+// Frozen copy of the original single-regex recognizer; testOnlySource must match it exactly.
+const frozenTestOnlySource = file =>
+  /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)[^/]*(?:[.-]fixture|[.-]test-support|[.-]test-helpers)\.[cm]?[jt]sx?$/u.test(
+    file
+  );
+
+test('testOnlySource split recognizers match the frozen original regex', () => {
+  const dirs = ['', 'a/', 'apps/web/src/', '__tests__/', 'x__tests__/', 'a/__tests__/'];
+  const stems = [
+    'x',
+    'x.test',
+    'x.spec',
+    'x-test',
+    'x.tests',
+    'x.fixture',
+    'x-fixture',
+    'x_fixture',
+    'xfixture',
+    '.fixture',
+    '-fixture',
+    'x.test-support',
+    'x-test-support',
+    'x.test-helpers',
+    'x-test-helpers',
+    'x.test-helper',
+    'x.fixtures',
+    'x.fixture.d',
+    'x.test.fixture',
+    'fixture',
+    'test-support',
+    'x.test/support',
+    'x.fixture/y',
+  ];
+  const extensions = ['', '.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
+  extensions.push('.json', '.mtsx', '.tsx.map', '.ts\n');
+  let matched = 0;
+  for (const dir of dirs)
+    for (const stem of stems)
+      for (const extension of extensions) {
+        const file = `${dir}${stem}${extension}`;
+        const expected = frozenTestOnlySource(file);
+        if (expected) matched += 1;
+        assert.equal(testOnlySource(file), expected, JSON.stringify(file));
+      }
+  assert.ok(matched > 50, `parity corpus must include matching paths, got ${matched}`);
+});
 
 test('benign changed mock-heavy test module is not a product root', () => {
   const { result, report } = scan(mockHeavy, 'apps/web/src/actions/claims.test.ts');

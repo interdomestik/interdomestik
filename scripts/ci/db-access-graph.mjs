@@ -8,10 +8,22 @@ import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
 // Test modules remain in the source model and are traversed when production imports them.
 // Their own test runner entry points are not product entry points.
+// The three recognizers are kept as separate simple checks; together they match exactly the
+// original single alternation. The support suffix is tested on the final path segment's stem.
+const TEST_DIRECTORY = /(?:^|\/)__tests__\//u;
+const TEST_SUFFIX = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
+const SOURCE_EXTENSION = /\.[cm]?[jt]sx?$/u;
+const SUPPORT_STEM = /[.-](?:fixture|test-support|test-helpers)$/u;
+
+function testSupportSource(file) {
+  const base = file.slice(file.lastIndexOf('/') + 1);
+  const extension = SOURCE_EXTENSION.exec(base);
+  if (!extension) return false;
+  return SUPPORT_STEM.test(base.slice(0, extension.index));
+}
+
 export const testOnlySource = file =>
-  /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)[^/]*(?:[.-]fixture|[.-]test-support|[.-]test-helpers)\.[cm]?[jt]sx?$/u.test(
-    file
-  );
+  TEST_DIRECTORY.test(file) || TEST_SUFFIX.test(file) || testSupportSource(file);
 
 export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
   const failures = [];
