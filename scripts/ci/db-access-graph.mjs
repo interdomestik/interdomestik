@@ -229,6 +229,35 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     if (isFunction(owner)) for (const parameter of owner.parameters) visit(parameter);
     visit(isFunction(owner) ? owner.body : owner);
   }
+  // A changed test module is not a product root: its mock-heavy executable edges are not walked,
+  // and production importers (including invalidated consumers) still traverse it above. Its own
+  // invoked operations on an ambient client are real queries and fail without graph traversal.
+  // A mere reference such as vi.mocked(db.select) executes nothing.
+  const ambientQuery = node => {
+    if (!ts.isPropertyAccessExpression(node)) return false;
+    if (!['db', 'dbRls', 'dbAdmin'].includes(provenance.clientIdentity(node.expression)))
+      return false;
+    let callee = node;
+    while (
+      (ts.isPropertyAccessExpression(callee.parent) && callee.parent.expression === callee) ||
+      ts.isParenthesizedExpression(callee.parent) ||
+      ts.isNonNullExpression(callee.parent)
+    )
+      callee = callee.parent;
+    return ts.isCallExpression(callee.parent) && callee.parent.expression === callee;
+  };
+  for (const entry of inventory.entries)
+    if (
+      testOnlySource(entry.file) &&
+      inventory.changed.has(entry.file) &&
+      isUnsafe(entry) &&
+      ambientQuery(entry._node)
+    )
+      failures.push({
+        ...entry,
+        mountedFrom: entry.file,
+        reason: entry.reason ?? 'changed test module reaches ambient operation',
+      });
   for (const file of inventory.changed) {
     if (testOnlySource(file)) continue;
     const sf = model.parsed.get(file);

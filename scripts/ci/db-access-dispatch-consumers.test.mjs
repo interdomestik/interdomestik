@@ -131,16 +131,25 @@ const negatives = [
 ];
 for (const [label, body] of negatives)
   test(`authenticated failclosed: ${label}`, () => rejected(`${tenant}${body}`));
-test('unknown caller in hidden test filename remains fully scanned', () => {
-  const report = rejected(
-    `${tenant}import {getClient} from 'external-library';function read(x:any){return x.select();}const local={select(){return 1;}};read(local);read(getClient());`,
-    'apps/web/src/hidden.test.ts'
-  );
+test('unknown caller in hidden test filename is inventoried and fails closed once production mounts it', () => {
+  const hidden = `${tenant}import {getClient} from 'external-library';function read(x:any){return x.select();}const local={select(){return 1;}};read(local);read(getClient());`;
+  // A test runner file is not a product root; its unknown receivers are diagnostics only.
+  const { root, report } = scan(hidden, 'apps/web/src/hidden.test.ts');
   assert.ok(
     report.newEntries.some(
       item => item.callee === 'x.select' && item.tenantPosture === 'unclassified'
     )
   );
+  assert.deepEqual(report.incomplete, []);
+  writeFixture(root, 'apps/web/src/app/page.tsx', [
+    'import "../hidden.test";',
+    'export default function Page(){return null;}',
+  ]);
+  const result = runGuard(root);
+  const mounted = readReport(root);
+  assert.equal(result.status, 1, JSON.stringify(mounted));
+  assert.notEqual(mounted.status, 'pass');
+  assert.ok(mounted.incomplete.some(item => item.file === 'apps/web/src/app/page.tsx'));
 });
 for (const ambient of [false, true])
   test(`authenticated direct source import keeps mutable DB-named local method unknown (ambient=${ambient})`, () => {
