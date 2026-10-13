@@ -6,6 +6,7 @@ import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 import { createIncompleteCollector } from './db-access-incomplete.mjs';
+import { createGraphProvenance } from './db-access-graph-provenance.mjs';
 
 // Test-named modules are ordinary graph roots when changed and are traversed when production
 // imports them. The recognizer only labels production-to-test witnesses; it grants no exemption.
@@ -41,6 +42,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     byOwner.set(entry._owner, list);
   }
   const references = createReferences(model, provenance);
+  const forContext = createGraphProvenance(provenance);
   const targets = expression => references.resolve(expression).functions;
   const externalImport = expression => model.externalBinding(expression);
   const localImport = references.localImport;
@@ -74,7 +76,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       return;
     }
     stack = new Map(stack).set(owner, new Set(stack.get(owner) ?? []).add(frame));
-    const scoped = provenance.forContext?.(context) ?? provenance;
+    const scoped = forContext(context);
     for (const entry of byOwner.get(owner) ?? []) {
       if (entry._incomplete) incomplete.push({ file: origin, reason: entry.reason });
       else if (isUnsafe(entry))

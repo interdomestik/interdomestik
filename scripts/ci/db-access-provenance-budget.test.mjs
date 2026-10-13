@@ -4,6 +4,8 @@ import ts from 'typescript';
 import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { createIncompleteCollector } from './db-access-incomplete.mjs';
+import { collectInventory } from './db-access-inventory.mjs';
+import { inspectChangedEdges } from './db-access-graph.mjs';
 import { CANONICAL_FILES, graphProbe } from './db-access-graph-jsx-fixture.mjs';
 import {
   createTempRepo,
@@ -169,4 +171,26 @@ test('graph compacts identical diagnostics when emitted and preserves their raw 
   assert.equal(result.incomplete[0].occurrences, 2 * count);
   assert.equal(result.incompleteRawCount, 2 * count);
   assert.deepEqual(result.reasons, { 'unknown executable edge unknownOne': 2 * count });
+});
+
+test('graph reports fuel exhausted after its initial analysis snapshot', () => {
+  const file = 'apps/web/src/late.ts';
+  const trusted = new Map(CANONICAL_FILES);
+  const sources = new Map(trusted).set(file, `opaque(() => { ${'0;'.repeat(65536)} });`);
+  const model = createSourceModel(sources, trusted);
+  const provenance = createProvenance(model);
+  const inventory = collectInventory(model, provenance, trusted);
+  assert.equal(provenance.analysisUnknown.size, 0);
+  assert.equal(inventory.entries.length, 0);
+  const graph = inspectChangedEdges(model, provenance, inventory);
+  assert.ok(provenance.analysisUnknown.has(BOUND_REASON));
+  assert.deepEqual(
+    graph.incomplete.filter(item => item.reason === BOUND_REASON),
+    [{ file: '<analysis>', reason: BOUND_REASON, occurrences: 1 }]
+  );
+  assert.ok(
+    graph.incomplete.some(
+      item => item.reason === 'unsupported mutated or bounded handle argument to unresolved callee'
+    )
+  );
 });
