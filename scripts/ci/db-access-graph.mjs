@@ -6,12 +6,19 @@ import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 
+// Test modules remain in the source model and are traversed when production imports them.
+// Their own test runner entry points are not product entry points.
+export const testOnlySource = file =>
+  /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?[jt]sx?$|(?:^|\/)[^/]*(?:[.-]fixture|[.-]test-support|[.-]test-helpers)\.[cm]?[jt]sx?$/u.test(
+    file
+  );
+
 export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
   const failures = [];
-  const incomplete = [...provenance.environmentChanges].map(file => ({
-    file,
-    reason: 'unsupported mutable global environment root',
-  }));
+  const reachedTestSources = new Set();
+  const incomplete = [...provenance.environmentChanges]
+    .filter(file => !testOnlySource(file))
+    .map(file => ({ file, reason: 'unsupported mutable global environment root' }));
   for (const reason of provenance.analysisUnknown ?? [])
     incomplete.push({ file: '<analysis>', reason });
   const byOwner = new Map();
@@ -40,6 +47,8 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
   // Every caller passes stack and depth; each outer root starts with a fresh Map and depth 0.
   function inspect(owner, origin, stack, depth, invocation, context, definingContext) {
     if (inspectDispatchContexts(owner, origin, stack, depth, context)) return;
+    const ownerFile = model.fileOf(owner);
+    if (testOnlySource(ownerFile) && !testOnlySource(origin)) reachedTestSources.add(ownerFile);
     const frame = definingContext ?? context;
     if (stack.get(owner)?.has(frame)) {
       incomplete.push({ file: origin, reason: 'recursive executable edge' });
@@ -72,6 +81,8 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       if (!target || target.parseDiagnostics.length) {
         incomplete.push({ file: origin, reason: `unresolved module initialization ${name}` });
       } else {
+        if (testOnlySource(file) && provenance.environmentChanges.has(file))
+          incomplete.push({ file: origin, reason: 'unsupported mutable global environment root' });
         const visited = initialized.get(origin) ?? new Set();
         if (visited.has(file)) return; // ES module cycles initialize each module once.
         visited.add(file);
@@ -219,6 +230,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     visit(isFunction(owner) ? owner.body : owner);
   }
   for (const file of inventory.changed) {
+    if (testOnlySource(file)) continue;
     const sf = model.parsed.get(file);
     if (sf.parseDiagnostics.length) {
       incomplete.push({ file, reason: 'parse diagnostics in changed source' });
@@ -244,5 +256,5 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
       if (isFunction(node)) inspect(node, file, new Map(), 0);
     });
   }
-  return { failures, incomplete };
+  return { failures, incomplete, reachedTestSources };
 }

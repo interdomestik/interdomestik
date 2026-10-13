@@ -172,15 +172,16 @@ test('authenticated unchanged canonical/ambient/unknown/lifetime statuses remain
   }
 });
 
-test('Stage3B promotes only fully covered mixed canonical and local caller alternatives', () => {
+test('mixed canonical and local caller alternatives remain rejected without receiver proof', () => {
   const source =
     'import {withTenantContext} from "@interdomestik/database"; function read(x){return x.select();} export function run(){withTenantContext({},tx=>read(tx));return read({select(){return 1;}});}';
   const { result, report } = scan(source);
-  assert.equal(result.status, 0, JSON.stringify(report));
-  assert.equal(report.status, 'pass');
+  assert.equal(result.status, 1, JSON.stringify(report));
+  assert.equal(report.status, 'fail');
   assert.deepEqual(report.incomplete, []);
   const entry = report.newEntries.find(item => item.callee === 'x.select');
   assert.ok(entry, JSON.stringify(report));
+  assert.ok(report.failingNewEntries.some(item => item.callee === 'x.select'));
   assert.equal(entry.tenantPosture, 'covered-dispatch-alternatives');
   assert.notEqual(entry.tenantPosture, 'tenant-context');
   assert.deepEqual(

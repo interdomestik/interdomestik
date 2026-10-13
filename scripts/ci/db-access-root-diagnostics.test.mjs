@@ -262,8 +262,8 @@ test('test-like filenames only add diagnostics and never demote an existing guar
       status: report.status,
       exit: result.status,
       failingNewCount: report.failingNewCount,
-      incompleteRawCount: report.incompleteRawCount,
     });
+    assert.ok(report.incompleteRawCount > 0);
     assert.equal(report.rootDiagnostics.testConsumerRoots.length, expectedDiagnostic ? 1 : 0);
   }
 

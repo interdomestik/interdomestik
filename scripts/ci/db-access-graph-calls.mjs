@@ -3,6 +3,7 @@ import { dispatchCoverage } from './db-access-coverage.mjs';
 import { inspectCallChannels } from './db-access-channels.mjs';
 import { externalValue } from './db-access-external.mjs';
 import { BUILTIN_CALLS } from './db-access-references.mjs';
+import { classifyReceiver, PROVEN_NON_DB_RECEIVER } from './db-access-receiver.mjs';
 import { isFunction, unwrap } from './db-access-source.mjs';
 
 const DYNAMIC_LOADERS = ['eval', 'Function', 'require', 'createRequire'];
@@ -128,7 +129,7 @@ function forwardedArgumentDiagnostic({ model, scoped, node, origin, incomplete }
 // Phases run in their original order, so every inspect call and incomplete push keeps its place.
 export function inspectGraphCall(params) {
   const { model, scoped, references, context, node, origin, stack, depth, invocation } = params;
-  const { inspect, incomplete, moduleEffect, targets } = params;
+  const { inspect, incomplete, moduleEffect, targets, visit } = params;
   const callee = unwrap(node.expression);
   // Source-local dispatch never overrides the existing dynamic-loader prohibition.
   if (DYNAMIC_LOADERS.includes(callee.getText().split('.').at(-1)))
@@ -136,6 +137,17 @@ export function inspectGraphCall(params) {
   const coverage = dispatchCoverage(scoped, node, context);
   inspectAlternativeBodies(params, coverage);
   if (coverage.covered) return inspectCoveredCall(params, coverage);
+  if (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'delete' &&
+    !scoped.isMutated(callee) &&
+    classifyReceiver(model, scoped, callee.expression) === PROVEN_NON_DB_RECEIVER &&
+    node.arguments.every(arg => scoped.tenantHandle(arg) === false)
+  ) {
+    visit(callee.expression);
+    for (const arg of node.arguments) visit(arg);
+    return true;
+  }
   const resolved = references.resolve(node.expression);
   calleeDiagnostics(params, callee, resolved);
   if (node.expression.kind === ts.SyntaxKind.ImportKeyword && ts.isStringLiteral(node.arguments[0]))
