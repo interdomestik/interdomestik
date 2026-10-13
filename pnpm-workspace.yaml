@@ -17,7 +17,7 @@ overrides:
   fast-xml-parser: 5.7.0
   kysely: 0.28.17
   qs: ^6.16.0
-  basic-ftp: 5.3.1
+  basic-ftp: 6.2.3
   bn.js: ^4.12.3
   ajv@^6.12.4: 6.14.0
   lodash: ^4.18.1
@@ -27,9 +27,9 @@ overrides:
   '@isaacs/brace-expansion': ^5.0.1
   brace-expansion: 5.0.12
   cross-spawn: ^7.0.6
-  fast-uri: 3.1.7
+  fast-uri: 3.1.8
   sharp: 0.35.5
-  handlebars: 4.7.9
+  handlebars: 4.7.10
   minimatch: '>=10.2.3'
   esbuild: '>=0.28.1'
   '@modelcontextprotocol/sdk': 1.31.0
@@ -51,11 +51,11 @@ overrides:
   picomatch@>=4.0.0 <4.0.4: 4.0.4
   protobufjs: 7.6.5
   ws: 8.21.0
-  smol-toml: 1.7.1
+  smol-toml: 1.9.0
   yaml@>=2.0.0 <2.8.3: 2.8.3
-  ip-address: 10.3.1
+  ip-address: 10.7.4
   shell-quote: 1.8.4
-  dompurify: 3.4.13
+  dompurify: 3.4.17
   '@babel/core': 7.29.7
   '@opentelemetry/core': 2.8.0
   '@opentelemetry/auto-instrumentations-node': 0.75.0
