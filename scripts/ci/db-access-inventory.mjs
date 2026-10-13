@@ -15,7 +15,11 @@ export const DIRECT_DB_METHODS = [
 ];
 import { digest } from './db-access-trust.mjs';
 import { ownerOf, runtimeFingerprint, unwrap } from './db-access-source.mjs';
-import { classifyReceiver, PROVEN_DB_RECEIVER } from './db-access-receiver.mjs';
+import {
+  classifyReceiver,
+  PROVEN_DB_RECEIVER,
+  PROVEN_NON_DB_RECEIVER,
+} from './db-access-receiver.mjs';
 
 const COVERED_TEXT =
   'covered alternatives on a proven DB receiver; every local body remains inspected';
@@ -117,6 +121,14 @@ export function collectInventory(model, provenance, trustedSources) {
       const receiverKind = canReportCoverage
         ? classifyReceiver(model, provenance, node.expression, coverage)
         : undefined;
+      if (
+        property &&
+        invoked &&
+        method === 'delete' &&
+        !provenance.isMutated(node) &&
+        receiverKind === PROVEN_NON_DB_RECEIVER
+      )
+        return;
       // Coverage records which bodies must be traversed. It is reportable only after independent
       // DB receiver proof and never upgrades an unknown/source-local receiver to safe.
       const effectiveCoverage =
