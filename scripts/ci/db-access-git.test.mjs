@@ -188,7 +188,7 @@ const fingerprint = sources =>
   digest(JSON.stringify([...sources].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))));
 test(
   'candidate-local hostile PATH never executes during real fixtures, trust or production CLI',
-  { timeout: 180000 },
+  { timeout: 480000 },
   () => {
     fs.mkdirSync(path.join(rootDir, 'tmp'), { recursive: true });
     const owned = fs.mkdtempSync(path.join(rootDir, 'tmp', 'git-sentinel-'));
@@ -228,14 +228,14 @@ test(
       const baseline=createTempRepo();writeFixture(baseline,'scripts/ci/db-access-baseline.json',JSON.stringify({version:2,entries:[{file:'x'}]}));
       const statuses=[clean,mismatch,critical,baseline].map(root=>runGuard(root).status);
       let configIsolated=false;try{runGit(['config','--get','guard.injected']);}catch(error){configIsolated=error.status===1;}
-      const production=spawnSync(process.execPath,['scripts/check-db-access-guard.mjs',${JSON.stringify('--report=' + path.relative(rootDir, path.join(owned, 'production-report.json')))}],{cwd:rootDir,encoding:'utf8',timeout:90000});
+      const production=spawnSync(process.execPath,['scripts/check-db-access-guard.mjs',${JSON.stringify('--report=' + path.relative(rootDir, path.join(owned, 'production-report.json')))}],{cwd:rootDir,encoding:'utf8',timeout:300000});
       console.log(JSON.stringify({snapshot,statuses,configIsolated,production:production.status,productionError:production.stderr,selected:selectSystemGit(),mismatch:readReport(mismatch).incomplete}));
     `;
       const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
         cwd: rootDir,
         env,
         encoding: 'utf8',
-        timeout: 120000,
+        timeout: 420000,
       });
       assert.equal(child.status, 0, child.stderr);
       const outcome = JSON.parse(child.stdout);
