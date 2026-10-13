@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { test } from 'node:test';
+import { before, test } from 'node:test';
 import { createGraphProvenance } from './db-access-graph-provenance.mjs';
 import { createProvenanceBudget } from './db-access-provenance-budget.mjs';
 import { createSourceModel } from './db-access-source.mjs';
@@ -19,20 +19,23 @@ import {
 const graphUrl = new URL('./db-access-graph.mjs', import.meta.url);
 const graphSource = fs.readFileSync(graphUrl, 'utf8');
 const memoLine = 'const forContext = createGraphProvenance(provenance);';
-assert.equal(graphSource.split(memoLine).length, 2);
-const uncachedSource = graphSource
-  .replace(
-    memoLine,
-    'const forContext = context => provenance.forContext?.(context) ?? provenance;'
-  )
-  .replace(
-    /from '([^']+)'/gu,
-    (_, name) =>
-      `from '${name.startsWith('.') ? new URL(name, graphUrl).href : import.meta.resolve(name)}'`
-  );
-const { inspectChangedEdges: inspectUncached } = await import(
-  `data:text/javascript,${encodeURIComponent(uncachedSource)}`
-);
+let inspectUncached;
+before(async () => {
+  assert.equal(graphSource.split(memoLine).length, 2);
+  const uncachedSource = graphSource
+    .replace(
+      memoLine,
+      'const forContext = context => provenance.forContext?.(context) ?? provenance;'
+    )
+    .replace(
+      /from '([^']+)'/gu,
+      (_, name) =>
+        `from '${name.startsWith('.') ? new URL(name, graphUrl).href : import.meta.resolve(name)}'`
+    );
+  ({ inspectChangedEdges: inspectUncached } = await import(
+    `data:text/javascript,${encodeURIComponent(uncachedSource)}`
+  ));
+});
 
 function probe(inspect, chain, page, extra = []) {
   const trusted = new Map([...CANONICAL_FILES, [CHAIN, chain]]);
