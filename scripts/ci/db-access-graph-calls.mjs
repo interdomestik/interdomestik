@@ -3,6 +3,7 @@ import { dispatchCoverage } from './db-access-coverage.mjs';
 import { inspectCallChannels } from './db-access-channels.mjs';
 import { externalValue } from './db-access-external.mjs';
 import { BUILTIN_CALLS } from './db-access-references.mjs';
+import { classifyReceiver, PROVEN_NON_DB_RECEIVER } from './db-access-receiver.mjs';
 import { isFunction, unwrap } from './db-access-source.mjs';
 
 const DYNAMIC_LOADERS = ['eval', 'Function', 'require', 'createRequire'];
@@ -127,8 +128,8 @@ function forwardedArgumentDiagnostic({ model, scoped, node, origin, incomplete }
 // Returning true only means its syntax children were visited here, never that the call is safe.
 // Phases run in their original order, so every inspect call and incomplete push keeps its place.
 export function inspectGraphCall(params) {
-  const { model, scoped, references, context, node, origin, stack, depth, invocation } = params;
-  const { inspect, incomplete, moduleEffect, targets } = params;
+  const { model, scoped, references, context, node, origin, invocation } = params;
+  const { incomplete, moduleEffect, visit } = params;
   const callee = unwrap(node.expression);
   // Source-local dispatch never overrides the existing dynamic-loader prohibition.
   if (DYNAMIC_LOADERS.includes(callee.getText().split('.').at(-1)))
@@ -136,6 +137,17 @@ export function inspectGraphCall(params) {
   const coverage = dispatchCoverage(scoped, node, context);
   inspectAlternativeBodies(params, coverage);
   if (coverage.covered) return inspectCoveredCall(params, coverage);
+  if (
+    ts.isPropertyAccessExpression(callee) &&
+    callee.name.text === 'delete' &&
+    !scoped.isMutated(callee) &&
+    classifyReceiver(model, scoped, callee.expression) === PROVEN_NON_DB_RECEIVER &&
+    node.arguments.every(arg => scoped.tenantHandle(arg) === false)
+  ) {
+    visit(callee.expression);
+    for (const arg of node.arguments) visit(arg);
+    return true;
+  }
   const resolved = references.resolve(node.expression);
   calleeDiagnostics(params, callee, resolved);
   if (node.expression.kind === ts.SyntaxKind.ImportKeyword && ts.isStringLiteral(node.arguments[0]))
@@ -148,10 +160,7 @@ export function inspectGraphCall(params) {
     incomplete.push({ file: origin, reason: 'nonliteral dynamic import' });
     return true;
   }
-  const calledTargets = targets(node.expression);
-  const called = calledTargets.length > 0;
-  if (called) for (const fn of calledTargets) inspect(fn, origin, stack, depth + 1, node);
-  else unresolvedEdgeDiagnostic(params);
+  const called = inspectCalledTargets(params);
   for (const arg of node.arguments) {
     inspectArgumentCallback(params, arg);
     forwardedArgumentDiagnostic(params, arg, called);
@@ -165,4 +174,17 @@ export function inspectGraphCall(params) {
       incomplete
     );
   return false;
+}
+
+// Inspects each resolved target in order with the call as invocation, else reports the
+// unresolved edge. Returns whether any target was resolved.
+function inspectCalledTargets(params) {
+  const { node, origin, stack, depth, inspect, targets } = params;
+  const calledTargets = targets(node.expression);
+  if (calledTargets.length === 0) {
+    unresolvedEdgeDiagnostic(params);
+    return false;
+  }
+  for (const fn of calledTargets) inspect(fn, origin, stack, depth + 1, node);
+  return true;
 }

@@ -39,8 +39,8 @@ jobs:
           expected_repo='interdomestik/interdomestik'
           expected_branch='main'
           # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
-          source_commit='a26858a8a8c7bf62300b0612cd75318004464b61'
-          source_tree='471ef36dd14207c5155b669d6dfba6ea5ac5e3c2'
+          source_commit='00db888daf34c952abf107a92481f81a34bfb032'
+          source_tree='d7ccd6f3ca1e9afd47d08e27400abad2a5ad2559'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"

@@ -77,8 +77,12 @@ export function graphProbe(chain, page, chainFile = CHAIN, extra = []) {
     changed: [...inventory.changed],
     failures: graph.failures,
     incomplete: graph.incomplete,
+    incompleteRawCount: graph.incompleteRawCount,
     reaches: tally(graph.failures.map(item => item.callee)),
-    reasons: tally(graph.incomplete.map(item => item.reason)),
+    reasons: graph.incomplete.reduce((counts, item) => {
+      counts[item.reason] = (counts[item.reason] ?? 0) + item.occurrences;
+      return counts;
+    }, {}),
     entries: inventory.entries.map(({ file, callee, tenantPosture }) => ({
       file,
       callee,

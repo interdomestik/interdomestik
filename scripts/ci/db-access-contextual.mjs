@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { isFunction, unwrap } from './db-access-source.mjs';
 import { trustedSchemaColumn } from './db-access-external.mjs';
 import { ownReturns } from './db-access-invocation-shapes.mjs';
+import { createProvenanceBudget } from './db-access-provenance-budget.mjs';
 
 const UNKNOWN = 'unknown';
 // Every public root call gets a fresh budget object; its recursive helpers share that object.
@@ -29,11 +30,17 @@ function enter(node, context, seen) {
   next.set(node, new Set(contexts).add(context));
   return next;
 }
-export function createContextualProvenance(model, legacy, dispatch) {
+export function createContextualProvenance(
+  model,
+  legacy,
+  dispatch,
+  work = createProvenanceBudget(legacy.analysisUnknown)
+) {
   function binding(parameter, context) {
     return context && dispatch.bindingsFor(context)?.find(item => item.parameter === parameter);
   }
   function value(raw, context, seen = new Map()) {
+    if (!work.enter()) return UNKNOWN;
     if (dispatch.isBuilding()) return legacy.provenance(raw);
     const node = unwrap(raw);
     if (!node || legacy.isMutated(node)) return UNKNOWN;
@@ -76,6 +83,7 @@ export function createContextualProvenance(model, legacy, dispatch) {
     return UNKNOWN;
   }
   function property(raw, key, context, seen) {
+    if (!work.enter()) return UNKNOWN;
     const node = unwrap(raw);
     if (!node || legacy.isMutated(node)) return UNKNOWN;
     seen = enter(node, context, seen);
@@ -106,6 +114,7 @@ export function createContextualProvenance(model, legacy, dispatch) {
   function captureHandles(fn, context, seen, budget) {
     const captures = [];
     model.walk(fn.body, part => {
+      if (!work.enter()) return;
       if (!ts.isIdentifier(part)) return;
       const parent = part.parent;
       if (
@@ -216,6 +225,7 @@ export function createContextualProvenance(model, legacy, dispatch) {
     const node = unwrap(raw);
     if (!node) return false;
     if (--budget.remaining < 0) return UNKNOWN;
+    if (work.exhausted) return UNKNOWN;
     if (seen.get(node)?.has(context)) return revisited(node);
     seen = enter(node, context, seen);
     if (!seen) return UNKNOWN;
@@ -236,9 +246,13 @@ export function createContextualProvenance(model, legacy, dispatch) {
       dispatch,
       context,
       forContext: facade,
-      provenance: raw => value(raw, context),
-      tenantHandle: raw => handle(raw, context),
+      provenance: raw => work.run(() => value(raw, context)),
+      tenantHandle: raw => work.run(() => handle(raw, context)),
     };
   }
-  return { value, handle, facade };
+  return {
+    value: (...args) => work.run(() => value(...args)),
+    handle: (...args) => work.run(() => handle(...args)),
+    facade,
+  };
 }
