@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import test from 'node:test';
+import test, { before } from 'node:test';
 import yaml from 'js-yaml';
 import { rootDir, tmp, git } from './db-access-required-git.mjs';
 
@@ -14,7 +14,9 @@ const script = workflow.jobs.audit.steps.find(step => step.id === 'protected_db_
 const start = '# Exact first resolver transition:';
 const from = script.indexOf(start);
 const to = script.indexOf('tgz="$work/typescript.tgz"', from);
-assert.ok(from >= 0 && to > from && !script.includes(start, from + start.length));
+before(() => {
+  assert.ok(from >= 0 && to > from && !script.includes(start, from + start.length));
+});
 const branch = script.slice(from, to);
 
 function repository({ source = true, reachable = true } = {}) {
