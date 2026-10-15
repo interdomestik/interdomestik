@@ -194,6 +194,15 @@ function epochOrigin(lock = fixtureLock()) {
     'scripts/ci/db-access-adoption.mjs',
     `export const ADOPTION = Object.freeze(${JSON.stringify({ commit: adoption, tree, files, critical })});\n`
   );
+  // This independently pinned synthetic epoch uses the existing explicit fixture API.
+  // It is not the real production ADOPTION/resolver snapshot and must not masquerade as one.
+  writeFixture(origin, 'scripts/check-db-access-guard.mjs', [
+    "import { ADOPTION } from './ci/db-access-adoption.mjs';",
+    "import { runGuardCli } from './ci/db-access-evaluator.mjs';",
+    'process.exitCode = runGuardCli({',
+    '  repoRoot: process.cwd(), argv: process.argv.slice(2), adoption: { ...ADOPTION },',
+    '});',
+  ]);
   writeFixture(origin, 'pnpm-lock.yaml', lock);
   return { origin, base: commit(origin, 'protected epoch guard (post-merge shape)') };
 }
