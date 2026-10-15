@@ -128,7 +128,7 @@ export function boundaryChanges(repoRoot, adoption) {
     .map(([file]) => file);
 }
 
-export function verifyResolverBoundary(repoRoot, trusted) {
+export function verifyResolverBoundary(repoRoot, trusted, currentResolver = new Map()) {
   const candidates = new Map();
   function collect(relative, depth = 0) {
     const full = path.join(repoRoot, relative);
@@ -168,7 +168,7 @@ export function verifyResolverBoundary(repoRoot, trusted) {
         : item
     );
   for (const file of new Set([...candidates.keys(), ...[...trusted.keys()].filter(resolverFile)])) {
-    const before = trusted.get(file),
+    const before = currentResolver.get(file) ?? trusted.get(file),
       after = candidates.get(file);
     if (before === undefined || after === undefined)
       throw new Error('incomplete: resolver boundary changed ' + file);

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ADOPTION } from './db-access-adoption.mjs';
+import { verifyCurrentResolverSnapshot } from './db-access-resolver-snapshot.mjs';
 import {
   authenticateSnapshot,
   boundaryChanges,
@@ -90,7 +91,10 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   if (closureChanges.length)
     throw new Error(`incomplete: critical tenant helper changed: ${closureChanges.join(', ')}`);
   const sources = candidateSources(repoRoot);
-  verifyResolverBoundary(repoRoot, trusted);
+  // Fixture epochs retain their own resolver semantics; production has one fixed exact pair.
+  const currentResolver =
+    adoption === ADOPTION ? verifyCurrentResolverSnapshot(repoRoot, adoption) : new Map();
+  verifyResolverBoundary(repoRoot, trusted, currentResolver);
   // Candidate package/config files never define resolver authority.
   for (const [file, content] of trusted)
     if (file.endsWith('/package.json')) sources.set(file, content);
