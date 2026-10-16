@@ -113,6 +113,19 @@ jobs:
             if [[ "$PR_BASE_REF" == "$DEFAULT_BRANCH" && "$protected" != "$anchor" ]]; then fail "base sha not on $DEFAULT_BRANCH"; fi
           fi
           [[ "$protected" =~ $hex ]] || fail "protected identity"
+          # Exact first resolver transition: use the independently reviewed fixed guard.
+          # Native required W separately binds the reviewed first head/merge; no candidate selector.
+          if [[ "$EVENT_NAME" == pull_request && "$DEFAULT_BRANCH" == main && "$PR_BASE_REF" == main \
+            && "$protected" == 67358772ce0cb056f78be082362fb297bfab7b9d ]]; then
+            transition_guard='3863df0354f2ba7e9051605ef753870515db5092'
+            transition_tree='3161a77b393235ecd1c8311561503d614b31c380'
+            [[ "$("${gd[@]}" cat-file -t "$transition_guard" 2>/dev/null || true)" == commit \
+              && "$("${gd[@]}" rev-parse -q --verify "$transition_guard^{tree}" || true)" == "$transition_tree" ]] \
+              || fail "approved resolver-transition guard identity"
+            [[ -n "$("${gd[@]}" for-each-ref --count=1 --contains "$transition_guard" --format='%(refname)' refs/protected/ 2>/dev/null || true)" ]] \
+              || fail "approved resolver-transition guard unreachable"
+            protected="$transition_guard"
+          fi
           tgz="$work/typescript.tgz"
           if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
             # Local test seam only; the tarball is still bound to the protected lock integrity.
@@ -353,7 +366,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+        image: docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
         env:
           { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: interdomestik_test }
         ports:

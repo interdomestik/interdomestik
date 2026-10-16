@@ -14,11 +14,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import {
-  formatReuseDecision,
-  inspectRepositoryParity,
-  resolveMainE2eReuse,
-} from './main-e2e-reuse.mjs';
+import * as reuse from './main-e2e-reuse.mjs';
+const { formatReuseDecision, inspectRepositoryParity, resolveMainE2eReuse } = reuse;
 import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse-fixture.mjs';
 import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
@@ -27,7 +24,7 @@ const E2E_TREE = readLocalGitObjectId(root, 'HEAD:apps/web/e2e');
 const MEMBER_PORTAL_E2E_TREE = '5468dfaebd2e284d506eec07713ad5d2729f8711';
 const SAFE = { reuse: false, reason: 'evidence_not_exact' };
 const POSTGRES_IMAGE =
-  'public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d';
+  'docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d';
 const fail = () => assert.fail('private diagnostic must not escape');
 const keyPairs =
   'ciWorkflow=.github/workflows/ci.yml|prWorkflow=.github/workflows/e2e-pr.yml|laneSource=scripts/run-e2e-lane.mjs|playwrightConfig=apps/web/playwright.config.ts|packageJson=package.json';
@@ -160,6 +157,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     ['commandChain', 'playwrightConfig', 'gate-mk-contract', 'gate-mk-contract-drift'],
     ['databaseSubstrate', 'prWorkflow', database, '127.0.0.1:54322/postgres'],
     ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, 'postgres:17'],
+    ['databaseSubstrate', 'prWorkflow', 'docker.io', 'public.ecr.aws/docker'],
     ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, `${POSTGRES_IMAGE.slice(0, -1)}0`],
     ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
     ['commandChain', 'packageJson', prGateScript, '"e2e:gate:pr": "true"'],
