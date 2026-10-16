@@ -14,11 +14,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import {
-  formatReuseDecision,
-  inspectRepositoryParity,
-  resolveMainE2eReuse,
-} from './main-e2e-reuse.mjs';
+import * as reuse from './main-e2e-reuse.mjs';
+const { formatReuseDecision, inspectRepositoryParity, resolveMainE2eReuse } = reuse;
 import { MAIN_SHA, NOW_MS, REPOSITORY, reusableEvidence } from './main-e2e-reuse-fixture.mjs';
 import { commandChainDrifts } from './main-e2e-reuse-fixture.mjs';
 import { readLocalGitObjectId } from './main-e2e-reuse-github.mjs';
@@ -160,15 +157,7 @@ test('parity drift always resolves to a fail-closed reuse decision', async () =>
     ['commandChain', 'playwrightConfig', 'gate-mk-contract', 'gate-mk-contract-drift'],
     ['databaseSubstrate', 'prWorkflow', database, '127.0.0.1:54322/postgres'],
     ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, 'postgres:17'],
-    [
-      'databaseSubstrate',
-      'prWorkflow',
-      POSTGRES_IMAGE,
-      POSTGRES_IMAGE.replace(
-        'docker.io/library/postgres',
-        'public.ecr.aws/docker/library/postgres'
-      ),
-    ],
+    ['databaseSubstrate', 'prWorkflow', 'docker.io', 'public.ecr.aws/docker'],
     ['databaseSubstrate', 'prWorkflow', POSTGRES_IMAGE, `${POSTGRES_IMAGE.slice(0, -1)}0`],
     ['commandChain', 'packageJson', gateScript, '"e2e:gate": "true"'],
     ['commandChain', 'packageJson', prGateScript, '"e2e:gate:pr": "true"'],
