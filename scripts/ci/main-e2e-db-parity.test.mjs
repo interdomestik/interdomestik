@@ -18,7 +18,7 @@ test('main E2E uses the Postgres 16 database prepared by its CI job', () => {
 
   assert.equal(
     postgres.image,
-    'public.ecr.aws/docker/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d'
+    'docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d'
   );
   assert.equal(postgres.env.POSTGRES_USER, 'postgres');
   assert.equal(postgres.env.POSTGRES_DB, 'interdomestik_test');
