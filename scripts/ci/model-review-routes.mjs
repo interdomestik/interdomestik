@@ -39,8 +39,8 @@ export const modelReviewRoutes = {
     provider: 'anthropic',
     model: 'claude-sonnet-5-5',
     command: 'claude',
-    timeoutMs: 10 * 60_000,
-    noOutputTimeoutMs: 300_000,
+    timeoutMs: 45 * 60_000,
+    noOutputTimeoutMs: 45 * 60_000,
     args: prompt => [
       '-p',
       prompt,
@@ -60,8 +60,8 @@ export const modelReviewRoutes = {
     model: 'claude-opus-5',
     command: 'claude',
     promptViaStdin: true,
-    timeoutMs: 30 * 60_000,
-    noOutputTimeoutMs: 300_000,
+    timeoutMs: 45 * 60_000,
+    noOutputTimeoutMs: 45 * 60_000,
     args: prompt => [
       '-p',
       prompt,
@@ -81,8 +81,8 @@ export const modelReviewRoutes = {
     provider: 'anthropic',
     model: 'claude-opus-4-8',
     command: 'claude',
-    timeoutMs: 10 * 60_000,
-    noOutputTimeoutMs: 300_000,
+    timeoutMs: 45 * 60_000,
+    noOutputTimeoutMs: 45 * 60_000,
     args: prompt => [
       '-p',
       prompt,

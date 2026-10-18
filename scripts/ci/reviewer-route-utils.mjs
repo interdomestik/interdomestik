@@ -27,11 +27,11 @@ export function safeTimeout(value, fallback, max) {
 export function timeoutConfig(routeName, preset = 'default') {
   if (preset === 'test-no-output') return { firstOutputTimeoutMs: 50, totalTimeoutMs: 400 };
   if (preset === 'test-total') return { firstOutputTimeoutMs: 400, totalTimeoutMs: 80 };
-  let totalTimeoutMs = 10 * 60_000;
-  if (routeName === 'opus') {
-    totalTimeoutMs = 30 * 60_000;
+  if (['sonnet', 'opus', 'opus48'].includes(routeName)) {
+    // Owner-authorized subscription calls may be silent while reasoning.
+    return { firstOutputTimeoutMs: 45 * 60_000, totalTimeoutMs: 45 * 60_000 };
   }
-  return { firstOutputTimeoutMs: 300_000, totalTimeoutMs };
+  return { firstOutputTimeoutMs: 300_000, totalTimeoutMs: 10 * 60_000 };
 }
 
 export function statusForClose(blockerReason, code) {

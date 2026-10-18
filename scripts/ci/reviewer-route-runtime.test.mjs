@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 import { modelReviewRoutes } from './model-review-routes.mjs';
 import { runReviewerRoute } from './reviewer-route-runtime.mjs';
 import { writeRouteReceipt } from './reviewer-route-receipts.mjs';
-import { timeoutConfig } from './reviewer-route-utils.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
@@ -192,7 +191,6 @@ test('Opus routes use explicit priority and lightweight model identifiers', () =
   assert.ok(modelReviewRoutes.opus.args('<prompt>').includes('--disable-slash-commands'));
   assert.ok(modelReviewRoutes.sonnet.args('<prompt>').includes('--disable-slash-commands'));
   assert.ok(modelReviewRoutes.opus48.args('<prompt>').includes('--disable-slash-commands'));
-  assert.equal(timeoutConfig('opus').totalTimeoutMs, 30 * 60_000);
   assert.equal(modelReviewRoutes.opus48.model, 'claude-opus-4-8');
   assert.match(modelReviewRoutes.opus48.label, /lightweight/u);
 });

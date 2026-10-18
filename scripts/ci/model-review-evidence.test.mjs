@@ -94,6 +94,39 @@ test('model-review evidence requires call proof when requested', () => {
   });
 });
 
+test('model-review evidence rejects invalid required statuses', () => {
+  for (const status of ['failed', 'skipped', 'ran', 'unknown', null, undefined]) {
+    withReceipt({ results: [{ reviewer: 'sonnet', status }] }, root => {
+      const result = runEvidence(root, ['--require-call']);
+      assert.notEqual(result.status, 0, `accepted ${String(status)}`);
+      assert.doesNotMatch(result.stdout, /evidence passed/u);
+    });
+  }
+});
+
+test('model-review evidence rejects duplicate required routes in either order', () => {
+  for (const statuses of [
+    ['blocked', 'completed'],
+    ['completed', 'blocked'],
+    ['completed', 'completed'],
+  ]) {
+    withReceipt({ results: statuses.map(status => ({ reviewer: 'sonnet', status })) }, root => {
+      const result = runEvidence(root, ['--require-call']);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /duplicate/u);
+    });
+  }
+});
+
+test('model-review evidence distinguishes command availability from completed calls', () => {
+  for (const status of ['available', 'completed']) {
+    withReceipt({ results: [{ reviewer: 'sonnet', status }] }, root => {
+      assert.equal(runEvidence(root).status, 0);
+      assert.equal(runEvidence(root, ['--require-call']).status, status === 'completed' ? 0 : 1);
+    });
+  }
+});
+
 test('model-review access writes receipts for callable and command-only routes', () => {
   const scenarios = [
     {
