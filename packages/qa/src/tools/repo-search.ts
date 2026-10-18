@@ -90,9 +90,6 @@ export async function codeSearch(args: CodeSearchArgs) {
       : noMatchResult(context);
   } catch (error: any) {
     if (noMatches(error)) return noMatchResult(context);
-    // Only a missing executable permits the reduced git fallback. An invalid
-    // pattern, I/O failure or timeout must not become a successful empty search.
-    if (error?.code !== 'ENOENT') return searchError(error, context);
     try {
       const gitArgs = ['grep', '-n', '-I', '-e', args.query, '--', args.filePattern || '.'];
       const result = await execAsync({ args: gitArgs, file: 'git' }, { cwd: context.repoRoot });
@@ -101,16 +98,11 @@ export async function codeSearch(args: CodeSearchArgs) {
         : noMatchResult(context);
     } catch (fallbackError: any) {
       if (noMatches(fallbackError)) return noMatchResult(context);
-      return searchError(fallbackError, context);
+      return {
+        content: [{ type: 'text', text: `Error searching: ${fallbackError.message}` }],
+        isError: true,
+        structuredContent: { ...context, status: 'error', tool: 'code_search' },
+      };
     }
   }
-}
-
-function searchError(error: unknown, context: ToolRepoContext) {
-  const message = error instanceof Error ? error.message : String(error);
-  return {
-    content: [{ type: 'text', text: `Error searching: ${message}` }],
-    isError: true,
-    structuredContent: { ...context, status: 'error', tool: 'code_search' },
-  };
 }
