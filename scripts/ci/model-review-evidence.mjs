@@ -24,6 +24,13 @@ export function evaluateReceipt(receipt, options) {
   const results = Array.isArray(receipt.results) ? receipt.results : [];
   const resultByReviewer = new Map(results.map(result => [result.reviewer, result]));
   const missingRequired = options.required.filter(reviewer => !resultByReviewer.has(reviewer));
+  const duplicateRequired = options.required.filter(
+    reviewer => results.filter(result => result.reviewer === reviewer).length > 1
+  );
+  const invalidRequired = options.required.filter(reviewer => {
+    const result = resultByReviewer.get(reviewer);
+    return result && !['completed', 'available', 'blocked'].includes(result.status);
+  });
   const blockedRequired = options.required.filter(reviewer => {
     const result = resultByReviewer.get(reviewer);
     return result?.status === 'blocked';
@@ -35,7 +42,14 @@ export function evaluateReceipt(receipt, options) {
   const commandOnlyRequired = options.requireCall
     ? options.required.filter(reviewer => resultByReviewer.get(reviewer)?.status === 'available')
     : [];
-  return { missingRequired, blockedRequired, blockedOptional, commandOnlyRequired };
+  return {
+    missingRequired,
+    duplicateRequired,
+    invalidRequired,
+    blockedRequired,
+    blockedOptional,
+    commandOnlyRequired,
+  };
 }
 
 function main() {
@@ -50,6 +64,8 @@ function main() {
   const { file, receipt } = readReceipt(runRoot);
   const result = evaluateReceipt(receipt, { required, optional, requireCall });
   if (result.missingRequired.length > 0) fail('required reviewers missing', result);
+  if (result.duplicateRequired.length > 0) fail('duplicate required reviewers', result);
+  if (result.invalidRequired.length > 0) fail('required reviewers have invalid status', result);
   if (result.blockedRequired.length > 0) fail('required reviewers blocked', result);
   if (result.commandOnlyRequired.length > 0) fail('required reviewers need call proof', result);
   console.log(

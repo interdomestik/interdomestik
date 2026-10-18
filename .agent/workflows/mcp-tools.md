@@ -1,162 +1,98 @@
 ---
-description: How to use MCP tools for rapid development
+description: Current MCP entrypoints and bounded failure handling
 ---
 
 # Using MCP Tools for Supercharged Development
 
-This workflow describes how to leverage the MCP (Model Context Protocol) tools configured for this project.
+Read the active checkout's `AGENTS.md` and `.codex/config.toml`. Inspect actual
+client registration and runtime discovery; configuration/listing is not execution.
+Global registration can select a different source from the checkout. Never print
+credentials or full private configuration. Historical headings remain for continuity.
 
 ## Available MCP Servers
 
 ### 1. Context Server (`mcp-context-server`)
 
-**Tools:** `project_map`, `code_search`, `read_files`, `git_status`, `git_diff`
-
-// turbo-all
-Use for:
-
-- Exploring project structure
-- Finding code patterns across the codebase
-- Understanding git changes before commits
+Historical VSCode integration; distinct from Context7. A source path alone does not
+prove current Codex availability. Use current `interdomestik_qa` for repository context.
 
 ### 2. Repo Context Server (`mcp-toolkit/repo-context-server`)
 
-**Tools:** `project_map`, `code_search`, `read_files`
-
-Use for:
-
-- Repository-aware code exploration
-- Allow-list filtered searching
+Historical separate server. Do not assume it is loaded or shares the QA contract.
 
 ### 3. Repo QA Server (`mcp-toolkit/repo-qa-server`)
 
-**Tools:** `build_health`, `test_runner`, `navigation_audit`
-
-Use for:
-
-- Checking build, lint, and type-check health
-- Running test suites (unit, e2e, smoke)
-- Auditing navigation links
+Current Codex uses `interdomestik_qa` through `scripts/start-repo-qa.sh` and
+`scripts/qa-mcp-control-runtime.mjs`. Check the enabled-tool list and actual response.
+The historical `interdomestikv2` QA aliases in `.vscode/mcp.json` have retired paths;
+do not run them or silently activate their DB/payment integrations.
 
 ### 4. E2E Test Generator (`e2e-test-generator-mcp`)
 
-**Tools:** `generate_basic_test`, `generate_page_object`, `generate_auth_test`, `generate_api_test`
-
-Use for:
-
-- Creating Playwright tests from descriptions
-- Generating page object models
-- Building auth flow tests
+Historical registration, not a verified current capability. Use the existing
+Playwright tests and current tooling; generated tests still require execution.
 
 ## Example Usage
 
 ### Explore Project Structure
 
-```
-Use project_map with projectRoot=/Users/arbenlila/development/interdomestik
-```
+Call `project_map` with the actual worktree's absolute `repoRoot`.
+Verify `serverSourceRoot`/`serverSourceHead` and `targetRepoRoot`/`targetHead`.
 
 ### Search for Code Patterns
 
-```
-Use code_search with projectRoot=/Users/arbenlila/development/interdomestik and query="useTranslations"
-```
+Call `code_search` with absolute `repoRoot` and `query: "useTranslations"`.
+The parameter is `repoRoot`, not `projectRoot`. Never convert failure to empty success.
 
 ### Check Build Health
 
-```
-Use build_health with projectRoot=/Users/arbenlila/development/interdomestik
-```
+`check_health`, `pr_verify`, `security_guard` and `e2e_gate` execute verification;
+they are not read-only discovery probes. Respect services and task ownership.
 
 ### Generate E2E Test
 
-```
-Use generate_basic_test with:
-- description: "User registers with email and password"
-- testName: "user-registration"
-- baseUrl: "http://localhost:3000"
-```
+Use current repo fixtures and markers. Listing or generating tests is not execution
+proof. Preserve required full verification and privacy-driven trace exceptions.
 
 ## Starting MCP Servers
 
-**Automatic Setup (Recommended)**:
-MCP servers start automatically when you launch Gemini CLI. No manual setup needed!
-
-**First Time Setup**:
-
-```bash
-// turbo
-pnpm mcp:setup
-```
-
-**Verify Configuration**:
-
-```bash
-// turbo
-cat ~/.config/google/gemini/mcp.json | jq '.mcpServers["ecohub-qa"]'
-```
+There is no unconditional automatic Gemini startup guarantee. Check actual registration.
+If discovery exposes no callable method, record the mechanisms checked. If startup
+or invocation fails, retain the exact error and source/transport context. Use the
+file/`rg` fallback when unavailable; absent session exposure alone is not server failure.
+Control-runtime advancement and client reconnect require a safe maintenance boundary.
 
 ## Quick Commands
 
 ### Run All QA Audits
 
-```bash
-// turbo
-pnpm mcp:audit
-```
+`pnpm mcp:audit` executes configured audits; inspect their scope before running.
 
 ### Run QA Audits + Unit Tests
 
-```bash
-// turbo
-pnpm mcp:test
-```
+`pnpm mcp:test` also runs tests. It is not a substitute for required delivery gates.
 
 ### Run Specific Audit
 
-Use Gemini CLI natural language:
-
-- "Run the auth audit"
-- "Check environment variables"
-- "Verify navigation and i18n setup"
+Only invoke an audit exposed by the current enabled-tool list, with absolute repoRoot.
+Interpret its actual scope; a configuration audit is not runtime acceptance.
 
 ## Available Tools
 
 ### Interdomestik QA (`ecohub-qa`)
 
-**All tools work automatically in Gemini CLI**
+`ecohub-qa` is a historical alias. Current Codex discovery is `interdomestik_qa`.
+Start with `git_status_compact`, `read_file_range`, `project_map` or `code_search`.
+The installed `interdomestik` filesystem SKILL.md does not establish an
+`interdomestik_skills` MCP server. Compare role/guide/manifest copies separately;
+explicit reads are not proof of fresh-role automatic loading.
 
-**Audit Tools**:
-
-- `audit_auth` - Better Auth configuration
-- `audit_env` - Environment variables
-- `audit_navigation` - Routing and i18n
-- `audit_dependencies` - Package configuration
-- `audit_supabase` - Supabase setup
-- `audit_accessibility` - Accessibility config
-- `audit_csp` - Content Security Policy
-- `audit_performance` - Performance config
-
-**Testing Tools**:
-
-- `check_health` - Type-check and lint
-- `run_unit_tests` - Vitest tests
-- `run_coverage` - Tests with coverage
-- `run_e2e_tests` - Playwright tests
-
-**Development Tools**:
-
-- `project_map` - Project structure
-- `read_files` - File contents
-- `git_status` - Git status
-- `git_diff` - Git changes
-- `code_search` - Search codebase
-- `query_db` - Query database
-- `get_stripe_resource` - Fetch Stripe data
+Context7 provides external library documentation. Reuse version-bound research.
+On monthly quota failure, retain the error and use pinned local source or official
+documentation; do not repeatedly retry, change keys or purchase capacity.
 
 ## Documentation
 
-For detailed information, see:
-
-- [MCP Tools Documentation](../docs/MCP_TOOLS.md)
-- [QA Package README](../packages/qa/README.md)
+- [MCP tools documentation](../../docs/MCP_TOOLS.md) (compare with current registration)
+- [QA package README](../../packages/qa/README.md)
+- [Current program](../../docs/plans/current-program.md)

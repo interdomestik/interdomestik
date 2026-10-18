@@ -23,21 +23,65 @@ function runModuleExpression(modulePath, expression) {
   return JSON.parse(stdout);
 }
 
-test('runSecurityGuard returns structured content with command metadata', () => {
-  const result = runModuleExpression(
+test('runSecurityGuard preserves success and failure diagnostics without live checks', t => {
+  const cases = runModuleExpression(
     'packages/qa/src/tools/tests.ts',
-    `mod.runSecurityGuard({ repoRoot: ${JSON.stringify(repoRoot)} })`
+    `(async () => {
+      const cp = (await import('node:child_process')).default;
+      const { syncBuiltinESMExports } = await import('node:module');
+      const { EventEmitter } = await import('node:events');
+      const cases = [];
+      for (const exitCode of [0, 23]) {
+        const calls = [];
+        cp.spawn = (file, args, options) => {
+          if (file !== 'pnpm' || args.length !== 1 || args[0] !== 'security:guard')
+            throw new Error('unexpected command in isolated wrapper test');
+          calls.push({file, args, cwd: options.cwd});
+          const child = new EventEmitter();
+          child.stdout = new EventEmitter(); child.stderr = new EventEmitter();
+          process.nextTick(() => {
+            child.stdout.emit('data', Buffer.from('fixture security stdout'));
+            child.stderr.emit('data', Buffer.from('fixture security stderr'));
+            child.emit('close', exitCode, null);
+          });
+          return child;
+        };
+        syncBuiltinESMExports();
+        cases.push({exitCode, calls, result: await mod.runSecurityGuard({repoRoot: ${JSON.stringify(repoRoot)}})});
+      }
+      return cases;
+    })()`
   );
 
-  assert.equal(result.isError, false);
-  assert.equal(result.structuredContent.tool, 'security_guard');
-  assert.equal(result.structuredContent.status, 'pass');
-  assert.equal(result.structuredContent.command, 'pnpm security:guard');
-  assert.equal(result.structuredContent.failedStage, null);
-  assert.equal(result.structuredContent.repoRoot, repoRoot);
-  assert.equal(result.structuredContent.repoRootSource, 'tool-argument');
-  assert.equal(typeof result.structuredContent.durationMs, 'number');
-  assert.match(result.content[0].text, /SECURITY GUARD PASSED/);
+  for (const { exitCode, calls, result } of cases) {
+    const details = result.structuredContent;
+    const diagnostic = JSON.stringify({ fixture: true, calls, ...details });
+    t.diagnostic(diagnostic);
+    assert.deepEqual(
+      calls,
+      [{ file: 'pnpm', args: ['security:guard'], cwd: repoRoot }],
+      diagnostic
+    );
+    assert.equal(result.isError, exitCode !== 0, diagnostic);
+    assert.equal(details.tool, 'security_guard', diagnostic);
+    assert.equal(details.status, exitCode === 0 ? 'pass' : 'fail', diagnostic);
+    assert.equal(details.command, 'pnpm security:guard', diagnostic);
+    assert.equal(details.exitCode, exitCode, diagnostic);
+    assert.equal(details.failedStage, exitCode === 0 ? null : 'security_guard', diagnostic);
+    assert.equal(details.failureCategory, exitCode === 0 ? null : 'security', diagnostic);
+    assert.equal(details.repoRoot, repoRoot, diagnostic);
+    assert.equal(details.repoRootSource, 'tool-argument', diagnostic);
+    assert.equal(typeof details.durationMs, 'number', diagnostic);
+    assert.equal(details.stdoutTail, 'fixture security stdout', diagnostic);
+    assert.equal(details.stderrTail, 'fixture security stderr', diagnostic);
+    assert.match(
+      result.content[0].text,
+      exitCode === 0 ? /SECURITY GUARD PASSED/ : /SECURITY GUARD FAILED/,
+      diagnostic
+    );
+    assert.match(result.content[0].text, /fixture security stdout/, diagnostic);
+    assert.match(result.content[0].text, /fixture security stderr/, diagnostic);
+  }
 });
 
 test('execAsync classifies failed check:fast output by the active stage marker', () => {

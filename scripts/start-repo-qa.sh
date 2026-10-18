@@ -20,4 +20,7 @@ export MCP_SERVER_SOURCE_HEAD="$CONTROL_HEAD"
 export MCP_SERVER_NAME="interdomestik_qa"
 cd "$CONTROL_ROOT"
 
-exec "$DEPENDENCY_ROOT/node_modules/.bin/tsx" "$CONTROL_ROOT/packages/qa/src/index.ts"
+# Use the loader directly: the tsx CLI opens an unnecessary IPC socket, which
+# restricted stdio-only hosts can reject before the MCP initialize handshake.
+TSX_LOADER="$(node -e 'process.stdout.write(require.resolve("tsx", { paths: [process.argv[1]] }))' "$DEPENDENCY_ROOT")"
+exec node --import "$TSX_LOADER" "$CONTROL_ROOT/packages/qa/src/index.ts"
