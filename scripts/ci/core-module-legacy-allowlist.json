@@ -17,7 +17,6 @@
     "apps/web/src/app/[locale]/(app)/member/policies/_core.ts",
     "apps/web/src/app/[locale]/(auth)/login/_core.ts",
     "apps/web/src/app/[locale]/(site)/services/_core.ts",
-    "apps/web/src/app/[locale]/(staff)/staff/_core.ts",
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts",
     "apps/web/src/app/[locale]/(staff)/staff/crm/_core.ts",
     "apps/web/src/app/[locale]/_core.ts",
