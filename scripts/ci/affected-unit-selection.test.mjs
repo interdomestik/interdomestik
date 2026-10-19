@@ -208,10 +208,16 @@ test('real selected workspace task runs successfully without touching a database
   assert.equal(runSelectedUnits(plan, { refresh }).status, 'passed');
 });
 
-test('untracked directory symlinks are bound as links without reading their targets', t => {
+test('untracked directory and file symlinks fail closed without reading their targets', t => {
   const { root, base } = fixture(t);
   fs.symlinkSync(path.join(root, 'packages/ui'), path.join(root, 'linked-directory'));
-  assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
+  assert.throws(() => buildUnitPlan(root, base), /Untracked symlink/);
+  fs.unlinkSync(path.join(root, 'linked-directory'));
+  fs.symlinkSync(
+    path.join(root, 'packages/ui/source.ts'),
+    path.join(root, 'packages/web/linked.ts')
+  );
+  assert.throws(() => buildUnitPlan(root, base), /Untracked symlink/);
 });
 
 test('ignored environment symlink target bytes invalidate the execution identity', t => {
@@ -224,4 +230,53 @@ test('ignored environment symlink target bytes invalidate the execution identity
   const changed = buildUnitPlan(root, base);
   assert.deepEqual(changed.changedFiles, initial.changedFiles);
   assert.notEqual(changed.identity, initial.identity);
+});
+
+test('undeclared cross-workspace test imports and their transitive consumers are selected', t => {
+  const { root, write, git, base } = fixture(t);
+  write('packages/unrelated/test.mjs', "import '../ui/source.ts';\n");
+  git(['add', '.']);
+  git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.invalid',
+    'commit',
+    '-qm',
+    'cross-workspace test',
+  ]);
+  const comparison = git(['rev-parse', 'HEAD']);
+  write('packages/ui/source.ts', 'export const n = 5;\n');
+  assert.deepEqual(buildUnitPlan(root, comparison).selected, ['unrelated', 'web']);
+  write('packages/unrelated/test.mjs', "import 'ui/source.ts';\n");
+  assert.deepEqual(buildUnitPlan(root, comparison).selected, ['unrelated', 'web']);
+  write('packages/unrelated/test.mjs', "import '../../unknown/source.ts';\n");
+  assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
+});
+
+test('JavaScript require edges cross taskless consumers and computed imports widen to all', t => {
+  const { root, write, git } = fixture(t);
+  write('packages/middle/source.cjs', "require('../unrelated/source.ts');\n");
+  git(['add', '.']);
+  git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.invalid',
+    'commit',
+    '-qm',
+    'require edge',
+  ]);
+  const base = git(['rev-parse', 'HEAD']);
+  write('packages/unrelated/source.ts', 'export const n = 7;\n');
+  assert.deepEqual(buildUnitPlan(root, base).selected, ['unrelated', 'web']);
+  for (const expression of [
+    'import(target)',
+    'require(target)',
+    'import(`../ui/source.ts`)',
+    'import /* comment */ (target)',
+  ]) {
+    write('packages/middle/source.cjs', expression);
+    assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
+  }
 });

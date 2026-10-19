@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import ts from 'typescript';
 
 const dependencyFields = [
   'dependencies',
@@ -32,6 +33,10 @@ export function selectUnitPackages(packages, changedFiles) {
     } else affected.add(owners[0].name);
   }
   for (const pkg of packages) {
+    if (pkg.uncertainSourceDependency) {
+      all = true;
+      reason = 'source dependency cannot be bounded to workspace ownership';
+    }
     for (const field of dependencyFields) {
       const dependencies = pkg.manifest[field];
       if (
@@ -56,9 +61,9 @@ export function selectUnitPackages(packages, changedFiles) {
   while (changed) {
     changed = false;
     for (const pkg of packages) {
-      const dependencies = dependencyFields.flatMap(field =>
-        Object.keys(pkg.manifest[field] ?? {})
-      );
+      const dependencies = dependencyFields
+        .flatMap(field => Object.keys(pkg.manifest[field] ?? {}))
+        .concat(pkg.sourceDependencies ?? []);
       if (!affected.has(pkg.name) && dependencies.some(name => affected.has(name))) {
         affected.add(pkg.name);
         changed = true;
@@ -101,6 +106,47 @@ export function buildUnitPlan(root, baseRef) {
     throw new Error('Missing or duplicate workspaces');
   }
   const untracked = splitPaths(git(['ls-files', '--others', '--exclude-standard', '-z'])).sort();
+  for (const file of untracked) {
+    if (fs.lstatSync(path.join(root, file)).isSymbolicLink())
+      throw new Error('Untracked symlink cannot bind selection; use a regular file');
+  }
+  const sources = [...new Set([...splitPaths(git(['ls-files', '-z'])), ...untracked])];
+  const ownerOf = file => packages.filter(pkg => file.startsWith(`${pkg.directory}/`));
+  for (const file of sources.filter(file => /\.[cm]?[jt]sx?$/.test(file))) {
+    const absolute = path.join(root, file);
+    if (!fs.existsSync(absolute)) continue;
+    const owners = ownerOf(file);
+    if (owners.length !== 1) continue;
+    if (fs.lstatSync(absolute).isSymbolicLink())
+      throw new Error('Source symlink cannot bind selection');
+    const owner = owners[0];
+    const source = fs.readFileSync(absolute, 'utf8');
+    const imports = ts.preProcessFile(source, true, true).importedFiles;
+    const inspect = node => {
+      if (
+        ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+        (node.arguments.length !== 1 || !ts.isStringLiteral(node.arguments[0]))
+      )
+        owner.uncertainSourceDependency = true;
+      ts.forEachChild(node, inspect);
+    };
+    inspect(ts.createSourceFile(file, source, ts.ScriptTarget.Latest));
+    owner.sourceDependencies ??= [];
+    for (const { fileName } of imports) {
+      const relative = fileName.startsWith('.');
+      const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), fileName));
+      const dependencies = relative
+        ? ownerOf(target)
+        : packages.filter(pkg => fileName === pkg.name || fileName.startsWith(`${pkg.name}/`));
+      if (relative && dependencies.length !== 1) owner.uncertainSourceDependency = true;
+      for (const dependency of dependencies)
+        if (dependency.name !== owner.name && !owner.sourceDependencies.includes(dependency.name))
+          owner.sourceDependencies.push(dependency.name);
+    }
+    owner.sourceDependencies.sort();
+  }
   const changedFiles = [
     ...new Set([
       ...splitPaths(git(['diff', '--name-only', '--no-renames', '-z', mergeBase, '--'])),
