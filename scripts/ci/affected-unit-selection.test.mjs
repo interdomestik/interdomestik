@@ -213,3 +213,15 @@ test('untracked directory symlinks are bound as links without reading their targ
   fs.symlinkSync(path.join(root, 'packages/ui'), path.join(root, 'linked-directory'));
   assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
 });
+
+test('ignored environment symlink target bytes invalidate the execution identity', t => {
+  const { root, write, base } = fixture(t);
+  write('.git/info/exclude', 'ignored-env\n');
+  write('ignored-env', 'FIXTURE_VALUE=one\n');
+  fs.symlinkSync('ignored-env', path.join(root, '.env.local'));
+  const initial = buildUnitPlan(root, base);
+  write('ignored-env', 'FIXTURE_VALUE=two\n');
+  const changed = buildUnitPlan(root, base);
+  assert.deepEqual(changed.changedFiles, initial.changedFiles);
+  assert.notEqual(changed.identity, initial.identity);
+});
