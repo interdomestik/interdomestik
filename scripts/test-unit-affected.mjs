@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { buildUnitPlan } from './affected-unit-plan.mjs';
 
 export function runSelectedUnits(plan, { refresh, run = spawnSync } = {}) {
@@ -43,9 +43,7 @@ function main() {
   ) {
     throw new Error('Usage: pnpm test:unit:affected --base <ref> [--run]');
   }
-  const root = fs.realpathSync(
-    execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
-  );
+  const root = fs.realpathSync(fileURLToPath(new URL('..', import.meta.url)));
   const refresh = () => buildUnitPlan(root, options[1]);
   const plan = refresh();
   console.log(JSON.stringify(plan, null, 2));

@@ -31,12 +31,10 @@ test('selection crosses taskless packages and follows every dependency kind', ()
   }
   assert.deepEqual(selectUnitPackages(graph, []).selected, []);
 });
-
 test('cycles terminate and include all affected tasks', () => {
   const packages = [pkg('a', { b: '*' }), pkg('b', { a: '*' }), pkg('c')];
   assert.deepEqual(selectUnitPackages(packages, ['packages/a/a.ts']).selected, ['a', 'b']);
 });
-
 test('root, unknown, config, manifest and uncertain local dependencies widen to all', () => {
   for (const file of [
     'pnpm-lock.yaml',
@@ -117,7 +115,6 @@ test('real Git and pnpm discovery includes commits, dirty files, untracked files
   assert.throws(() => buildUnitPlan(root, 'missing-reference'), /Command failed/);
   assert.throws(() => buildUnitPlan(root, '--help'), /explicit --base/);
 });
-
 test('input identity changes on untracked bytes, manifests, environment and ignored env files', t => {
   const { root, write, base } = fixture(t);
   write('packages/ui/new.ts', 'a');
@@ -139,7 +136,6 @@ test('input identity changes on untracked bytes, manifests, environment and igno
     delete process.env.AFFECTED_UNIT_FIXTURE;
   }
 });
-
 test('runner executes selected existing scripts without Turbo and detects stale inputs', () => {
   const plan = {
     root: '/fixture',
@@ -211,13 +207,13 @@ test('real selected workspace task runs successfully without touching a database
 test('untracked directory and file symlinks fail closed without reading their targets', t => {
   const { root, base } = fixture(t);
   fs.symlinkSync(path.join(root, 'packages/ui'), path.join(root, 'linked-directory'));
-  assert.throws(() => buildUnitPlan(root, base), /Untracked symlink/);
+  assert.throws(() => buildUnitPlan(root, base), /symlink cannot bind/);
   fs.unlinkSync(path.join(root, 'linked-directory'));
   fs.symlinkSync(
     path.join(root, 'packages/ui/source.ts'),
     path.join(root, 'packages/web/linked.ts')
   );
-  assert.throws(() => buildUnitPlan(root, base), /Untracked symlink/);
+  assert.throws(() => buildUnitPlan(root, base), /symlink cannot bind/);
 });
 
 test('ignored environment symlink target bytes invalidate the execution identity', t => {
@@ -279,4 +275,25 @@ test('JavaScript require edges cross taskless consumers and computed imports wid
     write('packages/middle/source.cjs', expression);
     assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
   }
+});
+
+test('filesystem consumers widen selection and tracked non-source fixture symlinks fail closed', t => {
+  const { root, write, git } = fixture(t);
+  write('packages/unrelated/test.mjs', "import fs from 'node:fs';\n");
+  git(['add', '.']);
+  git([
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@example.invalid',
+    'commit',
+    '-qm',
+    'filesystem consumer',
+  ]);
+  const base = git(['rev-parse', 'HEAD']);
+  write('packages/ui/source.ts', 'export const n = 9;\n');
+  assert.equal(buildUnitPlan(root, base).mode, 'all-unit');
+  fs.symlinkSync('../ui/source.ts', path.join(root, 'packages/unrelated/fixture.json'));
+  git(['add', 'packages/unrelated/fixture.json']);
+  assert.throws(() => buildUnitPlan(root, base), /symlink cannot bind/);
 });

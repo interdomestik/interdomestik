@@ -10,6 +10,8 @@ const dependencyFields = [
   'peerDependencies',
   'optionalDependencies',
 ];
+const compare = (a, b) => a.localeCompare(b);
+const ownersOf = (packages, file) => packages.filter(pkg => file.startsWith(`${pkg.directory}/`));
 const digest = value => createHash('sha256').update(value).digest('hex');
 const splitPaths = value => value.split('\0').filter(Boolean);
 const exec = (root, file, args) =>
@@ -20,43 +22,36 @@ const exec = (root, file, args) =>
     maxBuffer: 32 * 1024 * 1024,
   });
 
-export function selectUnitPackages(packages, changedFiles) {
-  const names = new Set(packages.map(pkg => pkg.name));
-  const affected = new Set();
-  let reason = 'changed packages and transitive dependents';
-  let all = false;
-  for (const file of changedFiles) {
-    const owners = packages.filter(pkg => file.startsWith(`${pkg.directory}/`));
-    if (owners.length !== 1 || /(^|\/)(package\.json|\.env[^/]*|[^/]*config[^/]*)$/.test(file)) {
-      all = true;
-      reason = 'global, configuration, manifest or unknown change';
-    } else affected.add(owners[0].name);
-  }
-  for (const pkg of packages) {
-    if (pkg.uncertainSourceDependency) {
-      all = true;
-      reason = 'source dependency cannot be bounded to workspace ownership';
-    }
-    for (const field of dependencyFields) {
-      const dependencies = pkg.manifest[field];
+function manifestUncertain(pkg, names) {
+  let uncertain = false;
+  for (const field of dependencyFields) {
+    const dependencies = pkg.manifest[field];
+    if (
+      dependencies !== undefined &&
+      (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies))
+    )
+      throw new Error(`Invalid ${field} in ${pkg.name}`);
+    for (const [name, spec] of Object.entries(dependencies ?? {})) {
+      if (typeof spec !== 'string') throw new Error(`Invalid dependency ${name} in ${pkg.name}`);
       if (
-        dependencies !== undefined &&
-        (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies))
-      ) {
-        throw new Error(`Invalid ${field} in ${pkg.name}`);
-      }
-      for (const [name, spec] of Object.entries(pkg.manifest[field] ?? {})) {
-        if (typeof spec !== 'string') throw new Error(`Invalid dependency ${name} in ${pkg.name}`);
-        if (
-          /^(workspace:|link:|file:)/.test(spec) &&
-          (!names.has(name) || /^(link:|file:|workspace:[.@/])/.test(spec))
-        ) {
-          all = true;
-          reason = 'uncertain local dependency; select all unit tasks';
-        }
-      }
+        /^(workspace:|link:|file:)/.test(spec) &&
+        (!names.has(name) || /^(link:|file:|workspace:[.@/])/.test(spec))
+      )
+        uncertain = true;
     }
   }
+  return uncertain;
+}
+function dependencyFallback(packages, names) {
+  let reason;
+  for (const pkg of packages) {
+    if (pkg.uncertainSourceDependency)
+      reason = 'source dependency cannot be bounded to workspace ownership';
+    if (manifestUncertain(pkg, names)) reason = 'uncertain local dependency; select all unit tasks';
+  }
+  return reason;
+}
+function expandDependents(packages, affected) {
   let changed = true;
   while (changed) {
     changed = false;
@@ -70,11 +65,74 @@ export function selectUnitPackages(packages, changedFiles) {
       }
     }
   }
+}
+
+export function selectUnitPackages(packages, changedFiles) {
+  const names = new Set(packages.map(pkg => pkg.name));
+  const affected = new Set();
+  let reason = 'changed packages and transitive dependents';
+  let all = false;
+  for (const file of changedFiles) {
+    const owners = packages.filter(pkg => file.startsWith(`${pkg.directory}/`));
+    if (owners.length !== 1 || /(^|\/)(package\.json|\.env[^/]*|[^/]*config[^/]*)$/.test(file)) {
+      all = true;
+      reason = 'global, configuration, manifest or unknown change';
+    } else affected.add(owners[0].name);
+  }
+  const fallback = dependencyFallback(packages, names);
+  if (fallback) {
+    all = true;
+    reason = fallback;
+  }
+  expandDependents(packages, affected);
   const selected = packages
     .filter(pkg => (all || affected.has(pkg.name)) && pkg.manifest.scripts?.['test:unit'])
     .map(pkg => pkg.name)
-    .sort();
+    .sort(compare);
   return { mode: all ? 'all-unit' : 'affected-unit', reason, selected };
+}
+
+function hasComputedImport(node) {
+  if (
+    ts.isCallExpression(node) &&
+    (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+      (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+    (node.arguments.length !== 1 || !ts.isStringLiteral(node.arguments[0]))
+  )
+    return true;
+  return ts.forEachChild(node, hasComputedImport) ?? false;
+}
+function registerImport(packages, owner, file, specifier) {
+  if (/^(node:)?(fs|child_process)(\/|$)/.test(specifier)) owner.uncertainSourceDependency = true;
+  const relative = specifier.startsWith('.');
+  const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+  const dependencies = relative
+    ? ownersOf(packages, target)
+    : packages.filter(pkg => specifier === pkg.name || specifier.startsWith(`${pkg.name}/`));
+  if (relative && dependencies.length !== 1) owner.uncertainSourceDependency = true;
+  for (const dependency of dependencies) {
+    if (dependency.name !== owner.name && !owner.sourceDependencies.includes(dependency.name))
+      owner.sourceDependencies.push(dependency.name);
+  }
+}
+function scanSourceDependencies(root, packages, sources) {
+  for (const file of sources) {
+    const absolute = path.join(root, file);
+    const stat = fs.lstatSync(absolute, { throwIfNoEntry: false });
+    if (!stat) continue;
+    if (stat.isSymbolicLink())
+      throw new Error('Tracked or untracked symlink cannot bind selection; use a regular file');
+    const owners = ownersOf(packages, file);
+    if (!/\.[cm]?[jt]sx?$/.test(file) || owners.length !== 1) continue;
+    const owner = owners[0];
+    const source = fs.readFileSync(absolute, 'utf8');
+    if (hasComputedImport(ts.createSourceFile(file, source, ts.ScriptTarget.Latest)))
+      owner.uncertainSourceDependency = true;
+    owner.sourceDependencies ??= [];
+    for (const { fileName } of ts.preProcessFile(source, true, true).importedFiles)
+      registerImport(packages, owner, file, fileName);
+    owner.sourceDependencies.sort(compare);
+  }
 }
 
 export function buildUnitPlan(root, baseRef) {
@@ -105,54 +163,17 @@ export function buildUnitPlan(root, baseRef) {
   if (!packages.length || new Set(packages.map(pkg => pkg.name)).size !== packages.length) {
     throw new Error('Missing or duplicate workspaces');
   }
-  const untracked = splitPaths(git(['ls-files', '--others', '--exclude-standard', '-z'])).sort();
-  for (const file of untracked) {
-    if (fs.lstatSync(path.join(root, file)).isSymbolicLink())
-      throw new Error('Untracked symlink cannot bind selection; use a regular file');
-  }
+  const untracked = splitPaths(git(['ls-files', '--others', '--exclude-standard', '-z'])).sort(
+    compare
+  );
   const sources = [...new Set([...splitPaths(git(['ls-files', '-z'])), ...untracked])];
-  const ownerOf = file => packages.filter(pkg => file.startsWith(`${pkg.directory}/`));
-  for (const file of sources.filter(file => /\.[cm]?[jt]sx?$/.test(file))) {
-    const absolute = path.join(root, file);
-    if (!fs.existsSync(absolute)) continue;
-    const owners = ownerOf(file);
-    if (owners.length !== 1) continue;
-    if (fs.lstatSync(absolute).isSymbolicLink())
-      throw new Error('Source symlink cannot bind selection');
-    const owner = owners[0];
-    const source = fs.readFileSync(absolute, 'utf8');
-    const imports = ts.preProcessFile(source, true, true).importedFiles;
-    const inspect = node => {
-      if (
-        ts.isCallExpression(node) &&
-        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-          (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
-        (node.arguments.length !== 1 || !ts.isStringLiteral(node.arguments[0]))
-      )
-        owner.uncertainSourceDependency = true;
-      ts.forEachChild(node, inspect);
-    };
-    inspect(ts.createSourceFile(file, source, ts.ScriptTarget.Latest));
-    owner.sourceDependencies ??= [];
-    for (const { fileName } of imports) {
-      const relative = fileName.startsWith('.');
-      const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), fileName));
-      const dependencies = relative
-        ? ownerOf(target)
-        : packages.filter(pkg => fileName === pkg.name || fileName.startsWith(`${pkg.name}/`));
-      if (relative && dependencies.length !== 1) owner.uncertainSourceDependency = true;
-      for (const dependency of dependencies)
-        if (dependency.name !== owner.name && !owner.sourceDependencies.includes(dependency.name))
-          owner.sourceDependencies.push(dependency.name);
-    }
-    owner.sourceDependencies.sort();
-  }
+  scanSourceDependencies(root, packages, sources);
   const changedFiles = [
     ...new Set([
       ...splitPaths(git(['diff', '--name-only', '--no-renames', '-z', mergeBase, '--'])),
       ...untracked,
     ]),
-  ].sort();
+  ].sort(compare);
   const envFiles = [root, ...packages.map(pkg => path.join(root, pkg.directory))]
     .flatMap(directory =>
       fs
@@ -161,7 +182,7 @@ export function buildUnitPlan(root, baseRef) {
         .map(name => path.join(directory, name))
     )
     .filter(file => fs.statSync(file).isFile())
-    .sort();
+    .sort(compare);
   const fileHash = file => {
     const stat = fs.lstatSync(file);
     if (stat.isSymbolicLink()) return digest(`symlink:${fs.readlinkSync(file)}`);
