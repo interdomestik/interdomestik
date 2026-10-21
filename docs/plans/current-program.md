@@ -16,6 +16,22 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
+Latest direct owner steering on21October2026 authorizes bounded independent work while the
+S8 implementation chat is stopped by the platform. S8 remains OPEN; S9 still requires verified
+S8 closure. This instruction does not authorize rerouting the stopped security work.
+
+The selected independent increment is `H1-LOCAL-EVIDENCE-RESET`: restore the existing Help Now
+clear action so all native photo inputs are emptied and the same photo can be deliberately
+selected again. Limit application edits to the evidence coach and its existing mounted regression.
+Storage policy, country-pack/content authority, uploads, session/auth, tenant/role/RLS, database,
+scanner/pin/protections and the retained S8 worktree remain unchanged. Existing root chat owns this
+UI-only increment; the existing S8 owner retains S8. No new helper or implementation team is selected.
+Required current-source checks and protected delivery remain necessary; local regression proof is
+not H1/S8/pilot acceptance. The remaining dependency-security PR and its resolver refusal retain
+their separate disposition; no known-blocked full verification is replayed as a progress exercise.
+
+### Historical S7 selection (superseded for current selection)
+
 `S7-TENANT-GUARD-PREVENTION` remains selected under the owner’s continuing through-S7 authorization. [Acceptance](#tenant-guard-prevention-acceptance) strengthens the existing DB-access guard with authenticated adoption source, per-operation transaction provenance, control fingerprints and supported legacy-remount rejection. Adoption `278e33ab0dd448547fa81d4b0ff122b4d69c901e` / tree `4f9330417466b4f7bee68349e7183db22a5260ff`, its 604-entry baseline and critical helper closure remain immutable. Actual Opus5.5 coding and Sonnet5.5 test/repair proposals are integrated with GPT corrections and independent review. The 49-file candidate `576fc544b8b1a41c1b4ba550abaa15719a408afd` / tree `ffcf830fb6e16724884274748ab447f705996a33` passed security and full local proof: CI 1333, web 6059, Gate 383/39 declared skips and Smoke 13/11 declared skips; source hashes and final clean state were verified. The prior uncommitted attempt’s two clean-control-source failures remain retained. Necessary later source amendments require fresh proof. Reviewed 11-file authority artifact `e515f02dae06a86448065342f99482040481a1ce` / tree `32c0656640eab41da1257d06e1e7f43471457c90` is published on its retained ref and executes fixed approved guard `e113a98f4ec33093986cb4bb5e3ac77fcde856fa` / tree `d201a534ed5f6cf06dab87268b9ccb6068908b47`. Ordinary candidate GitHub Linux execution passed with 5776 scanned/new0; this supplies no native external-enforcement credit. GitHub human identity confirmation still blocks the unsaved narrowly scoped Disabled native rule; activation, unsafe/safe same-name-spoof and immutable-pin proof remain required before outer-workflow P1 resolution or merge. Fresh576 Sonar passed its quality gate with 26 individually justified Accepted findings and two new style warnings selected for source correction. All substantive hosted checks passed, while delivery stopped on a retained Docker-pull retry warning in successful E2E. Necessary closeout also repairs the informational audit failure annotation and the audit parser’s malformed/partial-report and path-scoped allowlist failures, using actual Opus5.5 proposals, Sonnet5.5 review and independent adversarial probes; no delivery waiver or dependency/threshold/allowlist change is selected. [The historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-tenant-guard-prevention-candidate-and-pr-feedback-1902) retains attempts, source-bound review and actual provider attribution. Final amended-source review/verification/analysis, protected delivery, exact-main staging, runtime migration, obsolete-code retirement, human acceptance, performance budgets and whole S7/SRS remain open.
 
 ### Finite S7 closure boundary
