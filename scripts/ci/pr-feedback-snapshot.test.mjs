@@ -5,48 +5,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { validRefresh, repository, base, head, merge } from './pr-feedback-refresh-fixtures.mjs';
+import { repository, base, head, merge } from './pr-feedback-refresh-fixtures.mjs';
+import { feedbackClient } from './pr-feedback-snapshot-fixtures.mjs';
 import { parseFeedbackMarker } from './pr-feedback-refresh.mjs';
 
 const moduleUrl = new URL('./pr-feedback-snapshot.mjs', import.meta.url);
 async function implementation() {
   assert.ok(fs.existsSync(moduleUrl), 'feedback snapshot implementation is not present');
   return import(moduleUrl);
-}
-export function feedbackClient() {
-  const pull = validRefresh().pull;
-  const data = { reviews: [], issueComments: [], comments: [], threads: [] };
-  return {
-    repository,
-    pull,
-    data,
-    async request(endpoint) {
-      if (endpoint === `repos/${repository}/pulls/17`) return structuredClone(pull);
-      assert.equal(endpoint, `repos/${repository}/git/commits/${merge}`);
-      return { parents: [{ sha: base }, { sha: head }] };
-    },
-    async pages(endpoint) {
-      const route = new Map([
-        [`repos/${repository}/pulls/17/reviews`, data.reviews],
-        [`repos/${repository}/issues/17/comments`, data.issueComments],
-        [`repos/${repository}/pulls/17/comments`, data.comments],
-      ]);
-      assert.ok(route.has(endpoint), endpoint);
-      return { values: structuredClone(route.get(endpoint)), complete: true };
-    },
-    async graphql() {
-      return {
-        repository: {
-          pullRequest: {
-            reviewThreads: {
-              nodes: data.threads,
-              pageInfo: { hasNextPage: false },
-            },
-          },
-        },
-      };
-    },
-  };
 }
 
 test('marker recording preserves the successful digest and publishes exactly once', async () => {
@@ -250,6 +216,36 @@ test('bot issue author presence is retained, but redundant bodies and timestamps
     client.data.issueComments = [];
     assert.equal((await captureFeedback(client, 17, expected)).digest, initial);
   }
+});
+
+test('Dependabot issue classification binds body, actor provenance, identity and edits', async () => {
+  const { captureFeedback } = await implementation();
+  const client = feedbackClient();
+  const expected = { base, head, testedMerge: merge };
+  const initial = (await captureFeedback(client, 17, expected)).digest;
+  const notice = {
+    id: 6319503813,
+    user: { login: 'dependabot[bot]', id: 49699333, type: 'Bot' },
+    body: 'lifecycle notification',
+    updated_at: '2026-10-21T15:16:11Z',
+  };
+  client.data.issueComments = [structuredClone(notice)];
+  const present = (await captureFeedback(client, 17, expected)).digest;
+  assert.notEqual(present, initial);
+  for (const mutate of [
+    item => (item.body += '\nP1 finding: security defect'),
+    item => (item.user.id = 1),
+    item => (item.user.type = 'User'),
+    item => (item.user.login = 'dependabot'),
+    item => (item.id += 1),
+    item => (item.updated_at = '2026-10-21T15:17:11Z'),
+  ]) {
+    client.data.issueComments = [structuredClone(notice)];
+    mutate(client.data.issueComments[0]);
+    assert.notEqual((await captureFeedback(client, 17, expected)).digest, present);
+  }
+  client.data.issueComments = [];
+  assert.equal((await captureFeedback(client, 17, expected)).digest, initial);
 });
 
 test('trusted disposition edits, deletion and permission revocation still refresh gates', async () => {
