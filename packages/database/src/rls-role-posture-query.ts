@@ -11,9 +11,12 @@ export const RLS_ROLE_POSTURE_REJECTED_SQLSTATE = '22012';
 
 /**
  * Reads the RLS role posture with a server-enforced refusal: unless both the
- * checked role and the session's login role are NOBYPASSRLS and NOSUPERUSER,
- * the row expression divides by zero and the query fails. Catalog relations and
- * operators are schema-qualified so search_path cannot substitute either.
+ * checked role and the connection's effective role (current_user) are
+ * NOBYPASSRLS and NOSUPERUSER, the row expression divides by zero and the query
+ * fails. current_user, not session_user, matches the supported DB_RLS_ROLE
+ * topology where a privileged login connects with `-c role=<rls role>`.
+ * Catalog relations and operators are schema-qualified so search_path cannot
+ * substitute either.
  */
 export async function queryRlsRolePosture(
   client: postgres.Sql,
@@ -32,7 +35,7 @@ export async function queryRlsRolePosture(
         and not checked_role.rolsuper
         and exists (
           select 1 from pg_catalog.pg_roles as connection_role
-          where connection_role.rolname OPERATOR(pg_catalog.=) session_user
+          where connection_role.rolname OPERATOR(pg_catalog.=) current_user
             and not connection_role.rolbypassrls
             and not connection_role.rolsuper
         )
@@ -54,7 +57,7 @@ export async function queryRlsRolePosture(
         and not checked_role.rolsuper
         and exists (
           select 1 from pg_catalog.pg_roles as connection_role
-          where connection_role.rolname OPERATOR(pg_catalog.=) session_user
+          where connection_role.rolname OPERATOR(pg_catalog.=) current_user
             and not connection_role.rolbypassrls
             and not connection_role.rolsuper
         )

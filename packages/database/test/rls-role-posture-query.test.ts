@@ -46,7 +46,7 @@ function resolveLoopbackDatabaseUrl(value: string | undefined): string | undefin
   }
 }
 
-type ClientOptions = { corruptBool?: boolean; searchPath?: string };
+type ClientOptions = { corruptBool?: boolean; searchPath?: string; setRole?: string };
 
 function connectAs(role: string, options: ClientOptions = {}): postgres.Sql {
   const url = new URL(databaseUrl!);
@@ -56,7 +56,10 @@ function connectAs(role: string, options: ClientOptions = {}): postgres.Sql {
     max: 1,
     onnotice: () => undefined,
     ...(options.corruptBool ? { types: corruptedBoolParser } : {}),
-    ...(options.searchPath ? { connection: { search_path: options.searchPath } } : {}),
+    connection: {
+      ...(options.searchPath ? { search_path: options.searchPath } : {}),
+      ...(options.setRole ? { options: `-c role=${options.setRole}` } : {}),
+    },
   });
 }
 
@@ -198,7 +201,7 @@ test('search_path relations and operators cannot replace the catalog check', asy
   });
 });
 
-test('DB_RLS_ROLE target and login role must both be unable to bypass RLS', async t => {
+test('DB_RLS_ROLE target and effective connection role must both be unable to bypass RLS', async t => {
   if (!requireDatabase(t)) return;
   const assertWith = (client: postgres.Sql, configuredDbRole: string) =>
     assertRlsConnectionRole({
@@ -227,5 +230,22 @@ test('a missing DB_RLS_ROLE target yields no posture row', async t => {
   if (!requireDatabase(t)) return;
   await withClient(roles.safe, {}, async client => {
     assert.deepEqual([...(await queryRlsRolePosture(client, `ida_absent_${suffix}`))], []);
+  });
+});
+
+test('a privileged login switched to a NOBYPASSRLS role passes, as the DB_RLS_ROLE topology requires', async t => {
+  if (!requireDatabase(t)) return;
+  await withClient(roles.superuser, { corruptBool: true, setRole: roles.safe }, async client => {
+    const result = await assertRlsConnectionRole({
+      isProduction: true,
+      configuredDbRole: roles.safe,
+      queryRolePosture: roleName => queryRlsRolePosture(client, roleName),
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.currentUser, roles.safe);
+  });
+
+  await withClient(roles.superuser, { corruptBool: true, setRole: roles.bypass }, async client => {
+    await assert.rejects(() => queryRlsRolePosture(client), assertServerRejected);
   });
 });
