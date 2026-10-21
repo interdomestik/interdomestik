@@ -39,8 +39,8 @@ jobs:
           expected_repo='interdomestik/interdomestik'
           expected_branch='main'
           # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
-          source_commit='3863df0354f2ba7e9051605ef753870515db5092'
-          source_tree='3161a77b393235ecd1c8311561503d614b31c380'
+          source_commit='1219d276f1ab74451ec9fa1537125131a935f846'
+          source_tree='951ab3a44912e9927d55b8cd9c5cadb0e65587a0'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
@@ -254,24 +254,31 @@ jobs:
             const tab = row.indexOf('\t');
             return { file: row.slice(tab + 1), metadata: row.slice(0, tab).split(' ') };
           });
-          let previous = true, current = true;
+          // Only this exact first predecessor pair may cross into the new fixed snapshot.
+          // Its full base/head/tree identity is checked below; it is not an alternate accepted epoch.
+          const predecessorMetadata = new Map([
+            ['pnpm-workspace.yaml', { sha256: 'e6dfd3feb1ae3df7b34f41397bbef7b751e73d0e03a1a676eb0c8ad8db64b53c', bytes: 1471 }],
+            ['pnpm-lock.yaml', { sha256: '837c22b9c5acb1b62369691913e6fbb49bc5d95753801bbaa8db578aedaeef4a', bytes: 710365 }],
+          ]);
+          let predecessor = true, current = true;
           for (const [file, expected] of Object.entries(snapshot.files)) {
             const matches = listing.filter(row => row.file.normalize('NFC').toLowerCase() === file);
             if (matches.length !== 1 || matches[0].file !== file || !['100644', '100755'].includes(matches[0].metadata[0]) || matches[0].metadata[1] !== 'blob')
               fail(`missing, ambiguous or non-regular base ${file}`);
             const bytes = git(['cat-file', 'blob', matches[0].metadata[2]]);
             const hash = createHash('sha256').update(bytes).digest('hex');
-            previous &&= hash === expected.previousSha256;
-            current &&= hash === expected.sha256;
+            const prior = predecessorMetadata.get(file);
+            predecessor &&= prior !== undefined && hash === prior.sha256 && bytes.length === prior.bytes;
+            current &&= hash === expected.sha256 && bytes.length === expected.bytes;
           }
-          if (!previous && !current) fail('unapproved base metadata pair');
-          if (previous) {
+          if (!predecessor && !current) fail('unapproved base metadata pair');
+          if (predecessor) {
             const first = {
-              base: '67358772ce0cb056f78be082362fb297bfab7b9d',
-              baseTree: '801bcd337f5f29af3029ef475ea4ceeae9f0c5b0',
-              head: '48e124f8ddded166ba7b10f4d86444d45717d3a1',
-              headTree: '9f93200356d7aec139dd96e50fd6005f5f5e5959',
-              mergeTree: '9f93200356d7aec139dd96e50fd6005f5f5e5959',
+              base: 'f696ec742ffbb108502f5c930aee907e6cea4402',
+              baseTree: '1a761323dbc69584e2135f128d07e4f0e866616d',
+              head: '6d3af27ef275ed87b00d64ab02f17da1da831045',
+              headTree: 'f0d306d5942192b3fd5bbf72b821d1b0aa0a0abd',
+              mergeTree: 'f0d306d5942192b3fd5bbf72b821d1b0aa0a0abd',
             };
             if (base !== first.base || baseTree !== first.baseTree || head !== first.head || headTree !== first.headTree || mergeTree !== first.mergeTree)
               fail('first candidate/base/tree identity mismatch');
@@ -279,7 +286,7 @@ jobs:
               fail('protected main advanced before first transition');
           }
           verifyCurrentResolverSnapshot(ws, ADOPTION);
-          console.log(`resolver_snapshot=${snapshot.id} base_pair=${previous ? 'previous' : 'current'} candidate_pair=current`);
+          console.log(`resolver_snapshot=${snapshot.id} base_pair=${predecessor ? 'previous' : 'current'} candidate_pair=current`);
           RESOLVER_TRANSITION
           chmod -R a-w "$work/protected"
           "${gd[@]}" cat-file blob "$source_commit:scripts/ci/db-access-baseline.json" > "$work/out/source-baseline.json" \
