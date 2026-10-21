@@ -6,6 +6,7 @@ import {
   type RlsConnectionRoleAssertionResult,
   type RlsConnectionRolePosture,
 } from './rls-role-assertion';
+import { queryRlsRolePosture } from './rls-role-posture-query';
 import { createRlsRoleReadiness } from './rls-role-readiness';
 import * as schema from './schema';
 
@@ -83,29 +84,7 @@ globalQueryClients.queryClientRls = rlsQueryClient;
 async function queryRlsConnectionRolePosture(
   roleName?: string
 ): Promise<RlsConnectionRolePosture[]> {
-  if (roleName) {
-    return rlsQueryClient<RlsConnectionRolePosture[]>`
-      select
-        current_user as "currentUser",
-        rolname as "roleName",
-        rolbypassrls as "roleBypassesRls",
-        rolsuper as "roleIsSuperuser"
-      from pg_roles
-      where rolname = ${roleName}
-      limit 1
-    `;
-  }
-
-  return rlsQueryClient<RlsConnectionRolePosture[]>`
-      select
-        current_user as "currentUser",
-        rolname as "roleName",
-        rolbypassrls as "roleBypassesRls",
-        rolsuper as "roleIsSuperuser"
-      from pg_roles
-      where rolname = current_user
-      limit 1
-    `;
+  return queryRlsRolePosture(rlsQueryClient, roleName);
 }
 
 type OptionalSentry = {
