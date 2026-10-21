@@ -17,10 +17,14 @@ import {
   writeFixture,
 } from './db-access-guard-test-utils.mjs';
 
+const predecessor = 'f696ec742ffbb108502f5c930aee907e6cea4402';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(
   pair.map(file => [file, runGit(['-C', rootDir, 'show', `${ADOPTION.commit}:${file}`])])
+);
+const formerlyAccepted = new Map(
+  pair.map(file => [file, runGit(['-C', rootDir, 'show', `${predecessor}:${file}`])])
 );
 function fixture(t, contents = current) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'resolver-snapshot-'));
@@ -66,6 +70,26 @@ test('old pair, mixed pair and same-size metadata tampering are rejected', t => 
     assert.throws(
       () => verifyCurrentResolverSnapshot(root, ADOPTION),
       /resolver snapshot digest mismatch/u
+    );
+  }
+});
+
+test('the former accepted pair and both mixed successor states are rejected', t => {
+  for (const contents of [
+    formerlyAccepted,
+    new Map([
+      [pair[0], current.get(pair[0])],
+      [pair[1], formerlyAccepted.get(pair[1])],
+    ]),
+    new Map([
+      [pair[0], formerlyAccepted.get(pair[0])],
+      [pair[1], current.get(pair[1])],
+    ]),
+  ]) {
+    const root = fixture(t, contents);
+    assert.throws(
+      () => verifyCurrentResolverSnapshot(root, ADOPTION),
+      /resolver snapshot .*mismatch/u
     );
   }
 });
