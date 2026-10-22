@@ -8,6 +8,15 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, action) =>
+    action({
+      query: {
+        claims: { findFirst: hoisted.claimsFindFirst },
+        claimStageHistory: { findMany: hoisted.historyFindMany },
+      },
+      select: hoisted.dbSelect,
+    })
+  ),
   db: {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },

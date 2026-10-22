@@ -4,8 +4,9 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 vi.stubEnv('NOVU_API_KEY', 'test-api-key');
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', async () => {
+  const { user, notifications } = await import('@interdomestik/database/schema');
+  const database = {
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         onConflictDoNothing: vi.fn().mockResolvedValue({}),
@@ -20,8 +21,14 @@ vi.mock('@interdomestik/database', () => ({
         }),
       },
     },
-  },
-}));
+  };
+  return {
+    user,
+    notifications,
+    db: database,
+    withTenantContext: vi.fn(async (_context, action) => action(database)),
+  };
+});
 
 vi.mock('@/lib/email', () => ({
   sendClaimAssignedEmail: vi.fn().mockResolvedValue({}),
@@ -85,11 +92,16 @@ describe('Notifications Service', () => {
 
   describe('notifyClaimSubmitted', () => {
     it('should send claim submitted notification', async () => {
-      const result = await notifyClaimSubmitted('user-123', 'user@example.com', {
-        id: 'claim-1',
-        title: 'My Claim',
-        category: 'consumer',
-      });
+      const result = await notifyClaimSubmitted(
+        'user-123',
+        'user@example.com',
+        {
+          id: 'claim-1',
+          title: 'My Claim',
+          category: 'consumer',
+        },
+        { tenantId: 'tenant_mk' }
+      );
 
       expect(result.success).toBe(true);
     });

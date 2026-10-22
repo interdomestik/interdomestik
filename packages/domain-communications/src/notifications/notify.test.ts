@@ -13,6 +13,20 @@ const mocks = vi.hoisted(() => ({
 mocks.insert.mockReturnValue({ values: mocks.insertValues });
 
 vi.mock('@interdomestik/database', () => ({
+  user: { id: 'user.id', tenantId: 'user.tenant_id' },
+  notifications: {
+    id: 'notifications.id',
+    tenantId: 'notifications.tenant_id',
+    type: 'notifications.type',
+    userId: 'notifications.user_id',
+  },
+  withTenantContext: vi.fn(async (_context, action) =>
+    action({
+      query: { user: { findFirst: mocks.findFirst } },
+      insert: mocks.insert,
+      delete: mocks.delete,
+    })
+  ),
   db: {
     query: {
       user: { findFirst: mocks.findFirst },
@@ -23,6 +37,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
+  user: { id: 'user.id', tenantId: 'user.tenant_id' },
   notifications: {
     id: 'notifications.id',
     tenantId: 'notifications.tenant_id',
@@ -46,11 +61,9 @@ vi.mock('../email', () => ({
 
 import { sendEmail } from '../email';
 import {
-  clearSupportHandoffPublicResponseNotifications,
   notifyClaimSubmitted,
   notifyRecoveryDecision,
   notifyStatusChanged,
-  notifySupportHandoffPublicResponse,
   sendNotification,
 } from './notify';
 
@@ -146,11 +159,16 @@ describe('sendNotification', () => {
     });
 
     expect(
-      await notifyClaimSubmitted('member-1', 'member@example.com', {
-        category: 'vehicle',
-        id: 'claim-1',
-        title: 'Vehicle claim',
-      })
+      await notifyClaimSubmitted(
+        'member-1',
+        'member@example.com',
+        {
+          category: 'vehicle',
+          id: 'claim-1',
+          title: 'Vehicle claim',
+        },
+        { tenantId: 'tenant-1' }
+      )
     ).toEqual({ success: true });
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -197,68 +215,6 @@ describe('sendNotification', () => {
         'verified@example.com',
         expect.objectContaining({ subject: 'Recovery accepted' })
       )
-    );
-  });
-
-  it('persists an in-app support handoff public response notification without email dispatch', async () => {
-    mocks.insertValues.mockReturnValueOnce({ onConflictDoNothing: mocks.onConflictDoNothing });
-    mocks.findFirst.mockImplementationOnce(
-      ({ where }: { where: (...args: unknown[]) => unknown }) => {
-        where({ id: 'user.id', tenantId: 'user.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
-        return Promise.resolve({
-          email: 'verified@example.com',
-          emailVerified: true,
-          tenantId: 'tenant-1',
-        });
-      }
-    );
-
-    const result = await notifySupportHandoffPublicResponse(
-      'member-1',
-      { id: 'handoff-1', publicResponseVersion: 3 },
-      {
-        actionUrl: '/sq/member/help?handoffId=handoff-1',
-        content: 'Një përditësim nga stafi është i disponueshëm për kërkesën tuaj të mbështetjes.',
-        tenantId: 'tenant-1',
-        title: 'Përditësim nga stafi',
-      }
-    );
-
-    expect(result).toEqual({ success: true });
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-1',
-      expect.anything(),
-      expect.any(Object)
-    );
-    expect(mocks.insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actionUrl: '/sq/member/help?handoffId=handoff-1',
-        content: 'Një përditësim nga stafi është i disponueshëm për kërkesën tuaj të mbështetjes.',
-        id: 'ntf_support_handoff_tenant-1_handoff-1_3',
-        tenantId: 'tenant-1',
-        title: 'Përditësim nga stafi',
-        type: 'support_handoff_public_response',
-        userId: 'member-1',
-      })
-    );
-    expect(mocks.onConflictDoNothing).toHaveBeenCalledWith({ target: expect.anything() });
-    expect(sendEmail).not.toHaveBeenCalled();
-  });
-
-  it('clears in-app support handoff public response notifications for a closed handoff', async () => {
-    const result = await clearSupportHandoffPublicResponseNotifications(
-      'member-1',
-      { id: 'handoff-1' },
-      { tenantId: 'tenant-1' }
-    );
-
-    expect(result).toEqual({ success: true });
-    expect(mocks.delete).toHaveBeenCalledWith(expect.anything());
-    expect(mocks.deleteWhere).toHaveBeenCalledWith(expect.objectContaining({ scoped: true }));
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-1',
-      'notifications.tenant_id',
-      expect.any(Object)
     );
   });
 });

@@ -2,7 +2,7 @@ import { agentClients, claimMessages, claims, user } from '@interdomestik/databa
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
-type DatabaseClient = typeof DatabaseModule.db;
+type DatabaseClient = Pick<typeof DatabaseModule.db, 'query' | 'select' | 'selectDistinctOn'>;
 
 export interface AgentProClaimDTO {
   id: string;

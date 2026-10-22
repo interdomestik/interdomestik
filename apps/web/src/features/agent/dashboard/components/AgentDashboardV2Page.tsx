@@ -8,6 +8,7 @@ import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
+import { getAgentDashboardBranch } from './agent-dashboard-branch';
 import { db } from '@interdomestik/database/db';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
@@ -49,13 +50,7 @@ export async function AgentDashboardV2Page({
 
   const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
     getAgentDashboardV2StatsCore({ agentId, tenantId }, { db }),
-    session.user.branchId
-      ? db.query.branches.findFirst({
-          where: (fields, { and, eq }) =>
-            and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
-          columns: { name: true },
-        })
-      : null,
+    getAgentDashboardBranch(session.user.branchId, tenantId),
     getAgentReferralLinkCore({ session }),
     getAgentLeaderboardCore({ session, period: 'month' }),
     getMyCommissionSummaryCore({ session }),

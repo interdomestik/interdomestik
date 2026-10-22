@@ -37,7 +37,7 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     value.version !== '7' ||
     value.dialect !== 'postgresql' ||
     !Array.isArray(value.entries) ||
-    value.entries.length !== 96
+    value.entries.length !== 97
   )
     rejectJournal();
   const seenTags = new Set<string>();
@@ -78,7 +78,9 @@ function journalNames(bytes: Uint8Array): readonly string[] {
     entries[94]?.tag !== '0094_request_linked_evidence' ||
     entries[94]?.when !== 1790157491381 ||
     entries[95]?.tag !== '0095_subscription_provider_event_order' ||
-    entries[95]?.when !== 1790435582958
+    entries[95]?.when !== 1790435582958 ||
+    entries[96]?.tag !== '0096_brown_tiger_shark' ||
+    entries[96]?.when !== 1790655333830
   )
     rejectJournal();
   for (let index = 1; index < entries.length; index += 1) {

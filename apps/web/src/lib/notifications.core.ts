@@ -38,9 +38,10 @@ export function sendNotification(
 export function notifyClaimSubmitted(
   userId: string,
   userEmail: string,
-  claim: { id: string; title: string; category: string }
+  claim: { id: string; title: string; category: string },
+  options: { tenantId: string }
 ) {
-  return notifyClaimSubmittedDomain(userId, userEmail, claim);
+  return notifyClaimSubmittedDomain(userId, userEmail, claim, options);
 }
 
 export function notifyClaimAssigned(

@@ -153,7 +153,7 @@ async function hasTenantBoundRecords(params: {
   );
 }
 
-async function validateResolutionInput(params: {
+export async function validateResolutionInput(params: {
   session: UserSession | null;
   userId: string;
   currentTenantId: string;

@@ -1,6 +1,14 @@
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
-import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  db,
+  eq,
+  user,
+  withTenantContext,
+} from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc, isNotNull } from 'drizzle-orm';
@@ -118,15 +126,17 @@ export function getPublicStatusHistoryCore(args: {
   claimId: string;
   tenantId: string;
 }): Promise<Array<LatestPublicStatusNote & { id: string; toStatus: string | null }>> {
-  return db.query.claimStageHistory.findMany({
-    where: and(
-      eq(claimStageHistory.claimId, args.claimId),
-      eq(claimStageHistory.tenantId, args.tenantId),
-      eq(claimStageHistory.isPublic, true)
-    ),
-    columns: { id: true, note: true, toStatus: true, createdAt: true },
-    orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
-  });
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.claimStageHistory.findMany({
+      where: and(
+        eq(claimStageHistory.claimId, args.claimId),
+        eq(claimStageHistory.tenantId, args.tenantId),
+        eq(claimStageHistory.isPublic, true)
+      ),
+      columns: { id: true, note: true, toStatus: true, createdAt: true },
+      orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
+    })
+  );
 }
 
 export async function getLatestPublicStatusNoteCore(args: {

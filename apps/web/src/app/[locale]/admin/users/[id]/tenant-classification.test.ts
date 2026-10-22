@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
-  db: {
+  dbAdmin: {
     query: {
       tenants: {
         findMany: (...args: unknown[]) => mocks.findMany(...args),

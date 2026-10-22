@@ -1,6 +1,6 @@
 import { submitSupportHandoffMemberReplyCore as submitDomainMemberReply } from '@interdomestik/domain-claims/support-handoffs/reply';
 
-import { logAuditEvent } from '@/lib/audit';
+import { logSupportHandoffAuditEvent as logAuditEvent } from './audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';

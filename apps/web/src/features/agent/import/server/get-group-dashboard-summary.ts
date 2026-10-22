@@ -1,7 +1,8 @@
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { deriveClaimSlaPhase } from '@/features/claims/policy/slaPolicy';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 import { agentClients, claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, eq } from 'drizzle-orm';
@@ -20,7 +21,7 @@ export type GroupDashboardSummary = {
 };
 
 export interface GroupDashboardSummaryServices {
-  db: typeof db;
+  db: Pick<typeof db, 'select'>;
 }
 
 type OpenClaimStatusCountRow = {
@@ -146,5 +147,7 @@ export async function getGroupDashboardSummary(params: {
   agentId: string;
   tenantId: string;
 }): Promise<GroupDashboardSummary> {
-  return getGroupDashboardSummaryCore(params, { db });
+  return withTenantContext({ tenantId: params.tenantId }, tx =>
+    getGroupDashboardSummaryCore(params, { db: tx })
+  );
 }

@@ -53,6 +53,7 @@ const mocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_context, action) => action(mocks.db)),
   eq: mocks.eq,
   sql: mocks.sql,
   supportHandoffs: mocks.supportHandoffs,

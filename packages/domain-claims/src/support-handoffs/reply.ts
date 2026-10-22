@@ -1,4 +1,4 @@
-import { and, db, eq, sql, supportHandoffs } from '@interdomestik/database';
+import { withTenantContext, and, eq, sql, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   hasSupportHandoffCurrentCycleMemberReply,
@@ -70,37 +70,39 @@ export async function submitSupportHandoffMemberReplyCore(
   }
 
   const now = new Date();
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      memberReply,
-      memberReplyAt: now,
-      memberReplyResponseVersion: expectedVersion,
-      updatedAt: now,
-    })
-    .where(
-      withTenant(
-        memberSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.memberId, memberId),
-          inArray(supportHandoffs.status, ACTIVE_HANDOFF_STATUSES),
-          isNotNull(supportHandoffs.publicResponse),
-          eq(supportHandoffs.publicResponseVersion, expectedVersion),
-          eq(supportHandoffs.publicResponseAcknowledgedById, memberId),
-          eq(supportHandoffs.publicResponseAcknowledgedVersion, expectedVersion),
-          isNotNull(supportHandoffs.publicResponseAcknowledgedAt),
-          isNull(supportHandoffs.memberReplyAt),
-          sql`${supportHandoffs.memberReplyResponseVersion} is distinct from ${expectedVersion}`
+  const updated = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        memberReply,
+        memberReplyAt: now,
+        memberReplyResponseVersion: expectedVersion,
+        updatedAt: now,
+      })
+      .where(
+        withTenant(
+          memberSession.tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.memberId, memberId),
+            inArray(supportHandoffs.status, ACTIVE_HANDOFF_STATUSES),
+            isNotNull(supportHandoffs.publicResponse),
+            eq(supportHandoffs.publicResponseVersion, expectedVersion),
+            eq(supportHandoffs.publicResponseAcknowledgedById, memberId),
+            eq(supportHandoffs.publicResponseAcknowledgedVersion, expectedVersion),
+            isNotNull(supportHandoffs.publicResponseAcknowledgedAt),
+            isNull(supportHandoffs.memberReplyAt),
+            sql`${supportHandoffs.memberReplyResponseVersion} is distinct from ${expectedVersion}`
+          )
         )
       )
-    )
-    .returning({
-      handoffId: supportHandoffs.id,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-    });
+      .returning({
+        handoffId: supportHandoffs.id,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+      })
+  );
 
   const row = updated[0];
   if (row) {
@@ -133,26 +135,28 @@ export async function submitSupportHandoffMemberReplyCore(
     };
   }
 
-  const existing = await db
-    .select({
-      acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
-      acknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
-      acknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-      publicResponse: supportHandoffs.publicResponse,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      status: supportHandoffs.status,
-    })
-    .from(supportHandoffs)
-    .where(
-      withTenant(
-        memberSession.tenantId,
-        supportHandoffs.tenantId,
-        and(eq(supportHandoffs.id, params.handoffId), eq(supportHandoffs.memberId, memberId))
+  const existing = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+    tx
+      .select({
+        acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+        acknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+        acknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+        publicResponse: supportHandoffs.publicResponse,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        status: supportHandoffs.status,
+      })
+      .from(supportHandoffs)
+      .where(
+        withTenant(
+          memberSession.tenantId,
+          supportHandoffs.tenantId,
+          and(eq(supportHandoffs.id, params.handoffId), eq(supportHandoffs.memberId, memberId))
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   const current = existing[0];
   if (!current) {

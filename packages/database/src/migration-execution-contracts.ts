@@ -24,7 +24,7 @@ export type MigrationExecutionSummary = Readonly<{
   callback_plan_sha256: string;
   applied_before: number;
   applied_now: number;
-  applied_total: 96;
+  applied_total: 97;
   session_reserved: true;
   transaction_committed: true;
   session_lock_released: true;
@@ -57,8 +57,8 @@ export function migrationExecutionSuccess(
       contract_version: 'canonical_migration_execution_v1',
       callback_plan_sha256: callbackPlanSha256,
       applied_before: appliedBefore,
-      applied_now: 96 - appliedBefore,
-      applied_total: 96,
+      applied_now: 97 - appliedBefore,
+      applied_total: 97,
       session_reserved: true,
       transaction_committed: true,
       session_lock_released: true,

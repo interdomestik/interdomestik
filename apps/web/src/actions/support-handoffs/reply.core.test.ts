@@ -10,8 +10,8 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/reply', () => ({
   submitSupportHandoffMemberReplyCore: mocks.submitDomainMemberReply,
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: mocks.logAuditEvent,
+vi.mock('./audit', () => ({
+  logSupportHandoffAuditEvent: mocks.logAuditEvent,
 }));
 
 vi.mock('next/cache', () => ({

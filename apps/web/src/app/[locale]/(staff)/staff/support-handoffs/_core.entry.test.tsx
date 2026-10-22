@@ -48,6 +48,9 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, action) =>
+    action({ query: { user: { findFirst: mocks.findStaffBranch, findMany: mocks.findManyStaff } } })
+  ),
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   db: {
     query: {

@@ -1,7 +1,9 @@
+import { reassignTenantClassification } from '@/server/auth/reassign-tenant-classification';
 import { revalidatePath } from 'next/cache';
 
 import {
   resolveTenantClassificationCore as resolveTenantClassificationDomain,
+  validateResolutionInput,
   type ResolveTenantClassificationResult,
 } from '@interdomestik/domain-users/admin/resolve-tenant-classification';
 import type { UserSession } from '@interdomestik/domain-users/types';
@@ -28,7 +30,19 @@ export async function resolveTenantClassificationCore(params: {
   currentTenantId: string;
   nextTenantId?: string | null;
 }) {
-  const result = await resolveTenantClassificationDomain({
+  const validation = await validateResolutionInput({
+    session: params.session as UserSession | null,
+    userId: params.userId,
+    currentTenantId: params.currentTenantId,
+    targetTenantId: params.nextTenantId ?? null,
+  });
+  if ('error' in validation) return validation;
+  if (!validation.data) return { error: 'Failed to resolve tenant classification' };
+  const resolve =
+    validation.data.resolutionMode === 'reassign'
+      ? reassignTenantClassification
+      : resolveTenantClassificationDomain;
+  const result = await resolve({
     session: params.session as UserSession | null,
     userId: params.userId,
     currentTenantId: params.currentTenantId,

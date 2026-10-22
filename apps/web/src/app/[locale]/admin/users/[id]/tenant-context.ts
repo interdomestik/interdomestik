@@ -1,6 +1,4 @@
-import { db } from '@interdomestik/database/db';
-import { tenants } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { readActiveClassificationTenant } from '@/server/auth/tenant-classification-metadata';
 
 type SessionLike = {
   user?: {
@@ -35,11 +33,7 @@ export async function resolveAdminTenantContext(params: {
     return sessionTenantId;
   }
 
-  // db-access-guard: system-exempt -- reason: super-admin requested tenant validation reads active tenant metadata only
-  const requestedTenant = await db.query.tenants.findFirst({
-    where: and(eq(tenants.id, requestedTenantId), eq(tenants.isActive, true)),
-    columns: { id: true },
-  });
+  const requestedTenant = await readActiveClassificationTenant(session, requestedTenantId);
 
   return requestedTenant?.id ?? sessionTenantId;
 }

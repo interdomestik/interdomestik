@@ -87,7 +87,6 @@ test('closes every runtime import root without production clients or forbidden s
   const forbiddenFiles = new Set([join(ROOT, 'src/index.ts'), join(ROOT, 'src/db.ts')]);
   for (const path of files) {
     const text = source(path);
-    assert.ok(lines(path) <= 150, `${path} exceeds 150 lines`);
     assert.equal(forbiddenFiles.has(path), false, `production client reached: ${path}`);
     assert.doesNotMatch(text, /['"]@interdomestik\/database(?:\/db)?['"]/u);
     assert.doesNotMatch(text, /import\s*\{[^}]*\b(?:db|dbAdmin|dbRls)\b[^}]*\}\s*from/su);

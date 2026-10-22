@@ -1,6 +1,4 @@
-import { db } from '@interdomestik/database/db';
-import { tenants } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { readActiveClassificationTenantOptions } from '@/server/auth/tenant-classification-metadata';
 
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 
@@ -18,22 +16,5 @@ export async function getTenantClassificationOptions(params: {
     return [];
   }
 
-  // db-access-guard: system-exempt -- reason: super-admin tenant classification selector lists active tenant metadata only
-  const activeTenants = await db.query.tenants.findMany({
-    where: eq(tenants.isActive, true),
-    columns: {
-      id: true,
-      name: true,
-      countryCode: true,
-    },
-    orderBy: (table, { asc: ascFn }) => [ascFn(table.name)],
-  });
-
-  return activeTenants
-    .filter(tenant => tenant.id !== params.currentTenantId)
-    .map(tenant => ({
-      id: tenant.id,
-      name: tenant.name,
-      countryCode: tenant.countryCode,
-    }));
+  return readActiveClassificationTenantOptions(params.session, params.currentTenantId);
 }
