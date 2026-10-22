@@ -5,6 +5,17 @@ const hoisted = vi.hoisted(() => ({
   findLeadFirst: vi.fn(),
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context: unknown, action: (tx: unknown) => unknown) =>
+    action({
+      query: {
+        crmLeads: { findFirst: hoisted.findLeadFirst },
+        crmActivities: { findMany: hoisted.findActivitiesMany },
+      },
+    })
+  ),
+}));
+
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     query: {

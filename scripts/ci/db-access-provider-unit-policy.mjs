@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import { loadCrmProofPolicy } from './db-access-crm-policy-loader.mjs';
 const freeze = value => {
   if (value && typeof value === 'object') {
     Object.values(value).forEach(freeze);
@@ -27,4 +28,6 @@ if (expected) {
     throw new Error('incomplete: fixed message policy source mismatch');
   policy.messageProof = JSON.parse(bytes);
 }
+const crmProof = loadCrmProofPolicy(policy);
+if (crmProof) policy.crmProof = crmProof;
 export const PROVIDER_UNIT_POLICY = freeze(policy);

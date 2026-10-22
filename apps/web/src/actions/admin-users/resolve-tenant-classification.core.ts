@@ -6,7 +6,7 @@ import {
 } from '@interdomestik/domain-users/admin/resolve-tenant-classification';
 import type { UserSession } from '@interdomestik/domain-users/types';
 
-import { logAuditEvent } from '@/lib/audit';
+import { logTenantAuditEvent as logAuditEvent } from '@/lib/audit';
 
 import type { Session } from './context';
 

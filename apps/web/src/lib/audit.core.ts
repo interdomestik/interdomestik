@@ -25,16 +25,10 @@ function extractRequestMetadata(requestHeaders?: Headers) {
   };
 }
 
-export async function logAuditEvent({
-  actorId,
-  actorRole,
-  tenantId,
-  action,
-  entityType,
-  entityId,
-  metadata,
-  headers,
-}: AuditEvent) {
+export async function logAuditEvent(
+  { actorId, actorRole, tenantId, action, entityType, entityId, metadata, headers }: AuditEvent,
+  database: Pick<typeof db, 'insert'> = db
+) {
   try {
     const requestMetadata = extractRequestMetadata(headers);
     const combinedMetadata: Record<string, unknown> = {
@@ -55,7 +49,7 @@ export async function logAuditEvent({
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(auditLog).values({
+    await database.insert(auditLog).values({
       id: nanoid(),
       tenantId: resolvedTenantId,
       actorId: actorId || null,

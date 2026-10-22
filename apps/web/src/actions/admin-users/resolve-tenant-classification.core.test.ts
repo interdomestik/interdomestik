@@ -16,7 +16,7 @@ vi.mock('next/cache', () => ({
 }));
 
 vi.mock('@/lib/audit', () => ({
-  logAuditEvent: (...args: unknown[]) => mocks.logAuditEvent(...args),
+  logTenantAuditEvent: (...args: unknown[]) => mocks.logAuditEvent(...args),
 }));
 
 import { resolveTenantClassificationCore } from './resolve-tenant-classification.core';
