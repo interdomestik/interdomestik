@@ -1,0 +1,980 @@
+{
+  "version": 1,
+  "id": "s8-restricted-provider-20261021-v1",
+  "adoptionCommit": "278e33ab0dd448547fa81d4b0ff122b4d69c901e",
+  "adoptionTree": "4f9330417466b4f7bee68349e7183db22a5260ff",
+  "baselineSha256": "438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9",
+  "baselineBytes": 238043,
+  "files": {
+    "packages/database/src/constants.ts": {
+      "sha256": "b708aa342582f21d63f8010aeb81858af7043ee057d67b9e632363c9e559b395",
+      "bytes": 1008,
+      "mode": "100644",
+      "local": [],
+      "external": []
+    },
+    "packages/database/src/database-configuration.ts": {
+      "sha256": "5238b5e50969d82c3277a38c8fd043f7b96523d84539ca6328d9c8203bacf93c",
+      "bytes": 1178,
+      "mode": "100644",
+      "local": [],
+      "external": []
+    },
+    "packages/database/src/database-connection.ts": {
+      "sha256": "507a7a29b596a3734844e8c8919b04e929489bd906d16fcaefb7f2d3bea21740",
+      "bytes": 1507,
+      "mode": "100644",
+      "local": ["packages/database/src/database-configuration.ts"],
+      "external": ["postgres"]
+    },
+    "packages/database/src/db.ts": {
+      "sha256": "dbe8ba068d104daa8f6e1d344a665343f2a1ac5bc454aa7f07032422601b6292",
+      "bytes": 7457,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/database-configuration.ts",
+        "packages/database/src/database-connection.ts",
+        "packages/database/src/rls-role-posture-query.ts",
+        "packages/database/src/rls-role-readiness.ts",
+        "packages/database/src/schema.ts"
+      ],
+      "external": ["drizzle-orm/postgres-js", "node:crypto"]
+    },
+    "packages/database/src/owned-tenant-context.ts": {
+      "sha256": "14036d463f6eda2081f54bbcaef8ad60c6c9c3f744bbe540d607500b8a5901ad",
+      "bytes": 1534,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/database-configuration.ts",
+        "packages/database/src/database-connection.ts",
+        "packages/database/src/db.ts",
+        "packages/database/src/tenant-transaction.ts"
+      ],
+      "external": ["drizzle-orm/postgres-js"]
+    },
+    "packages/database/src/rls-role-assertion.ts": {
+      "sha256": "f52bd35597fcf72141d5a69201efa51c0eb6cf57bf2fe641bbc371be8ff60341",
+      "bytes": 7090,
+      "mode": "100644",
+      "local": ["packages/database/src/rls-role-posture-query.ts"],
+      "external": []
+    },
+    "packages/database/src/rls-role-posture-query.ts": {
+      "sha256": "00edd51c5731df11506583ccd7faa2b9f45d24bc57605cd4a07c5905e4c97a75",
+      "bytes": 3539,
+      "mode": "100644",
+      "local": [],
+      "external": []
+    },
+    "packages/database/src/rls-role-readiness.ts": {
+      "sha256": "40cd1c1959af9f679c8e9d9db102c0cea25787470b52117807afb137c4cf218e",
+      "bytes": 3797,
+      "mode": "100644",
+      "local": ["packages/database/src/rls-role-assertion.ts"],
+      "external": []
+    },
+    "packages/database/src/schema.ts": {
+      "sha256": "4e6c7f6f905336c82876ecf41c7041ed7fbc84d1d48933da0157be8b1b1d6ea1",
+      "bytes": 183,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/index.ts"],
+      "external": []
+    },
+    "packages/database/src/schema/agents.ts": {
+      "sha256": "1ea199de9cdd29c950290d29b14bcac217ea2651c442fbd0f0a11caf2cc5d7fc",
+      "bytes": 3154,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/enums.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/ai.ts": {
+      "sha256": "d9097661ab93975cca0608660020b6715960222671724776cd409e754cd0f04b",
+      "bytes": 3865,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/documents.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/auth.ts": {
+      "sha256": "81ee6897f9001df129951f0c8e168f15884dcab6b7646fe9e5b215f082c077b4",
+      "bytes": 3158,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/rbac.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/automation.ts": {
+      "sha256": "4571887f34d0519c0d4c2b4b1ed3cbd27990da490f95724bd710ac5c4effe024",
+      "bytes": 4095,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/billing.ts": {
+      "sha256": "96826ec16f3dcd418eb8c6cbdc23863a4d1ababfe9189814af6f162801e95ec4",
+      "bytes": 2975,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/tenants.ts",
+        "packages/database/src/schema/webhooks.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/case-scoped-access-grants.ts": {
+      "sha256": "d71d9c30553ccedf928ce4f608ac10ead81050a149d0a813e199321add83b3bb",
+      "bytes": 2143,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-commercial.ts": {
+      "sha256": "0216b8044e7d3a2c9594dbd833b098723bbddbdb3426d7ce6fca86ded1ddec2d",
+      "bytes": 3570,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-core.ts": {
+      "sha256": "cd6861b64edd24fb97f6572df70acca748e13ecd061bf19c1e5780ca65ae1d1e",
+      "bytes": 4880,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-document-ai-consents.ts": {
+      "sha256": "4a4fbd93087421974e81718fdd78c19ff1d15cfd4174787c06d359d3365e1e41",
+      "bytes": 2069,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-information-requests.ts": {
+      "sha256": "5fe560555d4487b258e3fc982571204097b43e6a5353ecd66a0a5445f1229514",
+      "bytes": 6044,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claim-core.ts",
+        "packages/database/src/schema/claim-support-tables.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-recovery-no-fee.ts": {
+      "sha256": "81ea8fb95d2fd5f8012e56a5919a2c429add7140d6c018b7834d632c8b59286e",
+      "bytes": 1424,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-support-tables.ts": {
+      "sha256": "64f5cd713580e99edcae80ac615f20444bce1211f75e9cc47a86705c15e356e5",
+      "bytes": 2425,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claim-core.ts",
+        "packages/database/src/schema/enums.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-threads.ts": {
+      "sha256": "99f3db67b687dd9ec039c4aa8e7c81f1296fc7db5d6e47f051587a6e41a9ca78",
+      "bytes": 4142,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claim-transition-evidence.ts": {
+      "sha256": "aecfb7918b58e4b7a716ebd425a5acd54041a3eac2a1b1e37ac4e6b228455124",
+      "bytes": 2129,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/claims.ts": {
+      "sha256": "8b41703f709f34438fef9b1055ca185b8cff261071f1918c8863b3bba3c4802c",
+      "bytes": 130,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/claim-core.ts",
+        "packages/database/src/schema/claim-support-tables.ts"
+      ],
+      "external": []
+    },
+    "packages/database/src/schema/commercial-action-idempotency.ts": {
+      "sha256": "a601bdb44c995ccee6c467de9fcfe09ca713a150865e43d9a02002b21ffafca0",
+      "bytes": 1278,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/counters.ts": {
+      "sha256": "9059d14838649f54850e3abbe814580849c19e8daf2c1b0311eeecae958bfee3",
+      "bytes": 539,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/crm.ts": {
+      "sha256": "bad30f4bb6d6190d7f6d8e754584c1ab081d90a69df7aae4c0d4c1b85ac7fc3a",
+      "bytes": 39467,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/documents.ts": {
+      "sha256": "ef8fb06f85218129959cef5b4cdcf8e2a4bd62467b0424137f266131177c5cfd",
+      "bytes": 4797,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/domain-event-deliveries.ts": {
+      "sha256": "8656044731a54b7e93de1755ccc0858346bc634af1a7c2e05088e4593ffdbf59",
+      "bytes": 1556,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/domain-events.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/domain-event-keys.ts": {
+      "sha256": "4bd6b68addec9b0342609c24d56037aa4315c07d078079f2a5672037e974479e",
+      "bytes": 1027,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/domain-events.ts": {
+      "sha256": "b377073a4dcbf3753ddbb2771e0624b3e3d372c7feede7ed7abbe00a9a182189",
+      "bytes": 1804,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/enums.ts": {
+      "sha256": "16490dc0146c16d79f8f70f57e030ad0b253d4fdfded940ed7c5caaade9080e5",
+      "bytes": 973,
+      "mode": "100644",
+      "local": ["packages/database/src/constants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/event-pii-references.ts": {
+      "sha256": "36519762b08ecfea5de2cba4dbc6aa92cec0ac5f68fe93cf0b12054e95c4dabb",
+      "bytes": 2757,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/domain-events.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/free-start-drafts.ts": {
+      "sha256": "1b682715596c1fd0144ccd70b54091ca73e9224de1df78fb553d35207827bdb2",
+      "bytes": 3170,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/index.ts": {
+      "sha256": "068b28297411a8345d6006104df52b22ae8d7576dee9df8a651175fc01cb8b78",
+      "bytes": 1397,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/agents.ts",
+        "packages/database/src/schema/ai.ts",
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/automation.ts",
+        "packages/database/src/schema/billing.ts",
+        "packages/database/src/schema/case-scoped-access-grants.ts",
+        "packages/database/src/schema/claim-commercial.ts",
+        "packages/database/src/schema/claim-document-ai-consents.ts",
+        "packages/database/src/schema/claim-information-requests.ts",
+        "packages/database/src/schema/claim-recovery-no-fee.ts",
+        "packages/database/src/schema/claim-threads.ts",
+        "packages/database/src/schema/claim-transition-evidence.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/commercial-action-idempotency.ts",
+        "packages/database/src/schema/counters.ts",
+        "packages/database/src/schema/crm.ts",
+        "packages/database/src/schema/documents.ts",
+        "packages/database/src/schema/domain-event-deliveries.ts",
+        "packages/database/src/schema/domain-event-keys.ts",
+        "packages/database/src/schema/domain-events.ts",
+        "packages/database/src/schema/enums.ts",
+        "packages/database/src/schema/event-pii-references.ts",
+        "packages/database/src/schema/free-start-drafts.ts",
+        "packages/database/src/schema/leads.ts",
+        "packages/database/src/schema/member-counters.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/notes.ts",
+        "packages/database/src/schema/notifications.ts",
+        "packages/database/src/schema/policies.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/relations.ts",
+        "packages/database/src/schema/seed-meta.ts",
+        "packages/database/src/schema/services.ts",
+        "packages/database/src/schema/tenant-entity-decomposition.ts",
+        "packages/database/src/schema/tenants.ts",
+        "packages/database/src/schema/tracking.ts",
+        "packages/database/src/schema/webhooks.ts"
+      ],
+      "external": []
+    },
+    "packages/database/src/schema/leads.ts": {
+      "sha256": "b0cac894935451b45b1f1dc00b6136e55e3b817f1a559d442f0a6f3b39707fce",
+      "bytes": 4280,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/member-counters.ts": {
+      "sha256": "fe41aed4bf2ebcc56cc4751b5af19115e99d1983be7956183ea0c3ac233f670f",
+      "bytes": 370,
+      "mode": "100644",
+      "local": [],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/membership-plans.ts": {
+      "sha256": "e02f0e261611f138b61a39f5cba08a024335bd1734a0ae4b57ab0b726069ac7e",
+      "bytes": 1315,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/enums.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/memberships.ts": {
+      "sha256": "76b6ae58fe025e57e2a9bd085e034bbedaafc9007b8990833eeaf7fa04465528",
+      "bytes": 3231,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/membership-plans.ts",
+        "packages/database/src/schema/subscriptions.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/notes.ts": {
+      "sha256": "c17f05654ba4440985c1d9a20ddb8d853286342a9fb20428cc7af240a884a596",
+      "bytes": 1489,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/enums.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/notifications.ts": {
+      "sha256": "73423c05d2250553efdd0aa1f501306f22f338d1c732bd15982e68f6e0ad71bf",
+      "bytes": 1176,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/policies.ts": {
+      "sha256": "ecde24b3bd2ef18d3b475d59e3a040a169dfb1527d741c28218194bf4c381e6e",
+      "bytes": 916,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/rbac.ts": {
+      "sha256": "e195631367a4035d7698e1c6d996053daaf326a01b53f8bf0d593d312d503b09",
+      "bytes": 1836,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/auth.ts", "packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/relations.ts": {
+      "sha256": "657049f33377948fbe05b980c83e373e23d7321dfb4f4aceddc9ed871ca956f3",
+      "bytes": 15702,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/agents.ts",
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/crm.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/notes.ts",
+        "packages/database/src/schema/notifications.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/services.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm"]
+    },
+    "packages/database/src/schema/seed-meta.ts": {
+      "sha256": "6c10e455f91c25bc7ccac9b55011dca003da4f541249d4cee5bc3e13de549283",
+      "bytes": 1087,
+      "mode": "100644",
+      "local": [],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/services.ts": {
+      "sha256": "1a1dc012fd0f613c667ac3679aea8971e1e31173dfd7891b96194efa8f38e726",
+      "bytes": 10698,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/memberships.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/subscriptions.ts": {
+      "sha256": "c38a8229da9dca6a5a30dca386643309f5192648b188f278894c1249b2718ffe",
+      "bytes": 4093,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/enums.ts",
+        "packages/database/src/schema/membership-plans.ts",
+        "packages/database/src/schema/rbac.ts",
+        "packages/database/src/schema/tenant-entity-decomposition.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/tenant-entity-decomposition.ts": {
+      "sha256": "027e4016ac27a42ea11966d7aa560eaa82e70f66d89d0854333d597233b5aef4",
+      "bytes": 4436,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/tenants.ts": {
+      "sha256": "f67a37f091a57a11fe29046816970ff04c1e8ed69c0f6ccd6d77891718f37aa9",
+      "bytes": 1883,
+      "mode": "100644",
+      "local": [],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/tracking.ts": {
+      "sha256": "73bd60e7bb2d33992a632a38db717b9eab1b269058f0db6b48477b81e4d01be0",
+      "bytes": 934,
+      "mode": "100644",
+      "local": [
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm/pg-core"]
+    },
+    "packages/database/src/schema/webhooks.ts": {
+      "sha256": "06e31e4ae6f246c8cd6ec49896f1b0d5aa3cf5ab7ffefc3b0deaafe214d3dd46",
+      "bytes": 1752,
+      "mode": "100644",
+      "local": ["packages/database/src/schema/tenants.ts"],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
+    },
+    "packages/database/src/tenant-transaction.ts": {
+      "sha256": "4d2dcdb5a3c2c8245624604ec4fda91832abd8fdffe8af4f71cd761ac88c3e8a",
+      "bytes": 2881,
+      "mode": "100644",
+      "local": ["packages/database/src/rls-role-assertion.ts"],
+      "external": ["drizzle-orm"]
+    },
+    "packages/database/src/tenant.ts": {
+      "sha256": "26be9d452f5076ef52a8d1ee7254bb3fb705ce9f02c79f3e408512019b1166c9",
+      "bytes": 811,
+      "mode": "100644",
+      "local": ["packages/database/src/db.ts", "packages/database/src/tenant-transaction.ts"],
+      "external": []
+    }
+  },
+  "resolverFiles": {
+    "pnpm-workspace.yaml": {
+      "sha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304",
+      "bytes": 1989,
+      "mode": "100644"
+    },
+    "pnpm-lock.yaml": {
+      "sha256": "f4e4858573b84e51044a0cb717ad3e1425b6bf8806dfb2a1ae19edb119b3a72d",
+      "bytes": 711992,
+      "mode": "100644"
+    },
+    "packages/database/package.json": {
+      "sha256": "b5690ff8e2c7d0ac07b015a4f5619d775345e7710316faa7e4fc4de6f94c0d99",
+      "bytes": 2436,
+      "mode": "100644"
+    },
+    "patches/postgres@3.4.9.patch": {
+      "sha256": "dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612",
+      "bytes": 1436,
+      "mode": "100644"
+    }
+  },
+  "publicModules": [
+    "packages/database/src/constants.ts",
+    "packages/database/src/db.ts",
+    "packages/database/src/schema.ts",
+    "packages/database/src/schema/agents.ts",
+    "packages/database/src/schema/ai.ts",
+    "packages/database/src/schema/auth.ts",
+    "packages/database/src/schema/automation.ts",
+    "packages/database/src/schema/billing.ts",
+    "packages/database/src/schema/case-scoped-access-grants.ts",
+    "packages/database/src/schema/claim-commercial.ts",
+    "packages/database/src/schema/claim-core.ts",
+    "packages/database/src/schema/claim-document-ai-consents.ts",
+    "packages/database/src/schema/claim-information-requests.ts",
+    "packages/database/src/schema/claim-recovery-no-fee.ts",
+    "packages/database/src/schema/claim-support-tables.ts",
+    "packages/database/src/schema/claim-threads.ts",
+    "packages/database/src/schema/claim-transition-evidence.ts",
+    "packages/database/src/schema/claims.ts",
+    "packages/database/src/schema/commercial-action-idempotency.ts",
+    "packages/database/src/schema/counters.ts",
+    "packages/database/src/schema/crm.ts",
+    "packages/database/src/schema/documents.ts",
+    "packages/database/src/schema/domain-event-deliveries.ts",
+    "packages/database/src/schema/domain-event-keys.ts",
+    "packages/database/src/schema/domain-events.ts",
+    "packages/database/src/schema/enums.ts",
+    "packages/database/src/schema/event-pii-references.ts",
+    "packages/database/src/schema/free-start-drafts.ts",
+    "packages/database/src/schema/index.ts",
+    "packages/database/src/schema/leads.ts",
+    "packages/database/src/schema/member-counters.ts",
+    "packages/database/src/schema/membership-plans.ts",
+    "packages/database/src/schema/memberships.ts",
+    "packages/database/src/schema/notes.ts",
+    "packages/database/src/schema/notifications.ts",
+    "packages/database/src/schema/policies.ts",
+    "packages/database/src/schema/rbac.ts",
+    "packages/database/src/schema/relations.ts",
+    "packages/database/src/schema/seed-meta.ts",
+    "packages/database/src/schema/services.ts",
+    "packages/database/src/schema/subscriptions.ts",
+    "packages/database/src/schema/tenant-entity-decomposition.ts",
+    "packages/database/src/schema/tenants.ts",
+    "packages/database/src/schema/tracking.ts",
+    "packages/database/src/schema/webhooks.ts",
+    "packages/database/src/tenant.ts"
+  ],
+  "privateImporters": {},
+  "testHarness": {
+    "apps/web/src/features/health/health-readiness.test.ts": {
+      "sha256": "8e981989bb3114dbb0356b1c3bc6853c71aa4754a2f6ed53f9186bc7eaa88be4",
+      "bytes": 3782,
+      "mode": "100644"
+    },
+    "packages/database/test/owned-tenant-transaction.test.ts": {
+      "sha256": "8e6813d335c977dfcfa7821d9a74d9493080bbe8f984220fabcce9c0ca2300ac",
+      "bytes": 3572,
+      "mode": "100644"
+    },
+    "packages/database/test/rls-bootstrap.test.ts": {
+      "sha256": "0d45571c532ab20a0d659258219432e07d0233435c9a0e0f21e655b80d50dbcb",
+      "bytes": 3947,
+      "mode": "100644"
+    },
+    "packages/database/test/rls-role-assertion.test.ts": {
+      "sha256": "4232d1927e43bf12db2c838974a951484f60622b46cfef3a08eb206f0551eb99",
+      "bytes": 8490,
+      "mode": "100644"
+    },
+    "packages/database/test/rls-role-posture-query.fixture.ts": {
+      "sha256": "e310641eee9f376b1df3b3973481771f486c40a0fea4886eaecf3eb024f30d87",
+      "bytes": 4696,
+      "mode": "100644"
+    },
+    "packages/database/test/rls-role-posture-query.test.ts": {
+      "sha256": "fa324efb8c105d7a4dd9e58a7cab127d9af30f4c961d15cc140227923f36c44d",
+      "bytes": 8109,
+      "mode": "100644"
+    }
+  },
+  "runtimeFiles": {
+    "packages/database/test/rls-role-posture-query.test.ts": {
+      "sha256": "fa324efb8c105d7a4dd9e58a7cab127d9af30f4c961d15cc140227923f36c44d",
+      "bytes": 8109,
+      "mode": "100644"
+    },
+    "packages/database/test/rls-role-posture-query.fixture.ts": {
+      "sha256": "e310641eee9f376b1df3b3973481771f486c40a0fea4886eaecf3eb024f30d87",
+      "bytes": 4696,
+      "mode": "100644"
+    }
+  },
+  "producerFiles": {
+    "scripts/ci/db-access-provider-unit-source.mjs": {
+      "mode": "100644",
+      "bytes": 10780,
+      "sha256": "c1b93fe9a5caee0ee6bd57e0a4b080caa4c26444266332529c395cfeefef411d"
+    },
+    "scripts/ci/db-access-provider-runtime-materialize.mjs": {
+      "mode": "100644",
+      "bytes": 10626,
+      "sha256": "6025ffa28986842d7f405e82d3d21ba5527c9a798a75141c677743a7561ce77e"
+    },
+    "scripts/ci/db-access-provider-runtime-probe.mjs": {
+      "mode": "100644",
+      "bytes": 8258,
+      "sha256": "9adce5bc6d143de507d9b7a497ba9c07af75cd450219d02b201f73a6c5d1e4bb"
+    },
+    "scripts/ci/db-access-provider-runtime-required.mjs": {
+      "mode": "100644",
+      "bytes": 9478,
+      "sha256": "b3fd5ff6ec54e057a196df20428911d1e0b79983c8c2061a1aede9aa997f270a"
+    },
+    "scripts/ci/db-access-provider-runtime-identity.mjs": {
+      "mode": "100644",
+      "bytes": 4310,
+      "sha256": "36075a46ab79386646b18be0e1ff2610e5269cecd96c15d6b3f10901f03ff8c3"
+    },
+    "scripts/ci/db-access-provider-runtime-fixture.mjs": {
+      "mode": "100644",
+      "bytes": 5969,
+      "sha256": "2a7698045251d38e66f52a6cdfe6b0498d0e1924fcb507c41e6e9a8a6e2842a2"
+    },
+    "scripts/ci/db-access-named-proof-source.mjs": {
+      "mode": "100644",
+      "bytes": 5779,
+      "sha256": "a17ce4fe679b4cc5cf71eaf01a8af60f753e3fcb9778dc4e3f4423591122a5c0"
+    },
+    "scripts/ci/db-access-named-proof-loader.mjs": {
+      "mode": "100644",
+      "bytes": 3742,
+      "sha256": "e5d2172a314903ff482b77f69ea6c3066c005db091ffd67c241f76a3d9dc94dd"
+    },
+    "scripts/ci/db-access-named-proof-probe.mjs": {
+      "mode": "100644",
+      "bytes": 5697,
+      "sha256": "eff9bd412c58202e95e305e3355e4a0ed3d91298c0987e4dc52ed567e9ba48e1"
+    },
+    "scripts/ci/db-access-named-proof-live.mjs": {
+      "mode": "100644",
+      "bytes": 7233,
+      "sha256": "a81633c515d85911b1d047f6bb63bf0ecd4ac161872a45092e6b24d4546570c6"
+    },
+    "scripts/ci/db-access-message-proof-source.mjs": {
+      "mode": "100644",
+      "bytes": 5247,
+      "sha256": "d6e0e185a1cd2d337fea1cf63d3210d29ccb1880711516d24335e6f9eef7ba96"
+    },
+    "scripts/ci/db-access-message-runtime.mjs": {
+      "mode": "100644",
+      "bytes": 2605,
+      "sha256": "cc7c688c3bd99c9b9300684231303fb689e8d115bfe3ccb243ec1d715dd4f6bd"
+    },
+    "scripts/ci/db-access-message-runtime-materialize.mjs": {
+      "mode": "100644",
+      "bytes": 5543,
+      "sha256": "0f97871bfa2b25394b7089a5b3aeb657391a9a3162f45f13d888b5db0d2f53e8"
+    },
+    "scripts/ci/db-access-message-runtime-result.mjs": {
+      "mode": "100644",
+      "bytes": 2360,
+      "sha256": "f68ad965a14e0ff1cf337aacaf1cdcac0b9f5bf74601b73767bfeda472fbbc19"
+    },
+    "scripts/ci/db-access-message-runtime-driver.mjs": {
+      "mode": "100644",
+      "bytes": 2890,
+      "sha256": "8c526386fab22242a1bdef29a5b82d56f9dd38b57206a66f491115eedfe571d7"
+    },
+    "scripts/ci/db-access-message-runtime-lock.json": {
+      "mode": "100644",
+      "bytes": 74945,
+      "sha256": "cf0aabb2fc3f04e337bc59c597922c25731f25b780dfa9aa6d7e227fa0a32efd"
+    },
+    "scripts/ci/db-access-message-proof-policy.json": {
+      "mode": "100644",
+      "bytes": 110561,
+      "sha256": "032eaf9de93ee05406b5bbb3d3027c3b71968fa47566ee4616b9bf0422db2b1f"
+    },
+    "scripts/ci/db-access-proof-report.mjs": {
+      "mode": "100644",
+      "bytes": 1402,
+      "sha256": "dc4d481723801e38a98bb5c30511f1a46aad686eb3911cdcb057f660eac63e6c"
+    }
+  },
+  "runtimeEnforcement": {
+    "id": "s8-fixed-provider-runtime-v1",
+    "mode": "required-direct-execution",
+    "requiredTests": 9,
+    "acceptedReceiptInputs": false
+  },
+  "runtimeProofBoundary": {
+    "id": "s8-fixed-role-proof-v1",
+    "entry": "packages/database/test/rls-role-posture-query.test.ts"
+  },
+  "namedProof": {
+    "configuration": {
+      "mode": "100644",
+      "bytes": 2774,
+      "sha256": "ae48bed7cd2f03614366f5cc61dd4e774f15a2d158fa9a49f0d8349dfac53b0a"
+    },
+    "id": "s8-named-operations-v1",
+    "operations": [
+      "apps/web/src/instrumentation.ts",
+      "apps/web/src/lib/observability/database-readiness.ts",
+      "apps/web/src/lib/observability/sentry-privacy.ts",
+      "packages/database/src/migrate.ts",
+      "apps/web/src/features/health/health.service.ts",
+      "apps/web/src/features/health/health-readiness.test.ts",
+      "apps/web/src/lib/observability/database-readiness.test.ts",
+      "apps/web/src/lib/rendering-build-mode.test.ts",
+      "packages/database/test/owned-tenant-transaction.test.ts",
+      "packages/database/test/rls-bootstrap.test.ts"
+    ],
+    "files": {
+      "apps/web/next.config.mjs": {
+        "mode": "100644",
+        "bytes": 4659,
+        "sha256": "a26096d3b440844ebd8f7a33f65f4953c24f6d2a56b2480d654290e0add10b39",
+        "imports": {
+          "./src/lib/supabase-deployment.mjs": "apps/web/src/lib/supabase-deployment.mjs",
+          "@next/bundle-analyzer": null,
+          "@sentry/nextjs": null,
+          "next-axiom": null,
+          "next-intl/plugin": null
+        }
+      },
+      "apps/web/src/features/health/health-readiness.test.ts": {
+        "mode": "100644",
+        "bytes": 3782,
+        "sha256": "8e981989bb3114dbb0356b1c3bc6853c71aa4754a2f6ed53f9186bc7eaa88be4",
+        "imports": {
+          "../../../../../packages/database/src/rls-role-readiness": "packages/database/src/rls-role-readiness.ts",
+          "./health.service": "apps/web/src/features/health/health.service.ts",
+          "vitest": null
+        }
+      },
+      "apps/web/src/features/health/health.service.ts": {
+        "mode": "100644",
+        "bytes": 4137,
+        "sha256": "8be3fe22b00baa7fc4984ce6c87fed8f56847e3cce89f56f8918089c6682fb85",
+        "imports": {
+          "./upstash-redis-url": "apps/web/src/features/health/upstash-redis-url.ts",
+          "@interdomestik/database/db": "packages/database/src/db.ts",
+          "@interdomestik/database/schema/auth": "packages/database/src/schema/auth.ts"
+        }
+      },
+      "apps/web/src/features/health/upstash-redis-url.ts": {
+        "mode": "100644",
+        "bytes": 531,
+        "sha256": "8b9ee7b9cbe961ea61568e8ac2d46300f75409d41e139e385ebd9f5fa02f37ef",
+        "imports": {}
+      },
+      "apps/web/src/i18n/locales.ts": {
+        "mode": "100644",
+        "bytes": 146,
+        "sha256": "194588d3c9e43fe3f6b90796803ed18fa252ec26c85a56c3a6bca73c0f46eeb1",
+        "imports": {}
+      },
+      "apps/web/src/instrumentation.ts": {
+        "mode": "100644",
+        "bytes": 2250,
+        "sha256": "4dfc16d7c73200e9613c37eefa6a197a0832bb9c7ecad47405d0ac75084170e3",
+        "imports": {
+          "./lib/observability/database-readiness": "apps/web/src/lib/observability/database-readiness.ts",
+          "./lib/rendering-build-mode": "apps/web/src/lib/rendering-build-mode.ts",
+          "./sentry.edge.config": "apps/web/src/sentry.edge.config.ts",
+          "./sentry.server.config": "apps/web/src/sentry.server.config.ts",
+          "@interdomestik/database/db": "packages/database/src/db.ts",
+          "@sentry/nextjs": null
+        }
+      },
+      "apps/web/src/lib/auth-enterprise-alert-tags.ts": {
+        "mode": "100644",
+        "bytes": 1909,
+        "sha256": "2c2f696bca25c06184abda1cbf0828bd13843831c705c648356ce24e48ef2030",
+        "imports": {
+          "@sentry/nextjs": null
+        }
+      },
+      "apps/web/src/lib/observability/database-readiness.test.ts": {
+        "mode": "100644",
+        "bytes": 2248,
+        "sha256": "bf9597c9b611da877bf443165446fc56e53372b5bbd8a52b0794be7677ed3a6c",
+        "imports": {
+          "./database-readiness": "apps/web/src/lib/observability/database-readiness.ts",
+          "vitest": null
+        }
+      },
+      "apps/web/src/lib/observability/database-readiness.ts": {
+        "mode": "100644",
+        "bytes": 1454,
+        "sha256": "0f678992a4154a9600e0ac5d82627f3437aa44c0f68040d3210f761dce8d01c6",
+        "imports": {
+          "@sentry/nextjs": null
+        }
+      },
+      "apps/web/src/lib/observability/sentry-enterprise-metadata.ts": {
+        "mode": "100644",
+        "bytes": 1774,
+        "sha256": "1007fbf12f086847866d29f8d894f017356fb38731780f0976fecb31c0055b3a",
+        "imports": {
+          "../auth-enterprise-alert-tags": "apps/web/src/lib/auth-enterprise-alert-tags.ts"
+        }
+      },
+      "apps/web/src/lib/observability/sentry-privacy.ts": {
+        "mode": "100644",
+        "bytes": 9304,
+        "sha256": "1dd7dff24bc0421352876978c8c90f1abca313698825f9ebcb52de09b2d3d4f5",
+        "imports": {
+          "./sentry-enterprise-metadata": "apps/web/src/lib/observability/sentry-enterprise-metadata.ts",
+          "./sentry-url-privacy": "apps/web/src/lib/observability/sentry-url-privacy.ts",
+          "./signed-storage-redaction": "apps/web/src/lib/observability/signed-storage-redaction.ts"
+        }
+      },
+      "apps/web/src/lib/observability/sentry-sampling.ts": {
+        "mode": "100644",
+        "bytes": 2761,
+        "sha256": "e1f586d230aff3a67a2c559f67b4bdb5eb06639ff5ded447dd88836be64f9e12",
+        "imports": {}
+      },
+      "apps/web/src/lib/observability/sentry-url-privacy.ts": {
+        "mode": "100644",
+        "bytes": 3831,
+        "sha256": "f5873978e768e7d295975264d2eea2d09754213d8cabe12d4aa6d4c9542f725d",
+        "imports": {
+          "./signed-storage-redaction": "apps/web/src/lib/observability/signed-storage-redaction.ts",
+          "@/i18n/locales": "apps/web/src/i18n/locales.ts"
+        }
+      },
+      "apps/web/src/lib/observability/signed-storage-redaction.ts": {
+        "mode": "100644",
+        "bytes": 2212,
+        "sha256": "4fcc2b065e87d6b2d4f2e30fa10fb03566dc0e81282031d0b115a60d43fe637f",
+        "imports": {}
+      },
+      "apps/web/src/lib/rendering-build-mode.test.ts": {
+        "mode": "100644",
+        "bytes": 8722,
+        "sha256": "7f694d48a5bb29194691271b7d1888e1ec8acb716ca8d2a547b60d87843c1c08",
+        "imports": {
+          "../../next.config.mjs": "apps/web/next.config.mjs",
+          "../instrumentation": "apps/web/src/instrumentation.ts",
+          "./rendering-build-mode": "apps/web/src/lib/rendering-build-mode.ts",
+          "@sentry/nextjs": null,
+          "vitest": null
+        }
+      },
+      "apps/web/src/lib/rendering-build-mode.ts": {
+        "mode": "100644",
+        "bytes": 580,
+        "sha256": "396d7d127d03c7395ed6655b75e5943e566a4ad4a5629bdbf6b677d2da3b2390",
+        "imports": {}
+      },
+      "apps/web/src/lib/supabase-deployment.mjs": {
+        "mode": "100644",
+        "bytes": 2788,
+        "sha256": "abb080e7b2a72cf4efba6240fe547a3e31e412b98dee84278dd238d3c3e6f253",
+        "imports": {}
+      },
+      "apps/web/src/sentry.edge.config.ts": {
+        "mode": "100644",
+        "bytes": 1155,
+        "sha256": "db898d6ef6d7267a10e6e290f9fe7b7daad663a4c0f0307ef14931e87f766806",
+        "imports": {
+          "@/lib/observability/sentry-privacy": "apps/web/src/lib/observability/sentry-privacy.ts",
+          "@/lib/observability/sentry-sampling": "apps/web/src/lib/observability/sentry-sampling.ts",
+          "@sentry/nextjs": null
+        }
+      },
+      "apps/web/src/sentry.server.config.ts": {
+        "mode": "100644",
+        "bytes": 1155,
+        "sha256": "db898d6ef6d7267a10e6e290f9fe7b7daad663a4c0f0307ef14931e87f766806",
+        "imports": {
+          "@/lib/observability/sentry-privacy": "apps/web/src/lib/observability/sentry-privacy.ts",
+          "@/lib/observability/sentry-sampling": "apps/web/src/lib/observability/sentry-sampling.ts",
+          "@sentry/nextjs": null
+        }
+      },
+      "packages/database/src/migrate.ts": {
+        "mode": "100644",
+        "bytes": 1159,
+        "sha256": "fd13feb159ef6afd3075e17763dd5857eba9a8082095c7cafa130d328cc84ad6",
+        "imports": {
+          "./db": "packages/database/src/db.ts",
+          "dotenv": null,
+          "dotenv/config": null,
+          "drizzle-orm/postgres-js/migrator": null,
+          "fs": null,
+          "path": null,
+          "url": null
+        }
+      },
+      "packages/database/test/owned-tenant-transaction.test.ts": {
+        "mode": "100644",
+        "bytes": 3572,
+        "sha256": "8e6813d335c977dfcfa7821d9a74d9493080bbe8f984220fabcce9c0ca2300ac",
+        "imports": {
+          "../src/tenant-transaction": "packages/database/src/tenant-transaction.ts",
+          "drizzle-orm/pg-core": null,
+          "node:assert/strict": null,
+          "node:test": null
+        }
+      },
+      "packages/database/test/rls-bootstrap.test.ts": {
+        "mode": "100644",
+        "bytes": 3947,
+        "sha256": "0d45571c532ab20a0d659258219432e07d0233435c9a0e0f21e655b80d50dbcb",
+        "imports": {
+          "../src/rls-role-readiness": "packages/database/src/rls-role-readiness.ts",
+          "node:assert/strict": null,
+          "node:test": null
+        }
+      }
+    },
+    "runtimeRequired": true,
+    "acceptedReceiptInputs": false,
+    "requiredTests": 17
+  }
+}

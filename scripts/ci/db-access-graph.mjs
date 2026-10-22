@@ -1,3 +1,4 @@
+import { isVerifiedProviderUnitSource } from './db-access-provider-unit-source.mjs';
 import ts from 'typescript';
 import { inspectGraphCall } from './db-access-graph-calls.mjs';
 import { handleArguments, inspectTagChannels } from './db-access-channels.mjs';
@@ -27,7 +28,20 @@ function testSupportSource(file) {
 export const testOnlySource = file =>
   TEST_DIRECTORY.test(file) || TEST_SUFFIX.test(file) || testSupportSource(file);
 
-export function inspectChangedEdges(model, provenance, inventory, frozenBootstrap = []) {
+export function inspectChangedEdges(
+  model,
+  provenance,
+  inventory,
+  frozenBootstrap = [],
+  providerUnit
+) {
+  if (providerUnit && !isVerifiedProviderUnitSource(providerUnit))
+    throw new Error('incomplete: unauthenticated provider graph boundary');
+  const providerFiles = new Set([
+    ...(providerUnit?.files ?? []),
+    ...(providerUnit?.producerHarnessFiles ?? []),
+    ...(providerUnit?.namedProofFiles ?? []),
+  ]);
   const failures = [];
   const reachedTestSources = new Set();
   const incomplete = createIncompleteCollector();
@@ -63,6 +77,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
   function inspect(owner, origin, stack, depth, invocation, context, definingContext) {
     if (inspectDispatchContexts(owner, origin, stack, depth, context)) return;
     const ownerFile = model.fileOf(owner);
+    if (providerFiles.has(ownerFile)) return;
     if (testOnlySource(ownerFile) && !testOnlySource(origin)) reachedTestSources.add(ownerFile);
     const frame = definingContext ?? context;
     if (stack.get(owner)?.has(frame)) {
@@ -89,6 +104,7 @@ export function inspectChangedEdges(model, provenance, inventory, frozenBootstra
     function moduleEffect(specifier) {
       const name = specifier.text;
       const file = model.moduleFile(name, model.fileOf(specifier));
+      if (providerFiles.has(file)) return;
       if (!file && model.externalModule(name, model.fileOf(specifier))) return;
       // Only these authenticated, byte-frozen bootstrap bodies are a trusted boundary.
       // A candidate edit to any body is rejected before this graph is constructed.

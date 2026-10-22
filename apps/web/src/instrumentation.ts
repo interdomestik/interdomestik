@@ -2,7 +2,17 @@ import * as Sentry from '@sentry/nextjs';
 
 import { assertRenderingBuildMode } from './lib/rendering-build-mode';
 
-export function register() {
+function observeDatabaseReadiness(
+  snapshot: import('@interdomestik/database/db').RlsRoleReadinessSnapshot
+): void {
+  // Same-process, versioned telemetry is optional observation, not an admission decision.
+  void import('./sentry.server.config')
+    .then(() => import('./lib/observability/database-readiness'))
+    .then(({ reportDatabaseReadiness }) => reportDatabaseReadiness(snapshot))
+    .catch(() => console.warn('Optional database readiness reporting failed.'));
+}
+
+export async function register() {
   try {
     assertRenderingBuildMode(
       process.env.INTERDOMESTIK_BUILT_CSP_NONCE_MODE,
@@ -17,7 +27,14 @@ export function register() {
   }
 
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    import('./sentry.server.config');
+    const database = await import('@interdomestik/database/db');
+    try {
+      await database.assertRlsConnectionRoleReady();
+    } catch (error) {
+      observeDatabaseReadiness(database.getDatabaseReadinessSnapshot());
+      throw error;
+    }
+    observeDatabaseReadiness(database.getDatabaseReadinessSnapshot());
 
     // Hardening: Prevent process crash on client disconnects during E2E/Load tests
     process.on('uncaughtException', (err: unknown) => {

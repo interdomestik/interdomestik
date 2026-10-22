@@ -116,6 +116,7 @@ function legacyOrigin(edit = () => {}) {
 
 const epochFiles = [
   'scripts/check-db-access-guard.mjs',
+  'scripts/ci/db-access-provider-unit-policy.json',
   ...fs
     .readdirSync(path.join(rootDir, 'scripts/ci'))
     .filter(name => /^(db-access-|source-)[^/]*\.mjs$/u.test(name) && !/test/u.test(name))
@@ -188,6 +189,14 @@ function epochOrigin(lock = fixtureLock()) {
   );
   for (const file of epochFiles)
     writeFixture(origin, file, fs.readFileSync(path.join(rootDir, file)));
+  // This synthetic epoch intentionally has no provider transition. Its cloned ADOPTION
+  // selects the fixture API below; do not load the real provider policy's adjacent JSON
+  // through the historical inline bootstrap, which materializes executable modules only.
+  writeFixture(
+    origin,
+    'scripts/ci/db-access-provider-unit-policy.mjs',
+    'export const PROVIDER_UNIT_POLICY = undefined;\n'
+  );
   const tree = git(origin, 'rev-parse', `${adoption}^{tree}`);
   writeFixture(
     origin,

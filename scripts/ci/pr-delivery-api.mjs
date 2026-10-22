@@ -93,17 +93,40 @@ export function deliveryDispositionReviewIds(issueComments, headSha) {
     .map(candidate => candidate.reviewId);
 }
 
+// This is lifecycle metadata, not a review disposition. Match the complete known
+// notification and the authenticated GitHub actor; all other bot feedback fails closed.
+const DEPENDABOT_CLOSED_RELEASE_NOTICE =
+  "OK, I won't notify you again about this release, but will get in touch when a new version is available. If you'd rather skip all updates until the next major or minor version, let me know by commenting `@dependabot ignore this major version` or `@dependabot ignore this minor version`. You can also ignore all major, minor, or patch releases for a dependency by adding an [`ignore` condition](https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates#ignore) with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.";
+
+function isDependabotLifecycleNotice(item) {
+  return (
+    item.author === 'dependabot[bot]' &&
+    item.authorId === 49699333 &&
+    item.authorType === 'Bot' &&
+    item.body === DEPENDABOT_CLOSED_RELEASE_NOTICE
+  );
+}
+
 export function generatorFeedback(contract, feedback) {
   const normalize = (author = '') => author.replace(/\[bot\]$/u, '').toLowerCase();
   const allowed = new Set(contract.feedbackAuthors);
   const disposed = new Set(feedback.disposedReviewIds);
   const reviews = feedback.reviews.filter(item => !disposed.has(item.id));
-  const feedbackItems = [...reviews, ...feedback.issueComments, ...feedback.reviewComments];
+  const feedbackItems = [
+    ...reviews,
+    ...feedback.issueComments.filter(item => !isDependabotLifecycleNotice(item)),
+    ...feedback.reviewComments,
+  ];
   const bots = feedbackItems
     .filter(item => !item.resolved)
     .filter(item => {
       const author = normalize(item.author);
-      return allowed.has(author) || (item.author ?? '').endsWith('[bot]') || author === 'copilot';
+      return (
+        allowed.has(author) ||
+        (item.author ?? '').endsWith('[bot]') ||
+        author === 'copilot' ||
+        author === 'dependabot'
+      );
     });
   for (const item of bots) {
     const author = normalize(item.author);

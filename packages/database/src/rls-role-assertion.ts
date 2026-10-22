@@ -1,3 +1,5 @@
+import { isRlsRolePostureRejectedByServer } from './rls-role-posture-query';
+
 /**
  * Verifies only the RLS connection and optional configured SET ROLE target.
  * The admin connection is intentionally privileged and may bypass RLS by design;
@@ -180,7 +182,20 @@ async function evaluateQueriedRolePosture(
   checkedRole: 'connection' | 'configuredDbRole'
 ): Promise<RlsConnectionRoleAssertionResult> {
   const timeoutMs = options.timeoutMs ?? 5_000;
-  const rows = await withTimeout(options.queryRolePosture(roleName), timeoutMs);
+  let rows: RlsConnectionRolePosture[];
+  try {
+    rows = await withTimeout(options.queryRolePosture(roleName), timeoutMs);
+  } catch (cause) {
+    if (!isRlsRolePostureRejectedByServer(cause)) throw cause;
+    return {
+      ok: false,
+      reason: 'role_bypasses_rls',
+      checkedRole,
+      currentUser: roleName,
+      ...(checkedRole === 'configuredDbRole' ? { configuredDbRole: roleName } : {}),
+      cause,
+    };
+  }
   const result = evaluateRlsConnectionRolePosture(rows, checkedRole, roleName);
 
   if (!result.ok && checkedRole === 'configuredDbRole') {

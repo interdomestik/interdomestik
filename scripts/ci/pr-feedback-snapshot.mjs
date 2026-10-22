@@ -10,12 +10,16 @@ const feedbackAuthors = new Set(
 );
 
 function issueAuthorIdentities(comments) {
-  // generatorFeedback uses issue comments only for bot identity, not body or time.
+  // Most issue comments affect the gate only through bot identity. Dependabot's
+  // exact lifecycle classification also depends on actor metadata and body; bind
+  // those inputs so edits cannot retain a stale successful feedback snapshot.
   // Trusted human dispositions are already represented by disposedReviewIds.
   return [
     ...new Set(
-      comments.flatMap(({ author }) => {
+      comments.flatMap(({ id, author, authorId, authorType, body, createdAt }) => {
         const normalized = author.replace(/\[bot\]$/u, '').toLowerCase();
+        if (normalized === 'dependabot')
+          return [{ id, author, authorId, authorType, body, createdAt }];
         return feedbackAuthors.has(normalized) ||
           author.endsWith('[bot]') ||
           normalized === 'copilot'
