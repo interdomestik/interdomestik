@@ -528,10 +528,14 @@
       "external": ["drizzle-orm"]
     },
     "packages/database/src/tenant.ts": {
-      "sha256": "26be9d452f5076ef52a8d1ee7254bb3fb705ce9f02c79f3e408512019b1166c9",
-      "bytes": 811,
+      "sha256": "c972a73f5c3901d2731fd068d47f6c0c516aad792667191a8b13edaf8d87290b",
+      "bytes": 930,
       "mode": "100644",
-      "local": ["packages/database/src/db.ts", "packages/database/src/tenant-transaction.ts"],
+      "local": [
+        "packages/database/src/database-configuration.ts",
+        "packages/database/src/db.ts",
+        "packages/database/src/tenant-transaction.ts"
+      ],
       "external": []
     }
   },
@@ -653,8 +657,8 @@
   "producerFiles": {
     "scripts/ci/db-access-provider-unit-source.mjs": {
       "mode": "100644",
-      "bytes": 10780,
-      "sha256": "c1b93fe9a5caee0ee6bd57e0a4b080caa4c26444266332529c395cfeefef411d"
+      "bytes": 10991,
+      "sha256": "e35addfb549e1ceb65d599fadc97a7ea916e13167bedc27319a1dc452d494ae0"
     },
     "scripts/ci/db-access-provider-runtime-materialize.mjs": {
       "mode": "100644",
@@ -663,8 +667,8 @@
     },
     "scripts/ci/db-access-provider-runtime-probe.mjs": {
       "mode": "100644",
-      "bytes": 8258,
-      "sha256": "9adce5bc6d143de507d9b7a497ba9c07af75cd450219d02b201f73a6c5d1e4bb"
+      "bytes": 8261,
+      "sha256": "5076b954dd09f990fed9b147bd87ebc88129a8110db5df8e7fd24dcc89727f25"
     },
     "scripts/ci/db-access-provider-runtime-required.mjs": {
       "mode": "100644",
@@ -683,8 +687,8 @@
     },
     "scripts/ci/db-access-named-proof-source.mjs": {
       "mode": "100644",
-      "bytes": 5779,
-      "sha256": "a17ce4fe679b4cc5cf71eaf01a8af60f753e3fcb9778dc4e3f4423591122a5c0"
+      "bytes": 5970,
+      "sha256": "dd74152da92ce6069f95f554663b9cb5ca7882a276560d79631cd8a98b7e7c8b"
     },
     "scripts/ci/db-access-named-proof-loader.mjs": {
       "mode": "100644",
@@ -718,8 +722,8 @@
     },
     "scripts/ci/db-access-message-runtime-result.mjs": {
       "mode": "100644",
-      "bytes": 2360,
-      "sha256": "f68ad965a14e0ff1cf337aacaf1cdcac0b9f5bf74601b73767bfeda472fbbc19"
+      "bytes": 2339,
+      "sha256": "d8679b002f3a19cf2efa426597eda523a166e852b26e12bcb617cf0913880b16"
     },
     "scripts/ci/db-access-message-runtime-driver.mjs": {
       "mode": "100644",
@@ -733,8 +737,8 @@
     },
     "scripts/ci/db-access-message-proof-policy.json": {
       "mode": "100644",
-      "bytes": 110561,
-      "sha256": "032eaf9de93ee05406b5bbb3d3027c3b71968fa47566ee4616b9bf0422db2b1f"
+      "bytes": 110648,
+      "sha256": "ba376805b3b340aae44da55b7f9107cfa499ffccc8372f3eb728f6810c9c5f04"
     },
     "scripts/ci/db-access-proof-report.mjs": {
       "mode": "100644",

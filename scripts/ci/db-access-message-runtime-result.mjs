@@ -37,7 +37,7 @@ export function validateMessageTestResult(report) {
   const identities = tests.map(t => [...t.ancestorTitles, t.title].join(' '));
   if (
     new Set(identities).size !== 9 ||
-    JSON.stringify([...identities].sort()) !== JSON.stringify([...MESSAGE_TEST_IDENTITIES].sort())
+    !MESSAGE_TEST_IDENTITIES.every(identity => identities.includes(identity))
   )
     fail('test identities');
   return identities;

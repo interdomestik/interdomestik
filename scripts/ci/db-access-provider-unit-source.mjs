@@ -11,7 +11,13 @@ const verified = new WeakSet();
 const fail = reason => {
   throw new Error('incomplete: provider unit ' + reason);
 };
-const ordered = values => [...new Set(values)].sort();
+// Preserve deterministic UTF-16 ordering independently of host locale.
+function compareSourceStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+const ordered = values => [...new Set(values)].sort(compareSourceStrings);
 const same = (a, b) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 
 function readExact(root, file, expected) {
@@ -217,7 +223,7 @@ export function verifyProviderUnitSource(repoRoot, model, adoption, policy) {
   }
   const result = Object.freeze({
     id: policy.id,
-    files: Object.freeze(files.sort()),
+    files: Object.freeze(files.sort(compareSourceStrings)),
     producerHarnessFiles: Object.freeze(producerHarnessFiles),
     namedProofFiles: Object.freeze(namedProofFiles),
     messageProof,

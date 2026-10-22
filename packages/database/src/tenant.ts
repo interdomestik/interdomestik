@@ -1,3 +1,4 @@
+import { assertDatabaseConfigurationUnchanged } from './database-configuration';
 import { assertRlsConnectionRoleReady, captureConfiguredRlsRole, dbRls } from './db';
 import {
   runTenantTransaction,
@@ -7,19 +8,20 @@ import {
 
 export type { TenantContext, TenantTransaction } from './tenant-transaction';
 
-const CONFIGURED_RLS_ROLE = captureConfiguredRlsRole();
+assertDatabaseConfigurationUnchanged();
 
 export async function withTenantContext<T>(
   context: TenantContext,
   action: (tx: TenantTransaction) => Promise<T>
 ): Promise<T> {
+  const configuredRlsRole = captureConfiguredRlsRole();
   return runTenantTransaction<T, TenantTransaction>(
     dbRls,
     assertRlsConnectionRoleReady,
     context,
     action,
     false,
-    CONFIGURED_RLS_ROLE
+    configuredRlsRole
   );
 }
 
