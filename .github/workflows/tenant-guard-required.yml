@@ -328,9 +328,9 @@ jobs:
             const first = {
               base: '18cd1a73b12f589c69934cba862092d857434013',
               baseTree: '7acfc0167bde4a8165d5649b3e83625b50b4878c',
-              head: '715839d550e1438db4b2bf4f079d8bc3f250cb0f',
-              headTree: 'fcd8fec7930487af5d9fa433b9ce395b3fb959be',
-              mergeTree: 'fcd8fec7930487af5d9fa433b9ce395b3fb959be',
+              head: '646d336d7d87fb97febc25335500bc5d6b01f919',
+              headTree: '6dcb4baa1110fc4a7ff4954978811b4f5defaf3c',
+              mergeTree: '6dcb4baa1110fc4a7ff4954978811b4f5defaf3c',
             };
             if (base !== first.base || baseTree !== first.baseTree || head !== first.head || headTree !== first.headTree || mergeTree !== first.mergeTree)
               fail('first candidate/base/tree identity mismatch');
