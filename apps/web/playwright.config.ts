@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { configurePlaywrightDatabaseProfiles } from '../../scripts/ci/playwright-database-profiles.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolvePlaywrightNetwork } from './playwright-network';
@@ -202,23 +203,8 @@ process.env.IDA_HOST = IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
-const e2eDatabaseUrl = process.env.E2E_DATABASE_URL?.trim();
-if (e2eDatabaseUrl) {
-  process.env.DATABASE_URL = e2eDatabaseUrl;
-}
-
-if (!process.env.DATABASE_URL) {
-  console.log('⚠️ DATABASE_URL not found, using default local fallback.');
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-}
-
-const e2eDatabaseUrlRls = process.env.E2E_DATABASE_URL_RLS?.trim();
-if (e2eDatabaseUrlRls) {
-  process.env.DATABASE_URL_RLS = e2eDatabaseUrlRls;
-} else if (!process.env.DATABASE_URL_RLS) {
-  process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
-}
-
+const databaseProfiles = configurePlaywrightDatabaseProfiles(process.env);
+Object.assign(process.env, databaseProfiles.driver);
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
 export default defineConfig({
@@ -451,6 +437,7 @@ export default defineConfig({
         timeout: 300 * 1000,
         env: {
           ...process.env,
+          ...databaseProfiles.application,
           NODE_ENV: 'production',
           PORT: String(PORT),
           HOSTNAME: BIND_HOST,
