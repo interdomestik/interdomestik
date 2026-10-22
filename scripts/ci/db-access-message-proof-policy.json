@@ -779,9 +779,10 @@
     },
     "packages/database/src/tenant.ts": {
       "mode": "100644",
-      "bytes": 811,
-      "sha256": "26be9d452f5076ef52a8d1ee7254bb3fb705ce9f02c79f3e408512019b1166c9",
+      "bytes": 930,
+      "sha256": "c972a73f5c3901d2731fd068d47f6c0c516aad792667191a8b13edaf8d87290b",
       "imports": {
+        "./database-configuration": "packages/database/src/database-configuration.ts",
         "./db": "packages/database/src/db.ts",
         "./tenant-transaction": "packages/database/src/tenant-transaction.ts"
       }

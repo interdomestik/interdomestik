@@ -19,7 +19,13 @@ const PRIVATE = new Set([NAMED_PROOF_FILES[3], ...NAMED_PROOF_FILES.slice(5)]);
 const fail = reason => {
   throw new Error('incomplete: named proof ' + reason);
 };
-const sorted = values => [...values].sort();
+// Preserve deterministic UTF-16 ordering independently of host locale.
+function compareSourceStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+const sorted = values => [...values].sort(compareSourceStrings);
 const equal = (a, b) => JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 
 export function namedProofEdges(model, file, configurationSource) {

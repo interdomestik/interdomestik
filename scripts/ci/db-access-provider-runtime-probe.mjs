@@ -5,9 +5,9 @@ import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
 
 const settings =
-  'pg_backend_pid() as pid,session_user::text as login,current_user::text as effective,' +
-  "coalesce(current_setting('app.current_tenant_id',true),'') as tenant," +
-  "coalesce(current_setting('app.current_access_tenant_id',true),'') as access," +
+  'pg_backend_pid() as pid,session_user::text as login,current_user::text as effective, ' +
+  "coalesce(current_setting('app.current_tenant_id',true),'') as tenant, " +
+  "coalesce(current_setting('app.current_access_tenant_id',true),'') as access, " +
   "coalesce(current_setting('app.user_role',true),'') as actor";
 const code = value => value?.code ?? value?.cause?.code;
 const snapshot = async executor => (await executor.execute(sql.raw('select ' + settings)))[0];
