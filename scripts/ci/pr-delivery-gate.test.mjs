@@ -36,6 +36,50 @@ test('contract keeps local finalizer leaves separate from the authoritative deli
   assert.ok(contract.deliveryPrerequisites.every(item => item.context !== 'pr-finalizer'));
 });
 
+const dependabotLifecycleNotice = {
+  id: 6319503813,
+  author: 'dependabot[bot]',
+  authorId: 49699333,
+  authorType: 'Bot',
+  body: "OK, I won't notify you again about this release, but will get in touch when a new version is available. If you'd rather skip all updates until the next major or minor version, let me know by commenting `@dependabot ignore this major version` or `@dependabot ignore this minor version`. You can also ignore all major, minor, or patch releases for a dependency by adding an [`ignore` condition](https://docs.github.com/en/code-security/supply-chain-security/configuration-options-for-dependency-updates#ignore) with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.",
+};
+
+test('authenticated Dependabot lifecycle issue notice is metadata, not a review', () => {
+  const current = snapshot();
+  current.feedback.issueComments.push({ ...dependabotLifecycleNotice });
+  assert.equal(evaluateDeliverySnapshot(contract, current).ok, true);
+});
+
+test('Dependabot lifecycle classification rejects spoofed actors, edited and actionable bodies', () => {
+  for (const change of [
+    { authorId: 1 },
+    { authorId: null },
+    { authorType: 'User' },
+    { author: 'dependabot' },
+    { author: 'DEPENDABOT[bot]' },
+    { author: 'unregistered-reviewer[bot]' },
+    { body: 'No additional findings.' },
+    { body: `${dependabotLifecycleNotice.body}\nP1 finding: unresolved security defect` },
+    { body: `P0 finding: unresolved security defect\n${dependabotLifecycleNotice.body}` },
+  ]) {
+    const current = snapshot();
+    current.feedback.issueComments.push({ ...dependabotLifecycleNotice, ...change });
+    assert.throws(() => evaluateDeliverySnapshot(contract, current), /unknown generator/u);
+  }
+});
+
+test('the same Dependabot notice never exempts reviews, inline feedback or other blockers', () => {
+  for (const collection of ['reviews', 'reviewComments']) {
+    const current = snapshot();
+    current.feedback[collection].push({ ...dependabotLifecycleNotice, commitId: H });
+    assert.throws(() => evaluateDeliverySnapshot(contract, current), /unknown generator/u);
+  }
+  const current = snapshot();
+  current.feedback.issueComments.push({ ...dependabotLifecycleNotice });
+  current.feedback.pendingReviewers.push('human-reviewer');
+  assert.throws(() => evaluateDeliverySnapshot(contract, current), /reviewers remain pending/iu);
+});
+
 test('runtime event input uses the shared trusted-runner file boundary', () => {
   assert.match(gateSource, /readTrustedRunnerFile\(process\.env\.GITHUB_EVENT_PATH\)/u);
   assert.doesNotMatch(gateSource, /readFileSync\(eventPath/u);

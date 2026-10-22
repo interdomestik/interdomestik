@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-10
+last_reviewed: 2026-10-22
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,7 +15,96 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-The [finite S7 closure boundary](current-program.md#finite-s7-closure-boundary) is the remaining execution checklist: #1902 protected/exact-staging delivery; one evidence-selected security remediation; only demonstrated required-journey transaction defects; necessary replacement-backed/owned cleanup; applicable acceptance and authority reconciliation; then evidence-backed S7 closure and one bounded S8 handoff start. Completed technical rows retain their credit. Later-stage/optional findings do not silently expand this queue; native GitHub identity confirmation and genuine human acceptance remain open controls.
+On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
+resumption of the existing frozen S8 scope. This supersedes the handoff HOLD for that scope only.
+S7 is closed within the bounded acceptance recorded on 2026-10-11, not certified as whole-SRS or
+pilot acceptance. The Interdomestik staff team owns operational follow-up and escalation.
+External email delivery, actual-device p95 and full accessibility/locale acceptance remain
+applicable pre-pilot obligations; prior delivered work is not reopened.
+
+The sole implementation owner is chat `01a16025-dd86-7ab0-8454-293bbfd9fc36`, with independent
+reviewer `01a16025-e952-7f00-accf-f426b5a741d3` and schedule coordinator
+`01a16025-ff60-7341-9219-eeabcabafbc0`. The preserved candidate is
+`codex/s8-restricted-login-integration-20261021`, based on delivered #1918 merge
+`18cd1a73b12f589c69934cba862092d857434013`; its uncommitted S8 changes are not a delivered commit.
+Restricted production LOGIN and the narrow database boundary are already approved. Preserve
+session/effective identity checks, tenant/resource authorization, RLS, nonownership and no
+privilege recovery, atomic mandatory evidence, context lifetime, concurrency and idempotency.
+
+The immediate work is the bounded #1920 provider/trust prerequisite and the frozen S8
+agent handoff journeys. Preserve original ADOPTION and the 604-entry baseline. The accepted
+exact two-module fixed-producer class grants no general test exception or runtime admission.
+Direct runtime and residual must agree on source, policy and event; final immutable
+G2/candidate/merge identities, existing external-pin trust transition, intended connection
+topology, required local/hosted proof, protected delivery and exact-main staging remain required.
+The prior residual INCOMPLETE is superseded by the bounded local proof checkpoint below; ordinary
+audit/lifecycle dependencies remain independently enforced.
+No analyzer expansion, baseline reset, refused-action bypass, rewrite or universal transfer
+engine is authorized. S9 starts only after actual S8 acceptance; pilot/release needs separate
+authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
+
+Authority evidence: human turns `01a12951-0337-7c40-9fb1-04e18916de41` (bounded S7 approval),
+`01a1295b-bd5d-7162-a858-36238534366b` (staff-team ownership), and
+`01a12969-4cf6-72e0-a81c-1f4a86fef209` (bounded S8 continuation), retained in
+`s7-existing-acceptance-reconciliation-20261021.json` in the prior orchestrator evidence root.
+The 2026-10-21 architecture-chat authorization is retained as
+`handoff-20261021/RESUME-AUTHORIZATION.md` under chat `01a15a72-b71f-7c12-b16e-9914b4429d7e`.
+The copied fixed-producer review SHA-256 is
+`38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
+These records preserve bounded acceptance and source limits; none is production release approval.
+
+### Provider and message proof implementation checkpoint (22 October)
+
+The explicit message-contract approval and subsequent manual platform approval resolved the
+implementation/review-transmission blockers. The approved evaluator/source amendment is applied;
+the existing independent reviewer accepted the functional implementation and cohesive modularity
+split without new findings. The earlier refused attempts remain historical evidence.
+
+The message integration fixture connects directly through an ephemeral restricted LOGIN; it no
+longer relies on privileged LOGIN plus SET ROLE. The separate two-source message contract preserves
+all nine actual tests, including six behavioral cases. It authenticates source, configuration,
+migrations, fixed dependency archives, 24 operation identities and 115 diagnostic tuples. It does
+not expand the ten-source named contract or exempt ordinary business dependencies.
+
+Joined local proof at tree `24bd0c84b8555dd16683c7b7c86d72b0d3741bc2` passed nine provider, 17 named
+and nine message tests. Residual PASS retains 7,036 inventoried operations, original baseline 604,
+zero failing identities and zero unresolved diagnostics; the original 115 diagnostic tuples and
+916 occurrences remain reported. All 35 focused counterproofs, security and executable modularity
+checks passed. The v2 independent review receipt is retained under reviewer evidence root
+`2026/10/21/01a16025-e952-7f00-accf-f426b5a741d3`; the joined-v3 raw results and source manifest v2
+are under owner evidence root `2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`.
+
+Full PR/E2E verification is in progress on an owned clean clone and PG16 instance. The native
+workflow draft has source review only; immutable publication, required-workflow pin transition,
+actual hosted execution, protected merge and exact-main proof remain pending. No pilot/release
+acceptance follows from these local results. The full S8 candidate is preserved and S9 remains
+dependent on actual S8 acceptance.
+
+### Historical S8 execution checkpoint (21 October)
+
+The resumed implementation has completed canonical reconciliation, accepted applied-producer
+equivalence, the async startup-test correction (33 passes) and lifecycle projection preservation
+(four passes). The isolated prerequisite passed its direct local PG16 runtime (nine passes) and
+security guard. Its first frozen residual remained INCOMPLETE: 7,035 inventoried operations,
+29 new identities and 23 failing identities, baseline 604. These are pre-format/test-correction
+diagnostic counts, not defects or current-source acceptance. Runtime green is not residual PASS.
+
+The owner approved the named proof-contract amendment on 22 October 2026 (direct “Miratoj”).
+Bounded implementation and independent review are now in progress for startup/readiness/telemetry,
+administrative migration provisioning, health liveness and the specifically identified test
+fixtures. Independent review found and closed the async test defect; the remaining reported
+operations exceed the accepted two-module proof class. No generic producer/test exemption, general analyzer
+expansion, baseline reset or bypass is authorized. The existing S8 scope remains
+selected; admission and delivery await actual subsequent proof and independent review.
+The decision package is `named-proof-contract-decision.md` in owner evidence root
+`2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`. The orchestrator's single plan records
+the approval and bounded execution status; S8/S9/pilot dates are not confirmed commitments.
+
+### Historical S7 implementation queue
+
+The rows and acceptance notes below retain their original evidence limits. They are historical
+selection state, superseded by the bounded 11-October acceptance above; unresolved pilot
+obligations remain open and are not claims of new verification.
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` is technically delivered by [#1858](https://github.com/interdomestik/interdomestik/pull/1858).
 Exact-merge staging/P0 passed. The remaining acceptance row is `blocked` only on
@@ -176,20 +265,29 @@ Human staff/member acceptance remains pending.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| S7 — staff handling                         | `active_bounded`      | Credit #1861 amount continuity, #1860 staff detail and earlier bounded repairs; overview next-action truth (#1862) and generic member detail guidance truth (#1863) are delivered with exact Actions/staging; handling-assurance truth (#1864) is also technically delivered; S7-MEMBER-CASE-WORKSPACE (#1865) is technically delivered as the first preauthorized successor; S7-STAFF-CASE-WORKSPACE (#1866) is technically delivered as the second successor; S7-STAFF-MESSAGE-READ-RECOVERY-TRUTH (#1867) is technically delivered as the third successor; member-search performance (#1868) is technically delivered; all three site-search increments #1869–#1871 and hero stability #1872 are technically delivered; neutral single entry #1873 is technically delivered; problem-first intake #1874, Login consolidation/header #1875/#1876, draft/save/submission #1877/#1878, monitoring #1879 and admin/Login #1881–#1885 are technically delivered; the additional three-outcome round and account draft continuity #1886 are technically delivered, with public-summary repair #1888 and HelpNow continuation/localization #1889 technically delivered; information-request read recovery #1890 and admin-claims read consistency #1891 are technically delivered; next bounded implementation continues under existing through-S7 authority; unified role-shell direction discovery is owner-authorized; human acceptance, whole S7 and staff public notification remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                                                 |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                                                       |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                                                            |
+| S7 — staff handling                         | `closed_bounded`      | Owner accepted bounded closeout on 2026-10-11; Interdomestik staff team owns follow-up/escalation. Retain delivered proof and pre-pilot email, actual-device p95 and full accessibility/locale obligations. No whole-SRS acceptance. |
+| S8 — agent handoff                          | `active_bounded`      | Frozen candidate and bounded #1920 provider/trust prerequisite; same-source/policy/event runtime and residual, actual topology/journeys, independent review, required proof and protected/exact-main delivery remain open.           |
+| S9 — assisted activation                    | `queued_conditional`  | Starts after actual S8 acceptance; preserve established identity, assignment, attribution, ownership, offer/terms and Paddle contracts.                                                                                              |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                                                            |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                                                         |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                                                   |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
+
+2026-10-21 reconciliation credits #1918 CLOSED VERIFIED at `18cd1a73b12f589c69934cba862092d857434013`,
+with retained required local/hosted and exact-main staging/P0 receipts. No replay or S8 acceptance
+is inferred. The frozen S8 candidate retains a 267-path handoff snapshot (265 files, two deletions),
+manifest SHA-256 `ff077e8826dcc7d7e92cb6704e0e82c4b0457c1d11ac7a1f5eeb03d3f29278b2`.
+Fixed-producer review remains source-bound; its applied focused regression log records 44 passes,
+zero failures/skips. Earlier runtime proofs and residual INCOMPLETE retain their exact input scope.
+Final integration/trust/runtime/journey evidence is still pending.
 
 Completed #1865 proof lives in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865); successor evidence remains separate.
 
@@ -381,6 +479,14 @@ stale provider-event-order status; its proof is credited, not repeated by this r
   #1855 has separate exact-merge staging proof on `6405f13a5`; human acceptance remains open. No production changes.
 
 ## Next Selection
+
+Continue active frozen S8 as defined in the Active Queue. Do not repeat delivered S7 or select S9
+before S8 acceptance. Carry this reconciliation in ordinary implementation, with no status-only PR.
+
+### Historical selection notes
+
+The following paragraphs preserve earlier selection and acceptance observations; they do not
+override the 11-October bounded acceptance or 21-October resumption above.
 
 Tenant guard prevention is already selected under continuing through-S7 authority; complete its bounded acceptance before choosing another implementation. Other audited product paths and format policy remain queued. Human acceptance, visual direction and approved performance budgets retain their separate boundaries.
 

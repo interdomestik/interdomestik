@@ -42,7 +42,10 @@ export async function collectFeedback(client, pull) {
       .flatMap(thread => thread.comments.nodes.map(comment => comment.url))
   );
   const normalizedIssueComments = issueComments.values.map(item => ({
+    id: item.id ?? null,
     author: item.user?.login ?? '',
+    authorId: item.user?.id ?? null,
+    authorType: item.user?.type ?? '',
     authorAssociation: item.author_association ?? '',
     body: item.body ?? '',
     createdAt: item.updated_at ?? item.created_at ?? '',

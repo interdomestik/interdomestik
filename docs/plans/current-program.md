@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-10
+last_reviewed: 2026-10-22
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -16,9 +16,104 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
+`S8-AGENT-HANDOFF` is active within the existing frozen scope.
+
+On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
+resumption of the existing frozen S8 scope. This supersedes the handoff HOLD for that scope only.
+S7 is closed within the bounded acceptance recorded on 2026-10-11, not certified as whole-SRS or
+pilot acceptance. The Interdomestik staff team owns operational follow-up and escalation.
+External email delivery, actual-device p95 and full accessibility/locale acceptance remain
+applicable pre-pilot obligations; prior delivered work is not reopened.
+
+The sole implementation owner is chat `01a16025-dd86-7ab0-8454-293bbfd9fc36`, with independent
+reviewer `01a16025-e952-7f00-accf-f426b5a741d3` and schedule coordinator
+`01a16025-ff60-7341-9219-eeabcabafbc0`. The preserved candidate is
+`codex/s8-restricted-login-integration-20261021`, based on delivered #1918 merge
+`18cd1a73b12f589c69934cba862092d857434013`; its uncommitted S8 changes are not a delivered commit.
+Restricted production LOGIN and the narrow database boundary are already approved. Preserve
+session/effective identity checks, tenant/resource authorization, RLS, nonownership and no
+privilege recovery, atomic mandatory evidence, context lifetime, concurrency and idempotency.
+
+The immediate work is the bounded #1920 provider/trust prerequisite and the frozen S8
+agent handoff journeys. Preserve original ADOPTION and the 604-entry baseline. The accepted
+exact two-module fixed-producer class grants no general test exception or runtime admission.
+Direct runtime and residual must agree on source, policy and event; final immutable
+G2/candidate/merge identities, existing external-pin trust transition, intended connection
+topology, required local/hosted proof, protected delivery and exact-main staging remain required.
+The prior residual INCOMPLETE is superseded by the bounded local proof checkpoint below; ordinary
+audit/lifecycle dependencies remain independently enforced.
+No analyzer expansion, baseline reset, refused-action bypass, rewrite or universal transfer
+engine is authorized. S9 starts only after actual S8 acceptance; pilot/release needs separate
+authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
+
+Authority evidence: human turns `01a12951-0337-7c40-9fb1-04e18916de41` (bounded S7 approval),
+`01a1295b-bd5d-7162-a858-36238534366b` (staff-team ownership), and
+`01a12969-4cf6-72e0-a81c-1f4a86fef209` (bounded S8 continuation), retained in
+`s7-existing-acceptance-reconciliation-20261021.json` in the prior orchestrator evidence root.
+The 2026-10-21 architecture-chat authorization is retained as
+`handoff-20261021/RESUME-AUTHORIZATION.md` under chat `01a15a72-b71f-7c12-b16e-9914b4429d7e`.
+The copied fixed-producer review SHA-256 is
+`38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
+These records preserve bounded acceptance and source limits; none is production release approval.
+
+### Provider and message proof implementation checkpoint (22 October)
+
+The explicit message-contract approval and subsequent manual platform approval resolved the
+implementation/review-transmission blockers. The approved evaluator/source amendment is applied;
+the existing independent reviewer accepted the functional implementation and cohesive modularity
+split without new findings. The earlier refused attempts remain historical evidence.
+
+The message integration fixture connects directly through an ephemeral restricted LOGIN; it no
+longer relies on privileged LOGIN plus SET ROLE. The separate two-source message contract preserves
+all nine actual tests, including six behavioral cases. It authenticates source, configuration,
+migrations, fixed dependency archives, 24 operation identities and 115 diagnostic tuples. It does
+not expand the ten-source named contract or exempt ordinary business dependencies.
+
+Joined local proof at tree `24bd0c84b8555dd16683c7b7c86d72b0d3741bc2` passed nine provider, 17 named
+and nine message tests. Residual PASS retains 7,036 inventoried operations, original baseline 604,
+zero failing identities and zero unresolved diagnostics; the original 115 diagnostic tuples and
+916 occurrences remain reported. All 35 focused counterproofs, security and executable modularity
+checks passed. The v2 independent review receipt is retained under reviewer evidence root
+`2026/10/21/01a16025-e952-7f00-accf-f426b5a741d3`; the joined-v3 raw results and source manifest v2
+are under owner evidence root `2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`.
+
+Full PR/E2E verification is in progress on an owned clean clone and PG16 instance. The native
+workflow draft has source review only; immutable publication, required-workflow pin transition,
+actual hosted execution, protected merge and exact-main proof remain pending. No pilot/release
+acceptance follows from these local results. The full S8 candidate is preserved and S9 remains
+dependent on actual S8 acceptance.
+
+### Historical S8 execution checkpoint (21 October)
+
+The resumed implementation has completed canonical reconciliation, accepted applied-producer
+equivalence, the async startup-test correction (33 passes) and lifecycle projection preservation
+(four passes). The isolated prerequisite passed its direct local PG16 runtime (nine passes) and
+security guard. Its first frozen residual remained INCOMPLETE: 7,035 inventoried operations,
+29 new identities and 23 failing identities, baseline 604. These are pre-format/test-correction
+diagnostic counts, not defects or current-source acceptance. Runtime green is not residual PASS.
+
+The owner approved the named proof-contract amendment on 22 October 2026 (direct “Miratoj”).
+Bounded implementation and independent review are now in progress for startup/readiness/telemetry,
+administrative migration provisioning, health liveness and the specifically identified test
+fixtures. Independent review found and closed the async test defect; the remaining reported
+operations exceed the accepted two-module proof class. No generic producer/test exemption, general analyzer
+expansion, baseline reset or bypass is authorized. The existing S8 scope remains
+selected; admission and delivery await actual subsequent proof and independent review.
+The decision package is `named-proof-contract-decision.md` in owner evidence root
+`2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`. The orchestrator's single plan records
+the approval and bounded execution status; S8/S9/pilot dates are not confirmed commitments.
+
+### Historical S7 selection and closure checklist
+
+The following S7 selection/checklist records the pre-11-October execution state. It does not
+reselect S7 or override the bounded acceptance and current S8 selection above. Retained unmet
+pilot obligations still apply at their dependent stage.
+
 `S7-TENANT-GUARD-PREVENTION` remains selected under the owner’s continuing through-S7 authorization. [Acceptance](#tenant-guard-prevention-acceptance) strengthens the existing DB-access guard with authenticated adoption source, per-operation transaction provenance, control fingerprints and supported legacy-remount rejection. Adoption `278e33ab0dd448547fa81d4b0ff122b4d69c901e` / tree `4f9330417466b4f7bee68349e7183db22a5260ff`, its 604-entry baseline and critical helper closure remain immutable. Actual Opus5.5 coding and Sonnet5.5 test/repair proposals are integrated with GPT corrections and independent review. The 49-file candidate `576fc544b8b1a41c1b4ba550abaa15719a408afd` / tree `ffcf830fb6e16724884274748ab447f705996a33` passed security and full local proof: CI 1333, web 6059, Gate 383/39 declared skips and Smoke 13/11 declared skips; source hashes and final clean state were verified. The prior uncommitted attempt’s two clean-control-source failures remain retained. Necessary later source amendments require fresh proof. Reviewed 11-file authority artifact `e515f02dae06a86448065342f99482040481a1ce` / tree `32c0656640eab41da1257d06e1e7f43471457c90` is published on its retained ref and executes fixed approved guard `e113a98f4ec33093986cb4bb5e3ac77fcde856fa` / tree `d201a534ed5f6cf06dab87268b9ccb6068908b47`. Ordinary candidate GitHub Linux execution passed with 5776 scanned/new0; this supplies no native external-enforcement credit. GitHub human identity confirmation still blocks the unsaved narrowly scoped Disabled native rule; activation, unsafe/safe same-name-spoof and immutable-pin proof remain required before outer-workflow P1 resolution or merge. Fresh576 Sonar passed its quality gate with 26 individually justified Accepted findings and two new style warnings selected for source correction. All substantive hosted checks passed, while delivery stopped on a retained Docker-pull retry warning in successful E2E. Necessary closeout also repairs the informational audit failure annotation and the audit parser’s malformed/partial-report and path-scoped allowlist failures, using actual Opus5.5 proposals, Sonnet5.5 review and independent adversarial probes; no delivery waiver or dependency/threshold/allowlist change is selected. [The historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-tenant-guard-prevention-candidate-and-pr-feedback-1902) retains attempts, source-bound review and actual provider attribution. Final amended-source review/verification/analysis, protected delivery, exact-main staging, runtime migration, obsolete-code retirement, human acceptance, performance budgets and whole S7/SRS remain open.
 
 ### Finite S7 closure boundary
+
+Historical checklist: bounded closeout was accepted on 2026-10-11 as recorded above.
 
 Owner steering confirmed on2026-10-10 freezes the remaining sequence below. New work joins it only when current evidence demonstrates a required-S7 correctness, security/data-integrity or mandatory delivery blocker. Other findings retain an explicit later-stage or optional disposition; material expansion requires an owner decision. Preserve completed source-bound credit and distinguish missing evidence from failure.
 
@@ -400,11 +495,10 @@ clauses and supplementary controls. SRS v0.9 remains the reviewed baseline at SH
 `8bc2b69c9babf8f228941378a01a32340f23d3ff061f92c574a9a908472981a2`; repo/program and accepted
 ADR authority control until explicitly amended.
 
-Continue the owner-adopted outcome order without rebuilding delivered behavior: remaining
-S7 acceptance after delivered #1854 recovery and credited #1847/#1849 decline preview/recovery, #1845 exact fulfilment,
-#1842 assigned-staff queue, #1841 shared
-next action and #1814 request evidence round trip, with remaining S5/S6 gaps still open,
-S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
+Continue the owner-adopted outcome order without rebuilding delivered behavior. Credit bounded
+S7 acceptance and delivered recovery, fulfilment, assigned-staff queue, next action and request
+evidence work; retain applicable pre-pilot acceptance and remaining S5/S6 gaps. The active order
+is S8 agent handoff, S9 assisted activation, S10 branch oversight, S11 tenant administration, S12
 platform operations and S13 outcome/closure, followed by S14 whole-pilot rehearsal. H1 Help Now
 keeps its priority lane when its direct dependencies are ready.
 

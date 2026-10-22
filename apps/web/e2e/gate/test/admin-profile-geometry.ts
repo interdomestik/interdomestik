@@ -100,8 +100,17 @@ async function expectResponsiveProfileShell(
     }));
     expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1);
 
-    const statsRect = await elementRect(claimsStatsCard);
-    const recentRect = await elementRect(recentClaimsCard);
+    // Compare siblings in one browser task: separate evaluations can sample a
+    // moving shared parent in different animation frames after viewport changes.
+    const { statsRect, recentRect } = await lowerGrid.evaluate(element => {
+      const cards = [...element.children].filter(child => child.tagName === 'DIV');
+      if (cards.length !== 2) throw new Error('profile desktop row must contain two cards');
+      const rects = cards.map(card => {
+        const rect = card.getBoundingClientRect();
+        return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top };
+      });
+      return { statsRect: rects[0], recentRect: rects[1] };
+    });
     expectWithinViewport(statsRect, viewport.width);
     expectWithinViewport(recentRect, viewport.width);
     expect(Math.abs(statsRect.top - recentRect.top)).toBeLessThanOrEqual(1);

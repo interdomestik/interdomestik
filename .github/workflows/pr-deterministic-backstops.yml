@@ -91,6 +91,7 @@ jobs:
         run: |
           set -euo pipefail
           semgrep scan \
+            --jobs 1 \
             --config p/ci \
             --baseline-commit "${BASE_SHA}" \
             --metrics=off \

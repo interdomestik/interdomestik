@@ -1,0 +1,38 @@
+--- a/src/connection.js
++++ b/src/connection.js
+@@ -170,11 +170,14 @@
+         : (query = q, query.active = true)
+ 
+       build(q)
+-      return write(toBuffer(q))
++      const written = write(toBuffer(q))
++      // Reservation is required after an accepted write, including backpressure
++      // and a full pipeline. The hook's existing return value still controls reuse.
++      return (!q.options.onexecute || q.options.onexecute(connection))
++        && written
+         && !q.describeFirst
+         && !q.cursorFn
+         && sent.length < max_pipeline
+-        && (!q.options.onexecute || q.options.onexecute(connection))
+     } catch (error) {
+       sent.length === 0 && write(Sync)
+       errored(error)
+--- a/cjs/src/connection.js
++++ b/cjs/src/connection.js
+@@ -170,11 +170,14 @@
+         : (query = q, query.active = true)
+ 
+       build(q)
+-      return write(toBuffer(q))
++      const written = write(toBuffer(q))
++      // Reservation is required after an accepted write, including backpressure
++      // and a full pipeline. The hook's existing return value still controls reuse.
++      return (!q.options.onexecute || q.options.onexecute(connection))
++        && written
+         && !q.describeFirst
+         && !q.cursorFn
+         && sent.length < max_pipeline
+-        && (!q.options.onexecute || q.options.onexecute(connection))
+     } catch (error) {
+       sent.length === 0 && write(Sync)
+       errored(error)

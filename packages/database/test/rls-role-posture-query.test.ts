@@ -1,138 +1,23 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
-import test, { type TestContext } from 'node:test';
+import test from 'node:test';
 
-import postgres from 'postgres';
+import type postgres from 'postgres';
 
 import {
   assertRlsConnectionRole,
   evaluateRlsConnectionRolePosture,
 } from '../src/rls-role-assertion';
+import { queryRlsRolePosture } from '../src/rls-role-posture-query';
+import { quoteIdentifier } from './rls-role-posture-query.fixture';
 import {
-  queryRlsRolePosture,
-  RLS_ROLE_POSTURE_REJECTED_SQLSTATE,
-} from '../src/rls-role-posture-query';
-import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
-
-// Creates SUPERUSER/BYPASSRLS fixture roles, so it only ever targets a loopback database.
-const databaseUrl = resolveLoopbackDatabaseUrl(process.env.DATABASE_URL);
-const requireIntegration = process.env.REQUIRE_RLS_INTEGRATION === '1';
-const suffix = randomUUID().replaceAll('-', '').slice(0, 10);
-const password = randomUUID();
-const roles = {
-  safe: `ida_posture_safe_${suffix}`,
-  bypass: `ida_posture_bypass_${suffix}`,
-  superuser: `ida_posture_super_${suffix}`,
-} as const;
-const hijackSchema = `ida_posture_hijack_${suffix}`;
-
-// A replaced shared boolean parser: every bool column decodes as false.
-const corruptedBoolParser = {
-  bool: {
-    to: 16,
-    from: [16],
-    serialize: (value: unknown) => (value ? 't' : 'f'),
-    parse: () => false,
-  },
-};
-
-function resolveLoopbackDatabaseUrl(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  try {
-    const { hostname } = new URL(value);
-    return ['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname) ? value : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-type ClientOptions = { corruptBool?: boolean; searchPath?: string; setRole?: string };
-
-function connectAs(role: string, options: ClientOptions = {}): postgres.Sql {
-  const url = new URL(databaseUrl!);
-  url.username = role;
-  url.password = password;
-  return postgres(url.toString(), {
-    max: 1,
-    onnotice: () => undefined,
-    ...(options.corruptBool ? { types: corruptedBoolParser } : {}),
-    connection: {
-      ...(options.searchPath ? { search_path: options.searchPath } : {}),
-      ...(options.setRole ? { options: `-c role=${options.setRole}` } : {}),
-    },
-  });
-}
-
-async function withClient<T>(
-  role: string,
-  options: ClientOptions,
-  run: (client: postgres.Sql) => Promise<T>
-): Promise<T> {
-  const client = connectAs(role, options);
-  try {
-    return await run(client);
-  } finally {
-    await client.end({ timeout: 5 });
-  }
-}
-
-function assertServerRejected(error: unknown): true {
-  assert.equal((error as { code?: unknown }).code, RLS_ROLE_POSTURE_REJECTED_SQLSTATE);
-  return true;
-}
-
-let admin: postgres.Sql | undefined;
-let unavailableReason: string | undefined = databaseUrl
-  ? undefined
-  : 'A loopback DATABASE_URL is not configured';
-
-function requireDatabase(t: TestContext): boolean {
-  if (!unavailableReason) return true;
-  if (requireIntegration) assert.fail(`RLS role posture proof required: ${unavailableReason}`);
-  t.skip(unavailableReason);
-  return false;
-}
-
-test.before(async () => {
-  if (!databaseUrl) return;
-  admin = postgres(databaseUrl, { max: 1, onnotice: () => undefined });
-  try {
-    await admin`select 1`;
-  } catch (error) {
-    await admin.end({ timeout: 1 });
-    admin = undefined;
-    unavailableReason = `loopback database unreachable: ${(error as Error).message}`;
-    return;
-  }
-  const pw = quoteSqlLiteral(password);
-  await admin.unsafe(`
-    create role ${quoteIdentifier(roles.safe)} login nosuperuser nobypassrls password ${pw};
-    create role ${quoteIdentifier(roles.bypass)} login nosuperuser bypassrls password ${pw};
-    create role ${quoteIdentifier(roles.superuser)} login superuser password ${pw};
-    create schema ${quoteIdentifier(hijackSchema)};
-    create view ${quoteIdentifier(hijackSchema)}.pg_roles as
-      select rolname, false as rolbypassrls, false as rolsuper from pg_catalog.pg_roles;
-    create function ${quoteIdentifier(hijackSchema)}.always_one(integer, integer)
-      returns integer language sql immutable as 'select 1';
-    create operator ${quoteIdentifier(hijackSchema)}./ (
-      leftarg = integer, rightarg = integer,
-      function = ${quoteIdentifier(hijackSchema)}.always_one
-    );
-    grant usage on schema ${quoteIdentifier(hijackSchema)} to public;
-    grant select on ${quoteIdentifier(hijackSchema)}.pg_roles to public;
-  `);
-});
-
-test.after(async () => {
-  if (!admin) return;
-  await admin.unsafe(`
-    drop schema if exists ${quoteIdentifier(hijackSchema)} cascade;
-    drop role if exists ${quoteIdentifier(roles.safe)};
-    drop role if exists ${quoteIdentifier(roles.bypass)};
-    drop role if exists ${quoteIdentifier(roles.superuser)};
-  `);
-  await admin.end({ timeout: 5 });
-});
+  admin,
+  assertServerRejected,
+  hijackSchema,
+  requireDatabase,
+  roles,
+  suffix,
+  withClient,
+} from './rls-role-posture-query.fixture';
 
 test('server-enforced posture accepts a NOSUPERUSER NOBYPASSRLS connection role', async t => {
   if (!requireDatabase(t)) return;
@@ -167,7 +52,11 @@ test('a corrupted boolean parser fools the decoded check but not the server refu
   await withClient(roles.bypass, { corruptBool: true }, async client => {
     // Negative control: the decoded-only check accepts a BYPASSRLS role under this parser.
     const decodedOnly = await client<
-      Array<{ currentUser: string; roleBypassesRls: boolean; roleIsSuperuser: boolean }>
+      Array<{
+        currentUser: string;
+        roleBypassesRls: boolean;
+        roleIsSuperuser: boolean;
+      }>
     >`
       select current_user as "currentUser", rolbypassrls as "roleBypassesRls",
         rolsuper as "roleIsSuperuser"
@@ -233,19 +122,86 @@ test('a missing DB_RLS_ROLE target yields no posture row', async t => {
   });
 });
 
-test('a privileged login switched to a NOBYPASSRLS role passes, as the DB_RLS_ROLE topology requires', async t => {
+test('a privileged login remains refused after selecting a restricted startup role', async t => {
   if (!requireDatabase(t)) return;
   await withClient(roles.superuser, { corruptBool: true, setRole: roles.safe }, async client => {
+    await assert.rejects(() => queryRlsRolePosture(client, roles.safe), assertServerRejected);
     const result = await assertRlsConnectionRole({
-      isProduction: true,
+      isProduction: false,
       configuredDbRole: roles.safe,
       queryRolePosture: roleName => queryRlsRolePosture(client, roleName),
     });
-    assert.equal(result.ok, true);
-    assert.equal(result.currentUser, roles.safe);
+    assert.equal(result.ok, false);
+    assert.equal(!result.ok && result.reason, 'role_bypasses_rls');
+    assert.equal(!result.ok && result.checkedRole, 'connection');
+    await assert.rejects(
+      () =>
+        assertRlsConnectionRole({
+          isProduction: true,
+          configuredDbRole: roles.safe,
+          queryRolePosture: roleName => queryRlsRolePosture(client, roleName),
+        }),
+      /can bypass row-level security; refusing startup/u
+    );
+    await client`SET ROLE NONE`;
+    const [restored] = await client`select session_user as "login", current_user as "effective"`;
+    assert.deepEqual({ ...restored }, { login: roles.superuser, effective: roles.superuser });
+    await assert.rejects(() => queryRlsRolePosture(client, roles.safe), assertServerRejected);
   });
 
   await withClient(roles.superuser, { corruptBool: true, setRole: roles.bypass }, async client => {
     await assert.rejects(() => queryRlsRolePosture(client), assertServerRejected);
   });
+});
+
+test('restricted login selects a different restricted role and cannot regain privilege', async t => {
+  if (!requireDatabase(t)) return;
+  const target = `ida_posture_target_${suffix}`;
+  await admin!.unsafe(`
+    create role ${quoteIdentifier(target)} nologin nosuperuser nobypassrls nocreaterole nocreatedb noinherit;
+    grant ${quoteIdentifier(target)} to ${quoteIdentifier(roles.safe)};
+  `);
+  try {
+    await withClient(roles.safe, { setRole: target }, async client => {
+      const identity = async () => {
+        const [row] = await client`select session_user as "login", current_user as "effective"`;
+        return { ...row };
+      };
+      assert.deepEqual(await identity(), {
+        login: roles.safe,
+        effective: target,
+      });
+      const result = await assertRlsConnectionRole({
+        isProduction: true,
+        configuredDbRole: target,
+        queryRolePosture: roleName => queryRlsRolePosture(client, roleName),
+      });
+      assert.equal(result.ok, true);
+      assert.equal(result.currentUser, target);
+      await assert.rejects(
+        () => client`SET ROLE postgres`,
+        error => {
+          assert.equal((error as { code?: unknown }).code, '42501');
+          return true;
+        }
+      );
+      await client`SET ROLE NONE`;
+      assert.deepEqual(await identity(), {
+        login: roles.safe,
+        effective: roles.safe,
+      });
+      await queryRlsRolePosture(client, target);
+      await client`RESET ROLE`;
+      assert.deepEqual(await identity(), {
+        login: roles.safe,
+        effective: target,
+      });
+      await queryRlsRolePosture(client, target);
+    });
+  } finally {
+    await admin!.unsafe(`
+      revoke ${quoteIdentifier(target)} from ${quoteIdentifier(roles.safe)};
+      drop role ${quoteIdentifier(target)};
+    `);
+  }
 });

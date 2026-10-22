@@ -10,11 +10,12 @@ import type { RlsConnectionRolePosture } from './rls-role-assertion';
 export const RLS_ROLE_POSTURE_REJECTED_SQLSTATE = '22012';
 
 /**
- * Reads the RLS role posture with a server-enforced refusal: unless both the
- * checked role and the connection's effective role (current_user) are
- * NOBYPASSRLS and NOSUPERUSER, the row expression divides by zero and the query
- * fails. current_user, not session_user, matches the supported DB_RLS_ROLE
- * topology where a privileged login connects with `-c role=<rls role>`.
+ * Refuses in PostgreSQL unless the checked role, authenticated session_user
+ * and effective current_user are all NOBYPASSRLS and NOSUPERUSER. The refusal
+ * happens before driver decoding. Production and pilot runtime connections
+ * require a genuinely restricted login; demoting a privileged login with
+ * `-c role=` does not satisfy that boundary. Role flags alone do not prove
+ * membership, ownership or callable-function confinement.
  * Catalog relations and operators are schema-qualified so search_path cannot
  * substitute either.
  */
@@ -34,10 +35,16 @@ export async function queryRlsRolePosture(
         not checked_role.rolbypassrls
         and not checked_role.rolsuper
         and exists (
-          select 1 from pg_catalog.pg_roles as connection_role
-          where connection_role.rolname OPERATOR(pg_catalog.=) current_user
-            and not connection_role.rolbypassrls
-            and not connection_role.rolsuper
+          select 1 from pg_catalog.pg_roles as login_role
+          where login_role.rolname OPERATOR(pg_catalog.=) session_user
+            and not login_role.rolbypassrls
+            and not login_role.rolsuper
+        )
+        and exists (
+          select 1 from pg_catalog.pg_roles as effective_role
+          where effective_role.rolname OPERATOR(pg_catalog.=) current_user
+            and not effective_role.rolbypassrls
+            and not effective_role.rolsuper
         )
       THEN 1 ELSE 0 END as "serverEnforcedNoBypass"
     from pg_catalog.pg_roles as checked_role
@@ -56,10 +63,16 @@ export async function queryRlsRolePosture(
         not checked_role.rolbypassrls
         and not checked_role.rolsuper
         and exists (
-          select 1 from pg_catalog.pg_roles as connection_role
-          where connection_role.rolname OPERATOR(pg_catalog.=) current_user
-            and not connection_role.rolbypassrls
-            and not connection_role.rolsuper
+          select 1 from pg_catalog.pg_roles as login_role
+          where login_role.rolname OPERATOR(pg_catalog.=) session_user
+            and not login_role.rolbypassrls
+            and not login_role.rolsuper
+        )
+        and exists (
+          select 1 from pg_catalog.pg_roles as effective_role
+          where effective_role.rolname OPERATOR(pg_catalog.=) current_user
+            and not effective_role.rolbypassrls
+            and not effective_role.rolsuper
         )
       THEN 1 ELSE 0 END as "serverEnforcedNoBypass"
     from pg_catalog.pg_roles as checked_role
