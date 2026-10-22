@@ -37,7 +37,7 @@ fi
 
 # Test fixtures may use an administrative driver; every spawned app keeps its LOGIN.
 if [[ -n "${PW_APP_DATABASE_URL+x}${PW_APP_DATABASE_URL_RLS+x}${PW_APP_DB_RLS_ROLE+x}" ]]; then
-	node "${ROOT_DIR}/scripts/ci/playwright-database-profiles.mjs" --validate-application
+	node "${ROOT_DIR}/scripts/ci/validate-playwright-application.mjs"
 	export DATABASE_URL_RLS="${PW_APP_DATABASE_URL_RLS}"
 	export E2E_DATABASE_URL_RLS="${PW_APP_DATABASE_URL_RLS}"
 	export DB_RLS_ROLE="${PW_APP_DB_RLS_ROLE}"

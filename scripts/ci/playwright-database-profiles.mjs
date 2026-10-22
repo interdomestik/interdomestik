@@ -1,6 +1,4 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { administrativeSeedProfile } from './run-e2e-seed-admin.mjs';
+import { administrativeSeedProfile } from './e2e-administrative-profile.mjs';
 
 const carrierKeys = ['PW_APP_DATABASE_URL', 'PW_APP_DATABASE_URL_RLS', 'PW_APP_DB_RLS_ROLE'];
 
@@ -96,11 +94,4 @@ export function configurePlaywrightDatabaseProfiles(parent) {
     },
     application: profiles.application,
   };
-}
-
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.length !== 3 || process.argv[2] !== '--validate-application') {
-    throw new Error('Expected application database profile validation');
-  }
-  validateApplicationDatabaseProfile(process.env);
 }
