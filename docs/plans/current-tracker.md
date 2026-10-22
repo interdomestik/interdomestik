@@ -13,6 +13,43 @@ status_command: pnpm plan:status
 
 > This is the single active tracker. Historical proof is linked, not repeated.
 
+### Current #1920 consolidation checkpoint (22 October, 19:43 Europe/Berlin)
+
+This is the single current blocker ledger. The earlier provider/message checkpoint below is
+historical and does not certify the current CRM amendments. Published PR #1920 remains at
+`9fb3659efc8c0f2d4af9625e799502a3d091d41c`; it is open and unmerged. The latest completed immutable
+inventory is local candidate `7be9cab0acbd0f718e822d2c0fb5a19ebbb15095`, tree
+`08373af25750c4f07a6196c669dda8a76173ad0f`. Its 160-file manifest matched both Git and the authoring
+checkout during the scan. The authoring checkout's detached `18cd1a73` HEAD is not that candidate.
+Subsequent producer/test amendments are in progress and must receive a new immutable identity;
+no old result is transferred to them.
+
+Owner evidence files below are retained under `2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`.
+The implementation owner owns every correction and canonical write; the existing reviewer owns
+independent acceptance and the coordinator owns the consolidated schedule. No parallel product
+implementation, general audit, analyzer expansion, baseline change or blanket exception is selected.
+
+| Blocker | Reproduced cause and connection to #1920 | Minimal correction / owner | Acceptance evidence and current status |
+| --- | --- | --- | --- |
+| Privilege split and full-interval proof | Restricted application LOGIN exposes reads/writes that previously relied on ambient privileged access. Administrative bootstrap/seed and approved auth lifecycle operations are separate explicit exceptions. | Implementation owner: preserve restricted LOGIN/RLS for ordinary application operations and existing bounded administrative authority. | `crm-e2e-full-inventory-v12-role-observation.json` records restricted LOGIN, non-superuser/non-bypass flags and active application connections. This snapshot is positive evidence, not full-interval proof; final source/role bookends and required RLS gates remain pending. |
+| Approved CRM, confirmation and audit integration | Actual CRM reads, confirm-current lookup and classification audit lacked tenant transaction context. | Implementation owner: approved scoped operations, independent reporting reads, locked confirmation and separate best-effort audit. | Previously failing mounted confirmation and agent follow-up cases pass. Fresh isolated ten-group SQL proof passes in `crm-followup-runtime-preparation-run-v3-receipt.json`; original seven CRM groups are retained. Final protected join remains pending. Audit is not mandatory atomic evidence. |
+| Mounted agent workspace claims | Ambient assignment lookup returns no rows under restricted RLS, so the mounted view is empty although the privileged direct-query fixture passes. | Implementation owner: two-file scoped coherent reader proposal; preserve assignment, tenant, public-message and selection predicates. | `workspace-claims-proof-v12-receipt.json` passes isolated KS/MK positive/denial/context-cleanup cases. Proposal is unapplied; bounded scope decision and mounted retest remain pending. |
+| Branch dashboards, list and risk metrics | Ambient branch/aggregate reads are invisible; the joined tenant relation is also null under the tenants table's no-public-access policy. | Implementation owner: restricted scoped metrics plus explicit narrowly authorized branch discovery/currency metadata proposal; preserve role/branch checks. | Four-file `branch-context-proposal-v12.json` passes isolated SQL and executable modularity. New privileged metadata boundaries are explicit and unapplied pending the consolidated decision; mounted verification remains pending. |
+| Agent tier, member documents and public history | Isolated restricted SQL reproduces invisible tenant rows, causing incorrect eligibility/empty documents/missing public history. | Implementation owner: bounded tenant-context proposals for the existing readers; no role, visibility or route changes. | `groups9-16-context-triage-v12.md` and its restricted-SQL mechanism evidence. Proposed-function integration and consolidated scope decision remain pending. |
+| Member registration | Actual PostgreSQL `42501` rejects the user insert inside an ambient transaction; the generic duplicate-email message does not establish an email collision. | Implementation owner: tenant-bound transaction preserving retry behavior and existing validation. | Reproduced SQL mechanism and unapplied proposal in `groups9-16-context-triage-v12.md`; actual function/denial/retry and mounted verification remain pending. |
+| Notification side effects | Ambient recipient lookup returns no user and loses tenant context before notification insertion; a separate ambient insert also fails under RLS. Several journey teardown assertions observe the same missing notification effect. | Implementation owner: retain the authorized tenant through recipient lookup and insert, preserving idempotency and event semantics. | Consolidated diagnosis in `groups9-16-context-triage-v12.md`. Nearby audit-log `42501` is not misreported as notification-insert evidence. Concrete proposal, bounded review and actual side-effect proof remain pending. |
+| Complete E2E and remaining observed failures | Full 422-case corpus completed with supported `--max-failures=0`, unchanged assertions/projects/retries: 347 passed, 35 failed, one flaky and 39 inherited skips, with no unexecuted remainder. Failures include staff handoff and MK classification-control visibility; causes are not inferred from test titles. | Implementation owner: finish inventory, group reproduced #1920 regressions, then correct only the consolidated bounded surface. | `crm-e2e-full-inventory-v12-final.json` and the hashed 438-file artifact archive retain the final inventory and all attempts. Duplicate CTA rendering remains unclassified; no selector weakening or unrelated UI work is authorized. Final whole-suite acceptance is pending. |
+| Unit harness and required local verification | One web test uses the old database mock and lacks the new tenant-context boundary. | Implementation owner: adapt the focused mock and preserve all durable-branch assertions; split the oversized test only as required by executable modularity. | Web run: 6,077 passed, one failed, 12 inherited skips. All 19 remaining domain/shared-auth coverage suites ran separately and passed (`crm-domain-coverage-v12-results.json`). The focused mock adaptation preserves all 15 assertions/tests and passes; final coverage gate and complete `pr:verify` remain pending. |
+| Finite proof and protected delivery | The unchanged v12 analyzer reports 7,313 scanned operations, 1,256 failing obligations and 5,530,751 raw diagnostic occurrences, baseline 604, with zero manifest drift. These are unresolved proof obligations, not 1,256 demonstrated vulnerabilities. The older v9 finite mapping cannot certify the larger current inventory. | Implementation owner: authenticate and join only explicitly reviewed finite source/runtime obligations to the same candidate/policy/event; retain every raw diagnostic. Reviewer: independent acceptance. | `crm-context-guard-v12-receipt.json`, report SHA-256 `61949314229fef97eb28e4ee1af1c35397ac50c2bfdfc72d4808482a79fb17f0`. Status INCOMPLETE; policy activation, fresh protected join, immutable producer/workflow publication and required hosted acceptance remain pending. |
+| Current-candidate Sonar and closure | Published C10 Sonar is now OK/A with zero bugs/vulnerabilities in the reviewer's 19:33 readback; the old D diagnosis is historical. This does not certify unpublished amendments. | Implementation owner: current-source correction or individually justified classification; reviewer: same-head findings/verdict. | Published [PR checks](https://github.com/interdomestik/interdomestik/pull/1920/checks) and [Sonar PR view](https://sonarcloud.io/project/issues?id=interdomestik_interdomestik&pullRequest=1920). Final amended-candidate Sonar, protected delivery, exact-main/staging and frozen S8 journey acceptance remain pending. Tested, merged and S8 closed are separate states. |
+
+The full inventory completed before the **22 October 20:15 Europe/Berlin** target. The confirmed consolidation checkpoint is **22 October 21:00 Europe/Berlin**:
+report the completed inventory or concrete remaining runtime, bounded decision package, immutable
+candidate delta and revised targets. Independent final review targets at most 45 minutes after a
+complete same-candidate package is available. Candidate completion, final full proof and S8 closure
+are not confirmed dates while the finite proof and reproduced regression decisions remain open.
+The checkpoint is not a promise to merge or close S8, and grants no new merge/deploy authority.
+
 ## Active Queue
 
 On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
@@ -37,8 +74,8 @@ exact two-module fixed-producer class grants no general test exception or runtim
 Direct runtime and residual must agree on source, policy and event; final immutable
 G2/candidate/merge identities, existing external-pin trust transition, intended connection
 topology, required local/hosted proof, protected delivery and exact-main staging remain required.
-The prior residual INCOMPLETE is superseded by the bounded local proof checkpoint below; ordinary
-audit/lifecycle dependencies remain independently enforced.
+Current source acceptance is governed by the consolidated #1920 blocker checkpoint below; earlier
+local proof is historical, and ordinary audit/lifecycle dependencies remain independently enforced.
 No analyzer expansion, baseline reset, refused-action bypass, rewrite or universal transfer
 engine is authorized. S9 starts only after actual S8 acceptance; pilot/release needs separate
 authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
@@ -53,7 +90,7 @@ The copied fixed-producer review SHA-256 is
 `38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
 These records preserve bounded acceptance and source limits; none is production release approval.
 
-### Provider and message proof implementation checkpoint (22 October)
+### Historical provider and message proof checkpoint (22 October)
 
 The explicit message-contract approval and subsequent manual platform approval resolved the
 implementation/review-transmission blockers. The approved evaluator/source amendment is applied;

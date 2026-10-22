@@ -116,6 +116,8 @@ export function materializeCrmRuntime({
     '--color=false',
     '--alias:@interdomestik/domain-crm=' + path.join(root, 'packages/domain-crm/src'),
     '--alias:@interdomestik/database=' + path.join(root, 'packages/database/src'),
+    '--alias:@interdomestik/domain-users=' + path.join(root, 'packages/domain-users/src'),
+    '--alias:@interdomestik/shared-auth=' + path.join(root, 'packages/shared-auth/src'),
     ...runtime.externalSpecifiers.map(name => '--external:' + name),
   ]);
   if (diagnostics.trim()) fail('compiler output');

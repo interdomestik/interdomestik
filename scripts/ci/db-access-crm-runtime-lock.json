@@ -16,7 +16,10 @@
     "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
     "drizzle-orm": "343b2dfe5b793f4ae9ad141a7dcc53b3143106da9abdfdf3e663908787d12288",
     "postgres": "32eb5ea0d58579e0f1c83a465a6c2d83757c774406f077a62a2277b3d1808eea",
-    "esbuild": "0091ac1dc0891f181bdfbcc57a86d1c02d57c0679ac9fe3f4eef85be549be010"
+    "esbuild": "0091ac1dc0891f181bdfbcc57a86d1c02d57c0679ac9fe3f4eef85be549be010",
+    "@supabase/ssr": "f72f8fd4fb35e444d9cdeef1bfd7c591824987bf5dd2adcf3b685531c5d54c6b",
+    "@supabase/supabase-js": "b482177eef23c99ee247e566cedbe6f029b1c226041767f4b6862421261adee4",
+    "nanoid": "41b8431ce0150c34b5bfd769bc89321e9c51e8d39f978f2f80e6fd4d55089ca4"
   },
   "rootImporters": {
     "@upstash/ratelimit": {
@@ -74,22 +77,34 @@
     "esbuild": {
       "snapshot": "esbuild@0.28.2",
       "purpose": "fixed compilation"
+    },
+    "@supabase/ssr": {
+      "importer": "packages/database",
+      "version": "0.12.7(@supabase/supabase-js@2.110.9)"
+    },
+    "@supabase/supabase-js": {
+      "importer": "packages/database",
+      "version": "2.110.9"
+    },
+    "nanoid": {
+      "importer": "apps/web",
+      "version": "5.1.16"
     }
   },
   "packageFiles": {
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "sha256": "af70a86ac0c926b6a0df20c0a1fe8c472826eebf80ecb1d17023bbe15b2dbedd",
-      "bytes": 98506,
+      "sha256": "70fd226bab039e501e0240de667456c74cee167e576d82f829301962d3691508",
+      "bytes": 99634,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {
-      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5",
-      "bytes": 105873,
+      "sha256": "e5c6ade2ab8e8ea76b49a7f7f6f222bc1aab57a68183c66fdf3c8a77f7c6d525",
+      "bytes": 107037,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-3.json": {
-      "sha256": "cabaf06008e4c8c17c35dbbd43bb160540ca0e001ee6ea5aee21488227625c3b",
-      "bytes": 108370,
+      "sha256": "b8bb3c345f5078cab5b9cbc03dbc9c499bada4b6276a11635a1e9d96524a5344",
+      "bytes": 115570,
       "mode": "100644"
     }
   }

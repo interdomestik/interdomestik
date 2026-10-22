@@ -15,8 +15,8 @@ vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mocks.revalidatePath(...args),
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logTenantAuditEvent: (...args: unknown[]) => mocks.logAuditEvent(...args),
+vi.mock('./classification-audit', () => ({
+  logClassificationAuditEvent: (...args: unknown[]) => mocks.logAuditEvent(...args),
 }));
 
 import { resolveTenantClassificationCore } from './resolve-tenant-classification.core';

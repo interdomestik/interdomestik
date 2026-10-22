@@ -26,6 +26,10 @@ const CHILD_FILES = [
   'cases-authority',
   'cases-session',
   'cases-backfill',
+  'cases-confirm-current',
+  'cases-agent-flow',
+  'cases-classification-audit',
+  'context',
 ].map(name => 'db-access-crm-runtime-' + name + '.mjs');
 
 // Mandatory direct execution by the new fixed producer. No candidate flag or prior receipt input.

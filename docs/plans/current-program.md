@@ -40,8 +40,8 @@ exact two-module fixed-producer class grants no general test exception or runtim
 Direct runtime and residual must agree on source, policy and event; final immutable
 G2/candidate/merge identities, existing external-pin trust transition, intended connection
 topology, required local/hosted proof, protected delivery and exact-main staging remain required.
-The prior residual INCOMPLETE is superseded by the bounded local proof checkpoint below; ordinary
-audit/lifecycle dependencies remain independently enforced.
+Current source acceptance is governed by the consolidated #1920 blocker checkpoint below; earlier
+local proof is historical, and ordinary audit/lifecycle dependencies remain independently enforced.
 No analyzer expansion, baseline reset, refused-action bypass, rewrite or universal transfer
 engine is authorized. S9 starts only after actual S8 acceptance; pilot/release needs separate
 authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
@@ -56,7 +56,22 @@ The copied fixed-producer review SHA-256 is
 `38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
 These records preserve bounded acceptance and source limits; none is production release approval.
 
-### Provider and message proof implementation checkpoint (22 October)
+### Current #1920 consolidation checkpoint (22 October)
+
+The [single current blocker ledger](current-tracker.md#current-1920-consolidation-checkpoint-22-october-1943-europeberlin)
+records the current published/local identities, reproduced privilege-boundary regressions, complete
+E2E inventory, finite source/runtime proof, required verification and independent acceptance.
+Approved CRM/agent/confirm-current/audit repairs are distinct from unapplied newly discovered
+proposals. Restricted LOGIN, bounded administrative exceptions, original baseline 604 and all
+existing security checks remain in force; no generic analyzer or gate relaxation is selected.
+
+Full E2E inventory targets 22 October 20:15 Europe/Berlin, conditional on remaining runtime.
+The confirmed consolidation checkpoint is 22 October 21:00 Europe/Berlin; it is not an S8 closure
+commitment. Final candidate, review, full proof and closure targets depend on the recorded blockers.
+No new merge/deploy authority follows from this reporting checkpoint. S9 remains dependent on
+actual S8 acceptance.
+
+### Historical provider and message proof checkpoint (22 October)
 
 The explicit message-contract approval and subsequent manual platform approval resolved the
 implementation/review-transmission blockers. The approved evaluator/source amendment is applied;

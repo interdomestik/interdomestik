@@ -6,6 +6,9 @@ import { verifyAuthAuthority } from './db-access-crm-runtime-cases-authority.mjs
 import { runCrmSessionCases } from './db-access-crm-runtime-cases-session.mjs';
 import { runCrmBackfillCases } from './db-access-crm-runtime-cases-backfill.mjs';
 import { runCrmBranchManagerCases } from './db-access-crm-runtime-cases-branch-manager.mjs';
+import { runCrmConfirmCurrentCases } from './db-access-crm-runtime-cases-confirm-current.mjs';
+import { runCrmAgentFlowCases } from './db-access-crm-runtime-cases-agent-flow.mjs';
+import { runCrmClassificationAuditCases } from './db-access-crm-runtime-cases-classification-audit.mjs';
 const cases = [];
 try {
   for (const [id, run] of [
@@ -16,6 +19,9 @@ try {
     ['crm-auth-member', runCrmAuthCases],
     ['crm-session', runCrmSessionCases],
     ['crm-auth-authority', async () => verifyAuthAuthority(await import('./crm-runtime.cjs'))],
+    ['crm-confirm-current', runCrmConfirmCurrentCases],
+    ['crm-agent-flow', runCrmAgentFlowCases],
+    ['crm-classification-audit', runCrmClassificationAuditCases],
   ]) {
     const assertions = await run();
     cases.push({ id, status: 'passed', assertions });
