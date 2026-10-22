@@ -26,7 +26,6 @@ import {
   ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER,
   ADMIN_CRM_REPORTING_MARKER_PREFIX,
   AdminCrmReportingAccessDeniedError,
-  getAdminCrmReportingCore,
   type AdminCrmBranchPipelineRow,
   type AdminCrmForecastAlertResult,
   type AdminCrmForecastAlertSeverity,
@@ -40,6 +39,7 @@ import {
   type AdminCrmSourceBreakdownRow,
   type AdminCrmWidget,
 } from './_core';
+import { getAdminCrmReportingCore } from './_reporting-tenant';
 import {
   ExcludedRowsNote,
   PipelineRowsList,

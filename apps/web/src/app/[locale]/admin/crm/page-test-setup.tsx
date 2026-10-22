@@ -46,6 +46,10 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
+vi.mock('./_reporting-tenant', () => ({
+  getAdminCrmReportingCore: hoisted.getAdminCrmReportingCoreMock,
+}));
+
 vi.mock('./_core', async importOriginal => {
   const actual = await importOriginal<typeof import('./_core')>();
   return {
