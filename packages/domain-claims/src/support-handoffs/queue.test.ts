@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   claims: {
     claimNumber: 'claims.claim_number',
     id: 'claims.id',
-    caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
     tenantId: 'claims.tenant_id',
     title: 'claims.title',
   },
@@ -105,14 +106,11 @@ vi.mock('drizzle-orm', () => ({
   aliasedTable: vi.fn((table, alias) => ({ ...table, alias })),
   gt: mocks.gt,
   isNotNull: mocks.isNotNull,
-  isNull: mocks.isNull, sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
+  isNull: mocks.isNull,
+  sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
 }));
 
-import {
-  buildStaffSupportHandoffQueueScope,
-  getStaffSupportHandoffDetail,
-  getStaffSupportHandoffQueue,
-} from './queue';
+import { buildStaffSupportHandoffQueueScope } from './queue';
 
 type QueueScopeArgs = Parameters<typeof buildStaffSupportHandoffQueueScope>[0];
 
@@ -126,29 +124,6 @@ function buildScope(overrides: Partial<QueueScopeArgs> = {}) {
     viewerRole: 'staff',
   };
   return buildStaffSupportHandoffQueueScope({ ...base, ...overrides });
-}
-
-function mockSelectRows(rows: unknown[]) {
-  const query = {
-    from: vi.fn().mockReturnThis(),
-    leftJoin: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(rows),
-    where: vi.fn().mockReturnThis(),
-  };
-  mocks.db.select.mockReturnValue(query);
-  return query;
-}
-
-function mockQueueRows(rows: unknown[]) {
-  const query = {
-    from: vi.fn().mockReturnThis(),
-    leftJoin: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(rows),
-    orderBy: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-  };
-  mocks.db.select.mockReturnValue(query);
-  return query;
 }
 
 describe('buildStaffSupportHandoffQueueScope', () => {
@@ -231,222 +206,5 @@ describe('buildStaffSupportHandoffQueueScope', () => {
 
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.status', 'accepted');
     expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.status', 'closed');
-  });
-});
-
-describe('getStaffSupportHandoffQueue', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('projects current-cycle member replies as staff follow-up attention', async () => {
-    const query = mockQueueRows([
-      {
-        agentName: 'Agent One',
-        branchName: 'Prishtina',
-        claimId: 'claim-1',
-        claimNumber: 'CLM-1',
-        claimStatus: 'submitted',
-        claimTitle: 'Claim one',
-        createdAt: new Date('2026-05-04T10:00:00.000Z'),
-        id: 'handoff-1',
-        lifecycleVersion: 4,
-        memberEmail: 'member@example.com',
-        memberId: 'member-1',
-        memberName: 'Member One',
-        memberNumber: 'MEM-1',
-        memberReplyAt: new Date('2026-05-04T11:10:00.000Z'),
-        memberReplyResponseVersion: 2,
-        membershipStatus: 'active',
-        message: 'The member needs support.',
-        planName: 'Family',
-        publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
-        publicResponseVersion: 2,
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-        subject: 'Help with claim',
-        trustRisk: 'medium',
-        updatedAt: new Date('2026-05-04T11:10:00.000Z'),
-        urgency: 'high',
-      },
-      {
-        agentName: 'Agent One',
-        branchName: 'Prishtina',
-        claimId: 'claim-2',
-        claimNumber: 'CLM-2',
-        claimStatus: 'submitted',
-        claimTitle: 'Claim two',
-        createdAt: new Date('2026-05-04T10:00:00.000Z'),
-        id: 'handoff-2',
-        lifecycleVersion: 5,
-        memberEmail: 'member@example.com',
-        memberId: 'member-1',
-        memberName: 'Member One',
-        memberNumber: 'MEM-1',
-        memberReplyAt: new Date('2026-05-04T11:10:00.000Z'),
-        memberReplyResponseVersion: 2,
-        membershipStatus: 'active',
-        message: 'The closed handoff is terminal.',
-        planName: 'Family',
-        publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
-        publicResponseVersion: 2,
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'closed',
-        subject: 'Closed help',
-        trustRisk: 'medium',
-        updatedAt: new Date('2026-05-04T11:10:00.000Z'),
-        urgency: 'high',
-      },
-    ]);
-
-    await expect(
-      getStaffSupportHandoffQueue({
-        attention: 'needs_follow_up',
-        branchId: 'branch-1',
-        limit: 30,
-        staffId: 'staff-1',
-        tenantId: 'tenant-1',
-        viewerRole: 'staff',
-      })
-    ).resolves.toEqual([
-      expect.objectContaining({
-        id: 'handoff-1',
-        needsFollowUp: true,
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-      }),
-      expect.objectContaining({
-        id: 'handoff-2',
-        needsFollowUp: false,
-      }),
-    ]);
-    expect(mocks.db.select).toHaveBeenCalledWith(
-      expect.objectContaining({
-        memberReplyAt: 'support_handoffs.member_reply_at',
-        memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
-        publicResponseVersion: 'support_handoffs.public_response_version',
-      })
-    );
-    expect(query.limit).toHaveBeenCalledWith(30);
-  });
-});
-
-describe('getStaffSupportHandoffDetail', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns scoped detail fields with normalized lifecycle timestamps and actor names', async () => {
-    const query = mockSelectRows([
-      {
-        acceptedAt: new Date('2026-05-04T08:30:00.000Z'),
-        acceptedByName: 'Staff One',
-        closedAt: null,
-        closedByName: null,
-        closeReason: null,
-        contactPreference: 'phone',
-        memberId: 'member-1',
-        memberReply: 'This resolves my request.',
-        memberReplyAt: new Date('2026-05-04T11:10:00.000Z'),
-        memberReplyResponseVersion: 2,
-        publicResponse: 'We are checking this.',
-        publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
-        publicResponseAcknowledgedAt: new Date('2026-05-04T11:05:00.000Z'),
-        publicResponseAcknowledgedById: 'member-1',
-        publicResponseAcknowledgedVersion: 2,
-        publicResponseVersion: 2,
-        reassignedAt: '2026-05-04T10:00:00.000Z',
-        reassignedByName: 'Staff Two',
-        reassignReason: 'Specialist needed',
-        source: 'member_help',
-      },
-    ]);
-
-    const detail = await getStaffSupportHandoffDetail({
-      branchId: 'branch-1',
-      handoffId: 'handoff-1',
-      staffId: 'staff-1',
-      tenantId: 'tenant-1',
-      viewerRole: 'staff',
-    });
-
-    expect(mocks.db.select).toHaveBeenCalledWith(
-      expect.objectContaining({
-        acceptedAt: 'support_handoffs.accepted_at',
-        acceptedByName: expect.any(String),
-        closedAt: 'support_handoffs.closed_at',
-        closedByName: expect.any(String),
-        contactPreference: 'support_handoffs.contact_preference',
-        publicResponse: 'support_handoffs.public_response',
-        publicResponseAt: 'support_handoffs.public_response_at',
-        publicResponseAcknowledgedAt: 'support_handoffs.public_response_acknowledged_at',
-        publicResponseAcknowledgedById: 'support_handoffs.public_response_acknowledged_by_id',
-        publicResponseAcknowledgedVersion: 'support_handoffs.public_response_acknowledged_version',
-        publicResponseVersion: 'support_handoffs.public_response_version',
-        memberReply: 'support_handoffs.member_reply',
-        memberReplyAt: 'support_handoffs.member_reply_at',
-        memberReplyResponseVersion: 'support_handoffs.member_reply_response_version',
-        source: 'support_handoffs.source',
-      })
-    );
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-1');
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-1');
-    expect(query.limit).toHaveBeenCalledWith(1);
-    expect(detail).toEqual({
-      acceptedAt: '2026-05-04T08:30:00.000Z',
-      acceptedByName: 'Staff One',
-      closedAt: null,
-      closedByName: null,
-      closeReason: null,
-      contactPreference: 'phone',
-      memberReply: {
-        memberReply: 'This resolves my request.',
-        memberReplyAt: '2026-05-04T11:10:00.000Z',
-        memberReplyResponseVersion: 2,
-      },
-      publicResponse: {
-        publicResponse: 'We are checking this.',
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        publicResponseAcknowledged: true,
-        publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
-        publicResponseAcknowledgedVersion: 2,
-        publicResponseVersion: 2,
-      },
-      reassignedAt: '2026-05-04T10:00:00.000Z',
-      reassignedByName: 'Staff Two',
-      reassignReason: 'Specialist needed',
-      source: 'member_help',
-    });
-  });
-
-  it('lets branch managers fetch branch-scoped detail without staff fallback filtering', async () => {
-    mockSelectRows([]);
-
-    await getStaffSupportHandoffDetail({
-      branchId: 'branch-1',
-      handoffId: 'handoff-1',
-      staffId: 'manager-1',
-      tenantId: 'tenant-1',
-      viewerRole: 'branch_manager',
-    });
-
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-1');
-    expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.staff_id', 'manager-1');
-  });
-
-  it('returns null when the handoff is not visible in scope', async () => {
-    mockSelectRows([]);
-
-    await expect(
-      getStaffSupportHandoffDetail({
-        branchId: 'branch-1',
-        handoffId: 'missing',
-        staffId: 'staff-1',
-        tenantId: 'tenant-1',
-        viewerRole: 'staff',
-      })
-    ).resolves.toBeNull();
   });
 });

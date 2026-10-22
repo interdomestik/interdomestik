@@ -127,10 +127,22 @@ describe('Notifications Service', () => {
         'user@example.com',
         { id: 'claim-1', title: 'My Claim' },
         'submitted',
-        'verification'
+        'verification',
+        { tenantId: 'tenant_mk' }
       );
 
       expect(result.success).toBe(true);
+    });
+
+    it('refuses status notification without an explicit tenant', async () => {
+      const result = await notifyStatusChanged(
+        'user-123',
+        'user@example.com',
+        { id: 'claim-1', title: 'My Claim' },
+        'submitted',
+        'verification'
+      );
+      expect(result).toEqual({ success: false, error: 'Missing tenantId for notification' });
     });
   });
 
