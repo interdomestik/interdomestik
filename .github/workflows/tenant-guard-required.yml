@@ -55,8 +55,8 @@ jobs:
           expected_repo='interdomestik/interdomestik'
           expected_branch='main'
           # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
-          source_commit='473c3ad2eb746c2db652bbf31b49bac04358ba4b'
-          source_tree='7e102ea79e28d44495e70df0fc96a15825efd258'
+          source_commit='34d9afbd690510c13c0148464125407498be624b'
+          source_tree='f5212a7503af124f07b66f90984d2211ea6ebaad'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
@@ -271,7 +271,7 @@ jobs:
               fs.writeFileSync(path.join(out, file), bytes, { flag: 'wx', mode: 0o444 });
             }
             // Separate reviewed producer entry: it is not a dynamic loader in the static guard closure.
-            // Every byte comes from the fixed G2 tree, never the candidate or a receipt.
+            // Every byte comes from the fixed G3 tree, never the candidate or a receipt.
             const { PROVIDER_UNIT_POLICY: unit } = await import(pathToFileURL(`${out}/scripts/ci/db-access-provider-unit-policy.mjs`).href);
             for (const [file, expected] of Object.entries({ ...unit.producerFiles, ...unit.runtimeFiles })) {
               const bytes = blob(file), metadata = tree.get(file);
@@ -328,9 +328,9 @@ jobs:
             const first = {
               base: '18cd1a73b12f589c69934cba862092d857434013',
               baseTree: '7acfc0167bde4a8165d5649b3e83625b50b4878c',
-              head: 'd5c2f98d7a7e2572fbacb38c3d0599316d583088',
-              headTree: '7e102ea79e28d44495e70df0fc96a15825efd258',
-              mergeTree: '7e102ea79e28d44495e70df0fc96a15825efd258',
+              head: '715839d550e1438db4b2bf4f079d8bc3f250cb0f',
+              headTree: 'fcd8fec7930487af5d9fa433b9ce395b3fb959be',
+              mergeTree: 'fcd8fec7930487af5d9fa433b9ce395b3fb959be',
             };
             if (base !== first.base || baseTree !== first.baseTree || head !== first.head || headTree !== first.headTree || mergeTree !== first.mergeTree)
               fail('first candidate/base/tree identity mismatch');
