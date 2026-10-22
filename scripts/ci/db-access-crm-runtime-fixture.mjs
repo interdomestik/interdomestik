@@ -76,12 +76,36 @@ export async function createCrmFixture(baseUrl, root) {
       ['tenant_mk', 'MK'],
     ]) {
       await admin`insert into tenants (id,name,legal_name,country_code) values (${id},${id},${id},${country}) on conflict (id) do nothing`;
-      for (const kind of ['admin', 'agent']) {
-        const userId = 'crm-' + kind + '-' + country;
-        const email = kind + '.' + country.toLowerCase() + '@interdomestik.com';
-        await admin`insert into "user" (id,tenant_id,name,email,"emailVerified",role,"createdAt","updatedAt")
-          values (${userId},${id},${userId},${email},false,${kind},now(),now())`;
-      }
+    }
+    const fixtureUsers = [
+      {
+        id: 'crm-admin-KS',
+        tenant: 'tenant_ks',
+        email: 'admin.ks@interdomestik.com',
+        role: 'admin',
+      },
+      {
+        id: 'crm-agent-KS',
+        tenant: 'tenant_ks',
+        email: 'agent.ks@interdomestik.com',
+        role: 'agent',
+      },
+      {
+        id: 'crm-admin-MK',
+        tenant: 'tenant_mk',
+        email: 'admin.mk@interdomestik.com',
+        role: 'admin',
+      },
+      {
+        id: 'crm-agent-MK',
+        tenant: 'tenant_mk',
+        email: 'agent.mk@interdomestik.com',
+        role: 'agent',
+      },
+    ];
+    for (const user of fixtureUsers) {
+      await admin`insert into "user" (id,tenant_id,name,email,"emailVerified",role,"createdAt","updatedAt")
+        values (${user.id},${user.tenant},${user.id},${user.email},false,${user.role},now(),now())`;
     }
     await admin`insert into branches (id,tenant_id,name,slug) values ('crm-foreign-branch','tenant_mk','Foreign','crm-foreign')`;
     address.username = role;

@@ -5,11 +5,13 @@ import { runCrmAuthCases } from './db-access-crm-runtime-cases-auth.mjs';
 import { verifyAuthAuthority } from './db-access-crm-runtime-cases-authority.mjs';
 import { runCrmSessionCases } from './db-access-crm-runtime-cases-session.mjs';
 import { runCrmBackfillCases } from './db-access-crm-runtime-cases-backfill.mjs';
+import { runCrmBranchManagerCases } from './db-access-crm-runtime-cases-branch-manager.mjs';
 const cases = [];
 try {
   for (const [id, run] of [
     ['crm-routing', runCrmRoutingCases],
     ['crm-reporting', runCrmReportingCases],
+    ['crm-branch-manager', runCrmBranchManagerCases],
     ['crm-backfill', runCrmBackfillCases],
     ['crm-auth-member', runCrmAuthCases],
     ['crm-session', runCrmSessionCases],

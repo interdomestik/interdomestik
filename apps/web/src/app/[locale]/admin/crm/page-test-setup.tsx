@@ -59,6 +59,10 @@ vi.mock('./_core', async importOriginal => {
   };
 });
 
+vi.mock('./_branch-manager-tenant', () => ({
+  getBranchManagerCrmReportingCore: hoisted.getBranchManagerCrmReportingCoreMock,
+}));
+
 vi.mock('./_branch-manager-core', async importOriginal => {
   const actual = await importOriginal<typeof import('./_branch-manager-core')>();
   return {

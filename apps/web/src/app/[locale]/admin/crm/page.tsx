@@ -14,9 +14,9 @@ import { getSessionSafe } from '@/components/shell/session';
 import { BranchManagerCrmDashboard } from './_branch-manager-dashboard';
 import {
   BranchManagerCrmReportingAccessDeniedError,
-  getBranchManagerCrmReportingCore,
   type BranchManagerCrmReportingDashboard,
 } from './_branch-manager-core';
+import { getBranchManagerCrmReportingCore } from './_branch-manager-tenant';
 import {
   ADMIN_CRM_FORECAST_ALERT_BAND_MARKER,
   ADMIN_CRM_FORECAST_ALERT_METRICS_MARKER,

@@ -21,3 +21,4 @@ export {
 export { auth } from './apps/web/src/lib/auth/index.ts';
 export { runAdminCrmForecastBackfillOperatorCore } from './apps/web/src/app/[locale]/admin/crm/_backfill-tenant.ts';
 export { runCrmForecastSnapshotBackfillCore as runUnboundCrmForecastSnapshotBackfillCore } from './apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_core.ts';
+export { getBranchManagerCrmReportingCore } from './apps/web/src/app/[locale]/admin/crm/_branch-manager-tenant.ts';

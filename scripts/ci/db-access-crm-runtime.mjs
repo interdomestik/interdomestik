@@ -12,6 +12,7 @@ const CHILD_FILES = [
   'child',
   'cases-routing',
   'cases-reporting',
+  'cases-branch-manager',
   'cases-auth',
   'cases-authority',
   'cases-session',
