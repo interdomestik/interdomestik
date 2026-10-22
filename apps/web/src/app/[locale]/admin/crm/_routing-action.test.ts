@@ -15,7 +15,7 @@ vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafe,
 }));
 
-vi.mock('./_routing-core', () => ({
+vi.mock('./_routing-tenant', () => ({
   resolveAdminCrmRoutingActor: hoisted.resolveAdminCrmRoutingActor,
   runAdminCrmRoutingRuleAction: hoisted.runAdminCrmRoutingRuleAction,
 }));

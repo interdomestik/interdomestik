@@ -66,7 +66,7 @@ import {
   AdminCrmRoutingAccessDeniedError,
   getAdminCrmRoutingErrorMessageKey,
   getAdminCrmRoutingRulesCore,
-} from './_routing-core';
+} from './_routing-tenant';
 import {
   AdminCrmRoutingRulesPanel,
   type AdminCrmRoutingRulesPanelCopy,

@@ -355,7 +355,7 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
 export const crmRoutingRepository = createCrmRoutingRepository();
 
 export function createAdminCrmRoutingRuleRepository(
-  database: CrmRoutingDb = db
+  database: CrmRoutingDb | import('@interdomestik/database/tenant').TenantTransaction = db
 ): AdminCrmRoutingRuleAdminRepository {
   async function getRoutingRule(params: {
     actor: CrmActorContext;
