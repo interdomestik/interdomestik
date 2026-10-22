@@ -235,7 +235,11 @@ pnpm db:migrate
 echo "🌱 [Gatekeeper] Seeding Deterministic State (Reset Mode)..."
 # The --reset flag in our seed script handles TRUNCATE CASCADE
 # limiting the blast radius compared to a full DB drop.
-pnpm seed:e2e -- --reset
+if [[ "$DATABASE_URL_RLS" != "$DATABASE_URL" ]]; then
+  node scripts/ci/run-e2e-seed-admin.mjs seed
+else
+  pnpm seed:e2e -- --reset
+fi
 
 echo "🏗️  [Gatekeeper] Building production-like standalone web artifact..."
 pnpm --filter @interdomestik/web build

@@ -117,7 +117,7 @@ function lane(source, name) {
   return { projects, shared: definition[2] === 'true' && projects.length > 0 };
 }
 // The pre-install resolver accepts only the reviewed workflow, including gate failure semantics.
-const PR_WORKFLOW_SHA256 = '8de719069e85a68e9b7a37c907f7fcb88e7eb99e2798ce7a5d85882ae457ca3e';
+const PR_WORKFLOW_SHA256 = '9fbf41723b7eee6364f8209cf4c34bd915b32a02f6bb88f78904f245827885b4';
 const hasStrictPrGate = source => sha256(source) === PR_WORKFLOW_SHA256;
 function hasExactCommandChain(input) {
   try {
@@ -134,12 +134,11 @@ function hasExactCommandChain(input) {
     return false;
   }
 }
-const databaseDefault = source => /DATABASE_URL:[^\n]*\|\|\s*'([^']+)'/u.exec(source)?.[1];
 const stepBlock = (source, name) => sourceBlock(source, `- name: ${name}`, '\n      - name:');
 function usesWorkflowDatabase(block, command) {
   return (
     block.includes('E2E_DATABASE_URL: ${{ env.DATABASE_URL }}') &&
-    block.includes('E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}') &&
+    block.includes('E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL_RLS }}') &&
     block.includes(`run: ${command}`)
   );
 }
@@ -147,6 +146,43 @@ const POSTGRES_CONTRACT =
   'docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d|POSTGRES_USER: postgres|POSTGRES_DB: interdomestik_test|5432:5432|pg_isready -U postgres -d interdomestik_test';
 const usesCorrectedPostgres = block =>
   POSTGRES_CONTRACT.split('|').every(value => block.includes(value));
+const OWNED_DATABASE = 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test';
+function hasAdministrativeSeedPreparation(job) {
+  const prepare = stepBlock(job, 'Prepare E2E Database');
+  const migration = prepare.indexOf('pnpm db:migrate');
+  const seed = prepare.indexOf('node scripts/ci/run-e2e-seed-admin.mjs seed');
+  const verify = prepare.indexOf('node scripts/ci/run-e2e-seed-admin.mjs assert');
+  return (
+    migration >= 0 &&
+    seed > migration &&
+    verify > seed &&
+    !/^ {8}(?:env|if|continue-on-error):/mu.test(prepare) &&
+    job.indexOf('bash scripts/ci/export-e2e-rls.sh') <
+      job.indexOf('- name: Prepare E2E Database') &&
+    job.indexOf('- name: Prepare E2E Database') < job.indexOf('- name: E2E Gate Suite')
+  );
+}
+function ownedDatabaseJob(source, jobName, gateName, command) {
+  const block = sourceBlock(source, `  ${jobName}:`, '\n  __last_job__:');
+  const nextJob = /\n {2}[\w-]+:/u.exec(block.slice(1));
+  const job = nextJob ? block.slice(0, nextJob.index + 1) : block;
+  const envStart = /^ {4}env:$/mu.exec(job)?.index;
+  const jobEnv =
+    envStart === undefined ? '' : sourceBlock(job.slice(envStart), '    env:', '\n    steps:');
+  const credentials = stepBlock(job, 'Generate ephemeral E2E credentials');
+  const gate = stepBlock(job, gateName);
+  const bootstrap = 'bash scripts/ci/export-e2e-rls.sh';
+  return (
+    jobEnv.split('\n').some(line => line === `      DATABASE_URL: ${OWNED_DATABASE}`) &&
+    !/^ {6}DATABASE_URL_RLS:/mu.test(jobEnv) &&
+    usesCorrectedPostgres(job) &&
+    (jobName !== 'e2e-gate' || hasAdministrativeSeedPreparation(job)) &&
+    credentials.split('\n').filter(line => line.trim() === bootstrap).length === 1 &&
+    !/^ {8}(?:if|env|continue-on-error):/mu.test(credentials) &&
+    job.indexOf(bootstrap) < job.indexOf(`- name: ${gateName}`) &&
+    usesWorkflowDatabase(gate, command)
+  );
+}
 export function inspectRepositoryParity(input) {
   const main = lane(input.laneSource, 'gate');
   const pr = lane(input.laneSource, 'pr');
@@ -157,12 +193,8 @@ export function inspectRepositoryParity(input) {
       JSON.stringify(pr.projects) === JSON.stringify(['gate-ks-sq', 'gate-mk-contract']),
     sharedFlags: main.shared && pr.shared,
     databaseSubstrate:
-      Boolean(databaseDefault(input.ciWorkflow)) &&
-      databaseDefault(input.ciWorkflow) === databaseDefault(input.prWorkflow) &&
-      usesCorrectedPostgres(sourceBlock(input.ciWorkflow, '  e2e-gate:', '\n  __last_job__:')) &&
-      usesCorrectedPostgres(sourceBlock(input.prWorkflow, '  e2e-runner:', '\n  e2e:')) &&
-      usesWorkflowDatabase(stepBlock(input.ciWorkflow, 'E2E Gate Suite'), 'pnpm e2e:gate') &&
-      usesWorkflowDatabase(stepBlock(input.prWorkflow, 'Run PR E2E Gate'), 'pnpm e2e:gate:pr'),
+      ownedDatabaseJob(input.ciWorkflow, 'e2e-gate', 'E2E Gate Suite', 'pnpm e2e:gate') &&
+      ownedDatabaseJob(input.prWorkflow, 'e2e-runner', 'Run PR E2E Gate', 'pnpm e2e:gate:pr'),
     commandChain: hasExactCommandChain(input),
   };
 }
