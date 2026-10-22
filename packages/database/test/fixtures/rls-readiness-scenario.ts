@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { mock } from 'node:test';
+import { createRequire } from 'node:module';
 
-import type postgres from 'postgres';
 import type { RlsConnectionRolePosture } from '../../src/rls-role-assertion';
 
 function configureFixtureEnvironment(scenario: string, configured: boolean): void {
   // Only the external SQL transport is replaced. Readiness, Drizzle and tenant setup are real.
-  process.env.DATABASE_URL = 'postgres://admin:fixture@db.invalid/test';
-  process.env.DATABASE_URL_RLS = 'postgres://tenant:fixture@db.invalid/test';
+  process.env.DATABASE_URL = 'postgres://admin:fixture@db.invalid:5432/test';
+  process.env.DATABASE_URL_RLS = 'postgres://tenant:fixture@db.invalid:5432/test';
   delete process.env.DB_RLS_ROLE;
   if (configured) process.env.DB_RLS_ROLE = 'tenant_target';
   if (scenario === 'invalid-role') process.env.DB_RLS_ROLE = 'invalid;role';
@@ -66,14 +66,22 @@ async function main(): Promise<void> {
       },
     }
   );
-  const clients = globalThis as typeof globalThis & {
-    queryClientAdmin?: postgres.Sql;
-    queryClientRls?: postgres.Sql;
-  };
-  clients.queryClientAdmin = client as unknown as postgres.Sql;
-  clients.queryClientRls = client as unknown as postgres.Sql;
+  mock.module(createRequire(import.meta.url).resolve('postgres'), { defaultExport: () => client });
+  if (scenario === 'global-refusal') {
+    Object.defineProperty(globalThis, 'queryClientAdmin', { value: client, configurable: true });
+    await assert.rejects(import('../../src/db'), /Production refuses preexisting global database clients/);
+    assert.equal(queries, 0);
+    assert.equal(transactions, 0);
+    return;
+  }
+  if (scenario === 'identical-url') {
+    await assert.rejects(import('../../src/db'), /uses the DATABASE_URL principal/);
+    assert.equal(queries, 0);
+    assert.equal(transactions, 0);
+    return;
+  }
   mock.timers.enable({ apis: ['setTimeout', 'Date'] });
-  const { dbRls } = await import('../../src/db');
+  const { dbRls, getDatabaseReadinessSnapshot } = await import('../../src/db');
   const { withTenantContext } = await import('../../src/tenant');
   const request = () => withTenantContext({ tenantId: 'tenant_a' }, async () => ++callbacks);
   const flush = () => new Promise<void>(resolve => setImmediate(resolve));
@@ -96,11 +104,13 @@ async function main(): Promise<void> {
     assert.equal(transactions, 0);
     assert.equal(callbacks, 0);
     assert.throws(() => dbRls.transaction);
+    assert.equal(getDatabaseReadinessSnapshot().phase, 'failed');
     return;
   }
   await flush();
   const rejected = assert.rejects(request(), /role posture could not be verified/);
   const concurrentInitial = Array.from({ length: 8 }, () => assert.rejects(request()));
+  await flush();
   mock.timers.tick(5_000);
   await rejected;
   await Promise.all(concurrentInitial);
@@ -133,6 +143,7 @@ async function main(): Promise<void> {
     assert.equal(transactions, 0);
     assert.equal(callbacks, 0);
     assert.throws(() => dbRls.transaction);
+    assert.equal(getDatabaseReadinessSnapshot().phase, 'failed');
     return;
   }
   if (scenario === 'concurrent') {
@@ -145,6 +156,7 @@ async function main(): Promise<void> {
     assert.deepEqual(await Promise.all(requests), [1, 2, 3, 4, 5, 6, 7, 8]);
     await request();
     assert.equal(queries, 2, 'complete success is cached');
+    assert.equal(getDatabaseReadinessSnapshot().phase, 'ready');
     return;
   }
   if (scenario === 'repeated') {
@@ -163,6 +175,7 @@ async function main(): Promise<void> {
   if (scenario === 'configured')
     assert.deepEqual(roles, [undefined, 'tenant_target', undefined, 'tenant_target']);
   assert.equal(transactions, 1);
+  assert.equal(getDatabaseReadinessSnapshot().phase, 'ready');
   assert.deepEqual(statements, [
     ...(scenario === 'configured' ? [{ query: 'set local role "tenant_target"', params: [] }] : []),
     { query: 'set local row_security = on', params: [] },
