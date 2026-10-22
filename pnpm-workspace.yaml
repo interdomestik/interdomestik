@@ -76,3 +76,4 @@ overrides:
 
 patchedDependencies:
   next@16.3.8: patches/next@16.3.8.patch
+  postgres@3.4.9: patches/postgres@3.4.9.patch

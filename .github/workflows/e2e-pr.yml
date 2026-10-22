@@ -77,7 +77,7 @@ jobs:
       PORT: 3000
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
-      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
       NODE_OPTIONS: --max-old-space-size=4096
       INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: '1'
@@ -91,13 +91,15 @@ jobs:
         with:
           install-playwright: true
       - name: Generate ephemeral E2E credentials
-        run: bash scripts/ci/export-e2e-credentials.sh
+        run: |
+          bash scripts/ci/export-e2e-credentials.sh
+          bash scripts/ci/export-e2e-rls.sh
       - name: Strict Rule Guards (golden/gate)
         run: pnpm --filter @interdomestik/web run e2e:guards
       - name: Run PR E2E Gate
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
-          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL_RLS }}
           E2E_MAILPIT_API: http://127.0.0.1:8025
           E2E_OTP_PROOF_REQUIRED: '1'
           E2E_SMTP_HOST: 127.0.0.1
@@ -111,7 +113,7 @@ jobs:
       - name: Run PR Smoke E2E
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
-          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL_RLS }}
           PW_EVIDENCE_LANE: pr-smoke
         run: pnpm --filter @interdomestik/web run e2e:smoke
 

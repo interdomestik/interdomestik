@@ -2,6 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { assertRenderingBuildMode } from './rendering-build-mode';
 
+const databaseReadiness = vi.hoisted(() => ({
+  assertReady: vi.fn<() => Promise<void>>(),
+  snapshot: vi.fn(() => ({ phase: 'ready' as const })),
+}));
+vi.mock('@interdomestik/database/db', () => ({
+  assertRlsConnectionRoleReady: databaseReadiness.assertReady,
+  getDatabaseReadinessSnapshot: databaseReadiness.snapshot,
+}));
+vi.mock('./observability/database-readiness', () => ({
+  reportDatabaseReadiness: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@next/bundle-analyzer', () => ({ default: () => (config: unknown) => config }));
 vi.mock('@sentry/nextjs', () => ({
   captureRequestError: vi.fn(),
@@ -15,6 +27,8 @@ vi.mock('../sentry.edge.config', () => ({}));
 
 beforeEach(() => {
   vi.resetModules();
+  databaseReadiness.assertReady.mockReset().mockResolvedValue(undefined);
+  databaseReadiness.snapshot.mockClear();
   vi.stubEnv('SENTRY_VALIDATE_SOURCEMAPS', 'false');
 });
 
@@ -112,9 +126,45 @@ describe('instrumentation mode guard', () => {
     const { register, onRequestError } = await import('../instrumentation');
     const sentry = await import('@sentry/nextjs');
 
-    expect(() => register()).not.toThrow();
+    await expect(register()).resolves.toBeUndefined();
+    expect(databaseReadiness.assertReady).toHaveBeenCalledTimes(runtime === 'nodejs' ? 1 : 0);
     expect(handlers).toHaveBeenCalledTimes(runtime === 'nodejs' ? 2 : 0);
     expect(onRequestError).toBe(sentry.captureRequestError);
+  });
+
+  it('waits for node database readiness before installing process handlers', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+    vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'off');
+    vi.stubEnv('CSP_NONCE_MODE', 'off');
+    let settle!: () => void;
+    databaseReadiness.assertReady.mockReturnValueOnce(
+      new Promise<void>(resolve => {
+        settle = resolve;
+      })
+    );
+    const handlers = vi.spyOn(process, 'on').mockReturnValue(process);
+    const { register } = await import('../instrumentation');
+
+    const startup = register();
+    await vi.waitFor(() => expect(databaseReadiness.assertReady).toHaveBeenCalledOnce());
+    expect(handlers).not.toHaveBeenCalled();
+    settle();
+    await expect(startup).resolves.toBeUndefined();
+    expect(handlers).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects node readiness failure without installing process handlers', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+    vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'off');
+    vi.stubEnv('CSP_NONCE_MODE', 'off');
+    const failure = new Error('restricted database readiness failed');
+    databaseReadiness.assertReady.mockRejectedValueOnce(failure);
+    const handlers = vi.spyOn(process, 'on').mockReturnValue(process);
+    const { register } = await import('../instrumentation');
+
+    await expect(register()).rejects.toBe(failure);
+    expect(databaseReadiness.snapshot).toHaveBeenCalledOnce();
+    expect(handlers).not.toHaveBeenCalled();
   });
 
   it('terminates a node runtime mismatch before registering handlers', async () => {
@@ -129,7 +179,8 @@ describe('instrumentation mode guard', () => {
     const { register, onRequestError } = await import('../instrumentation');
     const sentry = await import('@sentry/nextjs');
 
-    expect(() => register()).toThrow('process exited 1');
+    await expect(register()).rejects.toThrow('process exited 1');
+    expect(databaseReadiness.assertReady).not.toHaveBeenCalled();
     expect(exits).toHaveBeenCalledWith(1);
     expect(errors).toHaveBeenCalledWith(
       'CSP_NONCE_MODE does not match the compiled build; use a matching artifact.'
@@ -148,7 +199,8 @@ describe('instrumentation mode guard', () => {
     const { register, onRequestError } = await import('../instrumentation');
     const sentry = await import('@sentry/nextjs');
 
-    expect(() => register()).toThrow('does not match');
+    await expect(register()).rejects.toThrow('does not match');
+    expect(databaseReadiness.assertReady).not.toHaveBeenCalled();
     expect(exits).not.toHaveBeenCalled();
     expect(errors).toHaveBeenCalledWith(
       'CSP_NONCE_MODE does not match the compiled build; use a matching artifact.'

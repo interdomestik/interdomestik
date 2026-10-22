@@ -8,6 +8,7 @@ const suffix = randomUUID();
 export const homeTenantId = `message_home_${suffix}`;
 export const otherTenantId = `message_other_${suffix}`;
 const fixtureRole = `message_rls_${suffix.replaceAll('-', '')}`;
+const fixturePassword = randomUUID().replaceAll('-', '');
 let fixtureRoleCreated = false;
 const previousDbRole = process.env.DB_RLS_ROLE;
 const previousClients = {
@@ -77,23 +78,23 @@ export function registerMessageRlsFixture(): void {
     `;
     expect(tables).toHaveLength(4);
     expect(tables.every(table => table.relrowsecurity === true)).toBe(true);
-    // This isolated NOLOGIN role exists only for this synthetic fixture. Never alter a shared role.
-    await adminClient.unsafe(`create role "${fixtureRole}" nologin nosuperuser nobypassrls`);
+    // This owned LOGIN authenticates directly; SET ROLE on an admin session is not restricted.
+    await adminClient.unsafe(
+      `create role "${fixtureRole}" login nosuperuser nobypassrls nocreatedb nocreaterole noinherit noreplication password '${fixturePassword}'`
+    );
     fixtureRoleCreated = true;
     await adminClient.unsafe(`grant usage on schema public to "${fixtureRole}"`);
     await adminClient.unsafe(
       `grant select on table "user", claim, claim_messages, agent_clients to "${fixtureRole}"`
     );
     await adminClient.unsafe(`grant insert, update on table claim_messages to "${fixtureRole}"`);
-    const [{ currentUser }] = await adminClient`select current_user as "currentUser"`;
-    await adminClient.unsafe(
-      `grant "${fixtureRole}" to "${String(currentUser).replaceAll('"', '""')}"`
-    );
     process.env.DB_RLS_ROLE = fixtureRole;
-    rlsClient = postgres(process.env.DATABASE_URL, {
-      max: 1,
-      connection: { options: `-c role=${fixtureRole}` },
-    });
+    const restrictedUrl = new URL(process.env.DATABASE_URL);
+    restrictedUrl.username = fixtureRole;
+    restrictedUrl.password = fixturePassword;
+    // Do not inherit credential or session overrides from the administrative URL.
+    restrictedUrl.search = '';
+    rlsClient = postgres(restrictedUrl.toString(), { max: 1 });
     Object.assign(globalThis, { queryClientRls: rlsClient, queryClientAdmin: adminClient });
     database = await import('@interdomestik/database');
     ({ getMessagesForClaimCore: get } = await import('./get'));
@@ -101,9 +102,21 @@ export function registerMessageRlsFixture(): void {
     ({ sendMessageDbCore: send } = await import('./send'));
     const { assertRlsConnectionRoleReady } = await import('@interdomestik/database/db');
     await assertRlsConnectionRoleReady();
-    const [posture] =
-      await rlsClient`select rolsuper, rolbypassrls from pg_roles where rolname=current_user`;
-    expect(posture).toEqual({ rolsuper: false, rolbypassrls: false });
+    const [posture] = await rlsClient`
+      select session_user as "sessionUser", current_user as "currentUser",
+        s.rolsuper as "sessionSuper", s.rolbypassrls as "sessionBypass",
+        c.rolsuper as "currentSuper", c.rolbypassrls as "currentBypass"
+      from pg_roles s, pg_roles c
+      where s.rolname=session_user and c.rolname=current_user
+    `;
+    expect(posture).toEqual({
+      sessionUser: fixtureRole,
+      currentUser: fixtureRole,
+      sessionSuper: false,
+      sessionBypass: false,
+      currentSuper: false,
+      currentBypass: false,
+    });
     await database.dbAdmin.insert(database.tenants).values([
       {
         id: homeTenantId,

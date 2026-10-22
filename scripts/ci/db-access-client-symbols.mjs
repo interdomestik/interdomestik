@@ -69,6 +69,7 @@ export function createClientSymbols(model, mutations) {
     seen.add(node);
     const decl = model.declaration(node);
     if (!decl) return false;
+    if (model.providerCanonical?.(decl)) return true;
     if (
       model.fileOf(decl) === CONTEXT_FILE &&
       ['withTenantContext', 'withTenantDb'].includes(decl.name?.text)

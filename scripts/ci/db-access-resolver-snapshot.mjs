@@ -5,20 +5,20 @@ import path from 'node:path';
 // Protected executable-source data, separate from historical DB-debt ADOPTION.
 // No candidate, environment or CLI input can select a dependency snapshot.
 export const RESOLVER_SNAPSHOT = Object.freeze({
-  id: 'dependency-security-20261021-exact-pair-v1',
+  id: 's8-provider-driver-20261021-exact-pair-v1',
   adoptionCommit: '278e33ab0dd448547fa81d4b0ff122b4d69c901e',
   adoptionTree: '4f9330417466b4f7bee68349e7183db22a5260ff',
   baselineSha256: '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9',
   files: Object.freeze({
     'pnpm-workspace.yaml': Object.freeze({
-      previousSha256: '920dd84d8a781289481b1d24d0eb0713b1f950318ad85a0cad5663db67fd701e',
-      sha256: '5faff92eccfa8046e549264091a50e895a954da7b4cfff9c76513f28f3e50e88',
-      bytes: 1942,
+      previousSha256: '5faff92eccfa8046e549264091a50e895a954da7b4cfff9c76513f28f3e50e88',
+      sha256: 'd221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304',
+      bytes: 1989,
     }),
     'pnpm-lock.yaml': Object.freeze({
-      previousSha256: 'b63300c1333f2b89d2483e16967e006ff9ddaf585728e79a003250e699dbf91f',
-      sha256: '221aac6195992ee283892ae9338a2ce880bd0f3d16f6915cbb4545209e494aca',
-      bytes: 709858,
+      previousSha256: '221aac6195992ee283892ae9338a2ce880bd0f3d16f6915cbb4545209e494aca',
+      sha256: 'f4e4858573b84e51044a0cb717ad3e1425b6bf8806dfb2a1ae19edb119b3a72d',
+      bytes: 711992,
     }),
   }),
 });

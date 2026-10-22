@@ -1,3 +1,12 @@
+import { proofReport } from './db-access-proof-report.mjs';
+import { messageProofObligations } from './db-access-message-proof-source.mjs';
+import { mountEvidence } from './db-access-mount-evidence.mjs';
+import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
+import {
+  providerUnitResolverSnapshot,
+  verifyProviderUnitSource,
+  providerUnitAnalysisModel,
+} from './db-access-provider-unit-source.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ADOPTION } from './db-access-adoption.mjs';
@@ -20,14 +29,19 @@ const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
   Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('_')));
 
-function invalidateConsumers(dependenciesByFile, inventory) {
+function invalidateConsumers(dependenciesByFile, inventory, providerUnit) {
+  const providerFiles = new Set(providerUnit?.files ?? []);
   let changed = true;
   const firstInvalidatingDependency = new Map();
   while (changed) {
     changed = false;
     for (const [file, dependencies] of dependenciesByFile) {
       const witness = !inventory.changed.has(file)
-        ? [...dependencies].find(target => inventory.changed.has(target))
+        ? [...dependencies].find(
+            target =>
+              inventory.changed.has(target) &&
+              !(!providerFiles.has(file) && providerFiles.has(target))
+          )
         : undefined;
       if (witness) {
         inventory.changed.add(file);
@@ -41,45 +55,12 @@ function invalidateConsumers(dependenciesByFile, inventory) {
   return firstInvalidatingDependency;
 }
 
-function mountEvidence(directChanges, firstInvalidatingDependency, graph, incomplete) {
-  const paths = new Set([...directChanges, ...firstInvalidatingDependency.keys()]);
-  for (const failure of graph.failures) paths.add(failure.mountedFrom);
-  const files = [...paths].sort((left, right) => {
-    if (left < right) return -1;
-    if (left > right) return 1;
-    return 0;
-  });
-  const ids = new Map(files.map((file, id) => [file, id]));
-  const roots = files.map((file, id) => {
-    const dependency = firstInvalidatingDependency.get(file);
-    return {
-      id,
-      file,
-      changeKind: directChanges.has(file) ? 'runtime-source' : 'runtime-consumer',
-      ...(dependency ? { firstInvalidatingDependencyId: ids.get(dependency) } : {}),
-    };
-  });
-  const operations = new Map();
-  for (const failure of graph.failures) {
-    const rootsForOperation = operations.get(failure.identity) ?? new Set();
-    rootsForOperation.add(ids.get(failure.mountedFrom));
-    operations.set(failure.identity, rootsForOperation);
-  }
-  return {
-    version: 1,
-    analysisIncomplete: incomplete,
-    roots,
-    operations: [...operations]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([identity, observedRootIds]) => ({
-        identity,
-        observedRootIds: [...observedRootIds].sort((left, right) => left - right),
-      })),
-  };
-}
-
 // Test harness may supply a real pinned fixture epoch; no CLI option exposes it.
-export function evaluateGuard(repoRoot, adoption = ADOPTION) {
+export function evaluateGuard(
+  repoRoot,
+  adoption = ADOPTION,
+  providerPolicy = adoption === ADOPTION ? PROVIDER_UNIT_POLICY : undefined
+) {
   const trusted = authenticateSnapshot(repoRoot, adoption);
   const reviewedBoundaryChanges = boundaryChanges(repoRoot, adoption);
   const baselineBytes = fs.readFileSync(path.join(repoRoot, BASELINE));
@@ -88,23 +69,51 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const baseline = JSON.parse(baselineBytes);
   if (!Array.isArray(baseline.entries)) throw new Error('incomplete: invalid historical baseline');
   const closureChanges = reviewedBoundaryChanges.filter(file => adoption.critical.includes(file));
-  if (closureChanges.length)
-    throw new Error(`incomplete: critical tenant helper changed: ${closureChanges.join(', ')}`);
+  const providerResolver = providerPolicy
+    ? providerUnitResolverSnapshot(repoRoot, adoption, providerPolicy)
+    : new Map();
   const sources = candidateSources(repoRoot);
   // Fixture epochs retain their own resolver semantics; production has one fixed exact pair.
   const currentResolver =
     adoption === ADOPTION ? verifyCurrentResolverSnapshot(repoRoot, adoption) : new Map();
+  for (const [file, content] of providerResolver) currentResolver.set(file, content);
   verifyResolverBoundary(repoRoot, trusted, currentResolver);
   // Candidate package/config files never define resolver authority.
-  for (const [file, content] of trusted)
+  const resolutionSources = new Map(trusted);
+  for (const [file, content] of providerResolver)
+    if (file.endsWith('/package.json')) resolutionSources.set(file, content);
+  for (const [file, content] of resolutionSources)
     if (file.endsWith('/package.json')) sources.set(file, content);
-  const model = createSourceModel(sources, trusted);
-  const provenance = createProvenance(model);
-  const inventory = collectInventory(model, provenance, trusted);
+  const model = createSourceModel(sources, resolutionSources);
+  const providerUnit = providerPolicy
+    ? verifyProviderUnitSource(repoRoot, model, adoption, providerPolicy)
+    : undefined;
+  const providerFiles = new Set(providerUnit?.files ?? []);
+  const producerHarnessFiles = new Set(providerUnit?.producerHarnessFiles ?? []);
+  const namedProofFiles = new Set(providerUnit?.namedProofFiles ?? []);
+  const unsupportedClosure = closureChanges.filter(file => !providerFiles.has(file));
+  if (unsupportedClosure.length)
+    throw new Error(`incomplete: critical tenant helper changed: ${unsupportedClosure.join(', ')}`);
+  const provenance = createProvenance(
+    providerUnit ? providerUnitAnalysisModel(model, providerUnit) : model
+  );
+  // Keep the complete pre-amendment operation inventory, including DB-looking mock
+  // handles. The named boundary changes proof obligations, never inventory visibility.
+  const inventoryProvenance = providerUnit?.namedProofFiles.length
+    ? createProvenance(providerUnitAnalysisModel(model, providerUnit, true))
+    : provenance;
+  const inventory = collectInventory(model, inventoryProvenance, trusted);
+  // Provider SQL/handles remain inventoried and non-debt, with explicit fixed-runtime obligations.
+  const providerEntries = inventory.entries.filter(entry => providerFiles.has(entry.file));
+  for (const entry of providerEntries) entry.historicalDebt = false;
   const directChanges = new Set(inventory.changed);
   const moduleTargets = analyzeModuleTargets(model);
-  const firstInvalidatingDependency = invalidateConsumers(moduleTargets.dependencies, inventory);
-  const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical);
+  const firstInvalidatingDependency = invalidateConsumers(
+    moduleTargets.dependencies,
+    inventory,
+    providerUnit
+  );
+  const graph = inspectChangedEdges(model, provenance, inventory, adoption.critical, providerUnit);
   // A test filename never exempts an inventoried operation, so DB-looking mocks stay unsafe
   // until separately source-proved precision exists.
   const newEntries = inventory.entries.filter(entry => !entry.historicalDebt);
@@ -127,7 +136,9 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
         .map(entry => entry.file)
     );
   }
-  const changedScopedControls = newEntries.filter(entry => priorScoped.has(entry.file));
+  const changedScopedControls = newEntries.filter(
+    entry => priorScoped.has(entry.file) && !providerFiles.has(entry.file)
+  );
   // A single operation may be reached from several changed roots. Keep every witness in the
   // diagnostic report even though the verdict counts the operation identity only once.
   const mountsByIdentity = new Map();
@@ -138,7 +149,13 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   }
   const failures = new Map();
   for (const entry of [
-    ...newEntries.filter(entry => isUnsafe(entry)),
+    ...newEntries.filter(
+      entry =>
+        !providerFiles.has(entry.file) &&
+        !producerHarnessFiles.has(entry.file) &&
+        !namedProofFiles.has(entry.file) &&
+        isUnsafe(entry)
+    ),
     ...graph.failures,
     ...changedScopedControls.map(entry => ({
       ...entry,
@@ -146,6 +163,11 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     })),
   ])
     failures.set(entry.identity, entry);
+  const messageObligations = messageProofObligations(
+    providerUnit?.messageProof,
+    failures,
+    graph.incomplete
+  );
   const failingNewEntries = [...failures.values()].map(entry => {
     const publicFailure = publicEntry(entry);
     const mounts = mountsByIdentity.get(entry.identity);
@@ -156,10 +178,26 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
   let status = 'pass';
-  if (graph.incomplete.length) status = 'incomplete';
+  if (messageObligations.remaining.length) status = 'incomplete';
   else if (failingNewEntries.length) status = 'fail';
   return {
     status,
+    ...(providerUnit
+      ? {
+          providerUnit: {
+            ...providerUnit,
+            runtimeProducerRequired: providerPolicy.runtimeEnforcement,
+            ...proofReport({
+              inventory,
+              namedProofFiles,
+              messageObligations,
+              producerHarnessFiles,
+              providerEntries,
+              providerPolicy,
+            }),
+          },
+        }
+      : {}),
     trustedCommit: adoption.commit,
     trustedTree: adoption.tree,
     historicalBaselineSha256: digest(baselineBytes),
@@ -177,10 +215,16 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
     ),
     rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
     incomplete: graph.incomplete,
+    unresolvedIncomplete: messageObligations.remaining,
     incompleteRawCount: graph.incompleteRawCount,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
     limits: [
+      ...(providerUnit
+        ? [
+            'Provider source authentication is static only; the immutable external workflow must execute the bound runtime producer before admission. No receipt or green check name authorizes this transition.',
+          ]
+        : []),
       'Executable file changes conservatively invalidate ambient debt, including unrelated UI text/classes; transaction remediation or separately reviewed precision work is required.',
       'Bounded static evidence, not runtime RLS or general JavaScript proof.',
       'Tenant/owner values and authorization equivalence, including relocated scoped code or changed caller values, are not proved; arbitrary external monkeypatching and non-awaited async completion remain outside the claim.',

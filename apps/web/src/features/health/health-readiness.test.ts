@@ -42,11 +42,13 @@ it('health probes recover a settled posture timeout without any member request',
     enabled: true,
     initialFailure: null,
     queryRolePosture,
-    report: vi.fn(),
   });
   const { performHealthCheck } = await import('./health.service');
+  expect(queryRolePosture).not.toHaveBeenCalled();
+  expect(fixture.readiness.snapshot().phase).toBe('idle');
+  const firstProbe = performHealthCheck();
   await vi.advanceTimersByTimeAsync(5_000);
-  expect((await performHealthCheck()).status).toBe('unhealthy');
+  expect((await firstProbe).status).toBe('unhealthy');
   expect(fixture.query).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(30_000);
   const pendingResults = await Promise.all(Array.from({ length: 8 }, () => performHealthCheck()));
@@ -71,7 +73,6 @@ it('health never probes data when the database role bypasses RLS', async () => {
     queryRolePosture: async () => [
       { currentUser: 'unsafe', roleBypassesRls: true, roleIsSuperuser: false },
     ],
-    report: vi.fn(),
   });
   const { performHealthCheck } = await import('./health.service');
   const result = await performHealthCheck();
@@ -85,7 +86,6 @@ it('non-timeout posture errors remain unhealthy without retries or data access',
     enabled: true,
     initialFailure: null,
     queryRolePosture,
-    report: vi.fn(),
   });
   const { performHealthCheck } = await import('./health.service');
   expect((await performHealthCheck()).status).toBe('unhealthy');
