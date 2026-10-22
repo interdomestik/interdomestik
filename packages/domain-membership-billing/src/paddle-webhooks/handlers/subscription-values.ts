@@ -79,12 +79,12 @@ export function mapToSubscriptionValues(
   return baseValues;
 }
 
-export function isUniqueViolation(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { code?: unknown }).code === '23505'
+export function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const cause = (error as { cause?: unknown }).cause;
+  return [error, cause].some(
+    value =>
+      typeof value === 'object' && value !== null && (value as { code?: unknown }).code === '23505'
   );
 }
 
