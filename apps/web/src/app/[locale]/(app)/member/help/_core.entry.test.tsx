@@ -64,6 +64,10 @@ vi.mock('@interdomestik/database', () => ({
   },
   desc: mocks.desc,
   eq: mocks.eq,
+  withTenantContext: async (
+    _context: unknown,
+    callback: (tx: { select: typeof mocks.select }) => unknown
+  ) => callback({ select: mocks.select }),
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({

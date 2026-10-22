@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({
   dbSelectLimit: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const dbMock = {
     insert: () => ({ values: mocks.dbInsertValues }),
     select: () => ({
       from: () => ({
@@ -22,8 +22,13 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn().mockResolvedValue({ tenantId: 'tenant_mk' }),
       },
     },
-  },
-}));
+  };
+  return {
+    db: dbMock,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof dbMock) => unknown) =>
+      callback(dbMock),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
