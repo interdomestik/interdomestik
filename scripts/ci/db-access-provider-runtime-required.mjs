@@ -1,3 +1,8 @@
+import {
+  crmCandidateRecords,
+  executeCrmProof,
+  attachCrmJoin,
+} from './db-access-crm-runtime-required.mjs';
 import { runMessageRuntime } from './db-access-message-runtime.mjs';
 import {
   hash,
@@ -83,6 +88,7 @@ export async function runRequiredProviderRuntime({
     ...policy.messageProof?.files,
     ...policy.messageProof?.configuration,
     ...policy.messageProof?.migrations,
+    ...crmCandidateRecords(policy, producer),
     ...(policy.namedProof ? { 'apps/web/tsconfig.json': policy.namedProof.configuration } : {}),
     ...baseline,
   };
@@ -233,7 +239,7 @@ export async function runRequiredProviderRuntime({
     namedPassedTests = 17;
     namedRuntimeLogSha256 = hash(namedRaw);
   }
-  const messageRuntime = runMessageRuntime({
+  const runtimeInput = {
     candidate,
     producer,
     assembly,
@@ -242,7 +248,12 @@ export async function runRequiredProviderRuntime({
     databaseUrl,
     policy,
     redact,
-  });
+    context,
+  };
+  const messageRuntime = runMessageRuntime(runtimeInput);
+  const crm = executeCrmProof(runtimeInput);
+  // Bookends cover the entire provider/message/CRM/static interval.
+  authenticateRuntimeContext(gitDir, context);
   const after = {
     candidate: snapshot(candidate, context.candidateCommit, candidateRecords, git),
     producer: snapshot(producer, context.sourceCommit, producerRecords, git),
@@ -265,6 +276,7 @@ export async function runRequiredProviderRuntime({
     staticResidualStillRequired: true,
     wholeS8Acceptance: false,
   };
+  attachCrmJoin({ crm, context, policy, receipt, output });
   fs.writeFileSync(
     path.join(output, 'runtime-result.json'),
     JSON.stringify(receipt, null, 2) + '\n'

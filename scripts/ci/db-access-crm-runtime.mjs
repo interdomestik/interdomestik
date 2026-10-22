@@ -1,8 +1,17 @@
+import { verifyCrmSourceDependencies } from './db-access-crm-source-dependencies.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { exact, hash, refuse } from './db-access-provider-runtime-identity.mjs';
-import { CRM_CONTRACT_ID, validateCrmContract } from './db-access-crm-proof-shape.mjs';
+import {
+  CRM_CONTRACT_ID,
+  crmDigest,
+  freezeCrm,
+  validateCrmContract,
+} from './db-access-crm-proof-shape.mjs';
+
+const freshResults = new WeakSet();
+export const isFreshCrmRuntimeResult = value => freshResults.has(value);
 import { materializeCrmRuntime } from './db-access-crm-runtime-materialize.mjs';
 import { validateCrmRuntimeResult } from './db-access-crm-runtime-result.mjs';
 
@@ -29,10 +38,13 @@ export function runCrmRuntime({
   databaseUrl,
   policy,
   redact,
+  context,
 }) {
   const contract = policy.crmProof;
   if (!contract || contract.id !== CRM_CONTRACT_ID) refuse('mandatory CRM contract');
   validateCrmContract(contract);
+  if (!context) refuse('CRM authenticated context missing');
+  const sourceDependencies = verifyCrmSourceDependencies({ contract, tarballRoot, assembly });
   const materialized = materializeCrmRuntime({
     sourceRoot: candidate,
     producerRoot: producer,
@@ -74,8 +86,11 @@ export function runCrmRuntime({
   const report = JSON.parse(fs.readFileSync(path.join(materialized.root, 'crm-completion.json')));
   const completion = validateCrmRuntimeResult(report, contract);
   fs.writeFileSync(path.join(output, 'crm-completion.json'), JSON.stringify(report));
-  return {
+  const completed = freezeCrm({
     ...completion,
+    sourceDependencies,
+    contextSha256: crmDigest(context),
+    policySha256: hash(JSON.stringify(policy)),
     runtimeLogSha256: hash(raw),
     reportSha256: hash(JSON.stringify(report)),
     childSource,
@@ -88,5 +103,7 @@ export function runCrmRuntime({
     compilerVersion: materialized.compilerVersion,
     bundleSha256: materialized.bundleSha256,
     metafileSha256: materialized.metafileSha256,
-  };
+  });
+  freshResults.add(completed);
+  return completed;
 }
