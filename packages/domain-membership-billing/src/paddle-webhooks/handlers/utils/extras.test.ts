@@ -5,6 +5,7 @@ import { createCommissionWithDispositionCore } from '../../../commissions/create
 import { handleNewSubscriptionExtras } from './extras';
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, callback) => db.transaction(tx => callback({ ...tx, query: db.query }))),
   agentClients: {
     tenantId: 'agentClients.tenantId',
     memberId: 'agentClients.memberId',
@@ -201,7 +202,7 @@ describe('handleNewSubscriptionExtras', () => {
     });
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    expect(db.transaction).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
     expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_1',
@@ -222,7 +223,7 @@ describe('handleNewSubscriptionExtras', () => {
     });
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    expect(db.transaction).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
   });
 
   it('records read-only attribution without reactivating agent-client read-scope links', async () => {

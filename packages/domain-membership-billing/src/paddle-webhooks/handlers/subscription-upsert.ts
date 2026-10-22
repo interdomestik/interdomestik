@@ -1,6 +1,5 @@
-import { and, db, eq, subscriptions, type DomainEventTx } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext, type DomainEventTx } from '@interdomestik/database';
 
-import { findSubscriptionByProviderReference } from '../../subscription';
 import type { InternalSubscriptionStatus } from '../subscription-status';
 import { recordMembershipSubscriptionChangedEvent } from './subscription-event';
 import {
@@ -133,7 +132,7 @@ export async function resolveSubscriptionForUpsert(args: {
 
 async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'apply' | 'stale'> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
-  return db.transaction(async tx => {
+  return withTenantContext({ tenantId: args.tenantId, role: 'system' }, async tx => {
     if (args.order) {
       const decision = await decideInitialSubscriptionEventOrder(tx as DomainEventTx, {
         order: args.order,
@@ -176,7 +175,7 @@ async function persistSubscriptionUpdate(
     tenantId: args.tenantId,
     userId: args.userId,
   });
-  return db.transaction(async (tx): Promise<SubscriptionEventOrderDecision['kind']> => {
+  return withTenantContext({ tenantId: args.tenantId, role: 'system' }, async (tx): Promise<SubscriptionEventOrderDecision['kind']> => {
     let fromStatus = subscription.status;
     if (args.order) {
       // The ordering decision, snapshot, marker and domain event commit atomically
@@ -229,18 +228,26 @@ function providerEventOrderValues(order: PaddleSubscriptionEventOrder | undefine
 
 async function findExistingSubscription(subId: string, userId: string, tenantId: string) {
   return (
-    (await findSubscriptionByProviderReference(subId, { tenantId })) ??
+    (await withTenantContext({ tenantId: tenantId.trim(), role: 'system' }, tx =>
+      tx.query.subscriptions.findFirst({
+        where: (subs, { and: andFn, eq: eqFn, or: orFn }) =>
+          andFn(
+            eqFn(subs.tenantId, tenantId.trim()),
+            orFn(eqFn(subs.id, subId.trim()), eqFn(subs.providerSubscriptionId, subId.trim()))
+          ),
+      })
+    )) ??
     (await findExistingSubscriptionForUser(userId, tenantId))
   );
 }
 
 async function findExistingSubscriptionForUser(userId: string, tenantId: string) {
   // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains fallback lookup.
-  return db.query.subscriptions.findFirst({
+  return withTenantContext({ tenantId, role: 'system' }, tx => tx.query.subscriptions.findFirst({
     where: (subs, { and: andFn, eq: eqFn }) =>
       andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
     columns: { id: true, status: true, tenantId: true, userId: true },
-  });
+  }));
 }
 
 function deterministicSubscriptionEventId(

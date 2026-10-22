@@ -1,12 +1,16 @@
 import {
+  resolveWebhookSubscription,
+  resolveWebhookTenantId,
+  type WebhookSubscription,
+} from './paddle-identity';
+import { invalidPaddleReceiptStore, verifyPaddleBoundary } from './authenticated-boundary';
+import {
   prepareThankYouLetterCore,
   sendPreparedThankYouLetterCore,
 } from '@/actions/thank-you-letter/delivery';
 import { logAuditEvent } from '@/lib/audit';
 import { paddleDunningEmailDeps } from '@/lib/email';
-import { db } from '@interdomestik/database';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
-import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 import {
   handlePaddleEvent,
   insertWebhookEvent,
@@ -16,7 +20,6 @@ import {
   persistInvoiceAndLedgerInvariants,
   persistInvalidSignatureAttempt,
   sha256Hex,
-  verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
 import { membershipConfirmationDeliveryStore } from '@interdomestik/domain-membership-billing/paddle-webhooks/membership-confirmation-delivery';
 import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
@@ -61,31 +64,6 @@ function getPaddleCustomData(data: unknown): PaddleWebhookData['customData'] | u
   if (!data || typeof data !== 'object') return undefined;
   const payload = data as PaddleWebhookData;
   return payload.custom_data ?? payload.customData;
-}
-
-function getPaddleSubscriptionReferences(data: unknown): string[] {
-  if (!data || typeof data !== 'object') return [];
-  const payload = data as PaddleWebhookData;
-  return [
-    normalizeText(payload.subscriptionId),
-    normalizeText(payload.subscription_id),
-    normalizeText(payload.id),
-  ].filter(
-    (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index
-  );
-}
-
-type WebhookSubscription = NonNullable<
-  Awaited<ReturnType<typeof findSubscriptionByProviderReference>>
->;
-
-async function resolveWebhookSubscription(data: unknown): Promise<WebhookSubscription | null> {
-  for (const subscriptionReference of getPaddleSubscriptionReferences(data)) {
-    const subscription = await findSubscriptionByProviderReference(subscriptionReference);
-    if (subscription?.tenantId) return subscription;
-  }
-
-  return null;
 }
 
 function hasLeadConversionProviderConflict(params: {
@@ -181,27 +159,6 @@ function resolveProviderTransactionId(params: {
   );
 }
 
-async function resolveWebhookTenantId(
-  data: unknown,
-  subscription: WebhookSubscription | null
-): Promise<string | null> {
-  const customData = getPaddleCustomData(data);
-
-  if (subscription?.tenantId) return subscription.tenantId;
-
-  const userId = normalizeText(customData?.userId);
-  if (userId) {
-    // db-access-guard: system-exempt -- reason: Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant
-    const userRecord = await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { tenantId: true },
-    });
-    if (userRecord?.tenantId) return userRecord.tenantId;
-  }
-
-  return null;
-}
-
 export async function handlePaddleWebhookCore(args: {
   paddle: Paddle;
   headers: Headers;
@@ -221,14 +178,14 @@ export async function handlePaddleWebhookCore(args: {
   const { parsedPayload, eventTypeFromPayload, eventIdFromPayload, eventTimestampFromPayload } =
     parsedBody;
 
-  let verified: Awaited<ReturnType<typeof verifyPaddleWebhook>>;
+  let verified: Awaited<ReturnType<typeof verifyPaddleBoundary>>;
   try {
-    verified = await verifyPaddleWebhook({
+    verified = await verifyPaddleBoundary({
       paddle,
       body: bodyText,
       secret,
       signature,
-      parsedPayload,
+      billingEntity,
     });
   } catch {
     try {
@@ -251,7 +208,16 @@ export async function handlePaddleWebhookCore(args: {
           payloadHash,
           parsedPayload,
         },
-        { logAuditEvent }
+        {
+          logAuditEvent,
+          receiptStore: await invalidPaddleReceiptStore({
+            paddle,
+            body: bodyText,
+            signature,
+            secret,
+            billingEntity,
+          }),
+        }
       );
     } catch {
       // Best-effort persistence; ignore errors.
@@ -276,8 +242,8 @@ export async function handlePaddleWebhookCore(args: {
   const normalizedEventId = normalizeText(eventId);
   const data = (eventData as { data?: unknown }).data;
 
-  const subscription = await resolveWebhookSubscription(data);
-  const tenantId = await resolveWebhookTenantId(data, subscription);
+  const subscription = await resolveWebhookSubscription(data, verified.identityReader);
+  const tenantId = await resolveWebhookTenantId(data, subscription, verified.identityReader);
   const processingScopeKey = resolveProcessingScopeKey({ tenantId, billingEntity });
   const dedupeKey = resolveScopedDedupeKey({
     processingScopeKey,
@@ -286,6 +252,7 @@ export async function handlePaddleWebhookCore(args: {
   });
   const providerTransactionId = resolveProviderTransactionId({ eventType, data });
 
+  const receiptStore = await verified.receiptStore(tenantId);
   const insertResult = await insertWebhookEvent(
     {
       headers,
@@ -301,7 +268,7 @@ export async function handlePaddleWebhookCore(args: {
       parsedPayload,
       tenantId,
     },
-    { logAuditEvent }
+    { logAuditEvent, receiptStore }
   );
 
   if (!insertResult.inserted || !insertResult.webhookEventRowId) {
@@ -338,6 +305,7 @@ export async function handlePaddleWebhookCore(args: {
         webhookPayloadHash: payloadHash,
       }),
       {
+        identityReader: verified.identityReader,
         membershipConfirmationDelivery: membershipConfirmationDeliveryStore,
         prepareThankYouLetter: prepareThankYouLetterCore,
         ...paddleDunningEmailDeps,
@@ -349,7 +317,7 @@ export async function handlePaddleWebhookCore(args: {
     );
     await markWebhookProcessed(
       { headers, webhookEventRowId, eventType, eventId: normalizedEventId ?? undefined, tenantId },
-      { logAuditEvent }
+      { logAuditEvent, receiptStore }
     );
   } catch (processingError) {
     await markWebhookFailed(
@@ -362,7 +330,7 @@ export async function handlePaddleWebhookCore(args: {
         retryable: isRetryablePaddleWebhookError(processingError),
         tenantId,
       },
-      { logAuditEvent }
+      { logAuditEvent, receiptStore }
     );
 
     throw processingError;

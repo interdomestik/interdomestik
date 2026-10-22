@@ -5,6 +5,9 @@ import { nanoid } from 'nanoid';
 import { RetryablePaddleWebhookError } from './errors';
 import { findNonTerminalRecoverableLease, reclaimRetryableWebhookEvent } from './receipt-lease';
 import type { PaddleWebhookAuditDeps } from './types';
+import type { PaddleReceiptInsert, PaddleWebhookReceiptStore } from './receipt-store';
+
+type PaddleReceiptDeps = PaddleWebhookAuditDeps & { receiptStore?: PaddleWebhookReceiptStore };
 
 export { isRetryablePaddleWebhookError } from './errors';
 
@@ -20,25 +23,27 @@ export async function persistInvalidSignatureAttempt(
     parsedPayload: Record<string, unknown>;
     tenantId?: string | null;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  deps: PaddleReceiptDeps = {}
 ) {
-  // db-access-guard: system-exempt -- reason: Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null
-  await db
-    .insert(webhookEvents)
-    .values({
-      id: nanoid(),
-      tenantId: params.tenantId ?? null,
-      provider: 'paddle',
-      processingScopeKey: params.processingScopeKey,
-      dedupeKey: params.dedupeKey,
-      eventType: params.eventType ?? null,
-      eventId: params.eventId ?? null,
-      signatureValid: false,
-      eventTimestamp: params.eventTimestamp,
-      payloadHash: params.payloadHash,
-      payload: params.parsedPayload,
-    })
-    .onConflictDoNothing();
+  const receipt: PaddleReceiptInsert = {
+    id: nanoid(),
+    tenantId: params.tenantId ?? null,
+    provider: 'paddle',
+    processingScopeKey: params.processingScopeKey,
+    dedupeKey: params.dedupeKey,
+    eventType: params.eventType ?? null,
+    eventId: params.eventId ?? null,
+    signatureValid: false,
+    eventTimestamp: params.eventTimestamp,
+    payloadHash: params.payloadHash,
+    payload: params.parsedPayload,
+  };
+  if (deps.receiptStore) {
+    await deps.receiptStore.insert(receipt);
+  } else {
+    // db-access-guard: system-exempt -- reason: Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null
+    await db.insert(webhookEvents).values(receipt).onConflictDoNothing();
+  }
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -71,30 +76,35 @@ export async function insertWebhookEvent(
     parsedPayload: Record<string, unknown>;
     tenantId?: string | null;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  deps: PaddleReceiptDeps = {}
 ) {
+  const receipt: PaddleReceiptInsert = {
+    id: nanoid(),
+    tenantId: params.tenantId ?? null,
+    provider: 'paddle',
+    processingScopeKey: params.processingScopeKey,
+    dedupeKey: params.dedupeKey,
+    eventType: params.eventType ?? null,
+    eventId: params.eventId ?? null,
+    providerTransactionId: params.providerTransactionId ?? null,
+    signatureValid: params.signatureValid || params.signatureBypassed,
+    eventTimestamp: params.eventTimestamp,
+    payloadHash: params.payloadHash,
+    payload: params.parsedPayload,
+  };
   // db-access-guard: system-exempt -- reason: Paddle webhook receipt audit preserves duplicate detection before handler-level tenant writes
-  const inserted = await db
-    .insert(webhookEvents)
-    .values({
-      id: nanoid(),
-      tenantId: params.tenantId ?? null,
-      provider: 'paddle',
-      processingScopeKey: params.processingScopeKey,
-      dedupeKey: params.dedupeKey,
-      eventType: params.eventType ?? null,
-      eventId: params.eventId ?? null,
-      providerTransactionId: params.providerTransactionId ?? null,
-      signatureValid: params.signatureValid || params.signatureBypassed,
-      eventTimestamp: params.eventTimestamp,
-      payloadHash: params.payloadHash,
-      payload: params.parsedPayload,
-    })
-    .onConflictDoNothing()
-    .returning({ id: webhookEvents.id });
+  const inserted = deps.receiptStore
+    ? await deps.receiptStore.insert(receipt)
+    : await db
+        .insert(webhookEvents)
+        .values(receipt)
+        .onConflictDoNothing()
+        .returning({ id: webhookEvents.id });
 
   if (inserted.length === 0) {
-    const reclaimed = await reclaimRetryableWebhookEvent(params);
+    const reclaimed = deps.receiptStore
+      ? await deps.receiptStore.reclaim(params)
+      : await reclaimRetryableWebhookEvent(params);
     if (reclaimed) {
       if (deps.logAuditEvent) {
         await deps.logAuditEvent({
@@ -117,7 +127,9 @@ export async function insertWebhookEvent(
       return { inserted: true as const, webhookEventRowId: reclaimed.id };
     }
 
-    const nonTerminalLease = await findNonTerminalRecoverableLease(params);
+    const nonTerminalLease = deps.receiptStore
+      ? await deps.receiptStore.findRecoverableLease(params)
+      : await findNonTerminalRecoverableLease(params);
     if (nonTerminalLease) {
       if (deps.logAuditEvent) {
         await deps.logAuditEvent({
@@ -196,17 +208,22 @@ export async function markWebhookProcessed(
     eventId: string | undefined;
     tenantId?: string | null;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  deps: PaddleReceiptDeps = {}
 ) {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db
-    .update(webhookEvents)
-    .set({
-      processedAt: new Date(),
-      processingResult: 'ok',
-      error: null,
-    })
-    .where(eq(webhookEvents.id, params.webhookEventRowId));
+  const update = {
+    processedAt: new Date(),
+    processingResult: 'ok' as 'ok' | 'error' | 'retryable_error',
+    error: null,
+  };
+  if (deps.receiptStore) {
+    await deps.receiptStore.mark({ id: params.webhookEventRowId, ...update });
+  } else {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    await db
+      .update(webhookEvents)
+      .set(update)
+      .where(eq(webhookEvents.id, params.webhookEventRowId));
+  }
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -236,19 +253,25 @@ export async function markWebhookFailed(
     retryable?: boolean;
     tenantId?: string | null;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  deps: PaddleReceiptDeps = {}
 ) {
   const message = params.error instanceof Error ? params.error.message : String(params.error);
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db
-    .update(webhookEvents)
-    .set({
-      processedAt: new Date(),
-      processingResult: params.retryable ? 'retryable_error' : 'error',
-      error: message.slice(0, 2000),
-    })
-    .where(eq(webhookEvents.id, params.webhookEventRowId));
+  const update = {
+    processedAt: new Date(),
+    processingResult: (params.retryable ? 'retryable_error' : 'error') as
+      'ok' | 'error' | 'retryable_error',
+    error: message.slice(0, 2000),
+  };
+  if (deps.receiptStore) {
+    await deps.receiptStore.mark({ id: params.webhookEventRowId, ...update });
+  } else {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    await db
+      .update(webhookEvents)
+      .set(update)
+      .where(eq(webhookEvents.id, params.webhookEventRowId));
+  }
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

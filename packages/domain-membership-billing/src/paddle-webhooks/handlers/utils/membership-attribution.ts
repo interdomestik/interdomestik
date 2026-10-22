@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 
 import { revokeAgentClientReadScope } from '../../../ownership-attribution';
 import type { CheckoutCustomData } from '../../types';
@@ -23,7 +23,7 @@ export async function recordReadOnlyMembershipAttribution(args: {
   try {
     const now = new Date();
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.transaction(async tx => {
+    await withTenantContext({ tenantId: args.tenantId, role: 'system' }, async tx => {
       await revokeAgentClientReadScope(tx, {
         tenantId: args.tenantId,
         memberId: args.userId,
@@ -44,14 +44,18 @@ export async function recordReadOnlyMembershipAttribution(args: {
 
 function isDomainEventReplay(error: unknown, eventId: string | undefined): boolean {
   if (!eventId || typeof error !== 'object' || error === null) return false;
-  const candidate = error as {
-    code?: unknown;
-    constraint?: unknown;
-    constraint_name?: unknown;
-  };
-  const constraint = candidate.constraint ?? candidate.constraint_name;
-  return (
-    candidate.code === '23505' &&
-    (constraint === 'domain_events_pkey' || constraint === 'domain_events_tenant_id_id_uq')
-  );
+  const cause = (error as { cause?: unknown }).cause;
+  return [error, cause].some(value => {
+    if (typeof value !== 'object' || value === null) return false;
+    const candidate = value as {
+      code?: unknown;
+      constraint?: unknown;
+      constraint_name?: unknown;
+    };
+    const constraint = candidate.constraint ?? candidate.constraint_name;
+    return (
+      candidate.code === '23505' &&
+      (constraint === 'domain_events_pkey' || constraint === 'domain_events_tenant_id_id_uq')
+    );
+  });
 }

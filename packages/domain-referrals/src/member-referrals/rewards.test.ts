@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from './rewards';
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, callback) => {
+    const { db } = await vi.importMock<any>('@interdomestik/database');
+    return callback(db);
+  }),
   db: {
     query: {
       referrals: {

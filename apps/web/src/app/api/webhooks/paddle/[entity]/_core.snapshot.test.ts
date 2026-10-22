@@ -20,6 +20,17 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => 
   };
 });
 vi.mock('@interdomestik/database', () => ({
+  dbAdmin: {
+    query: {
+      user: { findFirst: hoisted.dbUserFindFirst },
+      subscriptions: {
+        findMany: async (...args: unknown[]) => {
+          const row = await hoisted.dbSubscriptionFindFirst(...args);
+          return row ? [row] : [];
+        },
+      },
+    },
+  },
   db: {
     query: {
       subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst },

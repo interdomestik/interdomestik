@@ -1,8 +1,5 @@
+import { verifyPaddleBoundary } from '../authenticated-boundary';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
-import {
-  parsePaddleWebhookBody,
-  verifyPaddleWebhook,
-} from '@interdomestik/domain-membership-billing/paddle-webhooks';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 
@@ -20,25 +17,26 @@ async function preflightEntityMismatchCheck(args: {
     return 'pass';
   }
 
-  const { parsedPayload } = parsePaddleWebhookBody(args.bodyText);
-
+  let verified: Awaited<ReturnType<typeof verifyPaddleBoundary>>;
   try {
-    const verified = await verifyPaddleWebhook({
+    verified = await verifyPaddleBoundary({
       paddle: args.paddle,
       body: args.bodyText,
       secret: args.secret,
       signature: args.signature,
-      parsedPayload,
+      billingEntity: args.expectedEntity,
     });
-
-    const eventData = (verified.eventData ?? {}) as { data?: unknown };
-    if (!eventData.data) return 'pass';
-
-    const mismatch = await isEntityMismatch(args.expectedEntity, eventData.data);
-    return mismatch ? 'mismatch' : 'pass';
   } catch {
     return 'signature-invalid';
   }
+  const eventData = (verified.eventData ?? {}) as { data?: unknown };
+  if (!eventData.data) return 'pass';
+  const mismatch = await isEntityMismatch(
+    args.expectedEntity,
+    eventData.data,
+    verified.identityReader
+  );
+  return mismatch ? 'mismatch' : 'pass';
 }
 
 export async function handlePaddleWebhookEntityCore(args: {

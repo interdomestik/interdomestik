@@ -16,6 +16,20 @@ const hoisted = vi.hoisted(() => ({
   verifyPaddleWebhook: vi.fn(),
 }));
 
+// Unit orchestration uses the fixed capability seam; actual SDK/SQL verification
+// is exercised separately against the real boundary, never this mock.
+vi.mock('./authenticated-boundary', () => ({
+  verifyPaddleBoundary: async (args: unknown) => ({
+    ...(await hoisted.verifyPaddleWebhook(args)),
+    identityReader: {
+      subscription: hoisted.findSubscriptionByProviderReference,
+      user: hoisted.dbUserFindFirst,
+    },
+    receiptStore: async () => ({}),
+  }),
+  invalidPaddleReceiptStore: async () => ({}),
+}));
+
 vi.mock('@/actions/thank-you-letter/send', () => ({ sendThankYouLetterCore: vi.fn() }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ auth: { api: { requestPasswordReset: vi.fn() } } }));

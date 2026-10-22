@@ -95,14 +95,6 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.dbUserFindFirst).toHaveBeenCalledTimes(1);
-    const query = hoisted.dbUserFindFirst.mock.calls[0]?.[0] as {
-      where: (
-        users: { id: string },
-        ops: { eq: (left: string, right: string) => unknown }
-      ) => unknown;
-    };
-    const eq = vi.fn();
-    query.where({ id: 'users.id' }, { eq });
-    expect(eq).toHaveBeenCalledWith('users.id', 'user_from_custom_data');
+    expect(hoisted.dbUserFindFirst).toHaveBeenCalledWith('user_from_custom_data');
   });
 });

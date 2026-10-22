@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { createCommissionCore } from './create';
 import { calculateCommission } from './types';
 import { resolveCommissionOwnership } from './ownership';
@@ -56,10 +56,10 @@ export async function createRenewalCommissionCore(data: {
     }
 
     const resolvedAgentId = ownership.agentId;
-    const agentSettings = await db.query.agentSettings?.findFirst({
+    const agentSettings = await withTenantContext({ tenantId: data.tenantId, role: 'system' }, tx => tx.query.agentSettings?.findFirst({
       where: (settings, { and, eq }) =>
         and(eq(settings.agentId, resolvedAgentId), eq(settings.tenantId, data.tenantId)),
-    });
+    }));
     const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
     const amount = calculateCommission('renewal', data.transactionTotal, customRates);
     const ownershipResolvedFrom = [

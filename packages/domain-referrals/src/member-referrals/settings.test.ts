@@ -9,6 +9,10 @@ import {
 const insertValues = vi.fn();
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, callback) => {
+    const { db } = await vi.importMock<any>('@interdomestik/database');
+    return callback(db);
+  }),
   db: {
     query: {
       memberReferralSettings: {

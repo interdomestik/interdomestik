@@ -1,3 +1,4 @@
+import type { PaddleWebhookIdentityReader } from '@interdomestik/domain-membership-billing/paddle-webhooks';
 import { db } from '@interdomestik/database';
 import {
   normalizeBillingText,
@@ -47,20 +48,28 @@ function resolveEntityFromSnapshot(snapshot: BillingScopeSnapshot): BillingEntit
   }
 }
 
-async function resolveSnapshotEntity(payload: PaddleWebhookData): Promise<BillingEntity | null> {
+async function resolveSnapshotEntity(
+  payload: PaddleWebhookData,
+  reader?: PaddleWebhookIdentityReader
+): Promise<BillingEntity | null> {
   const subscriptionId =
     normalizeBillingText(payload.subscriptionId) ||
     normalizeBillingText(payload.subscription_id) ||
     normalizeBillingText(payload.id);
   if (!subscriptionId) return null;
 
-  const subscription = await findSubscriptionByProviderReference(subscriptionId);
+  const subscription = reader
+    ? await reader.subscription(subscriptionId)
+    : await findSubscriptionByProviderReference(subscriptionId);
   if (!subscription) return null;
 
   return resolveEntityFromSnapshot(subscription);
 }
 
-async function resolveFallbackEntity(payload: PaddleWebhookData): Promise<BillingEntity | null> {
+async function resolveFallbackEntity(
+  payload: PaddleWebhookData,
+  reader?: PaddleWebhookIdentityReader
+): Promise<BillingEntity | null> {
   const customData = resolveCustomData(payload);
   const explicitTenantId = normalizeBillingText(customData.tenantId || customData.tenant_id);
   if (explicitTenantId) return resolveEntityFromSnapshot({ legalTenantId: explicitTenantId });
@@ -69,24 +78,27 @@ async function resolveFallbackEntity(payload: PaddleWebhookData): Promise<Billin
   if (!userId) return null;
 
   // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps route preflight
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true },
-  });
+  const userRecord = reader
+    ? await reader.user(userId)
+    : await db.query.user.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+        columns: { tenantId: true },
+      });
   return resolveEntityFromSnapshot({ legalTenantId: userRecord?.tenantId });
 }
 
 export async function isEntityMismatch(
   expectedEntity: BillingEntity,
-  data: unknown
+  data: unknown,
+  reader?: PaddleWebhookIdentityReader
 ): Promise<boolean> {
   const payload = (data ?? {}) as PaddleWebhookData;
-  const snapshotEntity = await resolveSnapshotEntity(payload);
+  const snapshotEntity = await resolveSnapshotEntity(payload, reader);
   if (snapshotEntity) return snapshotEntity !== expectedEntity;
 
   const explicitEntity = resolveExplicitEntity(payload);
   if (explicitEntity) return explicitEntity !== expectedEntity;
 
-  const fallbackEntity = await resolveFallbackEntity(payload);
+  const fallbackEntity = await resolveFallbackEntity(payload, reader);
   return Boolean(fallbackEntity && fallbackEntity !== expectedEntity);
 }

@@ -135,7 +135,8 @@ describe('handleSubscriptionChanged', () => {
       email: 'buyer@example.com',
       tenantId: 'tenant_mk',
     });
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
+    // Existing three write transactions plus four tenant-scoped read transactions.
+    expect(hoisted.db.transaction).toHaveBeenCalledTimes(7);
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });

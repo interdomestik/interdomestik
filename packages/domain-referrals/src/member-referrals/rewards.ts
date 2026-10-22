@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -57,14 +57,14 @@ async function findExistingReward(args: {
   qualifyingEventType: string;
   qualifyingEventId: string;
 }): Promise<MemberReferralRewardRecord | null> {
-  const row = await db.query.memberReferralRewards.findFirst({
+  const row = await withTenantContext({ tenantId: args.tenantId, role: 'system' }, tx => tx.query.memberReferralRewards.findFirst({
     where: and(
       eq(memberReferralRewards.tenantId, args.tenantId),
       eq(memberReferralRewards.subscriptionId, args.subscriptionId),
       eq(memberReferralRewards.qualifyingEventType, args.qualifyingEventType),
       eq(memberReferralRewards.qualifyingEventId, args.qualifyingEventId)
     ),
-  });
+  }));
 
   return (row as MemberReferralRewardRecord | null) ?? null;
 }
@@ -113,9 +113,9 @@ export async function createMemberReferralRewardCore(
     };
   }
 
-  const referralRow = await db.query.referrals.findFirst({
+  const referralRow = await withTenantContext({ tenantId, role: 'system' }, tx => tx.query.referrals.findFirst({
     where: and(eq(referrals.id, referralId), eq(referrals.tenantId, tenantId)),
-  });
+  }));
   if (!referralRow) {
     return {
       success: true,
@@ -160,7 +160,7 @@ export async function createMemberReferralRewardCore(
 
   const rewardId = nanoid();
   // db-access-guard: tenant-scoped -- reason: tenantId from resolved referral row before reward insert
-  const rows = await db
+  const rows = await withTenantContext({ tenantId, role: 'system' }, tx => tx
     .insert(memberReferralRewards)
     .values({
       id: rewardId,
@@ -202,7 +202,7 @@ export async function createMemberReferralRewardCore(
       status: memberReferralRewards.status,
       rewardType: memberReferralRewards.rewardType,
       currencyCode: memberReferralRewards.currencyCode,
-    });
+    }));
 
   const row = rows[0];
   if (!row) {

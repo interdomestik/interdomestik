@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus } from '../subscription-status';
@@ -24,10 +25,10 @@ export async function writeSubscriptionSnapshot(args: {
   priceId: string;
   deps: PaddleWebhookAuditDeps;
 }): Promise<UpsertSubscriptionResult> {
-  const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId: args.tenantId,
-    planId: args.priceId,
-  });
+  const canonicalPlanState = await withTenantContext(
+    { tenantId: args.tenantId, role: 'system' },
+    tx => resolveCanonicalMembershipPlanState({ tenantId: args.tenantId, planId: args.priceId }, tx)
+  );
   const mappedStatus = mapPaddleStatus(args.sub.status);
   const result = await upsertSubscription({
     sub: args.sub,
