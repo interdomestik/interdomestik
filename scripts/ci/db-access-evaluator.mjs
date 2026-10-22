@@ -1,6 +1,5 @@
 import { proofReport } from './db-access-proof-report.mjs';
-import { messageProofObligations } from './db-access-message-proof-source.mjs';
-import { mountEvidence } from './db-access-mount-evidence.mjs';
+import { runtimeProofObligations } from './db-access-runtime-obligations.mjs';
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import {
   providerUnitResolverSnapshot,
@@ -163,11 +162,16 @@ export function evaluateGuard(
     })),
   ])
     failures.set(entry.identity, entry);
-  const messageObligations = messageProofObligations(
-    providerUnit?.messageProof,
+  const { messageObligations, observedMounts, crmObligations } = runtimeProofObligations({
+    providerUnit,
     failures,
-    graph.incomplete
-  );
+    graph,
+    directChanges,
+    firstInvalidatingDependency,
+    newEntries,
+    scannedCount: inventory.entries.length,
+    baselineCount: baseline.entries.length,
+  });
   const failingNewEntries = [...failures.values()].map(entry => {
     const publicFailure = publicEntry(entry);
     const mounts = mountsByIdentity.get(entry.identity);
@@ -178,7 +182,7 @@ export function evaluateGuard(
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
   let status = 'pass';
-  if (messageObligations.remaining.length) status = 'incomplete';
+  if (crmObligations.remaining.length) status = 'incomplete';
   else if (failingNewEntries.length) status = 'fail';
   return {
     status,
@@ -191,6 +195,7 @@ export function evaluateGuard(
               inventory,
               namedProofFiles,
               messageObligations,
+              crmObligations,
               producerHarnessFiles,
               providerEntries,
               providerPolicy,
@@ -207,15 +212,10 @@ export function evaluateGuard(
     failingNewCount: failingNewEntries.length,
     newEntries: newEntries.map(publicEntry),
     failingNewEntries,
-    mountEvidence: mountEvidence(
-      directChanges,
-      firstInvalidatingDependency,
-      graph,
-      graph.incomplete.length > 0
-    ),
+    mountEvidence: observedMounts,
     rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
     incomplete: graph.incomplete,
-    unresolvedIncomplete: messageObligations.remaining,
+    unresolvedIncomplete: crmObligations.remaining,
     incompleteRawCount: graph.incompleteRawCount,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },

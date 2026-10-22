@@ -5,11 +5,14 @@ export function proofReport({
   inventory,
   namedProofFiles,
   messageObligations,
+  crmObligations,
   producerHarnessFiles,
   providerEntries,
   providerPolicy,
 }) {
+  const { remaining: _remaining, ...crmReport } = crmObligations;
   return {
+    crmProofObligations: crmReport,
     messageProofObligations: {
       operations: messageObligations.operations.map(entry => ({
         ...publicEntry(entry),
