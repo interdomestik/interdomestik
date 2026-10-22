@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type QueryTable = { findFirst: ReturnType<typeof vi.fn> };
 type MockTenantSession = { user: { accessTenantId?: string | null; tenantId?: string | null } };
+const schema = await vi.hoisted(
+  async () => (await import('./resolve-tenant-classification.test-fixtures')).classificationSchema
+);
 const mocks = vi.hoisted(() => {
   const makeQueryTable = (): QueryTable => ({
     findFirst: vi.fn(),
@@ -26,6 +29,12 @@ const mocks = vi.hoisted(() => {
     user: makeQueryTable(),
   };
   const where = vi.fn();
+  const returning = vi.fn();
+  const lock = vi.fn();
+  const selectWhere = vi.fn(() => ({ for: lock }));
+  const from = vi.fn(() => ({ where: selectWhere }));
+  const select = vi.fn(() => ({ from }));
+  const withTenantContext = vi.fn();
   const resolveTenantId = ({ user }: MockTenantSession) =>
     user.accessTenantId?.trim() || user.tenantId?.trim();
   const set = vi.fn(() => ({ where }));
@@ -36,78 +45,20 @@ const mocks = vi.hoisted(() => {
       query: tables,
     },
     tx: {
+      select,
       update,
       query: tables,
     },
+    withTenantContext,
+    returning,
+    lock,
+    selectWhere,
+    select,
     update,
     set,
     where,
     tables,
-    user: {
-      id: 'user.id',
-      tenantId: 'user.tenantId',
-      tenantClassificationPending: 'user.tenantClassificationPending',
-    },
-    tenants: {
-      id: 'tenants.id',
-      isActive: 'tenants.isActive',
-    },
-    claims: {
-      tenantId: 'claims.tenantId',
-      userId: 'claims.userId',
-    },
-    subscriptions: {
-      tenantId: 'subscriptions.tenantId',
-      userId: 'subscriptions.userId',
-    },
-    userNotificationPreferences: {
-      tenantId: 'userNotificationPreferences.tenantId',
-      userId: 'userNotificationPreferences.userId',
-    },
-    memberNotes: {
-      tenantId: 'memberNotes.tenantId',
-      memberId: 'memberNotes.memberId',
-    },
-    notifications: {
-      tenantId: 'notifications.tenantId',
-      userId: 'notifications.userId',
-    },
-    pushSubscriptions: {
-      tenantId: 'pushSubscriptions.tenantId',
-      userId: 'pushSubscriptions.userId',
-    },
-    userRoles: {
-      tenantId: 'userRoles.tenantId',
-      userId: 'userRoles.userId',
-    },
-    agentClients: {
-      tenantId: 'agentClients.tenantId',
-      memberId: 'agentClients.memberId',
-    },
-    membershipCards: {
-      tenantId: 'membershipCards.tenantId',
-      userId: 'membershipCards.userId',
-    },
-    memberLeads: {
-      tenantId: 'memberLeads.tenantId',
-      convertedUserId: 'memberLeads.convertedUserId',
-    },
-    emailCampaignLogs: {
-      tenantId: 'emailCampaignLogs.tenantId',
-      userId: 'emailCampaignLogs.userId',
-    },
-    membershipFamilyMembers: {
-      tenantId: 'membershipFamilyMembers.tenantId',
-      userId: 'membershipFamilyMembers.userId',
-    },
-    referrals: {
-      tenantId: 'referrals.tenantId',
-      referrerId: 'referrals.referrerId',
-    },
-    memberReferralRewards: {
-      tenantId: 'memberReferralRewards.tenantId',
-      referredMemberId: 'memberReferralRewards.referredMemberId',
-    },
+    ...schema,
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
     and: vi.fn((...parts: unknown[]) => ({ op: 'and', parts })),
     withTenant: vi.fn((tenantId: string, tenantColumn: unknown, filter: unknown) => ({
@@ -120,8 +71,10 @@ const mocks = vi.hoisted(() => {
     ensureTenantId: vi.fn(resolveTenantId),
   };
 });
+
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  withTenantContext: mocks.withTenantContext,
   user: mocks.user,
   tenants: mocks.tenants,
   claims: mocks.claims,
@@ -169,7 +122,10 @@ describe('resolveTenantClassificationCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mocks.where.mockResolvedValue(undefined);
+    mocks.where.mockReturnValue({ returning: mocks.returning });
+    mocks.returning.mockResolvedValue([{ id: 'member-1' }]);
+    mocks.lock.mockResolvedValue([{ tenantClassificationPending: true }]);
+    mocks.withTenantContext.mockImplementation(async (_context, callback) => callback(mocks.tx));
     mocks.set.mockReturnValue({ where: mocks.where });
     mocks.update.mockReturnValue({ set: mocks.set });
     mocks.db.transaction.mockImplementation(async callback => callback(mocks.tx as never));
@@ -202,11 +158,48 @@ describe('resolveTenantClassificationCore', () => {
         resolutionMode: 'confirm_current',
       },
     });
-    expect(mocks.db.transaction).toHaveBeenCalledOnce();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
+    expect(mocks.lock).toHaveBeenCalledWith('update');
+    expect(mocks.returning).toHaveBeenCalledWith({ id: mocks.user.id });
+    expect(mocks.tables.user.findFirst).not.toHaveBeenCalled();
     expect(mocks.set).toHaveBeenCalledWith({
-      tenantId: 'tenant_ks',
       tenantClassificationPending: false,
     });
+  });
+
+  it('preserves the locked previous pending value on repeated confirmation', async () => {
+    mocks.lock.mockResolvedValueOnce([{ tenantClassificationPending: false }]);
+    const result = await resolveTenantClassificationCore({
+      session: adminSession,
+      userId: 'member-1',
+      currentTenantId: 'tenant_ks',
+    });
+    expect(result).toMatchObject({ success: true, data: { previousPending: false } });
+  });
+
+  it('refuses an invisible user before updating', async () => {
+    mocks.lock.mockResolvedValueOnce([]);
+    const result = await resolveTenantClassificationCore({
+      session: adminSession,
+      userId: 'foreign-member',
+      currentTenantId: 'tenant_ks',
+    });
+    expect(result).toEqual({ error: 'User not found' });
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('does not report success when the update returns no row', async () => {
+    mocks.returning.mockResolvedValueOnce([]);
+    const result = await resolveTenantClassificationCore({
+      session: adminSession,
+      userId: 'member-1',
+      currentTenantId: 'tenant_ks',
+    });
+    expect(result).toHaveProperty('error');
+    expect(result).not.toHaveProperty('success');
   });
 
   it('allows super admins to reassign eligible members', async () => {

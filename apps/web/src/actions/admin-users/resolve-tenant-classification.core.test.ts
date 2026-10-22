@@ -126,10 +126,13 @@ describe('resolveTenantClassificationCore wrapper', () => {
     });
   });
 
-  it('does not revalidate or audit on error', async () => {
-    mocks.resolveTenantClassificationDomain.mockResolvedValue({
-      error: 'Cannot reassign tenant classification while tenant-bound records exist',
-    });
+  it.each([
+    'Cannot reassign tenant classification while tenant-bound records exist',
+    'User not found',
+    'Unauthorized',
+    'Failed to resolve tenant classification',
+  ])('does not revalidate or audit domain failure: %s', async error => {
+    mocks.resolveTenantClassificationDomain.mockResolvedValue({ error });
 
     const result = await resolveTenantClassificationCore({
       session: { user: { id: 'super-1', role: 'super_admin', tenantId: 'tenant_ks' } } as never,
@@ -138,9 +141,7 @@ describe('resolveTenantClassificationCore wrapper', () => {
       nextTenantId: 'tenant_mk',
     });
 
-    expect(result).toEqual({
-      error: 'Cannot reassign tenant classification while tenant-bound records exist',
-    });
+    expect(result).toEqual({ error });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });

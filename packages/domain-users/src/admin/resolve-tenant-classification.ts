@@ -18,6 +18,7 @@ import {
   userNotificationPreferences,
   userRoles,
   memberReferralRewards,
+  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -248,6 +249,32 @@ export async function resolveTenantClassificationCore(params: {
   const { currentTenantId, nextTenantId, resolutionMode } = validation.data;
 
   try {
+    if (resolutionMode === 'confirm_current') {
+      return await withTenantContext({ tenantId: currentTenantId }, async tx => {
+        const [currentUser] = await tx
+          .select({ tenantClassificationPending: user.tenantClassificationPending })
+          .from(user)
+          .where(withTenant(currentTenantId, user.tenantId, eq(user.id, params.userId)))
+          .for('update');
+        if (!currentUser) return { error: 'User not found' };
+        const [updated] = await tx
+          .update(user)
+          .set({ tenantClassificationPending: false })
+          .where(withTenant(currentTenantId, user.tenantId, eq(user.id, params.userId)))
+          .returning({ id: user.id });
+        if (!updated) throw new Error('Tenant classification update affected no row');
+        return {
+          success: true,
+          data: {
+            previousTenantId: currentTenantId,
+            tenantId: currentTenantId,
+            previousPending: currentUser.tenantClassificationPending === true,
+            tenantClassificationPending: false,
+            resolutionMode,
+          },
+        };
+      });
+    }
     const currentUser = await getPendingUser(params.userId, currentTenantId);
     if (!currentUser) {
       return { error: 'User not found' };
