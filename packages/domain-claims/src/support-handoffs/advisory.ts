@@ -1,4 +1,4 @@
-import { claims, db, desc, eq, supportHandoffs } from '@interdomestik/database';
+import { claims, desc, eq, supportHandoffs, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, count, inArray } from 'drizzle-orm';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
@@ -52,61 +52,63 @@ export async function getMemberActiveHandoffAdvisory(args: {
   memberId: string;
   tenantId: string;
 }): Promise<MemberActiveHandoffAdvisory> {
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const countQuery = db
-    .select({ activeCount: count() })
-    .from(supportHandoffs)
-    .where(buildActiveMemberHandoffScope(args));
+  return withTenantContext({ tenantId: args.tenantId }, async tx => {
+    // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
+    const countQuery = tx
+      .select({ activeCount: count() })
+      .from(supportHandoffs)
+      .where(buildActiveMemberHandoffScope(args));
 
-  if (!args.claimId) {
-    const [countRow] = await countQuery;
-    const activeCount = Number(countRow?.activeCount ?? 0);
-    return { activeCount, claimMatch: null, linkedClaim: null };
-  }
+    if (!args.claimId) {
+      const [countRow] = await countQuery;
+      const activeCount = Number(countRow?.activeCount ?? 0);
+      return { activeCount, claimMatch: null, linkedClaim: null };
+    }
 
-  const claimMatchQuery = db
-    .select({
-      status: supportHandoffs.status,
-      createdAt: supportHandoffs.createdAt,
-      updatedAt: supportHandoffs.updatedAt,
-      source: supportHandoffs.source,
-      claimNumber: claims.claimNumber,
-      claimTitle: claims.title,
-      claimStatus: claimLifecycleStatusSql(),
-    })
-    .from(supportHandoffs)
-    .leftJoin(
-      claims,
-      and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, args.tenantId))
-    )
-    .where(
-      buildActiveClaimHandoffScope({
-        claimId: args.claimId,
-        memberId: args.memberId,
-        tenantId: args.tenantId,
+    const claimMatchQuery = tx
+      .select({
+        status: supportHandoffs.status,
+        createdAt: supportHandoffs.createdAt,
+        updatedAt: supportHandoffs.updatedAt,
+        source: supportHandoffs.source,
+        claimNumber: claims.claimNumber,
+        claimTitle: claims.title,
+        claimStatus: claimLifecycleStatusSql(),
       })
-    )
-    .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))
-    .limit(1);
+      .from(supportHandoffs)
+      .leftJoin(
+        claims,
+        and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, args.tenantId))
+      )
+      .where(
+        buildActiveClaimHandoffScope({
+          claimId: args.claimId,
+          memberId: args.memberId,
+          tenantId: args.tenantId,
+        })
+      )
+      .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))
+      .limit(1);
 
-  const [[countRow], [claimMatchRow]] = await Promise.all([countQuery, claimMatchQuery]);
-  const activeCount = Number(countRow?.activeCount ?? 0);
+    const [[countRow], [claimMatchRow]] = await Promise.all([countQuery, claimMatchQuery]);
+    const activeCount = Number(countRow?.activeCount ?? 0);
 
-  if (!claimMatchRow) {
-    return { activeCount, claimMatch: null, linkedClaim: null };
-  }
+    if (!claimMatchRow) {
+      return { activeCount, claimMatch: null, linkedClaim: null };
+    }
 
-  return {
-    activeCount,
-    claimMatch: {
-      status: claimMatchRow.status as ActiveHandoffStatus,
-      createdAt: normalizeDate(claimMatchRow.createdAt),
-      updatedAt: normalizeDate(claimMatchRow.updatedAt),
-      sourceLabel: normalizeSourceLabel(claimMatchRow.source),
-    },
-    linkedClaim: {
-      label: claimMatchRow.claimNumber ?? claimMatchRow.claimTitle ?? args.claimId,
-      status: claimMatchRow.claimStatus ?? null,
-    },
-  };
+    return {
+      activeCount,
+      claimMatch: {
+        status: claimMatchRow.status as ActiveHandoffStatus,
+        createdAt: normalizeDate(claimMatchRow.createdAt),
+        updatedAt: normalizeDate(claimMatchRow.updatedAt),
+        sourceLabel: normalizeSourceLabel(claimMatchRow.source),
+      },
+      linkedClaim: {
+        label: claimMatchRow.claimNumber ?? claimMatchRow.claimTitle ?? args.claimId,
+        status: claimMatchRow.claimStatus ?? null,
+      },
+    };
+  });
 }
