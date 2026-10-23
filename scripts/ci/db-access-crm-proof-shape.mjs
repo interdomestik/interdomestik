@@ -93,7 +93,8 @@ export function validateCrmContract(contract) {
       used.add(id);
     }
   }
-  if ([...cases.keys()].some(id => !used.has(id))) failCrm('unmapped evidence case');
+  if ([...cases.values()].some(item => item.kind === 'source-classification' && !used.has(item.id)))
+    failCrm('unmapped evidence case');
   const runtimeCases = [...cases.values()]
     .filter(item => item.kind === 'runtime')
     .map(item => item.id)

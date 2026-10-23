@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runStaffDefaultCanonicalAssertions } from './db-access-crm-runtime-cases-staff.mjs';
 async function runCrmReportingCases() {
   const checks = [];
   const { dbAdmin, db, assertRlsConnectionRoleReady } = await import('./crm-runtime.cjs');
@@ -151,6 +152,7 @@ async function runCrmReportingCases() {
   checks.push(
     'PASS: own tenant reporting data, foreign exclusion, actor denial, restricted LOGIN and context cleanup.'
   );
+  checks.push(...(await runStaffDefaultCanonicalAssertions()));
   return checks;
 }
 export { runCrmReportingCases };

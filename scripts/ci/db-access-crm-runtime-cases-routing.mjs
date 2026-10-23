@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runCrmRoutingOwnershipCases } from './db-access-crm-runtime-cases-routing-ownership.mjs';
 async function runCrmRoutingCases() {
   const checks = [];
   const { dbAdmin, assertRlsConnectionRoleReady } = await import('./crm-runtime.cjs');
@@ -230,6 +231,6 @@ CREATE TRIGGER owned_crm_record_insert AFTER INSERT ON crm_routing_rules FOR EAC
   checks.push(
     'PASS: actual own-tenant create/read/update/reorder/disable/archive, stale cursor, foreign rule/branch/agent, duplicate/invalid input, missing tenant and context cleanup.'
   );
-  return checks;
+  return [...checks, ...(await runCrmRoutingOwnershipCases())];
 }
 export { runCrmRoutingCases };

@@ -89,12 +89,13 @@ export async function sendViaResend(
   telemetry: EmailTelemetry
 ): Promise<EmailResult> {
   const fail = (error: unknown, fallback: string): EmailResult => {
+    if (telemetry.contentFree) {
+      telemetry.failed('resend', 'delivery');
+      return { success: false, error: 'email_provider_failed' };
+    }
     telemetry.failed('resend', 'delivery', () => console.error('Resend error:', error));
     const providerError = error instanceof Error ? error.message : fallback;
-    return {
-      success: false,
-      error: telemetry.contentFree ? 'email_provider_failed' : providerError,
-    };
+    return { success: false, error: providerError };
   };
   try {
     const response = await client.emails.send(

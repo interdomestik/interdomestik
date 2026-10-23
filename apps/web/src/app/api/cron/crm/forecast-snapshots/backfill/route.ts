@@ -1,3 +1,6 @@
+import { withTenantContext } from '@interdomestik/database/tenant';
+import { createCrmForecastSnapshotRepository } from '@/adapters/crm/reporting-repository';
+import { createAdminCrmReportingTenantRepositories } from '@/app/[locale]/admin/crm/_reporting-tenant';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -74,7 +77,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const tenantId = parsed.data.tenantId;
+    const readers = createAdminCrmReportingTenantRepositories(tenantId);
     const result = await runCrmForecastSnapshotBackfillCore({
+      workItemRepository: readers.forecastSnapshotWorkItemRepository,
+      reportingRepository: readers.reportingRepository,
+      snapshotRepository: {
+        listLatestPipelineSnapshots: params =>
+          readers.forecastSnapshotRepository.listLatestPipelineSnapshots(params),
+        insertPipelineSnapshots: params =>
+          withTenantContext({ tenantId }, tx =>
+            createCrmForecastSnapshotRepository(tx).insertPipelineSnapshots(params)
+          ),
+      },
       dryRun: parsed.data.dryRun,
       fromDate: parsed.data.fromDate,
       maxWorkItemsPerDate: parsed.data.maxWorkItemsPerDate,

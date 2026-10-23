@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  transaction: vi.fn(),
+  withTenantContext: vi.fn(),
   txInsert: vi.fn(),
   invoiceValues: vi.fn(),
   invoiceOnConflictDoUpdate: vi.fn(),
@@ -23,12 +23,10 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    transaction: hoisted.transaction,
-  },
   billingInvoices: hoisted.billingInvoices,
   billingLedgerEntries: hoisted.billingLedgerEntries,
   sql: hoisted.sql,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 import { persistInvoiceAndLedgerInvariants } from './invariants';
@@ -41,7 +39,9 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       insert: hoisted.txInsert,
     };
 
-    hoisted.transaction.mockImplementation(async callback => callback(tx as never));
+    hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback(tx as never)
+    );
 
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) {
@@ -87,7 +87,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       invoiceId: null,
       ledgerEntryId: null,
     });
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('rejects transaction events without tenant scope', async () => {
@@ -102,6 +102,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         data: {},
       })
     ).rejects.toThrow('missing legal tenant scope');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('rejects transaction events when provided entity mismatches tenant entity', async () => {
@@ -117,6 +118,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         data: {},
       })
     ).rejects.toThrow('conflicts with legal tenant');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('rejects transaction events without a valid amount total', async () => {
@@ -138,7 +140,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         },
       })
     ).rejects.toThrow('Missing or invalid transaction total');
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('rejects transaction events without a valid currency code', async () => {
@@ -160,7 +162,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         },
       })
     ).rejects.toThrow('Missing or invalid transaction currency code');
-    expect(hoisted.transaction).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('persists tenant/entity-scoped invoice and append-only ledger entry', async () => {
@@ -188,6 +190,10 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       invoiceId: 'inv_1',
       ledgerEntryId: 'led_1',
     });
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks', role: 'system' },
+      expect.any(Function)
+    );
     expect(hoisted.invoiceValues).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_ks',
@@ -269,6 +275,12 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       invoiceId: 'inv_1',
       ledgerEntryId: null,
     });
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
+      2,
+      { tenantId: 'tenant_ks', role: 'system' },
+      expect.any(Function)
+    );
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'billing.invoice.replay_ignored',

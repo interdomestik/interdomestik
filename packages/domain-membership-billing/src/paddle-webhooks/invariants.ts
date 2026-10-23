@@ -1,4 +1,9 @@
-import { billingInvoices, billingLedgerEntries, db, sql } from '@interdomestik/database';
+import {
+  billingInvoices,
+  billingLedgerEntries,
+  sql,
+  withTenantContext,
+} from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
 import type { BillingEntity } from '../paddle-server';
@@ -106,8 +111,8 @@ export async function persistInvoiceAndLedgerInvariants(
   // already-resolved internal row may satisfy the billing invoice foreign key.
   const subscriptionId = normalizeText(params.storedSubscriptionId);
 
-  // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  const result = await db.transaction(async tx => {
+  // db-access-guard: tenant-scoped -- reason: resolved legal tenant scopes the RLS transaction
+  const result = await withTenantContext({ tenantId, role: 'system' }, async tx => {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const invoiceRows = await tx
       .insert(billingInvoices)

@@ -78,10 +78,10 @@ export function AdminCrmForecastBackfillOperator({
   maxWorkItemsPerDate: number;
 }>) {
   const [form, setForm] = useState({
-    fromDate: defaultFromDate,
+    fromDate: typeof defaultFromDate === 'string' ? defaultFromDate : '',
     maxWorkItemsPerDate: '',
-    tenantId: defaultTenantId,
-    toDate: defaultToDate,
+    tenantId: typeof defaultTenantId === 'string' ? defaultTenantId : '',
+    toDate: typeof defaultToDate === 'string' ? defaultToDate : '',
   });
   const [result, setResult] = useState<AdminCrmForecastBackfillOperatorResult | null>(null);
   const [errorCode, setErrorCode] = useState<AdminCrmForecastBackfillOperatorErrorCode | null>(
@@ -98,7 +98,7 @@ export function AdminCrmForecastBackfillOperator({
   }, [errorCode, result]);
 
   function updateField(field: keyof typeof form, value: string): void {
-    setForm(current => ({ ...current, [field]: value }));
+    setForm(current => ({ ...current, [field]: typeof value === 'string' ? value : '' }));
     if (result?.confirmationToken) {
       setResult(null);
       setErrorCode(null);

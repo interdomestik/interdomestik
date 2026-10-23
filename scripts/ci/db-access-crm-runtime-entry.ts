@@ -14,6 +14,7 @@ export { databaseAdapter, userSchemaConfig } from './apps/web/src/lib/auth/schem
 export { databaseHooks } from './apps/web/src/lib/auth/hooks.ts';
 export { runAdminCrmRoutingRuleAction as runUnboundAdminCrmRoutingRuleAction } from './apps/web/src/app/[locale]/admin/crm/_routing-core.ts';
 export { createAdminCrmRoutingRuleRepository } from './apps/web/src/adapters/crm/routing-repository.ts';
+export { createApplyCrmLeadRoutingDecisionCoordinator } from './apps/web/src/adapters/crm/routing-application-service.ts';
 export {
   createCrmReportingRepository,
   createCrmForecastSnapshotRepository,
@@ -41,3 +42,5 @@ export {
   completeAgentLeadFollowUpCore,
 } from './apps/web/src/actions/agent-crm-follow-up.core.ts';
 export { getAgentCrmReportingCore } from './apps/web/src/app/[locale]/(agent)/agent/crm/_core.ts';
+
+export { getStaffCrmReportingCore } from './apps/web/src/app/[locale]/(staff)/staff/crm/_core.ts';
