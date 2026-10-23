@@ -1,0 +1,7 @@
+{
+  "kind": "diagnostics.v1.reasons",
+  "value": {
+    "offset": 0,
+    "items": ["unsupported received property executable edge state.openContexts.delete"]
+  }
+}

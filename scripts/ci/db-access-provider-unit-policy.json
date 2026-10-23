@@ -657,8 +657,8 @@
   "producerFiles": {
     "scripts/ci/db-access-provider-unit-source.mjs": {
       "mode": "100644",
-      "bytes": 10991,
-      "sha256": "e35addfb549e1ceb65d599fadc97a7ea916e13167bedc27319a1dc452d494ae0"
+      "bytes": 11151,
+      "sha256": "888040d3b13a3b9b2fc3e673fecc3e89b3109b2412dfb246db1bd110d8c643b6"
     },
     "scripts/ci/db-access-provider-runtime-materialize.mjs": {
       "mode": "100644",
@@ -672,8 +672,8 @@
     },
     "scripts/ci/db-access-provider-runtime-required.mjs": {
       "mode": "100644",
-      "bytes": 9478,
-      "sha256": "b3fd5ff6ec54e057a196df20428911d1e0b79983c8c2061a1aede9aa997f270a"
+      "bytes": 9910,
+      "sha256": "915e8e90c4932d465a2560f2036a7af6c6b136c31bfe117affe367a8cbe3bf44"
     },
     "scripts/ci/db-access-provider-runtime-identity.mjs": {
       "mode": "100644",
@@ -742,8 +742,238 @@
     },
     "scripts/ci/db-access-proof-report.mjs": {
       "mode": "100644",
-      "bytes": 1402,
-      "sha256": "dc4d481723801e38a98bb5c30511f1a46aad686eb3911cdcb057f660eac63e6c"
+      "bytes": 1522,
+      "sha256": "96c81126d2b51c4dbbbfefb94c9c7a588d2523c0cbe2e7c7019636c721a5bfcf"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-agent-flow.mjs": {
+      "mode": "100644",
+      "bytes": 7811,
+      "sha256": "a81525abb724b49906ce310965503587c697ee29e5aede9e732a561435d9588d"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-auth.mjs": {
+      "mode": "100644",
+      "bytes": 9499,
+      "sha256": "1764528f70cf567602581f852bace2bb192f0f66623f4c474e76b67235c07e26"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-authority.mjs": {
+      "mode": "100644",
+      "bytes": 2689,
+      "sha256": "09bedf999813659c80a9ecbffbe2396595faea6474fa3fc522c59188aa13ed93"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-backfill.mjs": {
+      "mode": "100644",
+      "bytes": 4862,
+      "sha256": "ce657e5119ddf8aadb6c2ca5dd2199ec2360de633262eb79382d75224c36f367"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-branch-manager.mjs": {
+      "mode": "100644",
+      "bytes": 4469,
+      "sha256": "e902861cf26d8e0f2fdbb734174774715880d62fcab2cc6956563b6fa5cd44aa"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-classification-audit.mjs": {
+      "mode": "100644",
+      "bytes": 4023,
+      "sha256": "0270c895647de686fe97093ecb1fc17228928d6d155a897c51149c08b1b040f4"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-confirm-current.mjs": {
+      "mode": "100644",
+      "bytes": 5363,
+      "sha256": "38b3d274ebc423541469ab0d336e8f28d2f9ee8bb501f1e57e8543975bdab2bf"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-reporting.mjs": {
+      "mode": "100644",
+      "bytes": 6345,
+      "sha256": "494c5068a6a4b9bd7f1c89443594688587e9ca85a19b1201f88169398da99202"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-routing.mjs": {
+      "mode": "100644",
+      "bytes": 9758,
+      "sha256": "c864314399ce524a26ef46ac458fab926c9292fcd904ab1c47c3aa719ea03cad"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-session.mjs": {
+      "mode": "100644",
+      "bytes": 2281,
+      "sha256": "ffe94167fa467a412ecb903919b3d02eabb5b96f6e4a706c97ca048da8f862a9"
+    },
+    "scripts/ci/db-access-crm-runtime-child.mjs": {
+      "mode": "100644",
+      "bytes": 1736,
+      "sha256": "ac1ed17a55e929ce454c2251c99d44d70ed40858433394e32107e0adb6397eb8"
+    },
+    "scripts/ci/db-access-crm-runtime-context.mjs": {
+      "mode": "100644",
+      "bytes": 1226,
+      "sha256": "e7be3e59b7e3f30f3450c38e7578a686fac45ae122c7c7ca158ed5b974736a4e"
+    },
+    "scripts/ci/db-access-crm-runtime-driver.mjs": {
+      "mode": "100644",
+      "bytes": 1910,
+      "sha256": "dc1fa5d3c48a950d9094fbcba51371d795994fc3517a03b241595f9303c07947"
+    },
+    "scripts/ci/db-access-crm-runtime-entry.ts": {
+      "mode": "100644",
+      "bytes": 3194,
+      "sha256": "e51d23a25bf14747d8412926a5156d8aecf8210dcf319f87e98a0646ee7086f7"
+    },
+    "scripts/ci/db-access-crm-runtime-fixture.mjs": {
+      "mode": "100644",
+      "bytes": 4404,
+      "sha256": "6721846c995aab7e07c6a351f48105069a694e7ac135036f649582bc7511ec80"
+    },
+    "scripts/ci/db-access-crm-runtime-lock.json": {
+      "mode": "100644",
+      "bytes": 5471,
+      "sha256": "f481b81c15c84e09cbf21e83b93ae4b4e2789cf2731b19246693eb5a776f9ae0"
+    },
+    "scripts/ci/db-access-crm-runtime-materialize.mjs": {
+      "mode": "100644",
+      "bytes": 5529,
+      "sha256": "a8604b68804cc5a84690ada002114722b95decfe3d15efb6d7a2cd95a0faff8b"
+    },
+    "scripts/ci/db-access-crm-runtime-packages-1.json": {
+      "mode": "100644",
+      "bytes": 98506,
+      "sha256": "af70a86ac0c926b6a0df20c0a1fe8c472826eebf80ecb1d17023bbe15b2dbedd"
+    },
+    "scripts/ci/db-access-crm-runtime-packages-2.json": {
+      "mode": "100644",
+      "bytes": 105873,
+      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5"
+    },
+    "scripts/ci/db-access-crm-runtime-packages-3.json": {
+      "mode": "100644",
+      "bytes": 114478,
+      "sha256": "cd5b6a41c74298c50de3a140488440500b4d116b5a8b3a6be520855068e04ffb"
+    },
+    "scripts/ci/db-access-crm-runtime.mjs": {
+      "mode": "100644",
+      "bytes": 4004,
+      "sha256": "7dd0465a7672652b2880a6f7480a81de28d31f4238c58d8aed49478927103935"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-staff.mjs": {
+      "mode": "100644",
+      "bytes": 6272,
+      "sha256": "8d80c7684e4e9e6ca382b71469b88381439b61f7746f3ca75fe1f4145f202bc5"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-routing-ownership.mjs": {
+      "mode": "100644",
+      "bytes": 10870,
+      "sha256": "3d2f21318edf5d45f1be658fbf0e3398e5371fedda4ec2920821ef4352ea1dab"
+    },
+    "scripts/ci/db-access-crm-proof-data-000.json": {
+      "mode": "100644",
+      "bytes": 130985,
+      "sha256": "eb7236b5cbb2a1617105d65e96224ee3d997faad148085098e909d34a65fb9c5"
+    },
+    "scripts/ci/db-access-crm-proof-data-001.json": {
+      "mode": "100644",
+      "bytes": 131021,
+      "sha256": "e5711fcdc5dd233d920846946a7678031971c3cb329c97253db20945cab7af81"
+    },
+    "scripts/ci/db-access-crm-proof-data-002.json": {
+      "mode": "100644",
+      "bytes": 5379,
+      "sha256": "a843c14da5ae4fe2467de01294dbf5761823d348607c70496e0e139b7eab0900"
+    },
+    "scripts/ci/db-access-crm-proof-data-003.json": {
+      "mode": "100644",
+      "bytes": 33,
+      "sha256": "4c81ae1dafe99fc1ed045bfc3ebcb7b0953d70d5e178cf381ea2aff6c3ba3d06"
+    },
+    "scripts/ci/db-access-crm-proof-data-004.json": {
+      "mode": "100644",
+      "bytes": 130656,
+      "sha256": "3bd540274efbfc0919d6330278e62e3396aa19bd2ed08b41eee208e0d1630106"
+    },
+    "scripts/ci/db-access-crm-proof-data-005.json": {
+      "mode": "100644",
+      "bytes": 102995,
+      "sha256": "d76e9761a1dc0bfdec096dc972516bf2a569404acefe9b023c78937c55405141"
+    },
+    "scripts/ci/db-access-crm-proof-data-006.json": {
+      "mode": "100644",
+      "bytes": 105547,
+      "sha256": "f742777163b361ff0f10e08694e49c6a60f38bc4afad5782cbad3908f9b18d46"
+    },
+    "scripts/ci/db-access-crm-proof-data-007.json": {
+      "mode": "100644",
+      "bytes": 108828,
+      "sha256": "25c6c061e15d1fae95adc4e6ab5e146ab45e1e223e41752c9a7f283720545f90"
+    },
+    "scripts/ci/db-access-crm-proof-data-008.json": {
+      "mode": "100644",
+      "bytes": 108832,
+      "sha256": "ea46e307cb19a45d7ea3d28108e9015eac353e1a34af802dc98cc01a9390c4c4"
+    },
+    "scripts/ci/db-access-crm-proof-data-009.json": {
+      "mode": "100644",
+      "bytes": 121549,
+      "sha256": "131d6ecc54ee1eb1b204540d00838e4b79e67815db5b19e2bb2fa61a38a3a4f6"
+    },
+    "scripts/ci/db-access-crm-proof-data-010.json": {
+      "mode": "100644",
+      "bytes": 130304,
+      "sha256": "5431c39f66b10010fd8c97d26bd866c1012a47f7fcf9defb859c22f09859e9b2"
+    },
+    "scripts/ci/db-access-crm-proof-data-011.json": {
+      "mode": "100644",
+      "bytes": 33097,
+      "sha256": "25cac64d50903a92c3dfc1a60a39a913c4b8c77ea4414d40e537468b020f1660"
+    },
+    "scripts/ci/db-access-crm-proof-data-012.json": {
+      "mode": "100644",
+      "bytes": 445,
+      "sha256": "3dcdeace20908600603365a69b7ef1555d998dc5053f7834fe2454c96c1cd837"
+    },
+    "scripts/ci/db-access-crm-proof-data-013.json": {
+      "mode": "100644",
+      "bytes": 157,
+      "sha256": "ad98ce686f474beb8e0c439de4ad181043900f5652c548399227591c7bc82af4"
+    },
+    "scripts/ci/db-access-crm-proof-data-014.json": {
+      "mode": "100644",
+      "bytes": 163,
+      "sha256": "b5daa4efee06b633bad07c6d37de3201b108def5494a6d1b2c0bdb39cab91c29"
+    },
+    "scripts/ci/db-access-crm-proof-data-015.json": {
+      "mode": "100644",
+      "bytes": 197,
+      "sha256": "ca30e048f4a5a8f7896d878974b155d1305f3b9a77d18643ece3442e6937dbbc"
+    },
+    "scripts/ci/db-access-crm-proof-data-016.json": {
+      "mode": "100644",
+      "bytes": 85,
+      "sha256": "215d57cf34041a567534f328897de915fe531491d799db3209eb32f2dc5669cf"
+    },
+    "scripts/ci/db-access-crm-proof-data-017.json": {
+      "mode": "100644",
+      "bytes": 130976,
+      "sha256": "7b25fc84beadcc2362b574345c3d5ee0cff9c724883c90ea535148f3ec77f127"
+    },
+    "scripts/ci/db-access-crm-proof-data-018.json": {
+      "mode": "100644",
+      "bytes": 90901,
+      "sha256": "64e79701391e80481fb94c85e4fa124ef38593131893b7cc139ff3180fdea9e9"
+    },
+    "scripts/ci/db-access-crm-proof-data-019.json": {
+      "mode": "100644",
+      "bytes": 130926,
+      "sha256": "98b138bf4c01843c272d2bab3482f81eb4aa36e40bfd5a2a620c2d9d5a2ed042"
+    },
+    "scripts/ci/db-access-crm-proof-data-020.json": {
+      "mode": "100644",
+      "bytes": 130957,
+      "sha256": "7ab5e76b78f78b70992787ce4abdb5d708bc6f988fd325c347b6f38662ed7434"
+    },
+    "scripts/ci/db-access-crm-proof-data-021.json": {
+      "mode": "100644",
+      "bytes": 43649,
+      "sha256": "f3b8ca7b1071a760fce33c0c07430a213b838300e06adb4c9d5a7f51e6ab1b97"
+    },
+    "scripts/ci/db-access-crm-proof-policy.json": {
+      "mode": "100644",
+      "bytes": 109501,
+      "sha256": "8b5783dc45e218ee002ebeee2e689f8eb12ffec30e806918e4acb2141d5030d2"
     }
   },
   "runtimeEnforcement": {

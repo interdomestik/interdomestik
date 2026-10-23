@@ -1,0 +1,3947 @@
+{
+  "kind": "mount-roots",
+  "value": {
+    "offset": 0,
+    "items": [
+      {
+        "id": 0,
+        "file": "apps/web/src/actions/activities.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 6
+      },
+      {
+        "id": 1,
+        "file": "apps/web/src/actions/activities.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 0
+      },
+      {
+        "id": 2,
+        "file": "apps/web/src/actions/activities.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1
+      },
+      {
+        "id": 3,
+        "file": "apps/web/src/actions/activities/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 4,
+        "file": "apps/web/src/actions/activities/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 3
+      },
+      {
+        "id": 5,
+        "file": "apps/web/src/actions/activities/get-lead.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 4
+      },
+      {
+        "id": 6,
+        "file": "apps/web/src/actions/activities/get-lead.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 5
+      },
+      {
+        "id": 7,
+        "file": "apps/web/src/actions/activities/get-member.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 4
+      },
+      {
+        "id": 8,
+        "file": "apps/web/src/actions/activities/get-member.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 7
+      },
+      {
+        "id": 9,
+        "file": "apps/web/src/actions/activities/log-lead.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 4
+      },
+      {
+        "id": 10,
+        "file": "apps/web/src/actions/activities/log-lead.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 11
+      },
+      {
+        "id": 11,
+        "file": "apps/web/src/actions/activities/log-lead.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 9
+      },
+      {
+        "id": 12,
+        "file": "apps/web/src/actions/activities/log-member.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 4
+      },
+      {
+        "id": 13,
+        "file": "apps/web/src/actions/activities/log-member.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 12
+      },
+      {
+        "id": 14,
+        "file": "apps/web/src/actions/admin-access.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 15
+      },
+      {
+        "id": 15,
+        "file": "apps/web/src/actions/admin-access.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 42
+      },
+      {
+        "id": 16,
+        "file": "apps/web/src/actions/admin-claims.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 20
+      },
+      {
+        "id": 17,
+        "file": "apps/web/src/actions/admin-claims.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 16
+      },
+      {
+        "id": 18,
+        "file": "apps/web/src/actions/admin-claims.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 17
+      },
+      {
+        "id": 19,
+        "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 20,
+        "file": "apps/web/src/actions/admin-claims/assign.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 19
+      },
+      {
+        "id": 21,
+        "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 22,
+        "file": "apps/web/src/actions/admin-claims/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 23,
+        "file": "apps/web/src/actions/admin-claims/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 22
+      },
+      {
+        "id": 24,
+        "file": "apps/web/src/actions/admin-claims/context.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 25,
+        "file": "apps/web/src/actions/admin-claims/update-status.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 26,
+        "file": "apps/web/src/actions/admin-claims/update-status.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 27
+      },
+      {
+        "id": 27,
+        "file": "apps/web/src/actions/admin-claims/update-status.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 25
+      },
+      {
+        "id": 28,
+        "file": "apps/web/src/actions/admin-rbac.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 944
+      },
+      {
+        "id": 29,
+        "file": "apps/web/src/actions/admin-rbac.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 28
+      },
+      {
+        "id": 30,
+        "file": "apps/web/src/actions/admin-rbac.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 28
+      },
+      {
+        "id": 31,
+        "file": "apps/web/src/actions/admin-settings.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 35
+      },
+      {
+        "id": 32,
+        "file": "apps/web/src/actions/admin-settings.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 31
+      },
+      {
+        "id": 33,
+        "file": "apps/web/src/actions/admin-settings.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 32
+      },
+      {
+        "id": 34,
+        "file": "apps/web/src/actions/admin-settings/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 35,
+        "file": "apps/web/src/actions/admin-settings/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 34
+      },
+      {
+        "id": 36,
+        "file": "apps/web/src/actions/admin-users.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 45
+      },
+      {
+        "id": 37,
+        "file": "apps/web/src/actions/admin-users.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 36
+      },
+      {
+        "id": 38,
+        "file": "apps/web/src/actions/admin-users.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 36
+      },
+      {
+        "id": 39,
+        "file": "apps/web/src/actions/admin-users.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 40,
+        "file": "apps/web/src/actions/admin-users/classification-audit.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 41,
+        "file": "apps/web/src/actions/admin-users/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 42,
+        "file": "apps/web/src/actions/admin-users/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 41
+      },
+      {
+        "id": 43,
+        "file": "apps/web/src/actions/admin-users/context.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 44,
+        "file": "apps/web/src/actions/admin-users/resolve-tenant-classification.core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 45,
+        "file": "apps/web/src/actions/admin-users/resolve-tenant-classification.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 46,
+        "file": "apps/web/src/actions/admin-users/update-user-agent.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1139
+      },
+      {
+        "id": 47,
+        "file": "apps/web/src/actions/admin-users/update-user-agent.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 46
+      },
+      {
+        "id": 48,
+        "file": "apps/web/src/actions/agent-claims.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 53
+      },
+      {
+        "id": 49,
+        "file": "apps/web/src/actions/agent-claims.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 50,
+        "file": "apps/web/src/actions/agent-claims.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 48
+      },
+      {
+        "id": 51,
+        "file": "apps/web/src/actions/agent-claims.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 50
+      },
+      {
+        "id": 52,
+        "file": "apps/web/src/actions/agent-claims/assign.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 53,
+        "file": "apps/web/src/actions/agent-claims/assign.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 52
+      },
+      {
+        "id": 54,
+        "file": "apps/web/src/actions/agent-claims/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 55,
+        "file": "apps/web/src/actions/agent-claims/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 54
+      },
+      {
+        "id": 56,
+        "file": "apps/web/src/actions/agent-claims/update-status.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 57,
+        "file": "apps/web/src/actions/agent-claims/update-status.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 58
+      },
+      {
+        "id": 58,
+        "file": "apps/web/src/actions/agent-claims/update-status.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 56
+      },
+      {
+        "id": 59,
+        "file": "apps/web/src/actions/agent-crm-follow-up.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 60
+      },
+      {
+        "id": 60,
+        "file": "apps/web/src/actions/agent-crm-follow-up.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 245
+      },
+      {
+        "id": 61,
+        "file": "apps/web/src/actions/agent-crm-follow-up.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 60
+      },
+      {
+        "id": 62,
+        "file": "apps/web/src/actions/agent-dashboard.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 66
+      },
+      {
+        "id": 63,
+        "file": "apps/web/src/actions/agent-dashboard.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 62
+      },
+      {
+        "id": 64,
+        "file": "apps/web/src/actions/agent-dashboard.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 63
+      },
+      {
+        "id": 65,
+        "file": "apps/web/src/actions/agent-dashboard/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 66,
+        "file": "apps/web/src/actions/agent-dashboard/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 65
+      },
+      {
+        "id": 67,
+        "file": "apps/web/src/actions/agent-settings.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 71
+      },
+      {
+        "id": 68,
+        "file": "apps/web/src/actions/agent-settings.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 67
+      },
+      {
+        "id": 69,
+        "file": "apps/web/src/actions/agent-settings.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 68
+      },
+      {
+        "id": 70,
+        "file": "apps/web/src/actions/agent-settings/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 71,
+        "file": "apps/web/src/actions/agent-settings/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 70
+      },
+      {
+        "id": 72,
+        "file": "apps/web/src/actions/agent-users.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 76
+      },
+      {
+        "id": 73,
+        "file": "apps/web/src/actions/agent-users.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 72
+      },
+      {
+        "id": 74,
+        "file": "apps/web/src/actions/agent-users.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 73
+      },
+      {
+        "id": 75,
+        "file": "apps/web/src/actions/agent-users/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 76,
+        "file": "apps/web/src/actions/agent-users/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 75
+      },
+      {
+        "id": 77,
+        "file": "apps/web/src/actions/analytics.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 84
+      },
+      {
+        "id": 78,
+        "file": "apps/web/src/actions/analytics.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 77
+      },
+      {
+        "id": 79,
+        "file": "apps/web/src/actions/analytics.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 78
+      },
+      {
+        "id": 80,
+        "file": "apps/web/src/actions/analytics/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 81,
+        "file": "apps/web/src/actions/analytics/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 80
+      },
+      {
+        "id": 82,
+        "file": "apps/web/src/actions/analytics/get-admin.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1084
+      },
+      {
+        "id": 83,
+        "file": "apps/web/src/actions/analytics/get-admin.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 84
+      },
+      {
+        "id": 84,
+        "file": "apps/web/src/actions/analytics/get-admin.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 82
+      },
+      {
+        "id": 85,
+        "file": "apps/web/src/actions/analytics/v2.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 86
+      },
+      {
+        "id": 86,
+        "file": "apps/web/src/actions/analytics/v2.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1009
+      },
+      {
+        "id": 87,
+        "file": "apps/web/src/actions/analytics/v3.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 88
+      },
+      {
+        "id": 88,
+        "file": "apps/web/src/actions/analytics/v3.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1009
+      },
+      {
+        "id": 89,
+        "file": "apps/web/src/actions/billing-test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1079
+      },
+      {
+        "id": 90,
+        "file": "apps/web/src/actions/branch-dashboard.core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 91,
+        "file": "apps/web/src/actions/branch-dashboard.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 738
+      },
+      {
+        "id": 92,
+        "file": "apps/web/src/actions/branch-dashboard.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 91
+      },
+      {
+        "id": 93,
+        "file": "apps/web/src/actions/claims-create.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 99
+      },
+      {
+        "id": 94,
+        "file": "apps/web/src/actions/claims-hardening.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 25
+      },
+      {
+        "id": 95,
+        "file": "apps/web/src/actions/claims-status.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 99
+      },
+      {
+        "id": 96,
+        "file": "apps/web/src/actions/claims-submit.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 98
+      },
+      {
+        "id": 97,
+        "file": "apps/web/src/actions/claims-tracking.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 98,
+        "file": "apps/web/src/actions/claims.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 109
+      },
+      {
+        "id": 99,
+        "file": "apps/web/src/actions/claims.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 98
+      },
+      {
+        "id": 100,
+        "file": "apps/web/src/actions/claims/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 101,
+        "file": "apps/web/src/actions/claims/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 100
+      },
+      {
+        "id": 102,
+        "file": "apps/web/src/actions/claims/create-from-saved-draft.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 103
+      },
+      {
+        "id": 103,
+        "file": "apps/web/src/actions/claims/create-from-saved-draft.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 107
+      },
+      {
+        "id": 104,
+        "file": "apps/web/src/actions/claims/saved-draft-claim-lookup.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 103
+      },
+      {
+        "id": 105,
+        "file": "apps/web/src/actions/claims/status.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 106,
+        "file": "apps/web/src/actions/claims/status.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 105
+      },
+      {
+        "id": 107,
+        "file": "apps/web/src/actions/claims/submit.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1017
+      },
+      {
+        "id": 108,
+        "file": "apps/web/src/actions/claims/submit.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 107
+      },
+      {
+        "id": 109,
+        "file": "apps/web/src/actions/claims/submit.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 107
+      },
+      {
+        "id": 110,
+        "file": "apps/web/src/actions/commissions-admin/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 111,
+        "file": "apps/web/src/actions/commissions-admin/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 110
+      },
+      {
+        "id": 112,
+        "file": "apps/web/src/actions/commissions.admin.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 111
+      },
+      {
+        "id": 113,
+        "file": "apps/web/src/actions/commissions.admin.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 112
+      },
+      {
+        "id": 114,
+        "file": "apps/web/src/actions/commissions.admin.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 113
+      },
+      {
+        "id": 115,
+        "file": "apps/web/src/actions/commissions.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 122
+      },
+      {
+        "id": 116,
+        "file": "apps/web/src/actions/commissions.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 115
+      },
+      {
+        "id": 117,
+        "file": "apps/web/src/actions/commissions.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 116
+      },
+      {
+        "id": 118,
+        "file": "apps/web/src/actions/commissions/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 119,
+        "file": "apps/web/src/actions/commissions/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 118
+      },
+      {
+        "id": 120,
+        "file": "apps/web/src/actions/commissions/create.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1083
+      },
+      {
+        "id": 121,
+        "file": "apps/web/src/actions/commissions/create.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 122,
+        "file": "apps/web/src/actions/commissions/create.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 120
+      },
+      {
+        "id": 123,
+        "file": "apps/web/src/actions/country-guidance.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 944
+      },
+      {
+        "id": 124,
+        "file": "apps/web/src/actions/crm-tasks.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 125,
+        "file": "apps/web/src/actions/different-email-recovery.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 126
+      },
+      {
+        "id": 126,
+        "file": "apps/web/src/actions/different-email-recovery.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 923
+      },
+      {
+        "id": 127,
+        "file": "apps/web/src/actions/different-email-recovery.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 126
+      },
+      {
+        "id": 128,
+        "file": "apps/web/src/actions/free-start-drafts.admission.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 133
+      },
+      {
+        "id": 129,
+        "file": "apps/web/src/actions/free-start-drafts.boundary.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 133
+      },
+      {
+        "id": 130,
+        "file": "apps/web/src/actions/free-start-drafts.read-context.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 132
+      },
+      {
+        "id": 131,
+        "file": "apps/web/src/actions/free-start-drafts.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 132
+      },
+      {
+        "id": 132,
+        "file": "apps/web/src/actions/free-start-drafts/lifecycle.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 133
+      },
+      {
+        "id": 133,
+        "file": "apps/web/src/actions/free-start-drafts/session.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 134,
+        "file": "apps/web/src/actions/leaderboard.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 138
+      },
+      {
+        "id": 135,
+        "file": "apps/web/src/actions/leaderboard.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 134
+      },
+      {
+        "id": 136,
+        "file": "apps/web/src/actions/leaderboard.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 135
+      },
+      {
+        "id": 137,
+        "file": "apps/web/src/actions/leaderboard/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 138,
+        "file": "apps/web/src/actions/leaderboard/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 137
+      },
+      {
+        "id": 139,
+        "file": "apps/web/src/actions/leads/create.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1073
+      },
+      {
+        "id": 140,
+        "file": "apps/web/src/actions/leads/dashboard.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 944
+      },
+      {
+        "id": 141,
+        "file": "apps/web/src/actions/leads/payment.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 142
+      },
+      {
+        "id": 142,
+        "file": "apps/web/src/actions/leads/payment.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1073
+      },
+      {
+        "id": 143,
+        "file": "apps/web/src/actions/leads/update.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 144
+      },
+      {
+        "id": 144,
+        "file": "apps/web/src/actions/leads/update.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 834
+      },
+      {
+        "id": 145,
+        "file": "apps/web/src/actions/leads/verify.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1073
+      },
+      {
+        "id": 146,
+        "file": "apps/web/src/actions/member-notes.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 149
+      },
+      {
+        "id": 147,
+        "file": "apps/web/src/actions/member-notes.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 146
+      },
+      {
+        "id": 148,
+        "file": "apps/web/src/actions/member-notes/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 149,
+        "file": "apps/web/src/actions/member-notes/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 148
+      },
+      {
+        "id": 150,
+        "file": "apps/web/src/actions/member-referrals.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 156
+      },
+      {
+        "id": 151,
+        "file": "apps/web/src/actions/member-referrals.settings.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 156
+      },
+      {
+        "id": 152,
+        "file": "apps/web/src/actions/member-referrals.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 150
+      },
+      {
+        "id": 153,
+        "file": "apps/web/src/actions/member-referrals.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 152
+      },
+      {
+        "id": 154,
+        "file": "apps/web/src/actions/member-referrals/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 155,
+        "file": "apps/web/src/actions/member-referrals/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 154
+      },
+      {
+        "id": 156,
+        "file": "apps/web/src/actions/member-referrals/settings.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1131
+      },
+      {
+        "id": 157,
+        "file": "apps/web/src/actions/member-referrals/stats.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1133
+      },
+      {
+        "id": 158,
+        "file": "apps/web/src/actions/member-referrals/stats.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 157
+      },
+      {
+        "id": 159,
+        "file": "apps/web/src/actions/messages.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 166
+      },
+      {
+        "id": 160,
+        "file": "apps/web/src/actions/messages.get.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 163
+      },
+      {
+        "id": 161,
+        "file": "apps/web/src/actions/messages.mark-read.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 163
+      },
+      {
+        "id": 162,
+        "file": "apps/web/src/actions/messages.send.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 163
+      },
+      {
+        "id": 163,
+        "file": "apps/web/src/actions/messages.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 159
+      },
+      {
+        "id": 164,
+        "file": "apps/web/src/actions/messages/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 165,
+        "file": "apps/web/src/actions/messages/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 164
+      },
+      {
+        "id": 166,
+        "file": "apps/web/src/actions/messages/send.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 938
+      },
+      {
+        "id": 167,
+        "file": "apps/web/src/actions/messaging.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 166
+      },
+      {
+        "id": 168,
+        "file": "apps/web/src/actions/messaging.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 167
+      },
+      {
+        "id": 169,
+        "file": "apps/web/src/actions/messaging.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 168
+      },
+      {
+        "id": 170,
+        "file": "apps/web/src/actions/notifications.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 174
+      },
+      {
+        "id": 171,
+        "file": "apps/web/src/actions/notifications.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 170
+      },
+      {
+        "id": 172,
+        "file": "apps/web/src/actions/notifications.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 171
+      },
+      {
+        "id": 173,
+        "file": "apps/web/src/actions/notifications/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 174,
+        "file": "apps/web/src/actions/notifications/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 173
+      },
+      {
+        "id": 175,
+        "file": "apps/web/src/actions/referrals.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 179
+      },
+      {
+        "id": 176,
+        "file": "apps/web/src/actions/referrals.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 175
+      },
+      {
+        "id": 177,
+        "file": "apps/web/src/actions/referrals.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 176
+      },
+      {
+        "id": 178,
+        "file": "apps/web/src/actions/referrals/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 179,
+        "file": "apps/web/src/actions/referrals/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 178
+      },
+      {
+        "id": 180,
+        "file": "apps/web/src/actions/staff-claims.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 190
+      },
+      {
+        "id": 181,
+        "file": "apps/web/src/actions/staff-claims/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 182,
+        "file": "apps/web/src/actions/staff-claims/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 181
+      },
+      {
+        "id": 183,
+        "file": "apps/web/src/actions/staff-claims/information-request.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 184
+      },
+      {
+        "id": 184,
+        "file": "apps/web/src/actions/staff-claims/information-request.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 185,
+        "file": "apps/web/src/actions/staff-claims/save-recovery-decision.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 186,
+        "file": "apps/web/src/actions/staff-claims/save-recovery-decision.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 187,
+        "file": "apps/web/src/actions/staff-claims/update-status.core.audit.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 188
+      },
+      {
+        "id": 188,
+        "file": "apps/web/src/actions/staff-claims/update-status.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1028
+      },
+      {
+        "id": 189,
+        "file": "apps/web/src/actions/staff-claims/update-status.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 190
+      },
+      {
+        "id": 190,
+        "file": "apps/web/src/actions/staff-claims/update-status.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 188
+      },
+      {
+        "id": 191,
+        "file": "apps/web/src/actions/subscription.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 192
+      },
+      {
+        "id": 192,
+        "file": "apps/web/src/actions/subscription.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1084
+      },
+      {
+        "id": 193,
+        "file": "apps/web/src/actions/subscription.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 192
+      },
+      {
+        "id": 194,
+        "file": "apps/web/src/actions/subscription/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 195,
+        "file": "apps/web/src/actions/subscription/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 194
+      },
+      {
+        "id": 196,
+        "file": "apps/web/src/actions/support-handoffs/acknowledgement.core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 197,
+        "file": "apps/web/src/actions/support-handoffs/acknowledgement.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 198,
+        "file": "apps/web/src/actions/support-handoffs/acknowledgement.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 197
+      },
+      {
+        "id": 199,
+        "file": "apps/web/src/actions/support-handoffs/audit.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 200,
+        "file": "apps/web/src/actions/support-handoffs/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 945
+      },
+      {
+        "id": 201,
+        "file": "apps/web/src/actions/support-handoffs/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 200
+      },
+      {
+        "id": 202,
+        "file": "apps/web/src/actions/support-handoffs/create.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 201
+      },
+      {
+        "id": 203,
+        "file": "apps/web/src/actions/support-handoffs/detail.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1042
+      },
+      {
+        "id": 204,
+        "file": "apps/web/src/actions/support-handoffs/lifecycle.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 205,
+        "file": "apps/web/src/actions/support-handoffs/lifecycle.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 201
+      },
+      {
+        "id": 206,
+        "file": "apps/web/src/actions/support-handoffs/reply.core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 207,
+        "file": "apps/web/src/actions/support-handoffs/reply.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 208,
+        "file": "apps/web/src/actions/support-handoffs/reply.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 209
+      },
+      {
+        "id": 209,
+        "file": "apps/web/src/actions/support-handoffs/reply.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 201
+      },
+      {
+        "id": 210,
+        "file": "apps/web/src/actions/support-handoffs/response.core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 211,
+        "file": "apps/web/src/actions/support-handoffs/response.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 212,
+        "file": "apps/web/src/actions/support-handoffs/response.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 201
+      },
+      {
+        "id": 213,
+        "file": "apps/web/src/actions/thank-you-letter.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 220
+      },
+      {
+        "id": 214,
+        "file": "apps/web/src/actions/thank-you-letter.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 213
+      },
+      {
+        "id": 215,
+        "file": "apps/web/src/actions/thank-you-letter.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 214
+      },
+      {
+        "id": 216,
+        "file": "apps/web/src/actions/thank-you-letter/delivery.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 219
+      },
+      {
+        "id": 217,
+        "file": "apps/web/src/actions/thank-you-letter/delivery.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 216
+      },
+      {
+        "id": 218,
+        "file": "apps/web/src/actions/thank-you-letter/send.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 219
+      },
+      {
+        "id": 219,
+        "file": "apps/web/src/actions/thank-you-letter/send.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 934
+      },
+      {
+        "id": 220,
+        "file": "apps/web/src/actions/thank-you-letter/send.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 219
+      },
+      {
+        "id": 221,
+        "file": "apps/web/src/actions/uploads/upload.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 222
+      },
+      {
+        "id": 222,
+        "file": "apps/web/src/actions/uploads/upload.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 223,
+        "file": "apps/web/src/actions/user-settings.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 230
+      },
+      {
+        "id": 224,
+        "file": "apps/web/src/actions/user-settings.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 223
+      },
+      {
+        "id": 225,
+        "file": "apps/web/src/actions/user-settings.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 224
+      },
+      {
+        "id": 226,
+        "file": "apps/web/src/actions/user-settings/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 227,
+        "file": "apps/web/src/actions/user-settings/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 226
+      },
+      {
+        "id": 228,
+        "file": "apps/web/src/actions/user-settings/update.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 229
+      },
+      {
+        "id": 229,
+        "file": "apps/web/src/actions/user-settings/update.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1140
+      },
+      {
+        "id": 230,
+        "file": "apps/web/src/actions/user-settings/update.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 229
+      },
+      {
+        "id": 231,
+        "file": "apps/web/src/actions/wrapped.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 235
+      },
+      {
+        "id": 232,
+        "file": "apps/web/src/actions/wrapped.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 231
+      },
+      {
+        "id": 233,
+        "file": "apps/web/src/actions/wrapped.wrapper.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 232
+      },
+      {
+        "id": 234,
+        "file": "apps/web/src/actions/wrapped/context.core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 235,
+        "file": "apps/web/src/actions/wrapped/context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 234
+      },
+      {
+        "id": 236,
+        "file": "apps/web/src/adapters/crm/dashboard-repository.test-fixtures.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 237,
+        "file": "apps/web/src/adapters/crm/dashboard-repository.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 238,
+        "file": "apps/web/src/adapters/crm/dashboard-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 239,
+        "file": "apps/web/src/adapters/crm/lead-activity-repository.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 240,
+        "file": "apps/web/src/adapters/crm/lead-activity-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 241,
+        "file": "apps/web/src/adapters/crm/lead-branch-ownership-test-setup.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 242,
+        "file": "apps/web/src/adapters/crm/lead-branch-ownership.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 243,
+        "file": "apps/web/src/adapters/crm/lead-detail-repository.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 244,
+        "file": "apps/web/src/adapters/crm/lead-detail-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 245,
+        "file": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 246,
+        "file": "apps/web/src/adapters/crm/lead-ownership-transfer.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 247,
+        "file": "apps/web/src/adapters/crm/routing-application-preflight.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 248,
+        "file": "apps/web/src/adapters/crm/routing-application-service.fixture.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 249,
+        "file": "apps/web/src/adapters/crm/routing-application-service.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 250,
+        "file": "apps/web/src/adapters/crm/routing-application-service.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 251,
+        "file": "apps/web/src/adapters/crm/routing-repository.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 252
+      },
+      {
+        "id": 252,
+        "file": "apps/web/src/adapters/crm/routing-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 253,
+        "file": "apps/web/src/adapters/crm/task-work-queue-repository.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 254,
+        "file": "apps/web/src/adapters/crm/task-work-queue-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 255,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 256
+      },
+      {
+        "id": 256,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 819
+      },
+      {
+        "id": 257,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/_layout.core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 258
+      },
+      {
+        "id": 258,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/_layout.core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 259,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/_layout.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 258
+      },
+      {
+        "id": 260,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/claims/_claim-groups.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 261,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/claims/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 262
+      },
+      {
+        "id": 262,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/claims/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 260
+      },
+      {
+        "id": 263,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 262
+      },
+      {
+        "id": 264,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_claim-summary.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 265,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 266,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 264
+      },
+      {
+        "id": 267,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/agent-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 268,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/claims-overview-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 269,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/member-header.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 270,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/membership-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 271,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/preferences-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 272,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/recent-claims-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 266
+      },
+      {
+        "id": 273,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 817
+      },
+      {
+        "id": 274,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 275
+      },
+      {
+        "id": 275,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 73
+      },
+      {
+        "id": 276,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/new/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 278
+      },
+      {
+        "id": 277,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/new/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 276
+      },
+      {
+        "id": 278,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/new/register-member-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 900
+      },
+      {
+        "id": 279,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/clients/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 275
+      },
+      {
+        "id": 280,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/commissions/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 661
+      },
+      {
+        "id": 281,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/commissions/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 280
+      },
+      {
+        "id": 282,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/_core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 283,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/_core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 284,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 285
+      },
+      {
+        "id": 285,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 283
+      },
+      {
+        "id": 286,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-actions.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 287,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-actions.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 254
+      },
+      {
+        "id": 288,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-cancel-controls.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 289,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-controls.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 290
+      },
+      {
+        "id": 290,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-controls.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 291,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-due-date-controls.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 292,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-priority-controls.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 293,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-reopen-controls.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 294
+      },
+      {
+        "id": 294,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/crm/task-queue-reopen-controls.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 287
+      },
+      {
+        "id": 295,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/import/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 296
+      },
+      {
+        "id": 296,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/import/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 258
+      },
+      {
+        "id": 297,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 259
+      },
+      {
+        "id": 298,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/[id]/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 299
+      },
+      {
+        "id": 299,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/[id]/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 244
+      },
+      {
+        "id": 300,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 828
+      },
+      {
+        "id": 301,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/_client.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 831
+      },
+      {
+        "id": 302,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 303
+      },
+      {
+        "id": 303,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 830
+      },
+      {
+        "id": 304,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/new/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 305
+      },
+      {
+        "id": 305,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/new/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 306
+      },
+      {
+        "id": 306,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/new/create-lead-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 900
+      },
+      {
+        "id": 307,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/new/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 305
+      },
+      {
+        "id": 308,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/leads/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 303
+      },
+      {
+        "id": 309,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/members/[memberId]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 817
+      },
+      {
+        "id": 310,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/members/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 311,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 256
+      },
+      {
+        "id": 312,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/pos/page.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 313
+      },
+      {
+        "id": 313,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/pos/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 314,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/settings/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 315,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/settings/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 314
+      },
+      {
+        "id": 316,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/workspace/claims/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 317
+      },
+      {
+        "id": 317,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/workspace/claims/page.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 318,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/workspace/leads/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 319
+      },
+      {
+        "id": 319,
+        "file": "apps/web/src/app/[locale]/(agent)/agent/workspace/leads/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 830
+      },
+      {
+        "id": 320,
+        "file": "apps/web/src/app/[locale]/(app)/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 321
+      },
+      {
+        "id": 321,
+        "file": "apps/web/src/app/[locale]/(app)/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 920
+      },
+      {
+        "id": 322,
+        "file": "apps/web/src/app/[locale]/(app)/dashboard/wrapped/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 232
+      },
+      {
+        "id": 323,
+        "file": "apps/web/src/app/[locale]/(app)/dashboard/wrapped/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 322
+      },
+      {
+        "id": 324,
+        "file": "apps/web/src/app/[locale]/(app)/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 321
+      },
+      {
+        "id": 325,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/default.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 326
+      },
+      {
+        "id": 326,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@actions/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 333
+      },
+      {
+        "id": 327,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@case/default.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 328
+      },
+      {
+        "id": 328,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@case/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 333
+      },
+      {
+        "id": 329,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/default.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 330
+      },
+      {
+        "id": 330,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/@updates/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 333
+      },
+      {
+        "id": 331,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 333
+      },
+      {
+        "id": 332,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 333
+      },
+      {
+        "id": 333,
+        "file": "apps/web/src/app/[locale]/(app)/member/(portal)/portal-context.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1075
+      },
+      {
+        "id": 334,
+        "file": "apps/web/src/app/[locale]/(app)/member/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 335
+      },
+      {
+        "id": 335,
+        "file": "apps/web/src/app/[locale]/(app)/member/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 336,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 337,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 338,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 339,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/new/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 680
+      },
+      {
+        "id": 340,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/new/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 339
+      },
+      {
+        "id": 341,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/new/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 339
+      },
+      {
+        "id": 342,
+        "file": "apps/web/src/app/[locale]/(app)/member/claims/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 338
+      },
+      {
+        "id": 343,
+        "file": "apps/web/src/app/[locale]/(app)/member/documents/_core.entry.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 344,
+        "file": "apps/web/src/app/[locale]/(app)/member/documents/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 343
+      },
+      {
+        "id": 345,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_advisory-banner.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 346
+      },
+      {
+        "id": 346,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_advisory-banner.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1032
+      },
+      {
+        "id": 347,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_core.entry.fixture.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 348,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_core.entry.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 349,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 346
+      },
+      {
+        "id": 350,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_member-claim-options.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 351,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_member-reply-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 209
+      },
+      {
+        "id": 352,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_public-response-acknowledgement-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 198
+      },
+      {
+        "id": 353,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_public-response-banner.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 354
+      },
+      {
+        "id": 354,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_public-response-banner.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1048
+      },
+      {
+        "id": 355,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_support-handoff-form.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 356
+      },
+      {
+        "id": 356,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/_support-handoff-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 202
+      },
+      {
+        "id": 357,
+        "file": "apps/web/src/app/[locale]/(app)/member/help/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 349
+      },
+      {
+        "id": 358,
+        "file": "apps/web/src/app/[locale]/(app)/member/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 335
+      },
+      {
+        "id": 359,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/card/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 360,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/card/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 361
+      },
+      {
+        "id": 361,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/card/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 359
+      },
+      {
+        "id": 362,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/components/grace-period-banner.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 365
+      },
+      {
+        "id": 363,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/components/locked-state-banner.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 365
+      },
+      {
+        "id": 364,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/components/manage-subscription-button.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 192
+      },
+      {
+        "id": 365,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/components/update-payment-button.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 192
+      },
+      {
+        "id": 366,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 367
+      },
+      {
+        "id": 367,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 886
+      },
+      {
+        "id": 368,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 672
+      },
+      {
+        "id": 369,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 368
+      },
+      {
+        "id": 370,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/success-accessibility-localization.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 372
+      },
+      {
+        "id": 371,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/success-active-state.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 372
+      },
+      {
+        "id": 372,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/success-page.test-harness.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 369
+      },
+      {
+        "id": 373,
+        "file": "apps/web/src/app/[locale]/(app)/member/membership/success/success-registered-state.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 372
+      },
+      {
+        "id": 374,
+        "file": "apps/web/src/app/[locale]/(app)/member/policies/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 891
+      },
+      {
+        "id": 375,
+        "file": "apps/web/src/app/[locale]/(app)/member/settings/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 376
+      },
+      {
+        "id": 376,
+        "file": "apps/web/src/app/[locale]/(app)/member/settings/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 715
+      },
+      {
+        "id": 377,
+        "file": "apps/web/src/app/[locale]/(app)/member/settings/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 376
+      },
+      {
+        "id": 378,
+        "file": "apps/web/src/app/[locale]/(app)/profile/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 379,
+        "file": "apps/web/src/app/[locale]/(app)/profile/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 378
+      },
+      {
+        "id": 380,
+        "file": "apps/web/src/app/[locale]/(auth)/login/_core.entry.continuation.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 384
+      },
+      {
+        "id": 381,
+        "file": "apps/web/src/app/[locale]/(auth)/login/_core.entry.neutral-hosts.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 384
+      },
+      {
+        "id": 382,
+        "file": "apps/web/src/app/[locale]/(auth)/login/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 384
+      },
+      {
+        "id": 383,
+        "file": "apps/web/src/app/[locale]/(auth)/login/_core.entry.timing.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 384
+      },
+      {
+        "id": 384,
+        "file": "apps/web/src/app/[locale]/(auth)/login/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 385,
+        "file": "apps/web/src/app/[locale]/(auth)/login/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 384
+      },
+      {
+        "id": 386,
+        "file": "apps/web/src/app/[locale]/(auth)/login/saved-draft-sign-in.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 387
+      },
+      {
+        "id": 387,
+        "file": "apps/web/src/app/[locale]/(auth)/login/saved-draft-sign-in.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 671
+      },
+      {
+        "id": 388,
+        "file": "apps/web/src/app/[locale]/(site)/business-membership/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 713
+      },
+      {
+        "id": 389,
+        "file": "apps/web/src/app/[locale]/(site)/business-membership/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 390
+      },
+      {
+        "id": 390,
+        "file": "apps/web/src/app/[locale]/(site)/business-membership/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 713
+      },
+      {
+        "id": 391,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 392,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 393,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 394,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-history.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 395
+      },
+      {
+        "id": 395,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 400
+      },
+      {
+        "id": 396,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-test-support.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 400
+      },
+      {
+        "id": 397,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 396
+      },
+      {
+        "id": 398,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.access-tenant.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 395
+      },
+      {
+        "id": 399,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 395
+      },
+      {
+        "id": 400,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 393
+      },
+      {
+        "id": 401,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 402
+      },
+      {
+        "id": 402,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 403,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 402
+      },
+      {
+        "id": 404,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-attention.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 402
+      },
+      {
+        "id": 405,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/_core.pii.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 408
+      },
+      {
+        "id": 406,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/_core.tenant.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 407,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 408
+      },
+      {
+        "id": 408,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/_core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 409,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/_tenant-repository.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 410,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 411
+      },
+      {
+        "id": 411,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/crm/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 408
+      },
+      {
+        "id": 412,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 391
+      },
+      {
+        "id": 413,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_assignable-staff.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 414,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_core.entry.access.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 415,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_core.entry.response-refresh.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 416,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_core.entry.response.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 417,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_core.entry.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 418,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/_core.entry.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 419,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 418
+      },
+      {
+        "id": 420,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/support-handoff-detail-panel.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 203
+      },
+      {
+        "id": 421,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/support-handoff-page.fixture.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 422,
+        "file": "apps/web/src/app/[locale]/(staff)/staff/support-handoffs/support-handoff-test-context.fixture.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 423,
+        "file": "apps/web/src/app/[locale]/admin/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 424
+      },
+      {
+        "id": 424,
+        "file": "apps/web/src/app/[locale]/admin/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 721
+      },
+      {
+        "id": 425,
+        "file": "apps/web/src/app/[locale]/admin/analytics/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 426
+      },
+      {
+        "id": 426,
+        "file": "apps/web/src/app/[locale]/admin/analytics/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 427,
+        "file": "apps/web/src/app/[locale]/admin/branches/[branchId]/components/branch-header.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 740
+      },
+      {
+        "id": 428,
+        "file": "apps/web/src/app/[locale]/admin/branches/[branchId]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 731
+      },
+      {
+        "id": 429,
+        "file": "apps/web/src/app/[locale]/admin/branches/components/create-branch-dialog.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 28
+      },
+      {
+        "id": 430,
+        "file": "apps/web/src/app/[locale]/admin/branches/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 729
+      },
+      {
+        "id": 431,
+        "file": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 759
+      },
+      {
+        "id": 432,
+        "file": "apps/web/src/app/[locale]/admin/claims/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 950
+      },
+      {
+        "id": 433,
+        "file": "apps/web/src/app/[locale]/admin/claims/number/[claimNumber]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 434
+      },
+      {
+        "id": 434,
+        "file": "apps/web/src/app/[locale]/admin/claims/number/[claimNumber]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 791
+      },
+      {
+        "id": 435,
+        "file": "apps/web/src/app/[locale]/admin/claims/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 436
+      },
+      {
+        "id": 436,
+        "file": "apps/web/src/app/[locale]/admin/claims/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 761
+      },
+      {
+        "id": 437,
+        "file": "apps/web/src/app/[locale]/admin/commissions/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 152
+      },
+      {
+        "id": 438,
+        "file": "apps/web/src/app/[locale]/admin/commissions/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 152
+      },
+      {
+        "id": 439,
+        "file": "apps/web/src/app/[locale]/admin/commissions/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 438
+      },
+      {
+        "id": 440,
+        "file": "apps/web/src/app/[locale]/admin/crm/_backfill-action.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 441,
+        "file": "apps/web/src/app/[locale]/admin/crm/_backfill-action.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 442,
+        "file": "apps/web/src/app/[locale]/admin/crm/_backfill-operator.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 443
+      },
+      {
+        "id": 443,
+        "file": "apps/web/src/app/[locale]/admin/crm/_backfill-operator.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 444,
+        "file": "apps/web/src/app/[locale]/admin/crm/_backfill-tenant.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 445,
+        "file": "apps/web/src/app/[locale]/admin/crm/_branch-manager-tenant.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 446,
+        "file": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant-test-setup.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 447,
+        "file": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 448,
+        "file": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 449,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-action.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 450,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 451,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-core.pii.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 453
+      },
+      {
+        "id": 452,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 453
+      },
+      {
+        "id": 453,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 454,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-rules-panel.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 450
+      },
+      {
+        "id": 455,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-tenant.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 456,
+        "file": "apps/web/src/app/[locale]/admin/crm/_routing-tenant.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 457,
+        "file": "apps/web/src/app/[locale]/admin/crm/page-reporting.fixture.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 458,
+        "file": "apps/web/src/app/[locale]/admin/crm/page-test-setup.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 459,
+        "file": "apps/web/src/app/[locale]/admin/crm/page.test.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 460,
+        "file": "apps/web/src/app/[locale]/admin/crm/page.tsx",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 461,
+        "file": "apps/web/src/app/[locale]/admin/layout.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 424
+      },
+      {
+        "id": 462,
+        "file": "apps/web/src/app/[locale]/admin/leads/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 463
+      },
+      {
+        "id": 463,
+        "file": "apps/web/src/app/[locale]/admin/leads/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 807
+      },
+      {
+        "id": 464,
+        "file": "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 465
+      },
+      {
+        "id": 465,
+        "file": "apps/web/src/app/[locale]/admin/members/number/[memberNumber]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 466,
+        "file": "apps/web/src/app/[locale]/admin/overview/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 467
+      },
+      {
+        "id": 467,
+        "file": "apps/web/src/app/[locale]/admin/overview/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 797
+      },
+      {
+        "id": 468,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_claim-summary.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 469,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_claim-summary.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 470,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_components/admin-user-roles-panel.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 471
+      },
+      {
+        "id": 471,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_components/admin-user-roles-panel.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 29
+      },
+      {
+        "id": 472,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_components/membership-info-card.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 473
+      },
+      {
+        "id": 473,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_components/membership-info-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 800
+      },
+      {
+        "id": 474,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_core.access.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 476
+      },
+      {
+        "id": 475,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 476
+      },
+      {
+        "id": 476,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1084
+      },
+      {
+        "id": 477,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/page.actor-scope.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 478
+      },
+      {
+        "id": 478,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 480
+      },
+      {
+        "id": 479,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/tenant-classification.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 480,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/tenant-classification.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 481,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/tenant-context.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 482,
+        "file": "apps/web/src/app/[locale]/admin/users/[id]/tenant-context.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 483,
+        "file": "apps/web/src/app/[locale]/admin/users/_core.entry.read-recovery.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 485
+      },
+      {
+        "id": 484,
+        "file": "apps/web/src/app/[locale]/admin/users/_core.entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 485
+      },
+      {
+        "id": 485,
+        "file": "apps/web/src/app/[locale]/admin/users/_core.entry.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 486,
+        "file": "apps/web/src/app/[locale]/admin/users/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 485
+      },
+      {
+        "id": 487,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-accident-entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 488,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-account-arrival-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 554
+      },
+      {
+        "id": 489,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-completion-ownership-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 490,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-flight-entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 491,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-injury-entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 492,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-operation-ownership.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 493,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell-confidence.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 952
+      },
+      {
+        "id": 494,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell-result.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 952
+      },
+      {
+        "id": 495,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 952
+      },
+      {
+        "id": 496,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 532
+      },
+      {
+        "id": 497,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-browser-recovery.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 532
+      },
+      {
+        "id": 498,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-debounce.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 541
+      },
+      {
+        "id": 499,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-initial-admission.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 532
+      },
+      {
+        "id": 500,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 680
+      },
+      {
+        "id": 501,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-ownership.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 542
+      },
+      {
+        "id": 502,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-presentation.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 543
+      },
+      {
+        "id": 503,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-promotion-chain.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 532
+      },
+      {
+        "id": 504,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-queue.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 544
+      },
+      {
+        "id": 505,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-review-regressions.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 542
+      },
+      {
+        "id": 506,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-unmount-boundaries.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 541
+      },
+      {
+        "id": 507,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/account-draft-unmount.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 541
+      },
+      {
+        "id": 508,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/anonymous-draft-recovery.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 680
+      },
+      {
+        "id": 509,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/different-email-recovery.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 510
+      },
+      {
+        "id": 510,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/different-email-recovery.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 127
+      },
+      {
+        "id": 511,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-acceptance-boundaries.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 512,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-bootstrap-save.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 513,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-category-restore.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 514,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-commands.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 131
+      },
+      {
+        "id": 515,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-continuation-ownership.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 516,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-continuation.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 519
+      },
+      {
+        "id": 517,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-create-replay-recovery.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 518,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-direct-auth.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 519,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-editor.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 131
+      },
+      {
+        "id": 520,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-existing-list-autosave.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 521,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-manage-interleavings.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 522,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-manage-supersession.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 523,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-manager-busy.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 537
+      },
+      {
+        "id": 524,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-manager-feedback.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 525,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-operations.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 131
+      },
+      {
+        "id": 526,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-queued-auth.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 527,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-remove-feedback.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 528,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-session-expiry-recovery.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 529,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-session-expiry-terminal.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 530,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-session-expiry.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 531,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/draft-lifecycle-terminal-ownership.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 532,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/index.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 533
+      },
+      {
+        "id": 533,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/public-save-options.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 538
+      },
+      {
+        "id": 534,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/saved-draft-continuation-ownership.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 519
+      },
+      {
+        "id": 535,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/saved-draft-continuation.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 516
+      },
+      {
+        "id": 536,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/saved-draft-list.focus.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 537
+      },
+      {
+        "id": 537,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/saved-draft-list.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 510
+      },
+      {
+        "id": 538,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/secure-save-band.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 537
+      },
+      {
+        "id": 539,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/secure-save-flow.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 544
+      },
+      {
+        "id": 540,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/tests/account-draft-hook-fixtures.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 541
+      },
+      {
+        "id": 541,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/tests/account-draft-hook-fixtures.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 544
+      },
+      {
+        "id": 542,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/tests/account-draft-ownership-fixtures.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 544
+      },
+      {
+        "id": 543,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-account-draft-presentation.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 131
+      },
+      {
+        "id": 544,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-intake-shell/use-draft-lifecycle.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 514
+      },
+      {
+        "id": 545,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-journey-intent-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 546,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-problem-first-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 547,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-property-entry.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 548,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-save-clarity-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 549,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-save-clarity-recovery-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 550,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-save-clarity-review-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 551,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-verified-continuity-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 554
+      },
+      {
+        "id": 552,
+        "file": "apps/web/src/app/[locale]/components/home/free-start-waiting-intent-mounted.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 553,
+        "file": "apps/web/src/app/[locale]/components/home/home-page-runtime.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 554
+      },
+      {
+        "id": 554,
+        "file": "apps/web/src/app/[locale]/components/home/home-page-runtime.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 496
+      },
+      {
+        "id": 555,
+        "file": "apps/web/src/app/[locale]/components/home/premium-free-start-organizer.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 532
+      },
+      {
+        "id": 556,
+        "file": "apps/web/src/app/[locale]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 557
+      },
+      {
+        "id": 557,
+        "file": "apps/web/src/app/[locale]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 554
+      },
+      {
+        "id": 558,
+        "file": "apps/web/src/app/api/ai/reviews/[id]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 559
+      },
+      {
+        "id": 559,
+        "file": "apps/web/src/app/api/ai/reviews/[id]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 560,
+        "file": "apps/web/src/app/api/ai/runs/[id]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 561
+      },
+      {
+        "id": 561,
+        "file": "apps/web/src/app/api/ai/runs/[id]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 562,
+        "file": "apps/web/src/app/api/auth/[...all]/neutral-otp-route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 563,
+        "file": "apps/web/src/app/api/auth/[...all]/route.live-login-cutover.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 564,
+        "file": "apps/web/src/app/api/auth/[...all]/route.neutral-email-sign-in.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 565,
+        "file": "apps/web/src/app/api/auth/[...all]/route.otp-send.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 566,
+        "file": "apps/web/src/app/api/auth/[...all]/route.otp-verify.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 567,
+        "file": "apps/web/src/app/api/auth/[...all]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 568,
+        "file": "apps/web/src/app/api/auth/[...all]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 569,
+        "file": "apps/web/src/app/api/auth/login-session/provider-rate-limit.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 570,
+        "file": "apps/web/src/app/api/auth/login-session/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 571
+      },
+      {
+        "id": 571,
+        "file": "apps/web/src/app/api/auth/login-session/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 568
+      },
+      {
+        "id": 572,
+        "file": "apps/web/src/app/api/claims/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1020
+      },
+      {
+        "id": 573,
+        "file": "apps/web/src/app/api/claims/evidence-upload/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 856
+      },
+      {
+        "id": 574,
+        "file": "apps/web/src/app/api/claims/evidence-upload/confirm.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 863
+      },
+      {
+        "id": 575,
+        "file": "apps/web/src/app/api/claims/evidence-upload/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 576
+      },
+      {
+        "id": 576,
+        "file": "apps/web/src/app/api/claims/evidence-upload/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 573
+      },
+      {
+        "id": 577,
+        "file": "apps/web/src/app/api/claims/route-privacy.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 579
+      },
+      {
+        "id": 578,
+        "file": "apps/web/src/app/api/claims/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 579
+      },
+      {
+        "id": 579,
+        "file": "apps/web/src/app/api/claims/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 950
+      },
+      {
+        "id": 580,
+        "file": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 581,
+        "file": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 582,
+        "file": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 583,
+        "file": "apps/web/src/app/api/cron/dunning/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 934
+      },
+      {
+        "id": 584,
+        "file": "apps/web/src/app/api/cron/dunning/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 585
+      },
+      {
+        "id": 585,
+        "file": "apps/web/src/app/api/cron/dunning/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 583
+      },
+      {
+        "id": 586,
+        "file": "apps/web/src/app/api/cron/engagement/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 934
+      },
+      {
+        "id": 587,
+        "file": "apps/web/src/app/api/cron/engagement/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 588
+      },
+      {
+        "id": 588,
+        "file": "apps/web/src/app/api/cron/engagement/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 586
+      },
+      {
+        "id": 589,
+        "file": "apps/web/src/app/api/cron/nps/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 934
+      },
+      {
+        "id": 590,
+        "file": "apps/web/src/app/api/cron/nps/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 591
+      },
+      {
+        "id": 591,
+        "file": "apps/web/src/app/api/cron/nps/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 589
+      },
+      {
+        "id": 592,
+        "file": "apps/web/src/app/api/documents/[id]/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 598
+      },
+      {
+        "id": 593,
+        "file": "apps/web/src/app/api/documents/[id]/download/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 596
+      },
+      {
+        "id": 594,
+        "file": "apps/web/src/app/api/documents/[id]/download/access-tenant.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 596
+      },
+      {
+        "id": 595,
+        "file": "apps/web/src/app/api/documents/[id]/download/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 596
+      },
+      {
+        "id": 596,
+        "file": "apps/web/src/app/api/documents/[id]/download/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 597,
+        "file": "apps/web/src/app/api/documents/[id]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 598
+      },
+      {
+        "id": 598,
+        "file": "apps/web/src/app/api/documents/[id]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 599,
+        "file": "apps/web/src/app/api/inngest/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 935
+      },
+      {
+        "id": 600,
+        "file": "apps/web/src/app/api/policies/analyze/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 601
+      },
+      {
+        "id": 601,
+        "file": "apps/web/src/app/api/policies/analyze/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 602,
+        "file": "apps/web/src/app/api/privacy/data-deletion/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 603
+      },
+      {
+        "id": 603,
+        "file": "apps/web/src/app/api/privacy/data-deletion/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 604,
+        "file": "apps/web/src/app/api/register/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 605
+      },
+      {
+        "id": 605,
+        "file": "apps/web/src/app/api/register/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 906
+      },
+      {
+        "id": 606,
+        "file": "apps/web/src/app/api/settings/notifications/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 607
+      },
+      {
+        "id": 607,
+        "file": "apps/web/src/app/api/settings/notifications/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 608,
+        "file": "apps/web/src/app/api/settings/push/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 609
+      },
+      {
+        "id": 609,
+        "file": "apps/web/src/app/api/settings/push/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 610,
+        "file": "apps/web/src/app/api/share-pack/route.request-guard.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 612
+      },
+      {
+        "id": 611,
+        "file": "apps/web/src/app/api/share-pack/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 612
+      },
+      {
+        "id": 612,
+        "file": "apps/web/src/app/api/share-pack/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 613,
+        "file": "apps/web/src/app/api/uploads/_core.access-tenant.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 614
+      },
+      {
+        "id": 614,
+        "file": "apps/web/src/app/api/uploads/_core.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 855
+      },
+      {
+        "id": 615,
+        "file": "apps/web/src/app/api/uploads/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 616
+      },
+      {
+        "id": 616,
+        "file": "apps/web/src/app/api/uploads/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 617,
+        "file": "apps/web/src/app/api/verification/[id]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 618
+      },
+      {
+        "id": 618,
+        "file": "apps/web/src/app/api/verification/[id]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 813
+      },
+      {
+        "id": 619,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/_core.snapshot.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 620,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/_core.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 621,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/_core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 622,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/entity-mismatch.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 623,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 624
+      },
+      {
+        "id": 624,
+        "file": "apps/web/src/app/api/webhooks/paddle/[entity]/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 621
+      },
+      {
+        "id": 625,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.fixture.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 626,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.lead.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 625
+      },
+      {
+        "id": 627,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.retry.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 628,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.tenant.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 629,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 625
+      },
+      {
+        "id": 630,
+        "file": "apps/web/src/app/api/webhooks/paddle/_core.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 631,
+        "file": "apps/web/src/app/api/webhooks/paddle/authenticated-boundary.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 632,
+        "file": "apps/web/src/app/api/webhooks/paddle/bound-receipt-store.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 633,
+        "file": "apps/web/src/app/api/webhooks/paddle/paddle-identity.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 634,
+        "file": "apps/web/src/app/api/webhooks/paddle/paddle-onboarding.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 921
+      },
+      {
+        "id": 635,
+        "file": "apps/web/src/app/api/webhooks/paddle/route.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 636
+      },
+      {
+        "id": 636,
+        "file": "apps/web/src/app/api/webhooks/paddle/route.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 630
+      },
+      {
+        "id": 637,
+        "file": "apps/web/src/app/track/[token]/page.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 638
+      },
+      {
+        "id": 638,
+        "file": "apps/web/src/app/track/[token]/page.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 848
+      },
+      {
+        "id": 639,
+        "file": "apps/web/src/components/admin/add-agent-dialog-locale.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 640,
+        "file": "apps/web/src/components/admin/add-agent-dialog.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 641,
+        "file": "apps/web/src/components/admin/add-agent-dialog.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 651
+      },
+      {
+        "id": 642,
+        "file": "apps/web/src/components/admin/analytics-dashboard.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 78
+      },
+      {
+        "id": 643,
+        "file": "apps/web/src/components/admin/branches/branches-table.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 29
+      },
+      {
+        "id": 644,
+        "file": "apps/web/src/components/admin/branches/create-branch-dialog.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 29
+      },
+      {
+        "id": 645,
+        "file": "apps/web/src/components/admin/branches/edit-branch-sheet.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 29
+      },
+      {
+        "id": 646,
+        "file": "apps/web/src/components/admin/claims/claim-assignment-form.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 647
+      },
+      {
+        "id": 647,
+        "file": "apps/web/src/components/admin/claims/claim-assignment-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 17
+      },
+      {
+        "id": 648,
+        "file": "apps/web/src/components/admin/claims/claim-status-form.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 649
+      },
+      {
+        "id": 649,
+        "file": "apps/web/src/components/admin/claims/claim-status-form.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 17
+      },
+      {
+        "id": 650,
+        "file": "apps/web/src/components/admin/use-add-agent-options.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 651,
+        "file": "apps/web/src/components/admin/use-add-agent-options.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 652,
+        "file": "apps/web/src/components/admin/users-sections.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 653
+      },
+      {
+        "id": 653,
+        "file": "apps/web/src/components/admin/users-sections.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 656
+      },
+      {
+        "id": 654,
+        "file": "apps/web/src/components/admin/users-table.read-recovery.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 655,
+        "file": "apps/web/src/components/admin/users-table.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 656
+      },
+      {
+        "id": 656,
+        "file": "apps/web/src/components/admin/users-table.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 38
+      },
+      {
+        "id": 657,
+        "file": "apps/web/src/components/agent/agent-status-select.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 658
+      },
+      {
+        "id": 658,
+        "file": "apps/web/src/components/agent/agent-status-select.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 50
+      },
+      {
+        "id": 659,
+        "file": "apps/web/src/components/agent/claim-info-pane.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 660
+      },
+      {
+        "id": 660,
+        "file": "apps/web/src/components/agent/claim-info-pane.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 658
+      },
+      {
+        "id": 661,
+        "file": "apps/web/src/components/agent/commission-summary-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 116
+      },
+      {
+        "id": 662,
+        "file": "apps/web/src/components/agent/commissions-list.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 116
+      },
+      {
+        "id": 663,
+        "file": "apps/web/src/components/agent/leaderboard-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 135
+      },
+      {
+        "id": 664,
+        "file": "apps/web/src/components/agent/member-note-dialog.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 147
+      },
+      {
+        "id": 665,
+        "file": "apps/web/src/components/agent/member-note-item.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 147
+      },
+      {
+        "id": 666,
+        "file": "apps/web/src/components/agent/member-notes-card.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 147
+      },
+      {
+        "id": 667,
+        "file": "apps/web/src/components/agent/member-notes-constants.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 147
+      },
+      {
+        "id": 668,
+        "file": "apps/web/src/components/agent/triage-panel.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 50
+      },
+      {
+        "id": 669,
+        "file": "apps/web/src/components/agent/triage-panel.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 50
+      },
+      {
+        "id": 670,
+        "file": "apps/web/src/components/auth/saved-draft-sign-in.test.tsx",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 671
+      }
+    ]
+  }
+}

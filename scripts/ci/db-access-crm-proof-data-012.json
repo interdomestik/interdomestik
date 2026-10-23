@@ -1,0 +1,11 @@
+{
+  "kind": "diagnostics.v1.meta",
+  "value": {
+    "version": 1,
+    "serialization": "canonicalCrm-JSON.stringify-utf8-compact",
+    "counts": { "files": 1, "reasons": 1, "caseSets": 1, "rows": 1 },
+    "expandedCanonicalJsonUtf8Bytes": 284,
+    "expandedCanonicalJsonSha256": "f848e303ac0ed8cc98beae2b21da9ee5ab9b82fb6dc564ae27e35eee3c1f7f24",
+    "expandedCrmDigest": "f848e303ac0ed8cc98beae2b21da9ee5ab9b82fb6dc564ae27e35eee3c1f7f24"
+  }
+}

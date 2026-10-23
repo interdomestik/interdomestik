@@ -1,0 +1,226 @@
+{
+  "kind": "cases",
+  "value": [
+    {
+      "id": "crm-source-operation-a15e3edadd588bd9",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:358, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "a15e3edadd588bd9398070c7abb346b8a1b1010a2319026eddf4eaeb1f7f6d9f"
+    },
+    {
+      "id": "crm-source-operation-a871bcd95b3d8bec",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:369, hoisted.db.transaction is the local vi.fn created at line 11 inside the value returned by vi.hoisted. Configuration at line 77 installs an implementation that passes only local hoisted.tx to the SUT-supplied callback; the callback execution and all SUT effects remain an explicit excluded boundary. No real database transaction receiver enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "a871bcd95b3d8bece107109b3b6a5c4bb1e71c20f3e6281e255921f59d843c40"
+    },
+    {
+      "id": "crm-source-operation-ce28db3a9362ea5f",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:384, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "ce28db3a9362ea5f06f0da2d20a71bf2290cce297b171fc22a64935ae79063e8"
+    },
+    {
+      "id": "crm-source-operation-fa14e404b71f5610",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:394, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "fa14e404b71f56101806c9a33e54fa529f1227ee1d9b1bc962d3f796de4bfce4"
+    },
+    {
+      "id": "crm-source-operation-5d3eb52096ea4a42",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:401, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "5d3eb52096ea4a428f595399a282ae08e7944d3ab3cb514bcaba00555532639f"
+    },
+    {
+      "id": "crm-source-operation-bf52583c095eaafb",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:402, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "bf52583c095eaafb1c29dae8dbf6456e5969dbb36cb47c3e05794a02f78fda14"
+    },
+    {
+      "id": "crm-source-operation-d6c562b254010da6",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:434, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "d6c562b254010da6f19ae69f9adaebe1f8a1344c40480bb419cd4abb6ddebfde"
+    },
+    {
+      "id": "crm-source-operation-1476af4ec54eefbd",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:444, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "1476af4ec54eefbd34f2b5d55c48601b945f2cd736cde7adc736498af695a106"
+    },
+    {
+      "id": "crm-source-operation-dc0f1dad691f9faa",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:465, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "dc0f1dad691f9faa57a3bde632bce738d62979943414667e784c161f229e9250"
+    },
+    {
+      "id": "crm-source-operation-c3f006ae173204ea",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:469, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "c3f006ae173204ea6d63afaeb51d06421d839b0238ccac1deac77c14c67eb84c"
+    },
+    {
+      "id": "crm-source-operation-fcfdbd3e5fa43f44",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:496, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "fcfdbd3e5fa43f44e2b300007fccbace402eec3cb2266b4cfb62f4b34eb6db51"
+    },
+    {
+      "id": "crm-source-operation-441104224399036a",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:507, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "441104224399036ac719387d60446019c358bfb4962f64786befcc952ff9d869"
+    },
+    {
+      "id": "crm-source-operation-fe100c9dc3374fd6",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:528, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "fe100c9dc3374fd667d9b4a2f40d3a4c4a6a1ecf9774b359bbec09b082793bcd"
+    },
+    {
+      "id": "crm-source-operation-b11f7eb1e4f5bdb1",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:532, the flagged hoisted.db.query receiver is the local object constructed by vi.hoisted at lines 3-21; its four findFirst leaves are vi.fn mocks created at lines 6-9. The exact Vitest 4.1.11 helper returns the hoisted factory value and @vitest/spy 4.1.11 creates local mock functions. No importOriginal, actual-module spread, receiver reassignment or real database handle enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "b11f7eb1e4f5bdb17f6b2272325a9bf571dd13a6cc6b4477f62a34d8059825a6"
+    },
+    {
+      "id": "crm-source-operation-a4bbd8d81cd9e85b",
+      "kind": "source-classification",
+      "files": [
+        "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts"
+      ],
+      "justification": "At packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts:548, hoisted.tx.update is the local vi.fn created at line 15 inside the value returned by vi.hoisted. The line-86 implementation returns only a local builder literal containing hoisted.updatedUserValues. No production transaction/client receiver enters this expression. This classifies only the exact test-source receiver/value expression as locally constructed mock data/control. It does not classify any mock implementation result, SUT callback effect, production database operation, adjacent operation, whole file/root or diagnostic. Final successor dependency/source/inventory/context/operation identity refresh remains required.",
+      "evidenceOperationIdentity": "a4bbd8d81cd9e85b463eb67b5164cb963873f65f33e060b3d7aa9a80fa15a79c"
+    },
+    {
+      "id": "crm-source-operation-d49ddfb014f8880c",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/[locale]/(staff)/staff/crm/_core.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/[locale]/(staff)/staff/crm/_core.tenant.test.ts:5 constructs a fresh object whose only exported value is the owned hoisted vi.fn member createReaders. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "d49ddfb014f8880ca2f441884e9a70d19abd15b44b1403a5e5f64a8235f8f505"
+    },
+    {
+      "id": "crm-source-operation-8ea8fb9c58afa21a",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts:17 constructs a fresh object whose only exported value is the owned hoisted vi.fn member createTenantReaders. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "8ea8fb9c58afa21a328d35dd7d8c7628b3a7b813049aa0bfef87cb02a8d35479"
+    },
+    {
+      "id": "crm-source-operation-7773c35e804dacd8",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts:20 constructs a fresh object whose only exported value is the owned hoisted vi.fn member withTenantContext. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "7773c35e804dacd8fc4aea4135d03ea5b1cd0d1a08c9ef702474fc12e9bb906c"
+    },
+    {
+      "id": "crm-source-operation-100005b75f75dc66",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts:23 constructs a fresh object whose only exported value is the owned hoisted vi.fn member createSnapshotRepository. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "100005b75f75dc6665412512268c93787fe2222505190f8818c3ca4006d4b59d"
+    },
+    {
+      "id": "crm-source-operation-7fe1eb180148e123",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts:27 constructs a fresh object whose only exported value is the owned hoisted vi.fn member enforceRateLimit. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "7fe1eb180148e1238385910adc766b12aa52758fcdd7bb0fab2599ae7b865717"
+    },
+    {
+      "id": "crm-source-operation-fd2f6f3a4512e230",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts:31 constructs a fresh object whose only exported value is the owned hoisted vi.fn member authorizeCronRequest. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "fd2f6f3a4512e230947b8dd2ede047d3a0f0cce4098ff40ec0d1f3d49e4ce23f"
+    },
+    {
+      "id": "crm-source-operation-edc88c54dbc385b4",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts:17 constructs a fresh object whose only exported value is the owned hoisted vi.fn member createTenantReaders. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "edc88c54dbc385b463c81a069c2047f802f96c0c2c3e5ac4dc01189d36bd58e2"
+    },
+    {
+      "id": "crm-source-operation-10fe5bb46576e681",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts:20 constructs a fresh object whose only exported value is the owned hoisted vi.fn member withTenantContext. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "10fe5bb46576e681134c04520757980d074f3f64ef8dd86ea2be107b8edd84b3"
+    },
+    {
+      "id": "crm-source-operation-8117b67cfdd3fdd5",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts:23 constructs a fresh object whose only exported value is the owned hoisted vi.fn member createSnapshotRepository. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "8117b67cfdd3fdd5a35800c095766d24a9611c86844f269f68535e8f42365033"
+    },
+    {
+      "id": "crm-source-operation-330440228d3c7a48",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts:27 constructs a fresh object whose only exported value is the owned hoisted vi.fn member enforceRateLimit. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "330440228d3c7a48544360eab202aae664cc4ead98c5d471b78f73f49ffd0d98"
+    },
+    {
+      "id": "crm-source-operation-1e22ad7e3c27dfd0",
+      "kind": "source-classification",
+      "files": ["apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts"],
+      "justification": "The exact vi.mock factory return at apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts:31 constructs a fresh object whose only exported value is the owned hoisted vi.fn member authorizeCronRequest. The bound test creates that member directly in vi.hoisted; this factory neither invokes it nor imports/spreads an actual namespace. Current Vitest 4.1.11 hoisted/mock/fn producer bytes and the exact web runner/config/setup are manifest-bound. This classifies only this returned source value as an owned mock, not later mock implementation results, SUT callback effects, transaction behavior, module initialization, any production SQL, adjacent operations, a whole test/root, or diagnostics. Missing mount association is not used as dormancy evidence. Final resulting policy delta requires review; source/dependency/context/inventory binding and canonical complete guard remain required before credit.",
+      "evidenceOperationIdentity": "1e22ad7e3c27dfd0b958787d732d47b0223217b735ee33fa9cb7b1090f2371ca"
+    },
+    {
+      "id": "crm-v20-source-diagnostic-81c1d7c98f1770bbe302644429c5bfa6e553d5f0bf128436777fe60cf3887b69",
+      "kind": "source-classification",
+      "files": [
+        "apps/web/src/app/[locale]/admin/crm/_reporting-tenant-test-setup.ts",
+        "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.test.ts"
+      ],
+      "justification": "Independently reviewed current exact native Set.delete diagnostic only (5 occurrences). state.openContexts is a fresh native Set<number> at helper line19; sole delete line73 in finally uses local plain transaction.id. Only other receiver mutations are add63/clear216; sole helper consumer reads size72/127 and never reassigns receiver. Native Set.delete removes a local identity and returns boolean, with no SQL/coercion/callback. Unchanged current helper and consumer bytes bound. No neighboring callback execution, other diagnostics, whole-file, or SQL discharge."
+    }
+  ]
+}

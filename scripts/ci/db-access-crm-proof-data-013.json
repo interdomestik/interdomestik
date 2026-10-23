@@ -1,0 +1,7 @@
+{
+  "kind": "diagnostics.v1.files",
+  "value": {
+    "offset": 0,
+    "items": ["apps/web/src/app/[locale]/admin/crm/_reporting-tenant-test-setup.ts"]
+  }
+}

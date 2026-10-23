@@ -93,18 +93,18 @@
   },
   "packageFiles": {
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "sha256": "70fd226bab039e501e0240de667456c74cee167e576d82f829301962d3691508",
-      "bytes": 99634,
+      "sha256": "af70a86ac0c926b6a0df20c0a1fe8c472826eebf80ecb1d17023bbe15b2dbedd",
+      "bytes": 98506,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {
-      "sha256": "e5c6ade2ab8e8ea76b49a7f7f6f222bc1aab57a68183c66fdf3c8a77f7c6d525",
-      "bytes": 107037,
+      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5",
+      "bytes": 105873,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-3.json": {
-      "sha256": "b8bb3c345f5078cab5b9cbc03dbc9c499bada4b6276a11635a1e9d96524a5344",
-      "bytes": 115570,
+      "sha256": "cd5b6a41c74298c50de3a140488440500b4d116b5a8b3a6be520855068e04ffb",
+      "bytes": 114478,
       "mode": "100644"
     }
   }
