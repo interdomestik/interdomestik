@@ -1700,7 +1700,10 @@
         "packages/database/src/domain-events.ts": ["./db"],
         "packages/database/src/domain-event-erasure.ts": ["./db"],
         "packages/database/src/domain-event-pii.ts": ["./db"],
-        "packages/database/src/domain-event-relay.ts": ["./domain-events"]
+        "packages/database/src/domain-event-relay.ts": ["./domain-events"],
+        "apps/web/src/app/[locale]/admin/crm/_routing-core.ts": [
+          "@/adapters/crm/routing-repository"
+        ]
       },
       "requiredCases": [
         "crm-routing",

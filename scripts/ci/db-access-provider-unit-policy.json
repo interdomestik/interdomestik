@@ -972,8 +972,8 @@
     },
     "scripts/ci/db-access-crm-proof-policy.json": {
       "mode": "100644",
-      "bytes": 109501,
-      "sha256": "8b5783dc45e218ee002ebeee2e689f8eb12ffec30e806918e4acb2141d5030d2"
+      "bytes": 109624,
+      "sha256": "304e5a98a448147a3d42873a313992ed4c66702b4e5acbbf18055b22ce2841c9"
     }
   },
   "runtimeEnforcement": {
@@ -1067,9 +1067,7 @@
         "mode": "100644",
         "bytes": 1909,
         "sha256": "2c2f696bca25c06184abda1cbf0828bd13843831c705c648356ce24e48ef2030",
-        "imports": {
-          "@sentry/nextjs": null
-        }
+        "imports": { "@sentry/nextjs": null }
       },
       "apps/web/src/lib/observability/database-readiness.test.ts": {
         "mode": "100644",
@@ -1084,9 +1082,7 @@
         "mode": "100644",
         "bytes": 1454,
         "sha256": "0f678992a4154a9600e0ac5d82627f3437aa44c0f68040d3210f761dce8d01c6",
-        "imports": {
-          "@sentry/nextjs": null
-        }
+        "imports": { "@sentry/nextjs": null }
       },
       "apps/web/src/lib/observability/sentry-enterprise-metadata.ts": {
         "mode": "100644",
