@@ -655,6 +655,11 @@
     }
   },
   "producerFiles": {
+    "scripts/ci/db-access-graph-worker-pool.mjs": {
+      "mode": "100644",
+      "bytes": 3136,
+      "sha256": "8c2c269c08a3f119d1cd68adf7f701e294a31546038ce942359bb73c32f576d6"
+    },
     "scripts/ci/db-access-cli.mjs": {
       "mode": "100644",
       "bytes": 4992,
@@ -672,8 +677,8 @@
     },
     "scripts/ci/db-access-prepare.mjs": {
       "mode": "100644",
-      "bytes": 5658,
-      "sha256": "bf16bf93a3239bca1ab78dcf3184aea8a109daad34d669b66dfea5559a14a897"
+      "bytes": 6577,
+      "sha256": "3e29c22c78d43769952131fd02baa2728484baa105e0ab6041dbe830a6a8b857"
     },
     "scripts/check-db-access-guard.mjs": {
       "mode": "100644",
@@ -682,18 +687,18 @@
     },
     "scripts/ci/db-access-evaluator.mjs": {
       "mode": "100644",
-      "bytes": 8327,
-      "sha256": "9d214666f2e75d3a45effb812a6466dc6ad7df10f90ac21857f73f580195310f"
+      "bytes": 8642,
+      "sha256": "6ee90f8ad44e449383488b344ec29ccf75baac0118b0655770925507a9f32adc"
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
-      "bytes": 1278,
-      "sha256": "0fcb717cb66c1dd2aa413b78f8699803682ea3ef06bb8b2319d411a6859d5436"
+      "bytes": 1802,
+      "sha256": "f0e8efb110bb591de92c2414608334bf710f4c1132b239f55ddff7ea9cfbc4d4"
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 7130,
-      "sha256": "11f059f9475cc6d97374ad3bc5a8770135537a09d40a5a21eac026ee3cfc6ba2"
+      "bytes": 6089,
+      "sha256": "17c5f60dcf2c4435a134bc094d20d0fb019c20c4385e9e1bda8502cb7455ec8e"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",

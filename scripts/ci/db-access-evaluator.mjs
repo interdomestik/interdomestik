@@ -1,3 +1,5 @@
+import { startGraphWorkerPool } from './db-access-graph-worker-pool.mjs';
+import { assertWorkerCode } from './db-access-graph-workers.mjs';
 import { isMainThread } from 'node:worker_threads';
 import { runParallelGraph, graphSnapshot, encodeInventory } from './db-access-graph-workers.mjs';
 import { prepareGuard } from './db-access-prepare.mjs';
@@ -190,12 +192,22 @@ export function prepareNativeGraphWorker(repoRoot, input) {
 }
 export async function evaluateGuardParallel(repoRoot, adoption) {
   if (adoption !== ADOPTION) return evaluateGuard(repoRoot, adoption);
-  const prepared = prepareGuard(repoRoot, adoption);
-  const graph = await runParallelGraph(prepared, {
-    snapshot: graphSnapshot(prepared),
-    inventory: encodeInventory(prepared),
-  });
-  return finalizeGuard(prepared, graph);
+  assertWorkerCode(repoRoot);
+  const pool = startGraphWorkerPool(repoRoot);
+  try {
+    const prepared = prepareGuard(repoRoot, adoption);
+    const graph = await runParallelGraph(
+      prepared,
+      {
+        snapshot: graphSnapshot(prepared),
+        inventory: encodeInventory(prepared),
+      },
+      pool
+    );
+    return finalizeGuard(prepared, graph);
+  } finally {
+    await pool.close();
+  }
 }
 
 export { runGuardCli, runGuardCliParallel } from './db-access-cli.mjs';

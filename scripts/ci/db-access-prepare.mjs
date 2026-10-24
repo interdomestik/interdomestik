@@ -48,11 +48,10 @@ function invalidateConsumers(dependenciesByFile, inventory, providerUnit) {
 }
 
 // Test harness may supply a real pinned fixture epoch; no CLI option exposes it.
-export function prepareGuard(
+export function prepareGuardModel(
   repoRoot,
   adoption = ADOPTION,
-  providerPolicy = adoption === ADOPTION ? PROVIDER_UNIT_POLICY : undefined,
-  workerInput
+  providerPolicy = adoption === ADOPTION ? PROVIDER_UNIT_POLICY : undefined
 ) {
   const trusted = authenticateSnapshot(repoRoot, adoption);
   const reviewedBoundaryChanges = boundaryChanges(repoRoot, adoption);
@@ -90,6 +89,43 @@ export function prepareGuard(
   const provenance = createProvenance(
     providerUnit ? providerUnitAnalysisModel(model, providerUnit) : model
   );
+  return {
+    sources,
+    resolutionSources,
+    repoRoot,
+    adoption,
+    providerPolicy,
+    trusted,
+    reviewedBoundaryChanges,
+    baselineBytes,
+    baseline,
+    model,
+    providerUnit,
+    providerFiles,
+    producerHarnessFiles,
+    namedProofFiles,
+    provenance,
+  };
+}
+
+export function completeGuardPreparation(prepared, workerInput) {
+  const {
+    sources,
+    resolutionSources,
+    repoRoot,
+    adoption,
+    providerPolicy,
+    trusted,
+    reviewedBoundaryChanges,
+    baselineBytes,
+    baseline,
+    model,
+    providerUnit,
+    providerFiles,
+    producerHarnessFiles,
+    namedProofFiles,
+    provenance,
+  } = prepared;
   // Keep the complete pre-amendment operation inventory, including DB-looking mock
   // handles. The named boundary changes proof obligations, never inventory visibility.
   const inventoryProvenance =
@@ -131,4 +167,16 @@ export function prepareGuard(
     moduleTargets,
     firstInvalidatingDependency,
   };
+}
+
+export function prepareGuard(
+  repoRoot,
+  adoption = ADOPTION,
+  providerPolicy = adoption === ADOPTION ? PROVIDER_UNIT_POLICY : undefined,
+  workerInput
+) {
+  return completeGuardPreparation(
+    prepareGuardModel(repoRoot, adoption, providerPolicy),
+    workerInput
+  );
 }

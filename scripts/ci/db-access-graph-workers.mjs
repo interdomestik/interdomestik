@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Worker } from 'node:worker_threads';
+import { runOwnedGraphWorkerPool } from './db-access-graph-worker-pool.mjs';
 import { createHash } from 'node:crypto';
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { candidateSources } from './db-access-trust.mjs';
@@ -18,6 +18,7 @@ const codeFiles = [
   'db-access-cli.mjs',
   'db-access-graph-roots.mjs',
   'db-access-graph-core.mjs',
+  'db-access-graph-worker-pool.mjs',
 ];
 export function assertWorkerCode(repoRoot) {
   for (const name of codeFiles) {
@@ -38,6 +39,8 @@ export function graphSnapshot(prepared) {
   const current = candidateSources(prepared.repoRoot);
   for (const [file, content] of prepared.resolutionSources)
     if (file.endsWith('/package.json')) current.set(file, content);
+  if (hash(JSON.stringify([...current])) !== hash(JSON.stringify([...prepared.sources])))
+    fail('prepared model source drift');
   return hash(
     JSON.stringify({
       sources: [...current],
@@ -113,7 +116,7 @@ export function mergeOwnedGraphs(prepared, partitions, results) {
     if (result.failures.some(row => !allowed.has(row.mountedFrom))) fail('foreign failure origin');
     const count = result.incomplete.reduce((sum, row) => sum + row.occurrences, 0);
     if (count !== result.incompleteRawCount) fail('diagnostic count mismatch');
-    failures.push(...result.failures);
+    for (const failure of result.failures) failures.push(failure);
     for (const row of result.incomplete) {
       if (!Number.isSafeInteger(row.occurrences) || row.occurrences < 1)
         fail('invalid multiplicity');
@@ -136,55 +139,19 @@ export function mergeOwnedGraphs(prepared, partitions, results) {
     reachedTestSources,
   };
 }
-export async function runParallelGraph(prepared, input) {
+export async function runParallelGraph(prepared, input, pool) {
   assertWorkerCode(prepared.repoRoot);
   const roots = [...prepared.inventory.changed];
   if (!roots.length) return mergeOwnedGraphs(prepared, [], []);
-  // Fixed bounded pool; memory and actual parity must be approved before activation.
   const count = Math.min(2, roots.length),
     width = Math.ceil(roots.length / count),
     partitions = [];
   for (let i = 0; i < roots.length; i += width) partitions.push(roots.slice(i, i + width));
-  const workers = [];
-  try {
-    const results = await Promise.all(
-      partitions.map(
-        origins =>
-          new Promise((resolve, reject) => {
-            const worker = new Worker(new URL('./db-access-graph-worker.mjs', import.meta.url), {
-              env: {},
-              execArgv: [],
-              workerData: {
-                ...input,
-                repoRoot: prepared.repoRoot,
-                origins,
-                initialUnknown: [...prepared.provenance.analysisUnknown],
-              },
-            });
-            workers.push(worker);
-            let result,
-              received = false;
-            worker.on('message', message => {
-              if (received || message?.snapshot !== input.snapshot) {
-                reject(new Error('incomplete: duplicate or mismatched graph worker response'));
-                return;
-              }
-              received = true;
-              result = message;
-            });
-            worker.once('error', reject);
-            worker.once('exit', code =>
-              code === 0 && received
-                ? resolve(result)
-                : reject(new Error('incomplete: graph worker exit or missing response'))
-            );
-          })
-      )
-    );
-    assertWorkerCode(prepared.repoRoot);
-    if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
-    return mergeOwnedGraphs(prepared, partitions, results);
-  } finally {
-    await Promise.allSettled(workers.map(worker => worker.terminate()));
-  }
+  const results = await runOwnedGraphWorkerPool(pool, partitions, {
+    ...input,
+    initialUnknown: [...prepared.provenance.analysisUnknown],
+  });
+  assertWorkerCode(prepared.repoRoot);
+  if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
+  return mergeOwnedGraphs(prepared, partitions, results);
 }
