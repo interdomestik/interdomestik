@@ -67,12 +67,25 @@ export function encodeInventory(prepared) {
   };
 }
 export function hydrateInventory(model, input) {
-  const locators = new Map();
-  for (const sf of model.parsed.values())
+  const locators = new Map(),
+    requested = new Set(),
+    positions = new Map();
+  for (const item of input.entries) {
+    requested.add(JSON.stringify(item.owner));
+    const [file, pos] = item.owner;
+    const selected = positions.get(file) ?? new Set();
+    selected.add(pos);
+    positions.set(file, selected);
+  }
+  for (const sf of model.parsed.values()) {
+    const selected = positions.get(model.fileOf(sf));
+    if (!selected) continue;
     model.walk(sf, node => {
+      if (!selected.has(node.pos)) return;
       const key = JSON.stringify([model.fileOf(node), node.pos, node.end, node.kind]);
-      locators.set(key, locators.has(key) ? null : node);
+      if (requested.has(key)) locators.set(key, locators.has(key) ? null : node);
     });
+  }
   if (!Array.isArray(input.changed) || new Set(input.changed).size !== input.changed.length)
     fail('changed set');
   return {

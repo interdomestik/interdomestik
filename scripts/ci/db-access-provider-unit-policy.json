@@ -697,8 +697,8 @@
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 6039,
-      "sha256": "a8e5664d476c614acddcfd3bfb98db57adfba814884443676b0a48057e519308"
+      "bytes": 6487,
+      "sha256": "7c5ae0bf7968d693d1fd51b98e26ea5450e0758f139558c81e5c05b90236cb97"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
