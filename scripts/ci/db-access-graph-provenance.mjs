@@ -1,6 +1,60 @@
-// One graph traversal observes a settled provenance model. Reuse only complete, known public
-// query answers for the exact raw AST node and caller frame. Original facades still own every
-// nested query and its shared root fuel; reentrant queries deliberately bypass this memo.
+import {
+  sourceDependencyObserver,
+  validSourceDependencies,
+} from './db-access-source-dependencies.mjs';
+const settledModels = new WeakMap();
+const fields = [
+  'forContext',
+  'provenance',
+  'tenantHandle',
+  'mutations',
+  'unsafeMutations',
+  'escapedFns',
+  'analysisUnknown',
+];
+export function registerSettledGraphProvenance(provenance, model) {
+  const observer = sourceDependencyObserver(model);
+  if (observer)
+    settledModels.set(provenance, {
+      observer,
+      model,
+      fields: fields.map(key => provenance[key]),
+    });
+}
+function settledEvidence(provenance) {
+  const registered = settledModels.get(provenance);
+  if (
+    !registered ||
+    fields.some((key, index) => provenance[key] !== registered.fields[index]) ||
+    sourceDependencyObserver(registered.model) !== registered.observer
+  )
+    return;
+  const set = provenance.analysisUnknown;
+  if (
+    !(set instanceof Set) ||
+    Object.getPrototypeOf(set) !== Set.prototype ||
+    Object.hasOwn(set, 'add') ||
+    Object.hasOwn(set, 'has') ||
+    Object.hasOwn(set, 'size')
+  )
+    return;
+  const reasons = [...set];
+  if (reasons.some(reason => typeof reason !== 'string')) return;
+  return { observer: registered.observer, set, reasons };
+}
+function sameEvidence(provenance, recorded) {
+  const current = settledEvidence(provenance);
+  return (
+    current &&
+    current.set === recorded.set &&
+    current.reasons.length === recorded.reasons.length &&
+    current.reasons.every(reason => recorded.reasons.includes(reason))
+  );
+}
+// One graph traversal observes a settled provenance model. Known answers retain their existing
+// exact raw-node/caller-frame memo. Complete UNKNOWN is eligible only in an open native frame
+// with validated live lexical metadata and no raw/external/export checker reads. Original facades
+// still own nested queries and shared root fuel; reentrant queries bypass this memo.
 export function createGraphProvenance(provenance) {
   const facades = new WeakMap();
   const openContext = {};
@@ -28,24 +82,40 @@ export function createGraphProvenance(provenance) {
     }
     return epoch;
   }
-  function memoize(query) {
+  function memoize(query, open) {
     const values = new WeakMap();
     return raw => {
       if (active || !raw) return query(raw);
       const current = generation();
       const prior = values.get(raw);
-      if (prior?.epoch === current) return prior.value;
-      let value;
+      if (
+        prior?.epoch === current &&
+        (prior.value !== 'unknown' ||
+          (sameEvidence(provenance, prior.evidence) && validSourceDependencies(prior.dependencies)))
+      )
+        return prior.value;
+      let value, dependencies;
+      const eligible = open && settledEvidence(provenance);
       active = true;
       try {
-        value = query(raw);
+        if (eligible) {
+          const result = eligible.observer.capture(() => query(raw));
+          value = result.value;
+          dependencies = result.dependencies;
+        } else value = query(raw);
       } finally {
         active = false;
       }
-      // Exhausted roots return unknown. Their sticky analysis evidence remains in the original
-      // set; neither unknown, interrupted, nor changing-state computations become cache entries.
-      if (value !== 'unknown' && generation() === current)
-        values.set(raw, { epoch: current, value });
+      // Exhausted roots retain their sticky analysis evidence in the original Set. Exceptions,
+      // changing generations, framed queries and uncertifiable source reads cannot add UNKNOWN
+      // entries. A hit validates every captured live dependency before reusing the result.
+      if (generation() === current) {
+        if (value !== 'unknown') values.set(raw, { epoch: current, value });
+        else if (dependencies !== undefined) {
+          const evidence = settledEvidence(provenance);
+          if (evidence) values.set(raw, { epoch: current, value, evidence, dependencies });
+        }
+      }
       return value;
     };
   }
@@ -56,8 +126,8 @@ export function createGraphProvenance(provenance) {
     const facade = {
       ...scoped,
       forContext,
-      provenance: memoize(raw => scoped.provenance(raw)),
-      tenantHandle: memoize(raw => scoped.tenantHandle(raw)),
+      provenance: memoize(raw => scoped.provenance(raw), context === undefined),
+      tenantHandle: memoize(raw => scoped.tenantHandle(raw), context === undefined),
     };
     facades.set(key, facade);
     return facade;

@@ -1,3 +1,4 @@
+import { registerSourceProjection } from './db-access-source-dependencies.mjs';
 import { verifyCrmProofSource } from './db-access-crm-proof-source.mjs';
 import { verifyMessageProofSource } from './db-access-message-proof-source.mjs';
 import { verifyNamedProofSource } from './db-access-named-proof-source.mjs';
@@ -253,7 +254,7 @@ export function providerUnitAnalysisModel(model, unit, preserveNamedInventory = 
     ...unit.producerHarnessFiles,
     ...(preserveNamedInventory ? [] : unit.namedProofFiles),
   ]);
-  return {
+  const projected = {
     ...model,
     parsed: new Map([...model.parsed].filter(([file]) => !files.has(file))),
     walk(node, visitor) {
@@ -268,4 +269,6 @@ export function providerUnitAnalysisModel(model, unit, preserveNamedInventory = 
       );
     },
   };
+  registerSourceProjection(projected, model);
+  return projected;
 }

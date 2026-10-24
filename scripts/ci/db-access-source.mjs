@@ -1,4 +1,9 @@
+import { createExternalModuleResolver } from './db-access-source-external-module.mjs';
 import path from 'node:path';
+import {
+  createSourceDependencyObserver,
+  registerSourceModel,
+} from './db-access-source-dependencies.mjs';
 import ts from 'typescript';
 import { digest, SOURCE, ROOT } from './db-access-trust.mjs';
 import { createLexicalLookups } from './db-access-source-symbol.mjs';
@@ -53,7 +58,11 @@ export function createSourceModel(sources, approvedSources = sources) {
   for (const [file, source] of approvedSources) {
     if (!file.endsWith('/package.json')) continue;
     const manifest = JSON.parse(source);
-    if (manifest.name) packages.set(manifest.name, { base: path.posix.dirname(file), ...manifest });
+    if (manifest.name)
+      packages.set(manifest.name, {
+        base: path.posix.dirname(file),
+        ...manifest,
+      });
   }
   function exists(base) {
     const executable = file => sources.has(file) && !/\.d\.[cm]?ts$/u.test(file);
@@ -154,8 +163,10 @@ export function createSourceModel(sources, approvedSources = sources) {
     return normalized;
   };
   // One private lexical symbol memo per model instance; declaration() reuses it but stays uncached.
-  const { symbol, declaration } = createLexicalLookups(checker, isFunction);
+  const dependencyObserver = createSourceDependencyObserver();
+  const { symbol, declaration } = createLexicalLookups(checker, isFunction, dependencyObserver);
   function exportDeclaration(file, name) {
+    dependencyObserver.uncertifiable();
     const sf = parsed.get(file);
     const module = sf && checker.getSymbolAtLocation(sf);
     const exported = module && checker.getExportsOfModule(module).find(item => item.name === name);
@@ -169,8 +180,12 @@ export function createSourceModel(sources, approvedSources = sources) {
     callback(node);
     ts.forEachChild(node, child => walk(child, callback));
   }
-  const rawDeclaration = node => checker.getSymbolAtLocation(node)?.declarations?.[0];
+  const rawDeclaration = node => {
+    dependencyObserver.uncertifiable();
+    return checker.getSymbolAtLocation(node)?.declarations?.[0];
+  };
   function externalName(node, seen = new Set()) {
+    dependencyObserver.uncertifiable();
     if (!node || seen.has(node) || seen.size > 64) return undefined;
     seen = new Set(seen).add(node);
     let current = checker.getSymbolAtLocation(node);
@@ -216,7 +231,10 @@ export function createSourceModel(sources, approvedSources = sources) {
                 key => manifest?.[key]?.[packageName]
               )
             )
-              return { module: name, name: (decl.propertyName ?? decl.name)?.text };
+              return {
+                module: name,
+                name: (decl.propertyName ?? decl.name)?.text,
+              };
           }
         }
       }
@@ -229,28 +247,7 @@ export function createSourceModel(sources, approvedSources = sources) {
     return undefined;
   }
   const externalBinding = node => Boolean(externalName(node));
-  function externalModule(name, from) {
-    if (
-      name.startsWith('.') ||
-      name.startsWith('@/') ||
-      name.startsWith('@interdomestik/') ||
-      name.startsWith('#') ||
-      moduleFile(name, from)
-    )
-      return false;
-    const packageName = name.startsWith('@')
-      ? name.split('/').slice(0, 2).join('/')
-      : name.split('/')[0];
-    const manifest = [...packages.values()]
-      .filter(item => from.startsWith(item.base + '/'))
-      .sort((a, b) => b.base.length - a.base.length)[0];
-    return (
-      name.startsWith('node:') ||
-      ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'].some(
-        key => manifest?.[key]?.[packageName]
-      )
-    );
-  }
+  const externalModule = createExternalModuleResolver(packages, moduleFile);
   // Only direct imported bindings; member hops reach Function/Object prototype methods.
   const isQueryOperator = raw => {
     const node = unwrap(raw);
@@ -262,6 +259,7 @@ export function createSourceModel(sources, approvedSources = sources) {
     );
   };
   function exportedDeclarations(file) {
+    dependencyObserver.uncertifiable();
     const sf = parsed.get(file),
       module = sf && checker.getSymbolAtLocation(sf);
     return module
@@ -271,7 +269,7 @@ export function createSourceModel(sources, approvedSources = sources) {
           .filter(Boolean)
       : [];
   }
-  return {
+  const model = {
     parsed,
     sources,
     approvedSources,
@@ -288,4 +286,6 @@ export function createSourceModel(sources, approvedSources = sources) {
     exportDeclaration,
     walk,
   };
+  registerSourceModel(model, dependencyObserver);
+  return model;
 }

@@ -5,8 +5,11 @@ import path from 'node:path';
 import test from 'node:test';
 import { digest } from './db-access-trust.mjs';
 import { createSourceModel } from './db-access-source.mjs';
+import { createProvenance } from './db-access-provenance.mjs';
+import { createGraphProvenance } from './db-access-graph-provenance.mjs';
 import {
   verifyProviderUnitSource,
+  providerUnitAnalysisModel,
   isVerifiedProviderUnitSource,
 } from './db-access-provider-unit-source.mjs';
 
@@ -200,3 +203,26 @@ test('the approved driver patch is part of the exact resolver boundary', () =>
     write(file, 'unreviewed driver patch');
     assert.throws(verify, /source\/mode mismatch/);
   }));
+
+for (const delegated of ['walk', 'fileOf'])
+  test(`projection UNKNOWN retains original ${delegated} delegate errors`, () =>
+    fixture(({ root, sources, write, adoption, policy }) => {
+      write(
+        CONSUMER,
+        delegated === 'walk'
+          ? 'const beta=1;opaque(beta);const captured=()=>beta;captured;'
+          : 'const beta=1;opaque(beta);function takes(){return beta;}takes();'
+      );
+      const original = createSourceModel(sources);
+      const unit = verifyProviderUnitSource(root, original, adoption, policy);
+      const projected = providerUnitAnalysisModel(original, unit);
+      const provenance = createProvenance(projected);
+      const raw = original.parsed.get(CONSUMER).statements.at(-1).expression;
+      const warm = createGraphProvenance(provenance)();
+      assert.equal(warm.tenantHandle(raw), 'unknown');
+      original[delegated] = () => {
+        throw new Error('original delegate changed');
+      };
+      assert.throws(() => provenance.tenantHandle(raw), /original delegate changed/);
+      assert.throws(() => warm.tenantHandle(raw), /original delegate changed/);
+    }));

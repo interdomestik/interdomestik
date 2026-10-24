@@ -14,7 +14,7 @@ import ts from 'typescript';
 // This relies on the evaluator keeping its sources, parsed AST, Program and checker fixed for the
 // model's lifetime. It is not a TypeScript memoization guarantee. It does not make any symbol or
 // access safe.
-export function createLexicalLookups(checker, isFunction) {
+export function createLexicalLookups(checker, isFunction, observer) {
   const symbols = new WeakMap();
   function resolveSymbol(node) {
     let result = ts.isShorthandPropertyAssignment(node.parent)
@@ -31,9 +31,14 @@ export function createLexicalLookups(checker, isFunction) {
   function symbol(node) {
     // A non-object cannot key a WeakMap; it keeps the original uncached behavior, errors included.
     if (node === null || typeof node !== 'object') return resolveSymbol(node);
-    if (symbols.has(node)) return symbols.get(node);
+    if (symbols.has(node)) {
+      const result = symbols.get(node);
+      observer?.readSymbol(result);
+      return result;
+    }
     const result = resolveSymbol(node);
     symbols.set(node, result);
+    observer?.readSymbol(result);
     return result;
   }
   function declaration(node) {

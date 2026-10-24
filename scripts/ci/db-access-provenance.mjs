@@ -1,3 +1,4 @@
+import { registerSettledGraphProvenance } from './db-access-graph-provenance.mjs';
 import { appendSeenTrail } from './db-access-seen-trail.mjs';
 import ts from 'typescript';
 import { createClientSymbols } from './db-access-client-symbols.mjs';
@@ -254,5 +255,6 @@ export function createProvenance(model) {
   const contextual = createContextualProvenance(model, legacy, dispatch, work);
   const result = contextual.facade(undefined);
   finish(result);
+  registerSettledGraphProvenance(result, model);
   return withInvocationEvidence(result, model);
 }
