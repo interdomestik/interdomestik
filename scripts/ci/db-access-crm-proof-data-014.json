@@ -4,6 +4,8 @@
     "offset": 0,
     "items": [
       "unsupported received property executable edge allowedValues.has",
+      "unsupported received property executable edge authority.slice",
+      "unsupported received property executable edge authority.startsWith",
       "unsupported received property executable edge state.openContexts.delete"
     ]
   }

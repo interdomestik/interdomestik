@@ -140,6 +140,201 @@
       "mode": "100644",
       "bytes": 2436,
       "sha256": "b5690ff8e2c7d0ac07b015a4f5619d775345e7710316faa7e4fc4de6f94c0d99"
+    },
+    "apps/web/src/actions/claims/create.core.ts": {
+      "mode": "100644",
+      "bytes": 909,
+      "sha256": "1acbc27f5e52749619c2b5f9292d75598d1dfd6d926832d79fac564cacb4f191"
+    },
+    "apps/web/src/actions/free-start/submit.core.ts": {
+      "mode": "100644",
+      "bytes": 3877,
+      "sha256": "b6b3b4643ec78db5a1e78f5ac644a4b819b99187deb6f8e85b0556e7f3cd8ff0"
+    },
+    "apps/web/src/app/api/auth/[...all]/_core.ts": {
+      "mode": "100644",
+      "bytes": 9341,
+      "sha256": "c97a003fa4beb230d9c79236c268ecceaa97fa4d1b19832f24e45f2143059477"
+    },
+    "apps/web/src/app/api/auth/[...all]/neutral-email-sign-in-admission.test.ts": {
+      "mode": "100644",
+      "bytes": 7129,
+      "sha256": "28350456dc379cd07c6c1328cb7ba5935591a7ed2ff33f8356601ff8f62f8dbe"
+    },
+    "apps/web/src/app/api/auth/[...all]/neutral-email-sign-in-admission.ts": {
+      "mode": "100644",
+      "bytes": 7835,
+      "sha256": "ca374f283e341d3dedee1fa7051c75bfd01faf8b96e2e903e893f80031e67b42"
+    },
+    "apps/web/src/app/api/auth/[...all]/sign-up-tenant-guard.ts": {
+      "mode": "100644",
+      "bytes": 1320,
+      "sha256": "8356f449ba89dbc9842b7d7b0f6693907803872466778d2ce59ac181a08a2be2"
+    },
+    "apps/web/src/components/auth/login-form-booking-context.test.tsx": {
+      "mode": "100644",
+      "bytes": 5760,
+      "sha256": "f976ecc9c46e32942f515954b25af05555cae53e47456699dd98f8954441cc7f"
+    },
+    "apps/web/src/components/auth/login-form-cancellation.test.tsx": {
+      "mode": "100644",
+      "bytes": 6054,
+      "sha256": "7790803a91efe11bea46443e83d5dbae2a65f35db1e1a1c8c71e5191a7686e30"
+    },
+    "apps/web/src/components/auth/login-form.test.tsx": {
+      "mode": "100644",
+      "bytes": 10521,
+      "sha256": "07b64f275219af8f194b4aa73ab75f27375d6bfb4d774ae1ef601d9839c747bc"
+    },
+    "apps/web/src/components/auth/login-post-authentication.ts": {
+      "mode": "100644",
+      "bytes": 2657,
+      "sha256": "9a6053fcff937fe216cbeedb4ece3217243fe6c602227a32bd960e927475fd41"
+    },
+    "apps/web/src/features/admin/claims/server/getOpsClaimDetail.test-fixtures.ts": {
+      "mode": "100644",
+      "bytes": 6396,
+      "sha256": "2a1fda4a40f96e08c7666bce3db0f153cf52df85b8e604134de5789a74b9e117"
+    },
+    "apps/web/src/lib/auth-telemetry-host.ts": {
+      "mode": "100644",
+      "bytes": 971,
+      "sha256": "f018da217ed0d0df67f6a80bfcfe3df263e576c01706c351ed70d3afde4974b0"
+    },
+    "apps/web/src/lib/auth-telemetry.ts": {
+      "mode": "100644",
+      "bytes": 4343,
+      "sha256": "b22ad65cebfd99771983b1f9f0693dab6e4b9459146d45aae4ef78cb399e8ec2"
+    },
+    "apps/web/src/lib/auth/auth-request-authority.test.ts": {
+      "mode": "100644",
+      "bytes": 3244,
+      "sha256": "2c0d32dd9bb904e78936874e5bc9e06f5a8a558789fee4e6bea6af81b440be4c"
+    },
+    "apps/web/src/lib/auth/better-auth-email-otp.contract-test-support.ts": {
+      "mode": "100644",
+      "bytes": 4392,
+      "sha256": "98c194a20b940269c0549744c76886cb5a954b28852f2fed0a6c7f7b696e18d7"
+    },
+    "apps/web/src/lib/auth/better-auth-oauth-authority.test.ts": {
+      "mode": "100644",
+      "bytes": 5079,
+      "sha256": "974b9657be993bf7b9008dd010c0951781a2f3a96c326b5b7b8eab5ab1c8b198"
+    },
+    "apps/web/src/lib/auth/better-auth-user-authority.test.ts": {
+      "mode": "100644",
+      "bytes": 4393,
+      "sha256": "0b598cf89456c258eda9a57b4a2137560ee54112cf1423e3beb1757d1082b7e8"
+    },
+    "apps/web/src/lib/auth/onboarding-authority.test.ts": {
+      "mode": "100644",
+      "bytes": 2854,
+      "sha256": "d28a2d42c65e7359e13ec23090f02d70d073d836c8d77edef02105e983655f0e"
+    },
+    "apps/web/src/lib/proxy-gate.test.ts": {
+      "mode": "100644",
+      "bytes": 6117,
+      "sha256": "5aa86f0a507220513e0844d3bde2148b161464c7b90a2b1b440a8b39b3755625"
+    },
+    "apps/web/src/lib/proxy-gate.ts": {
+      "mode": "100644",
+      "bytes": 4271,
+      "sha256": "a9ed30886c21a39f5fdfaa742e8ccd1c1e1967325e42238f95d9ed673f2e322d"
+    },
+    "apps/web/src/lib/proxy-resolve.ts": {
+      "mode": "100644",
+      "bytes": 1690,
+      "sha256": "6e538fc2d821ce6d5cdfeeb0dfe1a85a8a9d06acc7665f8c64708685b7898cbe"
+    },
+    "apps/web/src/lib/tenant/host-id.ts": {
+      "mode": "100644",
+      "bytes": 712,
+      "sha256": "454c2c23770aa5d678c8e431e0e8ded2023b1b946cde6d5a8d469063805dbebd"
+    },
+    "apps/web/src/lib/tenant/ida-live-login-cutover.ts": {
+      "mode": "100644",
+      "bytes": 2493,
+      "sha256": "491e9bc8704004954dc33f0cd2048e5826a655a5d4049f7f622f142e89b529c9"
+    },
+    "apps/web/src/lib/tenant/tenant-context-concepts.test.ts": {
+      "mode": "100644",
+      "bytes": 2106,
+      "sha256": "9b9f62db0a85ee55c9a9c7c18cf4ad6f01cfa9ef24883a9c11e737749e70358c"
+    },
+    "apps/web/src/lib/tenant/tenant-context-session-precedence.test.ts": {
+      "mode": "100644",
+      "bytes": 3766,
+      "sha256": "1a0ed10a6e0a63a90fce8c0f64f696c38fdb0dba8a9cc59273bfdb8169006608"
+    },
+    "apps/web/src/lib/tenant/tenant-context.test.ts": {
+      "mode": "100644",
+      "bytes": 3504,
+      "sha256": "9a6a36e2ac861a0f6776325250cc15dd50392aef679d84fbbbe56b81735b823e"
+    },
+    "apps/web/src/lib/tenant/tenant-context.ts": {
+      "mode": "100644",
+      "bytes": 3954,
+      "sha256": "4f16eeb37ff6d11d608df408238b60fdc698941c5f75d2037192afab758e9901"
+    },
+    "apps/web/src/lib/tenant/tenant-front-door.test.ts": {
+      "mode": "100644",
+      "bytes": 5006,
+      "sha256": "20cb5880bb67373e6782a28db633e8b37289f64d5f2b90ed6ac7d9d27d124e52"
+    },
+    "apps/web/src/lib/tenant/tenant-host-aliases.test.ts": {
+      "mode": "100644",
+      "bytes": 2604,
+      "sha256": "d56c80740d302f773284eee1f07bfa1107b3e023e93bde20bea69b5a6660e571"
+    },
+    "apps/web/src/lib/tenant/tenant-host-security.test.ts": {
+      "mode": "100644",
+      "bytes": 724,
+      "sha256": "d194cac972ff43fec42fa92e90b4701f8568dc79abcd9a66523db6e892c9cdb3"
+    },
+    "apps/web/src/lib/tenant/tenant-hosts-public-context.test.ts": {
+      "mode": "100644",
+      "bytes": 2337,
+      "sha256": "2269f2ba3adc9e069601584ca7aba563adfcf1c40ec5f257eda2ba8a90cc2ac0"
+    },
+    "apps/web/src/lib/tenant/tenant-request-public-context.test.ts": {
+      "mode": "100644",
+      "bytes": 2827,
+      "sha256": "8676b7ece163556f0f534385286409c69003fe0e5112ce3956971430a16b2d1a"
+    },
+    "apps/web/src/lib/tenant/tenant-request.test.ts": {
+      "mode": "100644",
+      "bytes": 4177,
+      "sha256": "360ba86863a90ae05cb23633268bd74de94b3bca96628814f6eb69e018eb0650"
+    },
+    "apps/web/src/lib/tenant/tenant-request.ts": {
+      "mode": "100644",
+      "bytes": 1689,
+      "sha256": "207a43169ca3a3e3934d73ab94693df4a17d760ef041dc71576fa9fde823b309"
+    },
+    "apps/web/src/test/login-form-harness.tsx": {
+      "mode": "100644",
+      "bytes": 4211,
+      "sha256": "4d61914d42406a832fb52e94842308abd9efc142fbbf18f6d764284582e543cf"
+    },
+    "apps/web/src/lib/auth-telemetry.test.ts": {
+      "mode": "100644",
+      "bytes": 4395,
+      "sha256": "01a254ff5ef1b5dac4ffc7ac3291f9e6a8363322e8e66e80fd6f2c54e491208a"
+    },
+    "apps/web/src/features/admin/claims/components/ops/ops-browser.test-fixture.ts": {
+      "mode": "100644",
+      "bytes": 773,
+      "sha256": "dd879be4b9948edc18d5540ada7fdcdbefb592ba6db6b757ae44153a7a8143a4"
+    },
+    "apps/web/src/lib/proxy-logic.ts": {
+      "mode": "100644",
+      "bytes": 1687,
+      "sha256": "25db3e1fbd2b91d1a2ca454bccd4d214a7a1bb878e62e22ae6a1881bad49e956"
+    },
+    "apps/web/src/app/api/auth/[...all]/sign-up-tenant-guard.test.ts": {
+      "mode": "100644",
+      "bytes": 3992,
+      "sha256": "65e36ea0ad02f4c1f18eeed2815d9baaacd0bb4c78d37e9594057256f63ed6ae"
     }
   }
 }

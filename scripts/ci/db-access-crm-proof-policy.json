@@ -10,7 +10,7 @@
     "inventory": {
       "scannedCount": 7472,
       "newCount": 3398,
-      "newEntriesDigest": "f90c0f4a85d343d6e8699abf97e424155dab32d24b7f0286ecb21fd3f2122580"
+      "newEntriesDigest": "232b20b3347472fc46a9b9f5e707182542bab0b8b2637474b3629232d8967393"
     },
     "witnesses": { "mountEvidence": { "version": 1, "analysisIncomplete": true } },
     "runtime": {
@@ -1748,6 +1748,21 @@
             "sha256": "9ed0e57abd4125cb34dacfc6f486c144b5bbc2fc4ea5f95b54a302c5254f6822",
             "bytes": 10057,
             "mode": "100644"
+          },
+          "dist/api/dispatch.mjs": {
+            "sha256": "478ece95424449d1931656c59f395ec8aaa1d1f5a00b83816c59aec43f3a99e8",
+            "bytes": 10965,
+            "mode": "100644"
+          },
+          "dist/api/to-auth-endpoints.mjs": {
+            "sha256": "bdd6ee0fee9dd3c0467c26c86612f74750d1618bbec1f1421c575efb7e468ea6",
+            "bytes": 2785,
+            "mode": "100644"
+          },
+          "dist/integrations/next-js.mjs": {
+            "sha256": "459bf00b2683c8ce010da6807e70491a2177176063a9346167805fa9066c13d2",
+            "bytes": 3404,
+            "mode": "100644"
           }
         }
       },
@@ -1760,6 +1775,11 @@
             "sha256": "e8de14ad813d4d860b00594487f86e5aab8053170a61d039c658c69cb05aedfa",
             "bytes": 686,
             "mode": "100644"
+          },
+          "dist/api/index.mjs": {
+            "sha256": "4598566bd8947fbf3f8841353dd58e619200344080474fa7b8f0d6c05510c679",
+            "bytes": 3121,
+            "mode": "100644"
           }
         }
       },
@@ -1771,6 +1791,21 @@
           "dist/error.mjs": {
             "sha256": "ae361be6eac9bc6a3c20007f02a3bf4d13ec3b889c3064b1ea4c229df561930c",
             "bytes": 3780,
+            "mode": "100644"
+          },
+          "dist/router.mjs": {
+            "sha256": "8774512deca6af1f3c051c35605867693995b27c8176418d11e92c7e495ddb7b",
+            "bytes": 4315,
+            "mode": "100644"
+          },
+          "dist/endpoint.mjs": {
+            "sha256": "2c44837c6daa7c8b2daca2c9318ae778ad55f48fedcb97a26b030c867f03dc55",
+            "bytes": 2755,
+            "mode": "100644"
+          },
+          "dist/context.mjs": {
+            "sha256": "5ec24a63ff4d32e017b6cb5139995ea19cea796acb78772e41867cffc2404adf",
+            "bytes": 3795,
             "mode": "100644"
           }
         }
@@ -2508,6 +2543,21 @@
             "sha256": "0c4474dbc454470144784366e59c70d2366fc52ee784c4276fe8dc95e7a095c4",
             "bytes": 650,
             "mode": "100644"
+          },
+          "dist/server/request/headers.js": {
+            "sha256": "b926d6b5898e3eddead23cf20a7303665423f3c0299317503821e7c249f00879",
+            "bytes": 12958,
+            "mode": "100644"
+          },
+          "dist/server/web/spec-extension/adapters/headers.js": {
+            "sha256": "22227daf1ace715081e431368364cd957efdb9d59ae15c4aa947011006f5884d",
+            "bytes": 11544,
+            "mode": "100644"
+          },
+          "dist/server/async-storage/request-store.js": {
+            "sha256": "f2ca5e63726994d0db54e6dfd26c726b25cfb8e8cb41eebf5dd259c4dae64ac4",
+            "bytes": 8697,
+            "mode": "100644"
           }
         }
       }
@@ -2516,8 +2566,8 @@
   "mountEncoding": {
     "version": 1,
     "rootCount": 1141,
-    "operationCount": 1529,
-    "expandedDigest": "7660b7af72baa0dc81ad369d8167e87a6cf52fe07efe0671827499b33cc9187b"
+    "operationCount": 1534,
+    "expandedDigest": "c7f9f6e6e2412b5179aa2886b21dbf8ecc49f5083b07039c016eaf97bd3cfb05"
   },
   "shards": [
     "scripts/ci/db-access-crm-proof-data-000.json",

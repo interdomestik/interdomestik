@@ -3,9 +3,9 @@
   "value": {
     "version": 1,
     "serialization": "canonicalCrm-JSON.stringify-utf8-compact",
-    "counts": { "files": 135, "reasons": 2, "caseSets": 2, "rows": 135 },
-    "expandedCanonicalJsonUtf8Bytes": 30181,
-    "expandedCanonicalJsonSha256": "a69c502bf7df8efeb2763291e128f448c630187a6f0721b010534149abf503d9",
-    "expandedCrmDigest": "a69c502bf7df8efeb2763291e128f448c630187a6f0721b010534149abf503d9"
+    "counts": { "files": 762, "reasons": 4, "caseSets": 3, "rows": 1585 },
+    "expandedCanonicalJsonUtf8Bytes": 354737,
+    "expandedCanonicalJsonSha256": "2f0defef5c6f56e10feec8f5b0c80c040c5ff130d7a17f81d5fc78836c1a9710",
+    "expandedCrmDigest": "2f0defef5c6f56e10feec8f5b0c80c040c5ff130d7a17f81d5fc78836c1a9710"
   }
 }
