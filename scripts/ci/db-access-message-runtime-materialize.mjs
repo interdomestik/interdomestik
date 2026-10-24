@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { exact } from './db-access-provider-runtime-identity.mjs';
+import { MESSAGE_TSX_LOADER, assertMessageContract } from './db-access-message-proof-registry.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const fail = reason => {
@@ -16,6 +17,17 @@ export function supportedPackage(record, platform = process.platform, arch = pro
   return accepts(record.os, platform) && accepts(record.cpu, arch) && accepts(record.libc, 'glibc');
 }
 
+// The reply fixture names root node_modules/tsx/dist/loader.mjs literally, so the root importer
+// of the authenticated source lock must pin the producer lock's tsx. Layout drift refuses.
+export function sourceRootTsxVersion(text) {
+  const start = text.search(/^ {2}\.:$/mu);
+  if (start < 0) return undefined;
+  const rest = text.slice(start + 1);
+  const end = rest.search(/^(?:\S| {2}\S)/mu);
+  const block = end < 0 ? rest : rest.slice(0, end);
+  return block.match(/^ {6}tsx:\n {8}specifier: [^\n]+\n {8}version: ([^\s(]+)$/mu)?.[1];
+}
+
 // Archives are immutable fixed-producer inputs. Never run npm/pnpm hooks or use host node_modules.
 export function materializeMessageRuntime({
   sourceRoot,
@@ -26,6 +38,7 @@ export function materializeMessageRuntime({
 }) {
   const contract = policy.messageProof;
   if (!contract) return undefined;
+  assertMessageContract(contract, fail);
   if (!['darwin:arm64', 'linux:x64', 'linux:arm64'].includes(process.platform + ':' + process.arch))
     fail('unsupported platform');
   const lockFile = 'scripts/ci/db-access-message-runtime-lock.json';
@@ -107,6 +120,12 @@ export function materializeMessageRuntime({
     fs.writeFileSync(target, bytes);
     copied[file] = hash(bytes);
   }
+  // Same pinned full tsx (CJS and ESM hooks) on both sides; never a host or resolver lookup.
+  const tsx = packages['node_modules/tsx'];
+  const sourceLock = exact(sourceRoot, 'pnpm-lock.yaml', contract.configuration['pnpm-lock.yaml']);
+  const loader = fs.lstatSync(path.join(root, MESSAGE_TSX_LOADER), { throwIfNoEntry: false });
+  if (!tsx || sourceRootTsxVersion(String(sourceLock)) !== tsx.version || !loader?.isFile())
+    fail('pinned tsx loader');
   fs.writeFileSync(path.join(root, 'package.json'), '{"private":true,"type":"module"}\n');
   const scope = path.join(root, 'node_modules/@interdomestik');
   fs.mkdirSync(scope, { recursive: true });
@@ -133,6 +152,7 @@ export function materializeMessageRuntime({
   for (const name of [
     'db-access-message-runtime-driver.mjs',
     'db-access-message-runtime-result.mjs',
+    'db-access-message-proof-registry.mjs',
   ]) {
     const file = 'scripts/ci/' + name;
     fs.writeFileSync(path.join(root, name), exact(producerRoot, file, policy.producerFiles[file]));

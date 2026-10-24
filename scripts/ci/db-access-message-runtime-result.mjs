@@ -1,44 +1,74 @@
-export const MESSAGE_TEST_IDENTITIES = Object.freeze([
-  'message fixture database safety accepts the synthetic CI and task ports without a machine-specific port constraint',
-  'message fixture database safety rejects remote and non-synthetic databases before creating clients or fixtures',
-  'message fixture database safety rejects connection-string options that could redirect the approved target',
-  'message operations on a real NOBYPASSRLS connection loads the owned public thread and sender projection across repeated reads',
-  'message operations on a real NOBYPASSRLS connection preserves member/tenant denial, staff assignment and linked-agent visibility',
-  'message operations on a real NOBYPASSRLS connection persists visible recipient receipts while rejecting internal/own/out-of-scope mutations',
-  'message operations on a real NOBYPASSRLS connection sends a persisted public message with the same transaction and denies member internal send',
-  'message operations on a real NOBYPASSRLS connection rolls back the insert when the created-message projection is unavailable',
-  'message operations on a real NOBYPASSRLS connection keeps the existing error response after a post-commit audit failure without holding the transaction',
-]);
+import {
+  MESSAGE_CASES,
+  MESSAGE_PROOF_CONTRACT,
+  MESSAGE_RUNS,
+} from './db-access-message-proof-registry.mjs';
+
+// Compatibility export of full names only; joins bind messageCaseIdentities() (file + name).
+export const MESSAGE_TEST_IDENTITIES = Object.freeze(MESSAGE_CASES.map(entry => entry.fullName));
+export const messageRunResultFile = index => `messages-result-${index}.json`;
 const fail = reason => {
   throw new Error('message runtime result refused: ' + reason);
 };
-export function validateMessageTestResult(report) {
+const sameSet = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+
+// Exact per-file membership: one suite, only registered identities, all actually passed.
+export function validateMessageRunResult(report, run) {
+  const expected = MESSAGE_CASES.filter(entry => entry.file === run?.file).map(
+    entry => entry.fullName
+  );
+  if (!MESSAGE_RUNS.includes(run) || !expected.length) fail('unregistered run');
+  const suites = report?.testResults;
   if (
-    report.success !== true ||
-    report.numTotalTests !== 9 ||
-    report.numPassedTests !== 9 ||
+    report?.success !== true ||
+    report.numTotalTests !== expected.length ||
+    report.numPassedTests !== expected.length ||
     report.numFailedTests !== 0 ||
     report.numPendingTests !== 0 ||
     report.numTodoTests !== 0 ||
-    report.testResults?.length !== 1 ||
-    report.testResults[0].status !== 'passed'
+    report.numFailedTestSuites !== 0 ||
+    (report.numRuntimeErrorTestSuites ?? 0) !== 0 ||
+    (report.numPendingTestSuites ?? 0) !== 0 ||
+    !Array.isArray(suites) ||
+    suites.length !== 1 ||
+    suites[0].status !== 'passed' ||
+    (suites[0].message ?? '') !== ''
   )
-    fail('suite result');
-  const suite = report.testResults[0];
+    fail('suite result ' + run.file);
+  const suite = suites[0];
+  if (typeof suite.name !== 'string' || !suite.name.endsWith('/' + run.file))
+    fail('test source ' + run.file);
+  const tests = suite.assertionResults;
   if (
-    !suite.name.endsWith(
-      '/packages/domain-communications/src/messages/tenant-context.integration.test.ts'
+    !Array.isArray(tests) ||
+    tests.length !== expected.length ||
+    tests.some(
+      t =>
+        t.status !== 'passed' ||
+        (t.failureMessages ?? []).length !== 0 ||
+        !Array.isArray(t.ancestorTitles)
     )
   )
-    fail('test source');
-  const tests = suite.assertionResults;
-  if (tests.length !== 9 || tests.some(t => t.status !== 'passed' || t.failureMessages?.length))
-    fail('test outcomes');
+    fail('test outcomes ' + run.file);
   const identities = tests.map(t => [...t.ancestorTitles, t.title].join(' '));
+  if (tests.some((t, index) => t.fullName !== undefined && t.fullName !== identities[index]))
+    fail('test identity form ' + run.file);
+  if (new Set(identities).size !== expected.length || !sameSet(identities, expected))
+    fail('test identities ' + run.file);
+  return Object.freeze(expected);
+}
+
+// Reports are positional: report i must belong to MESSAGE_RUNS[i] and nothing else.
+export function validateMessageRuntimeResults(reports) {
+  if (!Array.isArray(reports) || reports.length !== MESSAGE_RUNS.length) fail('run count');
+  const files = MESSAGE_RUNS.map((run, index) => ({
+    file: run.file,
+    identities: validateMessageRunResult(reports[index], run),
+  }));
   if (
-    new Set(identities).size !== 9 ||
-    !MESSAGE_TEST_IDENTITIES.every(identity => identities.includes(identity))
+    files.reduce((total, entry) => total + entry.identities.length, 0) !==
+    MESSAGE_PROOF_CONTRACT.requiredTests
   )
-    fail('test identities');
-  return identities;
+    fail('total identities');
+  return files;
 }

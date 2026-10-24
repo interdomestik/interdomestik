@@ -1,4 +1,7 @@
-import { MESSAGE_TEST_IDENTITIES } from './db-access-message-runtime-result.mjs';
+import {
+  MESSAGE_PROOF_CONTRACT,
+  messageCaseIdentities,
+} from './db-access-message-proof-registry.mjs';
 import { isFreshCrmRuntimeResult } from './db-access-crm-runtime.mjs';
 import { hash } from './db-access-provider-runtime-identity.mjs';
 import {
@@ -40,13 +43,17 @@ export function validateCrmJoinBindings({ context, policy, runtime, provider, re
     report.unresolvedIncomplete?.length !== 0
   )
     failCrm('join static residual');
+  // A HOLD message inventory discharges nothing and therefore can never join.
   const message = provider.messageRuntime;
   if (
-    message?.setupComplete !== true ||
+    policy.messageProof?.witnessInventory?.state !== 'bound' ||
+    message?.version !== MESSAGE_PROOF_CONTRACT.version ||
+    message.contractId !== MESSAGE_PROOF_CONTRACT.id ||
+    message.setupComplete !== true ||
     message.teardownComplete !== true ||
-    message.passedTests !== 9 ||
+    message.passedTests !== MESSAGE_PROOF_CONTRACT.requiredTests ||
     !Array.isArray(message.identities) ||
-    crmDigest([...message.identities].sort()) !== crmDigest([...MESSAGE_TEST_IDENTITIES].sort())
+    crmDigest(message.identities) !== crmDigest(messageCaseIdentities())
   )
     failCrm('join message proof');
   const unit = report.providerUnit;

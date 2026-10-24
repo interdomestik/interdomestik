@@ -1,11 +1,19 @@
 import { crmDigest } from './db-access-crm-proof-shape.mjs';
 import { hash } from './db-access-provider-runtime-identity.mjs';
 import { validateCrmRuntimeResult } from './db-access-crm-runtime-result.mjs';
-import { MESSAGE_TEST_IDENTITIES } from './db-access-message-runtime-result.mjs';
+import {
+  MESSAGE_PROOF_CONTRACT,
+  messageCaseIdentities,
+} from './db-access-message-proof-registry.mjs';
 
 // Synthetic serialized bindings only: joinFreshCrmProof must reject these unbranded results.
 export function serializedJoinFixture(contract, producerFiles) {
-  const policy = { crmProof: contract, producerFiles, runtimeEnforcement: { requiredTests: 9 } };
+  const policy = {
+    crmProof: contract,
+    producerFiles,
+    runtimeEnforcement: { requiredTests: 9 },
+    messageProof: { witnessInventory: { state: 'bound' } },
+  };
   const context = {
     repository: 'interdomestik/interdomestik',
     eventName: 'pull_request',
@@ -40,10 +48,12 @@ export function serializedJoinFixture(contract, producerFiles) {
     before: { candidate: 'source', producer: 'producer' },
     after: { candidate: 'source', producer: 'producer' },
     messageRuntime: {
+      version: MESSAGE_PROOF_CONTRACT.version,
+      contractId: MESSAGE_PROOF_CONTRACT.id,
       setupComplete: true,
       teardownComplete: true,
-      passedTests: 9,
-      identities: [...MESSAGE_TEST_IDENTITIES],
+      passedTests: MESSAGE_PROOF_CONTRACT.requiredTests,
+      identities: messageCaseIdentities(),
     },
   };
   const report = {

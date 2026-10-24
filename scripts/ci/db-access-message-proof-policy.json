@@ -1,206 +1,45 @@
 {
-  "id": "s8-message-integration-proof-v1",
+  "id": "s8-message-integration-proof-v2",
   "operations": [
     "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-    "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
+    "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+    "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+    "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+    "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+    "packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts",
+    "packages/domain-communications/src/messages/public-reply-concurrency.worker-fixture.ts",
+    "apps/web/src/actions/messages/audit.rls.integration.test.ts"
   ],
-  "requiredTests": 9,
+  "requiredTests": 20,
   "runtimeRequired": true,
   "acceptedReceiptInputs": false,
   "files": {
-    "packages/database/src/claim-lifecycle.ts": {
+    "apps/web/src/actions/messages/audit.rls.integration.test.ts": {
       "mode": "100644",
-      "bytes": 2282,
-      "sha256": "2040262366b710ef51cd4771ef4a07887c69e257129694732fcf14e1ffc20941",
-      "imports": {}
-    },
-    "packages/database/src/client.ts": {
-      "mode": "100644",
-      "bytes": 344,
-      "sha256": "58ee1576ea8308a23d02e85cf6f1b107f71c1bc282d4e318142a9234cc32e96f",
+      "bytes": 2452,
+      "sha256": "82d63e0784522a59120e525b3065706db866110dda28205b2c90c64d7ace05b8",
       "imports": {
-        "@supabase/ssr": null
+        "../../../../../packages/domain-communications/src/messages/tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "./audit.core": "apps/web/src/actions/messages/audit.core.ts",
+        "@/features/staff/claims/assignment-options": "apps/web/src/features/staff/claims/assignment-options.ts",
+        "drizzle-orm": null,
+        "vitest": null
       }
     },
-    "packages/database/src/constants.ts": {
+    "apps/web/src/features/staff/claims/assignment-options.ts": {
       "mode": "100644",
-      "bytes": 1008,
-      "sha256": "b708aa342582f21d63f8010aeb81858af7043ee057d67b9e632363c9e559b395",
-      "imports": {}
-    },
-    "packages/database/src/database-configuration.ts": {
-      "mode": "100644",
-      "bytes": 1178,
-      "sha256": "5238b5e50969d82c3277a38c8fd043f7b96523d84539ca6328d9c8203bacf93c",
-      "imports": {}
-    },
-    "packages/database/src/database-connection.ts": {
-      "mode": "100644",
-      "bytes": 1507,
-      "sha256": "507a7a29b596a3734844e8c8919b04e929489bd906d16fcaefb7f2d3bea21740",
+      "bytes": 1001,
+      "sha256": "5c67a2e612226da6b34287f10bc2a44e310f3106f097ef87c538cdee434fff9a",
       "imports": {
-        "./database-configuration": "packages/database/src/database-configuration.ts",
-        "postgres": null
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
       }
     },
-    "packages/database/src/db.ts": {
+    "packages/database/src/tenant-security.ts": {
       "mode": "100644",
-      "bytes": 7457,
-      "sha256": "dbe8ba068d104daa8f6e1d344a665343f2a1ac5bc454aa7f07032422601b6292",
-      "imports": {
-        "./database-configuration": "packages/database/src/database-configuration.ts",
-        "./database-connection": "packages/database/src/database-connection.ts",
-        "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts",
-        "./rls-role-readiness": "packages/database/src/rls-role-readiness.ts",
-        "./schema": "packages/database/src/schema.ts",
-        "drizzle-orm/postgres-js": null,
-        "node:crypto": null
-      }
-    },
-    "packages/database/src/domain-event-audit-projection.ts": {
-      "mode": "100644",
-      "bytes": 3979,
-      "sha256": "18e6c51bc8f2b0555790668bdb7b69f4a0adc99ffd6b7d50c64e70ad9bd9b437",
-      "imports": {
-        "./constants": "packages/database/src/constants.ts",
-        "./domain-event-relay": "packages/database/src/domain-event-relay.ts",
-        "./schema/notes": "packages/database/src/schema/notes.ts"
-      }
-    },
-    "packages/database/src/domain-event-delivery-keys.ts": {
-      "mode": "100644",
-      "bytes": 413,
-      "sha256": "132ac13932e549dcc194deebf2039ee0fac5abf88a70646a2bba1900f94f2c3a",
-      "imports": {}
-    },
-    "packages/database/src/domain-event-delivery-recording.ts": {
-      "mode": "100644",
-      "bytes": 1489,
-      "sha256": "38ad0c1ed3f6cb70f0e4b75c4dd0461955009a6fbea07b6fa51d936943148a7d",
-      "imports": {
-        "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
-        "./schema/domain-event-deliveries": "packages/database/src/schema/domain-event-deliveries.ts"
-      }
-    },
-    "packages/database/src/domain-event-erasure-render.ts": {
-      "mode": "100644",
-      "bytes": 2967,
-      "sha256": "d2f22271f161e77576f961f924d2960cd836724173ca8ffcab7f4d5a21c57e3b",
-      "imports": {}
-    },
-    "packages/database/src/domain-event-erasure.ts": {
-      "mode": "100644",
-      "bytes": 1964,
-      "sha256": "f5bcbe21ef9f73ffbff8af5f53ad4750bf928454a1de00230b876b7b1c7f9c04",
-      "imports": {
-        "./db": "packages/database/src/db.ts",
-        "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
-        "drizzle-orm": null
-      }
-    },
-    "packages/database/src/domain-event-handoff-payloads.ts": {
-      "mode": "100644",
-      "bytes": 3068,
-      "sha256": "50b8844e748b5c5ee966aadd5dd552fec6bc2f6cac5d616f6a1612d5940a8d5c",
-      "imports": {
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
-      }
-    },
-    "packages/database/src/domain-event-member-payloads.ts": {
-      "mode": "100644",
-      "bytes": 3469,
-      "sha256": "09ddce0630fc21a714bccf95d07f9e8283b79cd9801141e5d8c2647e30823899",
-      "imports": {
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
-      }
-    },
-    "packages/database/src/domain-event-membership-migration-payloads.ts": {
-      "mode": "100644",
-      "bytes": 2694,
-      "sha256": "1eb653a170efc87ce7a91f59fc3eb82eb871dfd474b709ce802bbee870005e47",
-      "imports": {
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
-      }
-    },
-    "packages/database/src/domain-event-membership-payloads.ts": {
-      "mode": "100644",
-      "bytes": 2582,
-      "sha256": "046cb59800347fe3584da2e794f85d6e330c82746290d8cd53973dfdfebb1534",
-      "imports": {
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
-      }
-    },
-    "packages/database/src/domain-event-payload-helpers.ts": {
-      "mode": "100644",
-      "bytes": 2632,
-      "sha256": "8cc8ecec3c9d13fe72997531d8807d19cf337e3f10b324d57e0a6b3e882ac9be",
-      "imports": {}
-    },
-    "packages/database/src/domain-event-payloads.ts": {
-      "mode": "100644",
-      "bytes": 5439,
-      "sha256": "97bf276f1e91b366e3f8b335dd5fcb0b630baf0819459f7f4385bcec38b7393b",
-      "imports": {
-        "./constants": "packages/database/src/constants.ts",
-        "./domain-event-handoff-payloads": "packages/database/src/domain-event-handoff-payloads.ts",
-        "./domain-event-member-payloads": "packages/database/src/domain-event-member-payloads.ts",
-        "./domain-event-membership-migration-payloads": "packages/database/src/domain-event-membership-migration-payloads.ts",
-        "./domain-event-membership-payloads": "packages/database/src/domain-event-membership-payloads.ts",
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts",
-        "./domain-event-recovery-payloads": "packages/database/src/domain-event-recovery-payloads.ts"
-      }
-    },
-    "packages/database/src/domain-event-pii-key-cache.ts": {
-      "mode": "100644",
-      "bytes": 2109,
-      "sha256": "2956ffada39a1bf34d10a3d1dd32f25d5fd2c11e60a7df847b2bfb9d76a383ca",
-      "imports": {}
-    },
-    "packages/database/src/domain-event-pii.ts": {
-      "mode": "100644",
-      "bytes": 4498,
-      "sha256": "1285f9efef21721447657a73f048f0f183766a5ec3f0fc95725e5b170752f0af",
-      "imports": {
-        "./db": "packages/database/src/db.ts",
-        "./domain-event-pii-key-cache": "packages/database/src/domain-event-pii-key-cache.ts",
-        "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
-        "./schema/event-pii-references": "packages/database/src/schema/event-pii-references.ts",
-        "drizzle-orm": null
-      }
-    },
-    "packages/database/src/domain-event-recovery-payloads.ts": {
-      "mode": "100644",
-      "bytes": 4308,
-      "sha256": "c608f01260da4f526063901ad390fbef2ea72624f594fe0798bd6fdbd19db8d2",
-      "imports": {
-        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
-      }
-    },
-    "packages/database/src/domain-event-relay.ts": {
-      "mode": "100644",
-      "bytes": 5930,
-      "sha256": "8aabf908b7959a7861588c428b044a45dee2171d47395eda00167c54513b5392",
-      "imports": {
-        "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
-        "./domain-event-delivery-recording": "packages/database/src/domain-event-delivery-recording.ts",
-        "drizzle-orm": null
-      }
-    },
-    "packages/database/src/domain-events.ts": {
-      "mode": "100644",
-      "bytes": 2756,
-      "sha256": "4f45610f19d8f848d6422f85340dbd9c490660c808532eee298a4c119e701c11",
-      "imports": {
-        "./db": "packages/database/src/db.ts",
-        "./domain-event-payloads": "packages/database/src/domain-event-payloads.ts",
-        "./schema/domain-events": "packages/database/src/schema/domain-events.ts"
-      }
-    },
-    "packages/database/src/e2e-users.ts": {
-      "mode": "100644",
-      "bytes": 3828,
-      "sha256": "b69b0c79f9e895a5d2546a5e1aa999b769e510277f866a9e564d71053c9dc965",
-      "imports": {}
+      "bytes": 2043,
+      "sha256": "6b70be2e0dd0af524a9ea4b528dc7260b8d6684409fb3f9620992f98a92f1b1b",
+      "imports": { "drizzle-orm": null }
     },
     "packages/database/src/index.ts": {
       "mode": "100644",
@@ -224,13 +63,36 @@
         "drizzle-orm": null
       }
     },
+    "packages/database/src/types.ts": {
+      "mode": "100644",
+      "bytes": 977,
+      "sha256": "0601bc996f20c0309941245174f5fa5d4ec13d710308f0ac2d151df361a91e72",
+      "imports": {}
+    },
+    "packages/database/src/tenant.ts": {
+      "mode": "100644",
+      "bytes": 930,
+      "sha256": "c972a73f5c3901d2731fd068d47f6c0c516aad792667191a8b13edaf8d87290b",
+      "imports": {
+        "./database-configuration": "packages/database/src/database-configuration.ts",
+        "./db": "packages/database/src/db.ts",
+        "./tenant-transaction": "packages/database/src/tenant-transaction.ts"
+      }
+    },
+    "packages/database/src/tenant-transaction.ts": {
+      "mode": "100644",
+      "bytes": 2881,
+      "sha256": "4d2dcdb5a3c2c8245624604ec4fda91832abd8fdffe8af4f71cd761ac88c3e8a",
+      "imports": {
+        "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts",
+        "drizzle-orm": null
+      }
+    },
     "packages/database/src/rls-role-assertion.ts": {
       "mode": "100644",
       "bytes": 7090,
       "sha256": "f52bd35597fcf72141d5a69201efa51c0eb6cf57bf2fe641bbc371be8ff60341",
-      "imports": {
-        "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts"
-      }
+      "imports": { "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts" }
     },
     "packages/database/src/rls-role-posture-query.ts": {
       "mode": "100644",
@@ -238,297 +100,25 @@
       "sha256": "00edd51c5731df11506583ccd7faa2b9f45d24bc57605cd4a07c5905e4c97a75",
       "imports": {}
     },
-    "packages/database/src/rls-role-readiness.ts": {
+    "packages/database/src/db.ts": {
       "mode": "100644",
-      "bytes": 3797,
-      "sha256": "40cd1c1959af9f679c8e9d9db102c0cea25787470b52117807afb137c4cf218e",
+      "bytes": 7457,
+      "sha256": "dbe8ba068d104daa8f6e1d344a665343f2a1ac5bc454aa7f07032422601b6292",
       "imports": {
-        "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts"
+        "./database-configuration": "packages/database/src/database-configuration.ts",
+        "./database-connection": "packages/database/src/database-connection.ts",
+        "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts",
+        "./rls-role-readiness": "packages/database/src/rls-role-readiness.ts",
+        "./schema": "packages/database/src/schema.ts",
+        "drizzle-orm/postgres-js": null,
+        "node:crypto": null
       }
     },
     "packages/database/src/schema.ts": {
       "mode": "100644",
       "bytes": 183,
       "sha256": "4e6c7f6f905336c82876ecf41c7041ed7fbc84d1d48933da0157be8b1b1d6ea1",
-      "imports": {
-        "./schema/index": "packages/database/src/schema/index.ts"
-      }
-    },
-    "packages/database/src/schema/agents.ts": {
-      "mode": "100644",
-      "bytes": 3154,
-      "sha256": "1ea199de9cdd29c950290d29b14bcac217ea2651c442fbd0f0a11caf2cc5d7fc",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./enums": "packages/database/src/schema/enums.ts",
-        "./memberships": "packages/database/src/schema/memberships.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/ai.ts": {
-      "mode": "100644",
-      "bytes": 3865,
-      "sha256": "d9097661ab93975cca0608660020b6715960222671724776cd409e754cd0f04b",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./documents": "packages/database/src/schema/documents.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/auth.ts": {
-      "mode": "100644",
-      "bytes": 3158,
-      "sha256": "81ee6897f9001df129951f0c8e168f15884dcab6b7646fe9e5b215f082c077b4",
-      "imports": {
-        "./rbac": "packages/database/src/schema/rbac.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/automation.ts": {
-      "mode": "100644",
-      "bytes": 4095,
-      "sha256": "4571887f34d0519c0d4c2b4b1ed3cbd27990da490f95724bd710ac5c4effe024",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./memberships": "packages/database/src/schema/memberships.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/billing.ts": {
-      "mode": "100644",
-      "bytes": 2975,
-      "sha256": "96826ec16f3dcd418eb8c6cbdc23863a4d1ababfe9189814af6f162801e95ec4",
-      "imports": {
-        "./memberships": "packages/database/src/schema/memberships.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "./webhooks": "packages/database/src/schema/webhooks.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/case-scoped-access-grants.ts": {
-      "mode": "100644",
-      "bytes": 2143,
-      "sha256": "d71d9c30553ccedf928ce4f608ac10ead81050a149d0a813e199321add83b3bb",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-commercial.ts": {
-      "mode": "100644",
-      "bytes": 3570,
-      "sha256": "0216b8044e7d3a2c9594dbd833b098723bbddbdb3426d7ce6fca86ded1ddec2d",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./memberships": "packages/database/src/schema/memberships.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-core.ts": {
-      "mode": "100644",
-      "bytes": 4880,
-      "sha256": "cd6861b64edd24fb97f6572df70acca748e13ecd061bf19c1e5780ca65ae1d1e",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./rbac": "packages/database/src/schema/rbac.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-document-ai-consents.ts": {
-      "mode": "100644",
-      "bytes": 2069,
-      "sha256": "4a4fbd93087421974e81718fdd78c19ff1d15cfd4174787c06d359d3365e1e41",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-information-requests.ts": {
-      "mode": "100644",
-      "bytes": 6044,
-      "sha256": "5fe560555d4487b258e3fc982571204097b43e6a5353ecd66a0a5445f1229514",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claim-core": "packages/database/src/schema/claim-core.ts",
-        "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-recovery-no-fee.ts": {
-      "mode": "100644",
-      "bytes": 1424,
-      "sha256": "81ea8fb95d2fd5f8012e56a5919a2c429add7140d6c018b7834d632c8b59286e",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-support-tables.ts": {
-      "mode": "100644",
-      "bytes": 2425,
-      "sha256": "64f5cd713580e99edcae80ac615f20444bce1211f75e9cc47a86705c15e356e5",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claim-core": "packages/database/src/schema/claim-core.ts",
-        "./enums": "packages/database/src/schema/enums.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-threads.ts": {
-      "mode": "100644",
-      "bytes": 4142,
-      "sha256": "99f3db67b687dd9ec039c4aa8e7c81f1296fc7db5d6e47f051587a6e41a9ca78",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claim-transition-evidence.ts": {
-      "mode": "100644",
-      "bytes": 2129,
-      "sha256": "aecfb7918b58e4b7a716ebd425a5acd54041a3eac2a1b1e37ac4e6b228455124",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/claims.ts": {
-      "mode": "100644",
-      "bytes": 130,
-      "sha256": "8b41703f709f34438fef9b1055ca185b8cff261071f1918c8863b3bba3c4802c",
-      "imports": {
-        "./claim-core": "packages/database/src/schema/claim-core.ts",
-        "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts"
-      }
-    },
-    "packages/database/src/schema/commercial-action-idempotency.ts": {
-      "mode": "100644",
-      "bytes": 1278,
-      "sha256": "a601bdb44c995ccee6c467de9fcfe09ca713a150865e43d9a02002b21ffafca0",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/counters.ts": {
-      "mode": "100644",
-      "bytes": 539,
-      "sha256": "9059d14838649f54850e3abbe814580849c19e8daf2c1b0311eeecae958bfee3",
-      "imports": {
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/crm.ts": {
-      "mode": "100644",
-      "bytes": 39467,
-      "sha256": "bad30f4bb6d6190d7f6d8e754584c1ab081d90a69df7aae4c0d4c1b85ac7fc3a",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./claims": "packages/database/src/schema/claims.ts",
-        "./rbac": "packages/database/src/schema/rbac.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/documents.ts": {
-      "mode": "100644",
-      "bytes": 4797,
-      "sha256": "ef8fb06f85218129959cef5b4cdcf8e2a4bd62467b0424137f266131177c5cfd",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/domain-event-deliveries.ts": {
-      "mode": "100644",
-      "bytes": 1556,
-      "sha256": "8656044731a54b7e93de1755ccc0858346bc634af1a7c2e05088e4593ffdbf59",
-      "imports": {
-        "./domain-events": "packages/database/src/schema/domain-events.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/domain-event-keys.ts": {
-      "mode": "100644",
-      "bytes": 1027,
-      "sha256": "4bd6b68addec9b0342609c24d56037aa4315c07d078079f2a5672037e974479e",
-      "imports": {
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/domain-events.ts": {
-      "mode": "100644",
-      "bytes": 1804,
-      "sha256": "b377073a4dcbf3753ddbb2771e0624b3e3d372c7feede7ed7abbe00a9a182189",
-      "imports": {
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/enums.ts": {
-      "mode": "100644",
-      "bytes": 973,
-      "sha256": "16490dc0146c16d79f8f70f57e030ad0b253d4fdfded940ed7c5caaade9080e5",
-      "imports": {
-        "../constants": "packages/database/src/constants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/event-pii-references.ts": {
-      "mode": "100644",
-      "bytes": 2757,
-      "sha256": "36519762b08ecfea5de2cba4dbc6aa92cec0ac5f68fe93cf0b12054e95c4dabb",
-      "imports": {
-        "./domain-events": "packages/database/src/schema/domain-events.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/free-start-drafts.ts": {
-      "mode": "100644",
-      "bytes": 3170,
-      "sha256": "1b682715596c1fd0144ccd70b54091ca73e9224de1df78fb553d35207827bdb2",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
+      "imports": { "./schema/index": "packages/database/src/schema/index.ts" }
     },
     "packages/database/src/schema/index.ts": {
       "mode": "100644",
@@ -574,10 +164,72 @@
         "./webhooks": "packages/database/src/schema/webhooks.ts"
       }
     },
-    "packages/database/src/schema/leads.ts": {
+    "packages/database/src/schema/webhooks.ts": {
       "mode": "100644",
-      "bytes": 4280,
-      "sha256": "b0cac894935451b45b1f1dc00b6136e55e3b817f1a559d442f0a6f3b39707fce",
+      "bytes": 1752,
+      "sha256": "06e31e4ae6f246c8cd6ec49896f1b0d5aa3cf5ab7ffefc3b0deaafe214d3dd46",
+      "imports": {
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/tenants.ts": {
+      "mode": "100644",
+      "bytes": 1883,
+      "sha256": "f67a37f091a57a11fe29046816970ff04c1e8ed69c0f6ccd6d77891718f37aa9",
+      "imports": { "drizzle-orm": null, "drizzle-orm/pg-core": null }
+    },
+    "packages/database/src/schema/tracking.ts": {
+      "mode": "100644",
+      "bytes": 934,
+      "sha256": "73bd60e7bb2d33992a632a38db717b9eab1b269058f0db6b48477b81e4d01be0",
+      "imports": {
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/claims.ts": {
+      "mode": "100644",
+      "bytes": 130,
+      "sha256": "8b41703f709f34438fef9b1055ca185b8cff261071f1918c8863b3bba3c4802c",
+      "imports": {
+        "./claim-core": "packages/database/src/schema/claim-core.ts",
+        "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts"
+      }
+    },
+    "packages/database/src/schema/claim-support-tables.ts": {
+      "mode": "100644",
+      "bytes": 2425,
+      "sha256": "64f5cd713580e99edcae80ac615f20444bce1211f75e9cc47a86705c15e356e5",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claim-core": "packages/database/src/schema/claim-core.ts",
+        "./enums": "packages/database/src/schema/enums.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/enums.ts": {
+      "mode": "100644",
+      "bytes": 973,
+      "sha256": "16490dc0146c16d79f8f70f57e030ad0b253d4fdfded940ed7c5caaade9080e5",
+      "imports": {
+        "../constants": "packages/database/src/constants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/constants.ts": {
+      "mode": "100644",
+      "bytes": 1008,
+      "sha256": "b708aa342582f21d63f8010aeb81858af7043ee057d67b9e632363c9e559b395",
+      "imports": {}
+    },
+    "packages/database/src/schema/claim-core.ts": {
+      "mode": "100644",
+      "bytes": 4880,
+      "sha256": "cd6861b64edd24fb97f6572df70acca748e13ecd061bf19c1e5780ca65ae1d1e",
       "imports": {
         "./auth": "packages/database/src/schema/auth.ts",
         "./rbac": "packages/database/src/schema/rbac.ts",
@@ -586,21 +238,46 @@
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/member-counters.ts": {
+    "packages/database/src/schema/rbac.ts": {
       "mode": "100644",
-      "bytes": 370,
-      "sha256": "fe41aed4bf2ebcc56cc4751b5af19115e99d1983be7956183ea0c3ac233f670f",
+      "bytes": 1836,
+      "sha256": "e195631367a4035d7698e1c6d996053daaf326a01b53f8bf0d593d312d503b09",
       "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/membership-plans.ts": {
+    "packages/database/src/schema/auth.ts": {
       "mode": "100644",
-      "bytes": 1315,
-      "sha256": "e02f0e261611f138b61a39f5cba08a024335bd1734a0ae4b57ab0b726069ac7e",
+      "bytes": 3158,
+      "sha256": "81ee6897f9001df129951f0c8e168f15884dcab6b7646fe9e5b215f082c077b4",
       "imports": {
-        "./enums": "packages/database/src/schema/enums.ts",
+        "./rbac": "packages/database/src/schema/rbac.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/tenant-entity-decomposition.ts": {
+      "mode": "100644",
+      "bytes": 4436,
+      "sha256": "027e4016ac27a42ea11966d7aa560eaa82e70f66d89d0854333d597233b5aef4",
+      "imports": {
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/services.ts": {
+      "mode": "100644",
+      "bytes": 10698,
+      "sha256": "1a1dc012fd0f613c667ac3679aea8971e1e31173dfd7891b96194efa8f38e726",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./memberships": "packages/database/src/schema/memberships.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
@@ -616,46 +293,36 @@
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/notes.ts": {
+    "packages/database/src/schema/subscriptions.ts": {
       "mode": "100644",
-      "bytes": 1489,
-      "sha256": "c17f05654ba4440985c1d9a20ddb8d853286342a9fb20428cc7af240a884a596",
+      "bytes": 4093,
+      "sha256": "c38a8229da9dca6a5a30dca386643309f5192648b188f278894c1249b2718ffe",
       "imports": {
         "./auth": "packages/database/src/schema/auth.ts",
+        "./enums": "packages/database/src/schema/enums.ts",
+        "./membership-plans": "packages/database/src/schema/membership-plans.ts",
+        "./rbac": "packages/database/src/schema/rbac.ts",
+        "./tenant-entity-decomposition": "packages/database/src/schema/tenant-entity-decomposition.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/membership-plans.ts": {
+      "mode": "100644",
+      "bytes": 1315,
+      "sha256": "e02f0e261611f138b61a39f5cba08a024335bd1734a0ae4b57ab0b726069ac7e",
+      "imports": {
         "./enums": "packages/database/src/schema/enums.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/notifications.ts": {
+    "packages/database/src/schema/seed-meta.ts": {
       "mode": "100644",
-      "bytes": 1176,
-      "sha256": "73423c05d2250553efdd0aa1f501306f22f338d1c732bd15982e68f6e0ad71bf",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/policies.ts": {
-      "mode": "100644",
-      "bytes": 916,
-      "sha256": "ecde24b3bd2ef18d3b475d59e3a040a169dfb1527d741c28218194bf4c381e6e",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/rbac.ts": {
-      "mode": "100644",
-      "bytes": 1836,
-      "sha256": "e195631367a4035d7698e1c6d996053daaf326a01b53f8bf0d593d312d503b09",
-      "imports": {
-        "./auth": "packages/database/src/schema/auth.ts",
-        "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm/pg-core": null
-      }
+      "bytes": 1087,
+      "sha256": "6c10e455f91c25bc7ccac9b55011dca003da4f541249d4cee5bc3e13de549283",
+      "imports": { "drizzle-orm": null, "drizzle-orm/pg-core": null }
     },
     "packages/database/src/schema/relations.ts": {
       "mode": "100644",
@@ -675,184 +342,476 @@
         "drizzle-orm": null
       }
     },
-    "packages/database/src/schema/seed-meta.ts": {
+    "packages/database/src/schema/notifications.ts": {
       "mode": "100644",
-      "bytes": 1087,
-      "sha256": "6c10e455f91c25bc7ccac9b55011dca003da4f541249d4cee5bc3e13de549283",
-      "imports": {
-        "drizzle-orm": null,
-        "drizzle-orm/pg-core": null
-      }
-    },
-    "packages/database/src/schema/services.ts": {
-      "mode": "100644",
-      "bytes": 10698,
-      "sha256": "1a1dc012fd0f613c667ac3679aea8971e1e31173dfd7891b96194efa8f38e726",
+      "bytes": 1176,
+      "sha256": "73423c05d2250553efdd0aa1f501306f22f338d1c732bd15982e68f6e0ad71bf",
       "imports": {
         "./auth": "packages/database/src/schema/auth.ts",
-        "./memberships": "packages/database/src/schema/memberships.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
-        "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/subscriptions.ts": {
+    "packages/database/src/schema/notes.ts": {
       "mode": "100644",
-      "bytes": 4093,
-      "sha256": "c38a8229da9dca6a5a30dca386643309f5192648b188f278894c1249b2718ffe",
+      "bytes": 1489,
+      "sha256": "c17f05654ba4440985c1d9a20ddb8d853286342a9fb20428cc7af240a884a596",
       "imports": {
         "./auth": "packages/database/src/schema/auth.ts",
         "./enums": "packages/database/src/schema/enums.ts",
-        "./membership-plans": "packages/database/src/schema/membership-plans.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/crm.ts": {
+      "mode": "100644",
+      "bytes": 39467,
+      "sha256": "bad30f4bb6d6190d7f6d8e754584c1ab081d90a69df7aae4c0d4c1b85ac7fc3a",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
         "./rbac": "packages/database/src/schema/rbac.ts",
-        "./tenant-entity-decomposition": "packages/database/src/schema/tenant-entity-decomposition.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/tenant-entity-decomposition.ts": {
+    "packages/database/src/schema/agents.ts": {
       "mode": "100644",
-      "bytes": 4436,
-      "sha256": "027e4016ac27a42ea11966d7aa560eaa82e70f66d89d0854333d597233b5aef4",
+      "bytes": 3154,
+      "sha256": "1ea199de9cdd29c950290d29b14bcac217ea2651c442fbd0f0a11caf2cc5d7fc",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./enums": "packages/database/src/schema/enums.ts",
+        "./memberships": "packages/database/src/schema/memberships.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/policies.ts": {
+      "mode": "100644",
+      "bytes": 916,
+      "sha256": "ecde24b3bd2ef18d3b475d59e3a040a169dfb1527d741c28218194bf4c381e6e",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/member-counters.ts": {
+      "mode": "100644",
+      "bytes": 370,
+      "sha256": "fe41aed4bf2ebcc56cc4751b5af19115e99d1983be7956183ea0c3ac233f670f",
+      "imports": { "drizzle-orm/pg-core": null }
+    },
+    "packages/database/src/schema/leads.ts": {
+      "mode": "100644",
+      "bytes": 4280,
+      "sha256": "b0cac894935451b45b1f1dc00b6136e55e3b817f1a559d442f0a6f3b39707fce",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./rbac": "packages/database/src/schema/rbac.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/free-start-drafts.ts": {
+      "mode": "100644",
+      "bytes": 3170,
+      "sha256": "1b682715596c1fd0144ccd70b54091ca73e9224de1df78fb553d35207827bdb2",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/event-pii-references.ts": {
+      "mode": "100644",
+      "bytes": 2757,
+      "sha256": "36519762b08ecfea5de2cba4dbc6aa92cec0ac5f68fe93cf0b12054e95c4dabb",
+      "imports": {
+        "./domain-events": "packages/database/src/schema/domain-events.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/domain-events.ts": {
+      "mode": "100644",
+      "bytes": 1804,
+      "sha256": "b377073a4dcbf3753ddbb2771e0624b3e3d372c7feede7ed7abbe00a9a182189",
       "imports": {
         "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/tenants.ts": {
+    "packages/database/src/schema/domain-event-keys.ts": {
       "mode": "100644",
-      "bytes": 1883,
-      "sha256": "f67a37f091a57a11fe29046816970ff04c1e8ed69c0f6ccd6d77891718f37aa9",
+      "bytes": 1027,
+      "sha256": "4bd6b68addec9b0342609c24d56037aa4315c07d078079f2a5672037e974479e",
       "imports": {
+        "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/tracking.ts": {
+    "packages/database/src/schema/domain-event-deliveries.ts": {
       "mode": "100644",
-      "bytes": 934,
-      "sha256": "73bd60e7bb2d33992a632a38db717b9eab1b269058f0db6b48477b81e4d01be0",
+      "bytes": 1556,
+      "sha256": "8656044731a54b7e93de1755ccc0858346bc634af1a7c2e05088e4593ffdbf59",
       "imports": {
+        "./domain-events": "packages/database/src/schema/domain-events.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/documents.ts": {
+      "mode": "100644",
+      "bytes": 4797,
+      "sha256": "ef8fb06f85218129959cef5b4cdcf8e2a4bd62467b0424137f266131177c5cfd",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/counters.ts": {
+      "mode": "100644",
+      "bytes": 539,
+      "sha256": "9059d14838649f54850e3abbe814580849c19e8daf2c1b0311eeecae958bfee3",
+      "imports": {
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/commercial-action-idempotency.ts": {
+      "mode": "100644",
+      "bytes": 1278,
+      "sha256": "a601bdb44c995ccee6c467de9fcfe09ca713a150865e43d9a02002b21ffafca0",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/claim-transition-evidence.ts": {
+      "mode": "100644",
+      "bytes": 2129,
+      "sha256": "aecfb7918b58e4b7a716ebd425a5acd54041a3eac2a1b1e37ac4e6b228455124",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/claim-threads.ts": {
+      "mode": "100644",
+      "bytes": 4142,
+      "sha256": "99f3db67b687dd9ec039c4aa8e7c81f1296fc7db5d6e47f051587a6e41a9ca78",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
         "./claims": "packages/database/src/schema/claims.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm/pg-core": null
       }
     },
-    "packages/database/src/schema/webhooks.ts": {
+    "packages/database/src/schema/claim-recovery-no-fee.ts": {
       "mode": "100644",
-      "bytes": 1752,
-      "sha256": "06e31e4ae6f246c8cd6ec49896f1b0d5aa3cf5ab7ffefc3b0deaafe214d3dd46",
+      "bytes": 1424,
+      "sha256": "81ea8fb95d2fd5f8012e56a5919a2c429add7140d6c018b7834d632c8b59286e",
       "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/claim-information-requests.ts": {
+      "mode": "100644",
+      "bytes": 6044,
+      "sha256": "5fe560555d4487b258e3fc982571204097b43e6a5353ecd66a0a5445f1229514",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claim-core": "packages/database/src/schema/claim-core.ts",
+        "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts",
         "./tenants": "packages/database/src/schema/tenants.ts",
         "drizzle-orm": null,
         "drizzle-orm/pg-core": null
       }
     },
+    "packages/database/src/schema/claim-document-ai-consents.ts": {
+      "mode": "100644",
+      "bytes": 2069,
+      "sha256": "4a4fbd93087421974e81718fdd78c19ff1d15cfd4174787c06d359d3365e1e41",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/claim-commercial.ts": {
+      "mode": "100644",
+      "bytes": 3570,
+      "sha256": "0216b8044e7d3a2c9594dbd833b098723bbddbdb3426d7ce6fca86ded1ddec2d",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./memberships": "packages/database/src/schema/memberships.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/case-scoped-access-grants.ts": {
+      "mode": "100644",
+      "bytes": 2143,
+      "sha256": "d71d9c30553ccedf928ce4f608ac10ead81050a149d0a813e199321add83b3bb",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/billing.ts": {
+      "mode": "100644",
+      "bytes": 2975,
+      "sha256": "96826ec16f3dcd418eb8c6cbdc23863a4d1ababfe9189814af6f162801e95ec4",
+      "imports": {
+        "./memberships": "packages/database/src/schema/memberships.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "./webhooks": "packages/database/src/schema/webhooks.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/automation.ts": {
+      "mode": "100644",
+      "bytes": 4095,
+      "sha256": "4571887f34d0519c0d4c2b4b1ed3cbd27990da490f95724bd710ac5c4effe024",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./memberships": "packages/database/src/schema/memberships.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/schema/ai.ts": {
+      "mode": "100644",
+      "bytes": 3865,
+      "sha256": "d9097661ab93975cca0608660020b6715960222671724776cd409e754cd0f04b",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./documents": "packages/database/src/schema/documents.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm/pg-core": null
+      }
+    },
+    "packages/database/src/rls-role-readiness.ts": {
+      "mode": "100644",
+      "bytes": 3797,
+      "sha256": "40cd1c1959af9f679c8e9d9db102c0cea25787470b52117807afb137c4cf218e",
+      "imports": { "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts" }
+    },
+    "packages/database/src/database-connection.ts": {
+      "mode": "100644",
+      "bytes": 1507,
+      "sha256": "507a7a29b596a3734844e8c8919b04e929489bd906d16fcaefb7f2d3bea21740",
+      "imports": {
+        "./database-configuration": "packages/database/src/database-configuration.ts",
+        "postgres": null
+      }
+    },
+    "packages/database/src/database-configuration.ts": {
+      "mode": "100644",
+      "bytes": 1178,
+      "sha256": "5238b5e50969d82c3277a38c8fd043f7b96523d84539ca6328d9c8203bacf93c",
+      "imports": {}
+    },
     "packages/database/src/server.ts": {
       "mode": "100644",
       "bytes": 1394,
       "sha256": "f9993c5f10cb1335f6441ff8839d1ca464c7b8d270f360ede630fb52dede557f",
-      "imports": {
-        "@supabase/ssr": null,
-        "@supabase/supabase-js": null,
-        "next/headers": null
-      }
+      "imports": { "@supabase/ssr": null, "@supabase/supabase-js": null, "next/headers": null }
     },
-    "packages/database/src/tenant-security.ts": {
+    "packages/database/src/e2e-users.ts": {
       "mode": "100644",
-      "bytes": 2043,
-      "sha256": "6b70be2e0dd0af524a9ea4b528dc7260b8d6684409fb3f9620992f98a92f1b1b",
-      "imports": {
-        "drizzle-orm": null
-      }
+      "bytes": 3828,
+      "sha256": "b69b0c79f9e895a5d2546a5e1aa999b769e510277f866a9e564d71053c9dc965",
+      "imports": {}
     },
-    "packages/database/src/tenant-transaction.ts": {
+    "packages/database/src/domain-events.ts": {
       "mode": "100644",
-      "bytes": 2881,
-      "sha256": "4d2dcdb5a3c2c8245624604ec4fda91832abd8fdffe8af4f71cd761ac88c3e8a",
+      "bytes": 2756,
+      "sha256": "4f45610f19d8f848d6422f85340dbd9c490660c808532eee298a4c119e701c11",
       "imports": {
-        "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts",
-        "drizzle-orm": null
-      }
-    },
-    "packages/database/src/tenant.ts": {
-      "mode": "100644",
-      "bytes": 930,
-      "sha256": "c972a73f5c3901d2731fd068d47f6c0c516aad792667191a8b13edaf8d87290b",
-      "imports": {
-        "./database-configuration": "packages/database/src/database-configuration.ts",
         "./db": "packages/database/src/db.ts",
-        "./tenant-transaction": "packages/database/src/tenant-transaction.ts"
+        "./domain-event-payloads": "packages/database/src/domain-event-payloads.ts",
+        "./schema/domain-events": "packages/database/src/schema/domain-events.ts"
       }
     },
-    "packages/database/src/types.ts": {
+    "packages/database/src/domain-event-payloads.ts": {
       "mode": "100644",
-      "bytes": 977,
-      "sha256": "0601bc996f20c0309941245174f5fa5d4ec13d710308f0ac2d151df361a91e72",
+      "bytes": 5439,
+      "sha256": "97bf276f1e91b366e3f8b335dd5fcb0b630baf0819459f7f4385bcec38b7393b",
+      "imports": {
+        "./constants": "packages/database/src/constants.ts",
+        "./domain-event-handoff-payloads": "packages/database/src/domain-event-handoff-payloads.ts",
+        "./domain-event-member-payloads": "packages/database/src/domain-event-member-payloads.ts",
+        "./domain-event-membership-migration-payloads": "packages/database/src/domain-event-membership-migration-payloads.ts",
+        "./domain-event-membership-payloads": "packages/database/src/domain-event-membership-payloads.ts",
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts",
+        "./domain-event-recovery-payloads": "packages/database/src/domain-event-recovery-payloads.ts"
+      }
+    },
+    "packages/database/src/domain-event-recovery-payloads.ts": {
+      "mode": "100644",
+      "bytes": 4308,
+      "sha256": "c608f01260da4f526063901ad390fbef2ea72624f594fe0798bd6fdbd19db8d2",
+      "imports": {
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+      }
+    },
+    "packages/database/src/domain-event-payload-helpers.ts": {
+      "mode": "100644",
+      "bytes": 2632,
+      "sha256": "8cc8ecec3c9d13fe72997531d8807d19cf337e3f10b324d57e0a6b3e882ac9be",
       "imports": {}
     },
-    "packages/domain-communications/src/messages/access.ts": {
+    "packages/database/src/domain-event-membership-payloads.ts": {
       "mode": "100644",
-      "bytes": 4124,
-      "sha256": "ba5635905fa4c4bb241a6f37a2108ca8aba8511d152b62e14dffc7e453cf1506",
+      "bytes": 2582,
+      "sha256": "046cb59800347fe3584da2e794f85d6e330c82746290d8cd53973dfdfebb1534",
       "imports": {
-        "@interdomestik/database": "packages/database/src/index.ts",
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+      }
+    },
+    "packages/database/src/domain-event-membership-migration-payloads.ts": {
+      "mode": "100644",
+      "bytes": 2694,
+      "sha256": "1eb653a170efc87ce7a91f59fc3eb82eb871dfd474b709ce802bbee870005e47",
+      "imports": {
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+      }
+    },
+    "packages/database/src/domain-event-member-payloads.ts": {
+      "mode": "100644",
+      "bytes": 3469,
+      "sha256": "09ddce0630fc21a714bccf95d07f9e8283b79cd9801141e5d8c2647e30823899",
+      "imports": {
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+      }
+    },
+    "packages/database/src/domain-event-handoff-payloads.ts": {
+      "mode": "100644",
+      "bytes": 3068,
+      "sha256": "50b8844e748b5c5ee966aadd5dd552fec6bc2f6cac5d616f6a1612d5940a8d5c",
+      "imports": {
+        "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+      }
+    },
+    "packages/database/src/domain-event-relay.ts": {
+      "mode": "100644",
+      "bytes": 5930,
+      "sha256": "8aabf908b7959a7861588c428b044a45dee2171d47395eda00167c54513b5392",
+      "imports": {
+        "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
+        "./domain-event-delivery-recording": "packages/database/src/domain-event-delivery-recording.ts",
         "drizzle-orm": null
       }
     },
-    "packages/domain-communications/src/messages/get.ts": {
+    "packages/database/src/domain-event-delivery-recording.ts": {
       "mode": "100644",
-      "bytes": 3832,
-      "sha256": "45f4b5f222cc95d4662a8f46daee5f429f2a8192b257743fcf77daadb2b774d9",
+      "bytes": 1489,
+      "sha256": "38ad0c1ed3f6cb70f0e4b75c4dd0461955009a6fbea07b6fa51d936943148a7d",
       "imports": {
-        "./access": "packages/domain-communications/src/messages/access.ts",
-        "./normalize": "packages/domain-communications/src/messages/normalize.ts",
-        "@interdomestik/database": "packages/database/src/index.ts",
-        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
-        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
-        "drizzle-orm": null
+        "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
+        "./schema/domain-event-deliveries": "packages/database/src/schema/domain-event-deliveries.ts"
       }
     },
-    "packages/domain-communications/src/messages/mark-read.ts": {
+    "packages/database/src/domain-event-delivery-keys.ts": {
       "mode": "100644",
-      "bytes": 2362,
-      "sha256": "686d48ce34fa03485a4f1d30b45d695ef290895a70b49c26dfbc6022bbb4aecd",
-      "imports": {
-        "./access": "packages/domain-communications/src/messages/access.ts",
-        "@interdomestik/database": "packages/database/src/index.ts",
-        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
-        "drizzle-orm": null
-      }
-    },
-    "packages/domain-communications/src/messages/normalize.ts": {
-      "mode": "100644",
-      "bytes": 566,
-      "sha256": "c010afef108baf9b2079ade7cc4506dd8529669c7c7501e47855d467ffdc4811",
+      "bytes": 413,
+      "sha256": "132ac13932e549dcc194deebf2039ee0fac5abf88a70646a2bba1900f94f2c3a",
       "imports": {}
     },
-    "packages/domain-communications/src/messages/send.ts": {
+    "packages/database/src/domain-event-pii.ts": {
       "mode": "100644",
-      "bytes": 6127,
-      "sha256": "16b2ffe2cfbb9a68cbc5709bce105afbfcce424ee4ca4d2dd99c8dec8cdc098e",
+      "bytes": 4498,
+      "sha256": "1285f9efef21721447657a73f048f0f183766a5ec3f0fc95725e5b170752f0af",
       "imports": {
-        "./access": "packages/domain-communications/src/messages/access.ts",
-        "./normalize": "packages/domain-communications/src/messages/normalize.ts",
-        "@interdomestik/database": "packages/database/src/index.ts",
-        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
-        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
-        "drizzle-orm": null,
-        "nanoid": null
+        "./db": "packages/database/src/db.ts",
+        "./domain-event-pii-key-cache": "packages/database/src/domain-event-pii-key-cache.ts",
+        "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
+        "./schema/event-pii-references": "packages/database/src/schema/event-pii-references.ts",
+        "drizzle-orm": null
       }
+    },
+    "packages/database/src/domain-event-pii-key-cache.ts": {
+      "mode": "100644",
+      "bytes": 2109,
+      "sha256": "2956ffada39a1bf34d10a3d1dd32f25d5fd2c11e60a7df847b2bfb9d76a383ca",
+      "imports": {}
+    },
+    "packages/database/src/domain-event-erasure-render.ts": {
+      "mode": "100644",
+      "bytes": 2967,
+      "sha256": "d2f22271f161e77576f961f924d2960cd836724173ca8ffcab7f4d5a21c57e3b",
+      "imports": {}
+    },
+    "packages/database/src/domain-event-erasure.ts": {
+      "mode": "100644",
+      "bytes": 1964,
+      "sha256": "f5bcbe21ef9f73ffbff8af5f53ad4750bf928454a1de00230b876b7b1c7f9c04",
+      "imports": {
+        "./db": "packages/database/src/db.ts",
+        "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
+        "drizzle-orm": null
+      }
+    },
+    "packages/database/src/domain-event-audit-projection.ts": {
+      "mode": "100644",
+      "bytes": 3979,
+      "sha256": "18e6c51bc8f2b0555790668bdb7b69f4a0adc99ffd6b7d50c64e70ad9bd9b437",
+      "imports": {
+        "./constants": "packages/database/src/constants.ts",
+        "./domain-event-relay": "packages/database/src/domain-event-relay.ts",
+        "./schema/notes": "packages/database/src/schema/notes.ts"
+      }
+    },
+    "packages/database/src/client.ts": {
+      "mode": "100644",
+      "bytes": 344,
+      "sha256": "58ee1576ea8308a23d02e85cf6f1b107f71c1bc282d4e318142a9234cc32e96f",
+      "imports": { "@supabase/ssr": null }
+    },
+    "packages/database/src/claim-lifecycle.ts": {
+      "mode": "100644",
+      "bytes": 2282,
+      "sha256": "2040262366b710ef51cd4771ef4a07887c69e257129694732fcf14e1ffc20941",
+      "imports": {}
+    },
+    "apps/web/src/actions/messages/audit.core.ts": {
+      "mode": "100644",
+      "bytes": 1434,
+      "sha256": "0a97644c6f63dd050e2d54e5143ac32aaff09d408bf72c1f591cc31fdead5f5a",
+      "imports": { "@interdomestik/database": "packages/database/src/index.ts", "nanoid": null }
     },
     "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts": {
       "mode": "100644",
-      "bytes": 9042,
-      "sha256": "e963ca56be2b88670854252da5815f7ced79bf311cc1e13a62edbd799151cf3b",
+      "bytes": 11509,
+      "sha256": "5ee18f41050166b0cfa7ccf66bf6082873dba6a5592a1c65d8604122f843eed3",
       "imports": {
         "./get": "packages/domain-communications/src/messages/get.ts",
         "./mark-read": "packages/domain-communications/src/messages/mark-read.ts",
+        "./public-reply-concurrency.runtime-fixture": "packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts",
         "./send": "packages/domain-communications/src/messages/send.ts",
         "@interdomestik/database": "packages/database/src/index.ts",
         "@interdomestik/database/db": "packages/database/src/db.ts",
@@ -862,35 +821,20 @@
         "vitest": null
       }
     },
-    "packages/domain-communications/src/messages/tenant-context.integration.test.ts": {
+    "packages/domain-communications/src/messages/send.ts": {
       "mode": "100644",
-      "bytes": 8472,
-      "sha256": "b87c16dd6ee73fe5af59a8f53482845aafc2543aada2039f38b7635fa1188e60",
+      "bytes": 6724,
+      "sha256": "8ad56e8cb2f30c3ec674372fe0ae8efadb8513cbc1611d591eb0cf56628e3a61",
       "imports": {
+        "./access": "packages/domain-communications/src/messages/access.ts",
         "./normalize": "packages/domain-communications/src/messages/normalize.ts",
-        "./tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "./public-reply-delivery": "packages/domain-communications/src/messages/public-reply-delivery.ts",
+        "./public-reply-notification": "packages/domain-communications/src/messages/public-reply-notification.ts",
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
         "drizzle-orm": null,
-        "vitest": null
-      }
-    },
-    "packages/shared-auth/src/access-grants.ts": {
-      "mode": "100644",
-      "bytes": 1381,
-      "sha256": "dac44e2e4d318190d5b6108f07036545a8f92801105f7069e0a8d46fd86f57f9",
-      "imports": {}
-    },
-    "packages/shared-auth/src/errors.ts": {
-      "mode": "100644",
-      "bytes": 1098,
-      "sha256": "be9ba153f67c27d7a9c9415bf79a680c012bff55d259bcd33d5266a48223bfd6",
-      "imports": {}
-    },
-    "packages/shared-auth/src/governance.ts": {
-      "mode": "100644",
-      "bytes": 2006,
-      "sha256": "9db44bcf54386dbbc9d907759fdbf34946236563d2016a7e5a98c60b3c6b52f2",
-      "imports": {
-        "./permissions": "packages/shared-auth/src/permissions.ts"
+        "nanoid": null
       }
     },
     "packages/shared-auth/src/index.ts": {
@@ -906,10 +850,16 @@
         "./session": "packages/shared-auth/src/session.ts"
       }
     },
-    "packages/shared-auth/src/permissions.ts": {
+    "packages/shared-auth/src/session.ts": {
       "mode": "100644",
-      "bytes": 4184,
-      "sha256": "defddfa38429eac3e16d87fd8bf27a09804b80607a4b0b0ac6f19f456872364e",
+      "bytes": 1596,
+      "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
+      "imports": { "./errors": "packages/shared-auth/src/errors.ts" }
+    },
+    "packages/shared-auth/src/errors.ts": {
+      "mode": "100644",
+      "bytes": 1098,
+      "sha256": "be9ba153f67c27d7a9c9415bf79a680c012bff55d259bcd33d5266a48223bfd6",
       "imports": {}
     },
     "packages/shared-auth/src/scope.ts": {
@@ -922,12 +872,230 @@
         "./session": "packages/shared-auth/src/session.ts"
       }
     },
-    "packages/shared-auth/src/session.ts": {
+    "packages/shared-auth/src/permissions.ts": {
       "mode": "100644",
-      "bytes": 1596,
-      "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
+      "bytes": 4184,
+      "sha256": "defddfa38429eac3e16d87fd8bf27a09804b80607a4b0b0ac6f19f456872364e",
+      "imports": {}
+    },
+    "packages/shared-auth/src/governance.ts": {
+      "mode": "100644",
+      "bytes": 2006,
+      "sha256": "9db44bcf54386dbbc9d907759fdbf34946236563d2016a7e5a98c60b3c6b52f2",
+      "imports": { "./permissions": "packages/shared-auth/src/permissions.ts" }
+    },
+    "packages/shared-auth/src/access-grants.ts": {
+      "mode": "100644",
+      "bytes": 1381,
+      "sha256": "dac44e2e4d318190d5b6108f07036545a8f92801105f7069e0a8d46fd86f57f9",
+      "imports": {}
+    },
+    "packages/domain-communications/src/messages/public-reply-notification.ts": {
+      "mode": "100644",
+      "bytes": 8073,
+      "sha256": "66521cd37408ae1b6bb6b8660cbc57fba31d1816f62242db23e42b12153c2ff6",
       "imports": {
-        "./errors": "packages/shared-auth/src/errors.ts"
+        "./access": "packages/domain-communications/src/messages/access.ts",
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/database/schema": "packages/database/src/schema.ts",
+        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+        "drizzle-orm": null
+      }
+    },
+    "packages/domain-communications/src/messages/access.ts": {
+      "mode": "100644",
+      "bytes": 5124,
+      "sha256": "dda2d2b44c46487fc5d6904df1453bbdb11e396430efd1c1127599e11c39eae3",
+      "imports": {
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "drizzle-orm": null
+      }
+    },
+    "packages/domain-communications/src/messages/public-reply-delivery.ts": {
+      "mode": "100644",
+      "bytes": 5301,
+      "sha256": "6ad08a0c7bb9ad63cf30b8f7023645180f57e2616d38939c425f0410e8fa4aee",
+      "imports": { "../email": "packages/domain-communications/src/email.ts", "web-push": null }
+    },
+    "packages/domain-communications/src/email.ts": {
+      "mode": "100644",
+      "bytes": 12592,
+      "sha256": "9e1cec39cbad2c050d1c9609872a679ec839db83fac0a2629e24540033c5e66f",
+      "imports": {
+        "./dunning-email": "packages/domain-communications/src/dunning-email.ts",
+        "./email-templates": "packages/domain-communications/src/email-templates.ts",
+        "./sign-in-otp-email": "packages/domain-communications/src/sign-in-otp-email.ts",
+        "nodemailer": null,
+        "resend": null
+      }
+    },
+    "packages/domain-communications/src/sign-in-otp-email.ts": {
+      "mode": "100644",
+      "bytes": 7065,
+      "sha256": "f117380d389ecd6d2bfd586021cf0a670325e4e6eddb70f36dbc7b3af1a2ae5b",
+      "imports": { "nodemailer": null }
+    },
+    "packages/domain-communications/src/email-templates.ts": {
+      "mode": "100644",
+      "bytes": 616,
+      "sha256": "33bccb93082f74b4f31896a30cc8d316ed6ce462a4b6861addda2d4d0f0e31b7",
+      "imports": {
+        "./email/templates": "packages/domain-communications/src/email/templates/index.ts"
+      }
+    },
+    "packages/domain-communications/src/email/templates/index.ts": {
+      "mode": "100644",
+      "bytes": 837,
+      "sha256": "d8de2ff8e766f65f79404b51d37ccaab929bed3a32575dfed293619a220f6507",
+      "imports": {
+        "./auth": "packages/domain-communications/src/email/templates/auth.ts",
+        "./base": "packages/domain-communications/src/email/templates/base.ts",
+        "./claims": "packages/domain-communications/src/email/templates/claims.ts",
+        "./dunning": "packages/domain-communications/src/email/templates/dunning.ts",
+        "./engagement": "packages/domain-communications/src/email/templates/engagement.ts",
+        "./membership": "packages/domain-communications/src/email/templates/membership.ts",
+        "./messages": "packages/domain-communications/src/email/templates/messages.ts"
+      }
+    },
+    "packages/domain-communications/src/email/templates/messages.ts": {
+      "mode": "100644",
+      "bytes": 612,
+      "sha256": "60d59446694f150af21a0db863503594848a71826d97f6c257da28b4a74cdd8a",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/email/templates/base.ts": {
+      "mode": "100644",
+      "bytes": 2809,
+      "sha256": "08132095a67b11b48204f08af9212b9a750889353e4249db384bf543beb846b3",
+      "imports": {}
+    },
+    "packages/domain-communications/src/email/templates/membership.ts": {
+      "mode": "100644",
+      "bytes": 749,
+      "sha256": "5175e43cd27e79d26f44bb10c4b9c1a1f4ef5ee718027dd942043f91af6708d2",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/email/templates/engagement.ts": {
+      "mode": "100644",
+      "bytes": 6462,
+      "sha256": "dcf38bfb2ec120b5d818db0c8506949ff082b372b381a975cb50966dc3db54ee",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/email/templates/dunning.ts": {
+      "mode": "100644",
+      "bytes": 2673,
+      "sha256": "bc0e27b941c19bc168db160b90c11ebcf983ed7408e9415c6475e23b6bf8e9bd",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/email/templates/claims.ts": {
+      "mode": "100644",
+      "bytes": 2093,
+      "sha256": "d707168bb5acafa6fef91d3bb64336ae8c7c8437decc5696db45a10897ee5597",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/email/templates/auth.ts": {
+      "mode": "100644",
+      "bytes": 528,
+      "sha256": "ac7d439cc246a56fdf0c9174c4683f1d60e323b6d0dfad6cbf13ff7663fe7f6b",
+      "imports": { "./base": "packages/domain-communications/src/email/templates/base.ts" }
+    },
+    "packages/domain-communications/src/dunning-email.ts": {
+      "mode": "100644",
+      "bytes": 1832,
+      "sha256": "212eb9910832bca6a2a6e203c5c4cf4eb2fec172b9e8df97cbe7203c22c8e0d8",
+      "imports": {
+        "./email": "packages/domain-communications/src/email.ts",
+        "./email-templates": "packages/domain-communications/src/email-templates.ts",
+        "./sign-in-otp-email": "packages/domain-communications/src/sign-in-otp-email.ts"
+      }
+    },
+    "packages/domain-communications/src/messages/normalize.ts": {
+      "mode": "100644",
+      "bytes": 566,
+      "sha256": "c010afef108baf9b2079ade7cc4506dd8529669c7c7501e47855d467ffdc4811",
+      "imports": {}
+    },
+    "packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts": {
+      "mode": "100644",
+      "bytes": 2702,
+      "sha256": "d8207a9eeedbfd85830081bdb0900e1310d32db8909408a2ec36ed9cdfa8eca0",
+      "imports": { "node:child_process": null, "node:url": null }
+    },
+    "packages/domain-communications/src/messages/mark-read.ts": {
+      "mode": "100644",
+      "bytes": 3104,
+      "sha256": "250dc410053b5f3180aab20a8c389362aedcef014a97b69de3a7d962fd7cfc27",
+      "imports": {
+        "./access": "packages/domain-communications/src/messages/access.ts",
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+        "drizzle-orm": null
+      }
+    },
+    "packages/domain-communications/src/messages/get.ts": {
+      "mode": "100644",
+      "bytes": 3930,
+      "sha256": "48f274aae6ba399efd62cc56626e92f53714108e246d33eee7c32452cef5b3f6",
+      "imports": {
+        "./access": "packages/domain-communications/src/messages/access.ts",
+        "./normalize": "packages/domain-communications/src/messages/normalize.ts",
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+        "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+        "drizzle-orm": null
+      }
+    },
+    "packages/domain-communications/src/messages/public-reply-concurrency.worker-fixture.ts": {
+      "mode": "100644",
+      "bytes": 1479,
+      "sha256": "d00fdbdbb993526eb02b0d8cfe341809defbf94eeb07378cdb32601f81480e93",
+      "imports": {
+        "./public-reply-notification": "packages/domain-communications/src/messages/public-reply-notification.ts",
+        "@interdomestik/database": "packages/database/src/index.ts",
+        "@interdomestik/database/db": "packages/database/src/db.ts",
+        "node:fs": null
+      }
+    },
+    "packages/domain-communications/src/messages/tenant-context-safety.test.ts": {
+      "mode": "100644",
+      "bytes": 1936,
+      "sha256": "62b7e760bc0ece72604bb568c3f7f2cc65d0d00a622de6b6b21d940e8ba3f17f",
+      "imports": {
+        "./tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "vitest": null
+      }
+    },
+    "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts": {
+      "mode": "100644",
+      "bytes": 10030,
+      "sha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "imports": {
+        "./public-reply-notification": "packages/domain-communications/src/messages/public-reply-notification.ts",
+        "./tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "drizzle-orm": null,
+        "vitest": null
+      }
+    },
+    "packages/domain-communications/src/messages/agent-context.integration.test.ts": {
+      "mode": "100644",
+      "bytes": 7434,
+      "sha256": "b3ac88792b24360bf56dfc94f9331b9a1326828d47579caad346425829fbd4f0",
+      "imports": {
+        "./tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "drizzle-orm": null,
+        "vitest": null
+      }
+    },
+    "packages/domain-communications/src/messages/tenant-context.integration.test.ts": {
+      "mode": "100644",
+      "bytes": 7298,
+      "sha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "imports": {
+        "./normalize": "packages/domain-communications/src/messages/normalize.ts",
+        "./tenant-context.integration-fixture": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+        "drizzle-orm": null,
+        "vitest": null
       }
     }
   },
@@ -939,8 +1107,8 @@
     },
     "packages/domain-communications/package.json": {
       "mode": "100644",
-      "bytes": 1836,
-      "sha256": "f3d1858828803fd70e9bf5b5f81c5bfed74cfd2fc08e1fa64ff85521770efe68"
+      "bytes": 1942,
+      "sha256": "817012febe225233fe3b757c8199f4eff657c62715762c39a62cd7b0462a5b1b"
     },
     "packages/shared-auth/package.json": {
       "mode": "100644",
@@ -976,6 +1144,21 @@
       "mode": "100644",
       "bytes": 1989,
       "sha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304"
+    },
+    "apps/web/vitest.messages-rls.config.ts": {
+      "mode": "100644",
+      "bytes": 505,
+      "sha256": "2480f72a350fa2d61c21e66ede7784ea32036b190a80d5653dc71258280274a7"
+    },
+    "apps/web/tsconfig.json": {
+      "mode": "100644",
+      "bytes": 2774,
+      "sha256": "ae48bed7cd2f03614366f5cc61dd4e774f15a2d158fa9a49f0d8349dfac53b0a"
+    },
+    "apps/web/package.json": {
+      "mode": "100644",
+      "bytes": 6443,
+      "sha256": "e1d2ac2348eec210bf06c2e2744082fee8166eabd899fd56f7b150e6e68d87bb"
     }
   },
   "migrations": {
@@ -1490,1035 +1673,171 @@
       "sha256": "89fb16837f0d449262d9ea464a3bd06d5061ed1162f7ce15e1f82c54607c16f5"
     }
   },
-  "identities": [
+  "identities": [],
+  "unknownWitnesses": [],
+  "version": 2,
+  "compatibility": "local-finite-message-family-v2",
+  "cases": [
     {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 36,
-      "callee": "database",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "database",
-      "identity": "d941b7d4cadd3a4708a956b3dd985a1b9c9f9a42237b13a6886688f0a63d2e40",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "fullName": "message fixture database safety accepts the synthetic CI and task ports without a machine-specific port constraint",
+      "fileSha256": "62b7e760bc0ece72604bb568c3f7f2cc65d0d00a622de6b6b21d940e8ba3f17f",
+      "caseSha256": "5c0370aeb8b6342f56096692ba6ec2c511e4a3ebbabd1736ba1bf58f7526fee1",
+      "bodySha256": "9acb76b67c182d4b47aac6a6234a6dbb30a9662eef917c773c9c0d5c3d874e9a",
+      "kind": "source-target-safety"
     },
     {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 39,
-      "callee": "get",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "get",
-      "identity": "fc7d387996826367b9d1d37290e3395e1514a44819bb5e3b269d896214e493da",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "fullName": "message fixture database safety rejects remote and non-synthetic databases before creating clients or fixtures",
+      "fileSha256": "62b7e760bc0ece72604bb568c3f7f2cc65d0d00a622de6b6b21d940e8ba3f17f",
+      "caseSha256": "5c988bbfce25efdc8a02986e098ab29462fc56c21fa3b3d0fc2bb8590b572b6f",
+      "bodySha256": "550351254e557c9885d31583d18c97bec2013557489d75fc72d79a52e09180eb",
+      "kind": "source-target-safety"
     },
     {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 42,
-      "callee": "markRead",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "markRead",
-      "identity": "e890b4ce3b92b25a727bc0990ebb833b4cfabbac22fe6f8f3714822d2cd21308",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 45,
-      "callee": "send",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "send",
-      "identity": "028f0995e13b4c0062c49e6e65f911b9f68fd79dacc06eaba8ac57a409dc470e",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 48,
-      "callee": "rlsClient",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "rlsClient",
-      "identity": "aad5033201c669d1c410ef7220afb00feaa92e402d1765b7da52fc602d7b52d6",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 52,
-      "callee": "({ user: { id, role, tenantId, branchId: null } }) as NonNullable<Session>",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "({ user: { id, role, tenantId, branchId: null } }) as NonNullable<Session>",
-      "identity": "0141c6442a9e6f46b138f28718c3ac5eda88967490b7bf6e5ef741b4bb440d73",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 120,
-      "callee": "database.dbAdmin.insert",
-      "method": "insert",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.insert",
-      "identity": "5a14e74e817f42f4dce0486623ee71661b9b923a7ce537cd21e575fb6e41b6a9",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 135,
-      "callee": "database.dbAdmin.insert",
-      "method": "insert",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.insert",
-      "identity": "18c1d9258b71e498a8d349b244940dd011ee9a291df9846402cf2729ad9e081c",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 141,
-      "callee": "({\n        id,\n        role,\n        tenantId: homeTenantId,\n        email: `${id}@example.test`,\n        emailVerified: true,\n        name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',\n        createdAt: now,\n        updatedAt: now,\n      })",
-      "method": "escape",
-      "tenantPosture": "unclassified",
-      "tenantPostureReason": "unclassified: unknown",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "risk": "domain-wrapper",
-      "source": "({\n        id,\n        role,\n        tenantId: homeTenantId,\n        email: `${id}@example.test`,\n        emailVerified: true,\n        name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',\n        createdAt: now,\n        updatedAt: now,\n      })",
-      "identity": "e24e2e105d1f82841c45daaac7c1667214ef4c1d1bc682f806e789b33527e417",
-      "historicalDebt": false,
-      "dispatchAlternatives": []
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 152,
-      "callee": "database.dbAdmin.insert",
-      "method": "insert",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.insert",
-      "identity": "6e2f802e5609fa5082e7bf994b8e83595a6cfcb75acdfecc8a887b6d5c4f0093",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 163,
-      "callee": "database.dbAdmin.insert",
-      "method": "insert",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.insert",
-      "identity": "a5df5f774a016423caaf5c6c51023cf5be7c7002ee79df4c1ae8e66ab1c5e119",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 170,
-      "callee": "database.dbAdmin.insert",
-      "method": "insert",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.insert",
-      "identity": "c23a7c8e0a3b7303c5775c3f61a5d8651d5dacda1a5eb9360d046cfb339eb019",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 193,
-      "callee": "database.dbAdmin\n          .delete",
-      "method": "delete",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin\n          .delete",
-      "identity": "65e1fb4b47cda3032c701aa0c241ec34533e0b3dbdc16f631fc67f239d36ac89",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 196,
-      "callee": "database.dbAdmin\n          .delete",
-      "method": "delete",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin\n          .delete",
-      "identity": "fd1a52e6016ee4a37c35cd5725421228b031ee1494c246d9a7f007221ea324e1",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 199,
-      "callee": "database.dbAdmin.delete",
-      "method": "delete",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin.delete",
-      "identity": "43b2aca5ef95414321e4cbfe1bb474b332dabb380ee1108c7ea62f425c638247",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 200,
-      "callee": "database.dbAdmin\n          .delete",
-      "method": "delete",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin\n          .delete",
-      "identity": "def50a50e602f26905bd5c91543b2b43cac51726583f9e5c1dcaff2de2337f2a",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "line": 203,
-      "callee": "database.dbAdmin\n          .delete",
-      "method": "delete",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "database.dbAdmin\n          .delete",
-      "identity": "afc3b836cbf166123c2bd8e482c2a27d52ea41412bdb2482d5bd2a734c16a527",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "changed executable edge reaches ambient operation",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "fullName": "message fixture database safety rejects connection-string options that could redirect the approved target",
+      "fileSha256": "62b7e760bc0ece72604bb568c3f7f2cc65d0d00a622de6b6b21d940e8ba3f17f",
+      "caseSha256": "c1471d5d740817dc357616c77d101a6139336848fceeacf2701b7f6f0ec01304",
+      "bodySha256": "cbabfa59c917469a4ee96816f59dd3ba95c47d74ca7ee1f5a010a7d4f07403ca",
+      "kind": "source-target-safety"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 108,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "f40f550c3c2dd11cea2689f6a6f1bfe54e1114d0a336559137e0b979d5ace51a",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection loads the owned public thread and sender projection across repeated reads",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "1200287f8961c1182ad2ef6632b877cec5033455f67d8a022d9ff8244bbba9d3",
+      "bodySha256": "320cd4f95cbb658bf88420c695836370b68383d3e61e9dcb2b3f8c8c5c25121f",
+      "kind": "actual-restricted-postgres"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 121,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "778472cc0cf3094fabd30bd9296daad67065f0f9c3306910f3e2c516ade523bd",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection preserves member/tenant denial, staff assignment and linked-agent visibility",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "bf99ed99f1de1718d15e43d208b4fe1930b77bf6eab8db85b158f52f2cca5aa0",
+      "bodySha256": "2b622eaf349561b5d3375117808868faf3760a2cab99af59e8bafbc94b4fe3c3",
+      "kind": "actual-restricted-postgres"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 128,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "83b870c6b89ed9d9fff9f80b9c65edda2da6c10c414ebcbf386e33692b9ad095",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection persists visible recipient receipts while rejecting internal/own/out-of-scope mutations",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "df188557e2f8368f462862d4b380aa3108ba4070d160c840dfe936497b24368a",
+      "bodySha256": "3599123556b3fd125db3e9a9f523bde36cceea215a07be30d0706b7e2cb36b1a",
+      "kind": "actual-restricted-postgres"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 157,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "5188635ad39cd3e684c900ce15c1922229db72cb41f99bd172ce7d98c834806d",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection sends a persisted public message with the same transaction and denies member internal send",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "086e129181bcf5e26802ec752bd099358dbc059b3d7b424140bbb47a2936ce70",
+      "bodySha256": "880e61acd9b81f4c1647f66ab900400a9b56627b243d9ecc5e5f18ee2010d6c9",
+      "kind": "actual-restricted-postgres"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 184,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "a7a5fdeccaa70d596866205fea6596111fe9fab29a4217e12bc6193ca85500da",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection rolls back the insert when the created-message projection is unavailable",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "206e178236aeed45860dbf6a124d8577b5955dc9fbf478edf362d99de1bac693",
+      "bodySha256": "3ac8b28a7ee3747203c5205c3d5d7103c159429e6e662aa14a63c596d40fa613",
+      "kind": "actual-restricted-postgres"
     },
     {
       "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 218,
-      "callee": "fixture.database.dbAdmin.query",
-      "method": "query",
-      "tenantPosture": "admin-privileged",
-      "tenantPostureReason": "unclassified: dbAdmin",
-      "isDirectDbAlias": true,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "fixture.database.dbAdmin.query",
-      "identity": "2f9e0223be1b341920fd9132aa7df1c41d78233a88c0a4c16f7285be64e90c07",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence",
-      "mountedFromAll": [
-        "packages/domain-communications/src/messages/tenant-context.integration.test.ts"
-      ]
+      "fullName": "message operations on a real NOBYPASSRLS connection returns the committed message after a post-commit audit failure without holding the transaction",
+      "fileSha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a",
+      "caseSha256": "446cf670a1b305bbb8d4e8bc18f08b5dbaa3c0dac46b3e7ed307edae89560220",
+      "bodySha256": "1923dac23a3490feb0df7f1a1730e75c3bb9d57ce408c529b71f3f81ad6e07a1",
+      "kind": "actual-restricted-postgres"
     },
     {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "line": 206,
-      "callee": "tx.query",
-      "method": "query",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: proven-symbol-invocations",
-      "isDirectDbAlias": false,
-      "claimsUpdateTarget": false,
-      "risk": "domain-wrapper",
-      "source": "tx.query",
-      "identity": "f02ab75a490c3041a76ec2f7cbd7652d03148f8d1003289f0e993f524763049d",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "fullName": "message operations on a real NOBYPASSRLS connection uses the current agent branch for read, send and receipts despite a cached null branch",
+      "fileSha256": "b3ac88792b24360bf56dfc94f9331b9a1326828d47579caad346425829fbd4f0",
+      "caseSha256": "5dc7776a89295b1f2fad93515b7da7febf5472d3c09ae4938351b608445f987e",
+      "bodySha256": "333afe6ec8b0a5eec34c5904b4f0296850aff499dccd4a52bf1e633fd38317c7",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "fullName": "message operations on a real NOBYPASSRLS connection denies conversation operations when the agent has no current identity in the access tenant",
+      "fileSha256": "b3ac88792b24360bf56dfc94f9331b9a1326828d47579caad346425829fbd4f0",
+      "caseSha256": "a97158fbb35a8c69508e09a46789728f24fb798283d0d8bef217d6ed53327237",
+      "bodySha256": "e24081797102ea61adde3b1d1f4b192ee051604d12500198ab4b71d1138d4930",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "fullName": "message operations on a real NOBYPASSRLS connection retains the legitimate current-null-branch agent policy across conversation operations",
+      "fileSha256": "b3ac88792b24360bf56dfc94f9331b9a1326828d47579caad346425829fbd4f0",
+      "caseSha256": "2e29ada7cf40cec74fd863d2a1b79f545f8dc44ddf4409c505f84f505f2276ce",
+      "bodySha256": "f1377b7e45f586347c051d422737daf2087ac57674da585a04b318baa26917e4",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN keeps session and effective identities restricted, nonowning and without memberships",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "596f4622f0e22488f56fbd4b2f1a8fa4d6ad4f320279461787f775f361f32478",
+      "bodySha256": "dd9e5b422a933fcceeb3381541d8ed6812e57a82e74cde91c20bdbcc15c24b9f",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN persists one recipient notification and an immutable data-only delivery plan",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "3d52ffec1c6d7149fb480b12ec5302afb0ebce4a0f3340ad08f9c79efb3efd42",
+      "bodySha256": "667af6fa8e52e10c0e4fa59f57a204c875f4dc1321ce50d9f509b83d80aa8038",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN deduplicates simultaneous actual preparation calls on two restricted database sessions",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "014382ce749e2a8dc768a4587f9cdd9bb01f6601e9fd3dfcc917a40c79c7d8cf",
+      "bodySha256": "97eb111c0e4ef9d68d29ea2cc855413c1847c730679cf2abf7ef73541b6917be",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN rejects mismatched recipient, message visibility, sender and tenant without notification writes",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "e4d6be28a7eeef8489bc14ca8dcca051660652117f9a38efa7ac392201b57a97",
+      "bodySha256": "acee36b4fc6e5afc994ee1d2b238a1580ff742d8a69cc03b814690caa2601692",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN rolls back a denied notification insert while preserving its already committed message",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "5fbec7919e3aedbf69b2be99581568ad07bafef68372bfe660a502f6e3a2fbba",
+      "bodySha256": "e97ce0eacc480d6c296029af7decceeb3ad17a2615ac430da4027ff01c0183ac",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "fullName": "S8 public reply under an actual restricted LOGIN isolates subscription reads and expired endpoint cleanup by recipient, tenant and admitted endpoints",
+      "fileSha256": "177719073d59e1908199fd809715a7357a88a73c5ae3f3f4fa8b5363a1d7a148",
+      "caseSha256": "8c7840704b6a6daf6dffd962b967a4f95bcd2760c560ba2361c89270f5f3b539",
+      "bodySha256": "bbf9aa281979b2e5048b89a3db9b14133a557a380d6e7721197ec5f443a87cb6",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "apps/web/src/actions/messages/audit.rls.integration.test.ts",
+      "fullName": "actual S8 message audit adapter reads staff assignment options with the actual restricted tenant context",
+      "fileSha256": "82d63e0784522a59120e525b3065706db866110dda28205b2c90c64d7ace05b8",
+      "caseSha256": "818ee38b5ea916a478bd89b032dcb30da87660809082be3f017a1eccceff0843",
+      "bodySha256": "02e36a6d4f0f1d760e663156823b8e45808c0d9b97fd45e2152fc6d636c6d372",
+      "kind": "actual-restricted-postgres"
+    },
+    {
+      "file": "apps/web/src/actions/messages/audit.rls.integration.test.ts",
+      "fullName": "actual S8 message audit adapter persists a tenant-bound audit through the actual restricted post-commit adapter",
+      "fileSha256": "82d63e0784522a59120e525b3065706db866110dda28205b2c90c64d7ace05b8",
+      "caseSha256": "0ad9cbb96f38aac16eab5280ed7fbb137c28c2792dacebcc71a5d95ed1daac7c",
+      "bodySha256": "3329178f9ebb29a185812a7ebf2d10c721cc176b2c56b5a206f0e1653a00e404",
+      "kind": "actual-restricted-postgres"
     }
   ],
-  "unknownWitnesses": [
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported mutable global environment root",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unresolved module initialization postgres",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge suffix.replaceAll",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge randomUUID().replaceAll",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "occurrences": 9
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported mutated or bounded handle argument to unresolved callee",
-      "occurrences": 65
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge key.toLowerCase",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "mutated executable callee",
-      "occurrences": 44
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge endpoint.searchParams.keys",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unknown executable edge postgres",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported tagged executable edge",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge expect(tables).toHaveLength",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge expect(tables.every(table => table.relrowsecurity === true)).toBe",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge tables.every",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge adminClient.unsafe",
-      "occurrences": 12
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge restrictedUrl.toString",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge env.E2E_PASSWORD?.trim",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge TENANT_ADMIN_PERMISSIONS.filter",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge expect(posture).toEqual",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.tenants).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert",
-      "occurrences": 10
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.user).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claims).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.agentClients).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claimMessages).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.claimMessages)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete",
-      "occurrences": 8
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.agentClients)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.delete(database.claims).where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.delete",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.user)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.tenants)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge rlsClient?.end",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
-      "reason": "unsupported received property executable edge adminClient?.end",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported mutable global environment root",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unresolved module initialization postgres",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge suffix.replaceAll",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge randomUUID().replaceAll",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/interdomestik_test')\n    ).not.toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported mutated or bounded handle argument to unresolved callee",
-      "occurrences": 198
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge key.toLowerCase",
-      "occurrences": 38
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "mutated executable callee",
-      "occurrences": 82
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge endpoint.searchParams.keys",
-      "occurrences": 38
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@localhost:55435/interdomestik_test')\n    ).not.toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://postgres:postgres@127.0.0.1:54322/postgres')\n    ).not.toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@db.example.test:5432/interdomestik_test'\n      )\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/production')\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/postgres')\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@db.example.test:54322/postgres')\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?host=db.example.test'\n      )\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?options=unsafe'\n      )\n    ).toThrow",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unknown executable edge suite",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unknown executable edge postgres",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported tagged executable edge",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(tables).toHaveLength",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(tables.every(table => table.relrowsecurity === true)).toBe",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge tables.every",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge adminClient.unsafe",
-      "occurrences": 12
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge restrictedUrl.toString",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge env.E2E_PASSWORD?.trim",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge TENANT_ADMIN_PERMISSIONS.filter",
-      "occurrences": 1
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(posture).toEqual",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.tenants).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert",
-      "occurrences": 10
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.user).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
-      "occurrences": 98
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claims).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.agentClients).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claimMessages).values",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.claimMessages)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete",
-      "occurrences": 8
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.agentClients)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.delete(database.claims).where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin.delete",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.user)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.tenants)\n          .where",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge rlsClient?.end",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge adminClient?.end",
-      "occurrences": 2
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(unscoped.count).toBe",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(result.success).toBe",
-      "occurrences": 6
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(result.messages?.map(message => message.id)).toEqual",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge result.messages?.map",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(result.messages?.[0].sender).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(context.tenant || null).toBeNull",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      await fixture.get({ session: session(ids.otherMember, 'member'), claimId: ids.claim })\n    ).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      await fixture.get({\n        session: session(ids.member, 'member', otherTenantId),\n        claimId: ids.claim,\n      })\n    ).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      await fixture.get({ session: session(ids.otherMember, 'staff'), claimId: ids.claim })\n    ).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(staff.messages?.map(message => message.id)).toEqual",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge staff.messages?.map",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(agent.messages?.map(message => message.id)).toEqual",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge agent.messages?.map",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.public),\n        })\n      )?.readAt\n    ).toBeNull",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unresolved local edge fixture.database.dbAdmin.query.claimMessages.findFirst",
-      "occurrences": 12
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.claimMessages.findFirst",
-      "occurrences": 12
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      await fixture.markRead({\n        session: session(ids.member, 'member'),\n        messageIds: [ids.public, ids.internal],\n      })\n    ).toEqual",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.public),\n        })\n      )?.readAt\n    ).toBeInstanceOf",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.internal),\n        })\n      )?.readAt\n    ).toBeNull",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported constructor executable edge",
-      "occurrences": 12
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(result.message).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(reread.messages?.map(message => message.id)).toContain",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge reread.messages?.map",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, result.message.id),\n        })\n      )?.readAt\n    ).toBeNull",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      await fixture.send({\n        session: session(ids.member, 'member'),\n        requestHeaders: new Headers(),\n        claimId: ids.claim,\n        content: 'Forbidden private note',\n        isInternal: true,\n      })\n    ).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge vi.spyOn(normalize, 'normalizeSelectedMessages').mockReturnValueOnce",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n        await fixture.send({\n          session: session(ids.member, 'member'),\n          requestHeaders: new Headers(),\n          claimId: ids.claim,\n          content: 'Projection failure rollback',\n        })\n      ).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unresolved local edge fixture.database.dbAdmin.query.claimMessages.findMany",
-      "occurrences": 6
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.claimMessages.findMany",
-      "occurrences": 6
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(persisted.some(message => message.content === 'Projection failure rollback')).toBe",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge persisted.some",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge projection.mockRestore",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(rows.some(message => message.content === 'Committed before audit failure')).toBe",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge rows.some",
-      "occurrences": 4
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(result).toMatchObject",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge expect(\n      persisted.filter(message => message.content === 'Committed before audit failure')\n    ).toHaveLength",
-      "occurrences": 3
-    },
-    {
-      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
-      "reason": "unsupported received property executable edge persisted.filter",
-      "occurrences": 3
-    }
-  ]
+  "witnessInventory": { "state": "hold", "operations": 0, "diagnostics": 0 }
 }

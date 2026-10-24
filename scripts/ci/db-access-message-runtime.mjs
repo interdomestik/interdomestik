@@ -3,7 +3,16 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash, refuse } from './db-access-provider-runtime-identity.mjs';
 import { materializeMessageRuntime } from './db-access-message-runtime-materialize.mjs';
-import { validateMessageTestResult } from './db-access-message-runtime-result.mjs';
+import {
+  MESSAGE_PROOF_CONTRACT,
+  MESSAGE_RUNS,
+  assertMessageContract,
+  messageCaseIdentities,
+} from './db-access-message-proof-registry.mjs';
+import {
+  messageRunResultFile,
+  validateMessageRuntimeResults,
+} from './db-access-message-runtime-result.mjs';
 
 export function runMessageRuntime({
   candidate,
@@ -17,13 +26,7 @@ export function runMessageRuntime({
 }) {
   const contract = policy.messageProof;
   if (!contract) return undefined;
-  if (
-    contract.id !== 's8-message-integration-proof-v1' ||
-    contract.requiredTests !== 9 ||
-    contract.runtimeRequired !== true ||
-    contract.acceptedReceiptInputs !== false
-  )
-    refuse('message proof contract');
+  assertMessageContract(contract, reason => refuse('message proof contract ' + reason));
   const materialized = materializeMessageRuntime({
     sourceRoot: candidate,
     producerRoot: producer,
@@ -52,24 +55,33 @@ export function runMessageRuntime({
   fs.writeFileSync(path.join(output, 'messages-runtime.log'), raw);
   if (result.error || result.signal || result.status !== 0)
     refuse('message runtime execution (raw log retained)');
-  const report = JSON.parse(fs.readFileSync(path.join(materialized.root, 'messages-result.json')));
-  const identities = validateMessageTestResult(report);
+  // Re-validate every fresh per-file report here; the driver completion is never trusted alone.
+  const reports = MESSAGE_RUNS.map((_, index) =>
+    JSON.parse(fs.readFileSync(path.join(materialized.root, messageRunResultFile(index))))
+  );
+  const files = validateMessageRuntimeResults(reports);
   const completion = JSON.parse(
     fs.readFileSync(path.join(materialized.root, 'message-completion.json'))
   );
   if (
+    completion.version !== MESSAGE_PROOF_CONTRACT.version ||
+    completion.contractId !== MESSAGE_PROOF_CONTRACT.id ||
     completion.setupComplete !== true ||
     completion.teardownComplete !== true ||
-    completion.passedTests !== 9 ||
-    JSON.stringify(completion.identities) !== JSON.stringify(identities)
+    completion.passedTests !== MESSAGE_PROOF_CONTRACT.requiredTests ||
+    JSON.stringify(completion.files) !== JSON.stringify(files) ||
+    JSON.stringify(completion.identities) !== JSON.stringify(messageCaseIdentities())
   )
     refuse('message setup/teardown completion');
-  fs.writeFileSync(path.join(output, 'messages-result.json'), redact(JSON.stringify(report)));
+  reports.forEach((report, index) =>
+    fs.writeFileSync(path.join(output, messageRunResultFile(index)), redact(JSON.stringify(report)))
+  );
   fs.writeFileSync(path.join(output, 'message-completion.json'), JSON.stringify(completion));
   return {
     ...completion,
     runtimeLogSha256: hash(raw),
-    reportSha256: hash(JSON.stringify(report)),
+    reportSha256: hash(JSON.stringify(reports)),
+    reportSha256s: reports.map(report => hash(JSON.stringify(report))),
     lockSha256: materialized.lockSha256,
     packages: materialized.packages,
     copied: materialized.copied,

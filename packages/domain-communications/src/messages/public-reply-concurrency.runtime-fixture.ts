@@ -1,6 +1,5 @@
 /** Private SQL fixture: two independently authenticated processes call the actual reply operation. */
 import { execFile } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import type { preparePublicReplyNotification } from './public-reply-notification';
 
@@ -18,8 +17,9 @@ type Observation = {
 };
 
 export async function runReplyPreparationWorkers(url: string, role: string, params: Params) {
-  const require = createRequire(new URL('../../../database/package.json', import.meta.url));
-  const loader = require.resolve('tsx');
+  // Fixed full tsx loader (CJS and ESM hooks) of the pinned root install, by literal file URL.
+  // tsx/esm alone cannot load extensionless CommonJS dependencies; no runtime resolver is used.
+  const loader = new URL('../../../../node_modules/tsx/dist/loader.mjs', import.meta.url);
   const source = fileURLToPath(
     new URL('./public-reply-concurrency.worker-fixture.ts', import.meta.url)
   );
@@ -39,7 +39,7 @@ export async function runReplyPreparationWorkers(url: string, role: string, para
     new Promise<Observation>((resolve, reject) => {
       const child = execFile(
         process.execPath,
-        ['--import', loader, source],
+        ['--import', loader.href, source],
         {
           encoding: 'utf8',
           env,

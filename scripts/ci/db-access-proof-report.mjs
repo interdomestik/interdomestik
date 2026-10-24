@@ -18,9 +18,16 @@ export function proofReport({
         ...publicEntry(entry),
         historicalDebt: false,
         runtimeAdmission: false,
-        obligation: 's8-message-integration-proof-v1',
+        obligation: providerPolicy.messageProof.id,
       })),
       unknown: messageObligations.unknown,
+      ...(messageObligations.held && {
+        held: {
+          operations: messageObligations.held.operations.map(publicEntry),
+          unknown: messageObligations.held.unknown,
+          disposition: 'HOLD; report-only; no discharge',
+        },
+      }),
       runtimeAdmission: false,
     },
     namedProofObligations: inventory.entries
