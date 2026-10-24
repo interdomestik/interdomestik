@@ -787,8 +787,8 @@
     },
     "scripts/ci/db-access-message-proof-policy.json": {
       "mode": "100644",
-      "bytes": 82646,
-      "sha256": "06c557fcd0e08d46c78e0f4c85c2e8b6cf70d0838279b9485001cb93bc21ef88"
+      "bytes": 104776,
+      "sha256": "ae246b7cddfc3ff33a6e6a311fdb4fd3ae96cdf23e0adc4fa9d08125c09db834"
     },
     "scripts/ci/db-access-proof-report.mjs": {
       "mode": "100644",
@@ -1139,6 +1139,26 @@
       "mode": "100644",
       "bytes": 12997,
       "sha256": "9b653eabd96db6511e6d4adcf959ea4fab370eecb3a94ded5c0b8abd972a3ef8"
+    },
+    "scripts/ci/db-access-message-proof-witnesses-1.json": {
+      "mode": "100644",
+      "bytes": 51509,
+      "sha256": "fbc01e9e750ae98e8ae0835e8c0f55e5f12962771fcf0ce4988091191050b7cd"
+    },
+    "scripts/ci/db-access-message-proof-witnesses-2.json": {
+      "mode": "100644",
+      "bytes": 54022,
+      "sha256": "17584fa45f9e6ecb64cebf7851beee06f111986ea0a69d604c5cd501d9f14465"
+    },
+    "scripts/ci/db-access-message-policy-loader.mjs": {
+      "mode": "100644",
+      "bytes": 2404,
+      "sha256": "5198494111395aeb7f04199414c3ea26c5ee35730cefea67f193b555b942a1fc"
+    },
+    "scripts/ci/db-access-provider-unit-policy.mjs": {
+      "mode": "100644",
+      "bytes": 805,
+      "sha256": "eff0c0cf98a2ca8bb4c91c8c94eeceff2429d48dbcdb930d66b22a8b10fc6597"
     }
   },
   "runtimeEnforcement": {

@@ -1673,7 +1673,442 @@
       "sha256": "89fb16837f0d449262d9ea464a3bd06d5061ed1162f7ce15e1f82c54607c16f5"
     }
   },
-  "identities": [],
+  "identities": [
+    {
+      "identity": "38ca17266315e51703649707003f94964c5b5eb83a8d1235e8c57aefe5ff9a37",
+      "file": "apps/web/src/actions/messages/audit.rls.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "f5e1169afa573204d9dc52d9ef36e044556705572606bf9835ae12a424c6d770",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "946308257c5e8d6af7c2db7d6c5a3e3998683834e2ccae0c50e60ae0c3b36960",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "fd4cb12b5d0b06480f89c685c88efb58eb3db789f43a0a83d9312672a06193dc",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "insert",
+      "callee": "fixture.database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3189fb6470cf35da9464dfaa48a85f6fcc4dda4c69f6832d31cf9c7fb05c4d4d",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3f3dbb9d5113d36df94af84c32ac2840900227b8d3271ed2769f42faef8c608e",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "7f31158c13ece6addceb94deeb8c2bf8c3aaedcde1a2fb94959227af53b4d680",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "delete",
+      "callee": "fixture.database.dbAdmin\n        .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "d140ff9ddd541fe9d0aa29681b16056a29a3a73bf256397a8c0fdbd249494617",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3a4050ecf23177551d068c39b17ebb59b78653648ef2cc3bf4cd1e6eba972b61",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "insert",
+      "callee": "fixture.database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "c114a482239f19270ec1ce38d054f7484b3e75c68d39ef0546cfae3ceec10082",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "ac7b161a37baf816518f39369fb7fd6dbc621f9dfaf38afb2ea678c0e801117f",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "a09111eef0317b3cd8f11a86a019e5a9757adb9654315f097b25a81479f320db",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "600b5ae56198c7e294f12834ee209c13b5e984d6516975b4d1a49149796a1286",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "delete",
+      "callee": "fixture.database.dbAdmin\n        .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "308d340d2721f70afb280cb0bc4492a8311516cb73b55d0f5d0de50b38abab2a",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "insert",
+      "callee": "fixture.database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "7079377faa87d2c9508b70469dea9d7977ed068b7c42fe76a1706d5e799da2dc",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "eaa984931e2faf6831f0a0d86741e0dc3bfd2c655fa3d94068fad939c9ba9f63",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "920de2a5748750d5d15409f30257bce3680435a9803304a3a347422842975232",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "c32454cf536f19f638478c244a6c033392c20aaa0ab729e11eaa6bcb24546d86",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "delete",
+      "callee": "fixture.database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "45150dcfa64359ae7d8b8a7711255678480ad6f340d1afd394ccb2f9f675e5f7",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "555efe65f27001d736f90d76917362ff9e065ed3919ac3d5f1f741d687810729",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "update",
+      "callee": "fixture.database.dbAdmin\n        .update",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "1da4f6392c930cbcfcdc68819da5da8a032f24506c2279c7e0780ef7a859acca",
+      "file": "packages/domain-communications/src/messages/agent-context.integration.test.ts",
+      "method": "delete",
+      "callee": "fixture.database.dbAdmin\n        .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "be2cfc15a2149b715b8cd125156d6c3df05ae55ca30ba9dfce12070d0ba4c0de",
+      "file": "packages/domain-communications/src/messages/public-reply-concurrency.worker-fixture.ts",
+      "method": "execute",
+      "callee": "dbRls.execute",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "1cf90f7794dd903c8ff01276134875f0e50e7a2028f63b3ae404416365f093b5",
+      "file": "packages/domain-communications/src/messages/public-reply-concurrency.worker-fixture.ts",
+      "method": "$client",
+      "callee": "dbAdmin.$client",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "4a32957d7aa4df3eda8031c8bca4f4d466b199f57f993d5a700d6904b5a20da5",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "escape",
+      "callee": "{\n      session: session(ids.staff, 'staff'),\n      claimId: ids.claim,\n      messageId: result.message.id,\n      expectedRecipientId: ids.member,\n    }",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "73e2384482498bc09a424feb086776b7a20d19fffa6629b45d5482703b0823da",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "f87993891fc29d3c26b843fb0e779d6a1724f1cb7a34ff5a4d62634c53cb7a7d",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "7c9a0c1e66516106e1a135d53678830135076fddb89d6fe6ed819913d0c8f95b",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "insert",
+      "callee": "fixture.database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "11f83161db739353de5804cdf98fcc626e256d4dd4b0ab853511c66d294dd9f5",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3f679596c293442742772fbc88783ec52cdd4c48e09f0866df0284e71e6372c8",
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "method": "insert",
+      "callee": "fixture.database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "5bc62b12e1a037cf3f9819ee9eca1a059f6bd6fb0b56b615f4b33f9603f272c7",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "database",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "c8a93f30e31deb811462f8f0cf2e3e238099031b7f6065f53fff1ee6f61748e9",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "get",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "67d43c4162e9ffddf87538b71aece03ef0517063eef62da62e2ab494812130a7",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "markRead",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "4c8c29755870942017103a5bef5089160dd525181174fdca953e0dcfb439c384",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "send",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "9034744e532dc0e33d6b3a758305612e13f98e3a58227d06ab20397a5570538c",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "rlsClient",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "9a82ca73689c391aa51d3d1ddf7f5905eb49ade9f0f3d9c50383560a8ac0e353",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "fixtureRole",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "d77f77cab96e5d54a0f2e07822179fc4ecce1dbd25b25f6e6a2d14786e79d9ba",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "({ user: { id, role, tenantId, branchId } }) as NonNullable<Session>",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "794be1315ff642900dd3a7a22164b40347df9a5ec4f424027ed2583faff2eaad",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3a8ed86ab2f5f1685f8829448317b082e7974b1d95c66cc1bfd7d7c962dbe7ba",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "7efa5506669355a8bc97f257a681de0a37b1949f4f5ce4d333ece9bec9f201a7",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "c00df9d69d1cb9d0002428b7ab62998858ce70e64c7bcfef4b70225037d9c4da",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "escape",
+      "callee": "({\n        id,\n        role,\n        tenantId: homeTenantId,\n        email: `${id}@example.test`,\n        emailVerified: true,\n        name: role === 'staff' ? 'Synthetic Staff Sender' : 'Synthetic Member',\n        branchId: id === ids.agent ? ids.agentBranch : null,\n        createdAt: now,\n        updatedAt: now,\n      })",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value"
+    },
+    {
+      "identity": "6ee2b98d39fc60f128bc6724846e22ba0ba3dbac6af08fde783e6c9e2e14b625",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "2c57b6faddaec02b4aee189610e473c3c06d29ee086274c6aafd8182b3300118",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "07cf17300ac014089f19554ea9323a0807659005071a0daa279a7ac9b51087f5",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "insert",
+      "callee": "database.dbAdmin.insert",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "35f600ea2b1b47922bda4bd31841e3a92d74527ef6e573ab4cd462d463b810a3",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "cc6134252584790b78349264aeb4c89a9eafe20f803c35c7d42876fcda89b78a",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "a55667fac191a266a094f1cc257a74cd87bd53df1e6678abab622b368755e556",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "f7b59b96480be06d44138aab404e580eb80740de9d3c8c154e07564963cb9493",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "956f66c29e000e7547f555cbb2db78a6955e2d3ec6cd190fc0f73963454615ff",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "da21856ea77d1ff600f3e12718b03c5ac82d8045143e87a921a07e9fc9dd9bfa",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "c75c1828f6ef1225ef66da038fa2a054c507e3e76ebc9a0157fc14f782925e34",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin.delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "dc473409cd8547dfc32e7a6f3c5fe5b98771ed315808f9c9638e2afd4f57eef9",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "3258c7361572d26d14af17944ff5cb5d50c1ec1ac9f491343dd03b2c5a5d6e4d",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "e6a2c8a2e296aeae2e1fb99e9a1e9bf83f3065c9c50027ecc9ec32fcd91ca032",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "method": "delete",
+      "callee": "database.dbAdmin\n          .delete",
+      "reason": "changed executable edge reaches ambient operation"
+    },
+    {
+      "identity": "2a79892fa657fd0b5c865317eca6394aaf28047c98710e1e53fa7cb8190a7321",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "execute",
+      "callee": "fixture.database.dbRls.execute",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "e4fe9170955dd81babf08a643de8f36a6bf16d5a7435fb0956c2c2e48a3a0c2c",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "execute",
+      "callee": "fixture.database.dbRls.execute",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "78ba30971e503fd2591c75fed4649cb76152714262dba77576bb4f65abe99f7a",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "a525bdf980c77e4596488547a02dc8406838a1358a5c25dfd22833934a4e9b89",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "31abb83cb402900fd6b8809008993c1992ceed4681456cb57a92af49305946a9",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "0cef11ca05467bbdca147c7e8e34db7b10fcdbc48f39a7be16037c88752903f7",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "45cda888080b74c858a1a8f8a71cee8afe665ff0d57b85a1dc7d0fc036e87d5e",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "e30c35144fee6243637f187cc7cebf79310a86eac370daec72e63deb4aba0d4b",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "fixture.database.dbAdmin.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    },
+    {
+      "identity": "2095cb087dede8008fed054c8ac59ae424cd527ef994c29c3c1a3c05b960c714",
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "method": "query",
+      "callee": "tx.query",
+      "reason": "existing scoped executable controls changed; root epoch cannot certify equivalence"
+    }
+  ],
   "unknownWitnesses": [],
   "version": 2,
   "compatibility": "local-finite-message-family-v2",
@@ -1839,5 +2274,9 @@
       "kind": "actual-restricted-postgres"
     }
   ],
-  "witnessInventory": { "state": "hold", "operations": 0, "diagnostics": 0 }
+  "witnessInventory": { "state": "bound", "operations": 62, "diagnostics": 432 },
+  "unknownWitnessShards": [
+    "db-access-message-proof-witnesses-1.json",
+    "db-access-message-proof-witnesses-2.json"
+  ]
 }
