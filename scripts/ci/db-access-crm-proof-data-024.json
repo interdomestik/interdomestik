@@ -1,0 +1,22 @@
+{
+  "kind": "cases",
+  "value": [
+    {
+      "id": "crm-claim-status-notification",
+      "kind": "runtime",
+      "files": [
+        "packages/domain-claims/src/staff-claims/update-status.ts",
+        "packages/domain-claims/src/staff-claims/status-notification.ts",
+        "packages/domain-communications/src/notifications/claim-status-store.ts",
+        "packages/domain-communications/src/notifications/notify.ts"
+      ],
+      "justification": "Mandatory actual status core, recipient lookup and notification store execution on the owned restricted LOGIN fixture; denial, SQL faults, commit ordering and data-only callback/result assertions. Native automated email mode and injected push sink prevent external delivery. No audit-projection SQL credit or general closure-lifetime proof is claimed.",
+      "requiredAssertions": [
+        "actual status core rejects missing session, non-staff and foreign staff scope before mutation; committed status precedes fresh notification transactions",
+        "restricted LOGIN recipient lookup returns only same-tenant user; foreign or absent user, empty email and forced lookup SQL failure produce no send; schema rejects null email",
+        "actual notification store checks tenant and user, inserts only tenant-owned notification, denies foreign recipient and rolls back forced insert failure",
+        "public result and notification callback carry only expected data; tenant context is clear after settlement; verified-recipient email and push preserve best-effort behavior without external delivery"
+      ]
+    }
+  ]
+}

@@ -1907,5 +1907,142 @@
     "optionalDependencies": {},
     "os": ["linux"],
     "cpu": ["s390x"]
+  },
+  "6ab2287300696f6489022dae30f84d29d191743f5ed8abf8b60c041038d8d9d4": {
+    "snapshot": "web-push@3.6.7",
+    "name": "web-push",
+    "version": "3.6.7",
+    "resolved": "https://registry.npmjs.org/web-push/-/web-push-3.6.7.tgz",
+    "integrity": "sha512-OpiIUe8cuGjrj3mMBFWY+e4MMIkW3SVT+7vEIjvD9kejGUypv8GPDf84JdPWskK8zMRIJ6xYGm+Kxr8YkPyA0A==",
+    "dependencies": {
+      "asn1.js": "ae6f7f47cebcd00c013301f072482e01c2dd62368e3e51228053bf4c0ad2675f",
+      "http_ece": "6e16e8d80dd66ebda5072bfdf276216875b43de4c24e79a5bffb54931255f37d",
+      "https-proxy-agent": "b6aac91220cd7856e313022f6bc340440996660bbcd315ce14638d6daa8a33c6",
+      "jws": "03d6c969c12414a1fa1c21bc072523dd28f46121df8b2ec38710767775b3084f",
+      "minimist": "8162d302efd0533ce00fc8a52dd6703dbb4205435af84e72b7694c608a729de4"
+    },
+    "optionalDependencies": {}
+  },
+  "ae6f7f47cebcd00c013301f072482e01c2dd62368e3e51228053bf4c0ad2675f": {
+    "snapshot": "asn1.js@5.4.1",
+    "name": "asn1.js",
+    "version": "5.4.1",
+    "resolved": "https://registry.npmjs.org/asn1.js/-/asn1.js-5.4.1.tgz",
+    "integrity": "sha512-+I//4cYPccV8LdmBLiX8CYvf9Sp3vQsrqu2QNXRcrbiWvcx/UdlFiqUJJzxRQxgsZmvhXhn4cSKeSmoFjVdupA==",
+    "dependencies": {
+      "bn.js": "f86bb32a1d48849392e11bc4cd263e73568086901c11b5d9aef490efa429b038",
+      "inherits": "3eafa9bfb872baf192e837ab771da2e95e983ee682371a2b1c579e518e96f7b4",
+      "minimalistic-assert": "548a576f34671b173dc6d72c9b0de2bdef4fb966406ce1af8360dc59a9f8f508",
+      "safer-buffer": "2fb14d3728e4ebf313be4634b146bd90cd3ad3559157baec03b64eec0878a0ba"
+    },
+    "optionalDependencies": {}
+  },
+  "f86bb32a1d48849392e11bc4cd263e73568086901c11b5d9aef490efa429b038": {
+    "snapshot": "bn.js@4.12.3",
+    "name": "bn.js",
+    "version": "4.12.3",
+    "resolved": "https://registry.npmjs.org/bn.js/-/bn.js-4.12.3.tgz",
+    "integrity": "sha512-fGTi3gxV/23FTYdAoUtLYp6qySe2KE3teyZitipKNRuVYcBkoP/bB3guXN/XVKUe9mxCHXnc9C4ocyz8OmgN0g==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "3eafa9bfb872baf192e837ab771da2e95e983ee682371a2b1c579e518e96f7b4": {
+    "snapshot": "inherits@2.0.4",
+    "name": "inherits",
+    "version": "2.0.4",
+    "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz",
+    "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "548a576f34671b173dc6d72c9b0de2bdef4fb966406ce1af8360dc59a9f8f508": {
+    "snapshot": "minimalistic-assert@1.0.1",
+    "name": "minimalistic-assert",
+    "version": "1.0.1",
+    "resolved": "https://registry.npmjs.org/minimalistic-assert/-/minimalistic-assert-1.0.1.tgz",
+    "integrity": "sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "2fb14d3728e4ebf313be4634b146bd90cd3ad3559157baec03b64eec0878a0ba": {
+    "snapshot": "safer-buffer@2.1.2",
+    "name": "safer-buffer",
+    "version": "2.1.2",
+    "resolved": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
+    "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "6e16e8d80dd66ebda5072bfdf276216875b43de4c24e79a5bffb54931255f37d": {
+    "snapshot": "http_ece@1.2.0",
+    "name": "http_ece",
+    "version": "1.2.0",
+    "resolved": "https://registry.npmjs.org/http_ece/-/http_ece-1.2.0.tgz",
+    "integrity": "sha512-JrF8SSLVmcvc5NducxgyOrKXe3EsyHMgBFgSaIUGmArKe+rwr0uphRkRXvwiom3I+fpIfoItveHrfudL8/rxuA==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "03d6c969c12414a1fa1c21bc072523dd28f46121df8b2ec38710767775b3084f": {
+    "snapshot": "jws@4.0.1",
+    "name": "jws",
+    "version": "4.0.1",
+    "resolved": "https://registry.npmjs.org/jws/-/jws-4.0.1.tgz",
+    "integrity": "sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==",
+    "dependencies": {
+      "jwa": "f88899a11ab5a12ccbcce9be83aaeb859862435ff3c40b76b33abe9420fbe841",
+      "safe-buffer": "952cf236ee56e7de5ea7e772caf3e256866f9dbdffc492539c48cd8c15ac9674"
+    },
+    "optionalDependencies": {}
+  },
+  "f88899a11ab5a12ccbcce9be83aaeb859862435ff3c40b76b33abe9420fbe841": {
+    "snapshot": "jwa@2.0.1",
+    "name": "jwa",
+    "version": "2.0.1",
+    "resolved": "https://registry.npmjs.org/jwa/-/jwa-2.0.1.tgz",
+    "integrity": "sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==",
+    "dependencies": {
+      "buffer-equal-constant-time": "77cd18a59a06e032914b3c4148b3467dd3f720b6c6b419c079891ca15b2f488e",
+      "ecdsa-sig-formatter": "7ff5398c8ababb029cbd552c08094dd98c7fed117b9cf048054bc21058538c11",
+      "safe-buffer": "952cf236ee56e7de5ea7e772caf3e256866f9dbdffc492539c48cd8c15ac9674"
+    },
+    "optionalDependencies": {}
+  },
+  "77cd18a59a06e032914b3c4148b3467dd3f720b6c6b419c079891ca15b2f488e": {
+    "snapshot": "buffer-equal-constant-time@1.0.1",
+    "name": "buffer-equal-constant-time",
+    "version": "1.0.1",
+    "resolved": "https://registry.npmjs.org/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz",
+    "integrity": "sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "7ff5398c8ababb029cbd552c08094dd98c7fed117b9cf048054bc21058538c11": {
+    "snapshot": "ecdsa-sig-formatter@1.0.11",
+    "name": "ecdsa-sig-formatter",
+    "version": "1.0.11",
+    "resolved": "https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz",
+    "integrity": "sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==",
+    "dependencies": {
+      "safe-buffer": "952cf236ee56e7de5ea7e772caf3e256866f9dbdffc492539c48cd8c15ac9674"
+    },
+    "optionalDependencies": {}
+  },
+  "952cf236ee56e7de5ea7e772caf3e256866f9dbdffc492539c48cd8c15ac9674": {
+    "snapshot": "safe-buffer@5.2.1",
+    "name": "safe-buffer",
+    "version": "5.2.1",
+    "resolved": "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz",
+    "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "8162d302efd0533ce00fc8a52dd6703dbb4205435af84e72b7694c608a729de4": {
+    "snapshot": "minimist@1.2.8",
+    "name": "minimist",
+    "version": "1.2.8",
+    "resolved": "https://registry.npmjs.org/minimist/-/minimist-1.2.8.tgz",
+    "integrity": "sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==",
+    "dependencies": {},
+    "optionalDependencies": {}
   }
 }

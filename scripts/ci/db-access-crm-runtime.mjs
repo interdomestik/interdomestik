@@ -31,6 +31,9 @@ const CHILD_FILES = [
   'cases-confirm-current',
   'cases-agent-flow',
   'cases-classification-audit',
+  'cases-claim-status-notification',
+  'notification-settlement',
+  'notification-state',
   'context',
 ].map(name => 'db-access-crm-runtime-' + name + '.mjs');
 
@@ -50,7 +53,11 @@ export function runCrmRuntime({
   if (!contract || contract.id !== CRM_CONTRACT_ID) refuse('mandatory CRM contract');
   validateCrmContract(contract);
   if (!context) refuse('CRM authenticated context missing');
-  const sourceDependencies = verifyCrmSourceDependencies({ contract, tarballRoot, assembly });
+  const sourceDependencies = verifyCrmSourceDependencies({
+    contract,
+    tarballRoot,
+    assembly,
+  });
   const materialized = materializeCrmRuntime({
     sourceRoot: candidate,
     producerRoot: producer,

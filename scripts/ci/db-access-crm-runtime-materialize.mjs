@@ -93,7 +93,12 @@ export function materializeCrmRuntime({
   );
   if (runtime.entryFile !== 'db-access-crm-runtime-entry.ts') fail('entry identity');
   fs.writeFileSync(path.join(root, runtime.entryFile), entry);
-  const env = { PATH: '/usr/bin:/bin', HOME: path.join(outputRoot, 'home'), TZ: 'UTC', LANG: 'C' };
+  const env = {
+    PATH: '/usr/bin:/bin',
+    HOME: path.join(outputRoot, 'home'),
+    TZ: 'UTC',
+    LANG: 'C',
+  };
   const run = args =>
     execFileSync(installed.compiler.binary, args, {
       cwd: root,
@@ -118,6 +123,8 @@ export function materializeCrmRuntime({
     '--alias:@interdomestik/database=' + path.join(root, 'packages/database/src'),
     '--alias:@interdomestik/domain-users=' + path.join(root, 'packages/domain-users/src'),
     '--alias:@interdomestik/shared-auth=' + path.join(root, 'packages/shared-auth/src'),
+    '--alias:@interdomestik/domain-recovery=' + path.join(root, 'packages/domain-recovery/src'),
+    '--alias:@interdomestik/domain-case=' + path.join(root, 'packages/domain-case/src'),
     ...runtime.externalSpecifiers.map(name => '--external:' + name),
   ]);
   if (diagnostics.trim()) fail('compiler output');

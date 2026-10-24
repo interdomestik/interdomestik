@@ -19,7 +19,8 @@
     "esbuild": "0091ac1dc0891f181bdfbcc57a86d1c02d57c0679ac9fe3f4eef85be549be010",
     "@supabase/ssr": "f72f8fd4fb35e444d9cdeef1bfd7c591824987bf5dd2adcf3b685531c5d54c6b",
     "@supabase/supabase-js": "b482177eef23c99ee247e566cedbe6f029b1c226041767f4b6862421261adee4",
-    "nanoid": "41b8431ce0150c34b5bfd769bc89321e9c51e8d39f978f2f80e6fd4d55089ca4"
+    "nanoid": "41b8431ce0150c34b5bfd769bc89321e9c51e8d39f978f2f80e6fd4d55089ca4",
+    "web-push": "6ab2287300696f6489022dae30f84d29d191743f5ed8abf8b60c041038d8d9d4"
   },
   "rootImporters": {
     "@upstash/ratelimit": {
@@ -89,12 +90,16 @@
     "nanoid": {
       "importer": "apps/web",
       "version": "5.1.16"
+    },
+    "web-push": {
+      "importer": "packages/domain-communications",
+      "version": "3.6.7"
     }
   },
   "packageFiles": {
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "sha256": "af70a86ac0c926b6a0df20c0a1fe8c472826eebf80ecb1d17023bbe15b2dbedd",
-      "bytes": 98506,
+      "sha256": "3eb2b45e6e3469f4005f1a7c6d3c2dd840e0b58a8464bf4c98e39dbc50aea8a7",
+      "bytes": 105280,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {

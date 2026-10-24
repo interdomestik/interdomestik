@@ -44,3 +44,7 @@ export {
 export { getAgentCrmReportingCore } from './apps/web/src/app/[locale]/(agent)/agent/crm/_core.ts';
 
 export { getStaffCrmReportingCore } from './apps/web/src/app/[locale]/(staff)/staff/crm/_core.ts';
+
+export { updateClaimStatusCore } from './packages/domain-claims/src/staff-claims/update-status.ts';
+export { scheduleStatusChangeNotification } from './packages/domain-claims/src/staff-claims/status-notification.ts';
+export { notifyStatusChanged } from './packages/domain-communications/src/notifications/notify.ts';

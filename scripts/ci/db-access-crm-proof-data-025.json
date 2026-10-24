@@ -1,0 +1,190 @@
+{
+  "kind": "sources",
+  "value": {
+    "packages/domain-case/src/index.ts": {
+      "sha256": "d5c19655468e29f60c871b21e73af8ebc653f736e7123ade916f22c4a5f80ce5",
+      "bytes": 25,
+      "mode": "100644"
+    },
+    "packages/domain-case/src/types.ts": {
+      "sha256": "7ea980447762e18c1847c83356e63fb47c3a3ec75657f5e6c58bac95763ca1fe",
+      "bytes": 907,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/audit-projection.ts": {
+      "sha256": "4886b7d71186990d9b00c717474a7125233d30e4ba82290588a2176dfb34cf04",
+      "bytes": 1150,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/case-created-event.ts": {
+      "sha256": "96bf6c31b10feb49b28adfb18589b95a0501f7c791934abe11e9995e1846b850",
+      "bytes": 918,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/lifecycle-read-model.ts": {
+      "sha256": "acfbff8804f73d7bcb70461b18865b42fae4c12d9ac50f5963aa3b1146cb6237",
+      "bytes": 4586,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/lifecycle-state.ts": {
+      "sha256": "2706495568cf033db3bac3500a30e047bb78566430c917f5b909713da3b5d688",
+      "bytes": 2233,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/recovery-invariant-evidence.ts": {
+      "sha256": "e43b5a81ab8e9f0a00584e243a9cffca03f4664062a13ed7dc7adcc721243c73",
+      "bytes": 3915,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/recovery-invariants.ts": {
+      "sha256": "717f2d5f974f6de20fe4db901f5e46e6bee022fb7ea7fa0dea7c47e39f6dcee2",
+      "bytes": 3510,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts": {
+      "sha256": "4273e709c9d590cbf89f755ce78c15637c1f70c810a65850ae3e2fbc0af24d72",
+      "bytes": 1391,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-current-state-cas.ts": {
+      "sha256": "982ecf4754dd2d3312aa7c1b77949c3cb388832d9cba7e34be2800e9a59d166f",
+      "bytes": 439,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-current-state.ts": {
+      "sha256": "0614e5d66eadf9f17b37011703dde1aa9b1699f2cfd6afb0dffedc7dade0038d",
+      "bytes": 1842,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-domain-events.ts": {
+      "sha256": "61c0dbe6d6d602c643469ce2443021e68349769d068179177394a4ac2fc5d035",
+      "bytes": 2717,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-evidence-read.ts": {
+      "sha256": "a92b8bc0fdd3715fc269a757799953a3939f92c3db40953d3bfb5e21c9880b24",
+      "bytes": 1903,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-evidence.ts": {
+      "sha256": "2912aefeab5825ab33392a1126ee81863ae925510f117c141814e74d23009d63",
+      "bytes": 4497,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-guard.ts": {
+      "sha256": "88d0b23f0ae79ef819d2a670d18d37ffbaa38f0f02de2b21964ec521ff22f77e",
+      "bytes": 4156,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-read-context.ts": {
+      "sha256": "83fe33afe006be01706ac5ce57d01b945934e2db9ca08d85ee384f080a382789",
+      "bytes": 3445,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition-side-effects.ts": {
+      "sha256": "1428ccf3451809131f409ab522657e6c8f0a33a4b86d7d1e993d91fb02b71156",
+      "bytes": 3910,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/claims/transition.ts": {
+      "sha256": "e2d6e2a32a660b3edffefba3d44a9dfeda65a0c6c4cbcf5a0cc75d9ee472e73a",
+      "bytes": 4555,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/staff-claims/current-claim-record.ts": {
+      "sha256": "9ad76b1fca0f649f2c4ef38e559c9b45cfcfb894474b93b39f5938411820bef7",
+      "bytes": 1372,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts": {
+      "sha256": "e1ebeb2e0d04009b53ea9efc859d7b04f119c92851d8083446e7fa960f2ec8bb",
+      "bytes": 775,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/staff-claims/recovery-decision-record.ts": {
+      "sha256": "b4835eadb23850cb7e2ba8912852c1b2ba8f200f295d9cb52b1c17bc3eda1c59",
+      "bytes": 3614,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts": {
+      "sha256": "6d400fa51ec7611bcc47ddfaee26b03c788de8aa64bb3d442a808246ff51a68d",
+      "bytes": 1338,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/staff-claims/scope.ts": {
+      "sha256": "b0a271f7800b8d36372f0686d85bf8d9ad93c0ee186d8bbe83b3e8a0a95da0ac",
+      "bytes": 1288,
+      "mode": "100644"
+    },
+    "packages/domain-claims/src/validators/claims.ts": {
+      "sha256": "7edd549a8d498b0d6611dfd115f7b6b0eca7ceb77243e921bc90f7219b1a7daa",
+      "bytes": 2240,
+      "mode": "100644"
+    },
+    "packages/domain-communications/src/push.ts": {
+      "sha256": "807f70c96a246c6f5b0ee01b52e662c0929dc7f165d8a4fe0d3846e6ea518f38",
+      "bytes": 4862,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/index.ts": {
+      "sha256": "75ed958f58b12d2bfde635cdbba2355363df0f3555c8eb8d4f41ecc3b67fa48e",
+      "bytes": 793,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/law-pack-registry.ts": {
+      "sha256": "77eeebbe51de8bee2053c42f420c2a16596f56cd0eee86b90a9337dd8995a1e4",
+      "bytes": 2861,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/law-pack-resolution.ts": {
+      "sha256": "3797c740e575e4991a8467edc7e804f2e7a5e7123db394086a20d172f3f67c60",
+      "bytes": 1101,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/law-pack-schema.ts": {
+      "sha256": "0a108d142196a2b4cf0c40177f4aa91b606fa341c82721cabedcd05d652dcfa8",
+      "bytes": 1173,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/law-packs/mk.ts": {
+      "sha256": "01276ac1ac37332ae0e886e452b16b39feb418d3b1b6342affa6f278c382b488",
+      "bytes": 322,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/law-packs/xk.ts": {
+      "sha256": "131f738dae3f41f4a6b58dc66292776be7600373ee3c426b602aebaf6c3a7c6d",
+      "bytes": 322,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/recovery-law.ts": {
+      "sha256": "de066e8d976656aed484871763c2b7749bcf8ef3496fb89173fab03e40e963cb",
+      "bytes": 4446,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/success-fee-collection-event-payload.ts": {
+      "sha256": "0caa05b0921865e01ddeceecc9536f3254f213d191ff37e3de9afa7328b07761",
+      "bytes": 729,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/success-fee-collection-event.ts": {
+      "sha256": "afb4710025f8d1e20e3aca2217b1b00a28434ebe8766a34cc30fa8f8401dde80",
+      "bytes": 1191,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/success-fee-collection-resolution.ts": {
+      "sha256": "e23e1ff6fac6bcd019f6b21264973932a9957b4a14e26d52c9e1dc6f6838902d",
+      "bytes": 3456,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/success-fee-collection.ts": {
+      "sha256": "167cf5771743f7433c63f654b2a348ad1d6ad6e7ec74ec7489c9a1a5af83b62b",
+      "bytes": 2586,
+      "mode": "100644"
+    },
+    "packages/domain-recovery/src/types.ts": {
+      "sha256": "d2ffc2f74d0762e0beae4d49f6d05fb877e03f14dbca64b675b56cb07cd9f9a6",
+      "bytes": 1055,
+      "mode": "100644"
+    }
+  }
+}

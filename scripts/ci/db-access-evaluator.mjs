@@ -1,3 +1,7 @@
+import {
+  captureStatusReturnPriorRow,
+  classifyStatusReturnEquivalence,
+} from './db-access-status-return-equivalence.mjs';
 import { classifyDefaultEmailEquivalence } from './db-access-default-email-equivalence.mjs';
 import { startGraphWorkerPool } from './db-access-graph-worker-pool.mjs';
 import { assertWorkerCode } from './db-access-graph-workers.mjs';
@@ -46,6 +50,7 @@ function finalizeGuard(prepared, graph) {
   // Existing scoped files are immutable at executable granularity in this epoch;
   // deletion and ambient-to-context remediation remain possible.
   let priorScoped = new Set();
+  let statusReturnPriorRow;
   if ([...inventory.changed].some(file => trusted.has(file))) {
     const beforeModel = createSourceModel(trusted, trusted);
     const beforeProvenance = createProvenance(beforeModel);
@@ -59,6 +64,7 @@ function finalizeGuard(prepared, graph) {
       });
       graph.incompleteRawCount += 1;
     }
+    statusReturnPriorRow = captureStatusReturnPriorRow(before.entries);
     priorScoped = new Set(
       before.entries
         .filter(entry => entry.tenantPosture === 'tenant-context')
@@ -93,6 +99,12 @@ function finalizeGuard(prepared, graph) {
   ])
     failures.set(entry.identity, entry);
   const defaultEmailEquivalence = classifyDefaultEmailEquivalence(prepared, graph, failures);
+  const statusReturnEquivalence = classifyStatusReturnEquivalence(
+    prepared,
+    graph,
+    failures,
+    statusReturnPriorRow
+  );
   const { messageObligations, observedMounts, crmObligations } = runtimeProofObligations({
     providerUnit,
     failures,
@@ -135,6 +147,7 @@ function finalizeGuard(prepared, graph) {
         }
       : {}),
     defaultEmailEquivalence,
+    statusReturnEquivalence,
     trustedCommit: adoption.commit,
     trustedTree: adoption.tree,
     historicalBaselineSha256: digest(baselineBytes),

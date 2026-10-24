@@ -1,0 +1,1346 @@
+[
+  {
+    "file": "packages/domain-ai/src/types.ts",
+    "adoptionSha256": "4d478f158aa21225d57fbcc9f2f914cada51ef014744425a98a38434411fa258",
+    "currentSha256": "4d478f158aa21225d57fbcc9f2f914cada51ef014744425a98a38434411fa258",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-case/src/index.ts",
+    "adoptionSha256": "d5c19655468e29f60c871b21e73af8ebc653f736e7123ade916f22c4a5f80ce5",
+    "currentSha256": "d5c19655468e29f60c871b21e73af8ebc653f736e7123ade916f22c4a5f80ce5",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-case/src/types.ts",
+    "adoptionSha256": "7ea980447762e18c1847c83356e63fb47c3a3ec75657f5e6c58bac95763ca1fe",
+    "currentSha256": "7ea980447762e18c1847c83356e63fb47c3a3ec75657f5e6c58bac95763ca1fe",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/admin-claims/update-status.ts",
+    "adoptionSha256": "24ccd9b3d56ba37942174c8cb9ca51d6abff0f7046624d5b9a99f8df22fd95e3",
+    "currentSha256": "24ccd9b3d56ba37942174c8cb9ca51d6abff0f7046624d5b9a99f8df22fd95e3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/agent-claims/assign.ts",
+    "adoptionSha256": "76b7965fc15b8f7bf5bc6c14f5858837e0736183c102c5027ae94cd2c63d09ab",
+    "currentSha256": "76b7965fc15b8f7bf5bc6c14f5858837e0736183c102c5027ae94cd2c63d09ab",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/agent-claims/update-status.ts",
+    "adoptionSha256": "1aeeb853b563541771dc9f9f1473e54c4b6f35789bbe16c3c3f2d7cb52af2e32",
+    "currentSha256": "1aeeb853b563541771dc9f9f1473e54c4b6f35789bbe16c3c3f2d7cb52af2e32",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/confidence.ts",
+    "adoptionSha256": "ab4bfee7cbcc5fea20a65581673d74e3e27ad84390cac2b10517a8d1255e8bf4",
+    "currentSha256": "ab4bfee7cbcc5fea20a65581673d74e3e27ad84390cac2b10517a8d1255e8bf4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/evidence-checklist.ts",
+    "adoptionSha256": "b6c09871c806acd365a779ee309cd18d9dc8d889fb9762fc49f84d06994a535b",
+    "currentSha256": "b6c09871c806acd365a779ee309cd18d9dc8d889fb9762fc49f84d06994a535b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/generator.ts",
+    "adoptionSha256": "4b7b2ed57bc9957078b30089420b565d4a4553cf99700be51a2f7fc306f16f96",
+    "currentSha256": "4b7b2ed57bc9957078b30089420b565d4a4553cf99700be51a2f7fc306f16f96",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/index.ts",
+    "adoptionSha256": "03b537ccd361184cf56f21d88be4563c1388e57bdbf2c9b14ee9ba37245b0a6b",
+    "currentSha256": "03b537ccd361184cf56f21d88be4563c1388e57bdbf2c9b14ee9ba37245b0a6b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/letter-template.ts",
+    "adoptionSha256": "6cc2ba039bcaf6f3b9f8c0e543c87c875e2a5a8ae2c33d1cb073ad04fc631bca",
+    "currentSha256": "6cc2ba039bcaf6f3b9f8c0e543c87c875e2a5a8ae2c33d1cb073ad04fc631bca",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/timeline.ts",
+    "adoptionSha256": "5af84335f32118125b3d28ab837aae5d5d5c646f052bd1b3b52fb5bc50a8fa7d",
+    "currentSha256": "5af84335f32118125b3d28ab837aae5d5d5c646f052bd1b3b52fb5bc50a8fa7d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claim-pack/types.ts",
+    "adoptionSha256": "ee5d82d108b8da33f29f51d05f04032120cb1737af4858e8d66c2af9817b14ce",
+    "currentSha256": "ee5d82d108b8da33f29f51d05f04032120cb1737af4858e8d66c2af9817b14ce",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/ai-workflow-preparation.ts",
+    "adoptionSha256": "0174d682d905ff42b9a07a871b6be105812c38f4ad47639a4d0f150e2707aa05",
+    "currentSha256": "0174d682d905ff42b9a07a871b6be105812c38f4ad47639a4d0f150e2707aa05",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/ai-workflows.ts",
+    "adoptionSha256": "0182947cdda6c7a454fd5dba443c7c6df74ae320af19dc1f512b2ae090a2aaec",
+    "currentSha256": "0182947cdda6c7a454fd5dba443c7c6df74ae320af19dc1f512b2ae090a2aaec",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/audit-projection.ts",
+    "adoptionSha256": "4886b7d71186990d9b00c717474a7125233d30e4ba82290588a2176dfb34cf04",
+    "currentSha256": "4886b7d71186990d9b00c717474a7125233d30e4ba82290588a2176dfb34cf04",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/case-companion-next-step.ts",
+    "adoptionSha256": "fa732ce625a53ff0e7207a0d28c7390d9dff4eeea86dc9ac7a94a931b6eb5685",
+    "currentSha256": "fa732ce625a53ff0e7207a0d28c7390d9dff4eeea86dc9ac7a94a931b6eb5685",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/case-created-event.ts",
+    "adoptionSha256": "96bf6c31b10feb49b28adfb18589b95a0501f7c791934abe11e9995e1846b850",
+    "currentSha256": "96bf6c31b10feb49b28adfb18589b95a0501f7c791934abe11e9995e1846b850",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/claim-ai-context.ts",
+    "adoptionSha256": "a4d4351ccf959793d8707d98a8a26366876d40da79278bb54e8719e9412f5816",
+    "currentSha256": "a4d4351ccf959793d8707d98a8a26366876d40da79278bb54e8719e9412f5816",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/claim-document-ai-consent.ts",
+    "adoptionSha256": "13bbcec7726adb25ff7410eee791057765a005db1e96a01d0b0654bbe7fc9ba3",
+    "currentSha256": "13bbcec7726adb25ff7410eee791057765a005db1e96a01d0b0654bbe7fc9ba3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/commercial-launch-scope.ts",
+    "adoptionSha256": "e2002327723ef9588a605a64a8e7cd73a3446859018d560a4c380df5181bffbb",
+    "currentSha256": "e2002327723ef9588a605a64a8e7cd73a3446859018d560a4c380df5181bffbb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/constants.ts",
+    "adoptionSha256": "0fbb184382198d4eded3d2ee384be402998a2b39714a6aa34ef7a32ed59d07e7",
+    "currentSha256": "0fbb184382198d4eded3d2ee384be402998a2b39714a6aa34ef7a32ed59d07e7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/create-helpers.ts",
+    "adoptionSha256": "acf8bea81fc1f19f0e63bceb70e3ba806d17cbdb158ef59b55438cc291176243",
+    "currentSha256": "acf8bea81fc1f19f0e63bceb70e3ba806d17cbdb158ef59b55438cc291176243",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/create.ts",
+    "adoptionSha256": "7c6c028342da13574f1853e8ed04be1238bef5a2ead813187e0157e7d4a17db4",
+    "currentSha256": "7c6c028342da13574f1853e8ed04be1238bef5a2ead813187e0157e7d4a17db4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/diaspora-origin-filter.ts",
+    "adoptionSha256": "ec6f417f69af8cef9f32ca323c522526c4f670f5a5874f7268474ff7c878cfab",
+    "currentSha256": "ec6f417f69af8cef9f32ca323c522526c4f670f5a5874f7268474ff7c878cfab",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/diaspora-origin.ts",
+    "adoptionSha256": "fa09bd072c2a9dda87af93eda429c0b9025943bc2a961f836602bfb81005381f",
+    "currentSha256": "fa09bd072c2a9dda87af93eda429c0b9025943bc2a961f836602bfb81005381f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/documents.ts",
+    "adoptionSha256": "b0f32c4f78842bd18c3296758818706e55cad211156bfe22cdab4bbb7017e511",
+    "currentSha256": "b0f32c4f78842bd18c3296758818706e55cad211156bfe22cdab4bbb7017e511",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/draft-cancellation.ts",
+    "adoptionSha256": "8200594d0a4e110eb0f0fbd9903b980a267d4b57577d6626db4bbf93b5ed6d04",
+    "currentSha256": "8200594d0a4e110eb0f0fbd9903b980a267d4b57577d6626db4bbf93b5ed6d04",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/draft.ts",
+    "adoptionSha256": "b8b8af678ff26221b8c090d8348d6d55a2d8498a18dbd9b48169f7b5b8e9b378",
+    "currentSha256": "b8b8af678ff26221b8c090d8348d6d55a2d8498a18dbd9b48169f7b5b8e9b378",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/fulfil-information-request.ts",
+    "adoptionSha256": "69e3fa6849f13b5e4d96e3eb80870174c199d43a9e7cd9b11524ef5ac27ea981",
+    "currentSha256": "69e3fa6849f13b5e4d96e3eb80870174c199d43a9e7cd9b11524ef5ac27ea981",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/incident-country-backfill.ts",
+    "adoptionSha256": "d9a0969281b17f3f821f276a0046033375916d81f988ec05ce422cdf56aca216",
+    "currentSha256": "d9a0969281b17f3f821f276a0046033375916d81f988ec05ce422cdf56aca216",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/incident-country.ts",
+    "adoptionSha256": "e218e9e9e2f398b4f9a56a8a9d94b86cb3eba87c55ab3988baa3e79981c4d896",
+    "currentSha256": "e218e9e9e2f398b4f9a56a8a9d94b86cb3eba87c55ab3988baa3e79981c4d896",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/information-request-evidence.ts",
+    "adoptionSha256": "087143fe7da16f4ca33c3f93cd513daf7ce90bc5e3fbcfdbc9b76db6353487ee",
+    "currentSha256": "087143fe7da16f4ca33c3f93cd513daf7ce90bc5e3fbcfdbc9b76db6353487ee",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/information-requests.ts",
+    "adoptionSha256": "f3287e34f33d2f50403be1dfc393e40ddb5ef2a7a5289bca1a6b19f772891fa7",
+    "currentSha256": "f3287e34f33d2f50403be1dfc393e40ddb5ef2a7a5289bca1a6b19f772891fa7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-auth.ts",
+    "adoptionSha256": "c1743820fa0a65e8af44e25fda5927e8f55eb86634dc47eaf88f7f8a84265d82",
+    "currentSha256": "c1743820fa0a65e8af44e25fda5927e8f55eb86634dc47eaf88f7f8a84265d82",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-document-classes.ts",
+    "adoptionSha256": "70c9ccdd48833b9bb94d42cdfee43d31b9286aa8789ee324da5cb3c644e7d118",
+    "currentSha256": "70c9ccdd48833b9bb94d42cdfee43d31b9286aa8789ee324da5cb3c644e7d118",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-eligibility.ts",
+    "adoptionSha256": "b0fdcd031eaa85f9d159ce2c0318b0b1a84d2d5c64a889696af17bd9609b61df",
+    "currentSha256": "b0fdcd031eaa85f9d159ce2c0318b0b1a84d2d5c64a889696af17bd9609b61df",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-errors.ts",
+    "adoptionSha256": "1c33a11a402df852ec7ab3f1c633ab2ae6bcbe44333f87a5918530db64ea2c6a",
+    "currentSha256": "1c33a11a402df852ec7ab3f1c633ab2ae6bcbe44333f87a5918530db64ea2c6a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-event.ts",
+    "adoptionSha256": "11e94f98cdd5d1e3c967630deb1d61cc237dd7daf2744911d6ab248fc24446e8",
+    "currentSha256": "11e94f98cdd5d1e3c967630deb1d61cc237dd7daf2744911d6ab248fc24446e8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-grant-actor.ts",
+    "adoptionSha256": "6bb27a76b150b1aa9bb2b2bb863d401b4a7a2cc2944bac6946e3bdcf67ceec6f",
+    "currentSha256": "6bb27a76b150b1aa9bb2b2bb863d401b4a7a2cc2944bac6946e3bdcf67ceec6f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-grant-conflict-query.ts",
+    "adoptionSha256": "9143a00f7ffa2db722934224bafda043487d1250f959b8e917bf922d5bdf62e1",
+    "currentSha256": "9143a00f7ffa2db722934224bafda043487d1250f959b8e917bf922d5bdf62e1",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-ids.ts",
+    "adoptionSha256": "4e989470a719a79780675c49c2259f2eeea20d6b95d60a5418c11c0cb92bba5d",
+    "currentSha256": "4e989470a719a79780675c49c2259f2eeea20d6b95d60a5418c11c0cb92bba5d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-store-conflicts.ts",
+    "adoptionSha256": "7d8344da61f641875cb5a78c796513f3a99bf972b011fc2be56670a259c61b51",
+    "currentSha256": "7d8344da61f641875cb5a78c796513f3a99bf972b011fc2be56670a259c61b51",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts",
+    "adoptionSha256": "340be575928e9acb1effb3e3600250e63d05e05445b1141c2cdb22a3bb95c033",
+    "currentSha256": "340be575928e9acb1effb3e3600250e63d05e05445b1141c2cdb22a3bb95c033",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff-store.ts",
+    "adoptionSha256": "b1d56df2145d4767a81eda3231c5ec867d3cce122d6ab33d9ed3641e323ff3ce",
+    "currentSha256": "b1d56df2145d4767a81eda3231c5ec867d3cce122d6ab33d9ed3641e323ff3ce",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/jurisdiction-handoff.ts",
+    "adoptionSha256": "18950688b206bc9bbbe023a27115b8b5c91e80e738ce3bdd8ff57db6f95fa5b2",
+    "currentSha256": "18950688b206bc9bbbe023a27115b8b5c91e80e738ce3bdd8ff57db6f95fa5b2",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+    "adoptionSha256": "acfbff8804f73d7bcb70461b18865b42fae4c12d9ac50f5963aa3b1146cb6237",
+    "currentSha256": "acfbff8804f73d7bcb70461b18865b42fae4c12d9ac50f5963aa3b1146cb6237",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/lifecycle-read-sql.ts",
+    "adoptionSha256": "be6ec4476fd4e7b9d41dc69cd272706773d64ebf58ac9153693d039cfe3d7899",
+    "currentSha256": "be6ec4476fd4e7b9d41dc69cd272706773d64ebf58ac9153693d039cfe3d7899",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/lifecycle-state.ts",
+    "adoptionSha256": "2706495568cf033db3bac3500a30e047bb78566430c917f5b909713da3b5d688",
+    "currentSha256": "2706495568cf033db3bac3500a30e047bb78566430c917f5b909713da3b5d688",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/lifecycle-test-support.ts",
+    "adoptionSha256": "2b649131c78e43057bd1320b687e98be225f098578d726ba2ab45219ac4f5b86",
+    "currentSha256": "2b649131c78e43057bd1320b687e98be225f098578d726ba2ab45219ac4f5b86",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/list-response.ts",
+    "adoptionSha256": "69a7e859356ae689bae2ae53eed77ce8f630a6699cb7060e1f4d570dccb17073",
+    "currentSha256": "69a7e859356ae689bae2ae53eed77ce8f630a6699cb7060e1f4d570dccb17073",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/list.ts",
+    "adoptionSha256": "a1fe727eb5b1c275f681f22798f1c65a09a4bc89a1d0eaf51b15daf7098adef0",
+    "currentSha256": "a1fe727eb5b1c275f681f22798f1c65a09a4bc89a1d0eaf51b15daf7098adef0",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/recovery-invariant-evidence.ts",
+    "adoptionSha256": "e43b5a81ab8e9f0a00584e243a9cffca03f4664062a13ed7dc7adcc721243c73",
+    "currentSha256": "e43b5a81ab8e9f0a00584e243a9cffca03f4664062a13ed7dc7adcc721243c73",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/recovery-invariants.ts",
+    "adoptionSha256": "717f2d5f974f6de20fe4db901f5e46e6bee022fb7ea7fa0dea7c47e39f6dcee2",
+    "currentSha256": "717f2d5f974f6de20fe4db901f5e46e6bee022fb7ea7fa0dea7c47e39f6dcee2",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/status.ts",
+    "adoptionSha256": "c6f6bf4f3171ad4c646289ebeb444b7e8de79f226a7ac0a48b8fdcb28579609d",
+    "currentSha256": "c6f6bf4f3171ad4c646289ebeb444b7e8de79f226a7ac0a48b8fdcb28579609d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/submit-assignment.ts",
+    "adoptionSha256": "52b16cbda9617133a737a5d0f4bd546c9a0fad78eaadb46a20cee1fc934e7410",
+    "currentSha256": "52b16cbda9617133a737a5d0f4bd546c9a0fad78eaadb46a20cee1fc934e7410",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/submit.ts",
+    "adoptionSha256": "208a071b7f7a6a5e74f3d1742425a730020498a26d8fd760feea6db344f48e78",
+    "currentSha256": "6ff05f4697fcd41bd28bbbf3475bc2fd323290c1d05ee4302ed9fb3fcb4f0342",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+    "adoptionSha256": "4273e709c9d590cbf89f755ce78c15637c1f70c810a65850ae3e2fbc0af24d72",
+    "currentSha256": "4273e709c9d590cbf89f755ce78c15637c1f70c810a65850ae3e2fbc0af24d72",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/submitted-claim-notification.ts",
+    "adoptionSha256": null,
+    "currentSha256": "aca6e12e30aeded5d4d46ed5feab257a3f7df61621fdd537c06b156eb3920dd1",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-current-state-cas.ts",
+    "adoptionSha256": "982ecf4754dd2d3312aa7c1b77949c3cb388832d9cba7e34be2800e9a59d166f",
+    "currentSha256": "982ecf4754dd2d3312aa7c1b77949c3cb388832d9cba7e34be2800e9a59d166f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-current-state.ts",
+    "adoptionSha256": "0614e5d66eadf9f17b37011703dde1aa9b1699f2cfd6afb0dffedc7dade0038d",
+    "currentSha256": "0614e5d66eadf9f17b37011703dde1aa9b1699f2cfd6afb0dffedc7dade0038d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-domain-events.ts",
+    "adoptionSha256": "61c0dbe6d6d602c643469ce2443021e68349769d068179177394a4ac2fc5d035",
+    "currentSha256": "61c0dbe6d6d602c643469ce2443021e68349769d068179177394a4ac2fc5d035",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-evidence-read.ts",
+    "adoptionSha256": "a92b8bc0fdd3715fc269a757799953a3939f92c3db40953d3bfb5e21c9880b24",
+    "currentSha256": "a92b8bc0fdd3715fc269a757799953a3939f92c3db40953d3bfb5e21c9880b24",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-evidence.ts",
+    "adoptionSha256": "2912aefeab5825ab33392a1126ee81863ae925510f117c141814e74d23009d63",
+    "currentSha256": "2912aefeab5825ab33392a1126ee81863ae925510f117c141814e74d23009d63",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-guard.ts",
+    "adoptionSha256": "88d0b23f0ae79ef819d2a670d18d37ffbaa38f0f02de2b21964ec521ff22f77e",
+    "currentSha256": "88d0b23f0ae79ef819d2a670d18d37ffbaa38f0f02de2b21964ec521ff22f77e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-read-context.ts",
+    "adoptionSha256": "83fe33afe006be01706ac5ce57d01b945934e2db9ca08d85ee384f080a382789",
+    "currentSha256": "83fe33afe006be01706ac5ce57d01b945934e2db9ca08d85ee384f080a382789",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition-side-effects.ts",
+    "adoptionSha256": "1428ccf3451809131f409ab522657e6c8f0a33a4b86d7d1e993d91fb02b71156",
+    "currentSha256": "1428ccf3451809131f409ab522657e6c8f0a33a4b86d7d1e993d91fb02b71156",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/transition.ts",
+    "adoptionSha256": "e2d6e2a32a660b3edffefba3d44a9dfeda65a0c6c4cbcf5a0cc75d9ee472e73a",
+    "currentSha256": "e2d6e2a32a660b3edffefba3d44a9dfeda65a0c6c4cbcf5a0cc75d9ee472e73a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/types.ts",
+    "adoptionSha256": "b09848ff454bcc2e806c47c3d3b0d9e06c93a1b5d0baa4b1ac741bf71d4d7e53",
+    "currentSha256": "81a9be486bd9a8f58f216a4f5db2a145ffa81e29face1e76eacf4164f84b0768",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/claims/vault-consent-display.ts",
+    "adoptionSha256": "1e40a61111b042193e810aea2ea9f26989165e6e0584ed96940d7090daa999c7",
+    "currentSha256": "1e40a61111b042193e810aea2ea9f26989165e6e0584ed96940d7090daa999c7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/index.ts",
+    "adoptionSha256": "1187bec562d6bf29e09a996f3270d0986041cb8c720167f1794ae56d284e51cc",
+    "currentSha256": "1187bec562d6bf29e09a996f3270d0986041cb8c720167f1794ae56d284e51cc",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+    "adoptionSha256": "3043ff1fa2ca83078f9ce9fe7cbf549c6b781e788f06cb01a4b45f0f4f60ccca",
+    "currentSha256": "3043ff1fa2ca83078f9ce9fe7cbf549c6b781e788f06cb01a4b45f0f4f60ccca",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/assign.ts",
+    "adoptionSha256": "f2fb88e64f859f84ad481d4a3b662f4495081792ac930e2684579efbf40cfea8",
+    "currentSha256": "f2fb88e64f859f84ad481d4a3b662f4495081792ac930e2684579efbf40cfea8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/assigned-claim-attention.ts",
+    "adoptionSha256": "27ba6ce8921aacf98c6b41350d6e97da00a672b71965897c955388528b2ed609",
+    "currentSha256": "27ba6ce8921aacf98c6b41350d6e97da00a672b71965897c955388528b2ed609",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+    "adoptionSha256": "093306d6da2a87d856b001d9b0b7a6bebfba5e8eb9027996acac3ecc80a85c3d",
+    "currentSha256": "093306d6da2a87d856b001d9b0b7a6bebfba5e8eb9027996acac3ecc80a85c3d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+    "adoptionSha256": "9ad76b1fca0f649f2c4ef38e559c9b45cfcfb894474b93b39f5938411820bef7",
+    "currentSha256": "9ad76b1fca0f649f2c4ef38e559c9b45cfcfb894474b93b39f5938411820bef7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/escalation-agreement-record.ts",
+    "adoptionSha256": "3a733cdde729f469ff88644ee28ee4adaae47897c8598e645e3cebc2a9b4b81e",
+    "currentSha256": "3a733cdde729f469ff88644ee28ee4adaae47897c8598e645e3cebc2a9b4b81e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/get-staff-claim-detail.ts",
+    "adoptionSha256": "fdd46183f8aedc483760e62e8683708c974aa47250638d0bc99a6cc03135623b",
+    "currentSha256": "fdd46183f8aedc483760e62e8683708c974aa47250638d0bc99a6cc03135623b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/get-staff-claims-list.ts",
+    "adoptionSha256": "09c736d6ee6fb6af568d0a9a4070d87745a7a4462f882e52a018f8eb549318d8",
+    "currentSha256": "09c736d6ee6fb6af568d0a9a4070d87745a7a4462f882e52a018f8eb549318d8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+    "adoptionSha256": "27b28625e47a107959c4ecf51eb998ed1d4811fe07b015e85224c064792bda5a",
+    "currentSha256": "27b28625e47a107959c4ecf51eb998ed1d4811fe07b015e85224c064792bda5a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts",
+    "adoptionSha256": "e1ebeb2e0d04009b53ea9efc859d7b04f119c92851d8083446e7fa960f2ec8bb",
+    "currentSha256": "e1ebeb2e0d04009b53ea9efc859d7b04f119c92851d8083446e7fa960f2ec8bb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/recovery-decision-record.ts",
+    "adoptionSha256": "b4835eadb23850cb7e2ba8912852c1b2ba8f200f295d9cb52b1c17bc3eda1c59",
+    "currentSha256": "b4835eadb23850cb7e2ba8912852c1b2ba8f200f295d9cb52b1c17bc3eda1c59",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/recovery-decision-schema.ts",
+    "adoptionSha256": "8241d49177ff07d6297e78d1e95846dc5c417b5ab684a3c691f582ced06ec05c",
+    "currentSha256": "8241d49177ff07d6297e78d1e95846dc5c417b5ab684a3c691f582ced06ec05c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+    "adoptionSha256": "d620b50812e9ee481094b8072bb18050d3e0516cef6c2fdfe2cba2d9fb210857",
+    "currentSha256": "d620b50812e9ee481094b8072bb18050d3e0516cef6c2fdfe2cba2d9fb210857",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts",
+    "adoptionSha256": "6d400fa51ec7611bcc47ddfaee26b03c788de8aa64bb3d442a808246ff51a68d",
+    "currentSha256": "6d400fa51ec7611bcc47ddfaee26b03c788de8aa64bb3d442a808246ff51a68d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/save-escalation-agreement.ts",
+    "adoptionSha256": "9c236503a3a6f02119c94f6033a16900623e7cdc2ab4367ac4a5df7f3528e9d1",
+    "currentSha256": "9c236503a3a6f02119c94f6033a16900623e7cdc2ab4367ac4a5df7f3528e9d1",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/save-no-fee-evidence.ts",
+    "adoptionSha256": "0a240b561a88a7914b12b606b8b64a94d67a0852965d32b205e1ed331141de38",
+    "currentSha256": "0a240b561a88a7914b12b606b8b64a94d67a0852965d32b205e1ed331141de38",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/save-recovery-decision.ts",
+    "adoptionSha256": "b08c2ef3f85236903dd84b432d476dbf1468c8155526d446672e617201220074",
+    "currentSha256": "b08c2ef3f85236903dd84b432d476dbf1468c8155526d446672e617201220074",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/save-success-fee-collection.ts",
+    "adoptionSha256": "9962eebc1fd343efac2132cd41754f4970de71182d92854ad78c690d7a7065a2",
+    "currentSha256": "9962eebc1fd343efac2132cd41754f4970de71182d92854ad78c690d7a7065a2",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/scope.ts",
+    "adoptionSha256": "b0a271f7800b8d36372f0686d85bf8d9ad93c0ee186d8bbe83b3e8a0a95da0ac",
+    "currentSha256": "b0a271f7800b8d36372f0686d85bf8d9ad93c0ee186d8bbe83b3e8a0a95da0ac",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/staff-claims-diaspora-origin-notes.ts",
+    "adoptionSha256": "318ac65783a7db10e224ec460f0f7f1f0406e9f02667ab5920a4d3a956cb5f17",
+    "currentSha256": "318ac65783a7db10e224ec460f0f7f1f0406e9f02667ab5920a4d3a956cb5f17",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/staff-claims-list-filters.ts",
+    "adoptionSha256": "09f3a8e823192ea797cb793e65330f6a3cfaf222118049287f812f79e4b821eb",
+    "currentSha256": "09f3a8e823192ea797cb793e65330f6a3cfaf222118049287f812f79e4b821eb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/staff-claims-list-mapper.ts",
+    "adoptionSha256": "ab32358e14ad15244d88c30c83c187782533f3be88b4fecad8e7ce3adfcd51ee",
+    "currentSha256": "ab32358e14ad15244d88c30c83c187782533f3be88b4fecad8e7ce3adfcd51ee",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/status-notification.ts",
+    "adoptionSha256": null,
+    "currentSha256": "eecb2988bfee85ed713b1a9a7073869d62bba0e2123f0d4de160576d0de0c70b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/types.ts",
+    "adoptionSha256": "c87ef4eab898cb01118bf46bd7c6ccd8f94ecf1d35607d4118bf7b69021902fc",
+    "currentSha256": "c87ef4eab898cb01118bf46bd7c6ccd8f94ecf1d35607d4118bf7b69021902fc",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status-recovery.test.ts",
+    "adoptionSha256": "1e1b9a2d71c36f7df858ae8fd180de40893b951737ac102ba345f9fe00545570",
+    "currentSha256": "1e1b9a2d71c36f7df858ae8fd180de40893b951737ac102ba345f9fe00545570",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status-test-core.ts",
+    "adoptionSha256": "c8b8f9d29e9962c6940e45bce266f9bacaea438db864cd4d34df2012f6f54630",
+    "currentSha256": "ec6188dcc530798ead54dfd76b9cff64784be5220099bbd1455538d23ecb435d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status-test-support.ts",
+    "adoptionSha256": "e0fdf018c58c27357788338adc27dfb650b30c4cceb1eae83e67a9c44eed5702",
+    "currentSha256": "e0fdf018c58c27357788338adc27dfb650b30c4cceb1eae83e67a9c44eed5702",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status.test.ts",
+    "adoptionSha256": "8325ad80b4cd70376a10b46dcef06d3fd64fb964914248f74b33498f63731844",
+    "currentSha256": "8325ad80b4cd70376a10b46dcef06d3fd64fb964914248f74b33498f63731844",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
+    "adoptionSha256": "f8541539a8853ba1f547b4d94f9971c91e3e36f0ab89e30d4da8d6cdbb10388b",
+    "currentSha256": "f8541539a8853ba1f547b4d94f9971c91e3e36f0ab89e30d4da8d6cdbb10388b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/staff-claims/update-status.ts",
+    "adoptionSha256": "353b44c6d18ae12d42aa144d4dd50bd76ca57647eacfcf87397ceef10c673e34",
+    "currentSha256": "a58fcd033eb3169e6cf910b743361072c22944f95906aadb11caea0253014fe6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/acknowledgement.ts",
+    "adoptionSha256": "28e8701877986463b8dd2908965c11bd10fd44e21e7093a1e0d8deac5f30e678",
+    "currentSha256": "63a0f4033e7cfd97b5550a7a0bb14e777d902c92d9b54b5f4ad84c2f1371eee3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/advisory.ts",
+    "adoptionSha256": "7ef831a3eb16d5b944a3a5a732ec6b3ba43d778ef991a1cf2a3b8bad536ce217",
+    "currentSha256": "189e4d22283e5a1652f8532f14833b7cd69b3c2a99f444098447002b3238749c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/create-input.ts",
+    "adoptionSha256": "1fa80833f841c59fae3bd670d7b87d460c0da6015bf83674ef6947ba5f246762",
+    "currentSha256": "1fa80833f841c59fae3bd670d7b87d460c0da6015bf83674ef6947ba5f246762",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/create-store-queries.ts",
+    "adoptionSha256": "74e3180c4e714980b32db993fa4be0570be666179379789724f00e8ac9a5c7f5",
+    "currentSha256": "74e3180c4e714980b32db993fa4be0570be666179379789724f00e8ac9a5c7f5",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/create-store.ts",
+    "adoptionSha256": "258eb02f4fd82f07134f95dc356e9d3664b4e6ad4e88aabe65f4fd7f4fa73895",
+    "currentSha256": "258eb02f4fd82f07134f95dc356e9d3664b4e6ad4e88aabe65f4fd7f4fa73895",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/create.ts",
+    "adoptionSha256": "784d784da5f634e59ad8a4265ed53b98d297f1ef02bbc1d126df58f17e7d75e7",
+    "currentSha256": "784d784da5f634e59ad8a4265ed53b98d297f1ef02bbc1d126df58f17e7d75e7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/derivation.ts",
+    "adoptionSha256": "ab13147dbdd9a15a2b23fd21639f42558a30cb8242dae3a1641a3d9038653c47",
+    "currentSha256": "ab13147dbdd9a15a2b23fd21639f42558a30cb8242dae3a1641a3d9038653c47",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/index.ts",
+    "adoptionSha256": "8e96710e41c1e633c42cf7f0b8fe5261e7068db86b71a28285fc2b00224da36d",
+    "currentSha256": "8e96710e41c1e633c42cf7f0b8fe5261e7068db86b71a28285fc2b00224da36d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/lifecycle.ts",
+    "adoptionSha256": "4b028e2d2f25022454c99ebc6d34cf6eddef61c315089602064961fe23d0163b",
+    "currentSha256": "3fe23835dfd44f9f611790dd24895a6a2aabab1cbdb5ef3e6fd77fe9e2af5538",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/member-response-state.ts",
+    "adoptionSha256": "71f3efab43f3ef3bb6ee5080a013875dd4045b7840e968771b28f79bd99120ee",
+    "currentSha256": "71f3efab43f3ef3bb6ee5080a013875dd4045b7840e968771b28f79bd99120ee",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/queue-detail.ts",
+    "adoptionSha256": null,
+    "currentSha256": "897e4fcc4413f9ba9b9c2bab2e5f43d3c2ffc2c8f2db243f46beda5a97adc559",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/queue-read-helpers.ts",
+    "adoptionSha256": null,
+    "currentSha256": "bafce74dd8d55b5ba6368e21c95f945a589b55d4efb6306fcb07c544d3fbe2ea",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/queue.ts",
+    "adoptionSha256": "896699512737a7bf418257fb4c105241ad3a65f1c367af7357644292763f2e66",
+    "currentSha256": "caea35133f3c67241e15e383edb6b37c13b1b47be0ed82b8d4cae9621c5d685c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/reply.ts",
+    "adoptionSha256": "d4d840ff871f709fd1ae1d4a56b372dc1d6d2668c70cee4e9757a93fb0d5c89a",
+    "currentSha256": "a970134c860dc583101bab4b6ec20502ad8457794d62eb82fc32f0ee48667899",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/response.ts",
+    "adoptionSha256": "a727652c40a5fe63def4ac0012e0543281fcb4a46637399abe624eb1f903ff15",
+    "currentSha256": "4a20901f062063223f3cc3178c65671db700dd1bad95abc147e31152a0ee3835",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/staff-scope.ts",
+    "adoptionSha256": null,
+    "currentSha256": "e2ed5a6c8080e2f663eb42a4a9fb30b67c985d09bf0627c47153e0c4c6369521",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/types.ts",
+    "adoptionSha256": "2ea68661dd1a19860e7cfed05b7eec64bec25524e4091188d82895f311c66e62",
+    "currentSha256": "2ea68661dd1a19860e7cfed05b7eec64bec25524e4091188d82895f311c66e62",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-claims/src/validators/claims.ts",
+    "adoptionSha256": "7edd549a8d498b0d6611dfd115f7b6b0eca7ceb77243e921bc90f7219b1a7daa",
+    "currentSha256": "7edd549a8d498b0d6611dfd115f7b6b0eca7ceb77243e921bc90f7219b1a7daa",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/dunning-email.ts",
+    "adoptionSha256": "212eb9910832bca6a2a6e203c5c4cf4eb2fec172b9e8df97cbe7203c22c8e0d8",
+    "currentSha256": "212eb9910832bca6a2a6e203c5c4cf4eb2fec172b9e8df97cbe7203c22c8e0d8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email-templates.ts",
+    "adoptionSha256": "33bccb93082f74b4f31896a30cc8d316ed6ce462a4b6861addda2d4d0f0e31b7",
+    "currentSha256": "33bccb93082f74b4f31896a30cc8d316ed6ce462a4b6861addda2d4d0f0e31b7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email.ts",
+    "adoptionSha256": "9e1cec39cbad2c050d1c9609872a679ec839db83fac0a2629e24540033c5e66f",
+    "currentSha256": "9e1cec39cbad2c050d1c9609872a679ec839db83fac0a2629e24540033c5e66f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/auth.ts",
+    "adoptionSha256": "ac7d439cc246a56fdf0c9174c4683f1d60e323b6d0dfad6cbf13ff7663fe7f6b",
+    "currentSha256": "ac7d439cc246a56fdf0c9174c4683f1d60e323b6d0dfad6cbf13ff7663fe7f6b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/base.ts",
+    "adoptionSha256": "08132095a67b11b48204f08af9212b9a750889353e4249db384bf543beb846b3",
+    "currentSha256": "08132095a67b11b48204f08af9212b9a750889353e4249db384bf543beb846b3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/claims.ts",
+    "adoptionSha256": "d707168bb5acafa6fef91d3bb64336ae8c7c8437decc5696db45a10897ee5597",
+    "currentSha256": "d707168bb5acafa6fef91d3bb64336ae8c7c8437decc5696db45a10897ee5597",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/dunning.ts",
+    "adoptionSha256": "bc0e27b941c19bc168db160b90c11ebcf983ed7408e9415c6475e23b6bf8e9bd",
+    "currentSha256": "bc0e27b941c19bc168db160b90c11ebcf983ed7408e9415c6475e23b6bf8e9bd",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/engagement.ts",
+    "adoptionSha256": "dcf38bfb2ec120b5d818db0c8506949ff082b372b381a975cb50966dc3db54ee",
+    "currentSha256": "dcf38bfb2ec120b5d818db0c8506949ff082b372b381a975cb50966dc3db54ee",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/index.ts",
+    "adoptionSha256": "d8de2ff8e766f65f79404b51d37ccaab929bed3a32575dfed293619a220f6507",
+    "currentSha256": "d8de2ff8e766f65f79404b51d37ccaab929bed3a32575dfed293619a220f6507",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/membership.ts",
+    "adoptionSha256": "5175e43cd27e79d26f44bb10c4b9c1a1f4ef5ee718027dd942043f91af6708d2",
+    "currentSha256": "5175e43cd27e79d26f44bb10c4b9c1a1f4ef5ee718027dd942043f91af6708d2",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/email/templates/messages.ts",
+    "adoptionSha256": "60d59446694f150af21a0db863503594848a71826d97f6c257da28b4a74cdd8a",
+    "currentSha256": "60d59446694f150af21a0db863503594848a71826d97f6c257da28b4a74cdd8a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/access.ts",
+    "adoptionSha256": "ba5635905fa4c4bb241a6f37a2108ca8aba8511d152b62e14dffc7e453cf1506",
+    "currentSha256": "ba5635905fa4c4bb241a6f37a2108ca8aba8511d152b62e14dffc7e453cf1506",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/get.ts",
+    "adoptionSha256": "45f4b5f222cc95d4662a8f46daee5f429f2a8192b257743fcf77daadb2b774d9",
+    "currentSha256": "45f4b5f222cc95d4662a8f46daee5f429f2a8192b257743fcf77daadb2b774d9",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/mark-read.ts",
+    "adoptionSha256": "686d48ce34fa03485a4f1d30b45d695ef290895a70b49c26dfbc6022bbb4aecd",
+    "currentSha256": "686d48ce34fa03485a4f1d30b45d695ef290895a70b49c26dfbc6022bbb4aecd",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/normalize.ts",
+    "adoptionSha256": "c010afef108baf9b2079ade7cc4506dd8529669c7c7501e47855d467ffdc4811",
+    "currentSha256": "c010afef108baf9b2079ade7cc4506dd8529669c7c7501e47855d467ffdc4811",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/schemas.ts",
+    "adoptionSha256": "9b2c1847551ca637106130eef0b913d386873fd3a031dabfd3f1c967b5b12e90",
+    "currentSha256": "9b2c1847551ca637106130eef0b913d386873fd3a031dabfd3f1c967b5b12e90",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/messages/send.ts",
+    "adoptionSha256": "16b2ffe2cfbb9a68cbc5709bce105afbfcce424ee4ca4d2dd99c8dec8cdc098e",
+    "currentSha256": "16b2ffe2cfbb9a68cbc5709bce105afbfcce424ee4ca4d2dd99c8dec8cdc098e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/notifications/claim-status-store.ts",
+    "adoptionSha256": null,
+    "currentSha256": "9bbf8b7432c90b08f87ef74c9e002977ed16131355d6d87fb386646dd5f6ca9e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/notifications/claim-submitted-store.ts",
+    "adoptionSha256": null,
+    "currentSha256": "011551d055c9920d1524cfc488de802c901dee0550d71cf0314e7f227190c0d7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/notifications/notify.ts",
+    "adoptionSha256": "d21838e81097d1e21a427054ff4c11d4bff0bdbc95b796e62c6ac5f409db8ed0",
+    "currentSha256": "d57c205d816298cf38613da632146a17079515d3272c478e635177621154f500",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/notifications/support-handoff-store.ts",
+    "adoptionSha256": null,
+    "currentSha256": "1f86bedb6ed9fbf8d1c494a15fd5c26e28807f926c7fed4dde6c5e4a06228b2f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/push.ts",
+    "adoptionSha256": "807f70c96a246c6f5b0ee01b52e662c0929dc7f165d8a4fe0d3846e6ea518f38",
+    "currentSha256": "807f70c96a246c6f5b0ee01b52e662c0929dc7f165d8a4fe0d3846e6ea518f38",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-communications/src/sign-in-otp-email.ts",
+    "adoptionSha256": "a11069d5e2da2f568eb799e9f2f66809bc8084c771a2f260fb82393966b545a9",
+    "currentSha256": "f117380d389ecd6d2bfd586021cf0a670325e4e6eddb70f36dbc7b3af1a2ae5b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-crm/src/support-handoffs/index.ts",
+    "adoptionSha256": "a4b5bec092e54e9b4357fc217bbc0ec13abdcf21fc1943030c32cf02016e6b0e",
+    "currentSha256": "a4b5bec092e54e9b4357fc217bbc0ec13abdcf21fc1943030c32cf02016e6b0e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-crm/src/support-handoffs/repository.ts",
+    "adoptionSha256": "23539ef02a898b65cee0723b85ec434603a69bccbfea1448720e0a63b6eff805",
+    "currentSha256": "23539ef02a898b65cee0723b85ec434603a69bccbfea1448720e0a63b6eff805",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-crm/src/support-handoffs/state.ts",
+    "adoptionSha256": "7e6cf95474d56d21061150f9873ca06d3e22c0df64242ffc7cb88f45084f9ab1",
+    "currentSha256": "7e6cf95474d56d21061150f9873ca06d3e22c0df64242ffc7cb88f45084f9ab1",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-crm/src/support-handoffs/types.ts",
+    "adoptionSha256": "1c6b42fef07b06a0fbbfe3083b39e065161f2e749d6784f4a1770f0f726cc70a",
+    "currentSha256": "1c6b42fef07b06a0fbbfe3083b39e065161f2e749d6784f4a1770f0f726cc70a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-membership-billing/src/subscription.ts",
+    "adoptionSha256": "f1f80bb5e7db2b5cf495a49168d70ddb07139a20f5a27e55f28e3684135ade5c",
+    "currentSha256": "f1f80bb5e7db2b5cf495a49168d70ddb07139a20f5a27e55f28e3684135ade5c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-membership-billing/src/subscription/lifecycle-reporting.ts",
+    "adoptionSha256": "367d9038a5cceb118a1f647fec1cc29f5a501fcba76c9fd686352b9f0ae42536",
+    "currentSha256": "367d9038a5cceb118a1f647fec1cc29f5a501fcba76c9fd686352b9f0ae42536",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-membership-billing/src/success-fees/policy.ts",
+    "adoptionSha256": "a98e657ba057475499825f325068589f95ffc5853e5e9a99203f67c0802eaaa3",
+    "currentSha256": "a98e657ba057475499825f325068589f95ffc5853e5e9a99203f67c0802eaaa3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/access.ts",
+    "adoptionSha256": "53c3d2b8940f3ad0416f8184c02af687567cd64fece10dcd868e5f82e21f53d1",
+    "currentSha256": "53c3d2b8940f3ad0416f8184c02af687567cd64fece10dcd868e5f82e21f53d1",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-brand.ts",
+    "adoptionSha256": "d2f44570e356d6d1f72f8b6b9429a1446f9a44e483e23a8f4e54d2941c8c1624",
+    "currentSha256": "d2f44570e356d6d1f72f8b6b9429a1446f9a44e483e23a8f4e54d2941c8c1624",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-consent-source.ts",
+    "adoptionSha256": "61b611cb5a9f90e4e36ff2cf6f9dd3dff8a0e1d06769b33820314afdaa06743c",
+    "currentSha256": "61b611cb5a9f90e4e36ff2cf6f9dd3dff8a0e1d06769b33820314afdaa06743c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-keys.ts",
+    "adoptionSha256": "710c3f3677f765323de0667a508d3e5cd4d2f82f4d86d39cf89ceafc0797c262",
+    "currentSha256": "710c3f3677f765323de0667a508d3e5cd4d2f82f4d86d39cf89ceafc0797c262",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-mint.ts",
+    "adoptionSha256": "7e5fabd49e48bbbeaf4f5ab8240741bdeadf81afe0b25a892b92d361f18cbe22",
+    "currentSha256": "7e5fabd49e48bbbeaf4f5ab8240741bdeadf81afe0b25a892b92d361f18cbe22",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-own-value.ts",
+    "adoptionSha256": "c733112788e1b21ecfaeadddc1696e56bd2def0d12809e283c4f47a5cb0818ff",
+    "currentSha256": "c733112788e1b21ecfaeadddc1696e56bd2def0d12809e283c4f47a5cb0818ff",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-purpose-rules.ts",
+    "adoptionSha256": "926e5726e2b98241ecbc33519d45a2a067b057825560b2cdd8958cb80a99cc75",
+    "currentSha256": "926e5726e2b98241ecbc33519d45a2a067b057825560b2cdd8958cb80a99cc75",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-validation-result.ts",
+    "adoptionSha256": "25bfcd9da154d0040243b376755fa02019a5167df246ff745cb528ade1ad3b7b",
+    "currentSha256": "25bfcd9da154d0040243b376755fa02019a5167df246ff745cb528ade1ad3b7b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-validation-rules.ts",
+    "adoptionSha256": "84cc5339b6079f595e671b9b2462141a94dbd7893de2d7a4c2efe277b5c7036c",
+    "currentSha256": "84cc5339b6079f595e671b9b2462141a94dbd7893de2d7a4c2efe277b5c7036c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai-call-context-validator.ts",
+    "adoptionSha256": "7301ca03b1eae45d031cc39f28e72c72d3f94ac3fe8429b4682a55e7a017c719",
+    "currentSha256": "7301ca03b1eae45d031cc39f28e72c72d3f94ac3fe8429b4682a55e7a017c719",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/ai.ts",
+    "adoptionSha256": "49d2a1648980ae7149f6eeb1106a54620e45362fdff8c8fd61650ffdf303d310",
+    "currentSha256": "49d2a1648980ae7149f6eeb1106a54620e45362fdff8c8fd61650ffdf303d310",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/consent.ts",
+    "adoptionSha256": "3d481adf5618e41a6c5dbabb624cca1e0327e639429cfe24f2400ca5fac04aa8",
+    "currentSha256": "3d481adf5618e41a6c5dbabb624cca1e0327e639429cfe24f2400ca5fac04aa8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/documents.ts",
+    "adoptionSha256": "6d17d63591ac5fa191d5b8c7a5ad1dd632b7c2fc25d5793d1943c93492ad1506",
+    "currentSha256": "6d17d63591ac5fa191d5b8c7a5ad1dd632b7c2fc25d5793d1943c93492ad1506",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/dsr.ts",
+    "adoptionSha256": "c1d3da09cdae610f2c66e98c686a1cce991c45ec68c99ba55a5f497277aacd1c",
+    "currentSha256": "c1d3da09cdae610f2c66e98c686a1cce991c45ec68c99ba55a5f497277aacd1c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/index.ts",
+    "adoptionSha256": "c853b74e265dd2a907b54b3477f0d085836aba88a347fd78c781f9d5a1f66b35",
+    "currentSha256": "c853b74e265dd2a907b54b3477f0d085836aba88a347fd78c781f9d5a1f66b35",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-privacy/src/types.ts",
+    "adoptionSha256": "18e4b749eb1d030c74cd657c183cd50b5ac16db24db8d164142ffe9fc2466b68",
+    "currentSha256": "18e4b749eb1d030c74cd657c183cd50b5ac16db24db8d164142ffe9fc2466b68",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/index.ts",
+    "adoptionSha256": "75ed958f58b12d2bfde635cdbba2355363df0f3555c8eb8d4f41ecc3b67fa48e",
+    "currentSha256": "75ed958f58b12d2bfde635cdbba2355363df0f3555c8eb8d4f41ecc3b67fa48e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/law-pack-registry.ts",
+    "adoptionSha256": "77eeebbe51de8bee2053c42f420c2a16596f56cd0eee86b90a9337dd8995a1e4",
+    "currentSha256": "77eeebbe51de8bee2053c42f420c2a16596f56cd0eee86b90a9337dd8995a1e4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/law-pack-resolution.ts",
+    "adoptionSha256": "3797c740e575e4991a8467edc7e804f2e7a5e7123db394086a20d172f3f67c60",
+    "currentSha256": "3797c740e575e4991a8467edc7e804f2e7a5e7123db394086a20d172f3f67c60",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/law-pack-schema.ts",
+    "adoptionSha256": "0a108d142196a2b4cf0c40177f4aa91b606fa341c82721cabedcd05d652dcfa8",
+    "currentSha256": "0a108d142196a2b4cf0c40177f4aa91b606fa341c82721cabedcd05d652dcfa8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/law-packs/mk.ts",
+    "adoptionSha256": "01276ac1ac37332ae0e886e452b16b39feb418d3b1b6342affa6f278c382b488",
+    "currentSha256": "01276ac1ac37332ae0e886e452b16b39feb418d3b1b6342affa6f278c382b488",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/law-packs/xk.ts",
+    "adoptionSha256": "131f738dae3f41f4a6b58dc66292776be7600373ee3c426b602aebaf6c3a7c6d",
+    "currentSha256": "131f738dae3f41f4a6b58dc66292776be7600373ee3c426b602aebaf6c3a7c6d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/recovery-law.ts",
+    "adoptionSha256": "de066e8d976656aed484871763c2b7749bcf8ef3496fb89173fab03e40e963cb",
+    "currentSha256": "de066e8d976656aed484871763c2b7749bcf8ef3496fb89173fab03e40e963cb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/success-fee-collection-event-payload.ts",
+    "adoptionSha256": "0caa05b0921865e01ddeceecc9536f3254f213d191ff37e3de9afa7328b07761",
+    "currentSha256": "0caa05b0921865e01ddeceecc9536f3254f213d191ff37e3de9afa7328b07761",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/success-fee-collection-event.ts",
+    "adoptionSha256": "afb4710025f8d1e20e3aca2217b1b00a28434ebe8766a34cc30fa8f8401dde80",
+    "currentSha256": "afb4710025f8d1e20e3aca2217b1b00a28434ebe8766a34cc30fa8f8401dde80",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/success-fee-collection-resolution.ts",
+    "adoptionSha256": "e23e1ff6fac6bcd019f6b21264973932a9957b4a14e26d52c9e1dc6f6838902d",
+    "currentSha256": "e23e1ff6fac6bcd019f6b21264973932a9957b4a14e26d52c9e1dc6f6838902d",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/success-fee-collection.ts",
+    "adoptionSha256": "167cf5771743f7433c63f654b2a348ad1d6ad6e7ec74ec7489c9a1a5af83b62b",
+    "currentSha256": "167cf5771743f7433c63f654b2a348ad1d6ad6e7ec74ec7489c9a1a5af83b62b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/domain-recovery/src/types.ts",
+    "adoptionSha256": "d2ffc2f74d0762e0beae4d49f6d05fb877e03f14dbca64b675b56cb07cd9f9a6",
+    "currentSha256": "d2ffc2f74d0762e0beae4d49f6d05fb877e03f14dbca64b675b56cb07cd9f9a6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/access-grants.ts",
+    "adoptionSha256": "dac44e2e4d318190d5b6108f07036545a8f92801105f7069e0a8d46fd86f57f9",
+    "currentSha256": "dac44e2e4d318190d5b6108f07036545a8f92801105f7069e0a8d46fd86f57f9",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/errors.ts",
+    "adoptionSha256": "be9ba153f67c27d7a9c9415bf79a680c012bff55d259bcd33d5266a48223bfd6",
+    "currentSha256": "be9ba153f67c27d7a9c9415bf79a680c012bff55d259bcd33d5266a48223bfd6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/governance.ts",
+    "adoptionSha256": "9db44bcf54386dbbc9d907759fdbf34946236563d2016a7e5a98c60b3c6b52f2",
+    "currentSha256": "9db44bcf54386dbbc9d907759fdbf34946236563d2016a7e5a98c60b3c6b52f2",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/index.ts",
+    "adoptionSha256": "459e6fbc98c35b8b65431d58e93cbb38f216f7f9ae888fa0bc3397d4e8c2b0d6",
+    "currentSha256": "459e6fbc98c35b8b65431d58e93cbb38f216f7f9ae888fa0bc3397d4e8c2b0d6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/permissions.ts",
+    "adoptionSha256": "defddfa38429eac3e16d87fd8bf27a09804b80607a4b0b0ac6f19f456872364e",
+    "currentSha256": "defddfa38429eac3e16d87fd8bf27a09804b80607a4b0b0ac6f19f456872364e",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/scope.ts",
+    "adoptionSha256": "34c875a21bb958a7635ee2f1c14119adf2f89d64de8312590cf253ae85700cb3",
+    "currentSha256": "34c875a21bb958a7635ee2f1c14119adf2f89d64de8312590cf253ae85700cb3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/shared-auth/src/session.ts",
+    "adoptionSha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
+    "currentSha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/alert.tsx",
+    "adoptionSha256": "981d3dd9f1655d549268b196ea415cd4769a85692f06a84da91bb5fe06d763c8",
+    "currentSha256": "981d3dd9f1655d549268b196ea415cd4769a85692f06a84da91bb5fe06d763c8",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/avatar.tsx",
+    "adoptionSha256": "7eed3898ac3b1d213435dc086ae848962243787c3fd8a80d5639800651fee07a",
+    "currentSha256": "7eed3898ac3b1d213435dc086ae848962243787c3fd8a80d5639800651fee07a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/badge.tsx",
+    "adoptionSha256": "97d7668201049d9ffcabff7f47161c4c5a020656417da11f89ee640513092ef5",
+    "currentSha256": "97d7668201049d9ffcabff7f47161c4c5a020656417da11f89ee640513092ef5",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/button.tsx",
+    "adoptionSha256": "92163b043324917586d1bfd7bbc88e14c502c326d478c729ad822ec131b95e23",
+    "currentSha256": "92163b043324917586d1bfd7bbc88e14c502c326d478c729ad822ec131b95e23",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/card.tsx",
+    "adoptionSha256": "02cbbfeaa0ce160cfc53bdc2f1a9678af754e209cad1f740957c600486249fdd",
+    "currentSha256": "02cbbfeaa0ce160cfc53bdc2f1a9678af754e209cad1f740957c600486249fdd",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/checkbox.tsx",
+    "adoptionSha256": "ee0df569bbcf47aefb82ece39865b16563f990f91581b708d52d9125efdc386a",
+    "currentSha256": "ee0df569bbcf47aefb82ece39865b16563f990f91581b708d52d9125efdc386a",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/index.ts",
+    "adoptionSha256": "90463c68f22f5b095d48fcfff39c248b606e783ea98f256a37cbb8ea9ec8a5d7",
+    "currentSha256": "90463c68f22f5b095d48fcfff39c248b606e783ea98f256a37cbb8ea9ec8a5d7",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+    "adoptionSha256": "d3583f7d0d0ac6333fd11871054e01d473932096486d9d91cd0a17ce5be75676",
+    "currentSha256": "d3583f7d0d0ac6333fd11871054e01d473932096486d9d91cd0a17ce5be75676",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+    "adoptionSha256": "8874f240474a322f940c187f781c181c8943ddf6eba060e1a66181d08e07f5c3",
+    "currentSha256": "8874f240474a322f940c187f781c181c8943ddf6eba060e1a66181d08e07f5c3",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/stepper.tsx",
+    "adoptionSha256": "412792ad7abdefd42605e0ed91fd8afee429b29156149b432b53e5c81d34779c",
+    "currentSha256": "412792ad7abdefd42605e0ed91fd8afee429b29156149b432b53e5c81d34779c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/timeline.tsx",
+    "adoptionSha256": "6ab95ccdf03a508808ef8d3ed7c5368728c8ab0b5cd5dd0d482fb5a2c44a57c4",
+    "currentSha256": "6ab95ccdf03a508808ef8d3ed7c5368728c8ab0b5cd5dd0d482fb5a2c44a57c4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/tokens.ts",
+    "adoptionSha256": "754a5528d27c984c1fdbcfb4601d5ab72e3b3b965f3e55f2d58c52516dd6b857",
+    "currentSha256": "754a5528d27c984c1fdbcfb4601d5ab72e3b3b965f3e55f2d58c52516dd6b857",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/crystal/unified-portal-shell.tsx",
+    "adoptionSha256": "40835356f2540b9f5dc2ccd5ea8e1fa6dd6e102741002b260694799a80c18a21",
+    "currentSha256": "40835356f2540b9f5dc2ccd5ea8e1fa6dd6e102741002b260694799a80c18a21",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/dialog.tsx",
+    "adoptionSha256": "bf6149cfe36cbd945f06a4c91769c1379bf1c90c460b87e46f705dc620008c75",
+    "currentSha256": "bf6149cfe36cbd945f06a4c91769c1379bf1c90c460b87e46f705dc620008c75",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/dropdown-menu.tsx",
+    "adoptionSha256": "754f13f3eea4a6f0827e49d0b946ba497092c2f213ee98c054d9901d6601bff4",
+    "currentSha256": "754f13f3eea4a6f0827e49d0b946ba497092c2f213ee98c054d9901d6601bff4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/error-boundary.tsx",
+    "adoptionSha256": "ad36f282d3f0bdf045721269a2f94a38782b909deda2c0314f7123a9cb49b664",
+    "currentSha256": "ad36f282d3f0bdf045721269a2f94a38782b909deda2c0314f7123a9cb49b664",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/form.tsx",
+    "adoptionSha256": "452e75e1c5cc08bb0d917774f40262b19b5aab1cb03f65b8054a52fca99adae4",
+    "currentSha256": "452e75e1c5cc08bb0d917774f40262b19b5aab1cb03f65b8054a52fca99adae4",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/input.tsx",
+    "adoptionSha256": "7222417e23aa6737b1cea0901609f141548457ff99074f372a42568085c3bb7f",
+    "currentSha256": "7222417e23aa6737b1cea0901609f141548457ff99074f372a42568085c3bb7f",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/label.tsx",
+    "adoptionSha256": "9ab03c139e6e4beafba7f3fcc216e0e1c6c1541598c9cc8dd83b9b100fa203eb",
+    "currentSha256": "9ab03c139e6e4beafba7f3fcc216e0e1c6c1541598c9cc8dd83b9b100fa203eb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/progress.tsx",
+    "adoptionSha256": "36ad0b4cb7c60f156256ee369d093a35b7e40b28fa8f676bab3aad2903ef5245",
+    "currentSha256": "36ad0b4cb7c60f156256ee369d093a35b7e40b28fa8f676bab3aad2903ef5245",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/scroll-area.tsx",
+    "adoptionSha256": "9b6d0c45535ecaba0c98ac2236ebc15b3f0237833fe7240fa1778dbe3d9e4e64",
+    "currentSha256": "9b6d0c45535ecaba0c98ac2236ebc15b3f0237833fe7240fa1778dbe3d9e4e64",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/select.tsx",
+    "adoptionSha256": "f8b6fcfcf8f5407f365231cff347696c723ae65cd9c7a642163860dd0da95392",
+    "currentSha256": "f8b6fcfcf8f5407f365231cff347696c723ae65cd9c7a642163860dd0da95392",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/separator.tsx",
+    "adoptionSha256": "c4645b745a4f56c52085917a41adc8af1f10ea70e6f4ef2ffa87fc41a24b2bed",
+    "currentSha256": "c4645b745a4f56c52085917a41adc8af1f10ea70e6f4ef2ffa87fc41a24b2bed",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sheet.tsx",
+    "adoptionSha256": "1f63568dcb02ec18c3cb0119bf86fa1106f90060d9e457af4674cb4e658f073b",
+    "currentSha256": "1f63568dcb02ec18c3cb0119bf86fa1106f90060d9e457af4674cb4e658f073b",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/constants.ts",
+    "adoptionSha256": "5f182109d608adf508e8147fb19e6a1eece91a4cdc982f4cc6fba98fceed55a6",
+    "currentSha256": "5f182109d608adf508e8147fb19e6a1eece91a4cdc982f4cc6fba98fceed55a6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/context.tsx",
+    "adoptionSha256": "41c28e4dccdb2f8a15b75d2763e20df430dd50ac177cd9efdc0213d198e09a05",
+    "currentSha256": "41c28e4dccdb2f8a15b75d2763e20df430dd50ac177cd9efdc0213d198e09a05",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/group.tsx",
+    "adoptionSha256": "22a843de11edfd5db58e6feb5988c8a6d92dcbd024d83b1eafc47279595af725",
+    "currentSha256": "22a843de11edfd5db58e6feb5988c8a6d92dcbd024d83b1eafc47279595af725",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/index.ts",
+    "adoptionSha256": "b91a1107defccccfd0f9ef92731845ac304338d6282d26b39ce39ce39b88a8f6",
+    "currentSha256": "b91a1107defccccfd0f9ef92731845ac304338d6282d26b39ce39ce39b88a8f6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/layout/controls.tsx",
+    "adoptionSha256": "bdef59d0058713afdd9962eb7df48789fe8cb88a9e024662616b77a34b845a01",
+    "currentSha256": "bdef59d0058713afdd9962eb7df48789fe8cb88a9e024662616b77a34b845a01",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/layout/shell.tsx",
+    "adoptionSha256": "6ebddd69ce8bdcf82d4dc9799c3608596ac7fa92dee8bfc9e46c9ed961010e8c",
+    "currentSha256": "6ebddd69ce8bdcf82d4dc9799c3608596ac7fa92dee8bfc9e46c9ed961010e8c",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/layout/structure.tsx",
+    "adoptionSha256": "cc142e0572ab977654a948faa3805089e0c0080444e4d1bda61c040f1676b1ab",
+    "currentSha256": "cc142e0572ab977654a948faa3805089e0c0080444e4d1bda61c040f1676b1ab",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/sidebar/menu.tsx",
+    "adoptionSha256": "c6cccbccd6fd027004bc1d17f45207e1c0871c6ed4f4c055907759d277c0c5fc",
+    "currentSha256": "c6cccbccd6fd027004bc1d17f45207e1c0871c6ed4f4c055907759d277c0c5fc",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/skeleton.tsx",
+    "adoptionSha256": "9848b14cd9fe47587e4a699d1f3702215e211df83f5065e44b568f814bdde601",
+    "currentSha256": "9848b14cd9fe47587e4a699d1f3702215e211df83f5065e44b568f814bdde601",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/table.tsx",
+    "adoptionSha256": "7898adf1ebefda4130093169007715d2936da3b87b8192f78710a63210189f04",
+    "currentSha256": "7898adf1ebefda4130093169007715d2936da3b87b8192f78710a63210189f04",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/tabs.tsx",
+    "adoptionSha256": "783ac3c37d063bd9153c6de94ba1720faf461b8f789636b5a6a5d5806127fe34",
+    "currentSha256": "783ac3c37d063bd9153c6de94ba1720faf461b8f789636b5a6a5d5806127fe34",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/textarea.tsx",
+    "adoptionSha256": "3ff10b365306c640c12e9b722a4748ddd38ca82753c8ed48a736943b27845233",
+    "currentSha256": "3ff10b365306c640c12e9b722a4748ddd38ca82753c8ed48a736943b27845233",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/components/tooltip.tsx",
+    "adoptionSha256": "a1b4c4891573b05f7aa67e8da4a921d181f8b8bf2d697c0fb67fb8582953d8b6",
+    "currentSha256": "a1b4c4891573b05f7aa67e8da4a921d181f8b8bf2d697c0fb67fb8582953d8b6",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/hooks/use-mobile.tsx",
+    "adoptionSha256": "58b2cc5fa259358e9192125abf072c832144193d87f3d66a90b13089a0196cef",
+    "currentSha256": "58b2cc5fa259358e9192125abf072c832144193d87f3d66a90b13089a0196cef",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/index.ts",
+    "adoptionSha256": "37d868aac30519c3e77c6b1c5f604d3dce0deb1e51cf4acdcff925db114ddadb",
+    "currentSha256": "37d868aac30519c3e77c6b1c5f604d3dce0deb1e51cf4acdcff925db114ddadb",
+    "providerBoundary": false
+  },
+  {
+    "file": "packages/ui/src/lib/utils.ts",
+    "adoptionSha256": "424bbc1413cacde19374c54bc8d3d3b9cb8c058c3548fa508e6c10975d14c3eb",
+    "currentSha256": "424bbc1413cacde19374c54bc8d3d3b9cb8c058c3548fa508e6c10975d14c3eb",
+    "providerBoundary": false
+  }
+]

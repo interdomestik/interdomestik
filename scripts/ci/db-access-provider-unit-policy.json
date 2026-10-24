@@ -687,8 +687,8 @@
     },
     "scripts/ci/db-access-evaluator.mjs": {
       "mode": "100644",
-      "bytes": 8858,
-      "sha256": "cfcfa8fadedf3650b152e769a33f7b41f43ade1b7212ec48fb0c85c002bce3aa"
+      "bytes": 9250,
+      "sha256": "aaf946901bc66218de4149c36509c0c9e6d69e4aa6075d49f0a80f39e760b8c6"
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
@@ -846,9 +846,9 @@
       "sha256": "ffe94167fa467a412ecb903919b3d02eabb5b96f6e4a706c97ca048da8f862a9"
     },
     "scripts/ci/db-access-crm-runtime-child.mjs": {
-      "mode": "100644",
-      "bytes": 1736,
-      "sha256": "ac1ed17a55e929ce454c2251c99d44d70ed40858433394e32107e0adb6397eb8"
+      "sha256": "bc3fc21aaac40106f3afde42931a35cc196daa40083f285c9b80a63ca8d8fd33",
+      "bytes": 1925,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-context.mjs": {
       "mode": "100644",
@@ -861,9 +861,9 @@
       "sha256": "dc1fa5d3c48a950d9094fbcba51371d795994fc3517a03b241595f9303c07947"
     },
     "scripts/ci/db-access-crm-runtime-entry.ts": {
-      "mode": "100644",
-      "bytes": 3194,
-      "sha256": "e51d23a25bf14747d8412926a5156d8aecf8210dcf319f87e98a0646ee7086f7"
+      "sha256": "13584cfad27832493db820bd2c22fbf3d3050156d1eb88bf443b8c3bca49c126",
+      "bytes": 3512,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-fixture.mjs": {
       "mode": "100644",
@@ -871,34 +871,34 @@
       "sha256": "6721846c995aab7e07c6a351f48105069a694e7ac135036f649582bc7511ec80"
     },
     "scripts/ci/db-access-crm-runtime-lock.json": {
-      "mode": "100644",
-      "bytes": 5471,
-      "sha256": "f481b81c15c84e09cbf21e83b93ae4b4e2789cf2731b19246693eb5a776f9ae0"
+      "sha256": "8823e10a74fe4de94e85e5298745bf166bfc49c675c99e636e59a27c3f8fd2ea",
+      "bytes": 5658,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-materialize.mjs": {
-      "mode": "100644",
-      "bytes": 5529,
-      "sha256": "a8604b68804cc5a84690ada002114722b95decfe3d15efb6d7a2cd95a0faff8b"
+      "sha256": "f443866dad4b362d8c59ebc2cf6a62f277f532b9680004aba194e12b684a2bac",
+      "bytes": 5734,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "mode": "100644",
-      "bytes": 98506,
-      "sha256": "af70a86ac0c926b6a0df20c0a1fe8c472826eebf80ecb1d17023bbe15b2dbedd"
+      "sha256": "3eb2b45e6e3469f4005f1a7c6d3c2dd840e0b58a8464bf4c98e39dbc50aea8a7",
+      "bytes": 105280,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {
-      "mode": "100644",
+      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5",
       "bytes": 105873,
-      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5"
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-3.json": {
-      "mode": "100644",
+      "sha256": "cd5b6a41c74298c50de3a140488440500b4d116b5a8b3a6be520855068e04ffb",
       "bytes": 114478,
-      "sha256": "cd5b6a41c74298c50de3a140488440500b4d116b5a8b3a6be520855068e04ffb"
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime.mjs": {
-      "mode": "100644",
-      "bytes": 4004,
-      "sha256": "7dd0465a7672652b2880a6f7480a81de28d31f4238c58d8aed49478927103935"
+      "sha256": "c55454eb4530d660ca35fe3019262cb80b7372adcb0821cbdbefada082ba56e3",
+      "bytes": 4109,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-cases-staff.mjs": {
       "mode": "100644",
@@ -911,9 +911,9 @@
       "sha256": "3d2f21318edf5d45f1be658fbf0e3398e5371fedda4ec2920821ef4352ea1dab"
     },
     "scripts/ci/db-access-crm-proof-policy.json": {
-      "mode": "100644",
-      "bytes": 111781,
-      "sha256": "45f526caa461df5c557c0b6475edcc73b004997bee0d669f02dc055186ebd165"
+      "sha256": "0fe49263baa19d1f4735b59563b064192d101e17da6807fde4e1bc6357a3d5eb",
+      "bytes": 125854,
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-proof-data-000.json": {
       "mode": "100644",
@@ -1084,6 +1084,56 @@
       "mode": "100644",
       "bytes": 798,
       "sha256": "6b04f5619c56915481b59ef03ace6cbab79b5f7eedb7f719681b47ef6280016d"
+    },
+    "scripts/ci/db-access-crm-proof-data-024.json": {
+      "sha256": "bd387deeae8eb128bb968dfe6b7d2bfa11d48464fe5e5692825f570149d00629",
+      "bytes": 1577,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-crm-proof-data-025.json": {
+      "sha256": "28359f6352671500d143345bacb6ff3b1a03f50048e7408f9756a766a149a35d",
+      "bytes": 7393,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-crm-runtime-cases-claim-status-notification.mjs": {
+      "sha256": "a9d42065edf1dbcc0468db30898cfdd75903eae411e3372ac4ab84d5aca2c684",
+      "bytes": 11631,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-crm-runtime-notification-settlement.mjs": {
+      "sha256": "859fead59f3db5726af1de9c352ff76d449c24fa6b12cd0ba68dcfd5db699334",
+      "bytes": 1106,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-crm-runtime-notification-state.mjs": {
+      "sha256": "11700ede865d3cce77616d9478d86665b3ba2457bc105d46b9fee6c5344821bc",
+      "bytes": 735,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-status-return-dependencies.json": {
+      "sha256": "b95b5b5e5098b39938ba78c902a8856f35c3677cd1ddefef1443f0a4e6d46b6f",
+      "bytes": 86156,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-status-return-equivalence-policy.json": {
+      "sha256": "2d83f860315dd9c2d62f554c51cf175db5d4b7edfd69f4caa319e371f16fe08c",
+      "bytes": 31455,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-status-return-equivalence.mjs": {
+      "sha256": "62ae9f3d08ba71a2d802178dd77aca6aea1eac2becf89c1d6da2d70f158968d1",
+      "bytes": 7960,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-status-return-sources-1.json": {
+      "sha256": "20eaf97ab21be0d2430d57b2b41504f468bc0e2b8eea76723775104b61c14fb1",
+      "bytes": 63672,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-status-return-sources-2.json": {
+      "sha256": "01ce357866a017c712cd40d6fb6adce2a1a5ebbc6af3426d1175f88a05168844",
+      "bytes": 63817,
+      "mode": "100644"
     }
   },
   "runtimeEnforcement": {

@@ -9,6 +9,7 @@ import { runCrmBranchManagerCases } from './db-access-crm-runtime-cases-branch-m
 import { runCrmConfirmCurrentCases } from './db-access-crm-runtime-cases-confirm-current.mjs';
 import { runCrmAgentFlowCases } from './db-access-crm-runtime-cases-agent-flow.mjs';
 import { runCrmClassificationAuditCases } from './db-access-crm-runtime-cases-classification-audit.mjs';
+import { runCrmClaimStatusNotificationCases } from './db-access-crm-runtime-cases-claim-status-notification.mjs';
 const cases = [];
 try {
   for (const [id, run] of [
@@ -22,6 +23,7 @@ try {
     ['crm-confirm-current', runCrmConfirmCurrentCases],
     ['crm-agent-flow', runCrmAgentFlowCases],
     ['crm-classification-audit', runCrmClassificationAuditCases],
+    ['crm-claim-status-notification', runCrmClaimStatusNotificationCases],
   ]) {
     const assertions = await run();
     cases.push({ id, status: 'passed', assertions });

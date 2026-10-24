@@ -1,0 +1,2177 @@
+[
+  [
+    "apps/web/src/actions/admin-claims/update-status.core.ts",
+    [
+      "packages/domain-claims/src/admin-claims/update-status.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-lifecycle.ts",
+      "packages/database/src/tenant-security.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/notifications.ts",
+      "apps/web/src/lib/rate-limit.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "apps/web/src/lib/tenant/host-id.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/agent-claims.core.ts",
+    [
+      "apps/web/src/actions/agent-claims/assign.ts",
+      "apps/web/src/actions/agent-claims/context.ts",
+      "apps/web/src/actions/agent-claims/update-status.ts"
+    ]
+  ],
+  ["apps/web/src/actions/agent-claims.ts", ["apps/web/src/actions/agent-claims.core.ts"]],
+  [
+    "apps/web/src/actions/agent-claims/assign.core.ts",
+    [
+      "packages/domain-claims/src/agent-claims/assign.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/notifications.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/agent-claims/assign.ts",
+    ["apps/web/src/actions/agent-claims/assign.core.ts"]
+  ],
+  ["apps/web/src/actions/agent-claims/context.core.ts", ["apps/web/src/lib/auth.ts"]],
+  [
+    "apps/web/src/actions/agent-claims/context.ts",
+    ["apps/web/src/actions/agent-claims/context.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/agent-claims/update-status.core.ts",
+    [
+      "packages/domain-claims/src/agent-claims/update-status.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/notifications.ts",
+      "apps/web/src/lib/rate-limit.ts",
+      "apps/web/src/lib/tenant/host-id.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/agent-claims/update-status.ts",
+    ["apps/web/src/actions/agent-claims/update-status.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/claims-hardening.test.ts",
+    [
+      "apps/web/src/actions/admin-claims/update-status.core.ts",
+      "apps/web/src/actions/agent-claims/update-status.core.ts",
+      "apps/web/src/actions/staff-claims/update-status.core.ts",
+      "packages/domain-claims/src/agent-claims/update-status.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/messages.core.ts",
+    [
+      "apps/web/src/actions/messages/context.ts",
+      "apps/web/src/actions/messages/get.ts",
+      "apps/web/src/actions/messages/mark-read.ts",
+      "apps/web/src/actions/messages/send.ts"
+    ]
+  ],
+  ["apps/web/src/actions/messages.ts", ["apps/web/src/actions/messages.core.ts"]],
+  ["apps/web/src/actions/messages/context.core.ts", ["apps/web/src/lib/auth.ts"]],
+  ["apps/web/src/actions/messages/context.ts", ["apps/web/src/actions/messages/context.core.ts"]],
+  [
+    "apps/web/src/actions/messages/get.core.ts",
+    [
+      "packages/domain-communications/src/messages/get.ts",
+      "packages/domain-communications/src/messages/schemas.ts"
+    ]
+  ],
+  ["apps/web/src/actions/messages/get.ts", ["apps/web/src/actions/messages/get.core.ts"]],
+  [
+    "apps/web/src/actions/messages/mark-read.core.ts",
+    [
+      "apps/web/src/lib/rate-limit.ts",
+      "packages/domain-communications/src/messages/mark-read.ts",
+      "packages/domain-communications/src/messages/schemas.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/messages/mark-read.ts",
+    ["apps/web/src/actions/messages/mark-read.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/messages/send.core.ts",
+    [
+      "packages/domain-communications/src/messages/schemas.ts",
+      "packages/domain-communications/src/messages/send.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/rate-limit.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/messages/send.ts",
+    ["apps/web/src/lib/notifications.ts", "apps/web/src/actions/messages/send.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims.core.ts",
+    [
+      "apps/web/src/actions/staff-claims/assign.ts",
+      "apps/web/src/actions/staff-claims/context.ts",
+      "apps/web/src/actions/staff-claims/save-escalation-agreement.core.ts",
+      "apps/web/src/actions/staff-claims/save-recovery-decision.core.ts",
+      "apps/web/src/actions/staff-claims/save-success-fee-collection.core.ts",
+      "apps/web/src/actions/staff-claims/update-status.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/assign.core.ts",
+    ["packages/domain-claims/src/staff-claims/assign.ts", "apps/web/src/lib/audit.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/assign.ts",
+    ["apps/web/src/actions/staff-claims/assign.core.ts"]
+  ],
+  ["apps/web/src/actions/staff-claims/context.core.ts", ["apps/web/src/lib/auth.ts"]],
+  [
+    "apps/web/src/actions/staff-claims/context.ts",
+    ["apps/web/src/actions/staff-claims/context.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/information-request.ts",
+    ["apps/web/src/actions/staff-claims/context.ts", "packages/domain-claims/src/index.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/save-escalation-agreement.core.ts",
+    [
+      "packages/domain-claims/src/staff-claims/save-escalation-agreement.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/commercial-action-idempotency.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/save-recovery-decision.core.ts",
+    [
+      "packages/domain-claims/src/index.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/commercial-action-idempotency.ts",
+      "apps/web/src/lib/notifications.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/save-success-fee-collection.core.ts",
+    [
+      "packages/domain-claims/src/staff-claims/save-success-fee-collection.ts",
+      "apps/web/src/lib/audit.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/update-status.core.audit.test.ts",
+    ["apps/web/src/actions/staff-claims/update-status.core.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/update-status.core.ts",
+    [
+      "packages/domain-claims/src/staff-claims/update-status.ts",
+      "apps/web/src/lib/audit.ts",
+      "apps/web/src/lib/notifications.ts",
+      "apps/web/src/lib/rate-limit.ts",
+      "apps/web/src/lib/tenant/host-id.ts"
+    ]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/update-status.test.ts",
+    ["apps/web/src/actions/staff-claims/update-status.ts"]
+  ],
+  [
+    "apps/web/src/actions/staff-claims/update-status.ts",
+    ["apps/web/src/actions/staff-claims/update-status.core.ts"]
+  ],
+  ["apps/web/src/app/[locale]/(app)/member/actor-role-on-session.ts", []],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts",
+    [
+      "apps/web/src/features/claims/policy/index.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-lifecycle.ts"
+    ]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-history.test.tsx",
+    ["apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx"]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx",
+    [
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx"
+    ]
+  ],
+  ["apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-request-fixture.tsx", []],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-test-support.tsx",
+    [
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-request-fixture.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx"
+    ]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace.test.tsx",
+    ["apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-test-support.tsx"]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.access-tenant.test.tsx",
+    ["apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx"]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx",
+    ["apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx"]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx",
+    [
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/index.ts",
+      "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx",
+      "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx",
+      "apps/web/src/features/staff/claims/components/StaffClaimContext.tsx",
+      "apps/web/src/features/staff/claims/components/StaffClaimWorkspaceHeader.tsx",
+      "apps/web/src/features/staff/claims/components/staff-claim-workspace-view.ts",
+      "apps/web/src/features/staff/claims/components/StaffStatusHistory.tsx",
+      "apps/web/src/features/claims/policy/index.ts",
+      "packages/database/src/constants.ts",
+      "apps/web/src/components/staff/claim-action-panel/index.tsx",
+      "apps/web/src/components/messaging/messaging-panel.tsx",
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/staff-claim-documents-section.tsx",
+      "apps/web/src/components/shell/session.ts",
+      "apps/web/src/actions/messages/get.core.ts",
+      "apps/web/src/features/staff/claims/assignment-options.ts",
+      "apps/web/src/features/staff/claims/server/get-assigned-claim-documents.ts",
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts"
+    ]
+  ],
+  [
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/staff-claim-documents-section.tsx",
+    ["apps/web/src/components/ops/index.ts"]
+  ],
+  [
+    "apps/web/src/components/agent/agent-status-select.tsx",
+    [
+      "apps/web/src/actions/agent-claims.ts",
+      "packages/database/src/constants.ts",
+      "packages/ui/src/index.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/agent/claim-detail-header.tsx",
+    ["apps/web/src/i18n/routing.ts", "packages/ui/src/index.ts"]
+  ],
+  ["apps/web/src/components/agent/claim-documents-pane.tsx", ["packages/ui/src/index.ts"]],
+  [
+    "apps/web/src/components/agent/claim-info-pane.tsx",
+    ["apps/web/src/components/agent/agent-status-select.tsx", "packages/ui/src/index.ts"]
+  ],
+  ["apps/web/src/components/messaging/message-input.tsx", []],
+  ["apps/web/src/components/messaging/message-thread.tsx", ["apps/web/src/lib/roles.ts"]],
+  [
+    "apps/web/src/components/messaging/messaging-panel.tsx",
+    [
+      "apps/web/src/components/messaging/message-input.tsx",
+      "apps/web/src/components/messaging/message-thread.tsx",
+      "apps/web/src/components/messaging/use-message-read-state.ts",
+      "apps/web/src/actions/messages.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/messaging/use-message-read-state.ts",
+    ["apps/web/src/actions/messages.ts"]
+  ],
+  [
+    "apps/web/src/components/ops/OpsActionBar.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/ops/testids.ts"]
+  ],
+  [
+    "apps/web/src/components/ops/OpsDocumentsPanel.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/ops/testids.ts"]
+  ],
+  [
+    "apps/web/src/components/ops/OpsDrawer.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/ops/testids.ts"]
+  ],
+  ["apps/web/src/components/ops/OpsEmptyState.tsx", []],
+  [
+    "apps/web/src/components/ops/OpsFiltersBar.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/ops/testids.ts"]
+  ],
+  ["apps/web/src/components/ops/OpsLoadingState.tsx", ["packages/ui/src/index.ts"]],
+  [
+    "apps/web/src/components/ops/OpsQueryState.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/ops/OpsEmptyState.tsx",
+      "apps/web/src/components/ops/OpsLoadingState.tsx"
+    ]
+  ],
+  ["apps/web/src/components/ops/OpsStatusBadge.tsx", ["packages/ui/src/index.ts"]],
+  [
+    "apps/web/src/components/ops/OpsTable.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/ops/OpsEmptyState.tsx",
+      "apps/web/src/components/ops/OpsLoadingState.tsx",
+      "apps/web/src/components/ops/testids.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/ops/OpsTimeline.tsx",
+    ["apps/web/src/components/ops/OpsEmptyState.tsx", "apps/web/src/components/ops/testids.ts"]
+  ],
+  [
+    "apps/web/src/components/ops/index.ts",
+    [
+      "apps/web/src/components/ops/OpsActionBar.tsx",
+      "apps/web/src/components/ops/OpsDocumentsPanel.tsx",
+      "apps/web/src/components/ops/OpsDrawer.tsx",
+      "apps/web/src/components/ops/OpsEmptyState.tsx",
+      "apps/web/src/components/ops/OpsFiltersBar.tsx",
+      "apps/web/src/components/ops/OpsLoadingState.tsx",
+      "apps/web/src/components/ops/OpsQueryState.tsx",
+      "apps/web/src/components/ops/OpsStatusBadge.tsx",
+      "apps/web/src/components/ops/OpsTable.tsx",
+      "apps/web/src/components/ops/OpsTimeline.tsx",
+      "apps/web/src/components/ops/telemetry.ts",
+      "apps/web/src/components/ops/testids.ts",
+      "apps/web/src/components/ops/useOpsSelectionParam.ts"
+    ]
+  ],
+  ["apps/web/src/components/ops/telemetry.ts", []],
+  ["apps/web/src/components/ops/testids.ts", []],
+  ["apps/web/src/components/ops/useOpsSelectionParam.ts", []],
+  ["apps/web/src/components/shell/session.ts", ["apps/web/src/lib/auth.ts"]],
+  [
+    "apps/web/src/components/staff/claim-action-panel.test.tsx",
+    [
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "apps/web/src/components/staff/claim-action-panel/index.tsx"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/accepted-recovery-prerequisites-section.tsx",
+    ["apps/web/src/components/staff/claim-action-panel/context.tsx"]
+  ],
+  ["apps/web/src/components/staff/claim-action-panel/assignment-helpers.ts", []],
+  [
+    "apps/web/src/components/staff/claim-action-panel/assignment-section.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/staff/claim-action-panel/context.tsx"]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/commercial-scope-restriction-section.tsx",
+    ["apps/web/src/components/staff/claim-action-panel/context.tsx"]
+  ],
+  ["apps/web/src/components/staff/claim-action-panel/context.tsx", []],
+  [
+    "apps/web/src/components/staff/claim-action-panel/escalation-agreement-section.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/staff/claim-action-panel/context.tsx",
+      "apps/web/src/components/staff/claim-action-panel/format-helpers.ts",
+      "apps/web/src/components/staff/claim-action-panel/escalation-helpers.ts"
+    ]
+  ],
+  ["apps/web/src/components/staff/claim-action-panel/escalation-helpers.ts", []],
+  ["apps/web/src/components/staff/claim-action-panel/format-helpers.ts", []],
+  [
+    "apps/web/src/components/staff/claim-action-panel/index.tsx",
+    [
+      "apps/web/src/components/staff/claim-action-panel/accepted-recovery-prerequisites-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/assignment-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/context.tsx",
+      "apps/web/src/components/staff/claim-action-panel/commercial-scope-restriction-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/escalation-agreement-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/recovery-decision-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/status-update-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/success-fee-collection-section.tsx",
+      "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-model.ts"
+    ]
+  ],
+  ["apps/web/src/components/staff/claim-action-panel/recovery-decision-helpers.ts", []],
+  [
+    "apps/web/src/components/staff/claim-action-panel/recovery-decision-section.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts",
+      "apps/web/src/components/staff/claim-action-panel/context.tsx",
+      "apps/web/src/components/staff/claim-action-panel/recovery-decision-helpers.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/status-save-recovery.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/components/staff/claim-action-panel/context.tsx"]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/status-update-section.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/staff/claim-action-panel/context.tsx",
+      "apps/web/src/components/staff/claim-action-panel/status-save-recovery.tsx"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/status-update-test.fixture.tsx",
+    ["apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-handlers.ts"]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/success-fee-collection-section.tsx",
+    [
+      "packages/ui/src/index.ts",
+      "apps/web/src/components/staff/claim-action-panel/context.tsx",
+      "apps/web/src/components/staff/claim-action-panel/escalation-helpers.ts",
+      "apps/web/src/components/staff/claim-action-panel/format-helpers.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-handlers.ts",
+    [
+      "apps/web/src/actions/staff-claims.core.ts",
+      "apps/web/src/components/staff/claim-action-panel/assignment-helpers.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-model.ts",
+    [
+      "packages/database/src/constants.ts",
+      "apps/web/src/components/staff/claim-action-panel/assignment-helpers.ts",
+      "apps/web/src/components/staff/claim-action-panel/escalation-helpers.ts",
+      "apps/web/src/components/staff/claim-action-panel/recovery-decision-helpers.ts",
+      "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-handlers.ts"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-action-panel/use-claim-status-update.test.tsx",
+    [
+      "apps/web/src/actions/staff-claims.core.ts",
+      "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-handlers.ts",
+      "apps/web/src/components/staff/claim-action-panel/status-update-test.fixture.tsx"
+    ]
+  ],
+  [
+    "apps/web/src/components/staff/claim-triage-notes.tsx",
+    ["apps/web/src/actions/staff-claims.core.ts", "packages/ui/src/index.ts"]
+  ],
+  ["apps/web/src/features/admin/claims/components/ops/file-upload-meta.ts", []],
+  [
+    "apps/web/src/features/claims/components/SharedEvidenceUploadDialog.tsx",
+    [
+      "packages/database/src/client.ts",
+      "packages/ui/src/index.ts",
+      "apps/web/src/features/admin/claims/components/ops/file-upload-meta.ts",
+      "apps/web/src/features/claims/components/ai-extraction-consent-field.tsx",
+      "apps/web/src/features/claims/components/use-signed-upload-retry.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/claims/components/ai-extraction-consent-field.tsx",
+    ["packages/ui/src/index.ts"]
+  ],
+  [
+    "apps/web/src/features/claims/components/use-signed-upload-retry.ts",
+    ["apps/web/src/features/admin/claims/components/ops/file-upload-meta.ts"]
+  ],
+  [
+    "apps/web/src/features/claims/policy/index.ts",
+    ["apps/web/src/features/claims/policy/slaPolicy.ts"]
+  ],
+  ["apps/web/src/features/claims/policy/slaPolicy.ts", []],
+  ["apps/web/src/features/claims/upload/server/access.ts", ["packages/database/src/index.ts"]],
+  [
+    "apps/web/src/features/claims/upload/server/claim-document-persistence.ts",
+    [
+      "apps/web/src/lib/ai/claim-workflows.ts",
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/ai-workflows.ts",
+      "apps/web/src/features/claims/upload/server/claim-document-write.ts"
+    ]
+  ],
+  ["apps/web/src/features/claims/upload/server/claim-document-upload-conflict.ts", []],
+  [
+    "apps/web/src/features/claims/upload/server/claim-document-write.ts",
+    [
+      "packages/database/src/index.ts",
+      "apps/web/src/features/claims/upload/server/claim-document-upload-conflict.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/claims/upload/server/claim-upload-intent.ts",
+    ["apps/web/src/features/claims/upload/server/storage-path.ts"]
+  ],
+  [
+    "apps/web/src/features/claims/upload/server/shared-upload.ts",
+    [
+      "apps/web/src/i18n/locales.ts",
+      "apps/web/src/lib/storage/signed-url-exposure.ts",
+      "apps/web/src/features/claims/upload/server/storage-path.ts",
+      "apps/web/src/features/claims/upload/server/claim-upload-intent.ts",
+      "apps/web/src/features/claims/upload/server/claim-document-persistence.ts",
+      "apps/web/src/lib/storage/service-role.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/claims/upload/server/storage-path.ts",
+    ["apps/web/src/lib/storage/evidence-bucket.ts"]
+  ],
+  [
+    "apps/web/src/features/member/claims/actions.ts",
+    [
+      "apps/web/src/features/claims/upload/server/claim-document-upload-conflict.ts",
+      "apps/web/src/lib/auth.ts",
+      "apps/web/src/app/[locale]/(app)/member/actor-role-on-session.ts",
+      "apps/web/src/features/claims/upload/server/shared-upload.ts",
+      "apps/web/src/features/claims/upload/server/access.ts",
+      "apps/web/src/lib/storage/evidence-bucket.ts",
+      "packages/shared-auth/src/index.ts",
+      "apps/web/src/features/member/claims/upload-consent.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.tsx",
+    [
+      "apps/web/src/features/claims/components/SharedEvidenceUploadDialog.tsx",
+      "apps/web/src/features/member/claims/actions.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/member/claims/components/ClaimInformationRequests.tsx",
+    [
+      "apps/web/src/features/member/claims/components/ClaimEvidenceUploadDialog.tsx",
+      "apps/web/src/features/member/claims/components/information-request-staff-actions.tsx",
+      "apps/web/src/features/member/claims/components/member-evidence-download-button.tsx",
+      "apps/web/src/features/member/claims/components/information-request-read-recovery.tsx",
+      "packages/ui/src/index.ts",
+      "apps/web/src/lib/utils/date.ts"
+    ]
+  ],
+  [
+    "apps/web/src/features/member/claims/components/information-request-read-recovery.tsx",
+    ["apps/web/src/i18n/routing.ts", "packages/ui/src/index.ts"]
+  ],
+  [
+    "apps/web/src/features/member/claims/components/information-request-staff-actions.tsx",
+    ["apps/web/src/actions/staff-claims/information-request.ts", "packages/ui/src/index.ts"]
+  ],
+  [
+    "apps/web/src/features/member/claims/components/member-evidence-download-button.tsx",
+    ["packages/ui/src/index.ts"]
+  ],
+  ["apps/web/src/features/member/claims/upload-consent.ts", []],
+  [
+    "apps/web/src/features/staff/claims/assignment-options.ts",
+    ["packages/database/src/index.ts", "packages/database/src/tenant-security.ts"]
+  ],
+  [
+    "apps/web/src/features/staff/claims/components/ClaimInformationRequestForm.tsx",
+    ["packages/ui/src/index.ts", "apps/web/src/actions/staff-claims/information-request.ts"]
+  ],
+  ["apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx", []],
+  ["apps/web/src/features/staff/claims/components/StaffClaimContext.tsx", []],
+  [
+    "apps/web/src/features/staff/claims/components/StaffClaimDetailV2Page.tsx",
+    [
+      "apps/web/src/components/agent/claim-detail-header.tsx",
+      "apps/web/src/components/agent/claim-documents-pane.tsx",
+      "apps/web/src/components/agent/claim-info-pane.tsx",
+      "apps/web/src/components/messaging/messaging-panel.tsx",
+      "apps/web/src/components/staff/claim-action-panel/index.tsx",
+      "apps/web/src/components/staff/claim-triage-notes.tsx",
+      "apps/web/src/features/staff/claims/assignment-options.ts",
+      "apps/web/src/lib/auth.ts",
+      "packages/domain-claims/src/index.ts",
+      "packages/ui/src/index.ts",
+      "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts"
+    ]
+  ],
+  ["apps/web/src/features/staff/claims/components/StaffClaimWorkspaceHeader.tsx", []],
+  [
+    "apps/web/src/features/staff/claims/components/StaffStatusHistory.tsx",
+    ["apps/web/src/features/staff/claims/components/LatestStatusNoteContent.tsx"]
+  ],
+  ["apps/web/src/features/staff/claims/components/staff-claim-workspace-view.ts", []],
+  [
+    "apps/web/src/features/staff/claims/server/get-assigned-claim-documents.ts",
+    ["packages/database/src/index.ts", "packages/shared-auth/src/index.ts"]
+  ],
+  ["apps/web/src/i18n/locales.ts", []],
+  ["apps/web/src/i18n/routing.ts", ["apps/web/src/i18n/locales.ts"]],
+  ["apps/web/src/lib/ai/claim-document-text.ts", ["apps/web/src/lib/ai/extraction-pipeline.ts"]],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-ai-context.ts",
+    [
+      "packages/domain-claims/src/index.ts",
+      "apps/web/src/lib/db.server.ts",
+      "apps/web/src/lib/ai/extraction-pipeline.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts",
+    [
+      "apps/web/src/lib/db.server.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts",
+      "apps/web/src/lib/ai/document-run-lifecycle.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-failure.ts",
+    ["packages/database/src/index.ts", "packages/database/src/schema.ts"]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-input.ts",
+    [
+      "apps/web/src/lib/ai/extraction-pipeline.ts",
+      "apps/web/src/lib/ai/document-run-lifecycle.ts",
+      "apps/web/src/lib/storage/evidence-bucket.ts",
+      "packages/domain-ai/src/claims/intake-extract.ts",
+      "packages/domain-ai/src/legal/extract.ts",
+      "packages/domain-ai/src/schemas/claim-intake-extract.ts",
+      "packages/domain-ai/src/schemas/legal-doc-extract.ts",
+      "apps/web/src/lib/ai/claim-pipeline-ai-context.ts",
+      "apps/web/src/lib/ai/claim-document-text.ts",
+      "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-persist.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts",
+      "packages/domain-ai/src/index.ts",
+      "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-pipeline-run.ts",
+    [
+      "apps/web/src/lib/db.server.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts",
+      "apps/web/src/lib/ai/claim-pipeline-document-lifecycle.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-storage-download.ts",
+    ["apps/web/src/lib/ai/storage-download-retry.ts"]
+  ],
+  [
+    "apps/web/src/lib/ai/claim-workflows.ts",
+    [
+      "apps/web/src/lib/ai/dispatch-failure.ts",
+      "apps/web/src/lib/ai/claim-storage-download.ts",
+      "apps/web/src/lib/ai/extraction-pipeline.ts",
+      "apps/web/src/lib/inngest/client.ts",
+      "apps/web/src/lib/reliability/transient-retry.ts",
+      "apps/web/src/lib/ai/claim-pipeline-input.ts",
+      "apps/web/src/lib/ai/claim-document-text.ts",
+      "apps/web/src/lib/ai/claim-pipeline-failure.ts",
+      "apps/web/src/lib/ai/claim-pipeline-persist.ts",
+      "apps/web/src/lib/ai/claim-pipeline-run.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/dispatch-failure.ts",
+    [
+      "apps/web/src/lib/db.server.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/ai/document-run-lifecycle.ts",
+    [
+      "apps/web/src/lib/ai/extraction-pipeline.ts",
+      "apps/web/src/lib/db.server.ts",
+      "packages/database/src/schema.ts"
+    ]
+  ],
+  ["apps/web/src/lib/ai/extraction-pipeline.ts", []],
+  [
+    "apps/web/src/lib/ai/storage-download-retry.ts",
+    ["apps/web/src/lib/reliability/transient-retry.ts", "apps/web/src/lib/storage/service-role.ts"]
+  ],
+  ["apps/web/src/lib/audit.core.ts", ["packages/database/src/index.ts"]],
+  ["apps/web/src/lib/audit.ts", ["apps/web/src/lib/audit.core.ts"]],
+  ["apps/web/src/lib/auth.core.ts", ["apps/web/src/lib/auth/index.ts"]],
+  ["apps/web/src/lib/auth.ts", ["apps/web/src/lib/auth.core.ts"]],
+  [
+    "apps/web/src/lib/auth/auth-request-authority.ts",
+    ["apps/web/src/lib/auth/authority-fields.ts", "apps/web/src/lib/auth/onboarding-authority.ts"]
+  ],
+  ["apps/web/src/lib/auth/authority-fields.ts", []],
+  ["apps/web/src/lib/auth/config.ts", ["apps/web/src/lib/auth/utils.ts"]],
+  [
+    "apps/web/src/lib/auth/hooks.ts",
+    [
+      "apps/web/src/lib/auth/member-number-session-hook.ts",
+      "apps/web/src/lib/auth/member-number-user-create-hook.ts",
+      "apps/web/src/lib/auth/user-authority-assignment.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/auth/index.ts",
+    [
+      "apps/web/src/lib/auth/config.ts",
+      "apps/web/src/lib/auth/auth-request-authority.ts",
+      "apps/web/src/lib/auth/hooks.ts",
+      "apps/web/src/lib/auth/providers.ts",
+      "apps/web/src/lib/auth/schema.ts"
+    ]
+  ],
+  ["apps/web/src/lib/auth/member-number-observability.ts", []],
+  [
+    "apps/web/src/lib/auth/member-number-session-hook.ts",
+    [
+      "packages/database/src/db.ts",
+      "packages/database/src/member-number.ts",
+      "apps/web/src/lib/auth/member-number-observability.ts",
+      "packages/database/src/schema.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/auth/member-number-user-create-hook.ts",
+    [
+      "packages/database/src/db.ts",
+      "packages/database/src/member-number.ts",
+      "apps/web/src/lib/auth/member-number-observability.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/auth/onboarding-authority.ts",
+    [
+      "apps/web/src/lib/tenant/tenant-front-door.ts",
+      "apps/web/src/lib/tenant/tenant-hosts.ts",
+      "apps/web/src/lib/auth/authority-fields.ts"
+    ]
+  ],
+  [
+    "apps/web/src/lib/auth/providers.ts",
+    ["apps/web/src/lib/auth/social-providers.ts", "apps/web/src/lib/email.ts"]
+  ],
+  [
+    "apps/web/src/lib/auth/schema.ts",
+    ["packages/database/src/db.ts", "packages/database/src/schema.ts"]
+  ],
+  ["apps/web/src/lib/auth/social-providers.ts", []],
+  [
+    "apps/web/src/lib/auth/user-authority-assignment.ts",
+    ["apps/web/src/lib/auth/authority-fields.ts", "apps/web/src/lib/auth/onboarding-authority.ts"]
+  ],
+  ["apps/web/src/lib/auth/utils.ts", []],
+  ["apps/web/src/lib/commercial-action-idempotency-storage.ts", ["packages/database/src/index.ts"]],
+  [
+    "apps/web/src/lib/commercial-action-idempotency.ts",
+    ["apps/web/src/lib/commercial-action-idempotency-storage.ts"]
+  ],
+  ["apps/web/src/lib/db.server.ts", ["packages/database/src/index.ts"]],
+  ["apps/web/src/lib/email.core.ts", ["packages/domain-communications/src/email.ts"]],
+  ["apps/web/src/lib/email.ts", ["apps/web/src/lib/email.core.ts"]],
+  ["apps/web/src/lib/inngest/client.ts", []],
+  [
+    "apps/web/src/lib/notifications.core.ts",
+    ["packages/domain-communications/src/notifications/notify.ts", "apps/web/src/lib/push.ts"]
+  ],
+  ["apps/web/src/lib/notifications.ts", ["apps/web/src/lib/notifications.core.ts"]],
+  [
+    "apps/web/src/lib/push.core.ts",
+    ["packages/domain-communications/src/push.ts", "apps/web/src/lib/audit.ts"]
+  ],
+  ["apps/web/src/lib/push.ts", ["apps/web/src/lib/push.core.ts"]],
+  ["apps/web/src/lib/rate-limit-upstash.ts", []],
+  ["apps/web/src/lib/rate-limit.core.ts", ["apps/web/src/lib/rate-limit-upstash.ts"]],
+  ["apps/web/src/lib/rate-limit.ts", ["apps/web/src/lib/rate-limit.core.ts"]],
+  [
+    "apps/web/src/lib/reliability/error-classifier.ts",
+    ["apps/web/src/lib/reliability/retry-after.ts"]
+  ],
+  ["apps/web/src/lib/reliability/retry-after.ts", []],
+  [
+    "apps/web/src/lib/reliability/transient-retry.ts",
+    ["apps/web/src/lib/reliability/error-classifier.ts"]
+  ],
+  ["apps/web/src/lib/roles.core.ts", []],
+  ["apps/web/src/lib/roles.ts", ["apps/web/src/lib/roles.core.ts"]],
+  ["apps/web/src/lib/runtime-environment.ts", []],
+  ["apps/web/src/lib/storage/evidence-bucket.ts", []],
+  [
+    "apps/web/src/lib/storage/service-role.ts",
+    [
+      "packages/database/src/index.ts",
+      "apps/web/src/lib/runtime-environment.ts",
+      "apps/web/src/lib/storage/tenant-prefix.ts",
+      "apps/web/src/lib/storage/signed-url-exposure.ts",
+      "apps/web/src/lib/storage/storage-credentials.ts"
+    ]
+  ],
+  ["apps/web/src/lib/storage/signed-url-exposure.ts", []],
+  ["apps/web/src/lib/storage/storage-credentials.ts", []],
+  ["apps/web/src/lib/storage/tenant-prefix.ts", ["apps/web/src/lib/storage/evidence-bucket.ts"]],
+  ["apps/web/src/lib/tenant/host-id.ts", ["apps/web/src/lib/tenant/tenant-front-door.ts"]],
+  [
+    "apps/web/src/lib/tenant/tenant-front-door.ts",
+    ["apps/web/src/lib/tenant/tenant-host-aliases.ts"]
+  ],
+  ["apps/web/src/lib/tenant/tenant-host-aliases.ts", []],
+  [
+    "apps/web/src/lib/tenant/tenant-hosts.ts",
+    [
+      "apps/web/src/lib/tenant/tenant-host-aliases.ts",
+      "apps/web/src/lib/tenant/tenant-front-door.ts",
+      "apps/web/src/lib/tenant/tenant-local-hosts.ts"
+    ]
+  ],
+  ["apps/web/src/lib/tenant/tenant-local-hosts.ts", []],
+  ["apps/web/src/lib/utils/date.ts", []],
+  ["packages/database/src/claim-lifecycle.ts", []],
+  [
+    "packages/database/src/claim-number.ts",
+    [
+      "packages/database/src/schema/claim-counters.ts",
+      "packages/database/src/schema/claims.ts",
+      "packages/database/src/schema/tenants.ts"
+    ]
+  ],
+  ["packages/database/src/client.ts", []],
+  [
+    "packages/database/src/domain-event-audit-projection.ts",
+    [
+      "packages/database/src/constants.ts",
+      "packages/database/src/domain-event-relay.ts",
+      "packages/database/src/schema/notes.ts"
+    ]
+  ],
+  ["packages/database/src/domain-event-delivery-keys.ts", []],
+  [
+    "packages/database/src/domain-event-delivery-recording.ts",
+    [
+      "packages/database/src/domain-event-delivery-keys.ts",
+      "packages/database/src/schema/domain-event-deliveries.ts"
+    ]
+  ],
+  ["packages/database/src/domain-event-erasure-render.ts", []],
+  [
+    "packages/database/src/domain-event-erasure.ts",
+    ["packages/database/src/db.ts", "packages/database/src/schema/domain-event-keys.ts"]
+  ],
+  [
+    "packages/database/src/domain-event-handoff-payloads.ts",
+    ["packages/database/src/domain-event-payload-helpers.ts"]
+  ],
+  [
+    "packages/database/src/domain-event-member-payloads.ts",
+    ["packages/database/src/domain-event-payload-helpers.ts"]
+  ],
+  [
+    "packages/database/src/domain-event-membership-migration-payloads.ts",
+    ["packages/database/src/domain-event-payload-helpers.ts"]
+  ],
+  [
+    "packages/database/src/domain-event-membership-payloads.ts",
+    ["packages/database/src/domain-event-payload-helpers.ts"]
+  ],
+  ["packages/database/src/domain-event-payload-helpers.ts", []],
+  [
+    "packages/database/src/domain-event-payloads.ts",
+    [
+      "packages/database/src/constants.ts",
+      "packages/database/src/domain-event-payload-helpers.ts",
+      "packages/database/src/domain-event-recovery-payloads.ts",
+      "packages/database/src/domain-event-handoff-payloads.ts",
+      "packages/database/src/domain-event-member-payloads.ts",
+      "packages/database/src/domain-event-membership-migration-payloads.ts",
+      "packages/database/src/domain-event-membership-payloads.ts"
+    ]
+  ],
+  ["packages/database/src/domain-event-pii-key-cache.ts", []],
+  [
+    "packages/database/src/domain-event-pii.ts",
+    [
+      "packages/database/src/db.ts",
+      "packages/database/src/domain-event-pii-key-cache.ts",
+      "packages/database/src/schema/domain-event-keys.ts",
+      "packages/database/src/schema/event-pii-references.ts"
+    ]
+  ],
+  [
+    "packages/database/src/domain-event-recovery-payloads.ts",
+    ["packages/database/src/domain-event-payload-helpers.ts"]
+  ],
+  [
+    "packages/database/src/domain-event-relay.ts",
+    [
+      "packages/database/src/domain-event-delivery-keys.ts",
+      "packages/database/src/domain-event-delivery-recording.ts"
+    ]
+  ],
+  [
+    "packages/database/src/domain-events.ts",
+    [
+      "packages/database/src/db.ts",
+      "packages/database/src/domain-event-payloads.ts",
+      "packages/database/src/schema/domain-events.ts"
+    ]
+  ],
+  ["packages/database/src/e2e-users.ts", []],
+  [
+    "packages/database/src/index.ts",
+    [
+      "packages/database/src/types.ts",
+      "packages/database/src/client.ts",
+      "packages/database/src/server.ts",
+      "packages/database/src/domain-events.ts",
+      "packages/database/src/domain-event-erasure.ts",
+      "packages/database/src/domain-event-erasure-render.ts",
+      "packages/database/src/domain-event-pii.ts",
+      "packages/database/src/domain-event-relay.ts",
+      "packages/database/src/domain-event-audit-projection.ts",
+      "packages/database/src/claim-lifecycle.ts",
+      "packages/database/src/tenant.ts",
+      "packages/database/src/db.ts",
+      "packages/database/src/schema.ts",
+      "packages/database/src/e2e-users.ts"
+    ]
+  ],
+  ["packages/database/src/member-number.ts", ["packages/database/src/schema.ts"]],
+  ["packages/database/src/schema/claim-counters.ts", ["packages/database/src/schema/tenants.ts"]],
+  ["packages/database/src/server.ts", []],
+  [
+    "packages/database/src/tenant-directory.ts",
+    ["packages/database/src/db.ts", "packages/database/src/schema/tenants.ts"]
+  ],
+  ["packages/database/src/tenant-security.ts", []],
+  ["packages/database/src/types.ts", []],
+  [
+    "packages/domain-ai/src/claims/intake-extract.ts",
+    [
+      "packages/domain-ai/src/schemas/claim-intake-extract.ts",
+      "packages/domain-ai/src/shared/text.ts",
+      "packages/domain-ai/src/context.ts"
+    ]
+  ],
+  [
+    "packages/domain-ai/src/claims/summary.ts",
+    ["packages/domain-ai/src/schemas/claim-summary.ts", "packages/domain-ai/src/context.ts"]
+  ],
+  ["packages/domain-ai/src/client.ts", ["packages/domain-ai/src/context.ts"]],
+  ["packages/domain-ai/src/context.ts", ["packages/domain-privacy/src/index.ts"]],
+  [
+    "packages/domain-ai/src/index.ts",
+    [
+      "packages/domain-ai/src/client.ts",
+      "packages/domain-ai/src/context.ts",
+      "packages/domain-ai/src/claims/intake-extract.ts",
+      "packages/domain-ai/src/claims/summary.ts",
+      "packages/domain-ai/src/legal/extract.ts",
+      "packages/domain-ai/src/models.ts",
+      "packages/domain-ai/src/read-models/get-run.ts",
+      "packages/domain-ai/src/router.ts",
+      "packages/domain-ai/src/router-config.ts",
+      "packages/domain-ai/src/telemetry.ts",
+      "packages/domain-ai/src/types.ts",
+      "packages/domain-ai/src/schemas/claim-intake-extract.ts",
+      "packages/domain-ai/src/schemas/claim-summary.ts",
+      "packages/domain-ai/src/schemas/legal-doc-extract.ts",
+      "packages/domain-ai/src/schemas/policy-extract.ts"
+    ]
+  ],
+  [
+    "packages/domain-ai/src/legal/extract.ts",
+    [
+      "packages/domain-ai/src/schemas/legal-doc-extract.ts",
+      "packages/domain-ai/src/shared/text.ts",
+      "packages/domain-ai/src/context.ts"
+    ]
+  ],
+  [
+    "packages/domain-ai/src/models.ts",
+    [
+      "packages/domain-ai/src/schemas/claim-intake-extract.ts",
+      "packages/domain-ai/src/schemas/claim-summary.ts",
+      "packages/domain-ai/src/schemas/legal-doc-extract.ts",
+      "packages/domain-ai/src/schemas/policy-extract.ts"
+    ]
+  ],
+  [
+    "packages/domain-ai/src/read-models/get-run.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts",
+      "packages/database/src/tenant-security.ts"
+    ]
+  ],
+  [
+    "packages/domain-ai/src/router-config.ts",
+    ["packages/domain-ai/src/models.ts", "packages/domain-ai/src/router.ts"]
+  ],
+  ["packages/domain-ai/src/router-numbers.ts", []],
+  ["packages/domain-ai/src/router-score.ts", ["packages/domain-ai/src/router-numbers.ts"]],
+  [
+    "packages/domain-ai/src/router.ts",
+    [
+      "packages/domain-ai/src/types.ts",
+      "packages/domain-ai/src/router-numbers.ts",
+      "packages/domain-ai/src/router-score.ts"
+    ]
+  ],
+  ["packages/domain-ai/src/schemas/claim-intake-extract.ts", []],
+  ["packages/domain-ai/src/schemas/claim-summary.ts", []],
+  ["packages/domain-ai/src/schemas/legal-doc-extract.ts", []],
+  ["packages/domain-ai/src/schemas/policy-extract.ts", []],
+  ["packages/domain-ai/src/shared/text.ts", []],
+  ["packages/domain-ai/src/telemetry.ts", []],
+  ["packages/domain-ai/src/types.ts", []],
+  ["packages/domain-case/src/index.ts", ["packages/domain-case/src/types.ts"]],
+  ["packages/domain-case/src/types.ts", []],
+  [
+    "packages/domain-claims/src/admin-claims/update-status.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/constants.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/claims/audit-projection.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+      "packages/domain-claims/src/claims/transition.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/agent-claims/assign.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/validators/claims.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/agent-claims/update-status.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/claims/audit-projection.ts",
+      "packages/domain-claims/src/claims/transition.ts",
+      "packages/domain-claims/src/validators/claims.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claim-pack/confidence.ts",
+    ["packages/domain-claims/src/claims/commercial-launch-scope.ts"]
+  ],
+  ["packages/domain-claims/src/claim-pack/evidence-checklist.ts", []],
+  [
+    "packages/domain-claims/src/claim-pack/generator.ts",
+    [
+      "packages/domain-claims/src/claim-pack/confidence.ts",
+      "packages/domain-claims/src/claim-pack/evidence-checklist.ts",
+      "packages/domain-claims/src/claim-pack/letter-template.ts",
+      "packages/domain-claims/src/claim-pack/timeline.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claim-pack/index.ts",
+    [
+      "packages/domain-claims/src/claim-pack/generator.ts",
+      "packages/domain-claims/src/claim-pack/confidence.ts",
+      "packages/domain-claims/src/claim-pack/evidence-checklist.ts",
+      "packages/domain-claims/src/claim-pack/letter-template.ts",
+      "packages/domain-claims/src/claim-pack/timeline.ts",
+      "packages/domain-claims/src/claim-pack/types.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claim-pack/letter-template.ts", []],
+  ["packages/domain-claims/src/claim-pack/timeline.ts", []],
+  ["packages/domain-claims/src/claim-pack/types.ts", []],
+  [
+    "packages/domain-claims/src/claims/ai-workflow-preparation.ts",
+    [
+      "packages/domain-ai/src/models.ts",
+      "packages/domain-claims/src/claims/claim-document-ai-consent.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/ai-workflows.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/ai-workflow-preparation.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claims/audit-projection.ts", ["packages/database/src/index.ts"]],
+  ["packages/domain-claims/src/claims/case-companion-next-step.ts", []],
+  ["packages/domain-claims/src/claims/case-created-event.ts", ["packages/database/src/index.ts"]],
+  [
+    "packages/domain-claims/src/claims/claim-ai-context.ts",
+    ["packages/domain-privacy/src/index.ts", "packages/domain-ai/src/models.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/claim-document-ai-consent.ts",
+    ["packages/database/src/index.ts", "packages/domain-privacy/src/index.ts"]
+  ],
+  ["packages/domain-claims/src/claims/commercial-launch-scope.ts", []],
+  ["packages/domain-claims/src/claims/constants.ts", []],
+  ["packages/domain-claims/src/claims/create-helpers.ts", []],
+  [
+    "packages/domain-claims/src/claims/create.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-number.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-membership-billing/src/subscription.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/claims/create-helpers.ts",
+      "packages/domain-claims/src/claims/incident-country.ts",
+      "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "packages/domain-claims/src/claims/case-created-event.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/diaspora-origin-filter.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  ["packages/domain-claims/src/claims/diaspora-origin.ts", []],
+  ["packages/domain-claims/src/claims/documents.ts", []],
+  [
+    "packages/domain-claims/src/claims/draft-cancellation.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-lifecycle.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/claims/transition.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/draft.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-lifecycle.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/claims/documents.ts",
+      "packages/domain-claims/src/claims/incident-country.ts",
+      "packages/domain-claims/src/claims/draft-cancellation.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/fulfil-information-request.ts",
+    ["packages/database/src/index.ts", "packages/shared-auth/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/incident-country-backfill.ts",
+    ["packages/domain-claims/src/claims/incident-country.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/incident-country.ts",
+    ["packages/domain-recovery/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/information-request-evidence.ts",
+    ["packages/database/src/index.ts", "packages/shared-auth/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/information-requests.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-auth.ts",
+    ["packages/domain-claims/src/claims/jurisdiction-handoff-document-classes.ts"]
+  ],
+  ["packages/domain-claims/src/claims/jurisdiction-handoff-document-classes.ts", []],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-eligibility.ts",
+    [
+      "packages/domain-recovery/src/index.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-auth.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claims/jurisdiction-handoff-errors.ts", []],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-event.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-document-classes.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-ids.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claims/jurisdiction-handoff-grant-actor.ts", []],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-grant-conflict-query.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  ["packages/domain-claims/src/claims/jurisdiction-handoff-ids.ts", []],
+  ["packages/domain-claims/src/claims/jurisdiction-handoff-store-conflicts.ts", []],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-grant-conflict-query.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-document-classes.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-store-conflicts.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff-store.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/jurisdiction-handoff.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-auth.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-eligibility.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-errors.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-event.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-grant-actor.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-ids.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff-store.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+    [
+      "packages/database/src/constants.ts",
+      "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "packages/domain-claims/src/claims/transition-guard.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claims/lifecycle-read-sql.ts", ["packages/database/src/index.ts"]],
+  [
+    "packages/domain-claims/src/claims/lifecycle-state.ts",
+    ["packages/domain-case/src/index.ts", "packages/domain-recovery/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/lifecycle-test-support.ts",
+    ["packages/domain-claims/src/claims/lifecycle-state.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/list-response.ts",
+    ["packages/domain-claims/src/claims/lifecycle-read-model.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/list.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/constants.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts",
+      "packages/domain-claims/src/claims/list-response.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/recovery-invariant-evidence.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/transition-current-state.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/recovery-invariants.ts",
+    ["packages/domain-recovery/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/status.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/claims/audit-projection.ts",
+      "packages/domain-claims/src/claims/transition.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/submit-assignment.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-membership-billing/src/subscription.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/submit.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/claim-number.ts",
+      "packages/database/src/tenant-directory.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/claims/documents.ts",
+      "packages/domain-claims/src/claims/incident-country.ts",
+      "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "packages/domain-claims/src/claims/submit-assignment.ts",
+      "packages/domain-claims/src/claims/submitted-claim-notification.ts",
+      "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+    ["packages/database/src/index.ts", "packages/domain-claims/src/claims/case-created-event.ts"]
+  ],
+  ["packages/domain-claims/src/claims/submitted-claim-notification.ts", []],
+  [
+    "packages/domain-claims/src/claims/transition-current-state-cas.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition-current-state.ts",
+    ["packages/domain-claims/src/claims/lifecycle-read-model.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition-domain-events.ts",
+    ["packages/database/src/index.ts", "packages/domain-claims/src/claims/lifecycle-state.ts"]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition-evidence-read.ts",
+    ["packages/database/src/index.ts", "packages/domain-claims/src/claims/transition-evidence.ts"]
+  ],
+  ["packages/domain-claims/src/claims/transition-evidence.ts", []],
+  [
+    "packages/domain-claims/src/claims/transition-guard.ts",
+    [
+      "packages/database/src/constants.ts",
+      "packages/domain-claims/src/claims/recovery-invariants.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition-read-context.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/recovery-invariant-evidence.ts",
+      "packages/domain-claims/src/claims/recovery-invariants.ts",
+      "packages/domain-claims/src/claims/transition-evidence.ts",
+      "packages/domain-claims/src/claims/transition-evidence-read.ts",
+      "packages/domain-claims/src/claims/transition-current-state.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition-side-effects.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/transition-domain-events.ts",
+      "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/claims/transition.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/transition-guard.ts",
+      "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "packages/domain-claims/src/claims/transition-read-context.ts",
+      "packages/domain-claims/src/claims/transition-current-state-cas.ts",
+      "packages/domain-claims/src/claims/transition-current-state.ts",
+      "packages/domain-claims/src/claims/transition-side-effects.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/claims/types.ts", []],
+  ["packages/domain-claims/src/claims/vault-consent-display.ts", []],
+  [
+    "packages/domain-claims/src/index.ts",
+    [
+      "packages/domain-claims/src/claim-pack/index.ts",
+      "packages/domain-claims/src/claims/create.ts",
+      "packages/domain-claims/src/claims/information-requests.ts",
+      "packages/domain-claims/src/claims/information-request-evidence.ts",
+      "packages/domain-claims/src/claims/fulfil-information-request.ts",
+      "packages/domain-claims/src/claims/documents.ts",
+      "packages/domain-claims/src/claims/draft.ts",
+      "packages/domain-claims/src/claims/submit.ts",
+      "packages/domain-claims/src/claims/types.ts",
+      "packages/domain-claims/src/claims/constants.ts",
+      "packages/domain-claims/src/claims/ai-workflows.ts",
+      "packages/domain-claims/src/claims/claim-ai-context.ts",
+      "packages/domain-claims/src/claims/claim-document-ai-consent.ts",
+      "packages/domain-claims/src/claims/diaspora-origin.ts",
+      "packages/domain-claims/src/claims/diaspora-origin-filter.ts",
+      "packages/domain-claims/src/claims/incident-country-backfill.ts",
+      "packages/domain-claims/src/claims/jurisdiction-handoff.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/admin-claims/update-status.ts",
+      "packages/domain-claims/src/agent-claims/assign.ts",
+      "packages/domain-claims/src/agent-claims/update-status.ts",
+      "packages/domain-claims/src/claims/list.ts",
+      "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts",
+      "packages/domain-claims/src/claims/case-companion-next-step.ts",
+      "packages/domain-claims/src/claims/vault-consent-display.ts",
+      "packages/domain-claims/src/claims/transition-guard.ts",
+      "packages/domain-claims/src/claims/status.ts",
+      "packages/domain-claims/src/staff-claims/assign.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/domain-claims/src/staff-claims/get-staff-claims-list.ts",
+      "packages/domain-claims/src/staff-claims/assigned-claim-attention.ts",
+      "packages/domain-claims/src/staff-claims/get-staff-claim-detail.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+      "packages/domain-claims/src/staff-claims/save-recovery-decision.ts",
+      "packages/domain-claims/src/staff-claims/save-escalation-agreement.ts",
+      "packages/domain-claims/src/staff-claims/save-no-fee-evidence.ts",
+      "packages/domain-claims/src/staff-claims/update-status.ts",
+      "packages/domain-claims/src/support-handoffs/index.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+    ["packages/domain-recovery/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/assign.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/assigned-claim-attention.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+    [
+      "packages/domain-claims/src/claims/commercial-launch-scope.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+    ["packages/database/src/index.ts", "packages/domain-claims/src/claims/lifecycle-read-model.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/escalation-agreement-record.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/get-staff-claim-detail.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/get-staff-claims-list.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts",
+      "packages/domain-claims/src/staff-claims/staff-claims-diaspora-origin-notes.ts",
+      "packages/domain-claims/src/staff-claims/staff-claims-list-filters.ts",
+      "packages/domain-claims/src/staff-claims/staff-claims-list-mapper.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+    ["packages/database/src/index.ts", "packages/database/src/tenant-security.ts"]
+  ],
+  ["packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts", []],
+  [
+    "packages/domain-claims/src/staff-claims/recovery-decision-record.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/recovery-decision-schema.ts",
+    ["packages/domain-claims/src/staff-claims/types.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+    ["packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/save-escalation-agreement.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "packages/domain-claims/src/staff-claims/escalation-agreement-record.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/domain-claims/src/staff-claims/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/save-no-fee-evidence.ts",
+    ["packages/database/src/index.ts", "packages/domain-claims/src/staff-claims/scope.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/save-recovery-decision.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision-schema.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision-record.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/save-success-fee-collection.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-recovery/src/index.ts",
+      "packages/domain-membership-billing/src/success-fees/policy.ts",
+      "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/scope.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/staff-claims-diaspora-origin-notes.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/staff-claims-list-filters.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/claims/constants.ts",
+      "packages/domain-claims/src/claims/diaspora-origin-filter.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/staff-claims-list-mapper.ts",
+    [
+      "packages/domain-claims/src/claims/diaspora-origin.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-model.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/status-notification.ts",
+    ["packages/database/src/index.ts", "packages/database/src/tenant-security.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/types.ts",
+    ["packages/database/src/schema.ts", "packages/domain-recovery/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/update-status-recovery.test.ts",
+    [
+      "packages/domain-claims/src/claims/lifecycle-test-support.ts",
+      "packages/domain-claims/src/staff-claims/update-status-test-core.ts",
+      "packages/domain-claims/src/staff-claims/update-status.ts",
+      "packages/domain-claims/src/staff-claims/update-status-test-support.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/staff-claims/update-status-test-core.ts", []],
+  [
+    "packages/domain-claims/src/staff-claims/update-status-test-support.ts",
+    [
+      "packages/domain-claims/src/claims/lifecycle-test-support.ts",
+      "packages/domain-claims/src/staff-claims/update-status-test-core.ts",
+      "packages/domain-claims/src/staff-claims/update-status.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/update-status.test.ts",
+    [
+      "packages/domain-claims/src/claims/lifecycle-test-support.ts",
+      "packages/domain-claims/src/staff-claims/update-status-test-core.ts",
+      "packages/domain-claims/src/staff-claims/update-status.ts",
+      "packages/domain-claims/src/staff-claims/update-status-test-support.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/update-status.transaction.test.ts",
+    ["packages/domain-claims/src/staff-claims/update-status.ts"]
+  ],
+  [
+    "packages/domain-claims/src/staff-claims/update-status.ts",
+    [
+      "packages/domain-claims/src/staff-claims/status-notification.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+      "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "packages/domain-claims/src/validators/claims.ts",
+      "packages/domain-claims/src/claims/audit-projection.ts",
+      "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "packages/domain-claims/src/staff-claims/recovery-decision-record.ts",
+      "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts",
+      "packages/domain-claims/src/staff-claims/scope.ts",
+      "packages/domain-claims/src/claims/transition.ts",
+      "packages/domain-claims/src/staff-claims/current-claim-record.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/acknowledgement.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/support-handoffs/member-response-state.ts",
+      "packages/domain-claims/src/support-handoffs/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/advisory.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts",
+      "packages/domain-claims/src/support-handoffs/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/create-input.ts",
+    ["packages/domain-claims/src/support-handoffs/types.ts"]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/create-store-queries.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/create-store.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-claims/src/support-handoffs/derivation.ts",
+      "packages/domain-claims/src/support-handoffs/create-store-queries.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/create.ts",
+    [
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-claims/src/support-handoffs/create-input.ts",
+      "packages/domain-claims/src/support-handoffs/create-store.ts"
+    ]
+  ],
+  ["packages/domain-claims/src/support-handoffs/derivation.ts", []],
+  [
+    "packages/domain-claims/src/support-handoffs/index.ts",
+    [
+      "packages/domain-claims/src/support-handoffs/create.ts",
+      "packages/domain-claims/src/support-handoffs/acknowledgement.ts",
+      "packages/domain-claims/src/support-handoffs/advisory.ts",
+      "packages/domain-claims/src/support-handoffs/derivation.ts",
+      "packages/domain-claims/src/support-handoffs/lifecycle.ts",
+      "packages/domain-claims/src/support-handoffs/reply.ts",
+      "packages/domain-claims/src/support-handoffs/response.ts",
+      "packages/domain-claims/src/support-handoffs/queue.ts",
+      "packages/domain-claims/src/support-handoffs/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/lifecycle.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/support-handoffs/staff-scope.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/member-response-state.ts",
+    ["packages/shared-auth/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/queue-detail.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/support-handoffs/queue-read-helpers.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/queue-read-helpers.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/queue.ts",
+    [
+      "packages/domain-claims/src/support-handoffs/queue-read-helpers.ts",
+      "packages/domain-claims/src/support-handoffs/queue-detail.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-crm/src/support-handoffs/index.ts",
+      "packages/domain-claims/src/claims/lifecycle-read-sql.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/reply.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-crm/src/support-handoffs/index.ts",
+      "packages/domain-claims/src/support-handoffs/member-response-state.ts",
+      "packages/domain-claims/src/support-handoffs/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/response.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-claims/src/support-handoffs/staff-scope.ts",
+      "packages/domain-claims/src/support-handoffs/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-claims/src/support-handoffs/staff-scope.ts",
+    ["packages/database/src/index.ts", "packages/shared-auth/src/index.ts"]
+  ],
+  ["packages/domain-claims/src/support-handoffs/types.ts", []],
+  ["packages/domain-claims/src/validators/claims.ts", ["packages/database/src/constants.ts"]],
+  [
+    "packages/domain-communications/src/dunning-email.ts",
+    [
+      "packages/domain-communications/src/email.ts",
+      "packages/domain-communications/src/email-templates.ts",
+      "packages/domain-communications/src/sign-in-otp-email.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/email-templates.ts",
+    ["packages/domain-communications/src/email/templates/index.ts"]
+  ],
+  [
+    "packages/domain-communications/src/email.ts",
+    [
+      "packages/domain-communications/src/email-templates.ts",
+      "packages/domain-communications/src/sign-in-otp-email.ts",
+      "packages/domain-communications/src/dunning-email.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/auth.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  ["packages/domain-communications/src/email/templates/base.ts", []],
+  [
+    "packages/domain-communications/src/email/templates/claims.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/dunning.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/engagement.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/index.ts",
+    [
+      "packages/domain-communications/src/email/templates/base.ts",
+      "packages/domain-communications/src/email/templates/auth.ts",
+      "packages/domain-communications/src/email/templates/claims.ts",
+      "packages/domain-communications/src/email/templates/dunning.ts",
+      "packages/domain-communications/src/email/templates/engagement.ts",
+      "packages/domain-communications/src/email/templates/membership.ts",
+      "packages/domain-communications/src/email/templates/messages.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/membership.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  [
+    "packages/domain-communications/src/email/templates/messages.ts",
+    ["packages/domain-communications/src/email/templates/base.ts"]
+  ],
+  ["packages/domain-communications/src/messages/access.ts", ["packages/database/src/index.ts"]],
+  [
+    "packages/domain-communications/src/messages/get.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-communications/src/messages/access.ts",
+      "packages/domain-communications/src/messages/normalize.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/messages/mark-read.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-communications/src/messages/access.ts"
+    ]
+  ],
+  ["packages/domain-communications/src/messages/normalize.ts", []],
+  ["packages/domain-communications/src/messages/schemas.ts", []],
+  [
+    "packages/domain-communications/src/messages/send.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/shared-auth/src/index.ts",
+      "packages/domain-communications/src/messages/access.ts",
+      "packages/domain-communications/src/messages/normalize.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/notifications/claim-status-store.ts",
+    ["packages/database/src/index.ts", "packages/database/src/schema.ts"]
+  ],
+  [
+    "packages/domain-communications/src/notifications/claim-submitted-store.ts",
+    ["packages/database/src/index.ts", "packages/database/src/schema.ts"]
+  ],
+  [
+    "packages/domain-communications/src/notifications/notify.ts",
+    [
+      "packages/domain-communications/src/notifications/claim-status-store.ts",
+      "packages/domain-communications/src/notifications/claim-submitted-store.ts",
+      "packages/database/src/index.ts",
+      "packages/database/src/schema.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/domain-communications/src/email.ts",
+      "packages/domain-communications/src/email/templates/index.ts",
+      "packages/domain-communications/src/push.ts",
+      "packages/domain-communications/src/notifications/support-handoff-store.ts"
+    ]
+  ],
+  [
+    "packages/domain-communications/src/notifications/support-handoff-store.ts",
+    ["packages/database/src/index.ts", "packages/database/src/tenant-security.ts"]
+  ],
+  [
+    "packages/domain-communications/src/push.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/database/src/tenant-security.ts",
+      "packages/database/src/schema.ts"
+    ]
+  ],
+  ["packages/domain-communications/src/sign-in-otp-email.ts", []],
+  [
+    "packages/domain-crm/src/support-handoffs/index.ts",
+    [
+      "packages/domain-crm/src/support-handoffs/repository.ts",
+      "packages/domain-crm/src/support-handoffs/state.ts",
+      "packages/domain-crm/src/support-handoffs/types.ts"
+    ]
+  ],
+  ["packages/domain-crm/src/support-handoffs/repository.ts", []],
+  ["packages/domain-crm/src/support-handoffs/state.ts", []],
+  ["packages/domain-crm/src/support-handoffs/types.ts", []],
+  [
+    "packages/domain-membership-billing/src/subscription.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-membership-billing/src/subscription/lifecycle-reporting.ts"
+    ]
+  ],
+  [
+    "packages/domain-membership-billing/src/subscription/lifecycle-reporting.ts",
+    ["packages/database/src/index.ts"]
+  ],
+  ["packages/domain-membership-billing/src/success-fees/policy.ts", []],
+  ["packages/domain-privacy/src/access.ts", []],
+  ["packages/domain-privacy/src/ai-call-context-brand.ts", []],
+  ["packages/domain-privacy/src/ai-call-context-consent-source.ts", []],
+  ["packages/domain-privacy/src/ai-call-context-keys.ts", []],
+  [
+    "packages/domain-privacy/src/ai-call-context-mint.ts",
+    [
+      "packages/domain-privacy/src/ai.ts",
+      "packages/domain-privacy/src/ai-call-context-consent-source.ts",
+      "packages/domain-privacy/src/ai-call-context-keys.ts",
+      "packages/domain-privacy/src/ai-call-context-validation-result.ts",
+      "packages/domain-privacy/src/ai-call-context-validation-rules.ts",
+      "packages/domain-privacy/src/ai-call-context-own-value.ts"
+    ]
+  ],
+  ["packages/domain-privacy/src/ai-call-context-own-value.ts", []],
+  [
+    "packages/domain-privacy/src/ai-call-context-purpose-rules.ts",
+    ["packages/domain-privacy/src/ai-call-context-own-value.ts"]
+  ],
+  [
+    "packages/domain-privacy/src/ai-call-context-validation-result.ts",
+    [
+      "packages/domain-privacy/src/ai-call-context-brand.ts",
+      "packages/domain-privacy/src/ai-call-context-own-value.ts"
+    ]
+  ],
+  [
+    "packages/domain-privacy/src/ai-call-context-validation-rules.ts",
+    [
+      "packages/domain-privacy/src/ai.ts",
+      "packages/domain-privacy/src/ai-call-context-own-value.ts",
+      "packages/domain-privacy/src/ai-call-context-purpose-rules.ts",
+      "packages/domain-privacy/src/types.ts"
+    ]
+  ],
+  [
+    "packages/domain-privacy/src/ai-call-context-validator.ts",
+    [
+      "packages/domain-privacy/src/ai-call-context-brand.ts",
+      "packages/domain-privacy/src/ai-call-context-keys.ts",
+      "packages/domain-privacy/src/ai-call-context-validation-rules.ts",
+      "packages/domain-privacy/src/ai-call-context-own-value.ts",
+      "packages/domain-privacy/src/ai-call-context-validation-result.ts"
+    ]
+  ],
+  ["packages/domain-privacy/src/ai.ts", ["packages/domain-privacy/src/consent.ts"]],
+  ["packages/domain-privacy/src/consent.ts", []],
+  ["packages/domain-privacy/src/documents.ts", []],
+  ["packages/domain-privacy/src/dsr.ts", []],
+  [
+    "packages/domain-privacy/src/index.ts",
+    [
+      "packages/domain-privacy/src/access.ts",
+      "packages/domain-privacy/src/ai.ts",
+      "packages/domain-privacy/src/ai-call-context-mint.ts",
+      "packages/domain-privacy/src/ai-call-context-validator.ts",
+      "packages/domain-privacy/src/consent.ts",
+      "packages/domain-privacy/src/documents.ts",
+      "packages/domain-privacy/src/dsr.ts",
+      "packages/domain-privacy/src/types.ts"
+    ]
+  ],
+  ["packages/domain-privacy/src/types.ts", []],
+  [
+    "packages/domain-recovery/src/index.ts",
+    [
+      "packages/domain-recovery/src/types.ts",
+      "packages/domain-recovery/src/recovery-law.ts",
+      "packages/domain-recovery/src/law-pack-schema.ts",
+      "packages/domain-recovery/src/law-pack-registry.ts",
+      "packages/domain-recovery/src/law-pack-resolution.ts",
+      "packages/domain-recovery/src/success-fee-collection.ts",
+      "packages/domain-recovery/src/success-fee-collection-event-payload.ts",
+      "packages/domain-recovery/src/success-fee-collection-resolution.ts",
+      "packages/domain-recovery/src/success-fee-collection-event.ts"
+    ]
+  ],
+  [
+    "packages/domain-recovery/src/law-pack-registry.ts",
+    [
+      "packages/domain-recovery/src/law-pack-schema.ts",
+      "packages/domain-recovery/src/law-packs/mk.ts",
+      "packages/domain-recovery/src/law-packs/xk.ts"
+    ]
+  ],
+  [
+    "packages/domain-recovery/src/law-pack-resolution.ts",
+    [
+      "packages/domain-recovery/src/law-pack-registry.ts",
+      "packages/domain-recovery/src/recovery-law.ts"
+    ]
+  ],
+  ["packages/domain-recovery/src/law-pack-schema.ts", []],
+  ["packages/domain-recovery/src/law-packs/mk.ts", []],
+  ["packages/domain-recovery/src/law-packs/xk.ts", []],
+  ["packages/domain-recovery/src/recovery-law.ts", []],
+  ["packages/domain-recovery/src/success-fee-collection-event-payload.ts", []],
+  [
+    "packages/domain-recovery/src/success-fee-collection-event.ts",
+    [
+      "packages/database/src/index.ts",
+      "packages/domain-recovery/src/success-fee-collection-event-payload.ts"
+    ]
+  ],
+  [
+    "packages/domain-recovery/src/success-fee-collection-resolution.ts",
+    ["packages/domain-recovery/src/success-fee-collection.ts"]
+  ],
+  ["packages/domain-recovery/src/success-fee-collection.ts", []],
+  ["packages/domain-recovery/src/types.ts", []],
+  ["packages/shared-auth/src/access-grants.ts", []],
+  ["packages/shared-auth/src/errors.ts", []],
+  ["packages/shared-auth/src/governance.ts", ["packages/shared-auth/src/permissions.ts"]],
+  [
+    "packages/shared-auth/src/index.ts",
+    [
+      "packages/shared-auth/src/errors.ts",
+      "packages/shared-auth/src/session.ts",
+      "packages/shared-auth/src/access-grants.ts",
+      "packages/shared-auth/src/permissions.ts",
+      "packages/shared-auth/src/scope.ts",
+      "packages/shared-auth/src/governance.ts"
+    ]
+  ],
+  ["packages/shared-auth/src/permissions.ts", []],
+  [
+    "packages/shared-auth/src/scope.ts",
+    [
+      "packages/shared-auth/src/errors.ts",
+      "packages/shared-auth/src/permissions.ts",
+      "packages/shared-auth/src/session.ts"
+    ]
+  ],
+  ["packages/shared-auth/src/session.ts", ["packages/shared-auth/src/errors.ts"]],
+  ["packages/ui/src/components/alert.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/avatar.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/badge.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/button.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/card.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/checkbox.tsx", ["packages/ui/src/lib/utils.ts"]],
+  [
+    "packages/ui/src/components/crystal/index.ts",
+    [
+      "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+      "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+      "packages/ui/src/components/crystal/stepper.tsx",
+      "packages/ui/src/components/crystal/timeline.tsx",
+      "packages/ui/src/components/crystal/tokens.ts",
+      "packages/ui/src/components/crystal/unified-portal-shell.tsx"
+    ]
+  ],
+  [
+    "packages/ui/src/components/crystal/matte-anchor-card.tsx",
+    ["packages/ui/src/lib/utils.ts", "packages/ui/src/components/crystal/tokens.ts"]
+  ],
+  [
+    "packages/ui/src/components/crystal/refractive-glass-panel.tsx",
+    ["packages/ui/src/lib/utils.ts"]
+  ],
+  [
+    "packages/ui/src/components/crystal/stepper.tsx",
+    ["packages/ui/src/lib/utils.ts", "packages/ui/src/components/crystal/tokens.ts"]
+  ],
+  ["packages/ui/src/components/crystal/timeline.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/crystal/tokens.ts", []],
+  ["packages/ui/src/components/crystal/unified-portal-shell.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/dialog.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/dropdown-menu.tsx", ["packages/ui/src/lib/utils.ts"]],
+  [
+    "packages/ui/src/components/error-boundary.tsx",
+    ["packages/ui/src/components/button.tsx", "packages/ui/src/components/card.tsx"]
+  ],
+  [
+    "packages/ui/src/components/form.tsx",
+    ["packages/ui/src/lib/utils.ts", "packages/ui/src/components/label.tsx"]
+  ],
+  ["packages/ui/src/components/input.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/label.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/progress.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/scroll-area.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/select.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/separator.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/sheet.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/sidebar/constants.ts", []],
+  [
+    "packages/ui/src/components/sidebar/context.tsx",
+    [
+      "packages/ui/src/hooks/use-mobile.tsx",
+      "packages/ui/src/lib/utils.ts",
+      "packages/ui/src/components/tooltip.tsx",
+      "packages/ui/src/components/sidebar/constants.ts"
+    ]
+  ],
+  ["packages/ui/src/components/sidebar/group.tsx", ["packages/ui/src/lib/utils.ts"]],
+  [
+    "packages/ui/src/components/sidebar/index.ts",
+    [
+      "packages/ui/src/components/sidebar/constants.ts",
+      "packages/ui/src/components/sidebar/context.tsx",
+      "packages/ui/src/components/sidebar/layout/shell.tsx",
+      "packages/ui/src/components/sidebar/layout/controls.tsx",
+      "packages/ui/src/components/sidebar/layout/structure.tsx",
+      "packages/ui/src/components/sidebar/group.tsx",
+      "packages/ui/src/components/sidebar/menu.tsx"
+    ]
+  ],
+  [
+    "packages/ui/src/components/sidebar/layout/controls.tsx",
+    [
+      "packages/ui/src/lib/utils.ts",
+      "packages/ui/src/components/button.tsx",
+      "packages/ui/src/components/sidebar/context.tsx"
+    ]
+  ],
+  [
+    "packages/ui/src/components/sidebar/layout/shell.tsx",
+    [
+      "packages/ui/src/lib/utils.ts",
+      "packages/ui/src/components/sheet.tsx",
+      "packages/ui/src/components/sidebar/constants.ts",
+      "packages/ui/src/components/sidebar/context.tsx"
+    ]
+  ],
+  [
+    "packages/ui/src/components/sidebar/layout/structure.tsx",
+    [
+      "packages/ui/src/lib/utils.ts",
+      "packages/ui/src/components/input.tsx",
+      "packages/ui/src/components/separator.tsx"
+    ]
+  ],
+  [
+    "packages/ui/src/components/sidebar/menu.tsx",
+    [
+      "packages/ui/src/lib/utils.ts",
+      "packages/ui/src/components/button.tsx",
+      "packages/ui/src/components/skeleton.tsx",
+      "packages/ui/src/components/tooltip.tsx",
+      "packages/ui/src/components/sidebar/context.tsx"
+    ]
+  ],
+  ["packages/ui/src/components/skeleton.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/table.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/tabs.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/textarea.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/components/tooltip.tsx", ["packages/ui/src/lib/utils.ts"]],
+  ["packages/ui/src/hooks/use-mobile.tsx", []],
+  [
+    "packages/ui/src/index.ts",
+    [
+      "packages/ui/src/components/alert.tsx",
+      "packages/ui/src/components/avatar.tsx",
+      "packages/ui/src/components/badge.tsx",
+      "packages/ui/src/components/button.tsx",
+      "packages/ui/src/components/card.tsx",
+      "packages/ui/src/components/checkbox.tsx",
+      "packages/ui/src/components/crystal/index.ts",
+      "packages/ui/src/components/dialog.tsx",
+      "packages/ui/src/components/dropdown-menu.tsx",
+      "packages/ui/src/components/form.tsx",
+      "packages/ui/src/components/input.tsx",
+      "packages/ui/src/components/label.tsx",
+      "packages/ui/src/components/progress.tsx",
+      "packages/ui/src/components/scroll-area.tsx",
+      "packages/ui/src/components/select.tsx",
+      "packages/ui/src/components/separator.tsx",
+      "packages/ui/src/components/sheet.tsx",
+      "packages/ui/src/components/sidebar/index.ts",
+      "packages/ui/src/components/skeleton.tsx",
+      "packages/ui/src/components/table.tsx",
+      "packages/ui/src/components/tabs.tsx",
+      "packages/ui/src/components/textarea.tsx",
+      "packages/ui/src/components/tooltip.tsx",
+      "packages/ui/src/components/error-boundary.tsx",
+      "packages/ui/src/lib/utils.ts"
+    ]
+  ],
+  ["packages/ui/src/lib/utils.ts", []]
+]
