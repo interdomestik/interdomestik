@@ -1,3 +1,4 @@
+import { classifyDefaultEmailEquivalence } from './db-access-default-email-equivalence.mjs';
 import { startGraphWorkerPool } from './db-access-graph-worker-pool.mjs';
 import { assertWorkerCode } from './db-access-graph-workers.mjs';
 import { isMainThread } from 'node:worker_threads';
@@ -91,6 +92,7 @@ function finalizeGuard(prepared, graph) {
     })),
   ])
     failures.set(entry.identity, entry);
+  const defaultEmailEquivalence = classifyDefaultEmailEquivalence(prepared, graph, failures);
   const { messageObligations, observedMounts, crmObligations } = runtimeProofObligations({
     providerUnit,
     failures,
@@ -132,6 +134,7 @@ function finalizeGuard(prepared, graph) {
           },
         }
       : {}),
+    defaultEmailEquivalence,
     trustedCommit: adoption.commit,
     trustedTree: adoption.tree,
     historicalBaselineSha256: digest(baselineBytes),
