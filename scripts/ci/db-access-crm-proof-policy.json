@@ -12,7 +12,12 @@
       "newCount": 3398,
       "newEntriesDigest": "232b20b3347472fc46a9b9f5e707182542bab0b8b2637474b3629232d8967393"
     },
-    "witnesses": { "mountEvidence": { "version": 1, "analysisIncomplete": true } },
+    "witnesses": {
+      "mountEvidence": {
+        "version": 1,
+        "analysisIncomplete": true
+      }
+    },
     "runtime": {
       "entryFile": "db-access-crm-runtime-entry.ts",
       "expectedInputs": [
@@ -2591,6 +2596,7 @@
     "scripts/ci/db-access-crm-proof-data-018.json",
     "scripts/ci/db-access-crm-proof-data-019.json",
     "scripts/ci/db-access-crm-proof-data-020.json",
-    "scripts/ci/db-access-crm-proof-data-021.json"
+    "scripts/ci/db-access-crm-proof-data-021.json",
+    "scripts/ci/db-access-crm-proof-data-022.json"
   ]
 }
