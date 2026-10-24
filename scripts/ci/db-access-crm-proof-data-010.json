@@ -143,7 +143,10 @@
     {
       "id": "crm-agent-flow",
       "kind": "runtime",
-      "files": ["apps/web/src/adapters/crm/task-work-queue-repository.ts"],
+      "files": [
+        "apps/web/src/adapters/crm/task-work-queue-repository.ts",
+        "apps/web/src/adapters/crm/reporting-repository.ts"
+      ],
       "requiredAssertions": [
         "actual agent detail/activity/task scheduling/replay/stale completion/legacy completion/reporting/queues",
         "tenant/agent/branch/session denials; SQL aggregate failure rejects; independent sibling read succeeds and aggregate recovers"

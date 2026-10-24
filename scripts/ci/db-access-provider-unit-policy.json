@@ -655,6 +655,51 @@
     }
   },
   "producerFiles": {
+    "scripts/ci/db-access-cli.mjs": {
+      "mode": "100644",
+      "bytes": 4992,
+      "sha256": "84470e7d22587bf4ba6cbe75ab9930e05f98bf9ecbb5f1e3bdd11a30e13ca6ee"
+    },
+    "scripts/ci/db-access-graph-core.mjs": {
+      "mode": "100644",
+      "bytes": 12285,
+      "sha256": "3b3764af1f0e1d2d2afcc98dda5fb06bf5eb2c4bc680d241ac06b02628f601a0"
+    },
+    "scripts/ci/db-access-graph-roots.mjs": {
+      "mode": "100644",
+      "bytes": 2217,
+      "sha256": "bf35d8648c5b7b627878af2dce95bcb91117c6124921aab2a2b912601f89dd26"
+    },
+    "scripts/ci/db-access-prepare.mjs": {
+      "mode": "100644",
+      "bytes": 5658,
+      "sha256": "bf16bf93a3239bca1ab78dcf3184aea8a109daad34d669b66dfea5559a14a897"
+    },
+    "scripts/check-db-access-guard.mjs": {
+      "mode": "100644",
+      "bytes": 293,
+      "sha256": "55f401201d424139823829820147b8e5debbcdb193a6e72ad29be979665a54de"
+    },
+    "scripts/ci/db-access-evaluator.mjs": {
+      "mode": "100644",
+      "bytes": 8327,
+      "sha256": "9d214666f2e75d3a45effb812a6466dc6ad7df10f90ac21857f73f580195310f"
+    },
+    "scripts/ci/db-access-graph-worker.mjs": {
+      "mode": "100644",
+      "bytes": 1278,
+      "sha256": "0fcb717cb66c1dd2aa413b78f8699803682ea3ef06bb8b2319d411a6859d5436"
+    },
+    "scripts/ci/db-access-graph-workers.mjs": {
+      "mode": "100644",
+      "bytes": 7130,
+      "sha256": "11f059f9475cc6d97374ad3bc5a8770135537a09d40a5a21eac026ee3cfc6ba2"
+    },
+    "scripts/ci/db-access-graph.mjs": {
+      "mode": "100644",
+      "bytes": 873,
+      "sha256": "8d288422e59003686cd6670a6263885fe53b206cae34914cbdfd482612ee27ee"
+    },
     "scripts/ci/db-access-provider-unit-source.mjs": {
       "mode": "100644",
       "bytes": 11151,
@@ -912,13 +957,13 @@
     },
     "scripts/ci/db-access-crm-proof-data-009.json": {
       "mode": "100644",
-      "bytes": 121549,
-      "sha256": "8923a67d1032ec9e2924cbfb8b7af53ac75464dc312a6b43e0bb3597bf508251"
+      "bytes": 128752,
+      "sha256": "75f4d77e11bcb26ebb38885bd2c470dc8eef4724bbd0a245889eef64fd68149c"
     },
     "scripts/ci/db-access-crm-proof-data-010.json": {
       "mode": "100644",
-      "bytes": 130304,
-      "sha256": "5431c39f66b10010fd8c97d26bd866c1012a47f7fcf9defb859c22f09859e9b2"
+      "bytes": 130381,
+      "sha256": "c6f10a516e6baf3fffd3614e2453ad4a22f425dad4ed677da72215d9ecd3fb56"
     },
     "scripts/ci/db-access-crm-proof-data-011.json": {
       "mode": "100644",
