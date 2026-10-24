@@ -19,7 +19,7 @@ type Observation = {
 
 export async function runReplyPreparationWorkers(url: string, role: string, params: Params) {
   const require = createRequire(new URL('../../../database/package.json', import.meta.url));
-  const loader = require.resolve('tsx/esm');
+  const loader = require.resolve('tsx');
   const source = fileURLToPath(
     new URL('./public-reply-concurrency.worker-fixture.ts', import.meta.url)
   );
