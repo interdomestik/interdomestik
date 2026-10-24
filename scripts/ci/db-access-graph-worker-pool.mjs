@@ -15,7 +15,7 @@ export function startGraphWorkerPool(repoRoot) {
       const worker = new Worker(new URL('./db-access-graph-worker.mjs', import.meta.url), {
         env: {},
         execArgv: [],
-        resourceLimits: { maxOldGenerationSizeMb: 1024 },
+        resourceLimits: { maxOldGenerationSizeMb: 1536 },
         workerData: { repoRoot },
       });
       let readyResolve, readyReject, exitResolve, exitReject;

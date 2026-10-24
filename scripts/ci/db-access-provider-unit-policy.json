@@ -658,7 +658,7 @@
     "scripts/ci/db-access-graph-worker-pool.mjs": {
       "mode": "100644",
       "bytes": 4206,
-      "sha256": "86c8bc899e962f6ab2fc53a559c6aa618e3b11f5b27834e76b64ac0bd4d5c56a"
+      "sha256": "3f22d14cd954ff3ee524193dcf54accbd4a00fb9a825905ef8f946f2668535f3"
     },
     "scripts/ci/db-access-cli.mjs": {
       "mode": "100644",

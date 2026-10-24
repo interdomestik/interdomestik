@@ -63,7 +63,7 @@ test('four capped workers, two jobs: idle workers STOP and all exit before accep
       [0, 1]
     );
     for (const worker of f.workers) {
-      assert.deepEqual(worker.options.resourceLimits, { maxOldGenerationSizeMb: 1024 });
+      assert.deepEqual(worker.options.resourceLimits, { maxOldGenerationSizeMb: 1536 });
       assert.deepEqual(worker.options.env, {});
       assert.deepEqual(worker.options.execArgv, []);
       assert.equal(worker.messages.at(-1).type, 'STOP');
