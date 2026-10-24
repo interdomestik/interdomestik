@@ -107,7 +107,7 @@ export function createProvenance(model) {
     if (!argument || !work.enter() || mutations.has(model.symbol(argument))) return UNKNOWN;
     if (!keys.length) return provenance(argument, seen, use);
     if (seen.has(argument) || seen.size > 64) return UNKNOWN;
-    seen = new Set(seen).add(argument);
+    seen = appendSeenTrail(seen, argument);
     if (ts.isObjectLiteralExpression(argument)) {
       if (argument.properties.some(ts.isSpreadAssignment)) return UNKNOWN;
       const property = argument.properties.find(
@@ -159,7 +159,7 @@ export function createProvenance(model) {
   }
   function lexicalLifetime(use, parameter, seen = new Set()) {
     if (!work.enter() || seen.has(use) || seen.size > 64) return false;
-    seen = new Set(seen).add(use);
+    seen = appendSeenTrail(seen, use);
     const origin = parameter.parent;
     const owner = ownerOf(use);
     if (owner === origin) return true;
@@ -198,7 +198,7 @@ export function createProvenance(model) {
   function provenance(raw, seen = new Set(), use = raw) {
     const node = unwrap(raw);
     if (!node || !work.enter() || seen.has(node) || seen.size > 64) return UNKNOWN;
-    seen = new Set(seen).add(node);
+    seen = appendSeenTrail(seen, node);
     if (ts.isPropertyAccessExpression(node)) {
       if (mutations.has(model.symbol(node.expression))) return UNKNOWN;
       const objectDecl = model.declaration(node.expression);
