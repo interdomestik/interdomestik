@@ -41,8 +41,8 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
     matterAllowance: claim.matterAllowance
       ? {
           ...claim.matterAllowance,
-          windowStart: claim.matterAllowance.windowStart.toISOString(),
-          windowEnd: claim.matterAllowance.windowEnd.toISOString(),
+          windowStart: claim.matterAllowance.windowStart,
+          windowEnd: claim.matterAllowance.windowEnd,
         }
       : null,
     recoveryDecision: claim.recoveryDecision ?? null,

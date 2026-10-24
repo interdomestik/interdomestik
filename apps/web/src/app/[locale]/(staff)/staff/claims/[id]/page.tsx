@@ -75,11 +75,13 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const [statusHistory, assignmentOptions, initialMessagesResult] = await Promise.all([
     getPublicStatusHistoryCore({
       claimId: id,
+      role: session.user.role,
       tenantId,
     }),
     session.user.role === 'staff'
       ? getStaffAssignmentOptions({
           branchId: session.user.branchId ?? null,
+          role: session.user.role,
           tenantId,
         })
       : Promise.resolve([]),

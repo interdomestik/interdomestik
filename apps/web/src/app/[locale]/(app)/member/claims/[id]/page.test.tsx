@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ClaimMatterAllowanceDto } from '@/features/claims/tracking/types';
 vi.mock('@interdomestik/domain-claims', () => ({ getInformationRequests: vi.fn(async () => []) }));
 
 const hoisted = vi.hoisted(() => ({
@@ -40,7 +41,7 @@ const hoisted = vi.hoisted(() => ({
       latestUpdateNote: null,
       nextStepKey: 'claims-tracking.status.next_step.evaluation',
     },
-    matterAllowance: null,
+    matterAllowance: null as ClaimMatterAllowanceDto | null,
     vaultConsentDisplay: {
       kind: 'ready',
       items: [
@@ -90,6 +91,26 @@ import ClaimDetailsPage from './page';
 import { getInformationRequests } from '@interdomestik/domain-claims';
 
 describe('ClaimDetailsPage', () => {
+  it('passes the typed allowance boundaries to the canonical UI unchanged', async () => {
+    const original = await hoisted.getMemberClaimDetailMock.getMockImplementation()!();
+    const allowance = {
+      allowanceTotal: 2,
+      consumedCount: 1,
+      remainingCount: 1,
+      windowStart: new Date('2026-01-01T00:00:00.000Z'),
+      windowEnd: new Date('2026-12-31T23:59:59.000Z'),
+    };
+    hoisted.getMemberClaimDetailMock.mockResolvedValueOnce({
+      ...original,
+      matterAllowance: allowance,
+    });
+    render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
+    const props = hoisted.memberClaimDetailOpsPageMock.mock.calls.at(-1)![0] as {
+      claim: { matterAllowance: ClaimMatterAllowanceDto };
+    };
+    expect(props.claim.matterAllowance).toEqual(allowance);
+  });
+
   it('keeps the existing claim detail when its request projection fails', async () => {
     vi.mocked(getInformationRequests).mockRejectedValueOnce(new Error('private DB detail'));
     render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));

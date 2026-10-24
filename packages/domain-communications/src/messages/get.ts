@@ -66,6 +66,8 @@ export async function getMessagesForClaimCore(params: {
       if (isAgent) {
         const canAccess = await hasAgentClaimAccess({
           agentId: userId,
+          agentBranchId: actor.branchId ?? null,
+          claimBranchId: claim.branchId ?? null,
           memberId: claim.userId,
           tenantId,
           tx,

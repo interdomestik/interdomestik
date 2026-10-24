@@ -1,93 +1,28 @@
+import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
-import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
-import type * as DatabaseModule from '@interdomestik/database';
+import { ROLES } from '@interdomestik/shared-auth';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
-type DatabaseClient = Pick<typeof DatabaseModule.db, 'query' | 'select' | 'selectDistinctOn'>;
 
-export interface AgentProClaimDTO {
-  id: string;
-  title: string;
-  claimNumber: string;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  member: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  branch: {
-    name: string;
-  } | null;
-  unreadCount: number;
-  lastMessage: string | null;
-  policy: null;
-}
+import type { AgentProClaimDTO, ClaimRow } from './_dto';
+import { dedupeClaimsById, mapToAgentProClaim } from './_dto';
+
+export type { AgentProClaimDTO } from './_dto';
 
 export interface AgentWorkspaceClaimsResult {
   claims: AgentProClaimDTO[];
 }
 
+export type AgentWorkspaceClaimsCoreResult =
+  ({ ok: true } & AgentWorkspaceClaimsResult) | { ok: false; code: 'FORBIDDEN' };
+
 const WORKSPACE_CLAIM_LIMIT = 100;
 
-type ClaimRow = {
-  id: string;
-  title: string | null;
-  claimNumber: string | null;
-  caseLifecycleState: string | null;
-  recoveryLifecycleState: string | null;
-  createdAt: Date | string | null;
-  updatedAt: Date | string | null;
-  user?: {
-    id: string;
-    name: string | null;
-    email: string;
-  } | null;
-  branch?: {
-    name: string | null;
-  } | null;
-};
-
-function normalizeClaimDate(value: Date | string | null): Date {
-  if (value instanceof Date) return value;
-  if (typeof value === 'string') return new Date(value);
-  return new Date();
-}
-
-function mapToAgentProClaim(c: ClaimRow): AgentProClaimDTO {
-  return {
-    id: c.id,
-    title: c.title ?? 'Untitled',
-    claimNumber: c.claimNumber ?? 'N/A',
-    status: claimStatusFromLifecycleFields(c),
-    createdAt: normalizeClaimDate(c.createdAt),
-    updatedAt: normalizeClaimDate(c.updatedAt),
-    member: c.user
-      ? {
-          id: c.user.id,
-          name: c.user.name ?? '',
-          email: c.user.email,
-        }
-      : null,
-    branch: c.branch
-      ? {
-          name: c.branch.name ?? 'N/A',
-        }
-      : null,
-    unreadCount: 0,
-    lastMessage: null,
-    policy: null,
-  };
-}
-
-function dedupeClaimsById(claims: AgentProClaimDTO[]): AgentProClaimDTO[] {
-  const seen = new Set<string>();
-  return claims.filter(claim => {
-    if (seen.has(claim.id)) return false;
-    seen.add(claim.id);
-    return true;
-  });
-}
+const AGENT_WORKSPACE_READER_ROLES = [
+  ROLES.agent,
+  ROLES.admin,
+  ROLES.tenant_admin,
+  ROLES.super_admin,
+] as readonly string[];
 
 export function buildAgentWorkspaceClaimsWhere(params: {
   tenantId: string;
@@ -116,17 +51,19 @@ function buildAgentWorkspaceClaimByIdWhere(params: {
   return and(buildAgentWorkspaceClaimsWhere(params), eq(claims.id, params.claimId));
 }
 
-async function getClaimByIdInWorkspaceScope(params: {
-  tenantId: string;
-  assignedMemberIds: string[];
-  branchId?: string | null;
-  claimId: string;
-  db: DatabaseClient;
-}): Promise<AgentProClaimDTO | null> {
-  const { tenantId, claimId, assignedMemberIds, branchId, db } = params;
+async function getClaimByIdInWorkspaceScope(
+  tx: TenantTransaction,
+  params: {
+    tenantId: string;
+    assignedMemberIds: string[];
+    branchId?: string | null;
+    claimId: string;
+  }
+): Promise<AgentProClaimDTO | null> {
+  const { tenantId, claimId, assignedMemberIds, branchId } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const matched = await db.query.claims.findMany({
+  const matched = await tx.query.claims.findMany({
     where: buildAgentWorkspaceClaimByIdWhere({ tenantId, assignedMemberIds, branchId, claimId }),
     with: {
       user: {
@@ -158,25 +95,24 @@ function buildVisibleMessagesWhere(tenantId: string, claimIds: string[]) {
   );
 }
 
-export async function getAgentWorkspaceClaimsCore(params: {
-  tenantId: string;
-  userId: string;
-  db: DatabaseClient;
-  selectedClaimId?: string;
-}): Promise<AgentWorkspaceClaimsResult> {
-  const { tenantId, userId, db, selectedClaimId } = params;
-  const requestedSelectedClaimId =
-    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
-      ? selectedClaimId.trim()
-      : null;
+async function readAgentWorkspaceClaims(
+  tx: TenantTransaction,
+  params: { tenantId: string; userId: string; requestedSelectedClaimId: string | null }
+): Promise<AgentWorkspaceClaimsResult | null> {
+  const { tenantId, userId, requestedSelectedClaimId } = params;
 
   // 0. Fetch Agent Context (Branch)
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const agent = await db.query.user.findFirst({
-    where: eq(user.id, userId),
+  const agent = await tx.query.user.findFirst({
+    where: and(eq(user.id, userId), eq(user.tenantId, tenantId)),
     columns: { branchId: true },
   });
-  const activeAssignments = await db.query.agentClients.findMany({
+
+  // Fail closed: a missing row (access/home-tenant mismatch, revoked or deleted identity) must
+  // never degrade to an unfiltered branch scope. A present row with branchId null stays valid.
+  if (!agent) return null;
+
+  const activeAssignments = await tx.query.agentClients.findMany({
     where: and(
       eq(agentClients.tenantId, tenantId),
       eq(agentClients.agentId, userId),
@@ -201,11 +137,11 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   // 1. Fetch Claims for Agent's Scope
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  const claimsData = await db.query.claims.findMany({
+  const claimsData = await tx.query.claims.findMany({
     where: buildAgentWorkspaceClaimsWhere({
       tenantId,
       assignedMemberIds,
-      branchId: agent?.branchId,
+      branchId: agent.branchId,
     }),
     orderBy: [desc(claims.createdAt)],
     with: {
@@ -231,12 +167,11 @@ export async function getAgentWorkspaceClaimsCore(params: {
   const selectedClaim = requestedSelectedClaimId
     ? claimIds.includes(requestedSelectedClaimId)
       ? null
-      : await getClaimByIdInWorkspaceScope({
+      : await getClaimByIdInWorkspaceScope(tx, {
           tenantId,
           assignedMemberIds,
           claimId: requestedSelectedClaimId,
-          branchId: agent?.branchId,
-          db,
+          branchId: agent.branchId,
         })
     : null;
 
@@ -249,7 +184,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   if (metadataClaimIds.length > 0) {
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-    const unreadCounts = await db
+    const unreadCounts = await tx
       .select({
         claimId: claimMessages.claimId,
         count: count(claimMessages.id),
@@ -268,7 +203,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
       unreadMap.set(row.claimId as string, Number(row.count))
     );
     // db-access-guard: tenant-scoped -- reason: buildVisibleMessagesWhere enforces tenant, visible claim ids and public messages
-    const lastMessages = await db
+    const lastMessages = await tx
       .selectDistinctOn([claimMessages.claimId], {
         claimId: claimMessages.claimId,
         content: claimMessages.content,
@@ -323,4 +258,36 @@ export async function getAgentWorkspaceClaimsCore(params: {
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   return { claims: claimsWithForcedSelection };
+}
+
+/**
+ * Validates the exercised role, then performs the whole workspace read closure inside one
+ * tenant-context transaction. Database failures propagate to the route error boundary.
+ */
+export async function getAgentWorkspaceClaimsCore(params: {
+  tenantId: string;
+  userId: string;
+  role?: string | null;
+  selectedClaimId?: string;
+}): Promise<AgentWorkspaceClaimsCoreResult> {
+  const { tenantId, userId, role, selectedClaimId } = params;
+
+  if (typeof role !== 'string' || !AGENT_WORKSPACE_READER_ROLES.includes(role)) {
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+
+  const requestedSelectedClaimId =
+    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
+      ? selectedClaimId.trim()
+      : null;
+
+  const result = await withTenantContext({ tenantId, role }, tx =>
+    readAgentWorkspaceClaims(tx, { tenantId, userId, requestedSelectedClaimId })
+  );
+
+  if (!result) {
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+
+  return { ok: true, claims: result.claims };
 }

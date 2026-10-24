@@ -4,9 +4,9 @@ import {
   type SendMessageDbCoreResult,
 } from '@interdomestik/domain-communications/messages/send';
 
-import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
+import { logMessageAuditEvent } from './audit.core';
 import type { Session } from './context';
 
 export type { SendMessageDbCoreResult };
@@ -45,7 +45,7 @@ export async function sendMessageDbCore(params: {
   return sendMessageDbCoreDomain({
     ...params,
     deps: {
-      logAuditEvent,
+      logAuditEvent: logMessageAuditEvent,
     },
   });
 }

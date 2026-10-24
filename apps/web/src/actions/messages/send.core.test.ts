@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  logAuditEvent: vi.fn(),
-
   claimsFindFirst: vi.fn(),
   userFindFirst: vi.fn(),
 
@@ -15,8 +13,8 @@ const mocks = vi.hoisted(() => ({
   select: vi.fn(),
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: mocks.logAuditEvent,
+vi.mock('./audit.core', () => ({
+  logMessageAuditEvent: async () => undefined,
 }));
 
 vi.mock('@interdomestik/database', () => {
@@ -57,13 +55,17 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn(() => ({ scoped: true })),
 }));
 
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   eq: vi.fn(() => ({ __eq: true })),
   and: vi.fn(() => ({ __and: true })),
 }));
 
+import * as auditCore from './audit.core';
 import type { Session } from './context';
 import { sendMessageDbCore } from './send.core';
+
+const logAuditEvent = vi.spyOn(auditCore, 'logMessageAuditEvent');
 
 describe('sendMessageDbCore', () => {
   beforeEach(() => {
@@ -128,7 +130,7 @@ describe('sendMessageDbCore', () => {
       title: 'My Claim',
     });
     mocks.insertValues.mockResolvedValue(undefined);
-    mocks.logAuditEvent.mockResolvedValue(undefined);
+    logAuditEvent.mockResolvedValue(undefined);
     mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
 
     const result = await sendMessageDbCore({
@@ -161,9 +163,37 @@ describe('sendMessageDbCore', () => {
 
     expect(mocks.claimsFindFirst).toHaveBeenCalledTimes(1);
     expect(mocks.insertValues).toHaveBeenCalledTimes(1);
-    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+    expect(logAuditEvent).toHaveBeenCalledTimes(1);
     expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the committed message when an injected post-commit audit logger rejects', async () => {
+    mocks.claimsFindFirst.mockResolvedValue({
+      id: 'claim_1',
+      userId: 'member_1',
+      title: 'My Claim',
+    });
+    mocks.insertValues.mockResolvedValue(undefined);
+    mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
+    logAuditEvent.mockRejectedValueOnce(new Error('private SQL details'));
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const result = await sendMessageDbCore({
+        session: {
+          user: { id: 'user_1', role: 'staff', tenantId: 'tenant_mk' },
+        } as NonNullable<Session>,
+        requestHeaders: new Headers(),
+        claimId: 'claim_1',
+        content: 'Hello',
+      });
+      expect(result).toMatchObject({ success: true, message: { id: 'msg_1' } });
+      expect(mocks.insertValues).toHaveBeenCalledOnce();
+      expect(logAuditEvent).toHaveBeenCalledOnce();
+      expect(errorLog).toHaveBeenCalledWith('Message audit failed after commit');
+    } finally {
+      errorLog.mockRestore();
+    }
   });
 
   it('denies staff messages for claims outside their scoped branch', async () => {
@@ -193,7 +223,7 @@ describe('sendMessageDbCore', () => {
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
     expect(mocks.insertValues).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 
   it('denies branch manager messages even for in-branch claims', async () => {
@@ -223,6 +253,6 @@ describe('sendMessageDbCore', () => {
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
     expect(mocks.insertValues).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

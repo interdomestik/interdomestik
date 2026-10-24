@@ -6,7 +6,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import { mapAgentMemberClaimGroups } from './_claim-groups';
 
-type DatabaseClient = typeof DatabaseModule.db;
+type DatabaseClient = Pick<typeof DatabaseModule.db, 'query' | 'select'>;
 
 export interface AgentMemberClaimsDTO {
   memberId: string;

@@ -1,226 +1,298 @@
-import { describe, expect, it, vi } from 'vitest';
-import { getAgentWorkspaceClaimsCore } from './_core';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('Agent Workspace Claims Query Contracts', () => {
-  describe('getAgentWorkspaceClaimsCore (Integration)', () => {
-    const mockDb = {
-      query: {
-        claims: {
-          findMany: vi.fn(),
-        },
-        agentClients: {
-          findMany: vi.fn(),
-        },
-        user: {
-          findFirst: vi.fn(),
-        },
-      },
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      groupBy: vi.fn().mockReturnThis(),
-      selectDistinctOn: vi.fn().mockReturnThis(),
-      orderBy: vi.fn(),
-    };
+const hoisted = vi.hoisted(() => ({
+  withTenantContextMock: vi.fn(),
+}));
 
-    it('assembles claims applying basic isolation filters', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
-      mockDb.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
-      mockDb.query.claims.findMany.mockResolvedValue([
-        {
-          id: 'c1',
-          claimNumber: 'CLM-001',
-          user: { id: 'u1' },
-          branch: { name: 'B1' },
-          caseLifecycleState: 'submitted',
-          recoveryLifecycleState: 'not_started',
-        },
-      ]);
-      mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'c1', count: 5 }]);
-      mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'c1', content: 'hello' }]);
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContextMock,
+}));
 
-      await getAgentWorkspaceClaimsCore({
-        tenantId: 't1',
-        userId: 'a1',
-        db: mockDb as never,
-      });
+import { buildAgentWorkspaceClaimsWhere, getAgentWorkspaceClaimsCore } from './_core';
 
-      // Assert that findMany was called with a where clause (Contract: must filter)
-      expect(mockDb.query.claims.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.anything(),
-        })
+const dialect = new PgDialect();
+
+function createTx() {
+  return {
+    query: {
+      claims: { findMany: vi.fn() },
+      agentClients: { findMany: vi.fn() },
+      user: { findFirst: vi.fn() },
+    },
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    groupBy: vi.fn(),
+    selectDistinctOn: vi.fn().mockReturnThis(),
+    orderBy: vi.fn(),
+  };
+}
+
+type MockTx = ReturnType<typeof createTx>;
+
+function runActionWith(tx: MockTx) {
+  hoisted.withTenantContextMock.mockImplementation(
+    async (_context: unknown, action: (tx: unknown) => Promise<unknown>) => action(tx)
+  );
+}
+
+function claimRow(id: string, memberId: string, updatedAt = new Date()) {
+  return {
+    id,
+    claimNumber: `CLM-${id}`,
+    user: { id: memberId, name: null, email: `${memberId}@test.com` },
+    branch: { name: 'B1' },
+    title: `Claim ${id}`,
+    caseLifecycleState: 'submitted',
+    recoveryLifecycleState: 'not_started',
+    createdAt: updatedAt,
+    updatedAt,
+    userId: memberId,
+  };
+}
+
+const baseParams = { tenantId: 't1', userId: 'a1', role: 'agent' };
+
+describe('getAgentWorkspaceClaimsCore', () => {
+  beforeEach(() => {
+    hoisted.withTenantContextMock.mockReset();
+  });
+
+  it('runs every dependent read on the tenant-context transaction with exact tenant and role', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
+    tx.query.claims.findMany.mockResolvedValue([claimRow('c1', 'u1')]);
+    tx.groupBy.mockResolvedValueOnce([{ claimId: 'c1', count: 5 }]);
+    tx.orderBy.mockResolvedValueOnce([{ claimId: 'c1', content: 'hello' }]);
+
+    const result = await getAgentWorkspaceClaimsCore(baseParams);
+
+    expect(hoisted.withTenantContextMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
+      { tenantId: 't1', role: 'agent' },
+      expect.any(Function)
+    );
+    expect(tx.query.user.findFirst).toHaveBeenCalledTimes(1);
+    expect(tx.query.agentClients.findMany).toHaveBeenCalledTimes(1);
+    expect(tx.query.claims.findMany).toHaveBeenCalledTimes(1);
+    expect(tx.groupBy).toHaveBeenCalledTimes(1);
+    expect(tx.orderBy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      ok: true,
+      claims: [expect.objectContaining({ id: 'c1', unreadCount: 5, lastMessage: 'hello' })],
+    });
+  });
+
+  it('applies the current branch exact-or-null predicate and public unread rules', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
+    tx.query.claims.findMany.mockResolvedValue([claimRow('c1', 'u1')]);
+    tx.groupBy.mockResolvedValueOnce([]);
+    tx.orderBy.mockResolvedValueOnce([]);
+
+    await getAgentWorkspaceClaimsCore(baseParams);
+
+    const claimsQuery = tx.query.claims.findMany.mock.calls[0][0] as { where: SQL; limit: number };
+    const claimsWhere = dialect.sqlToQuery(claimsQuery.where);
+    expect(claimsQuery.limit).toBe(100);
+    expect(claimsWhere.params).toEqual(expect.arrayContaining(['t1', 'u1', 'branch-1']));
+    expect(claimsWhere.sql.toLowerCase()).toContain('is null');
+
+    const unreadWhere = dialect.sqlToQuery(tx.where.mock.calls[0][0] as SQL);
+    expect(unreadWhere.params).toEqual(expect.arrayContaining(['t1', 'c1', false, 'a1']));
+    expect(unreadWhere.sql.toLowerCase()).toContain('is null');
+    expect(unreadWhere.sql).toContain('<>');
+
+    const latestWhere = dialect.sqlToQuery(tx.where.mock.calls[1][0] as SQL);
+    expect(latestWhere.params).toEqual(expect.arrayContaining(['t1', 'c1', false]));
+  });
+
+  it.each([['member'], ['staff'], ['unknown'], [''], [null], [undefined]])(
+    'denies role %s before opening a transaction or reading dependent data',
+    async role => {
+      const tx = createTx();
+      runActionWith(tx);
+
+      const result = await getAgentWorkspaceClaimsCore({ ...baseParams, role });
+
+      expect(result).toEqual({ ok: false, code: 'FORBIDDEN' });
+      expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
+      expect(tx.query.user.findFirst).not.toHaveBeenCalled();
+      expect(tx.query.agentClients.findMany).not.toHaveBeenCalled();
+      expect(tx.query.claims.findMany).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([['admin'], ['tenant_admin'], ['super_admin']])(
+    'admits supported admin-family role %s with the exercised role in context',
+    async role => {
+      const tx = createTx();
+      runActionWith(tx);
+      tx.query.user.findFirst.mockResolvedValue({ branchId: null });
+      tx.query.agentClients.findMany.mockResolvedValue([]);
+
+      const result = await getAgentWorkspaceClaimsCore({ ...baseParams, role });
+
+      expect(result).toEqual({ ok: true, claims: [] });
+      expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
+        { tenantId: 't1', role },
+        expect.any(Function)
       );
+    }
+  );
 
-      // Assert that select (unread) was called with a where clause (Contract: must filter)
-      expect(mockDb.where).toHaveBeenCalledWith(expect.anything());
+  it('injects selected claim when selectedClaimId is not in initial page', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }, { memberId: 'u2' }]);
+    tx.query.claims.findMany
+      .mockResolvedValueOnce([claimRow('visible-1', 'u1')])
+      .mockResolvedValueOnce([claimRow('target-1', 'u2')]);
+    tx.groupBy.mockResolvedValueOnce([
+      { claimId: 'visible-1', count: 0 },
+      { claimId: 'target-1', count: 2 },
+    ]);
+    tx.orderBy.mockResolvedValueOnce([
+      { claimId: 'visible-1', content: 'hello' },
+      { claimId: 'target-1', content: 'selected-message' },
+    ]);
+
+    const result = await getAgentWorkspaceClaimsCore({
+      ...baseParams,
+      selectedClaimId: 'target-1',
     });
 
-    it('injects selected claim when selectedClaimId is not in initial page', async () => {
-      const claimsPageRows = [
-        {
-          id: 'visible-1',
-          claimNumber: 'CLM-001',
-          user: { id: 'u1' },
-          branch: { name: 'B1' },
-          title: 'Visible Claim',
-          caseLifecycleState: 'submitted',
-          recoveryLifecycleState: 'not_started',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          userId: 'u1',
-        },
-      ];
-      const selectedClaimRow = {
-        id: 'target-1',
-        claimNumber: 'CLM-002',
-        user: { id: 'u2' },
-        branch: { name: 'B1' },
-        title: 'Target Claim',
-        caseLifecycleState: 'submitted',
-        recoveryLifecycleState: 'not_started',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: 'u2',
-      };
-      let findManyCalls = 0;
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
-      mockDb.query.agentClients.findMany.mockResolvedValue([
-        { memberId: 'u1' },
-        { memberId: 'u2' },
-      ]);
-      mockDb.query.claims.findMany.mockImplementation(async () => {
-        findManyCalls += 1;
-        return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
-      });
-      mockDb.groupBy.mockResolvedValueOnce([
-        { claimId: 'visible-1', count: 0 },
-        { claimId: 'target-1', count: 2 },
-      ]);
-      mockDb.orderBy.mockResolvedValueOnce([
-        { claimId: 'visible-1', content: 'hello' },
-        { claimId: 'target-1', content: 'selected-message' },
-      ]);
-
-      const result = await getAgentWorkspaceClaimsCore({
-        tenantId: 't1',
-        userId: 'a1',
-        db: mockDb as never,
-        selectedClaimId: 'target-1',
-      });
-
+    expect(result.ok).toBe(true);
+    if (result.ok) {
       expect(result.claims).toHaveLength(2);
-      expect(result.claims.map(c => c.id)).toContain('target-1');
       expect(result.claims.find(c => c.id === 'target-1')).toMatchObject({
         unreadCount: 2,
         lastMessage: 'selected-message',
       });
-      expect(findManyCalls).toBe(2);
+    }
+    expect(tx.query.claims.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps selected claim in the final capped list when selected claim is older', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    const pageRows = Array.from({ length: 100 }, (_, index) =>
+      claimRow(`visible-${index + 1}`, `u-${index + 1}`, new Date(2026, 0, 1, 0, index + 1))
+    );
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([
+      ...pageRows.map(row => ({ memberId: row.userId })),
+      { memberId: 'u-target' },
+    ]);
+    tx.query.claims.findMany
+      .mockResolvedValueOnce(pageRows)
+      .mockResolvedValueOnce([claimRow('target-older', 'u-target', new Date(2025, 0, 1))]);
+    tx.groupBy.mockResolvedValueOnce([]);
+    tx.orderBy.mockResolvedValueOnce([]);
+
+    const result = await getAgentWorkspaceClaimsCore({
+      ...baseParams,
+      selectedClaimId: 'target-older',
     });
 
-    it('keeps selected claim in the final capped list when selected claim is older', async () => {
-      const claimsPageRows = Array.from({ length: 100 }, (_, index) => ({
-        id: `visible-${index + 1}`,
-        claimNumber: `CLM-${String(index + 1).padStart(3, '0')}`,
-        user: { id: `u-${index + 1}` },
-        branch: { name: 'B1' },
-        title: `Visible Claim ${index + 1}`,
-        caseLifecycleState: 'submitted',
-        recoveryLifecycleState: 'not_started',
-        createdAt: new Date(2026, 0, 1, 0, index + 1),
-        updatedAt: new Date(2026, 0, 1, 0, index + 1),
-        userId: `u-${index + 1}`,
-      }));
-
-      const selectedClaimRow = {
-        id: 'target-older',
-        claimNumber: 'CLM-999',
-        user: { id: 'u-target' },
-        branch: { name: 'B1' },
-        title: 'Target Older Claim',
-        caseLifecycleState: 'submitted',
-        recoveryLifecycleState: 'not_started',
-        createdAt: new Date(2025, 0, 1, 0, 0, 0),
-        updatedAt: new Date(2025, 0, 1, 0, 0, 0),
-        userId: 'u-target',
-      };
-
-      let findManyCalls = 0;
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
-      mockDb.query.agentClients.findMany.mockResolvedValue([
-        ...claimsPageRows.map(row => ({ memberId: row.user.id })),
-        { memberId: 'u-target' },
-      ]);
-      mockDb.query.claims.findMany.mockImplementation(async () => {
-        findManyCalls += 1;
-        return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
-      });
-      mockDb.groupBy.mockResolvedValueOnce([]);
-      mockDb.orderBy.mockResolvedValueOnce([]);
-
-      const result = await getAgentWorkspaceClaimsCore({
-        tenantId: 't1',
-        userId: 'a1',
-        db: mockDb as never,
-        selectedClaimId: 'target-older',
-      });
-
+    expect(result.ok).toBe(true);
+    if (result.ok) {
       expect(result.claims).toHaveLength(100);
       expect(result.claims.map(c => c.id)).toContain('target-older');
-      expect(findManyCalls).toBe(2);
+    }
+    expect(tx.query.claims.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not inject selected claim when the member is outside the agent assignment scope', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
+    tx.query.claims.findMany
+      .mockResolvedValueOnce([claimRow('visible-1', 'u1')])
+      .mockResolvedValueOnce([]);
+    tx.groupBy.mockResolvedValueOnce([{ claimId: 'visible-1', count: 0 }]);
+    tx.orderBy.mockResolvedValueOnce([{ claimId: 'visible-1', content: 'hello' }]);
+
+    const result = await getAgentWorkspaceClaimsCore({
+      ...baseParams,
+      selectedClaimId: 'target-2',
     });
 
-    it('does not inject selected claim when the member is outside the agent assignment scope', async () => {
-      const claimsPageRows = [
-        {
-          id: 'visible-1',
-          claimNumber: 'CLM-001',
-          user: { id: 'u1' },
-          branch: { name: 'B1' },
-          title: 'Visible Claim',
-          caseLifecycleState: 'submitted',
-          recoveryLifecycleState: 'not_started',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          userId: 'u1',
-        },
-      ];
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.claims.map(c => c.id)).toEqual(['visible-1']);
+    }
+    expect(tx.query.claims.findMany).toHaveBeenCalledTimes(2);
+  });
 
-      let findManyCalls = 0;
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
-      mockDb.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
-      mockDb.query.claims.findMany.mockImplementation(async () => {
-        findManyCalls += 1;
-        return findManyCalls === 1 ? claimsPageRows : [];
-      });
-      mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'visible-1', count: 0 }]);
-      mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'visible-1', content: 'hello' }]);
+  it('returns legitimate empty claims when the agent has no active member assignments', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockResolvedValue([]);
 
-      const result = await getAgentWorkspaceClaimsCore({
-        tenantId: 't1',
-        userId: 'a1',
-        db: mockDb as never,
-        selectedClaimId: 'target-2',
-      });
+    const result = await getAgentWorkspaceClaimsCore(baseParams);
 
-      expect(result.claims).toHaveLength(1);
-      expect(result.claims.map(c => c.id)).not.toContain('target-2');
-      expect(findManyCalls).toBe(2);
-    });
+    expect(result).toEqual({ ok: true, claims: [] });
+    expect(tx.query.claims.findMany).not.toHaveBeenCalled();
+    expect(tx.select).not.toHaveBeenCalled();
+  });
 
-    it('returns no claims when the agent has no active member assignments', async () => {
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
-      mockDb.query.agentClients.findMany.mockResolvedValue([]);
-      mockDb.query.claims.findMany.mockResolvedValue([]);
+  it('keeps an existing agent row with null branch valid and unfiltered by branch', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: null });
+    tx.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
+    tx.query.claims.findMany.mockResolvedValue([claimRow('c1', 'u1')]);
+    tx.groupBy.mockResolvedValueOnce([]);
+    tx.orderBy.mockResolvedValueOnce([]);
 
-      const result = await getAgentWorkspaceClaimsCore({
-        tenantId: 't1',
-        userId: 'a1',
-        db: mockDb as never,
-      });
+    const result = await getAgentWorkspaceClaimsCore(baseParams);
 
-      expect(result.claims).toEqual([]);
-      expect(mockDb.query.claims.findMany).not.toHaveBeenCalled();
-    });
+    expect(result.ok).toBe(true);
+    const claimsQuery = tx.query.claims.findMany.mock.calls[0][0] as { where: SQL };
+    const claimsWhere = dialect.sqlToQuery(claimsQuery.where);
+    expect(claimsWhere.params).toEqual(['t1', 'u1']);
+    expect(claimsWhere.sql.toLowerCase()).not.toContain('is null');
+  });
+
+  it('propagates database failures instead of returning an empty success', async () => {
+    const tx = createTx();
+    runActionWith(tx);
+    tx.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+    tx.query.agentClients.findMany.mockRejectedValue(new Error('permission denied'));
+
+    await expect(getAgentWorkspaceClaimsCore(baseParams)).rejects.toThrow('permission denied');
+  });
+
+  it('propagates tenant context rejection of an empty tenant without reads', async () => {
+    const tx = createTx();
+    hoisted.withTenantContextMock.mockRejectedValue(
+      new Error('withTenantContext requires a non-empty tenantId')
+    );
+
+    await expect(getAgentWorkspaceClaimsCore({ ...baseParams, tenantId: '' })).rejects.toThrow(
+      'non-empty tenantId'
+    );
+    expect(tx.query.user.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildAgentWorkspaceClaimsWhere', () => {
+  it('omits the branch predicate when the agent has no current branch', () => {
+    const query = dialect.sqlToQuery(
+      buildAgentWorkspaceClaimsWhere({ tenantId: 't1', assignedMemberIds: ['u1'] })!
+    );
+
+    expect(query.params).toEqual(['t1', 'u1']);
+    expect(query.sql.toLowerCase()).not.toContain('is null');
   });
 });

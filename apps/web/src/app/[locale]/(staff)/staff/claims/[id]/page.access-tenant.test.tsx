@@ -26,10 +26,12 @@ describe('staff claim page effective access tenant', () => {
     });
     expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledExactlyOnceWith({
       claimId: 'claim-1',
+      role: 'staff',
       tenantId: 'access-b',
     });
     expect(hoisted.getStaffAssignmentOptionsMock).toHaveBeenCalledExactlyOnceWith({
       branchId: 'branch-a',
+      role: 'staff',
       tenantId: 'access-b',
     });
     expect(hoisted.getAssignedStaffClaimDocumentsMock).toHaveBeenCalledExactlyOnceWith({

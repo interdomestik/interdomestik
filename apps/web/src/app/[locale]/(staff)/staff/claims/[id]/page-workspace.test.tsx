@@ -229,6 +229,11 @@ describe('staff case workspace hierarchy', () => {
     expect(screen.queryByTestId('staff-claim-messaging-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-detail-member')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-detail-agent')).toBeInTheDocument();
+    expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      role: 'branch_manager',
+      tenantId: 'tenant-ks',
+    });
   });
 
   it('preserves the authorized reads and their argument shape', async () => {
@@ -242,10 +247,12 @@ describe('staff case workspace hierarchy', () => {
     });
     expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
       claimId: 'claim-1',
+      role: 'staff',
       tenantId: 'tenant-ks',
     });
     expect(hoisted.getStaffAssignmentOptionsMock).toHaveBeenCalledWith({
       branchId: 'branch-a',
+      role: 'staff',
       tenantId: 'tenant-ks',
     });
     expect(hoisted.getInformationRequestsMock).toHaveBeenCalledWith(

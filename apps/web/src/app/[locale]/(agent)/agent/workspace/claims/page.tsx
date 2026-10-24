@@ -1,9 +1,9 @@
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
 import { auth } from '@/lib/auth';
-import { withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { getAgentWorkspaceClaimsCore } from './_core';
 
 type SearchParams = {
@@ -16,9 +16,12 @@ type Props = {
   searchParams: Promise<SearchParams>;
 };
 
-function getSearchParam(value: string | string[] | undefined): string | undefined {
-  if (!value) return undefined;
-  return Array.isArray(value) ? value[0] : value;
+function getSearchParam(value: unknown): string | undefined {
+  if (!value) return;
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return;
+  const first = value[0];
+  return typeof first === 'string' ? first : void 0;
 }
 
 function resolveRequestedClaimId(searchParams: SearchParams): string | undefined {
@@ -28,7 +31,27 @@ function resolveRequestedClaimId(searchParams: SearchParams): string | undefined
   return getSearchParam(searchParams.claimId);
 }
 
-export default async function AgentWorkspaceClaimsPage({ params, searchParams }: Props) {
+// Request-specific auth is read behind this boundary so the page shell can prerender.
+export default function AgentWorkspaceClaimsPage(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <output
+          aria-busy="true"
+          className="block space-y-6"
+          data-testid="agent-workspace-claims-loading"
+        >
+          <div aria-hidden="true" className="h-8 w-64 animate-pulse rounded bg-muted" />
+          <div aria-hidden="true" className="h-64 animate-pulse rounded bg-muted" />
+        </output>
+      }
+    >
+      <AgentWorkspaceClaimsContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AgentWorkspaceClaimsContent({ params, searchParams }: Props) {
   const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -39,27 +62,34 @@ export default async function AgentWorkspaceClaimsPage({ params, searchParams }:
   }
 
   const tenantId = ensureTenantId(session);
+  const role = session.user.role;
+  if (!role) {
+    notFound();
+  }
+
   const resolvedSearchParams = await searchParams;
   const selectedClaimId = resolveRequestedClaimId(resolvedSearchParams);
 
-  const { claims } = await withTenantContext({ tenantId }, tx =>
-    getAgentWorkspaceClaimsCore({
-      tenantId,
-      userId: session.user.id,
-      db: tx,
-      selectedClaimId,
-    })
-  );
+  const result = await getAgentWorkspaceClaimsCore({
+    tenantId,
+    userId: session.user.id,
+    role,
+    selectedClaimId,
+  });
+
+  if (!result.ok) {
+    notFound();
+  }
 
   return (
     <AgentClaimsProPage
-      claims={claims}
+      claims={result.claims}
       selectedClaimId={selectedClaimId}
       currentUser={{
         id: session.user.id,
         name: session.user.name,
         image: session.user.image ?? null,
-        role: session.user.role || 'agent',
+        role,
       }}
     />
   );
