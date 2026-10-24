@@ -741,8 +741,8 @@ checks:
       - 'pnpm track:audit'
       - 'pnpm check'
       - 'pnpm db:migrate'
-      - 'pnpm seed:e2e'
-      - 'seed:assert-e2e'
+      - '(?:^|\n)\s*node scripts/ci/run-e2e-seed-admin\.mjs seed\s*(?:\n|$)'
+      - '(?:^|\n)\s*node scripts/ci/run-e2e-seed-admin\.mjs assert\s*(?:\n|$)'
       - 'e2e:gate'
     must_not_match:
       - 'PLAYWRIGHT_HOST'
