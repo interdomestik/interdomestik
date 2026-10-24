@@ -863,12 +863,12 @@
     "scripts/ci/db-access-crm-proof-policy.json": {
       "mode": "100644",
       "bytes": 109624,
-      "sha256": "304e5a98a448147a3d42873a313992ed4c66702b4e5acbbf18055b22ce2841c9"
+      "sha256": "1dfd8925e12c714e093c43a7bc916d817a3491d00787d2cad06cb12a8c7028c1"
     },
     "scripts/ci/db-access-crm-proof-data-000.json": {
       "mode": "100644",
       "bytes": 130985,
-      "sha256": "eb7236b5cbb2a1617105d65e96224ee3d997faad148085098e909d34a65fb9c5"
+      "sha256": "84e04221d99570a6e51fb1d6f2dec9a0d81d10728802677ed2ef602c083b5988"
     },
     "scripts/ci/db-access-crm-proof-data-001.json": {
       "mode": "100644",

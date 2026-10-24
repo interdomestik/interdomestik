@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { and, count, eq, gte, inArray, isNull } from 'drizzle-orm';
 
 import type { db } from '@interdomestik/database/db';
-import { withTenantContext } from '@interdomestik/database/tenant';
+import { withTenantContext } from '@interdomestik/database';
 import {
   crmActivities,
   crmLeadOwnershipHistory,

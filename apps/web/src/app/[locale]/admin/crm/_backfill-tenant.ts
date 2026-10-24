@@ -1,4 +1,4 @@
-import { withTenantContext } from '@interdomestik/database/tenant';
+import { withTenantContext } from '@interdomestik/database';
 
 import { createCrmForecastSnapshotRepository } from '@/adapters/crm/reporting-repository';
 

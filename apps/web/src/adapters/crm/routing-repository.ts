@@ -353,7 +353,7 @@ export function createCrmRoutingRepository(database: CrmRoutingDb): CrmRoutingRe
 }
 
 export function createAdminCrmRoutingRuleRepository(
-  database: CrmRoutingDb | import('@interdomestik/database/tenant').TenantTransaction
+  database: CrmRoutingDb | import('@interdomestik/database').TenantTransaction
 ): AdminCrmRoutingRuleAdminRepository {
   async function getRoutingRule(params: {
     actor: CrmActorContext;

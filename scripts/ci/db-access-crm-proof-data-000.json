@@ -1258,13 +1258,13 @@
     },
     "apps/web/src/adapters/crm/reporting-repository.ts": {
       "mode": "100644",
-      "bytes": 16916,
-      "sha256": "68456e1a4f0142dbddd04e4c65fa5d9734e9b3931baefbba068729c38989d2c4"
+      "bytes": 16909,
+      "sha256": "e9498761263844caa88b36535a751ce90e86177e443e393e2b8828de93abb19b"
     },
     "apps/web/src/adapters/crm/routing-application-preflight.test.ts": {
       "mode": "100644",
-      "bytes": 2354,
-      "sha256": "a919b9eb1b06eed9ee06fa6b0dfcbde9f378b22479f44587db68d2e8faaa05ef"
+      "bytes": 2347,
+      "sha256": "9ce1b9d315cc43bc17fd7376eaae7e84a06944bb6c7e9c092515d0c4043309ca"
     },
     "apps/web/src/adapters/crm/routing-application-service.fixture.ts": {
       "mode": "100644",
@@ -1273,13 +1273,13 @@
     },
     "apps/web/src/adapters/crm/routing-application-service.test.ts": {
       "mode": "100644",
-      "bytes": 5479,
-      "sha256": "7f16741f84241abf1833cafbcb8dfbdafe1797af9bc7880e2d9cd295bf12ed9d"
+      "bytes": 5472,
+      "sha256": "9fd21d25adcad7dee22e1c8935ff80686b3e9ebe1e4fb4fb37773ec1d7d71f9b"
     },
     "apps/web/src/adapters/crm/routing-application-service.ts": {
       "mode": "100644",
-      "bytes": 9556,
-      "sha256": "03b0a88694c1035860187166529531cceabe7a3891a039ffc4ece53ed327b27d"
+      "bytes": 9549,
+      "sha256": "732d68357ced7d4759d3459c69294a439630a1454923ce52b3711efbe95d7d03"
     },
     "apps/web/src/adapters/crm/routing-repository.test.ts": {
       "mode": "100644",
@@ -1288,8 +1288,8 @@
     },
     "apps/web/src/adapters/crm/routing-repository.ts": {
       "mode": "100644",
-      "bytes": 18820,
-      "sha256": "0e2e3e413142d088b863496671697a3b2172259779879ab951195fff3f47e252"
+      "bytes": 18813,
+      "sha256": "cb2e0dc8ae05ba302c52e0470c0f0ab0d05a7f13fc5137b09957ad6e6afda101"
     },
     "apps/web/src/adapters/crm/task-repository-save.ts": {
       "mode": "100644",
@@ -2268,8 +2268,8 @@
     },
     "apps/web/src/app/[locale]/admin/crm/_backfill-tenant.ts": {
       "mode": "100644",
-      "bytes": 1850,
-      "sha256": "19f244ef96d95eaf1cd8deba9016457bbf845371df23f8e40b87ae8658a7f251"
+      "bytes": 1843,
+      "sha256": "11cf983e32eba1d163b8d5101e0a77c34b85b0896ecacb4ad492a3403c0a8b89"
     },
     "apps/web/src/app/[locale]/admin/crm/_backfill-types.ts": {
       "mode": "100644",
@@ -2293,8 +2293,8 @@
     },
     "apps/web/src/app/[locale]/admin/crm/_reporting-tenant-test-setup.ts": {
       "mode": "100644",
-      "bytes": 7511,
-      "sha256": "eba0bd843373c45774d533682cb56f72f0e07d4b3a427f30fbf1921c45ae6ef1"
+      "bytes": 7504,
+      "sha256": "d8425b5318eff1fc6d506ba6068348eb009c0707970e2dac1dbeb98077887f25"
     },
     "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.test.ts": {
       "mode": "100644",
@@ -2303,8 +2303,8 @@
     },
     "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts": {
       "mode": "100644",
-      "bytes": 5745,
-      "sha256": "79a3e2cffb060ea72237281c1ffde19f31257131857c0425a3822bcca5c73d14"
+      "bytes": 5738,
+      "sha256": "ee4936a70efb63a491368a4a4823c78deb49703d17fc80f6f301a621004be21d"
     },
     "apps/web/src/app/[locale]/admin/crm/_routing-action.test.ts": {
       "mode": "100644",
@@ -2338,13 +2338,13 @@
     },
     "apps/web/src/app/[locale]/admin/crm/_routing-tenant.test.ts": {
       "mode": "100644",
-      "bytes": 4078,
-      "sha256": "fd1e4b1c719abbbec62f0275566ef662d0b93840158a9ec96557c59de350fa95"
+      "bytes": 4071,
+      "sha256": "c2644a51f5164769d53a969485d46c8a0ee433f48cdbd0170518b52d0e42e056"
     },
     "apps/web/src/app/[locale]/admin/crm/_routing-tenant.ts": {
       "mode": "100644",
-      "bytes": 1978,
-      "sha256": "2efecfd1af3e8452ab3027159557b1de2ab4813a7cbd995218bd3ced0099c686"
+      "bytes": 1971,
+      "sha256": "e7dbc725e0f739056507b1535219e510ee944f1e5c9cbbaaca9d8a979e4c4b36"
     },
     "apps/web/src/app/[locale]/admin/crm/_routing-types.ts": {
       "mode": "100644",
@@ -2993,18 +2993,18 @@
     },
     "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.tenant.test.ts": {
       "mode": "100644",
-      "bytes": 5450,
-      "sha256": "97f30f8d21cceb56f23aa1a5beeaf046358ad0598a2793b9481e42bb9783b9c3"
+      "bytes": 5443,
+      "sha256": "be57aa1ed8297f881456134d1c1106a7930b5a6da0037bd5e811ae3b7a22f1d5"
     },
     "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.test.ts": {
       "mode": "100644",
-      "bytes": 9951,
-      "sha256": "7f502a900f4de65d1c72e76d783c1a4c20c19d878da3dc8fa180ec9f7f0a0c8a"
+      "bytes": 9944,
+      "sha256": "a7ef6ac31e332dc97a3f737ace3823b341e4daf0a0b6a3fd30e9235eee0baf25"
     },
     "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/route.ts": {
       "mode": "100644",
-      "bytes": 5450,
-      "sha256": "af9017fff6a2f1b9eb5e6327eb52333648049f28bf96f57cfcca0a8e331697b6"
+      "bytes": 5443,
+      "sha256": "44b250fbff0cfb046eee98e8bff1ba86441b8cae52d66e5a8ba4c710d10def93"
     },
     "apps/web/src/app/api/cron/dunning/_core.ts": {
       "mode": "100644",

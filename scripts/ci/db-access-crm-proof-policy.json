@@ -258,19 +258,19 @@
           "mode": "100644"
         },
         "apps/web/src/adapters/crm/reporting-repository.ts": {
-          "sha256": "68456e1a4f0142dbddd04e4c65fa5d9734e9b3931baefbba068729c38989d2c4",
-          "bytes": 16916,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 16909,
+          "sha256": "e9498761263844caa88b36535a751ce90e86177e443e393e2b8828de93abb19b"
         },
         "apps/web/src/adapters/crm/routing-application-service.ts": {
-          "sha256": "03b0a88694c1035860187166529531cceabe7a3891a039ffc4ece53ed327b27d",
-          "bytes": 9556,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 9549,
+          "sha256": "732d68357ced7d4759d3459c69294a439630a1454923ce52b3711efbe95d7d03"
         },
         "apps/web/src/adapters/crm/routing-repository.ts": {
-          "sha256": "0e2e3e413142d088b863496671697a3b2172259779879ab951195fff3f47e252",
-          "bytes": 18820,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 18813,
+          "sha256": "cb2e0dc8ae05ba302c52e0470c0f0ab0d05a7f13fc5137b09957ad6e6afda101"
         },
         "apps/web/src/adapters/crm/task-repository-save.ts": {
           "sha256": "aeae4469434a3c439e2031c908d174dedbf3f6717bd3d3b2a5fbd0c53a8420a7",
@@ -313,9 +313,9 @@
           "mode": "100644"
         },
         "apps/web/src/app/[locale]/admin/crm/_backfill-tenant.ts": {
-          "sha256": "19f244ef96d95eaf1cd8deba9016457bbf845371df23f8e40b87ae8658a7f251",
-          "bytes": 1850,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 1843,
+          "sha256": "11cf983e32eba1d163b8d5101e0a77c34b85b0896ecacb4ad492a3403c0a8b89"
         },
         "apps/web/src/app/[locale]/admin/crm/_backfill-types.ts": {
           "sha256": "b7c8604587658aa05b0af339217e4e03d13bf9b4e2c71fd384b53ea83a5b01d0",
@@ -338,9 +338,9 @@
           "mode": "100644"
         },
         "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts": {
-          "sha256": "79a3e2cffb060ea72237281c1ffde19f31257131857c0425a3822bcca5c73d14",
-          "bytes": 5745,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 5738,
+          "sha256": "ee4936a70efb63a491368a4a4823c78deb49703d17fc80f6f301a621004be21d"
         },
         "apps/web/src/app/[locale]/admin/crm/_routing-core.ts": {
           "sha256": "ac856489a80f484130526298f0c6b67f250cca41e1a2bb549d1897c9bd20be29",
@@ -348,9 +348,9 @@
           "mode": "100644"
         },
         "apps/web/src/app/[locale]/admin/crm/_routing-tenant.ts": {
-          "sha256": "2efecfd1af3e8452ab3027159557b1de2ab4813a7cbd995218bd3ced0099c686",
-          "bytes": 1978,
-          "mode": "100644"
+          "mode": "100644",
+          "bytes": 1971,
+          "sha256": "e7dbc725e0f739056507b1535219e510ee944f1e5c9cbbaaca9d8a979e4c4b36"
         },
         "apps/web/src/app/[locale]/admin/crm/_routing-types.ts": {
           "sha256": "8beaf885c949d71a563647d041797fdad876218efb727d064abbe2746c032bda",

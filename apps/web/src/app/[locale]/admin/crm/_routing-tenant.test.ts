@@ -8,7 +8,7 @@ const h = vi.hoisted(() => ({
   tx: {},
   repository: {},
 }));
-vi.mock('@interdomestik/database/tenant', () => ({ withTenantContext: h.tenant }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: h.tenant }));
 vi.mock('@/adapters/crm/routing-repository', () => ({
   createAdminCrmRoutingRuleRepository: h.factory,
 }));

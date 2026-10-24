@@ -77,7 +77,7 @@ const h = vi.hoisted(() => {
   return { ambient, read, state, withTenantContext: vi.fn(withTenantContext) };
 });
 
-vi.mock('@interdomestik/database/tenant', () => ({ withTenantContext: h.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: h.withTenantContext }));
 
 vi.mock('@/adapters/crm/reporting-repository', () => ({
   createCrmForecastSnapshotRepository: (tx: { id: number }) => ({

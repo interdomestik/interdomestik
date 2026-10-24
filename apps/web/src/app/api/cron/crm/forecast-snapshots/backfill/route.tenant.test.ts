@@ -17,7 +17,7 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/app/[locale]/admin/crm/_reporting-tenant', () => ({
   createAdminCrmReportingTenantRepositories: hoisted.createTenantReaders,
 }));
-vi.mock('@interdomestik/database/tenant', () => ({
+vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@/adapters/crm/reporting-repository', () => ({

@@ -14,7 +14,7 @@ import {
 
 const applyMock = vi.hoisted(() => vi.fn());
 const tenantMock = vi.hoisted(() => vi.fn());
-vi.mock('@interdomestik/database/tenant', () => ({ withTenantContext: tenantMock }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: tenantMock }));
 
 vi.mock('@interdomestik/domain-crm/routing', async importActual => {
   const actual = await importActual<typeof import('@interdomestik/domain-crm/routing')>();

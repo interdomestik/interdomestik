@@ -1,4 +1,4 @@
-import { withTenantContext } from '@interdomestik/database/tenant';
+import { withTenantContext } from '@interdomestik/database';
 
 import { createAdminCrmRoutingRuleRepository } from '@/adapters/crm/routing-repository';
 

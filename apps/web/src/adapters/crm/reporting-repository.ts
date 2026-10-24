@@ -30,7 +30,7 @@ const defaultForecastSnapshotIds = {
   pipelineSnapshotId: () => randomUUID(),
 };
 
-type CrmReportingDb = typeof db | import('@interdomestik/database/tenant').TenantTransaction;
+type CrmReportingDb = typeof db | import('@interdomestik/database').TenantTransaction;
 type SnapshotRow = typeof crmPipelineSnapshots.$inferSelect;
 
 type WeightedRow = {

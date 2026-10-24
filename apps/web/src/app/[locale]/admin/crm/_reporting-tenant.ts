@@ -1,4 +1,4 @@
-import { withTenantContext, type TenantTransaction } from '@interdomestik/database/tenant';
+import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type {
   CrmForecastSnapshotRepository,

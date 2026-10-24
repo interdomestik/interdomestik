@@ -1,4 +1,4 @@
-import { withTenantContext } from '@interdomestik/database/tenant';
+import { withTenantContext } from '@interdomestik/database';
 import { createCrmForecastSnapshotRepository } from '@/adapters/crm/reporting-repository';
 import { createAdminCrmReportingTenantRepositories } from '@/app/[locale]/admin/crm/_reporting-tenant';
 import { NextRequest, NextResponse } from 'next/server';
