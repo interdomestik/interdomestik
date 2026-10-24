@@ -657,8 +657,8 @@
   "producerFiles": {
     "scripts/ci/db-access-graph-worker-pool.mjs": {
       "mode": "100644",
-      "bytes": 4148,
-      "sha256": "b7b6d04b95a4d7d96bbc6124629bdbc25afc399229e5a3329195478d9ff83f4c"
+      "bytes": 4206,
+      "sha256": "86c8bc899e962f6ab2fc53a559c6aa618e3b11f5b27834e76b64ac0bd4d5c56a"
     },
     "scripts/ci/db-access-cli.mjs": {
       "mode": "100644",

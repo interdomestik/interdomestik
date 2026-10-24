@@ -77,7 +77,7 @@ test('dynamic batches preserve indexed results and each worker increasing job or
       result.map(x => x.origins),
       partitions
     );
-    assert.equal(instances.length, 2);
+    assert.equal(instances.length, 4);
     assert.equal(
       instances.reduce((sum, w) => sum + w.jobs.length, 0),
       7
@@ -86,7 +86,7 @@ test('dynamic batches preserve indexed results and each worker increasing job or
   } finally {
     await pool.close();
   }
-  assert.equal(closed, 2);
+  assert.equal(closed, 4);
 });
 test('missing foreign duplicate and worker error reject whole session and allow cleanup', async () => {
   for (mode of ['missing', 'foreign', 'duplicate', 'error']) {
@@ -103,6 +103,6 @@ test('missing foreign duplicate and worker error reject whole session and allow 
     } finally {
       await pool.close();
     }
-    assert.equal(closed, 2);
+    assert.equal(closed, 4);
   }
 });

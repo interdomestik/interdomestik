@@ -11,10 +11,11 @@ export function startGraphWorkerPool(repoRoot) {
   });
   owned.set(pool, state);
   try {
-    for (let index = 0; index < 2; index++) {
+    for (let index = 0; index < 4; index++) {
       const worker = new Worker(new URL('./db-access-graph-worker.mjs', import.meta.url), {
         env: {},
         execArgv: [],
+        resourceLimits: { maxOldGenerationSizeMb: 1024 },
         workerData: { repoRoot },
       });
       let readyResolve, readyReject, exitResolve, exitReject;
