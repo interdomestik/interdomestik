@@ -135,6 +135,11 @@
       "mode": "100644",
       "bytes": 1596,
       "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd"
+    },
+    "packages/database/package.json": {
+      "mode": "100644",
+      "bytes": 2436,
+      "sha256": "b5690ff8e2c7d0ac07b015a4f5619d775345e7710316faa7e4fc4de6f94c0d99"
     }
   }
 }
