@@ -15,9 +15,9 @@ export async function runCrmAgentFlowCases() {
     agentCrmTaskWorkQueueRepository: queue,
   } = runtime;
   const { sql } = await import('drizzle-orm');
-  const schedule = async (args) =>
+  const schedule = async args =>
     (await runActionContext(() => runtime.scheduleAgentLeadFollowUpCore(args))).result;
-  const complete = async (args) =>
+  const complete = async args =>
     (await runActionContext(() => runtime.completeAgentLeadFollowUpCore(args))).result;
   await assertRlsConnectionRoleReady();
   const tenant = await dbAdmin.query.tenants.findFirst();
@@ -45,28 +45,24 @@ export async function runCrmAgentFlowCases() {
     tenantId: agent.tenantId,
   };
   const id = 'owned-agent-detail-probe';
-  await dbAdmin
-    .insert(crmLeads)
-    .values({
-      id,
-      tenantId: agent.tenantId,
-      agentId: agent.id,
-      branchId: agent.branchId,
-      type: 'individual',
-      fullName: 'Owned detail probe',
-      stage: 'new',
-    });
-  await dbAdmin
-    .insert(crmDeals)
-    .values({
-      id: 'owned-agent-detail-deal',
-      tenantId: agent.tenantId,
-      agentId: agent.id,
-      leadId: id,
-      valueCents: 100,
-      stage: 'proposal',
-      status: 'open',
-    });
+  await dbAdmin.insert(crmLeads).values({
+    id,
+    tenantId: agent.tenantId,
+    agentId: agent.id,
+    branchId: agent.branchId,
+    type: 'individual',
+    fullName: 'Owned detail probe',
+    stage: 'new',
+  });
+  await dbAdmin.insert(crmDeals).values({
+    id: 'owned-agent-detail-deal',
+    tenantId: agent.tenantId,
+    agentId: agent.id,
+    leadId: id,
+    valueCents: 100,
+    stage: 'proposal',
+    status: 'open',
+  });
 
   const own = await getAgentCrmLeadDetail({ actor, leadId: id }, patched);
   assert.equal(own.success, true);
@@ -112,13 +108,13 @@ export async function runCrmAgentFlowCases() {
   const list = await tasks({ actor, leadId: id });
   assert.equal(list.length, 1);
   const queueRows = await queue.readAgentTaskWorkQueue({ actor, now: new Date().toISOString() });
-  assert.ok(queueRows.some((x) => x.taskId === scheduled.activity.id));
+  assert.ok(queueRows.some(x => x.taskId === scheduled.activity.id));
   const dashboardRows = await dashboard.readAgentDashboard({
     actor,
     limit: 25,
     now: new Date().toISOString(),
   });
-  assert.ok(dashboardRows.dueFollowUps.some((x) => x.leadId === id));
+  assert.ok(dashboardRows.dueFollowUps.some(x => x.leadId === id));
   const stale = await complete({
     session,
     leadId: id,
@@ -156,7 +152,7 @@ export async function runCrmAgentFlowCases() {
     lead: own.lead,
     limit: 25,
   });
-  assert.ok(visibleActivities.some((x) => x.id === legacyId));
+  assert.ok(visibleActivities.some(x => x.id === legacyId));
   const legacyCompleted = await complete({
     session,
     leadId: id,
@@ -165,12 +161,14 @@ export async function runCrmAgentFlowCases() {
   });
   assert.equal(legacyCompleted.success, true);
   assert.ok(legacyCompleted.activity.completedAt);
-  await runtime.getAgentCrmReportingCore({ actor });
+  const reportingNow = new Date(Date.now() + 60000).toISOString();
+  const reportingInput = { actor, now: () => reportingNow };
+  const reportingBaseline = await runtime.getAgentCrmReportingCore(reportingInput);
   const completedQueue = await queue.readAgentCompletedTaskQueue({
     actor,
     now: new Date().toISOString(),
   });
-  assert.ok(completedQueue.some((x) => x.taskId === scheduled.activity.id));
+  assert.ok(completedQueue.some(x => x.taskId === scheduled.activity.id));
   for (const changed of [
     { ...actor, tenantId: 'other-tenant' },
     { ...actor, actorId: 'other-agent', scope: { ...actor.scope, agentId: 'other-agent' } },
@@ -185,10 +183,23 @@ export async function runCrmAgentFlowCases() {
     assert.equal(
       (
         await queue.readAgentCompletedTaskQueue({ actor: changed, now: new Date().toISOString() })
-      ).some((x) => x.taskId === scheduled.activity.id),
+      ).some(x => x.taskId === scheduled.activity.id),
       false
     );
   }
+  await dbAdmin.execute(sql`alter table crm_pipeline_stages rename to owned_stages_hidden`);
+  try {
+    const independent = await Promise.allSettled([
+      runtime.getAgentCrmReportingCore(reportingInput),
+      patched.findAgentLead({ actor, leadId: id }),
+    ]);
+    assert.equal(independent[0].status, 'rejected');
+    assert.equal(independent[1].status, 'fulfilled');
+    assert.ok(independent[1].value);
+  } finally {
+    await dbAdmin.execute(sql`alter table owned_stages_hidden rename to crm_pipeline_stages`);
+  }
+  assert.deepEqual(await runtime.getAgentCrmReportingCore(reportingInput), reportingBaseline);
   await dbAdmin.execute(sql`alter table agent_commissions rename to owned_commissions_hidden`);
   try {
     const independent = await Promise.allSettled([
