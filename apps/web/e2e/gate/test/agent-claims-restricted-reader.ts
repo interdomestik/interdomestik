@@ -252,17 +252,7 @@ async function main(): Promise<void> {
     const { getAgentWorkspaceClaimsCore } =
       await import('../../../src/app/[locale]/(agent)/agent/workspace/claims/_core');
     const cores: Cores = {
-      // Exercise the current injected core through the same awaited tenant boundary as its page.
-      list: async params => {
-        try {
-          return await database.withTenantContext(
-            { tenantId: params.tenantId, role: params.role },
-            tx => getAgentClaimsCore({ ...params, db: tx })
-          );
-        } catch {
-          return { ok: false, code: 'INTERNAL' };
-        }
-      },
+      list: getAgentClaimsCore,
       workspace: getAgentWorkspaceClaimsCore,
       database,
     };

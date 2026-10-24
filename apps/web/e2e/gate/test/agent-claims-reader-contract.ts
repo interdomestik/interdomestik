@@ -5,7 +5,7 @@ export type WorkspaceCore =
   typeof import('../../../src/app/[locale]/(agent)/agent/workspace/claims/_core').getAgentWorkspaceClaimsCore;
 export type Database = typeof import('@interdomestik/database');
 export interface Cores {
-  list: (params: Omit<Parameters<ListCore>[0], 'db'>) => ReturnType<ListCore>;
+  list: ListCore;
   workspace: WorkspaceCore;
   database: Database;
 }
