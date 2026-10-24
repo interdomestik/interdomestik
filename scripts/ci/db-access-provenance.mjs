@@ -1,3 +1,4 @@
+import { appendSeenTrail } from './db-access-seen-trail.mjs';
 import ts from 'typescript';
 import { createClientSymbols } from './db-access-client-symbols.mjs';
 import { isFunction, ownerOf, unwrap } from './db-access-source.mjs';
@@ -33,7 +34,7 @@ export function createProvenance(model) {
     if (!node) return false;
     if (--budget.remaining < 0) return UNKNOWN;
     if (!work.enter() || seen.has(node) || seen.size > 64) return UNKNOWN;
-    seen = new Set(seen).add(node);
+    seen = appendSeenTrail(seen, node);
     if (provenance(node) === 'tenant-context') return true;
     if (ts.isAwaitExpression(node)) return tenantHandle(node.expression, seen, budget);
     if (ts.isBinaryExpression(node)) {

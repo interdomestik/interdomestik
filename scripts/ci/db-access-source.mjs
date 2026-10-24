@@ -141,7 +141,18 @@ export function createSourceModel(sources, approvedSources = sources) {
     host
   );
   const checker = program.getTypeChecker();
-  const fileOf = node => normalize(node.getSourceFile().fileName);
+  const normalizedSourceFiles = new WeakMap();
+  const fileOf = node => {
+    const sourceFile = node.getSourceFile();
+    const fileName = sourceFile.fileName;
+    if (typeof sourceFile !== 'object' && typeof sourceFile !== 'function')
+      return normalize(fileName);
+    const cached = normalizedSourceFiles.get(sourceFile);
+    if (cached && cached.fileName === fileName) return cached.normalized;
+    const normalized = normalize(fileName);
+    normalizedSourceFiles.set(sourceFile, { fileName, normalized });
+    return normalized;
+  };
   // One private lexical symbol memo per model instance; declaration() reuses it but stays uncached.
   const { symbol, declaration } = createLexicalLookups(checker, isFunction);
   function exportDeclaration(file, name) {
