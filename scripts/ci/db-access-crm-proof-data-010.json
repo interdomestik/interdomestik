@@ -13,7 +13,11 @@
         "PASS: reached TEST outbox SQL insert then failure rolls back ownership, cursor, audit and test outbox together.",
         "PASS: observed cursor lock contention serializes two real routing transactions with distinct round-robin assignments; tenant context clears."
       ],
-      "files": ["apps/web/src/adapters/crm/routing-repository.ts"],
+      "files": [
+        "apps/web/src/adapters/crm/routing-repository.ts",
+        "apps/web/src/adapters/crm/lead-mutation-repository.ts",
+        "apps/web/src/adapters/crm/routing-application-service.ts"
+      ],
       "justification": "Draft operation mapping; requires independent same-source/case review, no prior-receipt admission."
     },
     {

@@ -2597,6 +2597,7 @@
     "scripts/ci/db-access-crm-proof-data-019.json",
     "scripts/ci/db-access-crm-proof-data-020.json",
     "scripts/ci/db-access-crm-proof-data-021.json",
-    "scripts/ci/db-access-crm-proof-data-022.json"
+    "scripts/ci/db-access-crm-proof-data-022.json",
+    "scripts/ci/db-access-crm-proof-data-023.json"
   ]
 }
