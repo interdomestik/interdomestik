@@ -657,8 +657,8 @@
   "producerFiles": {
     "scripts/ci/db-access-graph-worker-pool.mjs": {
       "mode": "100644",
-      "bytes": 3136,
-      "sha256": "8c2c269c08a3f119d1cd68adf7f701e294a31546038ce942359bb73c32f576d6"
+      "bytes": 4148,
+      "sha256": "b7b6d04b95a4d7d96bbc6124629bdbc25afc399229e5a3329195478d9ff83f4c"
     },
     "scripts/ci/db-access-cli.mjs": {
       "mode": "100644",
@@ -667,8 +667,8 @@
     },
     "scripts/ci/db-access-graph-core.mjs": {
       "mode": "100644",
-      "bytes": 12285,
-      "sha256": "3b3764af1f0e1d2d2afcc98dda5fb06bf5eb2c4bc680d241ac06b02628f601a0"
+      "bytes": 11666,
+      "sha256": "b48cabb5cfcdd302a13a9f0c50a53bd05d512cbd0de98b9ffc4f7d2d9f5ed245"
     },
     "scripts/ci/db-access-graph-roots.mjs": {
       "mode": "100644",
@@ -692,18 +692,18 @@
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
-      "bytes": 1802,
-      "sha256": "f0e8efb110bb591de92c2414608334bf710f4c1132b239f55ddff7ea9cfbc4d4"
+      "bytes": 2323,
+      "sha256": "f673baa719eb70ed89e5d9b562158055d009f5c0c75d30eadaeb43e7297e422b"
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 6089,
-      "sha256": "17c5f60dcf2c4435a134bc094d20d0fb019c20c4385e9e1bda8502cb7455ec8e"
+      "bytes": 6039,
+      "sha256": "a8e5664d476c614acddcfd3bfb98db57adfba814884443676b0a48057e519308"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
-      "bytes": 873,
-      "sha256": "8d288422e59003686cd6670a6263885fe53b206cae34914cbdfd482612ee27ee"
+      "bytes": 1158,
+      "sha256": "349e847dccdfe50966185645ddf9b1cab74fde1e1f4e7db93f19e7aa632d3a71"
     },
     "scripts/ci/db-access-provider-unit-source.mjs": {
       "mode": "100644",
@@ -1024,6 +1024,11 @@
       "mode": "100644",
       "bytes": 44919,
       "sha256": "c99ef57aa847665f8e0641f9f499be09d2b918606ce70bfde231ca7022ad5999"
+    },
+    "scripts/ci/db-access-graph-session-driver.mjs": {
+      "mode": "100644",
+      "bytes": 2028,
+      "sha256": "fe9e94443f176bb2cde229749619febc921e4977c4b7bbbf9b9939857db81954"
     }
   },
   "runtimeEnforcement": {
@@ -1117,7 +1122,9 @@
         "mode": "100644",
         "bytes": 1909,
         "sha256": "2c2f696bca25c06184abda1cbf0828bd13843831c705c648356ce24e48ef2030",
-        "imports": { "@sentry/nextjs": null }
+        "imports": {
+          "@sentry/nextjs": null
+        }
       },
       "apps/web/src/lib/observability/database-readiness.test.ts": {
         "mode": "100644",
@@ -1132,7 +1139,9 @@
         "mode": "100644",
         "bytes": 1454,
         "sha256": "0f678992a4154a9600e0ac5d82627f3437aa44c0f68040d3210f761dce8d01c6",
-        "imports": { "@sentry/nextjs": null }
+        "imports": {
+          "@sentry/nextjs": null
+        }
       },
       "apps/web/src/lib/observability/sentry-enterprise-metadata.ts": {
         "mode": "100644",

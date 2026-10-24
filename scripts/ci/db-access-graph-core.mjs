@@ -6,18 +6,17 @@ import { BUILTIN_CONSTRUCTORS, createReferences } from './db-access-references.m
 import { isFunction } from './db-access-source.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
-import { createIncompleteCollector } from './db-access-incomplete.mjs';
+import { createGraphSessionDriver } from './db-access-graph-session-driver.mjs';
 import { createGraphProvenance } from './db-access-graph-provenance.mjs';
 
 import { testOnlySource, inspectGraphRoots } from './db-access-graph-roots.mjs';
 
-export function inspectGraph(
+export function createGraphTraversal(
   model,
   provenance,
   inventory,
   frozenBootstrap = [],
-  providerUnit,
-  origins
+  providerUnit
 ) {
   if (providerUnit && !isVerifiedProviderUnitSource(providerUnit))
     throw new Error('incomplete: unauthenticated provider graph boundary');
@@ -26,17 +25,7 @@ export function inspectGraph(
     ...(providerUnit?.producerHarnessFiles ?? []),
     ...(providerUnit?.namedProofFiles ?? []),
   ]);
-  const failures = [];
-  const reachedTestSources = new Set();
-  const incomplete = createIncompleteCollector();
-  for (const file of origins ? [] : provenance.environmentChanges)
-    incomplete.push({
-      file,
-      reason: 'unsupported mutable global environment root',
-    });
-  const initialUnknown = new Set(provenance.analysisUnknown);
-  for (const reason of origins ? [] : initialUnknown)
-    incomplete.push({ file: '<analysis>', reason });
+  let failures, reachedTestSources, incomplete;
   const byOwner = new Map();
   for (const entry of inventory.entries) {
     const list = byOwner.get(entry._owner) ?? [];
@@ -278,14 +267,8 @@ export function inspectGraph(
     if (isFunction(owner)) for (const parameter of owner.parameters) visit(parameter);
     visit(isFunction(owner) ? owner.body : owner);
   }
-  inspectGraphRoots({ model, inventory, origins, references, incomplete, inspect });
-  // A provenance query first made during traversal may exhaust after the initial snapshot.
-  for (const reason of provenance.analysisUnknown ?? [])
-    if (!initialUnknown.has(reason)) incomplete.push({ file: '<analysis>', reason });
-  return {
-    failures,
-    incomplete: incomplete.entries,
-    incompleteRawCount: incomplete.rawCount,
-    reachedTestSources,
-  };
+  return createGraphSessionDriver(inventory, provenance, (origins, output) => {
+    ({ failures, reachedTestSources, incomplete } = output);
+    inspectGraphRoots({ model, inventory, origins, references, incomplete, inspect });
+  });
 }

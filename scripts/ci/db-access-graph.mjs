@@ -1,4 +1,8 @@
-import { inspectGraph } from './db-access-graph-core.mjs';
+import { createGraphTraversal } from './db-access-graph-core.mjs';
+function inspectGraph(model, provenance, inventory, frozenBootstrap, providerUnit, origins) {
+  const session = createGraphTraversal(model, provenance, inventory, frozenBootstrap, providerUnit);
+  return session.run(origins ?? [...inventory.changed], origins === undefined);
+}
 export { testOnlySource } from './db-access-graph-roots.mjs';
 
 export function inspectChangedEdges(

@@ -19,6 +19,7 @@ const codeFiles = [
   'db-access-graph-roots.mjs',
   'db-access-graph-core.mjs',
   'db-access-graph-worker-pool.mjs',
+  'db-access-graph-session-driver.mjs',
 ];
 export function assertWorkerCode(repoRoot) {
   for (const name of codeFiles) {
@@ -143,10 +144,8 @@ export async function runParallelGraph(prepared, input, pool) {
   assertWorkerCode(prepared.repoRoot);
   const roots = [...prepared.inventory.changed];
   if (!roots.length) return mergeOwnedGraphs(prepared, [], []);
-  const count = Math.min(2, roots.length),
-    width = Math.ceil(roots.length / count),
-    partitions = [];
-  for (let i = 0; i < roots.length; i += width) partitions.push(roots.slice(i, i + width));
+  const partitions = [];
+  for (let i = 0; i < roots.length; i += 64) partitions.push(roots.slice(i, i + 64));
   const results = await runOwnedGraphWorkerPool(pool, partitions, {
     ...input,
     initialUnknown: [...prepared.provenance.analysisUnknown],

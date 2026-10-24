@@ -32,9 +32,11 @@ before(async () => {
       (_, name) =>
         `from '${name.startsWith('.') ? new URL(name, graphUrl).href : import.meta.resolve(name)}'`
     );
-  ({ inspectGraph: inspectUncached } = await import(
+  const { createGraphTraversal } = await import(
     `data:text/javascript,${encodeURIComponent(uncachedSource)}`
-  ));
+  );
+  inspectUncached = (model, provenance, inventory) =>
+    createGraphTraversal(model, provenance, inventory).run([...inventory.changed], true);
 });
 
 function probe(inspect, chain, page, extra = []) {
