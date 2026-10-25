@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -20,24 +21,48 @@ const { PROVIDER_UNIT_POLICY } = await import(
   pathToFileURL(path.join(repo, 'scripts/ci/db-access-provider-unit-policy.mjs'))
 );
 const clone = value => structuredClone(value);
-const sources = new Map(),
-  trusted = new Map();
-for (const item of policy.files) {
-  const current = fs.readFileSync(path.join(repo, item.file), 'utf8');
-  sources.set(item.file, current);
-  if (item.adoptionSha256 !== null)
-    trusted.set(
-      item.file,
-      item.adoptionSha256 === item.currentSha256
-        ? current
-        : execFileSync('git', ['show', policy.adoptionCommit + ':' + item.file], {
-            cwd: repo,
-            encoding: 'utf8',
-          })
-    );
+// Fixed unit inputs model the already-reviewed contract, independently of the active checkout.
+// Native current-source classification still uses the real prepared model and remains fail closed.
+const fixtureCommit = '28ae8c3741bfcdbaaac5fb13076a23a45e8ec3d1';
+function fixedSources(commit, identities) {
+  const names = [...identities.keys()].sort();
+  const raw = execFileSync('git', ['cat-file', '--batch'], {
+    cwd: repo,
+    input: names.map(file => commit + ':' + file + '\n').join(''),
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const result = new Map();
+  let offset = 0;
+  for (const file of names) {
+    const end = raw.indexOf(10, offset);
+    const header = raw.subarray(offset, end).toString();
+    const match = /^([a-f0-9]{40}) blob ([0-9]+)$/u.exec(header);
+    if (!match) throw new Error('Missing fixed status-return unit source: ' + file);
+    const size = Number(match[2]);
+    const bytes = raw.subarray(end + 1, end + 1 + size);
+    if (
+      bytes.length !== size ||
+      createHash('sha256').update(bytes).digest('hex') !== identities.get(file)
+    )
+      throw new Error('Changed fixed status-return unit source: ' + file);
+    result.set(file, bytes.toString('utf8'));
+    offset = end + 1 + size + 1;
+  }
+  if (offset !== raw.length) throw new Error('Unexpected fixed unit source batch trailer');
+  return result;
 }
-for (const file of policy.providerFiles)
-  sources.set(file, fs.readFileSync(path.join(repo, file), 'utf8'));
+const currentIdentities = new Map(policy.files.map(item => [item.file, item.currentSha256]));
+for (const [file, hash] of Object.entries(policy.providerSources))
+  currentIdentities.set(file, hash);
+const sources = fixedSources(fixtureCommit, currentIdentities);
+const trusted = fixedSources(
+  policy.adoptionCommit,
+  new Map(
+    policy.files
+      .filter(item => item.adoptionSha256 !== null)
+      .map(item => [item.file, item.adoptionSha256])
+  )
+);
 const baselineBytes = fs.readFileSync(path.join(repo, 'scripts/ci/db-access-baseline.json'));
 function fixture({ futureRuntimeContract = true, original = PROVIDER_UNIT_POLICY.crmProof } = {}) {
   const contract = {
