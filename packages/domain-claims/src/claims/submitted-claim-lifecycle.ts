@@ -6,7 +6,7 @@ import type { TransitionTx } from './transition-side-effects';
 
 // Validate only the already-declared scalar types at the SQL value boundary.
 // No coercion, normalization or container/Date restrictions.
-const historyText = z.string();
+const historyText = z.string({ error: 'Expected primitive string' });
 const nullableHistoryText = historyText.nullable();
 
 export type RecordSubmittedClaimLifecycleArgs = {

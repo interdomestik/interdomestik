@@ -913,7 +913,7 @@
     "scripts/ci/db-access-crm-proof-policy.json": {
       "mode": "100644",
       "bytes": 125874,
-      "sha256": "8bc848d1673715bcfde7d8513911a0be803ffc12b4e6a8b6069797168d42bf8f"
+      "sha256": "962622e0979b49251fee2d3c772b2365e1631741a5296bf1e440afcedbe93dd2"
     },
     "scripts/ci/db-access-graph-session-driver.mjs": {
       "mode": "100644",
@@ -1043,7 +1043,7 @@
     "scripts/ci/db-access-crm-proof-data-002.json": {
       "mode": "100644",
       "bytes": 31642,
-      "sha256": "60b14f093ba6ea3791cf36c4511d8f31689e21c98dbb534ece0653b55a5bb5e4"
+      "sha256": "1b358566ed8c17886416486abbe039797631c32ef25cbd0f5e4d1cc5cd291f73"
     },
     "scripts/ci/db-access-crm-proof-data-003.json": {
       "mode": "100644",
@@ -1164,6 +1164,11 @@
       "mode": "100644",
       "bytes": 5481,
       "sha256": "12f8dbc8cae0ba7e32c2e431e801d2ac51b1763e5936a22e1a5f2f2f3154f486"
+    },
+    "scripts/ci/db-access-claim-history-values.test.mjs": {
+      "mode": "100644",
+      "bytes": 3256,
+      "sha256": "533d7ddda2f8fbf9a392fd02373e08591ace97a60e6268ae55c6cef923fcda13"
     }
   },
   "runtimeEnforcement": {

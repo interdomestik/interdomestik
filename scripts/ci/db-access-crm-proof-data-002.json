@@ -377,8 +377,8 @@
       "mode": "100644"
     },
     "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts": {
-      "sha256": "9a8a4c093f2c71b05523263ebc68b30c1831ae92d16ac1b07804565ab78116c8",
-      "bytes": 1744,
+      "sha256": "375499dfccf6d0cfaed6e1ab0f8e88c56aa9cc9b1cc183cd603a408d3c9a3697",
+      "bytes": 1782,
       "mode": "100644"
     },
     "packages/domain-claims/src/claims/transition-current-state-cas.ts": {
