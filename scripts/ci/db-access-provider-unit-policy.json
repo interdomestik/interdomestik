@@ -687,8 +687,8 @@
     },
     "scripts/ci/db-access-evaluator.mjs": {
       "mode": "100644",
-      "bytes": 9250,
-      "sha256": "aaf946901bc66218de4149c36509c0c9e6d69e4aa6075d49f0a80f39e760b8c6"
+      "bytes": 9709,
+      "sha256": "1eeed973c1b05502d30a44a3d93d69cf1999ffba609316661be23ccdbaf19bf8"
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
@@ -1169,6 +1169,16 @@
       "mode": "100644",
       "bytes": 3256,
       "sha256": "533d7ddda2f8fbf9a392fd02373e08591ace97a60e6268ae55c6cef923fcda13"
+    },
+    "scripts/ci/db-access-claim-history-correspondence.mjs": {
+      "mode": "100644",
+      "bytes": 5063,
+      "sha256": "6d96d587c2262728a8cd549582bb546534a4f369a49c619cdeae338bca8e2d21"
+    },
+    "scripts/ci/db-access-claim-history-policy.json": {
+      "mode": "100644",
+      "bytes": 2591,
+      "sha256": "6f8869819e233e269303d0c676ce07b307ad11ad58a606d18fb98f41f04d4aed"
     }
   },
   "runtimeEnforcement": {
