@@ -1,120 +1,1873 @@
 {
-  "kind": "operations",
-  "value": [
-    {
-      "file": "apps/web/src/adapters/crm/lead-mutation-repository.ts",
-      "line": 186,
-      "callee": "{\n    async createLead(params: { actor: CrmActorContext; lead: CreateCrmLeadData }) {\n      const now = new Date();\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) {\n        throw new Error('CRM lead creation requires actor branch scope');\n      }\n\n      // db-access-guard: tenant-scoped -- reason: creates CRM lead and initial ownership history with explicit authorized CRM actor tenant\n      return database.transaction(async tx => {\n        // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context\n        const [created] = await tx\n          .insert(crmLeads)\n          .values({\n            agentId: params.actor.actorId,\n            branchId,\n            companyName: params.lead.companyName ?? undefined,\n            createdAt: now,\n            email: params.lead.email ?? undefined,\n            fullName: params.lead.fullName ?? undefined,\n            id: params.lead.leadId,\n            notes: params.lead.notes ?? undefined,\n            phone: params.lead.phone ?? undefined,\n            source: params.lead.source ?? undefined,\n            stage: params.lead.stage,\n            lostAt: params.lead.stage === 'lost' ? now : null,\n            tenantId: params.actor.tenantId,\n            type: params.lead.type,\n            updatedAt: now,\n            wonAt: params.lead.stage === 'won' ? now : null,\n          })\n          .returning();\n\n        // db-access-guard: tenant-scoped -- reason: ownership history copies explicit tenantId from authorized CRM actor after lead creation\n        await tx.insert(crmLeadOwnershipHistory).values({\n          agentId: params.actor.actorId,\n          branchId,\n          changedById: params.actor.actorId,\n          createdAt: now,\n          effectiveFrom: now,\n          id: randomUUID(),\n          leadId: created.id,\n          reason: 'created',\n          tenantId: params.actor.tenantId,\n        });\n\n        return mapLead(created);\n      });\n    },\n\n    async findById(params: { actor: CrmActorContext; leadId: string }) {\n      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before domain authorization\n      const lead = await database.query.crmLeads.findFirst({\n        where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),\n      });\n      return lead ? mapLead(lead) : null;\n    },\n\n    async recordActivity(params: { activity: RecordCrmLeadActivityInput; actor: CrmActorContext }) {\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) {\n        throw new Error('CRM activity creation requires actor branch scope');\n      }\n\n      // `crm_activities` is the write-side event source that CRM11 timeline reads project from.\n      // Domain writes do not write timeline rows directly.\n      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context\n      const [created] = await database\n        .insert(crmActivities)\n        .values({\n          agentId: params.actor.actorId,\n          branchId,\n          id: params.activity.activityId,\n          leadId: params.activity.leadId,\n          occurredAt: new Date(params.activity.occurredAt),\n          summary: params.activity.summary,\n          tenantId: params.actor.tenantId,\n          type: params.activity.type,\n        })\n        .returning();\n      return mapActivity(created);\n    },\n\n    async updateStage(params: {\n      actor: CrmActorContext;\n      fromStage: CrmLeadStage;\n      leadId: string;\n      stage: CrmLeadStage;\n    }) {\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) return null;\n\n      const now = new Date();\n      return database.transaction(async tx => {\n        // db-access-guard: tenant-scoped -- reason: tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update\n        const [updated] = await tx\n          .update(crmLeads)\n          .set({\n            lostAt: params.stage === 'lost' ? now : null,\n            stage: params.stage,\n            updatedAt: now,\n            wonAt: params.stage === 'won' ? now : null,\n          })\n          .where(\n            and(\n              eq(crmLeads.id, params.leadId),\n              eq(crmLeads.tenantId, params.actor.tenantId),\n              eq(crmLeads.agentId, params.actor.actorId),\n              eq(crmLeads.branchId, branchId),\n              eq(crmLeads.stage, params.fromStage)\n            )\n          )\n          .returning();\n\n        if (!updated) return null;\n\n        // db-access-guard: tenant-scoped -- reason: history row copies explicit tenantId from authorized CRM actor after scoped stage update\n        await tx.insert(crmLeadStageHistory).values({\n          changedById: params.actor.actorId,\n          createdAt: now,\n          fromStage: params.fromStage,\n          id: randomUUID(),\n          leadId: params.leadId,\n          occurredAt: now,\n          tenantId: params.actor.tenantId,\n          toStage: params.stage,\n        });\n\n        return mapLead(updated);\n      });\n    },\n\n    async transferOwnership(params: {\n      actor: CrmActorContext;\n      currentAgentId: string;\n      currentBranchId: string;\n      leadId: string;\n      reason: string;\n      targetAgentId: string;\n      targetBranchId: string;\n    }) {\n      try {\n        if (!useTransaction) {\n          return await transferOwnershipInDatabase(database, params);\n        }\n        const targetIsValid = await hasValidTransferTarget(database, {\n          targetAgentId: params.targetAgentId,\n          targetBranchId: params.targetBranchId,\n          tenantId: params.actor.tenantId,\n        });\n        if (!targetIsValid) return null;\n        return await database.transaction(async tx =>\n          transferOwnershipInDatabase(tx as never, params, { validateTarget: false })\n        );\n      } catch (error) {\n        if (error instanceof MissingOpenOwnershipHistoryError) return null;\n        throw error;\n      }\n    },\n  }",
-      "method": "escape",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: proven-symbol-invocations",
-      "isDirectDbAlias": false,
-      "claimsUpdateTarget": false,
-      "reason": "tenant transaction handle escapes callback",
-      "risk": "app-layer",
-      "source": "{\n    async createLead(params: { actor: CrmActorContext; lead: CreateCrmLeadData }) {\n      const now = new Date();\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) {\n        throw new Error('CRM lead creation requires actor branch scope');\n      }\n\n      // db-access-guard: tenant-scoped -- reason: creates CRM lead and initial ownership history with explicit authorized CRM actor tenant\n      return database.transaction(async tx => {\n        // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context\n        const [created] = await tx\n          .insert(crmLeads)\n          .values({\n            agentId: params.actor.actorId,\n            branchId,\n            companyName: params.lead.companyName ?? undefined,\n            createdAt: now,\n            email: params.lead.email ?? undefined,\n            fullName: params.lead.fullName ?? undefined,\n            id: params.lead.leadId,\n            notes: params.lead.notes ?? undefined,\n            phone: params.lead.phone ?? undefined,\n            source: params.lead.source ?? undefined,\n            stage: params.lead.stage,\n            lostAt: params.lead.stage === 'lost' ? now : null,\n            tenantId: params.actor.tenantId,\n            type: params.lead.type,\n            updatedAt: now,\n            wonAt: params.lead.stage === 'won' ? now : null,\n          })\n          .returning();\n\n        // db-access-guard: tenant-scoped -- reason: ownership history copies explicit tenantId from authorized CRM actor after lead creation\n        await tx.insert(crmLeadOwnershipHistory).values({\n          agentId: params.actor.actorId,\n          branchId,\n          changedById: params.actor.actorId,\n          createdAt: now,\n          effectiveFrom: now,\n          id: randomUUID(),\n          leadId: created.id,\n          reason: 'created',\n          tenantId: params.actor.tenantId,\n        });\n\n        return mapLead(created);\n      });\n    },\n\n    async findById(params: { actor: CrmActorContext; leadId: string }) {\n      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before domain authorization\n      const lead = await database.query.crmLeads.findFirst({\n        where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),\n      });\n      return lead ? mapLead(lead) : null;\n    },\n\n    async recordActivity(params: { activity: RecordCrmLeadActivityInput; actor: CrmActorContext }) {\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) {\n        throw new Error('CRM activity creation requires actor branch scope');\n      }\n\n      // `crm_activities` is the write-side event source that CRM11 timeline reads project from.\n      // Domain writes do not write timeline rows directly.\n      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context\n      const [created] = await database\n        .insert(crmActivities)\n        .values({\n          agentId: params.actor.actorId,\n          branchId,\n          id: params.activity.activityId,\n          leadId: params.activity.leadId,\n          occurredAt: new Date(params.activity.occurredAt),\n          summary: params.activity.summary,\n          tenantId: params.actor.tenantId,\n          type: params.activity.type,\n        })\n        .returning();\n      return mapActivity(created);\n    },\n\n    async updateStage(params: {\n      actor: CrmActorContext;\n      fromStage: CrmLeadStage;\n      leadId: string;\n      stage: CrmLeadStage;\n    }) {\n      const branchId = params.actor.scope.branchId;\n      if (!branchId) return null;\n\n      const now = new Date();\n      return database.transaction(async tx => {\n        // db-access-guard: tenant-scoped -- reason: tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update\n        const [updated] = await tx\n          .update(crmLeads)\n          .set({\n            lostAt: params.stage === 'lost' ? now : null,\n            stage: params.stage,\n            updatedAt: now,\n            wonAt: params.stage === 'won' ? now : null,\n          })\n          .where(\n            and(\n              eq(crmLeads.id, params.leadId),\n              eq(crmLeads.tenantId, params.actor.tenantId),\n              eq(crmLeads.agentId, params.actor.actorId),\n              eq(crmLeads.branchId, branchId),\n              eq(crmLeads.stage, params.fromStage)\n            )\n          )\n          .returning();\n\n        if (!updated) return null;\n\n        // db-access-guard: tenant-scoped -- reason: history row copies explicit tenantId from authorized CRM actor after scoped stage update\n        await tx.insert(crmLeadStageHistory).values({\n          changedById: params.actor.actorId,\n          createdAt: now,\n          fromStage: params.fromStage,\n          id: randomUUID(),\n          leadId: params.leadId,\n          occurredAt: now,\n          tenantId: params.actor.tenantId,\n          toStage: params.stage,\n        });\n\n        return mapLead(updated);\n      });\n    },\n\n    async transferOwnership(params: {\n      actor: CrmActorContext;\n      currentAgentId: string;\n      currentBranchId: string;\n      leadId: string;\n      reason: string;\n      targetAgentId: string;\n      targetBranchId: string;\n    }) {\n      try {\n        if (!useTransaction) {\n          return await transferOwnershipInDatabase(database, params);\n        }\n        const targetIsValid = await hasValidTransferTarget(database, {\n          targetAgentId: params.targetAgentId,\n          targetBranchId: params.targetBranchId,\n          tenantId: params.actor.tenantId,\n        });\n        if (!targetIsValid) return null;\n        return await database.transaction(async tx =>\n          transferOwnershipInDatabase(tx as never, params, { validateTarget: false })\n        );\n      } catch (error) {\n        if (error instanceof MissingOpenOwnershipHistoryError) return null;\n        throw error;\n      }\n    },\n  }",
-      "identity": "3a65d399847f85193b9cc38b45c5fb2d46417ab63c0b020f9167379af99965f8",
-      "historicalDebt": true,
-      "dispatchAlternatives": [],
-      "mountedFrom": "apps/web/src/app/[locale]/(agent)/agent/leads/new/_core.entry.test.tsx",
-      "mountedFromAll": [
-        "apps/web/src/adapters/crm/lead-branch-ownership-test-setup.ts",
-        "apps/web/src/adapters/crm/lead-branch-ownership.test.ts",
-        "apps/web/src/adapters/crm/lead-ownership-transfer.test.ts",
-        "apps/web/src/adapters/crm/routing-application-preflight.test.ts",
-        "apps/web/src/adapters/crm/routing-application-service.test.ts",
-        "apps/web/src/adapters/crm/routing-application-service.ts",
-        "apps/web/src/app/[locale]/(agent)/agent/import/page.tsx",
-        "apps/web/src/lib/actions/agent.core.ts",
-        "apps/web/src/lib/actions/agent.test.ts",
-        "apps/web/src/lib/actions/agent.ts",
-        "apps/web/src/app/[locale]/(agent)/agent/clients/new/register-member-form.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/import/page.test.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/leads/new/create-lead-form.tsx",
-        "apps/web/src/features/agent/import/components/csv-uploader.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/clients/new/_core.entry.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/clients/new/page.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/leads/new/_core.entry.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/leads/new/page.tsx",
-        "apps/web/src/features/agent/import/components/csv-uploader.test.tsx",
-        "apps/web/src/app/[locale]/(agent)/agent/leads/new/_core.entry.test.tsx"
-      ],
-      "caseIds": ["crm-routing"],
-      "productionOperation": true
-    },
-    {
-      "file": "apps/web/src/adapters/crm/routing-application-service.ts",
-      "line": 124,
-      "callee": "{\n    advanceRoutingCursor: routing.advanceRoutingCursor,\n    appendRoutingAssignmentAudit: routing.appendRoutingAssignmentAudit,\n    findRoutingAssignmentAuditByIdempotency: routing.findRoutingAssignmentAuditByIdempotency,\n    async getLeadRoutingSnapshot(params: { actor: CrmActorContext; leadId: string }) {\n      const predicates = [\n        eq(crmLeads.tenantId, params.actor.tenantId),\n        eq(crmLeads.id, params.leadId),\n      ];\n      if (params.actor.role === 'branch_manager') {\n        const branchId = params.actor.scope.branchId;\n        if (!branchId) return null;\n        predicates.push(eq(crmLeads.branchId, branchId));\n      }\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing reads only the target lead by explicit actor tenant, lead id, and branch-manager branch scope when present\n      const row = await database.query.crmLeads.findFirst({\n        where: and(...predicates),\n      });\n      return row ? toRoutingLeadSnapshot(row) : null;\n    },\n    async getRoutingCursors(params: { actor: CrmActorContext; ruleIds: readonly string[] }) {\n      if (params.ruleIds.length === 0) return {};\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing cursor reads constrain by explicit actor tenant and selected rule ids\n      const rows = await database.query.crmRoutingCursors.findMany({\n        where: and(\n          eq(crmRoutingCursors.tenantId, params.actor.tenantId),\n          inArray(crmRoutingCursors.ruleId, [...params.ruleIds])\n        ),\n      });\n\n      return Object.fromEntries(\n        rows.map(row => [row.ruleId, row.cursorValue ?? null])\n      ) as CrmRoutingCursorMap;\n    },\n    async getRoutingWorkloadSnapshot(params: {\n      actor: CrmActorContext;\n      now: string;\n      rules: readonly CrmRoutingRule[];\n    }) {\n      const agentIds = configuredAgentIds(params.rules);\n      if (agentIds.length === 0) {\n        return { agents: {}, snapshotAt: params.now };\n      }\n      const openStages = ['new', 'contacted', 'qualified', 'proposal', 'negotiation'];\n      const dayStart = startOfUtcDay(params.now);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing workload lead counts constrain by actor tenant and configured routing agent ids\n      const openLeads = await database\n        .select({ agentId: crmLeads.agentId, count: count() })\n        .from(crmLeads)\n        .where(\n          and(\n            eq(crmLeads.tenantId, params.actor.tenantId),\n            inArray(crmLeads.agentId, agentIds),\n            inArray(crmLeads.stage, openStages)\n          )\n        )\n        .groupBy(crmLeads.agentId);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing workload follow-up counts constrain by actor tenant and configured routing agent ids\n      const openFollowUps = await database\n        .select({ agentId: crmActivities.agentId, count: count() })\n        .from(crmActivities)\n        .where(\n          and(\n            eq(crmActivities.tenantId, params.actor.tenantId),\n            inArray(crmActivities.agentId, agentIds),\n            eq(crmActivities.type, 'follow_up'),\n            isNull(crmActivities.completedAt)\n          )\n        )\n        .groupBy(crmActivities.agentId);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing same-day assignment counts constrain by actor tenant and configured routing agent ids\n      const assignedToday = await database\n        .select({ agentId: crmLeadOwnershipHistory.agentId, count: count() })\n        .from(crmLeadOwnershipHistory)\n        .where(\n          and(\n            eq(crmLeadOwnershipHistory.tenantId, params.actor.tenantId),\n            inArray(crmLeadOwnershipHistory.agentId, agentIds),\n            gte(crmLeadOwnershipHistory.effectiveFrom, dayStart)\n          )\n        )\n        .groupBy(crmLeadOwnershipHistory.agentId);\n\n      return buildWorkloadSnapshot({\n        agentIds,\n        newLeadsAssignedToday: assignedToday,\n        now: params.now,\n        openFollowUps,\n        openLeads,\n      });\n    },\n    listRoutingRules: routing.listRoutingRules,\n    outbox: params.outbox,\n    services: params.services,\n    async transferLeadOwnership(params) {\n      const updated = await leads.transferOwnership(params);\n      return Boolean(updated);\n    },\n  }",
-      "method": "escape",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: proven-symbol-invocations",
-      "isDirectDbAlias": false,
-      "claimsUpdateTarget": false,
-      "reason": "tenant transaction handle escapes callback",
-      "risk": "app-layer",
-      "source": "{\n    advanceRoutingCursor: routing.advanceRoutingCursor,\n    appendRoutingAssignmentAudit: routing.appendRoutingAssignmentAudit,\n    findRoutingAssignmentAuditByIdempotency: routing.findRoutingAssignmentAuditByIdempotency,\n    async getLeadRoutingSnapshot(params: { actor: CrmActorContext; leadId: string }) {\n      const predicates = [\n        eq(crmLeads.tenantId, params.actor.tenantId),\n        eq(crmLeads.id, params.leadId),\n      ];\n      if (params.actor.role === 'branch_manager') {\n        const branchId = params.actor.scope.branchId;\n        if (!branchId) return null;\n        predicates.push(eq(crmLeads.branchId, branchId));\n      }\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing reads only the target lead by explicit actor tenant, lead id, and branch-manager branch scope when present\n      const row = await database.query.crmLeads.findFirst({\n        where: and(...predicates),\n      });\n      return row ? toRoutingLeadSnapshot(row) : null;\n    },\n    async getRoutingCursors(params: { actor: CrmActorContext; ruleIds: readonly string[] }) {\n      if (params.ruleIds.length === 0) return {};\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing cursor reads constrain by explicit actor tenant and selected rule ids\n      const rows = await database.query.crmRoutingCursors.findMany({\n        where: and(\n          eq(crmRoutingCursors.tenantId, params.actor.tenantId),\n          inArray(crmRoutingCursors.ruleId, [...params.ruleIds])\n        ),\n      });\n\n      return Object.fromEntries(\n        rows.map(row => [row.ruleId, row.cursorValue ?? null])\n      ) as CrmRoutingCursorMap;\n    },\n    async getRoutingWorkloadSnapshot(params: {\n      actor: CrmActorContext;\n      now: string;\n      rules: readonly CrmRoutingRule[];\n    }) {\n      const agentIds = configuredAgentIds(params.rules);\n      if (agentIds.length === 0) {\n        return { agents: {}, snapshotAt: params.now };\n      }\n      const openStages = ['new', 'contacted', 'qualified', 'proposal', 'negotiation'];\n      const dayStart = startOfUtcDay(params.now);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing workload lead counts constrain by actor tenant and configured routing agent ids\n      const openLeads = await database\n        .select({ agentId: crmLeads.agentId, count: count() })\n        .from(crmLeads)\n        .where(\n          and(\n            eq(crmLeads.tenantId, params.actor.tenantId),\n            inArray(crmLeads.agentId, agentIds),\n            inArray(crmLeads.stage, openStages)\n          )\n        )\n        .groupBy(crmLeads.agentId);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing workload follow-up counts constrain by actor tenant and configured routing agent ids\n      const openFollowUps = await database\n        .select({ agentId: crmActivities.agentId, count: count() })\n        .from(crmActivities)\n        .where(\n          and(\n            eq(crmActivities.tenantId, params.actor.tenantId),\n            inArray(crmActivities.agentId, agentIds),\n            eq(crmActivities.type, 'follow_up'),\n            isNull(crmActivities.completedAt)\n          )\n        )\n        .groupBy(crmActivities.agentId);\n\n      // db-access-guard: tenant-scoped -- reason: controlled CRM routing same-day assignment counts constrain by actor tenant and configured routing agent ids\n      const assignedToday = await database\n        .select({ agentId: crmLeadOwnershipHistory.agentId, count: count() })\n        .from(crmLeadOwnershipHistory)\n        .where(\n          and(\n            eq(crmLeadOwnershipHistory.tenantId, params.actor.tenantId),\n            inArray(crmLeadOwnershipHistory.agentId, agentIds),\n            gte(crmLeadOwnershipHistory.effectiveFrom, dayStart)\n          )\n        )\n        .groupBy(crmLeadOwnershipHistory.agentId);\n\n      return buildWorkloadSnapshot({\n        agentIds,\n        newLeadsAssignedToday: assignedToday,\n        now: params.now,\n        openFollowUps,\n        openLeads,\n      });\n    },\n    listRoutingRules: routing.listRoutingRules,\n    outbox: params.outbox,\n    services: params.services,\n    async transferLeadOwnership(params) {\n      const updated = await leads.transferOwnership(params);\n      return Boolean(updated);\n    },\n  }",
-      "identity": "9af8dd5e8e091766615ec61fbb6eeb3f94b275dec507623656ae7612e7117b25",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "apps/web/src/adapters/crm/routing-application-service.ts",
-      "mountedFromAll": ["apps/web/src/adapters/crm/routing-application-service.ts"],
-      "caseIds": ["crm-routing"],
-      "productionOperation": true
-    },
-    {
-      "file": "apps/web/src/adapters/crm/routing-repository.ts",
-      "line": 217,
-      "callee": "{\n    async findRoutingAssignmentAuditByIdempotency(params) {\n      // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key\n      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({\n        where: and(\n          eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),\n          eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)\n        ),\n      });\n      return existing ? mapAudit(existing) : null;\n    },\n\n    async listRoutingRules(params: { actor: CrmActorContext }) {\n      const actor = params.actor;\n      if (actor.role === 'member') return [];\n      if ((actor.role === 'agent' || actor.role === 'branch_manager') && !actor.scope.branchId) {\n        return [];\n      }\n\n      const predicates = [\n        eq(crmRoutingRules.tenantId, actor.tenantId),\n        eq(crmRoutingRules.enabled, true),\n        isNull(crmRoutingRules.archivedAt),\n      ];\n\n      if (actor.role === 'agent' || actor.role === 'branch_manager') {\n        const branchId = actor.scope.branchId;\n        if (!branchId) return [];\n        predicates.push(\n          or(eq(crmRoutingRules.branchId, branchId), isNull(crmRoutingRules.branchId))!\n        );\n      }\n\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule reads constrain by authorized actor tenant and branch scope when present\n      const rows = await database.query.crmRoutingRules.findMany({\n        orderBy: [asc(crmRoutingRules.priority), asc(crmRoutingRules.id)],\n        where: and(...predicates),\n      });\n\n      return rows.map(mapRule);\n    },\n\n    async advanceRoutingCursor(params): Promise<CrmRoutingCursorAdvanceResult> {\n      const now = new Date();\n      const idempotencyKey = params.idempotencyKey ?? null;\n      const setValues = {\n        cursorValue: params.advancement.nextCursor,\n        lastIdempotencyKey: idempotencyKey,\n        updatedAt: now,\n      };\n\n      // db-access-guard: tenant-scoped -- reason: routing cursor compare-and-swap constrains by explicit tenantId, ruleId, and prior cursor from the routing decision\n      const rows =\n        params.advancement.priorCursor === null\n          ? await database\n              .insert(crmRoutingCursors)\n              .values({\n                ...setValues,\n                ruleId: params.advancement.ruleId,\n                tenantId: params.advancement.tenantId,\n              })\n              .onConflictDoNothing({\n                target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],\n              })\n              .returning()\n          : await database\n              .update(crmRoutingCursors)\n              .set(setValues)\n              .where(\n                and(\n                  eq(crmRoutingCursors.tenantId, params.advancement.tenantId),\n                  eq(crmRoutingCursors.ruleId, params.advancement.ruleId),\n                  eq(crmRoutingCursors.cursorValue, params.advancement.priorCursor)\n                )\n              )\n              .returning();\n\n      if (rows[0]) {\n        return { advancement: params.advancement, success: true };\n      }\n\n      if (idempotencyKey) {\n        // db-access-guard: tenant-scoped -- reason: idempotent cursor retry lookup constrains by tenant, rule, expected cursor, and idempotency key\n        const existing = await database.query.crmRoutingCursors.findFirst({\n          where: and(\n            eq(crmRoutingCursors.tenantId, params.advancement.tenantId),\n            eq(crmRoutingCursors.ruleId, params.advancement.ruleId),\n            eq(crmRoutingCursors.cursorValue, params.advancement.nextCursor),\n            eq(crmRoutingCursors.lastIdempotencyKey, idempotencyKey)\n          ),\n        });\n\n        if (existing) {\n          return { advancement: params.advancement, success: true };\n        }\n      }\n\n      return { reason: 'cursor_conflict', success: false };\n    },\n\n    async appendRoutingAssignmentAudit(params) {\n      const values = auditValues(params);\n\n      // db-access-guard: tenant-scoped -- reason: routing assignment audit copies explicit tenantId from the CRM07 audit record and uses tenant-scoped idempotency\n      const inserted = await database\n        .insert(crmRoutingAssignmentsAudit)\n        .values(values)\n        .onConflictDoNothing({\n          target: [crmRoutingAssignmentsAudit.tenantId, crmRoutingAssignmentsAudit.idempotencyKey],\n          where: sql`${crmRoutingAssignmentsAudit.idempotencyKey} is not null`,\n        })\n        .returning();\n\n      if (inserted[0]) {\n        return { auditRecord: mapAudit(inserted[0]), status: 'appended' };\n      }\n\n      if (!values.idempotencyKey) {\n        throw new Error('CRM routing audit append conflicted without an idempotency key');\n      }\n\n      // db-access-guard: tenant-scoped -- reason: idempotent routing assignment audit lookup constrains by tenant plus non-null idempotency key\n      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({\n        where: and(\n          eq(crmRoutingAssignmentsAudit.tenantId, values.tenantId),\n          eq(crmRoutingAssignmentsAudit.idempotencyKey, values.idempotencyKey)\n        ),\n      });\n\n      if (!existing) {\n        throw new Error('CRM routing audit idempotency conflict did not return an existing row');\n      }\n\n      return { auditRecord: mapAudit(existing), status: 'existing' };\n    },\n  }",
-      "method": "escape",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: proven-symbol-invocations",
-      "isDirectDbAlias": false,
-      "claimsUpdateTarget": false,
-      "reason": "tenant transaction handle escapes callback",
-      "risk": "app-layer",
-      "source": "{\n    async findRoutingAssignmentAuditByIdempotency(params) {\n      // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key\n      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({\n        where: and(\n          eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),\n          eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)\n        ),\n      });\n      return existing ? mapAudit(existing) : null;\n    },\n\n    async listRoutingRules(params: { actor: CrmActorContext }) {\n      const actor = params.actor;\n      if (actor.role === 'member') return [];\n      if ((actor.role === 'agent' || actor.role === 'branch_manager') && !actor.scope.branchId) {\n        return [];\n      }\n\n      const predicates = [\n        eq(crmRoutingRules.tenantId, actor.tenantId),\n        eq(crmRoutingRules.enabled, true),\n        isNull(crmRoutingRules.archivedAt),\n      ];\n\n      if (actor.role === 'agent' || actor.role === 'branch_manager') {\n        const branchId = actor.scope.branchId;\n        if (!branchId) return [];\n        predicates.push(\n          or(eq(crmRoutingRules.branchId, branchId), isNull(crmRoutingRules.branchId))!\n        );\n      }\n\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule reads constrain by authorized actor tenant and branch scope when present\n      const rows = await database.query.crmRoutingRules.findMany({\n        orderBy: [asc(crmRoutingRules.priority), asc(crmRoutingRules.id)],\n        where: and(...predicates),\n      });\n\n      return rows.map(mapRule);\n    },\n\n    async advanceRoutingCursor(params): Promise<CrmRoutingCursorAdvanceResult> {\n      const now = new Date();\n      const idempotencyKey = params.idempotencyKey ?? null;\n      const setValues = {\n        cursorValue: params.advancement.nextCursor,\n        lastIdempotencyKey: idempotencyKey,\n        updatedAt: now,\n      };\n\n      // db-access-guard: tenant-scoped -- reason: routing cursor compare-and-swap constrains by explicit tenantId, ruleId, and prior cursor from the routing decision\n      const rows =\n        params.advancement.priorCursor === null\n          ? await database\n              .insert(crmRoutingCursors)\n              .values({\n                ...setValues,\n                ruleId: params.advancement.ruleId,\n                tenantId: params.advancement.tenantId,\n              })\n              .onConflictDoNothing({\n                target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],\n              })\n              .returning()\n          : await database\n              .update(crmRoutingCursors)\n              .set(setValues)\n              .where(\n                and(\n                  eq(crmRoutingCursors.tenantId, params.advancement.tenantId),\n                  eq(crmRoutingCursors.ruleId, params.advancement.ruleId),\n                  eq(crmRoutingCursors.cursorValue, params.advancement.priorCursor)\n                )\n              )\n              .returning();\n\n      if (rows[0]) {\n        return { advancement: params.advancement, success: true };\n      }\n\n      if (idempotencyKey) {\n        // db-access-guard: tenant-scoped -- reason: idempotent cursor retry lookup constrains by tenant, rule, expected cursor, and idempotency key\n        const existing = await database.query.crmRoutingCursors.findFirst({\n          where: and(\n            eq(crmRoutingCursors.tenantId, params.advancement.tenantId),\n            eq(crmRoutingCursors.ruleId, params.advancement.ruleId),\n            eq(crmRoutingCursors.cursorValue, params.advancement.nextCursor),\n            eq(crmRoutingCursors.lastIdempotencyKey, idempotencyKey)\n          ),\n        });\n\n        if (existing) {\n          return { advancement: params.advancement, success: true };\n        }\n      }\n\n      return { reason: 'cursor_conflict', success: false };\n    },\n\n    async appendRoutingAssignmentAudit(params) {\n      const values = auditValues(params);\n\n      // db-access-guard: tenant-scoped -- reason: routing assignment audit copies explicit tenantId from the CRM07 audit record and uses tenant-scoped idempotency\n      const inserted = await database\n        .insert(crmRoutingAssignmentsAudit)\n        .values(values)\n        .onConflictDoNothing({\n          target: [crmRoutingAssignmentsAudit.tenantId, crmRoutingAssignmentsAudit.idempotencyKey],\n          where: sql`${crmRoutingAssignmentsAudit.idempotencyKey} is not null`,\n        })\n        .returning();\n\n      if (inserted[0]) {\n        return { auditRecord: mapAudit(inserted[0]), status: 'appended' };\n      }\n\n      if (!values.idempotencyKey) {\n        throw new Error('CRM routing audit append conflicted without an idempotency key');\n      }\n\n      // db-access-guard: tenant-scoped -- reason: idempotent routing assignment audit lookup constrains by tenant plus non-null idempotency key\n      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({\n        where: and(\n          eq(crmRoutingAssignmentsAudit.tenantId, values.tenantId),\n          eq(crmRoutingAssignmentsAudit.idempotencyKey, values.idempotencyKey)\n        ),\n      });\n\n      if (!existing) {\n        throw new Error('CRM routing audit idempotency conflict did not return an existing row');\n      }\n\n      return { auditRecord: mapAudit(existing), status: 'existing' };\n    },\n  }",
-      "identity": "81eb51ebfa6d5679f537355c52fc11a9c714e157c5c975a9d2511c4489d4f3ba",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "apps/web/src/adapters/crm/routing-repository.test.ts",
-      "mountedFromAll": [
-        "apps/web/src/adapters/crm/routing-application-service.ts",
-        "apps/web/src/adapters/crm/routing-repository.ts",
-        "apps/web/src/adapters/crm/routing-repository.test.ts"
-      ],
-      "caseIds": ["crm-routing"],
-      "productionOperation": true
-    },
-    {
-      "file": "apps/web/src/adapters/crm/routing-repository.ts",
-      "line": 369,
-      "callee": "{\n    async archiveRoutingRule(params) {\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule archive constrains by session-derived tenant and rule ID\n      const rows = await database\n        .update(crmRoutingRules)\n        .set({ archivedAt: new Date(), updatedAt: new Date() })\n        .where(and(...adminRulePredicates(params.actor, params.ruleId)))\n        .returning();\n      return rows[0] ? mapAdminRule(rows[0]) : null;\n    },\n\n    async createRoutingRule(params) {\n      const values = ruleWriteValues(params.input);\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule create derives tenant from authorized admin actor\n      const rows = await database\n        .insert(crmRoutingRules)\n        .values({\n          ...values,\n          id: randomUUID(),\n          tenantId: params.actor.tenantId,\n        })\n        .returning();\n      if (!rows[0]) throw new Error('CRM routing rule create returned no row');\n      return mapAdminRule(rows[0]);\n    },\n\n    getRoutingRule,\n\n    async listAgentScopes(params) {\n      if (params.agentIds.length === 0) return [];\n      // db-access-guard: tenant-scoped -- reason: routing admin validation constrains agent lookup by session tenant and submitted agent IDs\n      const rows = await database.query.user.findMany({\n        columns: { branchId: true, id: true, role: true, tenantId: true },\n        where: and(eq(user.tenantId, params.tenantId), inArray(user.id, [...params.agentIds])),\n      });\n      return rows.map(row => ({\n        branchId: row.branchId ?? null,\n        id: row.id,\n        role: row.role,\n        tenantId: row.tenantId,\n      }));\n    },\n\n    async listBranches(params) {\n      // db-access-guard: tenant-scoped -- reason: routing admin branch labels constrain by session tenant only\n      const rows = await database.query.branches.findMany({\n        columns: { id: true, name: true, tenantId: true },\n        orderBy: [asc(branches.name), asc(branches.id)],\n        where: eq(branches.tenantId, params.tenantId),\n      });\n      return rows.map(row => ({ id: row.id, label: row.name, tenantId: row.tenantId }));\n    },\n\n    async listRoutingRulesForAdmin(params) {\n      // db-access-guard: tenant-scoped -- reason: admin routing rule reads constrain by session-derived tenant and expose aggregate rule metadata only\n      const rows = await database.query.crmRoutingRules.findMany({\n        orderBy: [\n          sql`case when ${crmRoutingRules.archivedAt} is null then 0 else 1 end`,\n          asc(crmRoutingRules.branchId),\n          asc(crmRoutingRules.priority),\n          asc(crmRoutingRules.id),\n        ],\n        where: eq(crmRoutingRules.tenantId, params.actor.tenantId),\n      });\n      return rows.map(mapAdminRule);\n    },\n\n    async reorderRoutingRules(params) {\n      return database.transaction(async tx => {\n        const scopedPredicates = [\n          eq(crmRoutingRules.tenantId, params.actor.tenantId),\n          isNull(crmRoutingRules.archivedAt),\n          params.branchId\n            ? eq(crmRoutingRules.branchId, params.branchId)\n            : isNull(crmRoutingRules.branchId),\n        ];\n        // db-access-guard: tenant-scoped -- reason: routing reorder source rows constrain by session tenant and requested tenant/branch scope\n        const existing = await tx.query.crmRoutingRules.findMany({\n          where: and(...scopedPredicates),\n        });\n        const byId = new Map(existing.map(row => [row.id, row]));\n        if (params.ruleIds.length !== existing.length) return [];\n        if (params.ruleIds.some(ruleId => !byId.has(ruleId))) return [];\n        const rows: CrmRoutingRuleRow[] = [];\n        for (const [priority, ruleId] of params.ruleIds.entries()) {\n          // db-access-guard: tenant-scoped -- reason: routing reorder update constrains by session tenant and validated rule ID\n          const updated = await tx\n            .update(crmRoutingRules)\n            .set({ priority, updatedAt: new Date() })\n            .where(\n              and(\n                eq(crmRoutingRules.tenantId, params.actor.tenantId),\n                eq(crmRoutingRules.id, ruleId),\n                isNull(crmRoutingRules.archivedAt),\n                params.branchId\n                  ? eq(crmRoutingRules.branchId, params.branchId)\n                  : isNull(crmRoutingRules.branchId)\n              )\n            )\n            .returning();\n          if (!updated[0]) throw new Error('CRM routing reorder failed during priority update');\n          rows.push(updated[0]);\n        }\n        return rows.map(mapAdminRule);\n      });\n    },\n\n    async setRoutingRuleEnabled(params) {\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule enable/disable constrains by session-derived tenant and rule ID\n      const rows = await database\n        .update(crmRoutingRules)\n        .set({ enabled: params.enabled, updatedAt: new Date() })\n        .where(and(...adminRulePredicates(params.actor, params.ruleId)))\n        .returning();\n      return rows[0] ? mapAdminRule(rows[0]) : null;\n    },\n\n    async updateRoutingRule(params) {\n      const values = ruleWriteValues(params.input);\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule update constrains by session-derived tenant, rule ID, and optimistic updatedAt checksum\n      const rows = await database\n        .update(crmRoutingRules)\n        .set(values)\n        .where(\n          and(\n            ...adminRulePredicates(params.actor, params.ruleId),\n            isNull(crmRoutingRules.archivedAt),\n            eq(crmRoutingRules.updatedAt, new Date(params.expectedUpdatedAt))\n          )\n        )\n        .returning();\n      if (rows[0]) return mapAdminRule(rows[0]);\n      const existing = await getRoutingRule({ actor: params.actor, ruleId: params.ruleId });\n      return existing ? 'cursor_conflict' : null;\n    },\n  }",
-      "method": "escape",
-      "tenantPosture": "tenant-context",
-      "tenantPostureReason": "tenant-context: proven-symbol-invocations",
-      "isDirectDbAlias": false,
-      "claimsUpdateTarget": false,
-      "reason": "tenant transaction handle escapes callback",
-      "risk": "app-layer",
-      "source": "{\n    async archiveRoutingRule(params) {\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule archive constrains by session-derived tenant and rule ID\n      const rows = await database\n        .update(crmRoutingRules)\n        .set({ archivedAt: new Date(), updatedAt: new Date() })\n        .where(and(...adminRulePredicates(params.actor, params.ruleId)))\n        .returning();\n      return rows[0] ? mapAdminRule(rows[0]) : null;\n    },\n\n    async createRoutingRule(params) {\n      const values = ruleWriteValues(params.input);\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule create derives tenant from authorized admin actor\n      const rows = await database\n        .insert(crmRoutingRules)\n        .values({\n          ...values,\n          id: randomUUID(),\n          tenantId: params.actor.tenantId,\n        })\n        .returning();\n      if (!rows[0]) throw new Error('CRM routing rule create returned no row');\n      return mapAdminRule(rows[0]);\n    },\n\n    getRoutingRule,\n\n    async listAgentScopes(params) {\n      if (params.agentIds.length === 0) return [];\n      // db-access-guard: tenant-scoped -- reason: routing admin validation constrains agent lookup by session tenant and submitted agent IDs\n      const rows = await database.query.user.findMany({\n        columns: { branchId: true, id: true, role: true, tenantId: true },\n        where: and(eq(user.tenantId, params.tenantId), inArray(user.id, [...params.agentIds])),\n      });\n      return rows.map(row => ({\n        branchId: row.branchId ?? null,\n        id: row.id,\n        role: row.role,\n        tenantId: row.tenantId,\n      }));\n    },\n\n    async listBranches(params) {\n      // db-access-guard: tenant-scoped -- reason: routing admin branch labels constrain by session tenant only\n      const rows = await database.query.branches.findMany({\n        columns: { id: true, name: true, tenantId: true },\n        orderBy: [asc(branches.name), asc(branches.id)],\n        where: eq(branches.tenantId, params.tenantId),\n      });\n      return rows.map(row => ({ id: row.id, label: row.name, tenantId: row.tenantId }));\n    },\n\n    async listRoutingRulesForAdmin(params) {\n      // db-access-guard: tenant-scoped -- reason: admin routing rule reads constrain by session-derived tenant and expose aggregate rule metadata only\n      const rows = await database.query.crmRoutingRules.findMany({\n        orderBy: [\n          sql`case when ${crmRoutingRules.archivedAt} is null then 0 else 1 end`,\n          asc(crmRoutingRules.branchId),\n          asc(crmRoutingRules.priority),\n          asc(crmRoutingRules.id),\n        ],\n        where: eq(crmRoutingRules.tenantId, params.actor.tenantId),\n      });\n      return rows.map(mapAdminRule);\n    },\n\n    async reorderRoutingRules(params) {\n      return database.transaction(async tx => {\n        const scopedPredicates = [\n          eq(crmRoutingRules.tenantId, params.actor.tenantId),\n          isNull(crmRoutingRules.archivedAt),\n          params.branchId\n            ? eq(crmRoutingRules.branchId, params.branchId)\n            : isNull(crmRoutingRules.branchId),\n        ];\n        // db-access-guard: tenant-scoped -- reason: routing reorder source rows constrain by session tenant and requested tenant/branch scope\n        const existing = await tx.query.crmRoutingRules.findMany({\n          where: and(...scopedPredicates),\n        });\n        const byId = new Map(existing.map(row => [row.id, row]));\n        if (params.ruleIds.length !== existing.length) return [];\n        if (params.ruleIds.some(ruleId => !byId.has(ruleId))) return [];\n        const rows: CrmRoutingRuleRow[] = [];\n        for (const [priority, ruleId] of params.ruleIds.entries()) {\n          // db-access-guard: tenant-scoped -- reason: routing reorder update constrains by session tenant and validated rule ID\n          const updated = await tx\n            .update(crmRoutingRules)\n            .set({ priority, updatedAt: new Date() })\n            .where(\n              and(\n                eq(crmRoutingRules.tenantId, params.actor.tenantId),\n                eq(crmRoutingRules.id, ruleId),\n                isNull(crmRoutingRules.archivedAt),\n                params.branchId\n                  ? eq(crmRoutingRules.branchId, params.branchId)\n                  : isNull(crmRoutingRules.branchId)\n              )\n            )\n            .returning();\n          if (!updated[0]) throw new Error('CRM routing reorder failed during priority update');\n          rows.push(updated[0]);\n        }\n        return rows.map(mapAdminRule);\n      });\n    },\n\n    async setRoutingRuleEnabled(params) {\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule enable/disable constrains by session-derived tenant and rule ID\n      const rows = await database\n        .update(crmRoutingRules)\n        .set({ enabled: params.enabled, updatedAt: new Date() })\n        .where(and(...adminRulePredicates(params.actor, params.ruleId)))\n        .returning();\n      return rows[0] ? mapAdminRule(rows[0]) : null;\n    },\n\n    async updateRoutingRule(params) {\n      const values = ruleWriteValues(params.input);\n      // db-access-guard: tenant-scoped -- reason: CRM routing rule update constrains by session-derived tenant, rule ID, and optimistic updatedAt checksum\n      const rows = await database\n        .update(crmRoutingRules)\n        .set(values)\n        .where(\n          and(\n            ...adminRulePredicates(params.actor, params.ruleId),\n            isNull(crmRoutingRules.archivedAt),\n            eq(crmRoutingRules.updatedAt, new Date(params.expectedUpdatedAt))\n          )\n        )\n        .returning();\n      if (rows[0]) return mapAdminRule(rows[0]);\n      const existing = await getRoutingRule({ actor: params.actor, ruleId: params.ruleId });\n      return existing ? 'cursor_conflict' : null;\n    },\n  }",
-      "identity": "fc235364eaed1ee9e4ed895385edf7d201316558e880e2cf609c32ccf161e160",
-      "historicalDebt": false,
-      "dispatchAlternatives": [],
-      "mountedFrom": "apps/web/src/app/[locale]/admin/crm/_routing-rules-panel.tsx",
-      "mountedFromAll": [
-        "apps/web/src/adapters/crm/routing-repository.ts",
-        "apps/web/src/app/[locale]/admin/crm/_routing-action.test.ts",
-        "apps/web/src/app/[locale]/admin/crm/_routing-action.ts",
-        "apps/web/src/app/[locale]/admin/crm/_routing-tenant.test.ts",
-        "apps/web/src/app/[locale]/admin/crm/_routing-tenant.ts",
-        "apps/web/src/app/[locale]/admin/crm/page.test.tsx",
-        "apps/web/src/app/[locale]/admin/crm/page.tsx",
-        "apps/web/src/adapters/crm/routing-repository.test.ts",
-        "apps/web/src/app/[locale]/admin/crm/_routing-rules-panel.tsx"
-      ],
-      "caseIds": ["crm-routing"],
-      "productionOperation": true
-    }
-  ]
+  "kind": "mount-operations",
+  "value": {
+    "offset": 597,
+    "items": [
+      {
+        "identity": "5e99c93bda9112ce4928f92625a5cf977b9153b9adb9c4433f6b4ddc7ce48f52",
+        "observedRootIds": [284]
+      },
+      {
+        "identity": "5eb58f439fc62ba0e92c8849ad71a7384f659c031c00e197dc30cf01663d70a8",
+        "observedRootIds": [1127]
+      },
+      {
+        "identity": "5ee638a7959d0acc0b63a2488f431bc6f9dcaea214ea835054fad90a778462df",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 978, 1167, 1168, 1169, 1170,
+          1171, 1172, 1173, 1174, 1175, 1176, 1177, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187
+        ]
+      },
+      {
+        "identity": "5ef394273d6c5eed703e3fa73cf02786f585350fc96f0e7f468535a5da3f596f",
+        "observedRootIds": [
+          203, 208, 209, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 931
+        ]
+      },
+      {
+        "identity": "5f10244a74202a9967d78066fbfee3e1c9612353152150fef4563e91ffba6f52",
+        "observedRootIds": [539]
+      },
+      {
+        "identity": "5f4531ff764e394f86a13bf13cc49cb724b396436ed75e070683b82033a00082",
+        "observedRootIds": [536]
+      },
+      {
+        "identity": "5f4cd46f895c3c6ffa4ab6a08b7d278175ffc504dccb1430442f1060d6663411",
+        "observedRootIds": [829, 831]
+      },
+      {
+        "identity": "5f94ac8ecdd3ebe0926e225a5aa1c54da8865544bda150e8bbbdba0b4bea64c8",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "5fb33cd257390a4d04843869833c55f1d644921d08185a6dd68436dcd0d61c5d",
+        "observedRootIds": [157, 159, 160, 469, 470, 471, 724, 725]
+      },
+      {
+        "identity": "5fb8d53ef6e1bb3ea39642d6d571d4999d2461208a4447d10cc79ee67c0fd0f5",
+        "observedRootIds": [1126]
+      },
+      {
+        "identity": "5fd391497f2346c45fa6b22872a48c2452db72891b290a037c823031621d8c22",
+        "observedRootIds": [1218]
+      },
+      {
+        "identity": "600b5ae56198c7e294f12834ee209c13b5e984d6516975b4d1a49149796a1286",
+        "observedRootIds": [1123]
+      },
+      {
+        "identity": "6050f33d904b614a8996324cdf89af6508258545f8fce05ab75e5dcbafe02a54",
+        "observedRootIds": [554]
+      },
+      {
+        "identity": "60b7e66409144368a70ad60af09f663a0da1c81c5513f1f2ea8195122fe21d31",
+        "observedRootIds": [467, 468, 796, 797]
+      },
+      {
+        "identity": "60c277e78777424d5b8dff5543b13dbd6a250d6f80aba69c5dd35031a363da74",
+        "observedRootIds": [149, 150, 298, 299, 335, 698, 853]
+      },
+      {
+        "identity": "60c7e59a13ed0ecd4d4bac5af9301e7505becb6382123810c8ac4e2aa0b347f9",
+        "observedRootIds": [1112]
+      },
+      {
+        "identity": "60e857aa533015b3b2ef316c2058c61b88f2b551b957899d1785468e1f158db7",
+        "observedRootIds": [1066]
+      },
+      {
+        "identity": "610050898c173141fcd631279ac0fbb492e89d2478ef7d5278c546e3389dfd09",
+        "observedRootIds": [651, 652, 653, 654, 655, 656]
+      },
+      {
+        "identity": "612c917baf70be30b039da496413cc2b2129e7b3cbc92399cbc603265dfd080c",
+        "observedRootIds": [1184]
+      },
+      {
+        "identity": "61707873626a16d0542a9ca4aeb0c10bc3e77f7c518b309ce67c8b99173d430d",
+        "observedRootIds": [583]
+      },
+      {
+        "identity": "61d5af48280333e1f8336590517f7da179207959759e489201da4b5cb2c7b24e",
+        "observedRootIds": [88, 1045]
+      },
+      {
+        "identity": "61d7b1845c544fd268fd6ca75b8e8e6cc8dc24e6ec15d37919aee08c2dd735f0",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "620b7f94301674b41d7e5ba714cdbabf967c51797d6fd14ed19e67f2fc87f7ce",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "62947b683e521466333fa52adba5caf9f96d24c8bcc300417aebe8358eefd41a",
+        "observedRootIds": [86, 1045]
+      },
+      {
+        "identity": "62aaa8d573851a30e1419d8b525974b46178296258b56e5d77006987916a88ec",
+        "observedRootIds": [1171]
+      },
+      {
+        "identity": "6346ed415159a12c016d1794959764eb59f77cb42797d2fb4b4d9a38a1a94fcb",
+        "observedRootIds": [0, 2, 9, 10, 298, 299, 326, 335, 717, 853, 863, 864]
+      },
+      {
+        "identity": "634a0cb4ce526a47ef8f9be3553d89c330a4ed4f42a516df0432d4238844e3bb",
+        "observedRootIds": [273]
+      },
+      {
+        "identity": "6391f7dc4ec957c9c68d24bac2982a554e050ffebdeae0c62bf136dd6942b354",
+        "observedRootIds": [594, 595, 596, 597, 598, 599, 600]
+      },
+      {
+        "identity": "639db5adf6e285695c0a45b945dad7a30b8a846e402939abafdf13b7c59eca44",
+        "observedRootIds": [936]
+      },
+      {
+        "identity": "63acc34969787923b8960067a729c8da0c3774fd244ccb8640be779316b56804",
+        "observedRootIds": [506, 507, 508, 509, 510, 834]
+      },
+      {
+        "identity": "63c8c6cc12539c738638d4930a7cf9a9c7354e37b66b85cd73b75ccd8b6d15a7",
+        "observedRootIds": [530]
+      },
+      {
+        "identity": "63c98bb875c655cc602280db1ecee0f28b602b5bad7131736296dde37b5be5a3",
+        "observedRootIds": [
+          16, 17, 18, 25, 26, 48, 49, 50, 51, 56, 57, 94, 95, 98, 99, 104, 106, 108, 203, 210, 211,
+          212, 424, 425, 426, 427, 428, 429, 430, 463, 680, 681, 689, 690, 691, 692, 700, 701, 705,
+          706, 758, 759, 761, 762, 763, 764, 782, 787, 788, 789, 792, 793, 794, 795, 803, 804, 805,
+          806, 809, 810, 811, 931, 1049, 1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1061, 1062,
+          1063, 1064, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081, 1085, 1087, 1088, 1089,
+          1090, 1112, 1113
+        ]
+      },
+      {
+        "identity": "6436475d582fe9c10998453b816f1cd9125b46bc9a0c34e8248388ef53802b59",
+        "observedRootIds": [1218]
+      },
+      {
+        "identity": "644583108624e8be90d54c8b639573bd39656fda8908132e072f8f81b35c516f",
+        "observedRootIds": [0, 2, 9, 10, 298, 299, 326, 335, 717, 853, 863, 864]
+      },
+      {
+        "identity": "6454a5dc9ca7a7c9bf4692b0b56272ca7b4c10717b8c58d1cec9d00eb7c175c6",
+        "observedRootIds": [880]
+      },
+      {
+        "identity": "6456e8cd0f9e2bbe42f6ddbddad0d47881031fcc3069e1c29b22dc3f2d40292f",
+        "observedRootIds": [829, 830, 831]
+      },
+      {
+        "identity": "647f8e377483665154acb59bc1f579a82e4243432efa882e0b2c459bc5592cd9",
+        "observedRootIds": [715]
+      },
+      {
+        "identity": "649d2fcdb0910a6b83bf67c0d0c0dada054a7a292a839cf35c019497af273063",
+        "observedRootIds": [515, 516, 517, 518]
+      },
+      {
+        "identity": "64c290fd670a3e4d632e15b82052693e391da4ef48e274e7524d37c825e3aa3c",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 1167, 1168, 1169, 1170, 1171,
+          1172
+        ]
+      },
+      {
+        "identity": "64f154b0e0e201f62e1f3df7e0d9d4f2f69870074dd636a74f99fa0d7b7278e3",
+        "observedRootIds": [90, 91, 92]
+      },
+      {
+        "identity": "651521f44e5b8a0f173083786e0354ba48fff1767983b2ce43eb8346b2c7fca0",
+        "observedRootIds": [144, 145, 146, 147, 327, 861, 862, 866, 868, 869, 870]
+      },
+      {
+        "identity": "651f3653838699f89812cc6b00903ac0c8a22fb7ff7ecd7b6b8f39667258495d",
+        "observedRootIds": [629, 630]
+      },
+      {
+        "identity": "6524db14b679802bf4bd091ba6926a2bb82c031b0fec8026911d8529a966b3fe",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "6524f6f2445e028714161635991633efde979903f734bc153ad1bcecb794dbcf",
+        "observedRootIds": [1171]
+      },
+      {
+        "identity": "654d7f39ae55887685e360f40f009b6da36b23cc9f68ea0df47114bb1f56f24c",
+        "observedRootIds": [1142]
+      },
+      {
+        "identity": "65782cb26e405b59e853c5acef86310240d6da337aff18dbbe648285650ed071",
+        "observedRootIds": [506]
+      },
+      {
+        "identity": "6579790729938f99e393e2fea2abb769bc47c2aa4fb644ef950818e4362db895",
+        "observedRootIds": [1186]
+      },
+      {
+        "identity": "65e0d5954c1455a731060b513d370951ad9442e7c597e5aea5aeaab7611bf3b1",
+        "observedRootIds": [171]
+      },
+      {
+        "identity": "6605e6081b11acc0f5884dc9a0240e75b03ef22a22e85f81092f73e60839fe5a",
+        "observedRootIds": [838, 847]
+      },
+      {
+        "identity": "667af33a43c985f2c2871c00c98af6c8cb5b5c9c83969079c9cb64176b44cdb6",
+        "observedRootIds": [85, 86, 1045, 1048]
+      },
+      {
+        "identity": "6691ef0aa0ef3d66de4e41276bd43abc0c893c1db2554cce5dd24ae05a96edd4",
+        "observedRootIds": [93, 98, 99, 1059, 1060]
+      },
+      {
+        "identity": "66aee263fe01be4552d98e210ab012512fea003bdaed8268868cff8b4547b62a",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "66cf92e8ed9a84b15469cdb5db2d8fcd874252ea4fcd26082957a5b204e1731f",
+        "observedRootIds": [1126]
+      },
+      {
+        "identity": "66da1e04f048114a120edd06d1a7e5c11468cb0810950b8615db071746e14ec9",
+        "observedRootIds": [418, 419, 420, 748, 749, 945, 946]
+      },
+      {
+        "identity": "670e6f8d9859f95e016c937517d26df31c712069138ca4412563a5e18ee20ff1",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 1167, 1168, 1169, 1170, 1171,
+          1172
+        ]
+      },
+      {
+        "identity": "673573f0cd589758323a7abcd7c0dc083cd225331b69fde3bd8315722e8b1c71",
+        "observedRootIds": [0, 2, 7]
+      },
+      {
+        "identity": "675b656d09a49933e0b2ce5ec225f0e6a46c80faa247d155e213e908e5e5b1e6",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "6766f72e92af2575dd742560e02fec694642105f7ec205d4b8619dbdfae7207e",
+        "observedRootIds": [144, 145, 146, 147, 327, 861, 862, 866, 868, 869, 870]
+      },
+      {
+        "identity": "67a6b07168c1f23306e584c9d3f6298753bf7256dea44130bb475788cbd69266",
+        "observedRootIds": [709]
+      },
+      {
+        "identity": "67dd689c135a674893ce3e685e60d12b6458c742ebd26e3546a11a0652660ea3",
+        "observedRootIds": [506]
+      },
+      {
+        "identity": "680eee987d1e1181580212d9b743a593bf9a663c14054ea2581e1000e088d351",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 978, 1167, 1180, 1181, 1182,
+          1183, 1184, 1185, 1186, 1187, 1199, 1200
+        ]
+      },
+      {
+        "identity": "684fa354eee08384fde56e14eb6d4b1f34f9af0344bd8320f68557b457878b86",
+        "observedRootIds": [269]
+      },
+      {
+        "identity": "686c62a9b7176e8d85c5085f307c88db3d83519c67485420306b1bc9f2397777",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "6895d10483d3a7139ce8df1a110ca8ae43fbb2c926ee2c877a69827093040cd5",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "68a467ea70cb048f6ffefb60746a4bca15f3d68019d2831927a93e021ea43ffa",
+        "observedRootIds": [1186]
+      },
+      {
+        "identity": "68ebdf668d60fdb4e200ac2038ed731e1b147425d2438a3c2e0dc645815ddcf5",
+        "observedRootIds": [273]
+      },
+      {
+        "identity": "68fd1b57da1b98e313a32bbb016e26257c3a093bac39983e706f5c63508e091c",
+        "observedRootIds": [549]
+      },
+      {
+        "identity": "6902197d5d0c77cfcf58b770866ca035d86b3d521fffb4d1165f55e8579a4893",
+        "observedRootIds": [1160]
+      },
+      {
+        "identity": "6908ea2517576a842c7c2613ff60c653011604939387aa16bf3f7eca837a5719",
+        "observedRootIds": [0, 2, 12, 298, 299, 326, 335, 717, 853, 863, 864]
+      },
+      {
+        "identity": "69269e6bcbbc44396959bb09bd49005ae5c870600954e8374809906468311fb8",
+        "observedRootIds": [155]
+      },
+      {
+        "identity": "6980e7a24fab5165f39e21e59a45587c50d5430ba95ad0400c2ecb8d78f0581d",
+        "observedRootIds": [595, 596, 597, 598, 599, 600]
+      },
+      {
+        "identity": "69c83f991759829fcba652a931dc374c1a36a6da663927bb7a090bda3563c061",
+        "observedRootIds": [88, 1045]
+      },
+      {
+        "identity": "69f6f832fa87c2564e93a6a4752ef64ef868c336c9fa6fb29f1577ff6a676235",
+        "observedRootIds": [1096]
+      },
+      {
+        "identity": "6a05afbf1d33d7797b2e883969e0d71bf296ea62bcb114973e85636f49edf47e",
+        "observedRootIds": [1093]
+      },
+      {
+        "identity": "6a2b79cac38bbfbbcc08f43aa71ce3ef7361a9bda6c9161064ed7b5505655151",
+        "observedRootIds": [149, 150, 298, 299, 335, 698, 853]
+      },
+      {
+        "identity": "6a345eadbeb6b69a9612118fe5a3dc28fd7e6525880046838bf869a0b359980f",
+        "observedRootIds": [1182]
+      },
+      {
+        "identity": "6a8297f56018ea90540f118f1e651ec55531b91dea9d0820c2d49928bc0cdab0",
+        "observedRootIds": [1192]
+      },
+      {
+        "identity": "6a9ca1fbc8bae7065af48f0b7e7213943cdae7a577dd9459d4c28fc34be7bc90",
+        "observedRootIds": [1091]
+      },
+      {
+        "identity": "6a9dd873e946114fd7cf77e318cded277742defb559058b5d7925f0966c256fc",
+        "observedRootIds": [342]
+      },
+      {
+        "identity": "6ab0321cf9e5db927154d7024cb192c8c0e44eb46b02ac971f6151bb98b7f535",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "6ae6f42ec79877f79f977aca35ce066578edf8d94ab1fcaf596fe48efac082ae",
+        "observedRootIds": [265]
+      },
+      {
+        "identity": "6b084fa8838ddcb49462d0ab7f101d773825a09b6ea77c9409bfc90468929655",
+        "observedRootIds": [
+          997, 999, 1002, 1005, 1006, 1017, 1018, 1021, 1022, 1023, 1024, 1025, 1027, 1028, 1029,
+          1030, 1031, 1032, 1033, 1034, 1035, 1038, 1040
+        ]
+      },
+      {
+        "identity": "6b0d18faa11ad46c96ff34daf20768f3a4378566d2ca21b8bd003f7c4cf6daad",
+        "observedRootIds": [
+          94, 203, 210, 211, 212, 366, 367, 424, 425, 426, 427, 428, 429, 430, 432, 758, 759, 761,
+          762, 763, 764, 877, 878, 879, 931, 1085, 1087, 1088, 1089, 1090
+        ]
+      },
+      {
+        "identity": "6b2dd3265b00eb09e2cdbc5c0703864b37426c2ce934387cadf42d437af9999c",
+        "observedRootIds": [467, 468, 796, 797, 808]
+      },
+      {
+        "identity": "6b72d3357469e77416953d424e460a0c8296beb3149ad0d39608cd9eb391afd0",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "6b7433a435240747d661222c7a5d84a42bdee0b7a18850e8f51c2cf80e2de241",
+        "observedRootIds": [1220]
+      },
+      {
+        "identity": "6b98c0f0e5c09c7f4845e5f26193594ccc51d3bb32674c7eba3c041b725121c6",
+        "observedRootIds": [631, 952, 953, 972, 1114, 1116, 1146, 1147]
+      },
+      {
+        "identity": "6ba624f72efff16b82f8fa2ae9847a7a418b5d227a88d2fa8341678a085e9b6a",
+        "observedRootIds": [560]
+      },
+      {
+        "identity": "6bca18a6b9e53d64b9d6e5947bebfbd31670bb66e41423b7d6c7617e58973fd4",
+        "observedRootIds": [1218]
+      },
+      {
+        "identity": "6bec57b02408786672a8f65cebc34bd5a58fb7a65f97beb47bfe68699d529e65",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "6c56e802908479f9e68d3de02bb64d01e0a6581189e9cc4dfd6accd39a799c2c",
+        "observedRootIds": [1171, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1188, 1189]
+      },
+      {
+        "identity": "6c7cb34ecad70e4b711cd5ec3fed2eaca2afb6dc7b8373045e65370d18aec870",
+        "observedRootIds": [269]
+      },
+      {
+        "identity": "6cae417834504327324c4d1c5b4307fe1b2ef68d37111cf8d678ea859e8ca57c",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "6cb0eefb153db3af3dc91c80d7745ed11f98b7d51eccb9d1d808bc025131a1ed",
+        "observedRootIds": [1192]
+      },
+      {
+        "identity": "6cd8bb12e22d9dfda66103bac5d46104a7fdc103b3f8fbc37156aa28e239a322",
+        "observedRootIds": [602]
+      },
+      {
+        "identity": "6cf29ccbd75db035915c53d50d558f2f6a21ce409b7407ca2d51c696bb573d1c",
+        "observedRootIds": [550]
+      },
+      {
+        "identity": "6e2af7bb45514a2c760f66313b899a0a73dc349e38dc842967c5107c3fb4a774",
+        "observedRootIds": [1127]
+      },
+      {
+        "identity": "6e30ed77881499371abef3c4a76e01fffd363d681d953745dbacba0776615a51",
+        "observedRootIds": [785]
+      },
+      {
+        "identity": "6e5b6716eedad00dda847c767e784fd9668461d817e31b2fe2b4b1e88e0858a5",
+        "observedRootIds": [549]
+      },
+      {
+        "identity": "6e5df2b849dacb7d124c2d6570dc7b9c1e27098a98df907c1c0f3e821d0a58e9",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "6e6a051364d171ef0d5d3558129c9a5ebc6a3259619523842862efa3071a1460",
+        "observedRootIds": [278, 279, 306, 307, 337, 724, 854, 855]
+      },
+      {
+        "identity": "6e82ffad94779f5cc93b1d7581bd177ed19df3d50e9bd6c612d3a536520ce0ed",
+        "observedRootIds": [77, 78, 79, 82, 83, 674]
+      },
+      {
+        "identity": "6eb38c11ccdb6bd5b65d330c055a51b8502060bb7d236948e99722dcb7ab394c",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 1218, 1219]
+      },
+      {
+        "identity": "6eda7deff8898ee25609c5df67f8e05e27026c5cee4055f0a1849c8dffa7eea5",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "6ee205bece0f3ac60263fe3978ce77af397b252755e292b7f07176c17448611d",
+        "observedRootIds": [85, 86, 1045, 1048]
+      },
+      {
+        "identity": "6ee2b98d39fc60f128bc6724846e22ba0ba3dbac6af08fde783e6c9e2e14b625",
+        "observedRootIds": [173, 1123, 1133, 1137, 1138]
+      },
+      {
+        "identity": "6f0299b9a32da2401901d5b829164fc4082adbad31b34a7add597fa8f34e35e7",
+        "observedRootIds": [467, 468, 796, 797]
+      },
+      {
+        "identity": "6f14cf76e29c63242c0e7601675b98d0ec4fb5ad0bf1e6fd507edf29a133dee2",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "6f37b1397508fe7468a5b149cff978f898389483a3efe89d71e8974b6e731c20",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 978, 1167, 1180, 1181, 1182,
+          1183, 1184, 1185, 1186, 1187, 1199, 1200
+        ]
+      },
+      {
+        "identity": "6fb68884cf5a49fb6b4465f98df3ffadf630438ba828efe725894a3c907c67d9",
+        "observedRootIds": [880]
+      },
+      {
+        "identity": "6fc42223015037b224a828bde397135113b37d538cbf8cb6b3537cff783bf1b6",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "6fdfb190ac59e5d13a03448bfb014c0ecd96e33f3ea954bbee864809a21555e0",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "6ff61d0d6cb7f9a08fccc20e2a09ae1c6fc9020f7244cc3ded87b19ff0bdadcc",
+        "observedRootIds": [86, 1045]
+      },
+      {
+        "identity": "70084f9d8683d095cab7551083dfc17ad6ea08f4bd038ad3a9f09a77f34d6e40",
+        "observedRootIds": [432]
+      },
+      {
+        "identity": "7079377faa87d2c9508b70469dea9d7977ed068b7c42fe76a1706d5e799da2dc",
+        "observedRootIds": [1123]
+      },
+      {
+        "identity": "70b8e5056813394dff613f65e556bc09bcb4b52f36246fb882e85c0a18a3a636",
+        "observedRootIds": [642, 643, 644]
+      },
+      {
+        "identity": "71281b5aca74a3769c0ea94b980b5a6f36eae74e18ceffec48e66eeaa0ccc613",
+        "observedRootIds": [936]
+      },
+      {
+        "identity": "715d8355a6154805ce06675f87d447a6b2404f1d0567b15c43eb2c4539f0f7bf",
+        "observedRootIds": [500, 501, 506, 507, 508, 509, 510, 834]
+      },
+      {
+        "identity": "71668c485230aecfcacddfc652ec6fc942918c3483f628ce8f863db55624aaa8",
+        "observedRootIds": [
+          93, 96, 98, 99, 102, 103, 110, 111, 716, 1059, 1060, 1065, 1066, 1067, 1068
+        ]
+      },
+      {
+        "identity": "719c77863cf2759100d4b98587003ccc8bdbbcbb1ba531986df4ba1c82ddf05b",
+        "observedRootIds": [
+          366, 367, 373, 374, 424, 425, 426, 427, 428, 429, 430, 463, 605, 606, 607, 608, 777, 780,
+          781, 794, 795, 799, 800, 801, 802, 888, 889, 895, 896, 898, 899, 900, 901, 902, 903, 904,
+          905, 906, 907, 908, 909, 910, 912, 914
+        ]
+      },
+      {
+        "identity": "71bdbf2d3770f446c2beef6d7c88dd2c256f479115e8555533b8d9b5e36db4fc",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "71f5c4bfa3712e6af93b98a54ebfa455e997b1c510b8f0543a42cb6dc8c24532",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "7220fa6407ff00732392c23b24fb21e2f5393886620be1ebb8a56a0c7ff46608",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "723d257c47040e2d39a4fe32f9d5ee833d9e7d589d49c321ec781dd8a43890d2",
+        "observedRootIds": [95, 98, 99, 108, 1063, 1064]
+      },
+      {
+        "identity": "725f19e03e4b756c990512ef04fe9b4680f88d533948090fa3b61df20c655b83",
+        "observedRootIds": [571]
+      },
+      {
+        "identity": "7262921c7af6f133f0f1ace61fef6b3ca5b44029f9692f1ab33898ed66f483e6",
+        "observedRootIds": [560]
+      },
+      {
+        "identity": "7295c3d30879a6540b4c25ebe0a8d842e428b3e2fd85c1042066bde1851e5766",
+        "observedRootIds": [539]
+      },
+      {
+        "identity": "72a37a166d52ceff2c224152cb2c07181b3c5df7a41e7736bb4b4ebc2abbdb8f",
+        "observedRootIds": [506]
+      },
+      {
+        "identity": "72a39ed78a2582822ce9abd4a5ae074512307d223fa017c58a2a25a03a381dc2",
+        "observedRootIds": [67, 68, 69]
+      },
+      {
+        "identity": "72c9c19ceb754bc2ffd8887faad4b600f1c1a433f816e6f64bcc521241504168",
+        "observedRootIds": [1212]
+      },
+      {
+        "identity": "72f7bd6dbcdc34789e2ac0502a7f557db9f5441f5f2219db5bb76340ffc17289",
+        "observedRootIds": [642, 643, 644]
+      },
+      {
+        "identity": "733fc15ee525ea4252e06e77d4ecb6531ab7ca049b84ec2b732ab9df504cceb2",
+        "observedRootIds": [148, 1156]
+      },
+      {
+        "identity": "7348256d02b4d7c2d0e81452e873e8870feb67f577704272465d4c97cd5a425d",
+        "observedRootIds": [277]
+      },
+      {
+        "identity": "734d5c8b38466ef3a3587a636386f32618e42c38f48f963617d477957ecd9ea4",
+        "observedRootIds": [936]
+      },
+      {
+        "identity": "737bddabe1e0f607798f20010170c0ad3b009bb77a06083264621ca735b12d22",
+        "observedRootIds": [1112, 1113]
+      },
+      {
+        "identity": "73941d68c12420cc862ccdb5a0abd5d5b466f5d571f24ad8b101895b3babf4b6",
+        "observedRootIds": [520, 583]
+      },
+      {
+        "identity": "739ab29435cc4d06490fd941671360488b0be1ecf4de7d932fc847950e69cefe",
+        "observedRootIds": [629, 630]
+      },
+      {
+        "identity": "73c3ba94c2a4431fe6ab4d9f134c5c436388ef36cd5f8b4740b7311b276a4e23",
+        "observedRootIds": [97, 873, 887]
+      },
+      {
+        "identity": "73c846a42b9f81b6cd160b1e1947283eafdcdf830a457dac1fa94fc7d3761e3b",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "73cdb482da4530344f167e0e2d11eafb67a6b365cbfe7a8edfa1823670b40ffc",
+        "observedRootIds": [278, 279, 280, 281, 282, 321, 322, 323, 337]
+      },
+      {
+        "identity": "73e2384482498bc09a424feb086776b7a20d19fffa6629b45d5482703b0823da",
+        "observedRootIds": [1133]
+      },
+      {
+        "identity": "73e35661a45039fa944634bbdedadc8ab976e5d3e99bc41fd95739b6b09585df",
+        "observedRootIds": [1186]
+      },
+      {
+        "identity": "7408543ae4f6ed8e32e4d3f15a1332647804b5ae77129599ad4019401fa67da3",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 1169, 1206, 1207
+        ]
+      },
+      {
+        "identity": "7413a3aa3c361cdc38cbf5d001d1e6470e3e2c7dd57366ae6557ff8dd29f3bfa",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "7418d348da129085a4b9e3db6934f5ab07c4274a124f1ea863fc92a0c456c24d",
+        "observedRootIds": [500, 501, 506, 507, 508, 509, 510, 834]
+      },
+      {
+        "identity": "7461388415468ea4147db2851ba3e9052d0679941ee0e498320cfc3515c6509d",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "746e3e2c7db23616a538642e5de8455ba292ae00fd950d3515ca0564beeec085",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "748f82b10de74d75abe630fb6086de35e2cd599e024bb3288300d275d7e1dde9",
+        "observedRootIds": [535]
+      },
+      {
+        "identity": "749d1f1b9a3b5febb016db879593e6894c1ec9b320379797562ed7bd83d5c111",
+        "observedRootIds": [1189]
+      },
+      {
+        "identity": "74cb18559c3ee70fa9a30e1128a5fd69451f7c5f0a98dd490f8ab9346a7e9147",
+        "observedRootIds": [554]
+      },
+      {
+        "identity": "74f0e58e6895dbbc11fbbc4ad384798e6fbc6cc613ab030bf5b155aafe0be03c",
+        "observedRootIds": [67, 68, 69]
+      },
+      {
+        "identity": "750a9f6eb94c58344fe3b2fc859e2281aa3a5cc6c1c7bbaad29c8426f0cc80bd",
+        "observedRootIds": [536]
+      },
+      {
+        "identity": "753835edcc960cd0212363fdc00e583c7c99f6c3ef976934ee037fd35c3b133d",
+        "observedRootIds": [895, 898]
+      },
+      {
+        "identity": "75538b276ba53a040e6aa4d28c5acb77f176d12df8afead8e95d997d42cb2316",
+        "observedRootIds": [631, 950, 952, 953, 954, 955, 972]
+      },
+      {
+        "identity": "755a994dfb916ca035a62e1f037d399b7bc3c3f110fcf8b4c59aac7ba89a55c4",
+        "observedRootIds": [171]
+      },
+      {
+        "identity": "75a36248249bc4d3f29cf226373350cb6fc5b9a4ca0a9bc3de719ced8b639df9",
+        "observedRootIds": [
+          148, 494, 495, 651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 838, 839, 840,
+          841, 842, 843, 844, 845, 846, 848, 1153, 1154, 1156
+        ]
+      },
+      {
+        "identity": "75ba2d598b287d4ab4894595c89eb338230e588e5cddbf4912ad36fa452eb8a3",
+        "observedRootIds": [533]
+      },
+      {
+        "identity": "75fea0498df81716df470843ddcde4f4cd211047a63270339da4c7e44e3692d4",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "75ffd124cddc5fb8e60885c2cff40f0386c44e338fd1f84a4974a24fb1a53738",
+        "observedRootIds": [545]
+      },
+      {
+        "identity": "7664ac55d1c9f7b01b67818dbc368ed935de26ec0614818195eeeeb746efef8b",
+        "observedRootIds": [538]
+      },
+      {
+        "identity": "7674648cf52467de4f5000ba8f696b805c34f9d63e54a098c4fff98481ece8e3",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "76905cab104d343ce3ae822e73c15f3f541c0fb005652c490fedc7c00b39ba03",
+        "observedRootIds": [85, 86, 1045, 1048]
+      },
+      {
+        "identity": "771ee5d8bfce45f806f7c8b4d4b5c8bf2f41f565526e2beac25f63463fd8d497",
+        "observedRootIds": [861]
+      },
+      {
+        "identity": "772cee116f85eb0aa4423b28e0a6c712971a1174937998defef365587822f2b3",
+        "observedRootIds": [265]
+      },
+      {
+        "identity": "7748deafd6fc4cc0f74373afe2a0db6debc7fce45efbda3e995ae2b6aedb2db0",
+        "observedRootIds": [1206]
+      },
+      {
+        "identity": "77580003451731c5aea27a42f8e4d3ba4d518ce7ba0c151ee2cd4376e7db1139",
+        "observedRootIds": [1171, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1188, 1189]
+      },
+      {
+        "identity": "77787a2a2d7565074bdc9c1313378521a2618cc439a09ee3b407f86114651e58",
+        "observedRootIds": [1193]
+      },
+      {
+        "identity": "77ac48295045c071021c9afbc7e8a920970e295c70408ea1c68e4cda6481fd6f",
+        "observedRootIds": [878]
+      },
+      {
+        "identity": "77ce666a9ba3d5040afabde8a2008d9a0842c4f440f1106a72d5bf88b1befc5a",
+        "observedRootIds": [265]
+      },
+      {
+        "identity": "780a3bd61ce94983b3dd729d24f520868f480bc42733d3bbefdfde9d13ad1dca",
+        "observedRootIds": [1182]
+      },
+      {
+        "identity": "78b5c5e72dd1e55e19c679ad89971267f8cea9cf96d4674c9f9d954b7ac680e2",
+        "observedRootIds": [378]
+      },
+      {
+        "identity": "78ba30971e503fd2591c75fed4649cb76152714262dba77576bb4f65abe99f7a",
+        "observedRootIds": [1138]
+      },
+      {
+        "identity": "78d68f39646d4fc88a2b776f82cb218f972a07dbe051b89e6d63bba7b7d49a5b",
+        "observedRootIds": [1153]
+      },
+      {
+        "identity": "78f6c29a211466fd177f3a6e4b2c88f44db3e38842d24aaba9561f15099c366f",
+        "observedRootIds": [467, 468, 796, 797, 808]
+      },
+      {
+        "identity": "78fba188cefd9b544239226ebf472902f1e19ded649ae007a561c4e12519aee5",
+        "observedRootIds": [584]
+      },
+      {
+        "identity": "78fbeb9848aa5de5b3698ef82e9c1d4cf08c07f0112f3e0e3f341f1fbb87592b",
+        "observedRootIds": [467, 468, 796, 797, 808]
+      },
+      {
+        "identity": "793fecf5d308757a59f744adbd33dc87305e946b7c6a446763d2c02f663aca31",
+        "observedRootIds": [284]
+      },
+      {
+        "identity": "794be1315ff642900dd3a7a22164b40347df9a5ec4f424027ed2583faff2eaad",
+        "observedRootIds": [173, 1123, 1133, 1137, 1138]
+      },
+      {
+        "identity": "794df79f2b1d41c83a14df1d2ccb5102d48d75a3b63c1215bf8fbdf1f1216880",
+        "observedRootIds": [554]
+      },
+      {
+        "identity": "798af8248c679486670b28c8b24accd96b9996a5db71d9fedf27cc4acddae372",
+        "observedRootIds": [536]
+      },
+      {
+        "identity": "79997737fef73b821a0c43b1e1525a7fdbfa8ae28ade014c24568d7e998d306d",
+        "observedRootIds": [1034]
+      },
+      {
+        "identity": "799a71560101449b57f2991e22bc0071566714e3e2e15464e6e711c96beb7b20",
+        "observedRootIds": [888]
+      },
+      {
+        "identity": "79cd625fd5da690cb90c9565181827953db1d63b343da8e8915bb896c4ee9b20",
+        "observedRootIds": [
+          166, 170, 176, 178, 179, 181, 184, 186, 187, 188, 189, 190, 191, 192, 346, 347, 366, 367,
+          424, 425, 426, 427, 428, 429, 430, 463, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739,
+          754, 794, 795, 852, 907, 908, 914, 915, 916, 917, 931, 1121, 1122, 1124, 1125, 1126, 1127,
+          1128, 1135
+        ]
+      },
+      {
+        "identity": "79e94ec35971b756ba724954a45e0b563137d4a7d08ce603596a3f06ddca6ced",
+        "observedRootIds": [651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 663, 667, 668]
+      },
+      {
+        "identity": "79ecfc3595052b4c4e95aea9619e40c343ff75e48fcf033b04d354f04f8aa0f8",
+        "observedRootIds": [554]
+      },
+      {
+        "identity": "79f10f69f9e05e5231c2ca0f2e84baf4d0e95d5e89835d88e9de8ec350d02746",
+        "observedRootIds": [535]
+      },
+      {
+        "identity": "7a05c9f7fe3ec84fb811c1b61f17dd509fddee50c5543355bd4695acfec55ebb",
+        "observedRootIds": [77, 78, 79, 82, 83, 674]
+      },
+      {
+        "identity": "7a213c4fcc85b56d9e477c3b4bbdb074970647294d0f87a743abcb5d840ee34d",
+        "observedRootIds": [496, 497]
+      },
+      {
+        "identity": "7a712937ed0b01afd51c070c28df284bc05ee9f42425da4ae33dfeea0514a7f1",
+        "observedRootIds": [881]
+      },
+      {
+        "identity": "7a7373d9a63e7d8f29d20bec0ac0d3805e8cdfdb4103caaf453df6416a6bd363",
+        "observedRootIds": [786]
+      },
+      {
+        "identity": "7a99dca4722e9e789ae2f6358056155d2aa65bd3659806461f88c2b6a426f50b",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "7adbfc3ae8832756732f5b1cd8794aab8b1818ebf28fb96d4bc4df19aa25a8e5",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "7ae13620e9f3d96f22179dc0589ca35097326bf8347fdd0b502dd41726fc9fff",
+        "observedRootIds": [97, 873, 887]
+      },
+      {
+        "identity": "7b0aa660552c990697af1431bc43258e0bff5255bbc30ee8dd27c6bc6a58268d",
+        "observedRootIds": [1091]
+      },
+      {
+        "identity": "7b4f2a0b261630e051e35fa7d6c1b9f61e84b596ac987c27ca027d9964bd88ef",
+        "observedRootIds": [1214]
+      },
+      {
+        "identity": "7b55201844a1e09e9e51b1f4e15365a483ba612500ae72fd92dc571816b785df",
+        "observedRootIds": [
+          0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 22, 23, 24, 28, 29, 30,
+          31, 32, 33, 34, 35, 36, 37, 38, 39, 41, 42, 43, 48, 49, 50, 51, 54, 55, 61, 62, 63, 64,
+          65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 85, 86, 87, 88, 89,
+          90, 91, 92, 93, 95, 96, 97, 98, 99, 100, 101, 102, 103, 107, 113, 114, 115, 116, 117, 118,
+          119, 120, 121, 122, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139,
+          140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 152, 153, 157, 159, 160, 161, 162,
+          166, 167, 168, 169, 170, 174, 175, 181, 184, 186, 190, 191, 192, 193, 194, 195, 196, 197,
+          198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 214, 215, 216, 217, 218, 221, 223, 224,
+          225, 226, 228, 231, 232, 235, 244, 245, 246, 247, 248, 249, 250, 254, 255, 256, 257, 258,
+          278, 279, 282, 286, 287, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 310, 311, 312,
+          313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 326, 327, 328, 329, 330, 331, 332,
+          333, 334, 335, 336, 337, 338, 339, 340, 341, 346, 347, 348, 349, 350, 351, 352, 353, 354,
+          355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372,
+          373, 374, 378, 379, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394,
+          395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412,
+          413, 414, 415, 416, 417, 421, 424, 425, 426, 427, 428, 429, 430, 433, 434, 435, 436, 442,
+          443, 444, 446, 447, 448, 449, 450, 451, 452, 454, 455, 456, 457, 458, 459, 460, 461, 462,
+          463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 481, 482, 486, 491, 492,
+          493, 494, 495, 496, 497, 498, 499, 502, 503, 504, 505, 509, 510, 515, 516, 517, 518, 519,
+          520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537,
+          538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555,
+          556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573,
+          574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591,
+          592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 605, 606, 607, 608, 609, 610,
+          611, 624, 625, 626, 627, 628, 629, 630, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641,
+          642, 643, 644, 647, 648, 649, 650, 651, 652, 653, 655, 656, 657, 658, 659, 660, 661, 662,
+          666, 667, 668, 671, 672, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685,
+          686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703,
+          704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721,
+          722, 723, 724, 725, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743,
+          744, 745, 746, 747, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763,
+          764, 765, 766, 767, 768, 769, 771, 772, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784,
+          785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802,
+          803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 822, 823, 824, 825, 829, 834, 835,
+          836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853,
+          854, 855, 857, 858, 861, 862, 863, 864, 865, 866, 867, 868, 869, 871, 872, 873, 895, 896,
+          898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915,
+          916, 917, 919, 920, 921, 922, 923, 924, 925, 926, 927, 929, 930, 931, 932, 933, 935, 936,
+          937, 938, 939, 940, 941, 944, 956, 957, 958, 961, 966, 978, 979, 981, 983, 989, 1153,
+          1154, 1156, 1167, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1199, 1200
+        ]
+      },
+      {
+        "identity": "7bb40d7cb6b3eb1de39df7de2415d10e02f72b2b53bbf5bd2f33545666067927",
+        "observedRootIds": [1164]
+      },
+      {
+        "identity": "7bb84f4a5051cb4aba948c2a2a1529edbc91b2258227b363c999dbef4cfc725e",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "7bca54a895641a2bb6ddb7de525be3f351a2afdd25699ac384a54836645d376b",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "7bed5e3b6dcd0a7a986518a180983085c18dbcda09b7103cc68ea33cca07e7ce",
+        "observedRootIds": [1206]
+      },
+      {
+        "identity": "7c057499179a03d83eca7bc773dbf6d6e170fffa14fc9a31062c9793b8b6f45b",
+        "observedRootIds": [187]
+      },
+      {
+        "identity": "7c86909e0f706999339a6ecaeaaac36fd22b8c7c865a36081215c438a8d7855f",
+        "observedRootIds": [631, 952, 953, 972, 1114]
+      },
+      {
+        "identity": "7c8ac8d4f1f0fb31df1cbb26bb43b3538946ef684fc3b124c1ba3c4bfe6d7c9d",
+        "observedRootIds": [346]
+      },
+      {
+        "identity": "7c9a0c1e66516106e1a135d53678830135076fddb89d6fe6ed819913d0c8f95b",
+        "observedRootIds": [1133]
+      },
+      {
+        "identity": "7caa3f7bba554a3ecc4fd0f987729d9484fd18100970382dd4d744d34817a799",
+        "observedRootIds": [278, 279, 337, 854, 855]
+      },
+      {
+        "identity": "7cf91b80a073827892bd7e71e8fc3ae9b461f8c92c2870055c0424ae272dd335",
+        "observedRootIds": [118, 119, 120, 306, 307]
+      },
+      {
+        "identity": "7d0145be5b4edd23c90d8b698a806da46131b90d2782017019bdba81953ae9bf",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "7d213401098f4a2e53a921b47ddfe70ceab9794e2493bb95a50595b92e7a721e",
+        "observedRootIds": [888]
+      },
+      {
+        "identity": "7d79e277d95d33f45a00ec21ed83134d396bf31b01ff6563fc76ca2bf34b9488",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "7d7c4dd506c819ee59b9db0b60ddb11bba212ecd0d240a35239e068c956eb818",
+        "observedRootIds": [
+          651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 978, 1167, 1180, 1181, 1182,
+          1183, 1184, 1185, 1186, 1187, 1199, 1200
+        ]
+      },
+      {
+        "identity": "7d99bda6d10063e08f934f0b7a70439c8ade1f488bf47acf22b18e739701391d",
+        "observedRootIds": [590, 591]
+      },
+      {
+        "identity": "7da69ccafa93f10b0548025c86eadc5ea11b54f5c2fa242772bf59938a792682",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "7db98bb71c54320ac703905c5f83b2019ffb34cc3a8979a7d43c23d1c60f006c",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "7dd9766f00a001f24cef0ab11c737d0596736f5d3a1abccd6438c42818fc585a",
+        "observedRootIds": [
+          94, 203, 210, 211, 212, 366, 367, 424, 425, 426, 427, 428, 429, 430, 432, 758, 759, 761,
+          762, 763, 764, 877, 878, 879, 931, 1085, 1087, 1088, 1089, 1090
+        ]
+      },
+      {
+        "identity": "7df00e30afb45a575ec2002a65ae711244699e177deac4021b76073197970080",
+        "observedRootIds": [898]
+      },
+      {
+        "identity": "7e1a57c6b0d8be551f1ebf42d5cc5877ed8861f826e7afab11b3b22d215ed5b0",
+        "observedRootIds": [898]
+      },
+      {
+        "identity": "7e1ab17ec0cf385faa28e07b33536d2235e160cbe26a5ee9a142984e6d34c71a",
+        "observedRootIds": [829, 830, 831]
+      },
+      {
+        "identity": "7e6f1786b250c6060f61b064e36b42650a7eb337c329de756b2eb5811c58b0ae",
+        "observedRootIds": [888]
+      },
+      {
+        "identity": "7e749b3e50808e192e90f3d28c2741804d34bc3dfe4a5576b18df4c7804845e4",
+        "observedRootIds": [107]
+      },
+      {
+        "identity": "7ea47c056327ca5a46bf4dffb1e4fc1b03b2e94dd481223ae8379fff546f0646",
+        "observedRootIds": [898]
+      },
+      {
+        "identity": "7eb655cf9719528666d786afb5e64bd8af1e01115fd8880559bec8071e37a8bc",
+        "observedRootIds": [783]
+      },
+      {
+        "identity": "7efa5506669355a8bc97f257a681de0a37b1949f4f5ce4d333ece9bec9f201a7",
+        "observedRootIds": [173, 1123, 1133, 1137, 1138]
+      },
+      {
+        "identity": "7f04f2ac3dc349f4573b7c29ded5f95a4188e8e653074b54c4e12fbe4e345e9d",
+        "observedRootIds": [529]
+      },
+      {
+        "identity": "7f191375cdb221f6281c8ef69aee90e6cf0e41328e7e4b0304d1cf655d0d7bc1",
+        "observedRootIds": [187]
+      },
+      {
+        "identity": "7f31158c13ece6addceb94deeb8c2bf8c3aaedcde1a2fb94959227af53b4d680",
+        "observedRootIds": [1123]
+      },
+      {
+        "identity": "7f4632cfc2d0ce073b858b4e7b333dbcf0e7f67484be6be7c412bbe6f2ccc409",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "7f46587ef3975b57cdfed5a1e4a03b1af2f3603daa9ffd3118102ec1e15a4b68",
+        "observedRootIds": [28, 29, 30, 461, 462, 502, 503, 509, 510, 676, 765, 834]
+      },
+      {
+        "identity": "7f52f728ea48b270f3eb8b6ec34bbda0786b6e7714a8ebbf6cc3b7d298a576bb",
+        "observedRootIds": [532]
+      },
+      {
+        "identity": "7fcb9419c66ea2dd694c789027e2e38dfcf9a7099b55b80d49c7121de0ecdcb6",
+        "observedRootIds": [558]
+      },
+      {
+        "identity": "8039d5ab7bef9b1d69d6e6643fad8af906ec4d6bae23e8e471a17ab23623601f",
+        "observedRootIds": [820, 828, 837]
+      },
+      {
+        "identity": "803b416966dffce83ecf8cb91bf4646103aef4646159735467f6efc8f27ace5f",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "8071f39c3a98b0e5a70cd4ec58356e972b42897fbefb9383e8e223e6a48aacd2",
+        "observedRootIds": [562]
+      },
+      {
+        "identity": "8087a5b5241de2c4d8a0d8b4e25e05c2b05d06ec5a16a4246ad81cf38a6f5019",
+        "observedRootIds": [898]
+      },
+      {
+        "identity": "80be4a4181fc2b7ed792e3346edfe0a1b43df7607806b198acae06d8df85fa01",
+        "observedRootIds": [936]
+      },
+      {
+        "identity": "81405a4b50ff1790b55bbeabd9579d08a52196eabb9f5f06601a95921fbcc1ce",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "814c5e64bf564fb3e83190e68dccc0d6dd57452f439444a81c379bddd837081f",
+        "observedRootIds": [859]
+      },
+      {
+        "identity": "81d9fc9fb1d621a420cd4c6548c7592fb886e0f76af5b7cca6f321134e317b76",
+        "observedRootIds": [669, 670, 883, 884, 887]
+      },
+      {
+        "identity": "81eb51ebfa6d5679f537355c52fc11a9c714e157c5c975a9d2511c4489d4f3ba",
+        "observedRootIds": [273, 274, 275]
+      },
+      {
+        "identity": "81eb8edd22075cedb987c06fa8c3d2cf8a49b67ae470f4a59db83d3730093571",
+        "observedRootIds": [544, 545, 546, 547, 549, 552, 553, 554, 556, 557, 560, 561, 562, 566]
+      },
+      {
+        "identity": "81fdfad2785978ccbaa4e6a5ebba98eead83b433c77f830162b27f26f926cba7",
+        "observedRootIds": [1112]
+      },
+      {
+        "identity": "8208ab3ea6a3dd0d9b8bac8ad27b37f11671914b79c36bbb42b1d74b8c12cea0",
+        "observedRootIds": [640, 641]
+      },
+      {
+        "identity": "82373f878d4aefaa7b43e6f79e040ec32fbf7e866af7ea5284be9e7362d3b050",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "82898f28b1907a4c7206fed2ebf69248adc80bd9eaa55287530193181b6361a1",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "828a73a59bae205ca280eac21f7883c060b12092082588037a1ca6c2b3319467",
+        "observedRootIds": [1112]
+      },
+      {
+        "identity": "828ecdbdea250519a578b128763f6d2ccc72ae1d7992313cf031826c3a9993ef",
+        "observedRootIds": [558]
+      },
+      {
+        "identity": "82bc95a6439ed9b47f32748d063a5050eaf5de0b26372c8f22c4b2bdffd4eb98",
+        "observedRootIds": [1028, 1029, 1030, 1031, 1033, 1034, 1035, 1038, 1040]
+      },
+      {
+        "identity": "82d56edbac8f0107c262dc6112fc0c2e7cbaf0c1ccd23853aa42b0c7baf00332",
+        "observedRootIds": [530]
+      },
+      {
+        "identity": "82d7433a19f4d7b3896c71b49a728aeec06bcd6af02b275da059eaa2d546a5b9",
+        "observedRootIds": [1171, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1188, 1189]
+      },
+      {
+        "identity": "82e0d0be49e21211aa7b4c064d3364e35b92eb9e5bc9a50da7cb6334485b09c5",
+        "observedRootIds": [
+          16, 17, 18, 19, 21, 25, 26, 28, 29, 30, 31, 32, 33, 36, 38, 39, 46, 48, 49, 50, 51, 52,
+          56, 57, 59, 60, 61, 93, 94, 95, 96, 98, 99, 102, 103, 104, 106, 108, 110, 111, 115, 116,
+          117, 127, 149, 150, 157, 158, 159, 160, 163, 203, 208, 209, 210, 211, 212, 215, 216, 225,
+          246, 247, 248, 251, 252, 298, 299, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320,
+          326, 335, 378, 379, 385, 386, 387, 394, 396, 397, 405, 406, 407, 424, 425, 426, 427, 428,
+          429, 430, 461, 462, 469, 470, 471, 502, 503, 509, 510, 515, 516, 517, 518, 595, 596, 597,
+          598, 599, 600, 615, 616, 617, 618, 619, 620, 621, 622, 623, 626, 627, 628, 629, 630, 640,
+          641, 651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 676, 678, 679, 680, 681,
+          684, 685, 686, 687, 688, 689, 690, 691, 692, 698, 700, 701, 705, 706, 716, 724, 725, 750,
+          751, 752, 753, 758, 759, 761, 762, 763, 764, 765, 834, 853, 863, 864, 919, 920, 921, 922,
+          924, 925, 931, 973, 974
+        ]
+      },
+      {
+        "identity": "831e715257edeaa67c837193e018b5f9c333c97f5d6acd4a89d14e27417858a7",
+        "observedRootIds": [463, 794, 795]
+      },
+      {
+        "identity": "833f74fdb330dffd61343aff39f09209de6992dac4f0e34b955ee617f52a6fa9",
+        "observedRootIds": [98, 99, 104, 106, 705, 706, 1056, 1057]
+      },
+      {
+        "identity": "834a8f6fdcc600f0902a899e2b5669fd46883ac9c4cf9c3b2aa1436d3d00bc14",
+        "observedRootIds": [0, 2, 12, 298, 299, 326, 335, 717, 853, 863, 864]
+      },
+      {
+        "identity": "83aa58b8e955bf18f31b39c9bd9f2609b7a01fb08b5e153110741c590326ebdb",
+        "observedRootIds": [
+          14, 15, 31, 32, 33, 36, 37, 38, 39, 44, 45, 46, 157, 158, 159, 160, 163, 282, 323, 364,
+          365, 388, 421, 444, 463, 469, 470, 471, 504, 505, 509, 510, 515, 516, 517, 518, 601, 602,
+          603, 671, 672, 673, 682, 683, 684, 685, 686, 687, 688, 718, 719, 720, 721, 722, 723, 724,
+          725, 794, 795, 834, 835, 836, 932, 933, 984, 1218, 1219, 1220, 1221
+        ]
+      },
+      {
+        "identity": "83f061074677cf8a064a6d39082986b4463ae4ce1a90c5f2ce2bf787baa092be",
+        "observedRootIds": [85, 86, 1045, 1047]
+      },
+      {
+        "identity": "84364b72cb9ba7eff21c015e128c118c77403ca8fc4375522eeeaf7aad9e4555",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "84655dd6f1112176b8a27a82592fd93588c73da7ad35cd5cb42cd0331d3a2d0f",
+        "observedRootIds": [537]
+      },
+      {
+        "identity": "847f747ead5c3429a1f439024688824f1752538f04d8bf26a28740964fd96e50",
+        "observedRootIds": [529]
+      },
+      {
+        "identity": "84b9818e11de535a17fd2293cdd684617f414dedc5d78a5340e7b68a92d7a3c3",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "84c55865087b4f5956f198afc66cd02ee63ff527667891923d09673c2784767f",
+        "observedRootIds": [631, 950, 952, 953, 954, 955, 972]
+      },
+      {
+        "identity": "84f7b054a7609af30979101573d2c2cde3a56555b647becc3f5193f5373c149c",
+        "observedRootIds": [880]
+      },
+      {
+        "identity": "8506598ec1f140ecac048ccc0e4df02a1826a97723b1825fab60aefb87310870",
+        "observedRootIds": [638, 639]
+      },
+      {
+        "identity": "8575a43c320cbdf512fa7a646c2ff6e0421c29396ac84acab7a89f9631c8a766",
+        "observedRootIds": [
+          282, 323, 366, 367, 368, 369, 370, 371, 372, 373, 374, 378, 379, 387, 389, 390, 391, 396,
+          397, 398, 399, 400, 401, 402, 403, 405, 406, 407, 410, 411, 412, 413, 414, 415, 421, 424,
+          425, 426, 427, 428, 429, 430, 433, 434, 435, 436, 442, 443, 444, 446, 447, 448, 449, 450,
+          451, 454, 455, 456, 472, 473, 474, 475, 481, 482, 486, 491, 492, 493, 498, 499, 509, 510,
+          756, 757
+        ]
+      },
+      {
+        "identity": "858912ef20827301fc92618606693e11380eb184254c2a83c524f0b964224765",
+        "observedRootIds": [1171, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1188, 1189]
+      },
+      {
+        "identity": "85a775c20e0a629f1e54444dbd628d281fe336e0eb24b4e73fa2b37b7a993308",
+        "observedRootIds": [580]
+      },
+      {
+        "identity": "85d6982f6e3ca1cf2872ad33f18076a77dde4dfb1499d91120accb74091a5f7b",
+        "observedRootIds": [558]
+      },
+      {
+        "identity": "860590bc6966f5b2e8bf9607dad3181b5bd3a11e2cd71c3de98cf70455f459bc",
+        "observedRootIds": [533]
+      },
+      {
+        "identity": "8636007061a62b050086b865f5ea91572671e4b291c40555a71ceace649c577b",
+        "observedRootIds": [465, 466]
+      },
+      {
+        "identity": "86556baa6d2f463c8f56d5bfbea10ca89105b3b29cc64dfc924b1d0a75a6677a",
+        "observedRootIds": [
+          282, 323, 364, 365, 388, 421, 444, 718, 719, 741, 742, 743, 744, 745, 746, 747
+        ]
+      },
+      {
+        "identity": "865a2955aeea6508839fd0db5ec0d65ff95e56a6c3a6acc6235211b77c226be8",
+        "observedRootIds": [535]
+      },
+      {
+        "identity": "867199517da5a53f26d6a5bbdb4cd5a37a2152ebfaa5cd139ef712b491f486b2",
+        "observedRootIds": [533]
+      },
+      {
+        "identity": "869b55b13ef0bcb0a2cff27a647dc863a8fbffd318b1feebeadc70b50a40531c",
+        "observedRootIds": [561]
+      },
+      {
+        "identity": "86a0fda4ef0c14557584c89b8e4b401c950221bd5d003e1a5636cfabee74a1af",
+        "observedRootIds": [264, 265, 269]
+      },
+      {
+        "identity": "86a5289c6f726cc17f5bd8e729aa1f472387dd5f256ca3c869792454cb2e025b",
+        "observedRootIds": [562]
+      },
+      {
+        "identity": "86b2e13ba58bbf6aaa3f21a9403da400c87841b2252ed0b6500c97b0465c33a2",
+        "observedRootIds": [594, 595, 596, 597, 598, 599, 600]
+      },
+      {
+        "identity": "86b57a1aef623f3b11a9f62b1e5da7d3f11393895386c87bbc5b22ffb07fd540",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "86e7378d769369dcf46cc6acf6f28c3e49affd152dba7ff1af0460a895d4db37",
+        "observedRootIds": [
+          102, 103, 131, 132, 133, 134, 135, 369, 370, 371, 410, 411, 412, 413, 414, 415, 416, 417,
+          519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536,
+          537, 538, 539, 540, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556,
+          557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 570, 571, 572, 573, 574, 575, 576,
+          577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 702, 703, 707, 708, 709,
+          710, 711, 712, 713, 714, 715, 716, 989
+        ]
+      },
+      {
+        "identity": "873014c956ee50ecc283d1e546e96056f2ee0613983bd5ee52880119fed84349",
+        "observedRootIds": [829, 830, 831]
+      },
+      {
+        "identity": "873e684bc0951d8d6670244aae0dfdef8682758f60401fcf3102b01a8d5e8a47",
+        "observedRootIds": [936]
+      },
+      {
+        "identity": "875112339c6a5bb9028ec17eb0131991eb514a4fa0929f42f382ef18818b9828",
+        "observedRootIds": [664]
+      },
+      {
+        "identity": "8758aa52563ade0a1a98e590aa087d490d311d573c1c970da387019189bfc87d",
+        "observedRootIds": [284]
+      },
+      {
+        "identity": "881415439c7dc000cea09757e6c3618a73dea7eea0779b5b160a50cefb6b8b20",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "884b739503e45e786e5143a807c79ee027bba0b38bc3467532d698ac59b3d6ee",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "88900c9fc77b013aab8bfb4e44ff49c21598d728debfb9b784925d9a693d7381",
+        "observedRootIds": [1171, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1188, 1189]
+      },
+      {
+        "identity": "889b8f0d79f84d60f8a8f8bd9dbb03f21e5d8a243456a37124e8074a85c425de",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "88b738aea7f7bd8e3cce43a845b67e857efca4bd2ce65e95282bb6291ba39b90",
+        "observedRootIds": [1195]
+      },
+      {
+        "identity": "88f87430947d72bf9b75269df53e96c5527f45f4f989c64d8ecaa44b5169ce61",
+        "observedRootIds": [1153]
+      },
+      {
+        "identity": "88f8afefc9051037c811c28d071c3fc302648dadf24bfa837f9b8aa1f8522c82",
+        "observedRootIds": [157, 159, 160, 469, 470, 471, 724, 725, 1214, 1215]
+      },
+      {
+        "identity": "89134f7421d7d3a320fa2984bbf9f44f755ad22953f4b7ede37e32473cb15ec7",
+        "observedRootIds": [464, 467, 468, 796, 797]
+      },
+      {
+        "identity": "891cf9612849e103205e3f9627a633dee29b7e1cc1aa7466bfc88cbe2b05a102",
+        "observedRootIds": [432]
+      },
+      {
+        "identity": "891f3e93a3e2d817882d8b3287561759a5fc249b1ba1d5b1fef62490a0d98631",
+        "observedRootIds": [562]
+      },
+      {
+        "identity": "8942698d399756440aec221b30455f87f0a567ba11ae7a402953e542e550b911",
+        "observedRootIds": [28, 29, 30, 462, 675, 677, 765, 769]
+      },
+      {
+        "identity": "899044924cb01942e892c565019f93f1068d1593a57fdd8dc6bef73d92bda049",
+        "observedRootIds": [203, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 931]
+      },
+      {
+        "identity": "899630d3ccead5a9d1916de0d353ffe2e31b3cc43e5ea423946303e85a502e0d",
+        "observedRootIds": [
+          366, 367, 373, 374, 424, 425, 426, 427, 428, 429, 430, 463, 605, 606, 607, 608, 631, 777,
+          780, 781, 794, 795, 799, 800, 801, 802, 888, 889, 895, 896, 898, 899, 900, 901, 902, 903,
+          904, 905, 906, 907, 908, 909, 910, 912, 914, 947, 948, 949, 950, 952, 953, 954, 955, 972
+        ]
+      },
+      {
+        "identity": "89af878757cc4a80032d2e6c48b00eb1b1be3b7db82cbb08b309820c36ec101a",
+        "observedRootIds": [529]
+      },
+      {
+        "identity": "8a09e370f4e01142df44bf5a0d7a960485619e291936e7543888d31555006efe",
+        "observedRootIds": [369, 370, 371, 532, 540, 570, 571, 707, 709, 711, 712]
+      },
+      {
+        "identity": "8a1865b127fae0aa744f5f4907d8e98d4d7c0f482dffcbdd11172dc6bf03e55b",
+        "observedRootIds": [
+          16, 17, 18, 25, 26, 48, 49, 50, 51, 56, 57, 94, 95, 98, 99, 104, 106, 108, 680, 681, 689,
+          690, 691, 692, 700, 701, 705, 706, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1063, 1064,
+          1081
+        ]
+      },
+      {
+        "identity": "8a3106a240e7c91e1e35cd9e89512f2c4c236cb9c10f8fd0c25b58117e4bc815",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "8a3fdbf4b4ac65a702f521b13b2fa791693d39f7675403256dbabbad81e49127",
+        "observedRootIds": [1184]
+      },
+      {
+        "identity": "8a96bfd9e56a3cfb29d890b1ff332f7bff2383f75556c4927d80a5a0fe1aebf2",
+        "observedRootIds": [328, 329, 334]
+      },
+      {
+        "identity": "8a9f49e80d2350e7bbb333ba61cdfd2d31008307d6626c4010f5abea139d4a4b",
+        "observedRootIds": [515, 516, 517, 518]
+      },
+      {
+        "identity": "8af57425162c368db4d2ba4db586766ba5e7d43886b8854b35bd5c639e6dff5e",
+        "observedRootIds": [896]
+      },
+      {
+        "identity": "8b063a53f7810bae35b82c9cec46a391dd39d31580ef0b2a30e24c370483182a",
+        "observedRootIds": [531]
+      },
+      {
+        "identity": "8b1a6db7a08a5cc0744ca195175a7b382be83664bd2e02ec0aa22820d497ae10",
+        "observedRootIds": [264, 265, 269]
+      },
+      {
+        "identity": "8b1c60ebb9c861fa12928931263257787705847d37ab797977ffbe922613f417",
+        "observedRootIds": [535]
+      },
+      {
+        "identity": "8b1ed4eeef215e335b6a6f2e923b78258dba26cab370b3674786ec495b36cd96",
+        "observedRootIds": [1171]
+      },
+      {
+        "identity": "8b3986e5fa2359b90a2fb7d7284c5ed40d7c3d23f5331af1a78347c3ef342241",
+        "observedRootIds": [539]
+      },
+      {
+        "identity": "8b3db6b1bd6a2f3b57db6ac484eb082fbd4c902d24059edc57d88c1fe34b8a9a",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "8b59c65165644e46822f3108aaba2bd506a65a6d5ffeaed59fe51d0dd3c69a64",
+        "observedRootIds": [560]
+      },
+      {
+        "identity": "8b6ed4d464058e9b6c1d2f6733f1dc4a59ee9d0f4746d621c29aa893d29e0418",
+        "observedRootIds": [1141]
+      },
+      {
+        "identity": "8b9616fb705319d61bd0d1985496b92cb56900f88ff114a0a0956aa16428a9e2",
+        "observedRootIds": [148, 1156]
+      },
+      {
+        "identity": "8bad006209406c43eff692c6b6fd376f34c57d3537d373c226dcfe30344e5afb",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "8bcbd6f1a26140ce51bd8f688582c54d3d312d5a67e661d0a58a6f19babd1a57",
+        "observedRootIds": [895]
+      },
+      {
+        "identity": "8bd569fc019623939f62f1c02e309e56bf6b52487c3ada9ad6d96ad9342a660f",
+        "observedRootIds": [506, 507, 508, 509, 510, 834]
+      },
+      {
+        "identity": "8beb5a55d095ad4caa8ffefa09780a7019b5cbd1c002e5640e531310c72546a4",
+        "observedRootIds": [1141]
+      },
+      {
+        "identity": "8bffb95105dbaef83c60246d9fdc7dbb292eedeae029b48878615f2a4a5626cd",
+        "observedRootIds": [852]
+      },
+      {
+        "identity": "8c0964a33fa666e87a7e162b7b33f962d7808f0a9cb671a84f9b2f127581d980",
+        "observedRootIds": [
+          651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 662, 667, 668, 978, 1167, 1168, 1170,
+          1171, 1172, 1180, 1181, 1182, 1183, 1184, 1185, 1186, 1187, 1189, 1190, 1191, 1203, 1204,
+          1205
+        ]
+      },
+      {
+        "identity": "8c23e21f198c478dd1ffdc706fb7b5800a9fed5c4e217a738ed94e71796b1ce7",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "8c3312d2f95e7e946b81de38d25307eeb32d0410eb4b4444115dff5a3f296f04",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "8c743e7d02082e33f939f45d9eb9033263b72d4f8e83052737c8b35e67a1a07a",
+        "observedRootIds": [203, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 931]
+      },
+      {
+        "identity": "8c83c3e48617dec9cc02cb82e141def902f5254cec3e808150c1c72312f3dee2",
+        "observedRootIds": [203, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 931]
+      },
+      {
+        "identity": "8cc52a0f07b39492f3d47bb3f503c454c0262ed7e813d98a63ff08a59d4cf02a",
+        "observedRootIds": [888]
+      },
+      {
+        "identity": "8cfa3d66f22f6b862f884aeb8b36cba1e77e82c65ab057c55e8ad35384eb887c",
+        "observedRootIds": [1142]
+      },
+      {
+        "identity": "8d6bf6d62c35cd166230030461daf62577f47ed285f14029804b792fe5e95b62",
+        "observedRootIds": [1162]
+      },
+      {
+        "identity": "8d9526b0f97ae697d0dfa9c6e6c22800345fe8b6395faf234328dceaa60a370c",
+        "observedRootIds": [269]
+      },
+      {
+        "identity": "8da5e4549c7f9ae1aec02b0d039e7d048f50d7216a1aad866e512d4ceea4a365",
+        "observedRootIds": [533]
+      },
+      {
+        "identity": "8dab65401afc5dd6dca97a045eaf3be37b4f2c0562a9a856bd724fd30a55adba",
+        "observedRootIds": [895, 898]
+      },
+      {
+        "identity": "8dfdaa4ddba4e89b4ba8199ce1e8de3358b04e810b59538327f0ec688873f11a",
+        "observedRootIds": [547]
+      },
+      {
+        "identity": "8e1e76d64565c8efb494d00bc4c0b763d7a3b0b7e97f304b417f7f0cc7aeab19",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "8e30c0bd7bbfbe36e2231c6daeee6fd3bd2fdb195306e96cd912eaa2999cf644",
+        "observedRootIds": [1212]
+      },
+      {
+        "identity": "8e4573692dd1eb796f409a6a157aeb9b2d026291d1ae150d1590cea2a545f00f",
+        "observedRootIds": [486, 491, 492]
+      },
+      {
+        "identity": "8e55e1ecb7d7d2d3d6d26f28993f61783419c5422ccd079b84074baa3fc51fc3",
+        "observedRootIds": [67, 68, 69]
+      },
+      {
+        "identity": "8e63c581852115abce6932a9bf4d0200ab239810465aed79c26057c0286bdccf",
+        "observedRootIds": [582]
+      },
+      {
+        "identity": "8e64727f88351102eaab001c8dcd9c39d07ee682cfdbd732e6a262c2d6b48055",
+        "observedRootIds": [1153]
+      },
+      {
+        "identity": "8e6b6366079e274c409fe481ad0fe49c34feaba3684d3649e8abb5def8752eb0",
+        "observedRootIds": [1162]
+      },
+      {
+        "identity": "8eb7f417ffeeb1b3f8948fd1f76e7eef2068694a32a26775a5df17f1be959397",
+        "observedRootIds": [544, 545, 546, 547, 549, 552, 553, 554, 556, 557, 560, 561, 562, 566]
+      },
+      {
+        "identity": "8ed896ee9aacc0cd322b88ebf3d907427fe07e0cfb18eb02b85a69d2234a6346",
+        "observedRootIds": [246, 247, 248, 252, 405, 406, 407, 750, 751]
+      },
+      {
+        "identity": "8eff8f1547fa2cd329dad7d028406561e82fac11c221aac138affb696ab68e51",
+        "observedRootIds": [85, 86, 1045, 1047]
+      },
+      {
+        "identity": "8f7273fa12336e958270e56edce244c48b4ab6405c73879a43f9e7325d3783e3",
+        "observedRootIds": [1126]
+      },
+      {
+        "identity": "8f917a0fc4fba72c184e0809d5fe25ec90145c0155ef0010473e15087f501a17",
+        "observedRootIds": [89, 398, 399, 400, 401, 402, 403, 704]
+      },
+      {
+        "identity": "8ff4d47184992f157fc55234898a34b3416ea161c60b0314609194e22b94d7f7",
+        "observedRootIds": [
+          131, 132, 133, 134, 135, 369, 370, 371, 410, 411, 412, 413, 414, 415, 416, 417, 519, 520,
+          521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538,
+          539, 540, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558,
+          559, 560, 561, 562, 563, 564, 565, 566, 567, 570, 571, 572, 573, 574, 575, 576, 577, 578,
+          579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 702, 703, 707, 708, 709, 710, 711,
+          712, 713, 714, 715, 716, 989
+        ]
+      },
+      {
+        "identity": "9004386d603a0b09bae9d1ed13e2149eb55bbd03bf6d08f16ea097ed77e0b00e",
+        "observedRootIds": [1142]
+      },
+      {
+        "identity": "90353eba611b1756a535a8e998f624de06ebaff78f016c48aa1c79e943f67a9d",
+        "observedRootIds": [
+          148, 494, 495, 651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 838, 839, 840,
+          841, 842, 843, 844, 845, 846, 848, 1153, 1154, 1156
+        ]
+      },
+      {
+        "identity": "904ddfc98ed3c686b66b85bf753bce23dec89dcb31949a2acd7fc8cc649af3b3",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 1218, 1219]
+      },
+      {
+        "identity": "90a53ff54f1fef3143a4095206319727df128a7ef3e7907a7b46ec3d8a6b8fd1",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "90b6b95b73d6bb9b73c8a5b6dcdda66d5d312b3e84853a08c4c5e6794f4ba0e6",
+        "observedRootIds": [829, 831]
+      },
+      {
+        "identity": "90d7d39fe5f2859253ab9430b30d2471aba96876d9de43bca1df09e345842176",
+        "observedRootIds": [515, 516, 517, 518]
+      },
+      {
+        "identity": "9143427414da5e1afdabe635825f32b9c41c066a8109285426163820e788b454",
+        "observedRootIds": [1096]
+      },
+      {
+        "identity": "91697b31fc57ea932b5c5950f28502bee376f853b86400560756a6941629a54f",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "91867c257135c3009f85e2aefcff892c523bb69e5da68148aec0ecddc563393a",
+        "observedRootIds": [
+          96, 98, 102, 103, 110, 111, 366, 367, 716, 877, 878, 879, 880, 881, 882, 1059, 1060, 1065,
+          1066, 1067, 1068
+        ]
+      },
+      {
+        "identity": "91a6fd30130a0444143a43a3996c45eba8ea6c2ca0535290a2b4f4a7057cd4dd",
+        "observedRootIds": [
+          16, 17, 18, 25, 26, 48, 49, 50, 51, 56, 57, 94, 95, 98, 99, 104, 106, 108, 203, 210, 211,
+          212, 424, 425, 426, 427, 428, 429, 430, 463, 680, 681, 689, 690, 691, 692, 700, 701, 705,
+          706, 758, 759, 761, 762, 763, 764, 782, 787, 788, 789, 792, 793, 794, 795, 803, 804, 805,
+          806, 809, 810, 811, 931, 1049, 1050, 1051, 1052, 1053, 1054, 1055, 1056, 1057, 1061, 1062,
+          1063, 1064, 1073, 1074, 1075, 1076, 1077, 1078, 1080, 1081, 1085, 1087, 1088, 1089, 1090,
+          1112, 1113
+        ]
+      },
+      {
+        "identity": "91aca07739b753f9e1ef9e968f8861e100d1013ac6fdde3818d8827d965ae1ab",
+        "observedRootIds": [626, 627, 628]
+      },
+      {
+        "identity": "91c990cb03f5e304af7c0df24f2c96de53229ae3f686aaf01e702d3a78b84caf",
+        "observedRootIds": [216]
+      },
+      {
+        "identity": "91de5b5dc581ca602515cba596afd4a727880e6e868d269d8df504e323718a32",
+        "observedRootIds": [274]
+      },
+      {
+        "identity": "920de2a5748750d5d15409f30257bce3680435a9803304a3a347422842975232",
+        "observedRootIds": [1123]
+      },
+      {
+        "identity": "92395e392946f746fb3fab467f5e972dc18b5af5ba56a85c6d0d18f2c7d7e0ff",
+        "observedRootIds": [561]
+      },
+      {
+        "identity": "92535450bae31eae80f2b607f601a07013c71031e86b5435f1b5bbaf63dd4723",
+        "observedRootIds": [144, 145, 146, 147, 327, 861, 862, 866, 868, 869, 870]
+      },
+      {
+        "identity": "9269098f0dff70760073d193c86bcb8aee6a31bec1a37792f5332024e45c5782",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "92727ff4706560bcd44b9cdbce86495e0cf5170ad94b172cc1fd0f249eb5f578",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "92ab2f55c1acd02d40d759a58a1745e76d94b1cb3e99bb54aca22d1a309c62c3",
+        "observedRootIds": [214]
+      },
+      {
+        "identity": "92c18a30612100bdd93ecb8f70566915dc9a9ed07b2f7b46ff4741306733d9c8",
+        "observedRootIds": [1192]
+      },
+      {
+        "identity": "92d99bba9b53bd171ac24591f84359524c418b611671dc4cc09f41e304f641c7",
+        "observedRootIds": [155]
+      },
+      {
+        "identity": "9313dc8c9cf63348b93135cd3b35bfca66abdc9c9d4e040b30d60d02ae35dc56",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "933dd4bcea1b4499ac407fa7bca30dec9891f855d878519e78673bedf16e3ec9",
+        "observedRootIds": [246, 247, 248, 251, 252, 405, 406, 407, 752, 753]
+      },
+      {
+        "identity": "935646dbaa895f7c69a22ffb1d477b4fdf1f84c6b21e343b64a9c0305909e0a8",
+        "observedRootIds": [275]
+      },
+      {
+        "identity": "9388f0681c606eff8a48c04393ded41479d780ddd2fc0fe4ec566bf739c15429",
+        "observedRootIds": [559]
+      },
+      {
+        "identity": "93a50bcd583378f8189690f0b0aaaa91f57f96d03b906f4525d3fc117020adb9",
+        "observedRootIds": [702]
+      },
+      {
+        "identity": "93c44fe39b0ba9de5002f3f0b41d5ed2384b6decb6d21b5a0e2238f9bfb5a737",
+        "observedRootIds": [
+          328, 329, 334, 348, 349, 396, 397, 494, 495, 842, 843, 844, 845, 846, 865, 866, 919, 920,
+          921, 922, 924
+        ]
+      },
+      {
+        "identity": "942c583ce855fedee33b70900681fe9c718ec24e9fa1081c588a86ef743b32aa",
+        "observedRootIds": [0, 2, 7]
+      },
+      {
+        "identity": "94416d4b5063640fd4dffd034172f1b9c5961cde9324d857a127445f05abbea4",
+        "observedRootIds": [102]
+      },
+      {
+        "identity": "945c3b7cdcc2bd293e2f2dc400635f3dc7502bbcee7147e6202d90e8f5624946",
+        "observedRootIds": [90]
+      },
+      {
+        "identity": "946308257c5e8d6af7c2db7d6c5a3e3998683834e2ccae0c50e60ae0c3b36960",
+        "observedRootIds": [1123]
+      },
+      {
+        "identity": "948e2b86f3a4e39ea35b8c6c504a380be72f3c6cb496d9c97e922b10587b987e",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "949db055b50f510dd30b7a69e7bb40ae4bafe53ec0fb5a0783a95adcdbd29b59",
+        "observedRootIds": [246, 247, 248, 252, 405, 406, 407, 750, 751]
+      },
+      {
+        "identity": "94e6b2b4254f701777230e09e13470f2e15beaa6ca290f249b0f7640cea29418",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "956f66c29e000e7547f555cbb2db78a6955e2d3ec6cd190fc0f73963454615ff",
+        "observedRootIds": [173, 1123, 1133, 1137, 1138]
+      },
+      {
+        "identity": "95951aa7c3df56401bf077f2002618325acb0de436afda31f639e72650ac6370",
+        "observedRootIds": [1199]
+      },
+      {
+        "identity": "95990d40c84e7ff96c046f79937759b6f091e1093b47939ddf5623c7241b1cd0",
+        "observedRootIds": [664]
+      },
+      {
+        "identity": "95bb07b28bb5786d28748f0117ee2e869960135fa8bac836cc1448d0a9af916d",
+        "observedRootIds": [1190]
+      },
+      {
+        "identity": "9612ca6f3c71bba35af9630a646cfb9d2a5aa3e9c4c5cac989a60efec005c912",
+        "observedRootIds": [598]
+      },
+      {
+        "identity": "96441fd020c486e2b0834860639b0d80fb2d58a6916e65dcd35cd0cd7bf5d0f7",
+        "observedRootIds": [
+          94, 203, 210, 211, 212, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 763, 764,
+          931, 1085, 1087, 1088, 1089, 1090
+        ]
+      },
+      {
+        "identity": "9672d7b4b6ff2b9231bfcf15a49f02b45eaf9f9af4226bb9a748c6f29f3caa56",
+        "observedRootIds": [366, 367, 877, 878, 879, 880, 881, 882]
+      },
+      {
+        "identity": "967acdea5fc255b3d98d9293a9c5c93bfebe30c955dae07d31c035d31208403c",
+        "observedRootIds": [36, 38, 39, 46, 515, 516, 517, 518, 684, 685, 686, 687, 688, 1220, 1221]
+      },
+      {
+        "identity": "969d49208fccb4e309b2610189109dd60d3266a83fa4893364598bfde1078d6f",
+        "observedRootIds": [85, 86, 1045, 1048]
+      },
+      {
+        "identity": "96d8b2f430f9ff0f1647fade25de3cb26bcfc8fa7132a61c81f76ca7577c4915",
+        "observedRootIds": [651, 652, 653, 655, 656, 657, 658, 659, 660, 662, 667, 668, 1167, 1189]
+      },
+      {
+        "identity": "971913a2c2e3c0488c62743f1bbb7c0474b8b6ec739d5fee3003a5cd489979a5",
+        "observedRootIds": [284]
+      },
+      {
+        "identity": "97243424f90863945433fe79d68c33e0fede8bd99c6928dff1623badde714736",
+        "observedRootIds": [1185]
+      },
+      {
+        "identity": "976196587c59afdae55f238b13080dd051d3f7fd6006ea6b488bd055440cc745",
+        "observedRootIds": [1171]
+      },
+      {
+        "identity": "97b8cb4fbedfc7e5e4864aca1647739be43329b403a4b43462eedf1f42ae38ba",
+        "observedRootIds": [
+          131, 132, 133, 134, 135, 369, 370, 371, 410, 411, 412, 413, 414, 415, 416, 417, 519, 520,
+          521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538,
+          539, 540, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558,
+          559, 560, 561, 562, 563, 564, 565, 566, 567, 570, 571, 572, 573, 574, 575, 576, 577, 578,
+          579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 702, 703, 707, 708, 709, 710, 711,
+          712, 713, 714, 715, 716, 989
+        ]
+      },
+      {
+        "identity": "97d40b57256aaa4a82603212e9e3933896446627575480823a26206b38174c3b",
+        "observedRootIds": [1186]
+      },
+      {
+        "identity": "985708daad316f5cd74630a486f04abf031af5a63e562edb8725537c16a5d75e",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "9867181fd70685d2f11a768ac3deb6f9f33ff76512bd3034a2b93ede4095d7eb",
+        "observedRootIds": [214, 215, 396, 397, 919, 920, 921, 922, 924, 925]
+      },
+      {
+        "identity": "989879dd1299d6dd60e96c26afcf48f1fab3b6df3e9d8d1ab3be5180b4729ef5",
+        "observedRootIds": [555]
+      },
+      {
+        "identity": "98cb88db42e6b2b3fecc7c5e243f810a80074206daf7162d9d6af72d42ab3157",
+        "observedRootIds": [896]
+      },
+      {
+        "identity": "98d4ff4affb7089a1d3de8e210eac5f5e7b8e034681f2fb011ec46a777b64db7",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "99103573a00ed247bc64d53dd36834a24f5b18b432543f656fc302eac34b96f6",
+        "observedRootIds": [896]
+      },
+      {
+        "identity": "9913f11bb21c81710d4ed9cddb2c0b57931c1efe87f6e9099f2a73b9fbdbaa65",
+        "observedRootIds": [1218]
+      },
+      {
+        "identity": "996e9c2441bf284e9b60508e55b738371051dee43142f3f22b0684fbb7db0e95",
+        "observedRootIds": [944]
+      },
+      {
+        "identity": "9a2bc0213b590c03d2ae9030456150b7b3cebb2895193cfe2faf880ccdc6f595",
+        "observedRootIds": [1196]
+      },
+      {
+        "identity": "9a35d8f49f67b4344f583c702b43b41da33249bac30ce2400d2655fedd7e6668",
+        "observedRootIds": [783, 789, 807]
+      },
+      {
+        "identity": "9a43ad999a34321134e1ff0b4e823730d5233c143fd0fe9ebc311695ffa4363c",
+        "observedRootIds": [321, 322, 859, 860]
+      },
+      {
+        "identity": "9a633a4cc115a4cb983f2c1133e09a4fcf0c00ffdbcb70551821208d239891ca",
+        "observedRootIds": [278, 279, 337, 854, 855]
+      },
+      {
+        "identity": "9a9d94463b93dbfd4a9077c66be277c1ef6b7f1399802e077c79f9124c43c120",
+        "observedRootIds": [1210]
+      },
+      {
+        "identity": "9aa950fb7a15bc0b392d9ada01a40496ac191d291e4d179b2ef86f5951fe2c8f",
+        "observedRootIds": [343]
+      },
+      {
+        "identity": "9ac51b4c980055ba70df2920cb8d4f2704754f02e89125dbb4136869b55269e1",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 1218, 1219]
+      },
+      {
+        "identity": "9ac9f235b1d421a1a80f1ff9c10a7fab918a9f7d91cb93e328263b224b5d1939",
+        "observedRootIds": [36, 37, 38, 39, 44, 45, 504, 505, 509, 510, 834, 835, 836, 984, 985]
+      },
+      {
+        "identity": "9ad36e9ffcc7d02c060d46c146cd5627146198ebb08be8604434d1331e89d86e",
+        "observedRootIds": [90, 91, 92]
+      },
+      {
+        "identity": "9ad82ba0a8ad6f5ac80ca9eaffc259d958ece97c7194b454dac7d3ecd2c2ad30",
+        "observedRootIds": [1109]
+      },
+      {
+        "identity": "9af8dd5e8e091766615ec61fbb6eeb3f94b275dec507623656ae7612e7117b25",
+        "observedRootIds": [273]
+      },
+      {
+        "identity": "9b5abf6d0c803efbfbc8becf1c7858669cd229bd737bba0218428401f3c89e2f",
+        "observedRootIds": [626, 627, 628, 629, 630]
+      },
+      {
+        "identity": "9b5bfd4763b35ad43105dbff01c3f882f2d5faac32c4d4dd4349618109d9b42d",
+        "observedRootIds": [640, 641]
+      },
+      {
+        "identity": "9b775d15f69dc853bbb8f1ae0feaf839c084c598d3680a96b48f907c77703271",
+        "observedRootIds": [
+          102, 103, 107, 369, 370, 371, 532, 540, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716
+        ]
+      },
+      {
+        "identity": "9c619153240849bf5c0d8cea187f442d822c05c2960fa54a31d4d545417e48e4",
+        "observedRootIds": [571]
+      },
+      {
+        "identity": "9cab7e8caa7e2e57d0ef3bddaa442d3ab500ba2c864bba2303d97f01dabbd813",
+        "observedRootIds": [1181]
+      },
+      {
+        "identity": "9ce00f180a23e4f28fa4b74dac10c77bcff5ada97b11164731ce17927f4aa7db",
+        "observedRootIds": [663]
+      },
+      {
+        "identity": "9d0d0edad39095e7c7cfddcea18088f83994984711455ee040d83da43d938a5e",
+        "observedRootIds": [
+          203, 208, 209, 424, 425, 426, 427, 428, 429, 430, 758, 759, 761, 762, 931
+        ]
+      },
+      {
+        "identity": "9da5e91c4b01ab9adbb87536dc2dbf82a50e82cf6cd3a666e15ec6295bbb25cd",
+        "observedRootIds": [
+          128, 129, 130, 369, 370, 371, 532, 540, 541, 542, 555, 568, 569, 570, 707, 709, 711, 712
+        ]
+      },
+      {
+        "identity": "9de8e1e1dc56da848ea2edbd0efbe01246f5b945196fc7a8c2c92464e52d523d",
+        "observedRootIds": [
+          219, 220, 221, 222, 227, 228, 229, 230, 231, 232, 233, 234, 235, 378, 379, 381, 382, 383,
+          384, 387, 446, 447, 448, 449, 450, 451, 452, 454
+        ]
+      },
+      {
+        "identity": "9e181f795bd55af0c7cefae255fc81a91778efe32867f86c9f141d3908d3779d",
+        "observedRootIds": [346, 347, 852]
+      }
+    ]
+  }
 }

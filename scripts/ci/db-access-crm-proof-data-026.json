@@ -1,0 +1,140 @@
+{
+  "kind": "sources",
+  "value": {
+    "apps/web/src/actions/claims/draft.core.ts": {
+      "mode": "100644",
+      "bytes": 875,
+      "sha256": "ed8c960f5205cb9e43a47880f8714960b213efa4632a620b9a35db8af62717d9"
+    },
+    "apps/web/src/actions/claims/draft.ts": {
+      "mode": "100644",
+      "bytes": 119,
+      "sha256": "2d95b501aad61bb6937e7f37d818a36c13e30ca6f4ccb22ae20f02a892b42736"
+    },
+    "apps/web/src/actions/claims/draft.wrapper.test.ts": {
+      "mode": "100644",
+      "bytes": 1472,
+      "sha256": "4d2e8d2c6b5439d2fb3c1b5759b1985729b318a9988d3927b26928f6fdd58c05"
+    },
+    "packages/domain-claims/src/admin-claims/status-transition.test.ts": {
+      "mode": "100644",
+      "bytes": 5463,
+      "sha256": "6656b111961afd264566c067186ad88cd573fb181894ed6f97252e7f6383bca1"
+    },
+    "packages/domain-claims/src/admin-claims/status-transition.ts": {
+      "mode": "100644",
+      "bytes": 3004,
+      "sha256": "d9a7f362c9aa8fcb9114955ac73310fc6bba21bcd3b88f65fe90add31c14cfb5"
+    },
+    "packages/domain-claims/src/admin-claims/update-status.payment-auth.test.ts": {
+      "mode": "100644",
+      "bytes": 1343,
+      "sha256": "681a6cbdc29482ec46519b05c4389a7ddbcc77aa55574f1f427233f062f4485b"
+    },
+    "packages/domain-claims/src/admin-claims/update-status.test.ts": {
+      "mode": "100644",
+      "bytes": 3529,
+      "sha256": "1fa528b427181fae797a620a54e570471b39e12d6364f40a001769077d1288be"
+    },
+    "packages/domain-claims/src/admin-claims/update-status.ts": {
+      "mode": "100644",
+      "bytes": 3451,
+      "sha256": "24ccd9b3d56ba37942174c8cb9ca51d6abff0f7046624d5b9a99f8df22fd95e3"
+    },
+    "packages/domain-claims/src/agent-claims/update-status.test.ts": {
+      "mode": "100644",
+      "bytes": 4319,
+      "sha256": "1a2e17cae55cc9368b8d6583323e3c0d587712c8c31832bed9a5222f074e43da"
+    },
+    "packages/domain-claims/src/agent-claims/update-status.ts": {
+      "mode": "100644",
+      "bytes": 3389,
+      "sha256": "1aeeb853b563541771dc9f9f1473e54c4b6f35789bbe16c3c3f2d7cb52af2e32"
+    },
+    "packages/domain-claims/src/claims/draft-cancellation.ts": {
+      "mode": "100644",
+      "bytes": 2813,
+      "sha256": "8200594d0a4e110eb0f0fbd9903b980a267d4b57577d6626db4bbf93b5ed6d04"
+    },
+    "packages/domain-claims/src/claims/draft.test.ts": {
+      "mode": "100644",
+      "bytes": 4235,
+      "sha256": "33b7a806a3bf3cd5d7e00dae51b4858b5b1f44e85c4ff28edf71a7eb22a61dfc"
+    },
+    "packages/domain-claims/src/claims/draft.ts": {
+      "mode": "100644",
+      "bytes": 3343,
+      "sha256": "b8b8af678ff26221b8c090d8348d6d55a2d8498a18dbd9b48169f7b5b8e9b378"
+    },
+    "packages/domain-claims/src/claims/lifecycle-state.test.ts": {
+      "mode": "100644",
+      "bytes": 5114,
+      "sha256": "5ef1376041e1219201967eec98d4df2dcf9b990045d6b0a0246c816cca638278"
+    },
+    "packages/domain-claims/src/claims/recovery-state-machine.test.ts": {
+      "mode": "100644",
+      "bytes": 4966,
+      "sha256": "94e9aff0607b9c09d14a280726b44d499c2dc50a75593bef87e9d49e8f750ab3"
+    },
+    "packages/domain-claims/src/claims/status.test.ts": {
+      "mode": "100644",
+      "bytes": 5030,
+      "sha256": "3b540b2d31dc71f7180c98ee47c6ced932487a50c8b878de33331ea86f3f3d1d"
+    },
+    "packages/domain-claims/src/claims/status.ts": {
+      "mode": "100644",
+      "bytes": 4206,
+      "sha256": "c6f6bf4f3171ad4c646289ebeb444b7e8de79f226a7ac0a48b8fdcb28579609d"
+    },
+    "packages/domain-claims/src/claims/transition-authorization.compile-fail.ts": {
+      "mode": "100644",
+      "bytes": 2279,
+      "sha256": "83195850b336b53f9c2c0ba0d04d59cab364b072ac3352e293db4aaa526a2203"
+    },
+    "packages/domain-claims/src/claims/transition-authorized-hook.test.ts": {
+      "mode": "100644",
+      "bytes": 3523,
+      "sha256": "ce51569b53f7b21332a13b4274465f94471d0f09660511350e1407907114248a"
+    },
+    "packages/domain-claims/src/claims/transition-events-test-support.ts": {
+      "mode": "100644",
+      "bytes": 3745,
+      "sha256": "aa321df2b31a64d6b62663d5110564c2aa2263ce6ad1e3ded1ac13a4ccafb754"
+    },
+    "packages/domain-claims/src/claims/transition-events.test.ts": {
+      "mode": "100644",
+      "bytes": 2489,
+      "sha256": "d4c7f9b538571efd6bd951b9f4bd39037cea1be74bbcb3939540322c5565d34c"
+    },
+    "packages/domain-claims/src/claims/transition-evidence.test.ts": {
+      "mode": "100644",
+      "bytes": 4955,
+      "sha256": "e0383535c146ae280519edf13658b07455d88e17d777ba33c4435406e72a78a8"
+    },
+    "packages/domain-claims/src/claims/transition-lifecycle-cas.test.ts": {
+      "mode": "100644",
+      "bytes": 4358,
+      "sha256": "b67f33b3e4b3faf5cd2b63cca0f1c1b73179e1d40adaca5d5f7d36d1e255a39d"
+    },
+    "packages/domain-claims/src/claims/transition-rejection.test.ts": {
+      "mode": "100644",
+      "bytes": 4345,
+      "sha256": "9ae40a581addf7b7fbb239e620baab3a11a3e72a24241b7821a4bb8fd5738477"
+    },
+    "packages/domain-claims/src/claims/transition.test.ts": {
+      "mode": "100644",
+      "bytes": 6125,
+      "sha256": "a1ce8d8ef2d0a4809353b0e33327a516d09a14609f4b5397efaf9a6333bda2e4"
+    },
+    "packages/domain-claims/src/update-claim-status.test.ts": {
+      "mode": "100644",
+      "bytes": 5354,
+      "sha256": "d0adade92ba99432a849542b84b48432f1b731ce29f605ab6ce7e08c0d0aa1d5"
+    },
+    "packages/domain-claims/src/update-claim-status.ts": {
+      "mode": "100644",
+      "bytes": 3444,
+      "sha256": "9427531d22bd7de9bc6124626a0b63018aa785f75880c01a6d4843df65a5f37d"
+    }
+  }
+}

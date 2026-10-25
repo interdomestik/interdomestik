@@ -9,8 +9,8 @@
     "runtimeAdmission": false,
     "inventory": {
       "scannedCount": 7654,
-      "newCount": 3650,
-      "newEntriesDigest": "0ccc06397167d75b72a300e751204b096ad0b923c587fd36ab9af774f099943e"
+      "newCount": 3723,
+      "newEntriesDigest": "ea542ab378d085ff488d98364bc45033925803b8c2ff001e3da66fb8307e20a3"
     },
     "witnesses": { "mountEvidence": { "version": 1, "analysisIncomplete": true } },
     "runtime": {
@@ -2855,9 +2855,9 @@
   },
   "mountEncoding": {
     "version": 1,
-    "rootCount": 1193,
-    "operationCount": 1642,
-    "expandedDigest": "f1140441265ea5f91804d08708f0fc2eed867fe0a88ad60e77c04313390e11e6"
+    "rootCount": 1223,
+    "operationCount": 1649,
+    "expandedDigest": "65bcf0860ed3c7c03d60d7e65c324650e86008322e5838b911294afc12c259bb"
   },
   "shards": [
     "scripts/ci/db-access-crm-proof-data-000.json",
@@ -2882,6 +2882,10 @@
     "scripts/ci/db-access-crm-proof-data-019.json",
     "scripts/ci/db-access-crm-proof-data-020.json",
     "scripts/ci/db-access-crm-proof-data-021.json",
-    "scripts/ci/db-access-crm-proof-data-022.json"
+    "scripts/ci/db-access-crm-proof-data-022.json",
+    "scripts/ci/db-access-crm-proof-data-023.json",
+    "scripts/ci/db-access-crm-proof-data-024.json",
+    "scripts/ci/db-access-crm-proof-data-025.json",
+    "scripts/ci/db-access-crm-proof-data-026.json"
   ]
 }
