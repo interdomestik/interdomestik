@@ -838,8 +838,8 @@
     },
     "apps/web/src/actions/messages/send.ts": {
       "mode": "100644",
-      "bytes": 1311,
-      "sha256": "b4012780182bfad6d053abc9c843944919bfa75d909e37c96217bd47831bbdab"
+      "bytes": 1421,
+      "sha256": "0d1c0a6a55113c1b264bc6934d151182b365f7f27e2b976d499f1334798ea797"
     },
     "apps/web/src/actions/messaging.core.ts": {
       "mode": "100644",
@@ -1343,33 +1343,33 @@
     },
     "apps/web/src/app/[locale]/(agent)/agent/claims/_core.test.ts": {
       "mode": "100644",
-      "bytes": 5137,
-      "sha256": "f263420384382fe38dbc5400257eeebc144ca6f95232941c9c325c101f1396b8"
+      "bytes": 9429,
+      "sha256": "725c5e3ef05f36422f2701f8d3e3a67ff5c9e65809f3800ee4f0bf7f9028a2b8"
     },
     "apps/web/src/app/[locale]/(agent)/agent/claims/_core.ts": {
       "mode": "100644",
-      "bytes": 4118,
-      "sha256": "2c62f302c67d7932cdab4b9bce466f221341a163571ba821b41a1a66521eb478"
+      "bytes": 4333,
+      "sha256": "7e262a912fde38ff7510d13cb70b152f8f0ea3ee4d2c0c616f0bc7d8c3cbcb20"
     },
     "apps/web/src/app/[locale]/(agent)/agent/claims/page.tsx": {
       "mode": "100644",
-      "bytes": 3984,
-      "sha256": "133ab435660af65f48961a25656a2691c805f08483b3710d8e8dc1601f665586"
+      "bytes": 4589,
+      "sha256": "fdd84040e8860e154196d6a2155a6883ec302112523b9b0a7b92a340298f838e"
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_claim-summary.ts": {
       "mode": "100644",
-      "bytes": 1783,
-      "sha256": "6ebbba93b3bfba3c1596b040bec5e9dfb9cf4dd502bc40d6988fcabbeba7e756"
+      "bytes": 2022,
+      "sha256": "e39c45548ec98ff0c425bc22c7225732e92ff5e076b9aecac4c97b76afd489d4"
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_core.test.ts": {
       "mode": "100644",
-      "bytes": 7604,
-      "sha256": "16a372a818a5dcaa6dab03c4171d3123679cc7b26163807f64115302e08caefd"
+      "bytes": 10811,
+      "sha256": "682751c9f9c9aa0d271a63908b8831f04d0166481e323299fe6544933d4b0717"
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/_core.ts": {
       "mode": "100644",
-      "bytes": 5149,
-      "sha256": "cc18c3e345148a1e95123044561679119475ea91f41d076e32147d07d9147e06"
+      "bytes": 5525,
+      "sha256": "468661c787fc448d578baa1bc991550fdd932ce5ddc740e6a7d3c7a6aa94b09f"
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/components/agent-card.tsx": {
       "mode": "100644",
@@ -1403,8 +1403,8 @@
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/[id]/page.tsx": {
       "mode": "100644",
-      "bytes": 333,
-      "sha256": "d2fbb164a941c478ebe6ceb63819621ce3edc4f9ef3a3b1c114cdc064f365cb9"
+      "bytes": 1066,
+      "sha256": "5aaf47440419f6a5f4c46ada0a5bf92e30d8078f4dd88d7aeedb2a86095d33bc"
     },
     "apps/web/src/app/[locale]/(agent)/agent/clients/_core.entry.test.tsx": {
       "mode": "100644",
@@ -1618,13 +1618,13 @@
     },
     "apps/web/src/app/[locale]/(agent)/agent/workspace/claims/page.test.tsx": {
       "mode": "100644",
-      "bytes": 1384,
-      "sha256": "090ed79c95a3b6cafba4199504ae82f97703408c285cac896b1e80f07d103f3f"
+      "bytes": 7094,
+      "sha256": "43c02f9876448a6cca51d7bf6a6ff2e6f45e4aaed3a4285f3c95d1c32d6467b6"
     },
     "apps/web/src/app/[locale]/(agent)/agent/workspace/claims/page.tsx": {
       "mode": "100644",
-      "bytes": 1889,
-      "sha256": "6ad2580c6cd4382798baaa609931c95e218ab576f500892832bb6d02ae8605bc"
+      "bytes": 2586,
+      "sha256": "810e7679762543a945fe8abab2f110b5178d65d630e47f86297810206a34c5b2"
     },
     "apps/web/src/app/[locale]/(agent)/agent/workspace/leads/page.test.tsx": {
       "mode": "100644",
@@ -1718,13 +1718,13 @@
     },
     "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.test.tsx": {
       "mode": "100644",
-      "bytes": 4760,
-      "sha256": "e1dc9b5623464fd356db34b409a74f8e56abb35d90b56d0772f259463f5c852a"
+      "bytes": 5705,
+      "sha256": "db0987ecde97de80bf71a895d04bd05e0dbe4cd2a5729809097be7816b263d39"
     },
     "apps/web/src/app/[locale]/(app)/member/claims/[id]/page.tsx": {
       "mode": "100644",
-      "bytes": 2768,
-      "sha256": "84ec0dc4dda34a348a8405a7092a3eb130aaa5748dd79b36468caf9fbba1a685"
+      "bytes": 2740,
+      "sha256": "ee199b30f3c1f5ed2007e0a7b4cd578a986ca75a4e7159b8debe83afbbfea754"
     },
     "apps/web/src/app/[locale]/(app)/member/claims/_core.entry.tsx": {
       "mode": "100644",
@@ -1998,18 +1998,18 @@
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.test.ts": {
       "mode": "100644",
-      "bytes": 5147,
-      "sha256": "66f07c1f6a59b5c7b3bc59d6ecb0774e1ea14410bcc9dfc12e1e499559cdbe81"
+      "bytes": 8881,
+      "sha256": "2d99706fbbd16cdb501aa264109847d53997f5da0d3aec464287fd3e490fa872"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/_core.ts": {
       "mode": "100644",
-      "bytes": 4701,
-      "sha256": "b8d347aa1822c67c12ddc48d0f406e5faa417004611a79fbeaeeb11e7395b91f"
+      "bytes": 4571,
+      "sha256": "dbee05f81f5ba291d83b7d4b313e74820f00f4b8132d028556f2c96015c90288"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-history.test.tsx": {
       "mode": "100644",
-      "bytes": 2541,
-      "sha256": "3853c2397c59cbd3889ab66ede861e4dee90d799fe890b82f4f81d79784c0fc9"
+      "bytes": 3171,
+      "sha256": "c3e160f4df2b59cce2a8fc7f34226d9f4f70b2a5f1755b2ed3680ed4d3aa411f"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx": {
       "mode": "100644",
@@ -2018,18 +2018,18 @@
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-test-support.tsx": {
       "mode": "100644",
-      "bytes": 7383,
-      "sha256": "5787732ba6cffd8a1598fed7bbb53ff416b0ea5a9fbc0d2ec33b08e0251f5d97"
+      "bytes": 7423,
+      "sha256": "edc367b9b50aeed72821f431bdcd7ca4da4571532ba1c74ca058a8fb14255cb9"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace.test.tsx": {
       "mode": "100644",
-      "bytes": 10894,
-      "sha256": "3405e450850ee02131b87e0731bfedbc4607a348e1e617135df68e027f45cfea"
+      "bytes": 11103,
+      "sha256": "16fbdfc06dbc63c6e8acc7eac77469823c6b71c7c3ecb1cc8de64655c88597ed"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.access-tenant.test.tsx": {
       "mode": "100644",
-      "bytes": 2876,
-      "sha256": "6889853e1fbde9f04712ee42008db47d32982db98feda659d040f898674354c2"
+      "bytes": 2918,
+      "sha256": "72f42738f8c9342509af498312e6fafd9cd79fd931e5be7b5e0a0709265cd33e"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx": {
       "mode": "100644",
@@ -2038,8 +2038,8 @@
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx": {
       "mode": "100644",
-      "bytes": 11833,
-      "sha256": "42b57fd4ed723236adcdc9204c38e3c0402d721ba8b106f7d5141959da7db218"
+      "bytes": 11899,
+      "sha256": "16f662e0c362998291d80f516407cedb91069ca43403e92a472c891844205aa3"
     },
     "apps/web/src/app/[locale]/(staff)/staff/claims/_core.entry.test.tsx": {
       "mode": "100644",

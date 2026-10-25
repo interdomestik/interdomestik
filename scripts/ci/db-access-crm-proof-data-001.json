@@ -373,8 +373,8 @@
     },
     "apps/web/src/components/messaging/messaging-panel.tsx": {
       "mode": "100644",
-      "bytes": 8859,
-      "sha256": "9b5d35ea0f48353f30ced7d371a81528cc78b200a46508d79023cd46bd1212d3"
+      "bytes": 9091,
+      "sha256": "1498798819feffca2659eed2cb508855afca542cbe66ac2b2d5a9408ef1730cd"
     },
     "apps/web/src/components/messaging/messaging-read-polling-generation.test.tsx": {
       "mode": "100644",
@@ -1393,8 +1393,8 @@
     },
     "apps/web/src/features/staff/claims/components/StaffClaimDetailV2Page.tsx": {
       "mode": "100644",
-      "bytes": 8172,
-      "sha256": "4b7b1b40a5faa6fcd46ff63b5ff830f275bcdd06d8702217552b78789050a854"
+      "bytes": 8234,
+      "sha256": "51c65f3e1b94307df3d571f6e2fe2bfc36742fdd3ec517461218584db92067f6"
     },
     "apps/web/src/hooks/responsive-search-policy.ts": {
       "mode": "100644",
@@ -2768,13 +2768,13 @@
     },
     "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts": {
       "mode": "100644",
-      "bytes": 9042,
-      "sha256": "e963ca56be2b88670854252da5815f7ced79bf311cc1e13a62edbd799151cf3b"
+      "bytes": 11509,
+      "sha256": "5ee18f41050166b0cfa7ccf66bf6082873dba6a5592a1c65d8604122f843eed3"
     },
     "packages/domain-communications/src/messages/tenant-context.integration.test.ts": {
       "mode": "100644",
-      "bytes": 8472,
-      "sha256": "b87c16dd6ee73fe5af59a8f53482845aafc2543aada2039f38b7635fa1188e60"
+      "bytes": 7298,
+      "sha256": "8131efb3e27f4dee62778b7ae30fe314a787c4387869f1374d794522d728403a"
     },
     "packages/domain-communications/src/notifications/claim-status-store.ts": {
       "mode": "100644",

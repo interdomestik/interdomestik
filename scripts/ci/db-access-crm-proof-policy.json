@@ -12,12 +12,7 @@
       "newCount": 3398,
       "newEntriesDigest": "232b20b3347472fc46a9b9f5e707182542bab0b8b2637474b3629232d8967393"
     },
-    "witnesses": {
-      "mountEvidence": {
-        "version": 1,
-        "analysisIncomplete": true
-      }
-    },
+    "witnesses": { "mountEvidence": { "version": 1, "analysisIncomplete": true } },
     "runtime": {
       "entryFile": "db-access-crm-runtime-entry.ts",
       "expectedInputs": [
@@ -1956,8 +1951,8 @@
             "mode": "100644"
           },
           "packages/domain-communications/package.json": {
-            "sha256": "f3d1858828803fd70e9bf5b5f81c5bfed74cfd2fc08e1fa64ff85521770efe68",
-            "bytes": 1836,
+            "sha256": "817012febe225233fe3b757c8199f4eff657c62715762c39a62cd7b0462a5b1b",
+            "bytes": 1942,
             "mode": "100644"
           }
         }

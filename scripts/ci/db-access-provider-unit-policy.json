@@ -911,19 +911,19 @@
       "sha256": "3d2f21318edf5d45f1be658fbf0e3398e5371fedda4ec2920821ef4352ea1dab"
     },
     "scripts/ci/db-access-crm-proof-policy.json": {
-      "sha256": "0fe49263baa19d1f4735b59563b064192d101e17da6807fde4e1bc6357a3d5eb",
-      "bytes": 125854,
-      "mode": "100644"
+      "mode": "100644",
+      "bytes": 125822,
+      "sha256": "2c14fe254db94b23ef53b1b3b674f67d33de43f335a2b0cdf462d08ebbc1d056"
     },
     "scripts/ci/db-access-crm-proof-data-000.json": {
       "mode": "100644",
-      "bytes": 130985,
-      "sha256": "84e04221d99570a6e51fb1d6f2dec9a0d81d10728802677ed2ef602c083b5988"
+      "bytes": 130987,
+      "sha256": "3e95d1062f66a6828e21e1b4a67fcda3e295e7c2ce5bb64750a93abaea3f8493"
     },
     "scripts/ci/db-access-crm-proof-data-001.json": {
       "mode": "100644",
-      "bytes": 131021,
-      "sha256": "e5711fcdc5dd233d920846946a7678031971c3cb329c97253db20945cab7af81"
+      "bytes": 131022,
+      "sha256": "505a5ce7b9a68dd034c3256de673c0279d50c601a8f560c3b8226b7f018d931c"
     },
     "scripts/ci/db-access-crm-proof-data-002.json": {
       "mode": "100644",
