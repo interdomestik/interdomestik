@@ -10,7 +10,7 @@
     "inventory": {
       "scannedCount": 7654,
       "newCount": 3723,
-      "newEntriesDigest": "ea542ab378d085ff488d98364bc45033925803b8c2ff001e3da66fb8307e20a3"
+      "newEntriesDigest": "265b0e3c914836bd55adb153a031a9f3d4dfaf7a9fbaef77a42d60f771291e69"
     },
     "witnesses": { "mountEvidence": { "version": 1, "analysisIncomplete": true } },
     "runtime": {

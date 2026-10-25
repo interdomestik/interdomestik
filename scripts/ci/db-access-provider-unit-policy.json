@@ -913,7 +913,7 @@
     "scripts/ci/db-access-crm-proof-policy.json": {
       "mode": "100644",
       "bytes": 125874,
-      "sha256": "962622e0979b49251fee2d3c772b2365e1631741a5296bf1e440afcedbe93dd2"
+      "sha256": "c456199c1441b3e3c48ab7c28cdfaae2e8c0d9fac36461dc9aeefb43a7027287"
     },
     "scripts/ci/db-access-graph-session-driver.mjs": {
       "mode": "100644",
