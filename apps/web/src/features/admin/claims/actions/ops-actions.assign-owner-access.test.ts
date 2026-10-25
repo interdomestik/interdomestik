@@ -75,7 +75,7 @@ describe('assignOwner tenant and target input', () => {
     mocks.getSession.mockResolvedValue(
       sessionFor('tenant_admin', { tenantId: 'tenant-home', accessTenantId: 'tenant-access' })
     );
-    const { tx, auditValues, targetLock } = createFakeTx();
+    const { tx, auditValues, targetLock, claimRead: readClaim } = createFakeTx();
     routeTenantContext(mocks.withTenantContext, tx);
 
     await expect(assignOwner('claim-1', 'staff-1', 'en')).resolves.toMatchObject({
@@ -86,7 +86,7 @@ describe('assignOwner tenant and target input', () => {
       { tenantId: 'tenant-access', role: 'tenant_admin' },
       expect.any(Function)
     );
-    const claimRead = sqlOf(tx.query.claims.findFirst.mock.calls[0][0].where);
+    const claimRead = sqlOf(readClaim.mock.calls[0][0].where);
     const targetRead = sqlOf(targetLock.mock.calls[0][0].where);
     expect(claimRead.params).toContain('tenant-access');
     expect(claimRead.params).not.toContain('tenant-home');

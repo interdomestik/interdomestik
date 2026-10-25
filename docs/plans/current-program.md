@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-22
+last_reviewed: 2026-10-25
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -18,6 +18,35 @@ status_command: pnpm plan:status
 
 `S8-AGENT-HANDOFF` is active within the existing frozen scope.
 
+### RC3.1 implementation authority (25 October)
+
+Arben explicitly authorized RC3.1 implementation in human message
+`01a174d5-7096-7e52-8f8c-2f7943592089` in Ultra chat
+`01a16ab5-538a-7841-9aae-e43c79a1898c`. The implementation owner verified that
+message directly. The approved solution SHA-256 is
+`2a000350bc6a2b99eff8c1220e4242a2b3ea75b8f0c97f746f122eea8e38c202`;
+its review manifest is
+`6c8d86ed306f1e1267b9d2444cdebb030c05f0d72705402a24e45fb9cf30d491`.
+Both remain frozen in the owner's `recovery-20261023/s8-product-composition-v1/joint-brainstorm-20261025`
+evidence directory. The additional independent review retains design readiness.
+
+Start with the real M4 assignment vertical, the minimum authentic validator/producer
+and the semantic negative variant whose source/producer binding is valid but whose
+required effect/authority/evidence guarantee is absent. Preserve the three existing
+caller profiles, every old/new obligation and executable use context. Broad migration
+may begin only after the required trusted and proof constructions pass and the semantic
+negative is rejected. The bounded consumer qualification grants zero production C credit.
+This authorizes the specific RC3.1 operation-boundary assurance implementation, not a
+general analyzer, test exemption, baseline reset or weaker delivery criterion.
+
+The working candidate starts at `2f0225a4e1eec865447ebdf67356dfcf71969fb4`,
+tree `7d1c7663690c2412a47acfa8d48b47115598fd38`, on
+`codex/pr1920-history-primitive-v2-experiment`. The older candidate identities below
+are historical. Original ADOPTION/baseline604, 300-second/6-GiB measured lane, fuel,
+private producer/source/policy/event joins, proxy authority and required delivery checks
+remain in force. ZERO is the final acceptance criterion, not a prerequisite to beginning
+the authorized M4 proof. See the current tracker for actual execution evidence.
+
 On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
 resumption of the existing frozen S8 scope. This supersedes the handoff HOLD for that scope only.
 S7 is closed within the bounded acceptance recorded on 2026-10-11, not certified as whole-SRS or
@@ -27,9 +56,9 @@ applicable pre-pilot obligations; prior delivered work is not reopened.
 
 The sole implementation owner is chat `01a16025-dd86-7ab0-8454-293bbfd9fc36`, with independent
 reviewer `01a16025-e952-7f00-accf-f426b5a741d3` and schedule coordinator
-`01a16025-ff60-7341-9219-eeabcabafbc0`. The preserved candidate is
-`codex/s8-restricted-login-integration-20261021`, based on delivered #1918 merge
-`18cd1a73b12f589c69934cba862092d857434013`; its uncommitted S8 changes are not a delivered commit.
+`01a16025-ff60-7341-9219-eeabcabafbc0`. The current local candidate and bounded
+implementation authority are recorded in the RC3.1 section above; local amendments are
+not a delivered commit.
 Restricted production LOGIN and the narrow database boundary are already approved. Preserve
 session/effective identity checks, tenant/resource authorization, RLS, nonownership and no
 privilege recovery, atomic mandatory evidence, context lifetime, concurrency and idempotency.
@@ -40,10 +69,11 @@ exact two-module fixed-producer class grants no general test exception or runtim
 Direct runtime and residual must agree on source, policy and event; final immutable
 G2/candidate/merge identities, existing external-pin trust transition, intended connection
 topology, required local/hosted proof, protected delivery and exact-main staging remain required.
-Current source acceptance is governed by the consolidated #1920 blocker checkpoint below; earlier
+Current source acceptance is governed by RC3.1 and its current tracker checkpoint; earlier
 local proof is historical, and ordinary audit/lifecycle dependencies remain independently enforced.
-No analyzer expansion, baseline reset, refused-action bypass, rewrite or universal transfer
-engine is authorized. S9 starts only after actual S8 acceptance; pilot/release needs separate
+Outside the specific RC3.1 authority above, no analyzer expansion, baseline reset,
+refused-action bypass, rewrite or universal transfer engine is authorized.
+S9 starts only after actual S8 acceptance; pilot/release needs separate
 authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
 
 Authority evidence: human turns `01a12951-0337-7c40-9fb1-04e18916de41` (bounded S7 approval),
@@ -56,10 +86,10 @@ The copied fixed-producer review SHA-256 is
 `38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
 These records preserve bounded acceptance and source limits; none is production release approval.
 
-### Current #1920 consolidation checkpoint (22 October)
+### Historical #1920 consolidation checkpoint (22 October)
 
-The [single current blocker ledger](current-tracker.md#current-1920-consolidation-checkpoint-22-october-1943-europeberlin)
-records the current published/local identities, reproduced privilege-boundary regressions, complete
+The [historical blocker ledger](current-tracker.md#historical-1920-consolidation-checkpoint-22-october-1943-europeberlin)
+records the then-current published/local identities, reproduced privilege-boundary regressions, complete
 E2E inventory, finite source/runtime proof, required verification and independent acceptance.
 Approved CRM/agent/confirm-current/audit repairs are distinct from unapplied newly discovered
 proposals. Restricted LOGIN, bounded administrative exceptions, original baseline 604 and all

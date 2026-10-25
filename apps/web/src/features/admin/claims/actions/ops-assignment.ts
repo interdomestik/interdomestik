@@ -1,16 +1,24 @@
-import { and, claims, eq, isNull, user, type TenantTransaction } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
-
 import {
-  assertCanMutateClaim,
-  getClaimForMutation,
-  logAudit,
-  type OpsActionResponse,
-} from './action-helpers';
+  and,
+  auditLog,
+  claims,
+  eq,
+  isNull,
+  user,
+  type TenantTransaction,
+} from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { nanoid } from 'nanoid';
+
+import { isTerminalStatus } from '../types';
+import { OpsDomainDenialError, type OpsActionResult } from './ops-action-outcome';
 
 export const ASSIGNMENT_TARGET_ROLE = 'staff';
 export const ASSIGNMENT_TARGET_DENIED_ERROR = 'Staff member not found or out of scope';
 export const ASSIGNMENT_CONFLICT_ERROR = 'Claim changed. Reload and try again.';
+const CLAIM_NOT_FOUND_ERROR = 'Claim not found or access denied';
+const TERMINAL_CLAIM_ERROR = 'Cannot perform assign on a terminal claim.';
 
 export type AssignClaimOwnerParams = {
   actorId: string;
@@ -64,11 +72,24 @@ async function findAssignableStaff(
 export async function assignClaimOwnerInTransaction(
   tx: TenantTransaction,
   params: AssignClaimOwnerParams
-): Promise<OpsActionResponse> {
-  const { actorId, actorRole, claimId, staffId, tenantId } = params;
+): Promise<OpsActionResult> {
+  const { actorId, claimId, staffId, tenantId } = params;
 
-  const claim = await getClaimForMutation(claimId, tenantId, tx);
-  assertCanMutateClaim(claim, actorRole, 'assign');
+  // The caller admits the actor and owns this transaction; this kernel receives no global client.
+  const [claim] = await tx
+    .select({
+      staffId: claims.staffId,
+      claimNumber: claims.claimNumber,
+      caseLifecycleState: claims.caseLifecycleState,
+      recoveryLifecycleState: claims.recoveryLifecycleState,
+    })
+    .from(claims)
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
+    .limit(1);
+  if (!claim) throw new OpsDomainDenialError(CLAIM_NOT_FOUND_ERROR);
+  if (isTerminalStatus(claimStatusFromLifecycleFields(claim))) {
+    throw new OpsDomainDenialError(TERMINAL_CLAIM_ERROR);
+  }
 
   const target = await findAssignableStaff(tx, tenantId, staffId);
   if (!target) return { success: false, error: ASSIGNMENT_TARGET_DENIED_ERROR };
@@ -89,14 +110,20 @@ export async function assignClaimOwnerInTransaction(
   if (updated.length === 0) return { success: false, error: ASSIGNMENT_CONFLICT_ERROR };
 
   // Audit failure throws inside the transaction and rolls the update back.
-  await logAudit(
+  await tx.insert(auditLog).values({
+    id: nanoid(),
     tenantId,
     actorId,
-    'assign_owner',
-    claimId,
-    { previousStaffId: claim.staffId, newStaffId: staffId, claimNumber: claim.claimNumber },
-    tx
-  );
+    action: 'assign_owner',
+    entityType: 'claim',
+    entityId: claimId,
+    metadata: {
+      previousStaffId: claim.staffId,
+      newStaffId: staffId,
+      claimNumber: claim.claimNumber,
+    },
+    createdAt: new Date(),
+  });
 
   return { success: true, data: updated[0] };
 }

@@ -58,10 +58,10 @@ describe('assignOwner target eligibility lock', () => {
   });
 
   it('acquires the lock after the claim read and before the update and audit', async () => {
-    const { tx, targetLock, result } = assignThroughFakeTx();
+    const { tx, targetLock, claimRead: readClaim, result } = assignThroughFakeTx();
     await expect(result).resolves.toMatchObject({ success: true });
 
-    const [claimRead] = tx.query.claims.findFirst.mock.invocationCallOrder;
+    const [claimRead] = readClaim.mock.invocationCallOrder;
     const [lock] = targetLock.mock.invocationCallOrder;
     const [update] = tx.update.mock.invocationCallOrder;
     const [audit] = tx.insert.mock.invocationCallOrder;
