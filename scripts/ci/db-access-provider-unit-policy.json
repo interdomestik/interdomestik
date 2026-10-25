@@ -911,9 +911,9 @@
       "sha256": "3d2f21318edf5d45f1be658fbf0e3398e5371fedda4ec2920821ef4352ea1dab"
     },
     "scripts/ci/db-access-crm-proof-policy.json": {
-      "mode": "100644",
+      "sha256": "eb10f564b082d56aad37a805dc83105ec6680fe7d7cc6600dea5eb30fa2933d5",
       "bytes": 125666,
-      "sha256": "5c2dc4bf67d1be8ca77825ce21316f1b70545ae8be58baf02b1f80e778361716"
+      "mode": "100644"
     },
     "scripts/ci/db-access-graph-session-driver.mjs": {
       "mode": "100644",
@@ -1041,9 +1041,9 @@
       "sha256": "505a5ce7b9a68dd034c3256de673c0279d50c601a8f560c3b8226b7f018d931c"
     },
     "scripts/ci/db-access-crm-proof-data-002.json": {
-      "mode": "100644",
+      "sha256": "60b14f093ba6ea3791cf36c4511d8f31689e21c98dbb534ece0653b55a5bb5e4",
       "bytes": 31642,
-      "sha256": "a3979cf2acbee7ea1778606ea883ecc5e5d2db600f4fae1f9b307215faaf66e9"
+      "mode": "100644"
     },
     "scripts/ci/db-access-crm-proof-data-003.json": {
       "mode": "100644",

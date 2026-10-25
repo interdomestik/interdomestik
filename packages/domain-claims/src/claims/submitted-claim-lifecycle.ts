@@ -1,7 +1,13 @@
 import { claimStageHistory } from '@interdomestik/database';
+import { z } from 'zod';
 import type { CreateClaimValues } from '../validators/claims';
 import { recordCaseCreatedEvent } from './case-created-event';
 import type { TransitionTx } from './transition-side-effects';
+
+// Validate only the already-declared scalar types at the SQL value boundary.
+// No coercion, normalization or container/Date restrictions.
+const historyText = z.string();
+const nullableHistoryText = historyText.nullable();
 
 export type RecordSubmittedClaimLifecycleArgs = {
   changedByRole: string;
@@ -21,13 +27,13 @@ export async function recordSubmittedClaimLifecycle(
   // db-access-guard: tenant-scoped -- reason: tenant proof is copied from the claim command boundary.
   await tx.insert(claimStageHistory).values({
     id: crypto.randomUUID(),
-    tenantId: args.tenantId,
-    claimId: args.claimId,
+    tenantId: historyText.parse(args.tenantId),
+    claimId: historyText.parse(args.claimId),
     fromStatus: null,
     toStatus: 'submitted',
-    changedById: args.userId,
-    changedByRole: args.changedByRole,
-    note: args.publicNote,
+    changedById: historyText.parse(args.userId),
+    changedByRole: historyText.parse(args.changedByRole),
+    note: nullableHistoryText.parse(args.publicNote),
     isPublic: true,
     createdAt: args.createdAt,
   });
