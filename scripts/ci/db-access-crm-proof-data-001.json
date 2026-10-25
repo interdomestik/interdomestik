@@ -3063,8 +3063,8 @@
     },
     "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-upsert.ts": {
       "mode": "100644",
-      "bytes": 9676,
-      "sha256": "8efb5304d48c399d1d893c53f34761052331b011a3124294a47f2622fa51427f"
+      "bytes": 10149,
+      "sha256": "f5628a72e0b156293414f98e333340de4394711531e524c68189c5b88f335b10"
     },
     "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-values.test.ts": {
       "mode": "100644",

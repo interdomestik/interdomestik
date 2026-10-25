@@ -1037,8 +1037,8 @@
     },
     "scripts/ci/db-access-crm-proof-data-001.json": {
       "mode": "100644",
-      "bytes": 131022,
-      "sha256": "505a5ce7b9a68dd034c3256de673c0279d50c601a8f560c3b8226b7f018d931c"
+      "bytes": 131023,
+      "sha256": "30b2e3df7d1b79f2a97bd932b6bd4597e61b5c7d6335d608c863bf49ccd0e9ed"
     },
     "scripts/ci/db-access-crm-proof-data-002.json": {
       "sha256": "60b14f093ba6ea3791cf36c4511d8f31689e21c98dbb534ece0653b55a5bb5e4",
