@@ -1769,8 +1769,13 @@
     },
     "scripts/ci/db-access-m4-runtime-pairing.mjs": {
       "mode": "100644",
-      "bytes": 2760,
-      "sha256": "e51ce7013eab0a75d7c6ffd94a1cabf43bfa954caa825aa6943a1bdeea522db0"
+      "bytes": 3062,
+      "sha256": "42c516a724c6729891df2280d49ec09c94162d85a64cf21c9186b12549e3494f"
+    },
+    "scripts/ci/db-access-m4-gap-ledger.mjs": {
+      "mode": "100644",
+      "bytes": 3711,
+      "sha256": "1c40574a990014cff15f8f56230c259387ae6d3954dec84ed8f3e0da0b7ae161"
     }
   },
   "runtimeEnforcement": {
