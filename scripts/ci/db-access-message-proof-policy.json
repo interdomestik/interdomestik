@@ -1151,12 +1151,12 @@
     "pnpm-lock.yaml": {
       "mode": "100644",
       "bytes": 711992,
-      "sha256": "8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7"
+      "sha256": "42f995ad77406c993e1a80b26f36306afbde4df7bf0a395b01ef80ddd5f3a7dc"
     },
     "pnpm-workspace.yaml": {
       "mode": "100644",
       "bytes": 1989,
-      "sha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304"
+      "sha256": "692d5d04bb918d25cc1093e425970dcb7879af7da8d1f869d3388328e625815a"
     },
     "apps/web/vitest.messages-rls.config.ts": {
       "mode": "100644",
@@ -1171,7 +1171,7 @@
     "apps/web/package.json": {
       "mode": "100644",
       "bytes": 6443,
-      "sha256": "e1d2ac2348eec210bf06c2e2744082fee8166eabd899fd56f7b150e6e68d87bb"
+      "sha256": "056f67f3406064f25200beb36393607edb90aaad748ad109334c78476662f9a3"
     }
   },
   "migrations": {

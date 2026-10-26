@@ -1953,7 +1953,7 @@
             "mode": "100644"
           },
           "apps/web/package.json": {
-            "sha256": "e1d2ac2348eec210bf06c2e2744082fee8166eabd899fd56f7b150e6e68d87bb",
+            "sha256": "056f67f3406064f25200beb36393607edb90aaad748ad109334c78476662f9a3",
             "bytes": 6443,
             "mode": "100644"
           },
@@ -2808,12 +2808,12 @@
       },
       {
         "name": "next",
-        "version": "16.3.8",
-        "integrity": "sha512-U7QEZaTini6wKrb8A8hqLLqYQyCetegKjCpJOyxk642vWoMoU1x5PyZCJFvgYgiptA8xc5j/9xYlZFO7w9Sjmw==",
+        "version": "16.4.3",
+        "integrity": "sha512-OqxKTGi9u80FydydsMNYNjnuje9Au+kvHlt2GZ//ftdpDHm1dxKqAaENoOOTX5wKzn+9vaKUNIfZeyZUuLhCnA==",
         "files": {
           "dist/build/create-compiler-aliases.js": {
-            "sha256": "102085cd429d4ae523e19b81507ba6a2ea86ad0144a7c0085f1f285de0bca9ef",
-            "bytes": 29975,
+            "sha256": "e23179f25cd5f9c3caea5279f7c455eed47678b7b6694f86eb4c5b874f11fccb",
+            "bytes": 30896,
             "mode": "100644"
           },
           "dist/api/app-dynamic.js": {
@@ -2822,18 +2822,18 @@
             "mode": "100644"
           },
           "dist/client/components/navigation.js": {
-            "sha256": "b9169a09203f011a46603fcb7f7003c82e4a11e61558b8d907b3b0226cc25c0b",
-            "bytes": 11448,
+            "sha256": "22e1ee3ea23ac235a74cf640f7b3cf9cfc74569378260e3f4c482464d780ef0a",
+            "bytes": 11308,
             "mode": "100644"
           },
           "dist/client/components/app-router-instance.js": {
-            "sha256": "c6b54e40d1b8d14eb0d6d117506b0670be3d70ede8b9b42ec9a901b085dffeed",
-            "bytes": 18097,
+            "sha256": "679a2c335d4a849eb14c997d80ddd356fbd7789f50c0777ceabd0525d1e77807",
+            "bytes": 11229,
             "mode": "100644"
           },
           "dist/client/components/router-reducer/reducers/refresh-reducer.js": {
-            "sha256": "5e5045ce44c0ceb444176af66ac1c7524afc8b9f29c60e19f067de5b5e77294f",
-            "bytes": 5071,
+            "sha256": "6d6ba0f3547b41a30040f22ba59baf801b4966d113ecd6ed5d9cf58cbe905a2c",
+            "bytes": 5276,
             "mode": "100644"
           },
           "dist/shared/lib/app-dynamic.js": {
@@ -2842,28 +2842,28 @@
             "mode": "100644"
           },
           "dist/shared/lib/lazy-dynamic/loadable.js": {
-            "sha256": "75d311a9cc5a62863e877ab5b922a3e8b10c2e3126ee6f122fc4babe91ab1d71",
-            "bytes": 2935,
+            "sha256": "6f31279cfdbcf19d1435f1e480c3d1753538e70b4b75cd41321b081e9d131f3f",
+            "bytes": 2913,
             "mode": "100644"
           },
           "dist/shared/lib/lazy-dynamic/dynamic-bailout-to-csr.js": {
-            "sha256": "0c4474dbc454470144784366e59c70d2366fc52ee784c4276fe8dc95e7a095c4",
-            "bytes": 650,
+            "sha256": "5bfefb152ae0bddb464390f69f631383581aed1b9f992f9b2308449587a06aff",
+            "bytes": 1143,
             "mode": "100644"
           },
           "dist/server/request/headers.js": {
-            "sha256": "b926d6b5898e3eddead23cf20a7303665423f3c0299317503821e7c249f00879",
-            "bytes": 12958,
+            "sha256": "007fea58042b4c8312cd2ce3d630aa9fcc217165d44d7fb7c4d4c5292a4e1d60",
+            "bytes": 10584,
             "mode": "100644"
           },
           "dist/server/web/spec-extension/adapters/headers.js": {
-            "sha256": "22227daf1ace715081e431368364cd957efdb9d59ae15c4aa947011006f5884d",
-            "bytes": 11544,
+            "sha256": "9c2c1234bcd7300ab401586fa170ed21bee1ad25ff3bea19870dd25fd7cd713a",
+            "bytes": 11383,
             "mode": "100644"
           },
           "dist/server/async-storage/request-store.js": {
-            "sha256": "f2ca5e63726994d0db54e6dfd26c726b25cfb8e8cb41eebf5dd259c4dae64ac4",
-            "bytes": 8697,
+            "sha256": "f3f9ea163f94947c4553684c9207c642b3149de8fba18ab2b9b099504a081605",
+            "bytes": 8755,
             "mode": "100644"
           }
         }

@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "sourceLockSha256": "8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7",
-  "workspaceSha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304",
+  "sourceLockSha256": "42f995ad77406c993e1a80b26f36306afbde4df7bf0a395b01ef80ddd5f3a7dc",
+  "workspaceSha256": "692d5d04bb918d25cc1093e425970dcb7879af7da8d1f869d3388328e625815a",
   "roots": {
     "@upstash/ratelimit": "c2e9ba1a348ddba840b7a85e8b09ff8f3e5c1eb8082fdeb853ec52caac3fbdc6",
     "@upstash/redis": "37df45bdb4c934e2a3495d10c5ecee7f83684c2fb5d98024a7986fb90d9cecce",
     "bcryptjs": "e9db6f826169687b3664217cd123bf69a300b2e86306209e7285449c69c3afc0",
     "nodemailer": "03baeff7a949122e08cf437799f104173cbed624925a355c2a0c8098afc45510",
     "resend": "40d74cc325307bff4a6a4c0fc103848f81b0d41ed712a2242b0462c2d410c5b8",
-    "better-auth": "6e02b469df4c4715a299d02ed84be79da645073a9a9a611508dd23e0c7c18a99",
+    "better-auth": "e8d178d04a538e7fcef71da676988be79d3bbc2d933f74b5c0772a59a0cb100c",
     "zod": "04b0a925292ca235736936eed751d44f8c3e5565f6643d2e033328bbcc11d1e4",
-    "@sentry/nextjs": "6f9112c09a1b8e14bcb51c1cb324d2bbc71f6f29503eb63b39bbc8fd9a084fb2",
-    "next": "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707",
+    "@sentry/nextjs": "bb290c0a362cadaf85e2fc5eae624d90e9ab13741f128a646a5f37d85679fc28",
+    "next": "b0a594484b42bfcb2e70c016336b2299626f2ade46b6a62847a3e3c77352927b",
     "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
     "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
     "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2",
@@ -23,50 +23,29 @@
     "web-push": "6ab2287300696f6489022dae30f84d29d191743f5ed8abf8b60c041038d8d9d4"
   },
   "rootImporters": {
-    "@upstash/ratelimit": {
-      "importer": "apps/web",
-      "version": "2.1.0(@upstash/redis@1.38.4)"
-    },
-    "@upstash/redis": {
-      "importer": "apps/web",
-      "version": "1.38.4"
-    },
-    "bcryptjs": {
-      "importer": "apps/web",
-      "version": "3.0.3"
-    },
-    "nodemailer": {
-      "importer": "packages/domain-communications",
-      "version": "10.0.13"
-    },
+    "@upstash/ratelimit": { "importer": "apps/web", "version": "2.1.0(@upstash/redis@1.38.4)" },
+    "@upstash/redis": { "importer": "apps/web", "version": "1.38.4" },
+    "bcryptjs": { "importer": "apps/web", "version": "3.0.3" },
+    "nodemailer": { "importer": "packages/domain-communications", "version": "10.0.13" },
     "resend": {
       "importer": "packages/domain-communications",
       "version": "4.8.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)"
     },
     "better-auth": {
       "importer": "apps/web",
-      "version": "1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)"
+      "version": "1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)"
     },
-    "zod": {
-      "importer": "apps/web",
-      "version": "4.2.1"
-    },
+    "zod": { "importer": "apps/web", "version": "4.2.1" },
     "@sentry/nextjs": {
       "importer": "apps/web",
-      "version": "10.75.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(webpack@5.104.1(postcss@8.5.28))"
+      "version": "10.75.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(next@16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(webpack@5.104.1(postcss@8.5.28))"
     },
     "next": {
       "importer": "apps/web",
-      "version": "16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)"
+      "version": "16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)"
     },
-    "react": {
-      "importer": "apps/web",
-      "version": "19.3.0"
-    },
-    "react-dom": {
-      "importer": "apps/web",
-      "version": "19.3.0(react@19.3.0)"
-    },
+    "react": { "importer": "apps/web", "version": "19.3.0" },
+    "react-dom": { "importer": "apps/web", "version": "19.3.0(react@19.3.0)" },
     "drizzle-orm": {
       "importer": "packages/database",
       "version": "0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e))"
@@ -75,41 +54,29 @@
       "importer": "packages/database",
       "version": "3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)"
     },
-    "esbuild": {
-      "snapshot": "esbuild@0.28.2",
-      "purpose": "fixed compilation"
-    },
+    "esbuild": { "snapshot": "esbuild@0.28.2", "purpose": "fixed compilation" },
     "@supabase/ssr": {
       "importer": "packages/database",
       "version": "0.12.7(@supabase/supabase-js@2.110.9)"
     },
-    "@supabase/supabase-js": {
-      "importer": "packages/database",
-      "version": "2.110.9"
-    },
-    "nanoid": {
-      "importer": "apps/web",
-      "version": "5.1.16"
-    },
-    "web-push": {
-      "importer": "packages/domain-communications",
-      "version": "3.6.7"
-    }
+    "@supabase/supabase-js": { "importer": "packages/database", "version": "2.110.9" },
+    "nanoid": { "importer": "apps/web", "version": "5.1.16" },
+    "web-push": { "importer": "packages/domain-communications", "version": "3.6.7" }
   },
   "packageFiles": {
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "sha256": "b917e35c3fd346607dca133a063e67a38d45d8b3ede5fe3a1b866abfce88cb30",
-      "bytes": 105469,
+      "sha256": "9ab6c137185abed35782b90498ad7bc0fa90424c1fcb4c82a9c82bc9601a8f60",
+      "bytes": 110629,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {
-      "sha256": "77713eaa9fb25a939b76d08dac9b5c0480d1ff08c810c9cafecc3ec06a6b73b5",
-      "bytes": 105873,
+      "sha256": "937d4e816f664fb37f352a49cac74354cec63345f2cc846ac4b17dcfbe620f07",
+      "bytes": 107606,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-3.json": {
-      "sha256": "91782a7aa4f650ac23e46756fc0fb43be4f9aa4c3985c31056f3ab37bcebb423",
-      "bytes": 114478,
+      "sha256": "7822f93bf45ed291fe0471b170f64da525a0f4ee1f3a13ae8a09bdced419603f",
+      "bytes": 107455,
       "mode": "100644"
     }
   }

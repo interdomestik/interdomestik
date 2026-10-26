@@ -160,9 +160,7 @@
     "version": "2.0.2",
     "resolved": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
     "integrity": "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==",
-    "dependencies": {
-      "isexe": "2f62e711a6921973ef3f9650fd3e06585fd3842e34078c8fa959481738600405"
-    },
+    "dependencies": { "isexe": "2f62e711a6921973ef3f9650fd3e06585fd3842e34078c8fa959481738600405" },
     "optionalDependencies": {}
   },
   "5abae82613e9d16da562298e579cd2ee7f1aa4a9b3c71ef24ae656d2be016bd9": {
@@ -223,18 +221,6 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "5db88a7a9e86da0c6a28e577bc60383eace9d654c736e309d9989bc15db1ecb6": {
-    "snapshot": "@next/swc-linux-x64-gnu@16.3.8",
-    "name": "@next/swc-linux-x64-gnu",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.3.8.tgz",
-    "integrity": "sha512-lbqOuz3RPRcv+o9msNsJw5x4+Y1ZwPTs6vmL6DCf7i0fZfvng/F59wyeDwqHIvV0mK//RBy/jJkZ+nCKsSMXjQ==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["linux"],
-    "cpu": ["x64"],
-    "libc": ["glibc"]
-  },
   "602da786dd05c27a8f8d9027fa5352c88d79711e2ba51ea47ac9a53e09113d9c": {
     "snapshot": "is-reference@1.2.1",
     "name": "is-reference",
@@ -291,9 +277,7 @@
     "version": "4.4.3",
     "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
     "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
-    "dependencies": {
-      "ms": "2083576c5af8054927640b4788059806d07e250a26066c9ccb2d928394fb9226"
-    },
+    "dependencies": { "ms": "2083576c5af8054927640b4788059806d07e250a26066c9ccb2d928394fb9226" },
     "optionalDependencies": {}
   },
   "63b110ffd18712146937e9f182800c6f2b5783e76d1659a0bd4b457789b0df07": {
@@ -468,31 +452,6 @@
     "optionalDependencies": {
       "mongodb": "7eab4bb609766e11a97fe2d8c699ba0484f847392022f36ae8551908c37e6bed"
     }
-  },
-  "6f9112c09a1b8e14bcb51c1cb324d2bbc71f6f29503eb63b39bbc8fd9a084fb2": {
-    "snapshot": "@sentry/nextjs@10.75.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(webpack@5.104.1(postcss@8.5.28))",
-    "name": "@sentry/nextjs",
-    "version": "10.75.0",
-    "resolved": "https://registry.npmjs.org/@sentry/nextjs/-/nextjs-10.75.0.tgz",
-    "integrity": "sha512-eg+irsG6q7TxpFerGVOqmVEOj9DXvd5vC1LYsEuWBdijwEhXaUMpDr5CLdxDaPMdckMgCB4LlNxCleaXaVKQJA==",
-    "dependencies": {
-      "@opentelemetry/api": "65aff18a9fc4c98f9c24ab0445de2b3275049aa3c7a6db8be0534ad8dc7d2193",
-      "@rollup/plugin-commonjs": "d3bb357e8a081820ccf180ad1467b8e8c61a729c5ad1458a4599b59907237deb",
-      "@sentry/browser-utils": "f9e622b25c7f11a3c2dffe6f9676d7dae9d10caa07d57aded130308822fb87c1",
-      "@sentry/bundler-plugin-core": "795b81be5296324873f7db275fbe391920e7327729c6738e6f98ddbf40074ea8",
-      "@sentry/conventions": "fdc0cf7567009807f3ea232e05ab832ef4f88eb7513045c6b35702fa2c13e26d",
-      "@sentry/core": "7f13ae145d5e19624e337826b9e36d6f80c106f4b822b0bbd8617d475527ea81",
-      "@sentry/node": "56048c28686db2ed5135b0df9ee43fe9c9c4c0c9187c7ba16259ba4cd9e21ab5",
-      "@sentry/opentelemetry": "c51e7e9aeb33ec3fde0e14c044ef6f5601a87de510a975d94bf45bb8d131394d",
-      "@sentry/react": "7915a96f7c9afc34a472c5119599b3eddd115a1a10fa7b65be282b0a9377b45d",
-      "@sentry/server-utils": "fef2b84f50ebd39fd8d3220b0ce5f33780b10f71e9271f6d1885c207a1a3506b",
-      "@sentry/vercel-edge": "282374d3c42e92d464a917aa872fd9641bc7fb1a02bf1a45fda33a3e37455047",
-      "@sentry/webpack-plugin": "7651b69f12febc7f9f16934a45d0cfd41f7ed0fe11c016b81f929e5b06d35b17",
-      "next": "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707",
-      "rollup": "73cf6657f26576a42860f35068bab5d1c663535bad974d1fcc8892d4f250c18e",
-      "stacktrace-parser": "41e15022f48f7f37d231e458d20ede1f658af35b6e343ff171f1052e64909a2f"
-    },
-    "optionalDependencies": {}
   },
   "6f9cafa92a75bcacfffb920b8b66c43ca5232db4cb2da227a9dc835b59f366ed": {
     "snapshot": "@webassemblyjs/utf8@1.13.2",
@@ -1372,9 +1331,7 @@
     "version": "6.0.2",
     "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz",
     "integrity": "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==",
-    "dependencies": {
-      "debug": "6390bf853aed627edd1fc017f5dc4771098786a93330a9fdd12060b62475b446"
-    },
+    "dependencies": { "debug": "6390bf853aed627edd1fc017f5dc4771098786a93330a9fdd12060b62475b446" },
     "optionalDependencies": {}
   },
   "90dbd73e9e2c6cd34b5667997999b8242fbd3344e4d4a7da0e4bf1f1cbaea1ea": {
@@ -1973,5 +1930,66 @@
     "os": ["linux"],
     "cpu": ["arm64"],
     "libc": ["glibc"]
+  },
+  "9910ddf267371066d6cf8ffedd11ebdf3f824501f6078e9cc80747a463c3d2e8": {
+    "snapshot": "@next/swc-linux-arm64-gnu@16.4.3",
+    "name": "@next/swc-linux-arm64-gnu",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.4.3.tgz",
+    "integrity": "sha512-dCKpXErGg3abUM6t5JTJV/ottVBTStJB5lRJTbgdUdQaQ+jNHiK56Hsc0YAEg/rinSh42hYG3HWiYmEMdilnxg==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["linux"],
+    "cpu": ["arm64"],
+    "libc": ["glibc"]
+  },
+  "b0a594484b42bfcb2e70c016336b2299626f2ade46b6a62847a3e3c77352927b": {
+    "snapshot": "next@16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)",
+    "name": "next",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/next/-/next-16.4.3.tgz",
+    "integrity": "sha512-OqxKTGi9u80FydydsMNYNjnuje9Au+kvHlt2GZ//ftdpDHm1dxKqAaENoOOTX5wKzn+9vaKUNIfZeyZUuLhCnA==",
+    "dependencies": {
+      "@next/env": "18a109e67d7c167221e2300642b408348c8c5929f88b80ac73bf3ee18d07745f",
+      "@swc/helpers": "ca8b9ef85dfd6fbbbcb7ebf8cce93d01644aab24d40a7b74ea7a374193cb5e89",
+      "baseline-browser-mapping": "86d4fd6331bdf4496dda470356e2526b3bc165d5a281ac8f3996b5fd1cde28cc",
+      "caniuse-lite": "2279b0f6b9ead6099ba0493fe281033e4916390b56dcd292cb1dc8e1c69159ea",
+      "postcss": "346b76e9a17e11c72a208103552d233f39e2237a72654fbbea9c613b11ceedc1",
+      "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
+      "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
+      "styled-jsx": "ee8abfd9fb82824a34c8102052826c422d9f992792d53a382bdc85d04745c1fb"
+    },
+    "optionalDependencies": {
+      "@next/swc-darwin-arm64": "d35d11f54e2f5c33caee3c65befb8bd524a485040ce00ac950504b382f36d21b",
+      "@next/swc-darwin-x64": "b144db41430ff8d9e48babe86521d4ec47f8c4a9e9f05bfd6c4613ba240c18f3",
+      "@next/swc-linux-arm64-gnu": "9910ddf267371066d6cf8ffedd11ebdf3f824501f6078e9cc80747a463c3d2e8",
+      "@next/swc-linux-arm64-musl": "68a040df7093866314ca44146faa87f2cf9eccd9acab899e1aeeae9745780ccd",
+      "@next/swc-linux-x64-gnu": "9a5fb3628b3abecbfc0cfe1388afe6f45f1a010688aeccb7f9c4927a8e458faf",
+      "@next/swc-linux-x64-musl": "8a44fc02f6afddc048dc9703b3ea75f2ecf8bc03d83940044f8e1dd8f9f26726",
+      "@next/swc-win32-arm64-msvc": "dfe17a63071a613b4d32e3ffdf3ab9c0fd5c4567b143386c884eda9d525628fe",
+      "@next/swc-win32-x64-msvc": "7b8e5d7acb32cbc67f6cf8686e964545341748508e0b96597668fcbace6154ab",
+      "@opentelemetry/api": "65aff18a9fc4c98f9c24ab0445de2b3275049aa3c7a6db8be0534ad8dc7d2193",
+      "@playwright/test": "9bc3d88e065e934c7a67370e0e326c8899e658a90f3ade87230ef25dc817484f",
+      "sharp": "4fae2c250d5baf2aba38a578bcc611c8fbcb3040a2e1172c5951210cdbf13722"
+    },
+    "patch": {
+      "file": "patches/next@16.4.3.patch",
+      "sha256": "94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4",
+      "bytes": 950694,
+      "mode": "100644",
+      "lockHash": "94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4",
+      "patchedFiles": {
+        "dist/compiled/next-server/app-page-experimental.runtime.dev.js": "c95d5985db56db0d2c8512bae342721ed211b35b75b52ea03ee4a386173dd759",
+        "dist/compiled/next-server/app-page-experimental.runtime.prod.js": "7a10159bb034d34ec5b3be280ff35183f1e3235f69c7e0975acadf7948fd493f",
+        "dist/compiled/next-server/app-page-turbo-experimental.runtime.dev.js": "f155c53b968efd57e2d0f8f6c16bf32b9ffb7922a671171bffa2ef8f8dbaa613",
+        "dist/compiled/next-server/app-page-turbo-experimental.runtime.prod.js": "1998e35e0b059c285c3ae10bb4572291a14c3e73a109a344aab9024a2a78155a",
+        "dist/compiled/next-server/app-page-turbo.runtime.dev.js": "6072bf1bd84e2044f168e6d43723e0bedd50c4d8aecd209d49a7af23b8820513",
+        "dist/compiled/next-server/app-page-turbo.runtime.prod.js": "75fb618b504f3478d2bb0cb7d9b4ad929cdbcfc77939eca9bbf923fe00d9e4f6",
+        "dist/compiled/next-server/app-page.runtime.dev.js": "e3c9f33fc4ed9d56ca5b4b294bd0b992b678e7ef2f0e504cb3491b661541f719",
+        "dist/compiled/next-server/app-page.runtime.prod.js": "6dbdf9c82c6a40a361fce4900107f3220b776a7894c5d10c4cb63b7024573b33",
+        "dist/esm/server/app-render/app-render.js": "70afd44fcaad6b75b647c6eb0b5f6a878b5703784ff9a3ea4dbda1ee4eb4339a",
+        "dist/server/app-render/app-render.js": "8cdb53f36c74d2a80f9da548b70f3cb71828befb9e9433bdd1a7a2be04c7808d"
+      }
+    }
   }
 }

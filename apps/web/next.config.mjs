@@ -27,6 +27,7 @@ const validateSentrySourceMaps = process.env.SENTRY_VALIDATE_SOURCEMAPS === 'tru
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   cacheComponents: buildCspNonceMode === 'off',
+  partialPrefetching: false,
   // Bind the artifact without replacing the security helper's runtime CSP_NONCE_MODE read.
   env: {
     INTERDOMESTIK_BUILT_CSP_NONCE_MODE: buildCspNonceMode,

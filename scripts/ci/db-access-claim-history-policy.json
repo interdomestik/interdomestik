@@ -21,12 +21,7 @@
     "identity": "d1573a9421f7867412aff92cc686814f3654f3566435be1830e3d46a20dda763",
     "historicalDebt": true,
     "dispatchAlternatives": [
-      {
-        "kind": "canonical-tx",
-        "unknown": true,
-        "reasons": ["parameter-binding"],
-        "targets": []
-      }
+      { "kind": "canonical-tx", "unknown": true, "reasons": ["parameter-binding"], "targets": [] }
     ]
   },
   "currentRow": {
@@ -43,22 +38,17 @@
     "identity": "e9305732c95af9171703748806598112d0d8079859c19511bdbbf0ece6b4bae5",
     "historicalDebt": false,
     "dispatchAlternatives": [
-      {
-        "kind": "canonical-tx",
-        "unknown": true,
-        "reasons": ["parameter-binding"],
-        "targets": []
-      }
+      { "kind": "canonical-tx", "unknown": true, "reasons": ["parameter-binding"], "targets": [] }
     ]
   },
   "fixedFiles": {
     "pnpm-lock.yaml": {
       "bytes": 711992,
-      "sha256": "8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7"
+      "sha256": "42f995ad77406c993e1a80b26f36306afbde4df7bf0a395b01ef80ddd5f3a7dc"
     },
     "pnpm-workspace.yaml": {
       "bytes": 1989,
-      "sha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304"
+      "sha256": "692d5d04bb918d25cc1093e425970dcb7879af7da8d1f869d3388328e625815a"
     },
     "package.json": {
       "bytes": 23317,

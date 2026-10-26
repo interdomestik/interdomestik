@@ -5,9 +5,7 @@
     "version": "1.2.0",
     "resolved": "https://registry.npmjs.org/postgres-interval/-/postgres-interval-1.2.0.tgz",
     "integrity": "sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==",
-    "dependencies": {
-      "xtend": "ef439651e21b69e8811099e984a3a42de35b6d0fc30a5c230715bea4c96e4940"
-    },
+    "dependencies": { "xtend": "ef439651e21b69e8811099e984a3a42de35b6d0fc30a5c230715bea4c96e4940" },
     "optionalDependencies": {}
   },
   "a925772984e9f846636c46dddcc0c6b3621cdf3b96554f69354dd5fd9c6cfd3c": {
@@ -814,9 +812,7 @@
     "version": "0.5.23",
     "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz",
     "integrity": "sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==",
-    "dependencies": {
-      "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb"
-    },
+    "dependencies": { "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb" },
     "optionalDependencies": {}
   },
   "cab63b986f2c84a5cd4212a180737185eca456ad5498b26a8b8a6464bcb3928c": {
@@ -880,9 +876,7 @@
     "version": "3.14.0",
     "resolved": "https://registry.npmjs.org/pg-pool/-/pg-pool-3.14.0.tgz",
     "integrity": "sha512-gKtPkFdQPU3DksooVLi9LsjZxrsBUZIpa+7aVx+LV5pNh0KzP4Zleud2po+ConrxbuXGBJ6Hfer6hdgpIBpBaw==",
-    "dependencies": {
-      "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e"
-    },
+    "dependencies": { "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e" },
     "optionalDependencies": {}
   },
   "cd3f81c4a0fd856ab1d9c9fc99c1d7eaf2c12c4867b218e9901e5020a1ffcd85": {
@@ -1061,55 +1055,6 @@
     "optionalDependencies": {},
     "os": ["linux"],
     "cpu": ["riscv64"]
-  },
-  "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707": {
-    "snapshot": "next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)",
-    "name": "next",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/next/-/next-16.3.8.tgz",
-    "integrity": "sha512-U7QEZaTini6wKrb8A8hqLLqYQyCetegKjCpJOyxk642vWoMoU1x5PyZCJFvgYgiptA8xc5j/9xYlZFO7w9Sjmw==",
-    "dependencies": {
-      "@next/env": "4494bce9a8b940f94706a3775b07f30d9f3bc69661d31b7ddfb1f11a824b009e",
-      "@swc/helpers": "ca8b9ef85dfd6fbbbcb7ebf8cce93d01644aab24d40a7b74ea7a374193cb5e89",
-      "baseline-browser-mapping": "86d4fd6331bdf4496dda470356e2526b3bc165d5a281ac8f3996b5fd1cde28cc",
-      "caniuse-lite": "2279b0f6b9ead6099ba0493fe281033e4916390b56dcd292cb1dc8e1c69159ea",
-      "postcss": "346b76e9a17e11c72a208103552d233f39e2237a72654fbbea9c613b11ceedc1",
-      "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
-      "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
-      "styled-jsx": "ee8abfd9fb82824a34c8102052826c422d9f992792d53a382bdc85d04745c1fb"
-    },
-    "optionalDependencies": {
-      "@next/swc-darwin-arm64": "154930dd7b1edf93a7656296f946d0512b3be5dc2b8dbdeed3283df251e22097",
-      "@next/swc-darwin-x64": "2bcec1006641edad50a574cae6c01b6415ab6b435d57b5034c47b15d2dac4f88",
-      "@next/swc-linux-arm64-gnu": "382eac69a4054d1d1c44ac8c43fc6ba26d45e00883d716fcee967823160d90a1",
-      "@next/swc-linux-arm64-musl": "4b3250a59935c45326f097899fc3d423df3c2d6437210cebde70678e3d7f0b6a",
-      "@next/swc-linux-x64-gnu": "5db88a7a9e86da0c6a28e577bc60383eace9d654c736e309d9989bc15db1ecb6",
-      "@next/swc-linux-x64-musl": "2972d35fcf03b78e72e2e512b11e5a3927249e1faed80026b712f6fe04112add",
-      "@next/swc-win32-arm64-msvc": "2dfff71e7daeaa1c6047cb82e9d49883b7485141e0595e70ba95feeaf8abe550",
-      "@next/swc-win32-x64-msvc": "461b90bd4ceef6cee7f7ce13ecff6d80f4723b30f2a9a788246ce7e26c847639",
-      "@opentelemetry/api": "65aff18a9fc4c98f9c24ab0445de2b3275049aa3c7a6db8be0534ad8dc7d2193",
-      "@playwright/test": "9bc3d88e065e934c7a67370e0e326c8899e658a90f3ade87230ef25dc817484f",
-      "sharp": "4fae2c250d5baf2aba38a578bcc611c8fbcb3040a2e1172c5951210cdbf13722"
-    },
-    "patch": {
-      "file": "patches/next@16.3.8.patch",
-      "sha256": "f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245",
-      "bytes": 324274,
-      "mode": "100644",
-      "lockHash": "f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245",
-      "patchedFiles": {
-        "dist/compiled/next-server/app-page-experimental.runtime.dev.js": "f569f3c13cecef7872e72aa7c2305c48b89d55129130dfcf4d24b0ac249c3e2c",
-        "dist/compiled/next-server/app-page-experimental.runtime.prod.js": "84599fdf6447cec4c04baaca77917ef395b774151a826f76750ffb932aa3766c",
-        "dist/compiled/next-server/app-page-turbo-experimental.runtime.dev.js": "601f05f9c768f19cfb21852234dce55d1ea730d3b565fc9348e2f9600b52f9f5",
-        "dist/compiled/next-server/app-page-turbo-experimental.runtime.prod.js": "6b19d2cae53166f0a5f9d32edd8502a80811140d0b50f61c0d6ec111d886c623",
-        "dist/compiled/next-server/app-page-turbo.runtime.dev.js": "a5bc13d999275947734a79552e213455f65c78c2b09e007560eb3b765e9d2f31",
-        "dist/compiled/next-server/app-page-turbo.runtime.prod.js": "905dfa938edfaae408a3ad1368636342a2c3dcc3f7bc2393ae8733dc74f3f6bf",
-        "dist/compiled/next-server/app-page.runtime.dev.js": "9decb951f5790b118e92cbcda17538fd58ad0294a6de4ef0ebd8194c542d7ce1",
-        "dist/compiled/next-server/app-page.runtime.prod.js": "992bb4135c9d7ea161d0c7542daf41c2afc1ceefe75b2c901975528fa63d4af6",
-        "dist/esm/server/app-render/app-render.js": "a2194f65bc7ac243ee147937a34ff62044f5b2f45fa0bef3f808b71dbe34a28f",
-        "dist/server/app-render/app-render.js": "e9a59caf5eabb98559a3e38e6d1bcf78289a68776a1110fdc24d61526cff7e2e"
-      }
-    }
   },
   "d6e57d1f848b7ce49518f4ce29e9f1d93440ceaf826038ba31236719aab75272": {
     "snapshot": "@sentry/replay-canvas@10.75.0",
@@ -1527,43 +1472,6 @@
       "zod": "a72d581dd95759fe1ebac25380c6fba250b3cb8054dda56e2922d3469d09bdb7"
     }
   },
-  "6e02b469df4c4715a299d02ed84be79da645073a9a9a611508dd23e0c7c18a99": {
-    "snapshot": "better-auth@1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)",
-    "name": "better-auth",
-    "version": "1.6.33",
-    "resolved": "https://registry.npmjs.org/better-auth/-/better-auth-1.6.33.tgz",
-    "integrity": "sha512-QkVKOmJw/LQ3HjIib2wx2Td0xB9EuPgw0ARYPKeFu3niN0VSBW32j4QwfewFZOQi5Hb/jOB6U+wdvtBhF7+URw==",
-    "dependencies": {
-      "@better-auth/core": "3cdd0ca99a36ae3f1fb481a4605be00e5e547033f14708d04193a571526c5cd6",
-      "@better-auth/drizzle-adapter": "ff94d6db01eff674486b4b8bd6ccbde703b069c06880ef6dfd4d18a7665bb55a",
-      "@better-auth/kysely-adapter": "72e2309bdb8ef432d208e18e3cd859e8f4717acef8851e8f23abf814582323a6",
-      "@better-auth/memory-adapter": "946bac22abf037eb5d58822e543528010d1ec09a25ae9655da515b639585b30c",
-      "@better-auth/mongo-adapter": "6e347a04c0bd8f711edc778a35a4e116036b94f34ec73a7001a60b597482333f",
-      "@better-auth/prisma-adapter": "a18f200f4be21bc0ed572359b874c94f0e6346433019983d8fa53c06a6875526",
-      "@better-auth/telemetry": "8bab2240ed520756a0f18f89ab62398dbc525f42b6669c3fcba0842d53230edd",
-      "@better-auth/utils": "1df268eca7cb1be464d07e59f733da6d45a9e933eda47b773d07707a387c2de0",
-      "@better-fetch/fetch": "a2ab548ffd442974a57845b64b9ba9c6ed72f6675750937b5dbf43bbafc6b7a5",
-      "@noble/ciphers": "5bd7d0b3bdde285101b9a3c45530966777e8fe8b2e4380211d2250c2256b3c3a",
-      "@noble/hashes": "328072e7c39ddf373f79b5f42279ea4eb446ee4dd656427428deb50a706d017a",
-      "better-call": "e98ce010e3f5f6b8e16993e33bf8afa709c5290cd9d41a9b10f4e7cdb75e6f77",
-      "defu": "a9bfabfaabbed5802bf413c10ba4cc5ac6b09c3dd17b9e7bc8817309692896b1",
-      "jose": "012a933eb0430cdfec8cb22cac42d7762c7c3b2c574e2c9c79133fa2767ff0d8",
-      "kysely": "8e110f26071dbe8cc3904b900ade8054c1ab8f8c42b834faf7aead8065c165de",
-      "nanostores": "e6e09f90be385d227c9d3cce924d5177c417b94bc96665217fc7e2cf54678881",
-      "zod": "a72d581dd95759fe1ebac25380c6fba250b3cb8054dda56e2922d3469d09bdb7"
-    },
-    "optionalDependencies": {
-      "drizzle-kit": "90dbd73e9e2c6cd34b5667997999b8242fbd3344e4d4a7da0e4bf1f1cbaea1ea",
-      "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2",
-      "mongodb": "7eab4bb609766e11a97fe2d8c699ba0484f847392022f36ae8551908c37e6bed",
-      "next": "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707",
-      "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e",
-      "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
-      "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
-      "solid-js": "4065730e09af84e4a3820c01e57c01a534255d76a3ef12029a3e350377029e17",
-      "vitest": "e682f4110830c48895ecd8fcd599d4df275d738117ee107ee6623f334d9c9983"
-    }
-  },
   "e9db6f826169687b3664217cd123bf69a300b2e86306209e7285449c69c3afc0": {
     "snapshot": "bcryptjs@3.0.3",
     "name": "bcryptjs",
@@ -1852,9 +1760,7 @@
     "version": "1.9.5",
     "resolved": "https://registry.npmjs.org/acorn-import-attributes/-/acorn-import-attributes-1.9.5.tgz",
     "integrity": "sha512-n02Vykv5uA3eHGM/Z2dQrcD56kL8TyDb2p1+0P83PClMnC/nc+anbQRhIOWnSq4Ke/KvDPrY3C9hDtC/A3eHnQ==",
-    "dependencies": {
-      "acorn": "c7901d4af178944446ba78e3ec42e4009291516798f065b915a97e73cd86eb7f"
-    },
+    "dependencies": { "acorn": "c7901d4af178944446ba78e3ec42e4009291516798f065b915a97e73cd86eb7f" },
     "optionalDependencies": {}
   },
   "f9e622b25c7f11a3c2dffe6f9676d7dae9d10caa07d57aded130308822fb87c1": {
@@ -2046,9 +1952,7 @@
     "version": "2.110.9",
     "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.110.9.tgz",
     "integrity": "sha512-XQIWyJfwEUdtzinuLUWPNSJbJKWdCQPqC7dDY45lA1qhX/OzvGPE+4OyPPZVOVWVh4DlPvk5RT2XL6SEAY0MoA==",
-    "dependencies": {
-      "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb"
-    },
+    "dependencies": { "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb" },
     "optionalDependencies": {}
   },
   "ad81373ae31d1cabe6528fa2238475faa8c22ed39a5428745537161777700fa6": {
@@ -2057,9 +1961,7 @@
     "version": "2.110.9",
     "resolved": "https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.110.9.tgz",
     "integrity": "sha512-iSL6ih4vWK5Myc1lCuDoApfeB3Ov3cZIExvlCuQEZTzyzOKG4SLxVKPrBZG/QzwAjp7TEy0LCd0zZQtE5UAaDQ==",
-    "dependencies": {
-      "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb"
-    },
+    "dependencies": { "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb" },
     "optionalDependencies": {}
   },
   "c35bf32ef803417352750bf6acf36441588d01eaed9a1bea227b2a5ba85e6bdd": {
@@ -2068,9 +1970,7 @@
     "version": "2.110.9",
     "resolved": "https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-2.110.9.tgz",
     "integrity": "sha512-YEfUzBMNkDE9OMfjzZnVgJH9h7y+wxxXryrgYk/t3boVtjPPlfwTdWRx8YkihuIbl4zxzdG4I0yiS4nd4Lmj8Q==",
-    "dependencies": {
-      "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb"
-    },
+    "dependencies": { "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb" },
     "optionalDependencies": {}
   },
   "d58fee35e568bf283bcf8ef92bc7a0f943ccb739a5635567aabba8e2e0032968": {
@@ -2132,5 +2032,16 @@
     "integrity": "sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==",
     "dependencies": {},
     "optionalDependencies": {}
+  },
+  "dfe17a63071a613b4d32e3ffdf3ab9c0fd5c4567b143386c884eda9d525628fe": {
+    "snapshot": "@next/swc-win32-arm64-msvc@16.4.3",
+    "name": "@next/swc-win32-arm64-msvc",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.4.3.tgz",
+    "integrity": "sha512-lG1pPdPLk7gTyGb00n5JIMLdBJgjb+UEhSdZvFbhUMg0DyC6z4B7RnpSKF9VCd4imkLObVbXOFA0kFCpw7yFow==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["win32"],
+    "cpu": ["arm64"]
   }
 }

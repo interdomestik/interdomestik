@@ -222,9 +222,7 @@
     "version": "1.0.4",
     "resolved": "https://registry.npmjs.org/acorn-import-phases/-/acorn-import-phases-1.0.4.tgz",
     "integrity": "sha512-wKmbr/DDiIXzEOiWrTTUcDm24kQ2vGfZQvM2fwg2vXqR5uW6aapr7ObPtj1th32b9u90/Pf4AItvdTh42fBmVQ==",
-    "dependencies": {
-      "acorn": "c7901d4af178944446ba78e3ec42e4009291516798f065b915a97e73cd86eb7f"
-    },
+    "dependencies": { "acorn": "c7901d4af178944446ba78e3ec42e4009291516798f065b915a97e73cd86eb7f" },
     "optionalDependencies": {}
   },
   "0e611784cb76df856bb95f815bdada228885469d9b8370cf306d43e12f6e1672": {
@@ -370,17 +368,6 @@
       "webidl-conversions": "0cf351ca4a9be62d7fb57240b9387ce2356cf6fa478f63129215ffed37e5ff2e"
     },
     "optionalDependencies": {}
-  },
-  "154930dd7b1edf93a7656296f946d0512b3be5dc2b8dbdeed3283df251e22097": {
-    "snapshot": "@next/swc-darwin-arm64@16.3.8",
-    "name": "@next/swc-darwin-arm64",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.3.8.tgz",
-    "integrity": "sha512-2JPRMh2nmQG5CiL7cXGL9AGwnPWJQ//cTtAUCT+w511QHk79SYz3LGv/pc5X643B/WEO0rvu3Yww0hqwt3kgeA==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["darwin"],
-    "cpu": ["arm64"]
   },
   "15818a3c1baaeedf782d2fe64e64bcdf87cddc811576cc2ea5bee8721953b13a": {
     "snapshot": "rou3@0.9.2",
@@ -787,18 +774,6 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "2972d35fcf03b78e72e2e512b11e5a3927249e1faed80026b712f6fe04112add": {
-    "snapshot": "@next/swc-linux-x64-musl@16.3.8",
-    "name": "@next/swc-linux-x64-musl",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.3.8.tgz",
-    "integrity": "sha512-+316WswI8ScVgZeUd+1KGaXkHhaYQzCjvH/05TZSpJ8zBizb1a4G7DtO7F12jcBIqMOtsz9ji1t48fmKtzqsGA==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["linux"],
-    "cpu": ["x64"],
-    "libc": ["musl"]
-  },
   "298c2aed4d59500fdd3a88161270478604ba2926cd0cbc99439e57cf5af7febb": {
     "snapshot": "cssstyle@6.2.0",
     "name": "cssstyle",
@@ -822,26 +797,13 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "2bcec1006641edad50a574cae6c01b6415ab6b435d57b5034c47b15d2dac4f88": {
-    "snapshot": "@next/swc-darwin-x64@16.3.8",
-    "name": "@next/swc-darwin-x64",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.3.8.tgz",
-    "integrity": "sha512-GZtCCOBKJ4leVIT/Th0llWKhD1ca92lzbQiS5R5ON9QkoiFnilFsebDae1JU2a3HWoKMEmEZWGs1AGLavVM72Q==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["darwin"],
-    "cpu": ["x64"]
-  },
   "2c403462f47056e98a55b5925f52c896294b6594cb2c3965c72bb07e09bc3545": {
     "snapshot": "@emnapi/runtime@1.11.3",
     "name": "@emnapi/runtime",
     "version": "1.11.3",
     "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.11.3.tgz",
     "integrity": "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==",
-    "dependencies": {
-      "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb"
-    },
+    "dependencies": { "tslib": "b15471035cb0e3fd0f67f5f2a9ba9d02b10199a0c7444b602f4db58821b076cb" },
     "optionalDependencies": {}
   },
   "2c71182ba517d728a71ef8d8192eda5cfb0cdbbebbe8ab6f4336a16a16ced9be": {
@@ -895,17 +857,6 @@
     "integrity": "sha512-LMGQLS9EuADloEFkcTBR3BwV/CGHV7zyDxVRtVDTwdI2Ca4it0CCVTT9wCkxSgokjE5Ho41hEPgb8OEUwoXr6Q==",
     "dependencies": {},
     "optionalDependencies": {}
-  },
-  "2dfff71e7daeaa1c6047cb82e9d49883b7485141e0595e70ba95feeaf8abe550": {
-    "snapshot": "@next/swc-win32-arm64-msvc@16.3.8",
-    "name": "@next/swc-win32-arm64-msvc",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.3.8.tgz",
-    "integrity": "sha512-ji0gd4kMYUxO+1fJBIbiBVRCjzG/lloiyCccnlebvb1ZJ5qXCPZqYg4Jl1DrrixnWNMKylzgpmMWx0yNDYXlzw==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["win32"],
-    "cpu": ["arm64"]
   },
   "2e14112d38472449764f5d6ab4f2f23673f985f95ed0ec443214dfa5da22a981": {
     "snapshot": "electron-to-chromium@1.5.428",
@@ -1086,9 +1037,7 @@
     "version": "6.0.0",
     "resolved": "https://registry.npmjs.org/tough-cookie/-/tough-cookie-6.0.0.tgz",
     "integrity": "sha512-kXuRi1mtaKMrsLUxz3sQYvVl37B0Ns6MzfrtV5DvJceE9bPyspOqk9xxv7XbZWcfLWbFmm997vl83qUWVJA64w==",
-    "dependencies": {
-      "tldts": "f23c7315d909173e304c97cd20ac6c7c4fa7e3b66e4ef44edc205749c9f6feef"
-    },
+    "dependencies": { "tldts": "f23c7315d909173e304c97cd20ac6c7c4fa7e3b66e4ef44edc205749c9f6feef" },
     "optionalDependencies": {}
   },
   "350cb731ee05fdc9d0b878a62fa2da1c7fd67a22d1e17589228064526b05d501": {
@@ -1169,18 +1118,6 @@
       "uncrypto": "4144a8177e8ceffdc36410013979b2350dbce178677d530f2b708e2327aac53a"
     },
     "optionalDependencies": {}
-  },
-  "382eac69a4054d1d1c44ac8c43fc6ba26d45e00883d716fcee967823160d90a1": {
-    "snapshot": "@next/swc-linux-arm64-gnu@16.3.8",
-    "name": "@next/swc-linux-arm64-gnu",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.3.8.tgz",
-    "integrity": "sha512-O659ygeQYqneJ1fBKMpFxIFqYkYswu8IAS1OCKK/4f3ZgJJm1dRz4fVJZRi/kLLWjnBKnebOePA4WNv+sV1pVA==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["linux"],
-    "cpu": ["arm64"],
-    "libc": ["glibc"]
   },
   "382f28c3d2c03477b32d45e90d47d4a4a33678a71fe82d9aaf09d04ee2b23a13": {
     "snapshot": "@babel/helper-module-imports@7.29.7",
@@ -1490,15 +1427,6 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "4494bce9a8b940f94706a3775b07f30d9f3bc69661d31b7ddfb1f11a824b009e": {
-    "snapshot": "@next/env@16.3.8",
-    "name": "@next/env",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/env/-/env-16.3.8.tgz",
-    "integrity": "sha512-Al9zqHVV7TJv0eFuOU4U7Lvv74PTih4Ch63sk2xCIpSTkE3udFnaOcnzP2lQVymiL7yS9Cj2iClUXlR3EQ5sEw==",
-    "dependencies": {},
-    "optionalDependencies": {}
-  },
   "44f439dcf31ddbfcb89ac86475a7a27addcfe5ece34b48f5834a0fdae05d0d8b": {
     "snapshot": "@opentelemetry/otlp-transformer@0.217.0(@opentelemetry/api@1.9.1)",
     "name": "@opentelemetry/otlp-transformer",
@@ -1527,17 +1455,6 @@
     "optionalDependencies": {},
     "os": ["android"],
     "cpu": ["arm64"]
-  },
-  "461b90bd4ceef6cee7f7ce13ecff6d80f4723b30f2a9a788246ce7e26c847639": {
-    "snapshot": "@next/swc-win32-x64-msvc@16.3.8",
-    "name": "@next/swc-win32-x64-msvc",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.3.8.tgz",
-    "integrity": "sha512-WcTlaKt/TWkh5kUjdJcUmB1XgZ+1c6fz4Y9fDHL73YNSdGaUWjceeWrrlwF0nv19iABYWC4iAq1oX1w4Bn0vfg==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["win32"],
-    "cpu": ["x64"]
   },
   "466b22c5377fffdf1fbf29a922805b9f5b473ead809959c2be616d1868b6dc1c": {
     "snapshot": "stackback@0.0.2",
@@ -1610,18 +1527,6 @@
     "integrity": "sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==",
     "dependencies": {},
     "optionalDependencies": {}
-  },
-  "4b3250a59935c45326f097899fc3d423df3c2d6437210cebde70678e3d7f0b6a": {
-    "snapshot": "@next/swc-linux-arm64-musl@16.3.8",
-    "name": "@next/swc-linux-arm64-musl",
-    "version": "16.3.8",
-    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.3.8.tgz",
-    "integrity": "sha512-dSjKSyWpzxoO1d3DIZZcP4XJcNaKeLmxQMFOiYl5vuBRMmweIqnAhty8tAmRsvTss779cK1FtYnDMj40e4TQlg==",
-    "dependencies": {},
-    "optionalDependencies": {},
-    "os": ["linux"],
-    "cpu": ["arm64"],
-    "libc": ["musl"]
   },
   "4bd9f1326c2edfaa7ce1bad8503239d5a1cec885f20408472e63acaf7a281d86": {
     "snapshot": "@better-fetch/fetch@1.3.2",
@@ -2046,5 +1951,145 @@
     "integrity": "sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==",
     "dependencies": {},
     "optionalDependencies": {}
+  },
+  "18a109e67d7c167221e2300642b408348c8c5929f88b80ac73bf3ee18d07745f": {
+    "snapshot": "@next/env@16.4.3",
+    "name": "@next/env",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/env/-/env-16.4.3.tgz",
+    "integrity": "sha512-a7tz1QCcWWkwC/rPJcPMJk/UNRu9CFhDd3OHYE5hddbJrs8BqRTalxI6GlKCWEGzRLHN+S/B7a4PAHCtm25aBQ==",
+    "dependencies": {},
+    "optionalDependencies": {}
+  },
+  "68a040df7093866314ca44146faa87f2cf9eccd9acab899e1aeeae9745780ccd": {
+    "snapshot": "@next/swc-linux-arm64-musl@16.4.3",
+    "name": "@next/swc-linux-arm64-musl",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.4.3.tgz",
+    "integrity": "sha512-WwYbhWkhYBvBtib1K4W0kL8MW2snBD2A5b3SN4vPpqalZbZs5+bQ1yzAdepVoOqrFfEW3dmREy4Zs1MrWcrFbw==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["linux"],
+    "cpu": ["arm64"],
+    "libc": ["musl"]
+  },
+  "7b8e5d7acb32cbc67f6cf8686e964545341748508e0b96597668fcbace6154ab": {
+    "snapshot": "@next/swc-win32-x64-msvc@16.4.3",
+    "name": "@next/swc-win32-x64-msvc",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.4.3.tgz",
+    "integrity": "sha512-NmQC9RkJdnPXRaMxtkCzobB3teVjqF33oSOnwDfi+XYGWWYpt+xlGK3mtktSKLbdjwaWbJu2OkkMiRFGUUncKg==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["win32"],
+    "cpu": ["x64"]
+  },
+  "8a44fc02f6afddc048dc9703b3ea75f2ecf8bc03d83940044f8e1dd8f9f26726": {
+    "snapshot": "@next/swc-linux-x64-musl@16.4.3",
+    "name": "@next/swc-linux-x64-musl",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.4.3.tgz",
+    "integrity": "sha512-Vmjd9D7DpA4Vv3cUlr82QWgJD/BQZmns801vtC5VWHg6jCIA4a5vMKpQnfrM2pyCrp2eV0ENdUg4PlN3bAc2Yw==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["linux"],
+    "cpu": ["x64"],
+    "libc": ["musl"]
+  },
+  "9a5fb3628b3abecbfc0cfe1388afe6f45f1a010688aeccb7f9c4927a8e458faf": {
+    "snapshot": "@next/swc-linux-x64-gnu@16.4.3",
+    "name": "@next/swc-linux-x64-gnu",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.4.3.tgz",
+    "integrity": "sha512-QymWvfUwDEC5/lpJOsxX5VAbyoR2D13+2Jsjz4be7gT4LPqEgdpkeLIR/HFfCLgKzoMhpJbp6I/JnogyNZHcaA==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["linux"],
+    "cpu": ["x64"],
+    "libc": ["glibc"]
+  },
+  "b144db41430ff8d9e48babe86521d4ec47f8c4a9e9f05bfd6c4613ba240c18f3": {
+    "snapshot": "@next/swc-darwin-x64@16.4.3",
+    "name": "@next/swc-darwin-x64",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.4.3.tgz",
+    "integrity": "sha512-1Rvkn/LUhnEF8WxnRkOrqGhbwXui1bkWFxONKIbN+r7C+9KHDSZ+iUoj4CzymVMWUyZIyx9szcb9+kbKhD500A==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["darwin"],
+    "cpu": ["x64"]
+  },
+  "bb290c0a362cadaf85e2fc5eae624d90e9ab13741f128a646a5f37d85679fc28": {
+    "snapshot": "@sentry/nextjs@10.75.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.10.0(@opentelemetry/api@1.9.1))(next@16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(webpack@5.104.1(postcss@8.5.28))",
+    "name": "@sentry/nextjs",
+    "version": "10.75.0",
+    "resolved": "https://registry.npmjs.org/@sentry/nextjs/-/nextjs-10.75.0.tgz",
+    "integrity": "sha512-eg+irsG6q7TxpFerGVOqmVEOj9DXvd5vC1LYsEuWBdijwEhXaUMpDr5CLdxDaPMdckMgCB4LlNxCleaXaVKQJA==",
+    "dependencies": {
+      "@opentelemetry/api": "65aff18a9fc4c98f9c24ab0445de2b3275049aa3c7a6db8be0534ad8dc7d2193",
+      "@rollup/plugin-commonjs": "d3bb357e8a081820ccf180ad1467b8e8c61a729c5ad1458a4599b59907237deb",
+      "@sentry/browser-utils": "f9e622b25c7f11a3c2dffe6f9676d7dae9d10caa07d57aded130308822fb87c1",
+      "@sentry/bundler-plugin-core": "795b81be5296324873f7db275fbe391920e7327729c6738e6f98ddbf40074ea8",
+      "@sentry/conventions": "fdc0cf7567009807f3ea232e05ab832ef4f88eb7513045c6b35702fa2c13e26d",
+      "@sentry/core": "7f13ae145d5e19624e337826b9e36d6f80c106f4b822b0bbd8617d475527ea81",
+      "@sentry/node": "56048c28686db2ed5135b0df9ee43fe9c9c4c0c9187c7ba16259ba4cd9e21ab5",
+      "@sentry/opentelemetry": "c51e7e9aeb33ec3fde0e14c044ef6f5601a87de510a975d94bf45bb8d131394d",
+      "@sentry/react": "7915a96f7c9afc34a472c5119599b3eddd115a1a10fa7b65be282b0a9377b45d",
+      "@sentry/server-utils": "fef2b84f50ebd39fd8d3220b0ce5f33780b10f71e9271f6d1885c207a1a3506b",
+      "@sentry/vercel-edge": "282374d3c42e92d464a917aa872fd9641bc7fb1a02bf1a45fda33a3e37455047",
+      "@sentry/webpack-plugin": "7651b69f12febc7f9f16934a45d0cfd41f7ed0fe11c016b81f929e5b06d35b17",
+      "next": "b0a594484b42bfcb2e70c016336b2299626f2ade46b6a62847a3e3c77352927b",
+      "rollup": "73cf6657f26576a42860f35068bab5d1c663535bad974d1fcc8892d4f250c18e",
+      "stacktrace-parser": "41e15022f48f7f37d231e458d20ede1f658af35b6e343ff171f1052e64909a2f"
+    },
+    "optionalDependencies": {}
+  },
+  "d35d11f54e2f5c33caee3c65befb8bd524a485040ce00ac950504b382f36d21b": {
+    "snapshot": "@next/swc-darwin-arm64@16.4.3",
+    "name": "@next/swc-darwin-arm64",
+    "version": "16.4.3",
+    "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.4.3.tgz",
+    "integrity": "sha512-4yq5EXBt+VDtAZwTyfijaFp5D2C5oz3Ikw5a2kiX2K9nw72vrZX2q5UuAlkPtUMO1tQz6JTKpaKWjS7OOefTDQ==",
+    "dependencies": {},
+    "optionalDependencies": {},
+    "os": ["darwin"],
+    "cpu": ["arm64"]
+  },
+  "e8d178d04a538e7fcef71da676988be79d3bbc2d933f74b5c0772a59a0cb100c": {
+    "snapshot": "better-auth@1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.4.3(patch_hash=94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)",
+    "name": "better-auth",
+    "version": "1.6.33",
+    "resolved": "https://registry.npmjs.org/better-auth/-/better-auth-1.6.33.tgz",
+    "integrity": "sha512-QkVKOmJw/LQ3HjIib2wx2Td0xB9EuPgw0ARYPKeFu3niN0VSBW32j4QwfewFZOQi5Hb/jOB6U+wdvtBhF7+URw==",
+    "dependencies": {
+      "@better-auth/core": "3cdd0ca99a36ae3f1fb481a4605be00e5e547033f14708d04193a571526c5cd6",
+      "@better-auth/drizzle-adapter": "ff94d6db01eff674486b4b8bd6ccbde703b069c06880ef6dfd4d18a7665bb55a",
+      "@better-auth/kysely-adapter": "72e2309bdb8ef432d208e18e3cd859e8f4717acef8851e8f23abf814582323a6",
+      "@better-auth/memory-adapter": "946bac22abf037eb5d58822e543528010d1ec09a25ae9655da515b639585b30c",
+      "@better-auth/mongo-adapter": "6e347a04c0bd8f711edc778a35a4e116036b94f34ec73a7001a60b597482333f",
+      "@better-auth/prisma-adapter": "a18f200f4be21bc0ed572359b874c94f0e6346433019983d8fa53c06a6875526",
+      "@better-auth/telemetry": "8bab2240ed520756a0f18f89ab62398dbc525f42b6669c3fcba0842d53230edd",
+      "@better-auth/utils": "1df268eca7cb1be464d07e59f733da6d45a9e933eda47b773d07707a387c2de0",
+      "@better-fetch/fetch": "a2ab548ffd442974a57845b64b9ba9c6ed72f6675750937b5dbf43bbafc6b7a5",
+      "@noble/ciphers": "5bd7d0b3bdde285101b9a3c45530966777e8fe8b2e4380211d2250c2256b3c3a",
+      "@noble/hashes": "328072e7c39ddf373f79b5f42279ea4eb446ee4dd656427428deb50a706d017a",
+      "better-call": "e98ce010e3f5f6b8e16993e33bf8afa709c5290cd9d41a9b10f4e7cdb75e6f77",
+      "defu": "a9bfabfaabbed5802bf413c10ba4cc5ac6b09c3dd17b9e7bc8817309692896b1",
+      "jose": "012a933eb0430cdfec8cb22cac42d7762c7c3b2c574e2c9c79133fa2767ff0d8",
+      "kysely": "8e110f26071dbe8cc3904b900ade8054c1ab8f8c42b834faf7aead8065c165de",
+      "nanostores": "e6e09f90be385d227c9d3cce924d5177c417b94bc96665217fc7e2cf54678881",
+      "zod": "a72d581dd95759fe1ebac25380c6fba250b3cb8054dda56e2922d3469d09bdb7"
+    },
+    "optionalDependencies": {
+      "drizzle-kit": "90dbd73e9e2c6cd34b5667997999b8242fbd3344e4d4a7da0e4bf1f1cbaea1ea",
+      "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2",
+      "mongodb": "7eab4bb609766e11a97fe2d8c699ba0484f847392022f36ae8551908c37e6bed",
+      "next": "b0a594484b42bfcb2e70c016336b2299626f2ade46b6a62847a3e3c77352927b",
+      "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e",
+      "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
+      "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
+      "solid-js": "4065730e09af84e4a3820c01e57c01a534255d76a3ef12029a3e350377029e17",
+      "vitest": "e682f4110830c48895ecd8fcd599d4df275d738117ee107ee6623f334d9c9983"
+    }
   }
 }

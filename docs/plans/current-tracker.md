@@ -203,6 +203,58 @@ This is a necessary source premise, not runtime admission. Actual current-store 
 private lifetime control, restricted SQL, proof containment and the all-context native
 producer join remain pending. No historical runtime pass transfers to the changed source.
 
+Latest M4-02 qualification on `8c6246b8c583cf4b17608bd37b30d55ee787c496`
+also **failed**, at 303.036 seconds including cleanup. All 28 SQL cases passed
+in 40.408 seconds, but no complete native pair or replacement census returned.
+Both samplers remained healthy; cleanup had no errors and the owned processes,
+container and volumes were retired. Receipt SHA-256:
+`04e17faee86074695577f57f85f15f3d13cbaad879988095937a9b8d814eaea3`.
+The single-validation composition correction was insufficient to resolve timing.
+This reopens the same budget family and grants zero accepted old-ID, context or
+original-occurrence closures. The remaining timeout phase is unobserved; another
+acceptance replay is not justified by the focused test pass. Comparison is retained
+in `m4-effect-assertion-link-v1/repeated-budget-failure-comparison.json`.
+
+### Urgent Next security remediation (26 October; delivery pending)
+
+Owner-authorized bounded framework security remediation temporarily precedes
+another M4 diagnostic or heavy qualification. The candidate now installs Next,
+its analyzer/ESLint family and the global peer override at **16.4.3**; sharp
+remains **0.35.5**. The existing form-state/postponed guard is ported to the exact
+official archive: ten targets and twelve strict-null guards, independently reviewed
+patch SHA-256 `94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4`.
+`partialPrefetching: false` is explicit; the existing `cacheComponents` expression,
+TypeScript build enforcement, proxy/routes/auth/tenant boundaries and canonical
+Postgres patch remain unchanged.
+
+The mechanical CRM dependency successor retains 529 package records and eighteen
+roots, including 517 unchanged records. Graph validation passes for all three
+supported platforms; installed Next patch postimages match the reviewed patch.
+The separate message producer retains all 198 entries, replacing only ten Next
+family package rows and its root version; 187 unrelated package records are exact.
+Its historical archive cache is preserved, with 118 verified Darwin archives in a
+separate owned successor cache. Current dependency/configuration/source pins are
+refreshed; ADOPTION, baseline604, historical witnesses and admission criteria are
+unchanged. Security guard and 248 focused dependency/source/contract tests pass;
+the coordinator separately ran nine existing candidate web suites with 84 tests passing.
+The official Next archive also passes exact verification of all eleven selected
+CRM source-only dependency witnesses; this is archive/source evidence, not admission.
+
+The coordinator's actual candidate production build passed Webpack compilation
+(90 seconds) and enforced TypeScript (31.8 seconds), then failed during page-data
+collection at `/api/ai/reviews/[id]` because no validated application database
+connection profile was supplied. No current separate admin/restricted application
+profile is retained and no Docker application services are active. Full production
+build, native no-JavaScript form/browser verification, full PR checks and delivery
+remain unverified; a retired M4 SQL fixture is not application qualification.
+
+The message materializer separately retains a pre-existing mismatch between its
+hardcoded Postgres connection postimages and the unchanged current driver patch.
+This is recorded as a prerequisite to a fresh message qualification, not repaired
+through metadata or counted as a Next-induced regression. Evidence and exact
+derivation/check logs are in the owner's `next-security-successor-v1` directory.
+No M4, S8, global ZERO, merge or deployment completion is claimed.
+
 ### Approved AI tooling follow-up (26 October; separate from first M4)
 
 Arben approved selective adoption with “agree” in coordinator chat
