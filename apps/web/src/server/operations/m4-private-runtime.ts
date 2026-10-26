@@ -114,6 +114,9 @@ function construct(
           statement_timeout: captured.operationDeadlineMs,
           lock_timeout: captured.operationDeadlineMs,
           idle_in_transaction_session_timeout: captured.operationDeadlineMs,
+          // A server blocked on a lock must also notice our destroyed client socket.
+          // This is not a guarantee of bounded detection under arbitrary network failure.
+          client_connection_check_interval: 100,
           search_path: 'pg_catalog, public',
           row_security: 'on',
         };
