@@ -52,12 +52,12 @@ function fixture(failure) {
       if (failure === 'graph') throw Error(failure);
       return graph;
     },
-    finalizeGuard(value, result) {
+    finalizeGuardAnalysis(value, result) {
       assert.equal(value, prepared);
       assert.equal(result, graph);
       events.push('finalize');
       if (failure === 'finalize') throw Error(failure);
-      return report;
+      return { report };
     },
     evaluateGuard(root, authority) {
       assert.equal(root, '/owned');

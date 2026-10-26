@@ -1,3 +1,4 @@
+import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
 import { mergeM4ContextBatches } from './db-access-m4-context-wire.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,11 +15,24 @@ import { createIncompleteCollector } from './db-access-incomplete.mjs';
 const fail = reason => {
   throw new Error('incomplete: graph worker ' + reason);
 };
+const ownedGraphOutputs = new WeakMap();
+export function assertOwnedGraphOutput(graph) {
+  const bound = ownedGraphOutputs.get(graph);
+  if (!bound || !sameOutputShape(bound, graph)) fail('unowned/changed/replaced merged output');
+  return bound.digest;
+}
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const codeFiles = [
   'db-access-graph-workers.mjs',
   'db-access-graph-worker.mjs',
   'db-access-evaluator.mjs',
+  'db-access-finalize.mjs',
+  'db-access-m4-native-session.mjs',
+  'db-access-m4-session-authority.mjs',
+  'db-access-trust.mjs',
+  'db-access-resolver-snapshot.mjs',
+  'db-access-provider-unit-source.mjs',
+  'db-access-output-binding.mjs',
   'db-access-graph.mjs',
   'db-access-prepare.mjs',
   'db-access-cli.mjs',
@@ -167,6 +181,9 @@ export async function runParallelGraph(prepared, input, pool) {
   assertWorkerCode(prepared.repoRoot);
   if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
   const merged = mergeOwnedGraphs(prepared, partitions, results);
-  if (m4Request) merged.m4WorkerTransport = claimOwnedM4WorkerEvidence(results);
+  if (m4Request) {
+    merged.m4WorkerTransport = claimOwnedM4WorkerEvidence(results);
+    ownedGraphOutputs.set(merged, outputShape(merged));
+  }
   return merged;
 }

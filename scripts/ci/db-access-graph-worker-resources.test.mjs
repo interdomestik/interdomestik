@@ -51,6 +51,10 @@ async function fixture(mode = 'normal') {
   globalThis[key] = Worker;
   const source = fs
     .readFileSync(new URL('./db-access-graph-worker-pool.mjs', import.meta.url), 'utf8')
+    .replace(
+      "'./db-access-output-binding.mjs'",
+      JSON.stringify(new URL('./db-access-output-binding.mjs', import.meta.url).href)
+    )
     .replace("import { Worker } from 'node:worker_threads';", `const Worker = globalThis.${key};`)
     .replaceAll(
       'import.meta.url',

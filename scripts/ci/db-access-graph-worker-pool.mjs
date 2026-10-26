@@ -1,3 +1,4 @@
+import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
@@ -5,12 +6,19 @@ import { Worker } from 'node:worker_threads';
 const owned = new WeakMap();
 const evidence = new WeakSet(),
   resultEvidence = new WeakMap();
+const receivedOutputs = new WeakSet(),
+  evidenceSeals = new WeakMap();
+export function assertM4WorkerEvidenceCurrent(proof) {
+  if (!evidence.has(proof) || evidenceSeals.get(proof) !== producerSeal())
+    throw fail('foreign or changed producer evidence');
+}
 export const isOwnedM4WorkerEvidence = value => evidence.has(value);
 export function claimOwnedM4WorkerEvidence(results) {
   const value = resultEvidence.get(results);
   if (!value) throw fail('unowned or replayed transport result');
   resultEvidence.delete(results);
-  return value;
+  if (!sameOutputShape(value.output, results)) throw fail('changed/replaced transport output');
+  return value.proof;
 }
 function producerSeal() {
   const policyBytes = fs.readFileSync(
@@ -21,6 +29,13 @@ function producerSeal() {
     'db-access-graph-worker.mjs',
     'db-access-graph-worker-pool.mjs',
     'db-access-graph-workers.mjs',
+    'db-access-output-binding.mjs',
+    'db-access-finalize.mjs',
+    'db-access-m4-native-session.mjs',
+    'db-access-m4-session-authority.mjs',
+    'db-access-trust.mjs',
+    'db-access-resolver-snapshot.mjs',
+    'db-access-provider-unit-source.mjs',
     'db-access-prepare.mjs',
     'db-access-m4-worker-input.mjs',
     'db-access-inventory-wire.mjs',
@@ -131,6 +146,7 @@ export function startGraphWorkerPool(repoRoot) {
             reject(fail('foreign/replayed/partial worker transport acknowledgement'));
             return;
           }
+          if (slot.request.m4Expected) receivedOutputs.add(message);
           slot.phase = 'ready';
           slot.request.resolve(message);
           slot.request = undefined;
@@ -232,7 +248,11 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
     m4Authority.assertM4WorkerRequestCurrent(m4Request);
     if (producerSeal() !== state.producerSeal)
       throw fail('producer changed after worker completion');
+    if (results.some(result => !receivedOutputs.has(result)))
+      throw fail('changed/replaced received output');
+    const output = outputShape(results);
     const proof = Object.freeze({
+      outputDigest: output.digest,
       requestId: m4Request.requestId,
       snapshot: m4Request.snapshot,
       inventoryDigest: m4Request.inventoryDigest,
@@ -245,7 +265,8 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
       allExecutableContextsQualified: false,
     });
     evidence.add(proof);
-    resultEvidence.set(results, proof);
+    evidenceSeals.set(proof, state.producerSeal);
+    resultEvidence.set(results, { proof, output });
   }
   return results;
 }

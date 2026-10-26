@@ -57,6 +57,10 @@ globalThis.__batchWorker = class extends EventEmitter {
 let source = fs.readFileSync(new URL('./db-access-graph-worker-pool.mjs', import.meta.url), 'utf8');
 source = source
   .replace(
+    "'./db-access-output-binding.mjs'",
+    JSON.stringify(new URL('./db-access-output-binding.mjs', import.meta.url).href)
+  )
+  .replace(
     "import { Worker } from 'node:worker_threads';",
     'const Worker=globalThis.__batchWorker;'
   )
