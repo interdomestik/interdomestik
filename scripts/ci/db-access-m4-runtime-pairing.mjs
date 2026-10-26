@@ -1,4 +1,5 @@
 import { describeM4PairGaps } from './db-access-m4-gap-ledger.mjs';
+import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
 import { randomUUID } from 'node:crypto';
 import { runM4Runtime, hasM4RuntimeBinding } from './db-access-m4-runtime.mjs';
 import {
@@ -51,11 +52,13 @@ export function assertM4Pairing(handle, input) {
   if (!hasM4RuntimeBinding(state.runtime, input.context, policySha256))
     fail('runtime event/policy');
   const native = assertM4NativeSessionEvent(state.native, event);
+  state.effectAssertions ??= linkM4EffectAssertions(state.native, state.runtime, event);
   // Cache only after both existing private bindings have been revalidated.
   state.gapLedger ??= describeM4PairGaps(native, state.native.outputDigest, state.runtime);
   return freezeOutput({
     report: native.report,
     gapLedger: state.gapLedger,
+    effectAssertions: state.effectAssertions,
     checkpoint: {
       version: 1,
       gapLedger: state.gapLedger,

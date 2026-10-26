@@ -1609,8 +1609,8 @@
     },
     "scripts/ci/db-access-m4-native-session.mjs": {
       "mode": "100644",
-      "bytes": 7805,
-      "sha256": "b97767728283a81765af4be2013f69ca19dd03bddb272cd4256569dd3df59646"
+      "bytes": 8124,
+      "sha256": "b51ddca8bfc2ffa33808904500faf0425dcc5dbd57934c483181a74543268c51"
     },
     "scripts/ci/db-access-output-binding.mjs": {
       "mode": "100644",
@@ -1734,8 +1734,8 @@
     },
     "scripts/ci/db-access-m4-runtime.mjs": {
       "mode": "100644",
-      "bytes": 6322,
-      "sha256": "6e93d59e05d0425cd308cbbd2687630772b2d98ad6f00d50274747e0b04d25ca"
+      "bytes": 6538,
+      "sha256": "d56e857b4d815ac0f627f487dd3eb892a73ea36fe8f5bb1f4b5ce028da29e481"
     },
     "scripts/ci/db-access-m4-runtime-source-ast.mjs": {
       "mode": "100644",
@@ -1769,13 +1769,13 @@
     },
     "scripts/ci/db-access-m4-runtime-pairing.mjs": {
       "mode": "100644",
-      "bytes": 3493,
-      "sha256": "f47eff60b7416c3509df45cb712ad37d0b32b08d7021f6332044f3f452a775da"
+      "bytes": 3707,
+      "sha256": "3ef4e5e618dbe5e410576b38d8a58271bb13a3c7b8cfdb025d9047277c0fdc66"
     },
     "scripts/ci/db-access-m4-gap-ledger.mjs": {
       "mode": "100644",
-      "bytes": 3711,
-      "sha256": "1c40574a990014cff15f8f56230c259387ae6d3954dec84ed8f3e0da0b7ae161"
+      "bytes": 3724,
+      "sha256": "e83e2c0e7b7b5a6ad6eed2621a97eb34f590fa82797176b4d8a4c0743ec65a76"
     },
     "scripts/ci/db-access-prior-controls.mjs": {
       "mode": "100644",
@@ -1801,6 +1801,26 @@
       "mode": "100644",
       "bytes": 3510,
       "sha256": "1d86a1d9bdecf805dc7230fc78d0954d314f2a22ce45ebf0c8168d7e033eff46"
+    },
+    "scripts/ci/db-access-m4-assertion-nodes.mjs": {
+      "mode": "100644",
+      "bytes": 5889,
+      "sha256": "29f7df473cb4de833d03c1261800cc3eb89c7136cdce1cb2f5ae72a8f8f339a2"
+    },
+    "scripts/ci/db-access-m4-kernel-assertion-contract.mjs": {
+      "mode": "100644",
+      "bytes": 2187,
+      "sha256": "30898d6b00690a7004533c631cb1cfdcbeb5e0297bab4a59505756b35fae454e"
+    },
+    "scripts/ci/db-access-m4-effect-assertions.mjs": {
+      "mode": "100644",
+      "bytes": 3849,
+      "sha256": "27ac586c77e10061f41dd3b250590217c3ddbb4b52957cb95144aaaf07b50c7f"
+    },
+    "scripts/ci/db-access-m4-effect-assertions.test.mjs": {
+      "mode": "100644",
+      "bytes": 5545,
+      "sha256": "469295908c85410f236e94d6e2ca30bf072ea9816a2b77db6d9ac4fbff87fa76"
     }
   },
   "runtimeEnforcement": {

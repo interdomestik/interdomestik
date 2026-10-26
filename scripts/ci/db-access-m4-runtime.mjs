@@ -35,6 +35,10 @@ export function hasM4RuntimeBinding(value, context, policySha256) {
     binding.policySha256 === policySha256
   );
 }
+export function assertM4RuntimeImageRecords(value, context, policySha256) {
+  if (!hasM4RuntimeBinding(value, context, policySha256)) fail('foreign runtime/image evidence');
+  return fresh.get(value).imageRecords;
+}
 export function m4RuntimeCandidateRecords() {
   const records = { ...contract.files, ...contract.configuration, ...contract.migrations };
   for (const [file, record] of Object.entries(policy.resolverFiles)) {

@@ -52,7 +52,8 @@ export function describeM4PairGaps(native, nativeOutputDigest, runtime) {
     unmappedRelations: [
       {
         relation: 'source-effects-to-runtime-cases',
-        missing: 'No fixed source-effect to executed-case/assertion mapping is bound to this pair.',
+        missing:
+          'No complete source-effect to executed-case/assertion mapping is bound to this pair.',
       },
       {
         relation: 'historical-to-current-lineage',

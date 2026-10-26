@@ -155,6 +155,13 @@ export function assertM4NativeSessionEvent(handle, event) {
   return view;
 }
 
+// A proof consumer can inspect derivations only through the actual current event-bound
+// native owner. A source receipt, model, JSON projection or clone is never an input.
+export function assertM4NativeProofSource(handle, event) {
+  assertM4NativeSessionEvent(handle, event);
+  return sessions.get(handle).source;
+}
+
 // Only this live handle is authority. The frozen projection is inspectable evidence,
 // never an independently admissible receipt; a future join must assert the handle.
 export function assertM4NativeSessionCurrent(handle) {
