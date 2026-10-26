@@ -35,9 +35,13 @@ export function crmCandidateRecords(policy, producer) {
 }
 
 // Called inside the fixed producer's authenticated, source-bookended interval.
+export function executeCrmRuntime(input) {
+  return input.policy.crmProof ? runCrmRuntime(input) : undefined;
+}
+
 export function executeCrmProof(input) {
   if (!input.policy.crmProof) return undefined;
-  const runtime = runCrmRuntime(input);
+  const runtime = executeCrmRuntime(input);
   const report = evaluateGuard(input.candidate);
   return { runtime, report };
 }

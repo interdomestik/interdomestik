@@ -1,4 +1,6 @@
 import { currentM4SessionAuthority } from './db-access-m4-session-authority.mjs';
+import fs from 'node:fs';
+import { inspectM4NativeEvent, assertM4NativeGitRoot } from './db-access-m4-native-event.mjs';
 import { randomUUID } from 'node:crypto';
 import { prepareGuard } from './db-access-prepare.mjs';
 import { finalizeGuardAnalysis } from './db-access-finalize.mjs';
@@ -44,12 +46,22 @@ function nativeCurrent(prepared) {
 }
 
 // The sole minting path executes the fixed producer's preparation, owned workers and
-// finalization itself. There is no prepared/graph/receipt/options argument.
-export async function evaluateM4NativeSession(repoRoot) {
+// finalization itself. Optional event input is authenticated before/after analysis;
+// there is no prepared/graph/receipt or alternate evaluator argument.
+export async function evaluateM4NativeSession(repoRoot, event) {
+  if (event) outputShape(event);
+  const eventInput = event
+    ? freezeOutput({
+        gitDir: fs.realpathSync(event.gitDir),
+        context: structuredClone(event.context),
+      })
+    : undefined;
   assertWorkerCode(repoRoot);
+  if (eventInput) assertM4NativeGitRoot(repoRoot, eventInput);
   const prepared = prepareGuard(repoRoot, ADOPTION, PROVIDER_UNIT_POLICY);
   nativeCurrent(prepared);
   const authorityDigest = currentM4SessionAuthority(prepared);
+  const eventBinding = eventInput ? inspectM4NativeEvent(prepared, eventInput) : undefined;
   const pool = startGraphWorkerPool(repoRoot);
   try {
     const snapshot = graphSnapshot(prepared);
@@ -69,10 +81,17 @@ export async function evaluateM4NativeSession(repoRoot) {
     if (currentM4SessionAuthority(prepared) !== authorityDigest)
       fail('authority changed during analysis');
     if (graphSnapshot(prepared) !== snapshot) fail('source changed during finalization');
+    if (
+      eventInput &&
+      outputShape(inspectM4NativeEvent(prepared, eventInput)).digest !==
+        outputShape(eventBinding).digest
+    )
+      fail('event/tree changed during analysis');
     assertWorkerCode(repoRoot);
     const view = freezeOutput({
       version: 1,
       authorityDigest,
+      ...(eventBinding ? { eventBinding } : {}),
       snapshot,
       modelDigest: outputShape([...prepared.model.sources]).digest,
       sourcePolicyDigest: prepared.providerUnit.m4Proof.policyDigest,
@@ -107,11 +126,31 @@ export async function evaluateM4NativeSession(repoRoot) {
       source: prepared.providerUnit.m4Proof,
       native: prepared.m4NativeInventory,
       modelDigest: view.modelDigest,
+      eventInput,
+      eventBinding,
     });
     return handle;
   } finally {
     await pool.close();
   }
+}
+
+// An event cannot be attached later to a static session. Both preparation and
+// completion were already bookended against this authenticated tree/event.
+export function assertM4NativeSessionEvent(handle, event) {
+  const view = assertM4NativeSessionCurrent(handle);
+  const state = sessions.get(handle);
+  outputShape(event);
+  if (
+    !state.eventInput ||
+    fs.realpathSync(event.gitDir) !== state.eventInput.gitDir ||
+    outputShape(event.context).digest !== outputShape(state.eventInput.context).digest
+  )
+    fail('foreign event or static-only session');
+  const current = inspectM4NativeEvent(state.prepared, state.eventInput);
+  if (outputShape(current).digest !== outputShape(state.eventBinding).digest)
+    fail('changed event/tree inputs');
+  return view;
 }
 
 // Only this live handle is authority. The frozen projection is inspectable evidence,

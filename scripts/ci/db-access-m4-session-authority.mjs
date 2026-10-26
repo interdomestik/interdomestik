@@ -9,7 +9,7 @@ import { outputShape } from './db-access-output-binding.mjs';
 
 // Reuse the actual preparation's fixed authority checks, with fresh disk inputs.
 // This computes data only; it cannot mint native/session/worker ownership.
-export function currentM4SessionAuthority(prepared) {
+export function inspectM4SessionAuthority(prepared) {
   if (prepared.adoption !== ADOPTION || prepared.providerPolicy !== PROVIDER_UNIT_POLICY)
     throw Error('incomplete: M4 session foreign preparation authority');
   const root = fs.realpathSync(prepared.repoRoot);
@@ -44,7 +44,7 @@ export function currentM4SessionAuthority(prepared) {
       throw Error('incomplete: M4 session non-regular authority input ' + file);
     return [file, stat.mode & 0o111 ? '100755' : '100644', digest(fs.readFileSync(full))];
   });
-  return outputShape({
+  const authorityDigest = outputShape({
     adoption: ADOPTION,
     authorityFiles,
     currentResolver: [...currentResolver],
@@ -52,4 +52,13 @@ export function currentM4SessionAuthority(prepared) {
     trustedResolver: select(prepared.trusted),
     resolution: [...resolution],
   }).digest;
+  return {
+    digest: authorityDigest,
+    candidateFiles: [
+      ...new Set([...candidates.keys(), ...currentResolver.keys(), ...Object.keys(ADOPTION.files)]),
+    ].sort(),
+    resolverFiles: [...candidates.keys()].sort(),
+  };
 }
+
+export const currentM4SessionAuthority = prepared => inspectM4SessionAuthority(prepared).digest;

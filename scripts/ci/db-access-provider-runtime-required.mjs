@@ -1,10 +1,11 @@
 import { providerRuntimeProducerRecords } from './db-access-provider-runtime-producer-records.mjs';
 import {
   crmCandidateRecords,
-  executeCrmProof,
+  executeCrmRuntime,
   attachCrmJoin,
 } from './db-access-crm-runtime-required.mjs';
 import { runMessageRuntime } from './db-access-message-runtime.mjs';
+import { executeM4Pairing, assertM4Pairing } from './db-access-m4-runtime-pairing.mjs';
 import {
   hash,
   refuse,
@@ -238,9 +239,11 @@ export async function runRequiredProviderRuntime({
     policy,
     redact,
     context,
+    gitDir,
   };
   const messageRuntime = runMessageRuntime(runtimeInput);
-  const crm = executeCrmProof(runtimeInput);
+  const crmRuntime = executeCrmRuntime(runtimeInput);
+  const m4 = await executeM4Pairing(runtimeInput);
   // Bookends cover the entire provider/message/CRM/static interval.
   authenticateRuntimeContext(gitDir, context);
   const after = {
@@ -248,6 +251,12 @@ export async function runRequiredProviderRuntime({
     producer: snapshot(producer, context.sourceCommit, producerRecords, git),
   };
   if (JSON.stringify(before) !== JSON.stringify(after)) refuse('runtime input changed');
+  const paired = assertM4Pairing(m4, runtimeInput);
+  const crm = { runtime: crmRuntime, report: paired.report };
+  fs.writeFileSync(
+    path.join(output, 'm4-non-admitting-pair.json'),
+    JSON.stringify(paired.checkpoint)
+  );
   const receipt = {
     version: 1,
     messageRuntime,
