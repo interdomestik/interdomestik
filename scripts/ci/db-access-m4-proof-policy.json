@@ -32,8 +32,8 @@
     },
     "apps/web/src/server/operations/m4-ops-controller.ts": {
       "mode": "100644",
-      "bytes": 11905,
-      "sha256": "7ed3371d6e16d7cb69429b5a752ba77b7f8806a37a26e686a2e21e3e743d3f5c"
+      "bytes": 11976,
+      "sha256": "75bc758ac7e7f79f3a1061f8a35b075ffba6598e2e4a346459b98f5b440c7f8a"
     },
     "apps/web/src/server/operations/m4-assignment-protocol.ts": {
       "mode": "100644",

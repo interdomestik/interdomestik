@@ -23,6 +23,24 @@ assert.deepEqual(
 for (const [label, mutate, key] of prior) negative(label, mutate, key);
 const added = [
   [
+    'ops unexpectedly reads branch column',
+    s =>
+      replace(
+        s,
+        "profile === 'ops' ? sql<string | null>`null` : schema.user.branchId",
+        'schema.user.branchId'
+      ),
+  ],
+  [
+    'legacy and staff current branch read removed',
+    s =>
+      replace(
+        s,
+        "profile === 'ops' ? sql<string | null>`null` : schema.user.branchId",
+        'sql<string | null>`null`'
+      ),
+  ],
+  [
     'notification before result commit',
     s =>
       transactionStatement(

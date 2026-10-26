@@ -74,6 +74,24 @@ test('old pair, mixed pair and same-size metadata tampering are rejected', t => 
   }
 });
 
+test('the driver successor changes only the reviewed patch identity and rejects its predecessor', t => {
+  const oldPatch = 'dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612';
+  const newPatch = '1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e';
+  const oldLock = runGit([
+    '-C',
+    rootDir,
+    'show',
+    '72363fd8492e95bbf564937b400c907781ce7e32^:pnpm-lock.yaml',
+  ]).toString();
+  assert.equal(oldLock.split(oldPatch).length - 1, 27);
+  assert.equal(oldLock.replaceAll(oldPatch, newPatch), current.get('pnpm-lock.yaml').toString());
+  const root = fixture(t, new Map([...current, ['pnpm-lock.yaml', oldLock]]));
+  assert.throws(
+    () => verifyCurrentResolverSnapshot(root, ADOPTION),
+    /resolver snapshot digest mismatch/u
+  );
+});
+
 test('the former accepted pair and both mixed successor states are rejected', t => {
   for (const contents of [
     formerlyAccepted,

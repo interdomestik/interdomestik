@@ -5,7 +5,7 @@ import path from 'node:path';
 // Protected executable-source data, separate from historical DB-debt ADOPTION.
 // No candidate, environment or CLI input can select a dependency snapshot.
 export const RESOLVER_SNAPSHOT = Object.freeze({
-  id: 's8-provider-driver-20261021-exact-pair-v1',
+  id: 's8-owned-driver-20261026-exact-pair-v2',
   adoptionCommit: '278e33ab0dd448547fa81d4b0ff122b4d69c901e',
   adoptionTree: '4f9330417466b4f7bee68349e7183db22a5260ff',
   baselineSha256: '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9',
@@ -17,7 +17,7 @@ export const RESOLVER_SNAPSHOT = Object.freeze({
     }),
     'pnpm-lock.yaml': Object.freeze({
       previousSha256: '221aac6195992ee283892ae9338a2ce880bd0f3d16f6915cbb4545209e494aca',
-      sha256: 'f4e4858573b84e51044a0cb717ad3e1425b6bf8806dfb2a1ae19edb119b3a72d',
+      sha256: '8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7',
       bytes: 711992,
     }),
   }),

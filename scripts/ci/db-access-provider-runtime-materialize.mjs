@@ -21,10 +21,12 @@ const DEPS = Object.freeze({
       'sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==',
   },
 });
-const PATCH = 'dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612';
+const PATCH = '1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e';
 const PATCHED = {
-  'src/connection.js': '12f2e1a77a0ea9c2fb01fcdc8cf46469c5569a0822f1c7e60b658c20a2d1ba33',
-  'cjs/src/connection.js': '143db23d9edf228a46ca23345b2faf0f47f14f2ab2eb460244c8b69a23d86c94',
+  'src/index.js': '6ecfbdd06384caa9c23a2d5eda3f4cfe2f9da1ffef718db44de9ed076cddee0c',
+  'src/connection.js': 'fe0e03101e0df83606f6bcccfcf0c88730785a0ee4430cbb569585e82575e2ba',
+  'cjs/src/index.js': 'af6048eb8934a438df19032c828560e2a7d9f1bdf1396e9a7974002cbdec231d',
+  'cjs/src/connection.js': 'ecfbf6ab4abe320fe3d28c33928103ee5267e9cd15ecc14a6598c3fb09123e55',
 };
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const fail = reason => {

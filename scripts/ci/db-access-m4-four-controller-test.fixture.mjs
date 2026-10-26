@@ -72,7 +72,7 @@ export function registerPositiveControllerCases() {
     assert.equal(baseline.runtimeAdmission, false);
     assert.equal(baseline.controllerPremiseOnly, true);
     assert.equal(Object.keys(baseline.facts.controller.functions).length, 5);
-    assert.equal(baseline.facts.ownedClauses.length, 22);
+    assert.equal(baseline.facts.ownedClauses.length, 23);
     for (const [key, file] of Object.entries(FILES))
       assert.equal(baseline.sourceSha256[file], hash(sources[key + 'Source']));
     assert.ok(baseline.sourceNodes.length > 100);
