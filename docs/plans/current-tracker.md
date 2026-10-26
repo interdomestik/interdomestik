@@ -215,6 +215,45 @@ original-occurrence closures. The remaining timeout phase is unobserved; another
 acceptance replay is not justified by the focused test pass. Comparison is retained
 in `m4-effect-assertion-link-v1/repeated-budget-failure-comparison.json`.
 
+Current uninstrumented source `069cfe3218c93a7a5d8b9faa285210086dbde1dc`
+subsequently passed its genuine positive pair in **290.120 seconds**, including
+cleanup, with sampled aggregate peak 5,909,611,151 bytes. All 28 SQL cases, original
+source/dependency/private-owner/event/policy/image checks, freshness negatives and
+full public report serialization passed. The three effect links and six mandatory
+assertion nodes were returned. Receipt SHA-256:
+`666d1014573c0b170770fcc4f1a840bf3f2aa3e8ea1dded2c9a135893629e270`.
+Its preceding instrumented diagnostic passed in 292.198 seconds; that diagnostic
+alone was not used to qualify the uninstrumented source. The complete public census
+remains 7,709 operations, 3,813 failing identities, 193,682 tuples and 11,839,555
+occurrences. Accepted old identities, contexts and original occurrences remain zero.
+
+The source-valid negative `53021807a735a76f38bb09f3d3a53b38aa0527a1`, with only
+the required audit assertion removed and its exact producer descriptor refreshed,
+then **failed at 302.369 seconds**. No final correspondence result returned, so this
+does not qualify the negative or M4-07. Its child exited, no verified PIDs remained,
+owned PostgreSQL/volumes were retired and prior services/source/helpers were
+preserved. The deadline-induced container-sampler failure and terminal-health
+cleanup error remain failed evidence, not resource qualification. An additional
+read-only check confirmed the original PID and container absent. Receipt SHA-256:
+`ccd008e17004d049aa240c9289b4bc6848b43bd0abbc5f86aba2f949a26105fc`.
+The comparison and appended failure record are retained under
+`m4-effect-assertion-semantic-negative-v2` and
+`m4-failure-memory-v1/updates/M4-02-NEG-01.json`. No blind retry is selected.
+
+A bounded read-only CPU profile of the actual authenticated preparation isolated
+source-snapshot subprocess fanout. On the identical 453 frozen input records,
+the original snapshot pair took 5,711 ms and 906 Git subprocesses; the bounded batch
+implementation took 276 ms and four subprocesses, with both SHA-256 snapshot
+digests exactly unchanged and full source/dependency bookends preserved. It retains
+independent filesystem validation, exact tree mode/path/OID matching, raw Git-blob
+SHA-256 comparison, original digest order and fresh reads at every bookend. Private
+authenticated readers and strict binary batch parsing refuse supplied readers and
+malformed data. This is a measured local I/O correction, not an analyzer change or
+a qualified whole-run timing remedy. Actual positive and source-valid negative
+qualification of the changed producer remain required. Historical early worker
+overlap exceeded 6 GiB; current parent-before-workers ordering is retained. Detailed
+profile/equivalence evidence is in `m4-prepare-cpu-profile-v1`.
+
 ### Urgent Next security remediation (26 October; delivery pending)
 
 M4-02 diagnostic follow-up at base `956a91c8cf60519d719ebba867a1ff6a89c4c4eb`

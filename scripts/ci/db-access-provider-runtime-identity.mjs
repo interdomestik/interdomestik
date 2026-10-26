@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import {
+  decodeGitBlobBatch,
+  gitBlobBatchRequest,
+  MAX_GIT_BLOB_BATCH_BYTES,
+} from './db-access-git-blob-batch.mjs';
 import { execFileSync } from 'node:child_process';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -19,6 +24,8 @@ const safeEnv = {
 };
 
 const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
+
+const snapshotReaders = new WeakMap();
 
 function authenticateRuntimeContext(gitDir, context) {
   if (
@@ -86,6 +93,36 @@ function authenticateRuntimeContext(gitDir, context) {
   ) {
     refuse('push event head');
   }
+  // Capture the binary reader privately after authenticating this exact origin/event.
+  // Writable properties on the returned function cannot replace snapshot readback.
+  snapshotReaders.set(
+    git,
+    Object.freeze({
+      commits: new Set([context.candidateCommit, context.sourceCommit]),
+      metadata: (commit, files) =>
+        execFileSync(
+          '/usr/bin/git',
+          [
+            '--no-replace-objects',
+            '--git-dir',
+            gitDir,
+            '--literal-pathspecs',
+            'ls-tree',
+            '-rz',
+            commit,
+            '--',
+            ...files,
+          ],
+          { env: safeEnv, maxBuffer: MAX_GIT_BLOB_BATCH_BYTES, timeout: 30_000 }
+        ),
+      blobs: request =>
+        execFileSync(
+          '/usr/bin/git',
+          ['--no-replace-objects', '--git-dir', gitDir, 'cat-file', '--batch'],
+          { env: safeEnv, input: request, maxBuffer: MAX_GIT_BLOB_BATCH_BYTES, timeout: 30_000 }
+        ),
+    })
+  );
   return git;
 }
 
@@ -119,19 +156,41 @@ function exact(root, file, expected) {
 }
 
 function snapshot(root, commit, records, git) {
+  const reader = snapshotReaders.get(git);
+  if (!reader || !reader.commits.has(commit)) refuse('unauthenticated Git snapshot reader');
+  const entries = Object.entries(records);
+  if (entries.length > 4096) refuse('Git blob batch snapshot record bound');
   const identities = {};
-  for (const [file, expected] of Object.entries(records)) {
+  let totalBytes = entries.length * 128;
+  for (const [file, expected] of entries) {
     const bytes = exact(root, file, expected);
-    const item = git(['ls-tree', commit, '--', file]);
-    const match = /^(100644|100755) blob ([a-f0-9]{40})\t(.+)$/u.exec(item);
-    if (
-      !match ||
-      match[1] !== expected.mode ||
-      match[3] !== file ||
-      hash(git.readBlob(match[2])) !== hash(bytes)
-    )
-      refuse('checkout/tree mismatch ' + file);
+    totalBytes += bytes.length;
+    if (totalBytes > MAX_GIT_BLOB_BATCH_BYTES) refuse('Git blob batch snapshot bound');
     identities[file] = hash(bytes);
+  }
+  if (!entries.length) return hash(JSON.stringify(identities));
+  const requested = new Set(entries.map(([file]) => file));
+  const tree = new Map();
+  const listingBytes = reader.metadata(commit, [...requested]);
+  const listing = listingBytes.toString('utf8');
+  if (!Buffer.from(listing).equals(listingBytes))
+    refuse('checkout/tree mismatch metadata encoding');
+  const rows = listing.split('\0');
+  if (rows.pop() !== '' || rows.some(row => !row))
+    refuse('checkout/tree mismatch metadata framing');
+  for (const row of rows) {
+    const match = /^(100644|100755) blob ([a-f0-9]{40})\t([\s\S]+)$/u.exec(row);
+    if (!match || !requested.has(match[3]) || tree.has(match[3]))
+      refuse('checkout/tree mismatch batch membership');
+    tree.set(match[3], { mode: match[1], oid: match[2] });
+  }
+  if (tree.size !== requested.size) refuse('checkout/tree mismatch missing path');
+  const oids = [...new Set(entries.map(([file]) => tree.get(file).oid))];
+  const blobs = decodeGitBlobBatch(reader.blobs(gitBlobBatchRequest(oids)), oids);
+  for (const [file, expected] of entries) {
+    const item = tree.get(file);
+    if (item.mode !== expected.mode || hash(blobs.get(item.oid)) !== identities[file])
+      refuse('checkout/tree mismatch ' + file);
   }
   return hash(JSON.stringify(identities));
 }

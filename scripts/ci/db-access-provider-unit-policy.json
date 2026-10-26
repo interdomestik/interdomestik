@@ -754,8 +754,8 @@
     },
     "scripts/ci/db-access-provider-runtime-identity.mjs": {
       "mode": "100644",
-      "bytes": 4310,
-      "sha256": "36075a46ab79386646b18be0e1ff2610e5269cecd96c15d6b3f10901f03ff8c3"
+      "bytes": 6797,
+      "sha256": "46c6147d8976f31aacb214b30d2513bfd2f0098f8e31237a54ff667519aedd8c"
     },
     "scripts/ci/db-access-provider-runtime-fixture.mjs": {
       "mode": "100644",
@@ -1836,6 +1836,11 @@
       "mode": "100644",
       "bytes": 9033,
       "sha256": "2bbcb493ae3ebac94695517adf8a1ea351a1358f1c35fe944d9ee2189e9f0137"
+    },
+    "scripts/ci/db-access-git-blob-batch.mjs": {
+      "mode": "100644",
+      "bytes": 1699,
+      "sha256": "08451068ddc65ce69e8511675f01c20f2d7f3606da2b4ef93d9e62e7617a6476"
     }
   },
   "runtimeEnforcement": {
