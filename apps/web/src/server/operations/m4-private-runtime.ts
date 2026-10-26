@@ -5,7 +5,11 @@ import postgres from 'postgres';
 import { createCurrentStoreSessionVerifier } from '../../lib/auth/current-store-session';
 import { parseM4AssignmentRequest } from './m4-assignment-protocol';
 import { createM4OpsAssignmentController, type M4OpsResponse } from './m4-ops-controller';
-import { assertM4PoolPosture, captureM4PoolTarget } from './m4-pool-posture';
+import {
+  assertM4DriverEnvironment,
+  assertM4PoolPosture,
+  captureM4PoolTarget,
+} from './m4-pool-posture';
 
 export type M4PrivateRuntimeConfiguration = Readonly<{
   identityDatabaseURL: string;
@@ -25,6 +29,7 @@ function construct(
   configuration: M4PrivateRuntimeConfiguration,
   loopbackQualification: boolean
 ): M4PrivateRuntime {
+  assertM4DriverEnvironment();
   // Snapshot only primitive configuration. No caller factory, pool, callback, principal DTO,
   // arbitrary PostgreSQL option, or per-request transport flag enters this construction.
   const { identityDatabaseURL, dataDatabaseURL, issuerBaseURL, issuerSecret, operationDeadlineMs } =
@@ -112,6 +117,7 @@ function construct(
           search_path: 'pg_catalog, public',
           row_security: 'on',
         };
+        assertM4DriverEnvironment();
         identity = postgres(identityTarget.url, {
           max: 1,
           connect_timeout: Math.max(1, Math.ceil(captured.operationDeadlineMs / 1000)),

@@ -29,6 +29,8 @@ export function captureM4PoolTarget(value: unknown, loopbackQualification: boole
       (loopbackQualification && host !== '127.0.0.1' && host !== 'localhost')
     )
       throw new Error();
+    // postgres.js otherwise consults PGPORT when the serialized URL omits its port.
+    url.port ||= '5432';
     return Object.freeze({
       url: url.href,
       login,
@@ -39,6 +41,27 @@ export function captureM4PoolTarget(value: unknown, loopbackQualification: boole
     // Never include a credential-bearing URL or the URL parser's original error.
     throw new Error('Invalid private M4 database configuration');
   }
+}
+
+// These installed-driver fallbacks select unqualified behavior even with a complete URL.
+// Check again immediately before constructing pools: process.env is mutable in this process.
+export function assertM4DriverEnvironment(): void {
+  const options = [
+    'SSLNEGOTIATION',
+    'IDLE_TIMEOUT',
+    'MAX_LIFETIME',
+    'MAX_PIPELINE',
+    'BACKOFF',
+    'KEEP_ALIVE',
+    'PREPARE',
+    'DEBUG',
+    'FETCH_TYPES',
+    'PUBLICATIONS',
+    'TARGET_SESSION_ATTRS',
+    'TARGETSESSIONATTRS',
+  ];
+  if (options.some(option => Boolean(process.env[`PG${option}`])))
+    throw new Error('Unsupported private M4 driver environment');
 }
 
 // Every restriction is enforced in PostgreSQL before row decoding. No boolean returned by
