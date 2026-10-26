@@ -1,3 +1,9 @@
+import {
+  authorizeM4WorkerInput,
+  assertM4HydratedInventory,
+  m4WorkerResult,
+  m4WorkerDone,
+} from './db-access-m4-worker-input.mjs';
 import { parentPort, workerData, isMainThread } from 'node:worker_threads';
 import { prepareGuardModel, completeGuardPreparation } from './db-access-prepare.mjs';
 import { createGraphTraversal } from './db-access-graph-core.mjs';
@@ -18,7 +24,11 @@ parentPort.on('message', input => {
     stopped = true;
     if (graphSnapshot(model) !== snapshot) throw new Error('incomplete: worker source drift');
     assertWorkerCode(workerData.repoRoot);
-    parentPort.postMessage({ type: 'DONE', snapshot });
+    parentPort.postMessage({
+      type: 'DONE',
+      snapshot,
+      ...(input.m4Transport ? { m4Done: m4WorkerDone(input, model) } : {}),
+    });
     parentPort.close();
     return;
   }
@@ -27,7 +37,9 @@ parentPort.on('message', input => {
   lastJob = input.jobId;
   if (!session) {
     if (graphSnapshot(model) !== snapshot) throw new Error('incomplete: startup source drift');
+    if (model.providerUnit?.m4Proof) authorizeM4WorkerInput(input, model);
     prepared = completeGuardPreparation(model, input);
+    if (model.providerUnit?.m4Proof) assertM4HydratedInventory(input, prepared);
     for (const reason of input.initialUnknown) prepared.provenance.analysisUnknown.add(reason);
     session = createGraphTraversal(
       prepared.model,
@@ -40,6 +52,7 @@ parentPort.on('message', input => {
     throw new Error('incomplete: repeated batch setup');
   const graph = session.run(input.origins);
   parentPort.postMessage({
+    ...(model.providerUnit?.m4Proof ? { m4TransportAck: m4WorkerResult(input) } : {}),
     type: 'RESULT',
     snapshot,
     jobId: input.jobId,
@@ -52,4 +65,8 @@ parentPort.on('message', input => {
     reachedTestSources: [...graph.reachedTestSources],
   });
 });
-parentPort.postMessage({ type: 'READY', snapshot });
+parentPort.postMessage({
+  type: 'READY',
+  snapshot,
+  channelId: workerData.m4ChannelId,
+});

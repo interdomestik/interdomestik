@@ -1,3 +1,4 @@
+import { verifyM4ProofSource } from './db-access-m4-proof-source.mjs';
 import { registerSourceProjection } from './db-access-source-dependencies.mjs';
 import { verifyCrmProofSource } from './db-access-crm-proof-source.mjs';
 import { verifyMessageProofSource } from './db-access-message-proof-source.mjs';
@@ -178,6 +179,7 @@ export function verifyProviderUnitSource(repoRoot, model, adoption, policy) {
   const namedProofFiles = verifyNamedProofSource(root, model, policy, readExact);
   const messageProof = verifyMessageProofSource(root, model, policy, readExact);
   const crmProof = verifyCrmProofSource(root, model, policy, readExact);
+  const m4Proof = verifyM4ProofSource(root, model, policy);
   const producerHarness = new Set(producerHarnessFiles);
   const incoming = [];
   for (const [file, source] of model.parsed) {
@@ -231,6 +233,7 @@ export function verifyProviderUnitSource(repoRoot, model, adoption, policy) {
     namedProofFiles: Object.freeze(namedProofFiles),
     messageProof,
     crmProof,
+    m4Proof,
     sourceDigest: digest(JSON.stringify(records)),
     policyDigest: digest(JSON.stringify(policy)),
     adoptionCommit: adoption.commit,

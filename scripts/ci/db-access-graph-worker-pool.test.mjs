@@ -11,7 +11,13 @@ globalThis.__batchWorker = class extends EventEmitter {
     assert.deepEqual(options.env, {});
     this.jobs = [];
     instances.push(this);
-    queueMicrotask(() => this.emit('message', { type: 'READY', snapshot: 's' }));
+    queueMicrotask(() =>
+      this.emit('message', {
+        type: 'READY',
+        snapshot: 's',
+        channelId: options.workerData.m4ChannelId,
+      })
+    );
   }
   postMessage(input) {
     if (input.type === 'STOP') {

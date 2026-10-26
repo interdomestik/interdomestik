@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "id": "s8-early-m4-source-prerequisite-v1",
+  "runtimeAdmission": false,
+  "adoptionCommit": "278e33ab0dd448547fa81d4b0ff122b4d69c901e",
+  "adoptionTree": "4f9330417466b4f7bee68349e7183db22a5260ff",
+  "baselineSha256": "438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9",
+  "files": {
+    "kernel": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+    "controller": "apps/web/src/server/operations/m4-ops-controller.ts",
+    "protocol": "apps/web/src/server/operations/m4-assignment-protocol.ts",
+    "verifier": "apps/web/src/lib/auth/current-store-session.ts",
+    "userSchema": "apps/web/src/lib/auth/user-schema.ts",
+    "session": "packages/shared-auth/src/session.ts",
+    "resolver": "packages/shared-auth/package.json",
+    "bootstrap": "apps/web/src/server/operations/m4-private-runtime.ts",
+    "posture": "apps/web/src/server/operations/m4-pool-posture.ts"
+  },
+  "sources": {
+    "apps/web/src/features/admin/claims/actions/ops-assignment.ts": {
+      "bytes": 4656,
+      "sha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93",
+      "mode": "100644"
+    },
+    "apps/web/src/server/operations/m4-ops-controller.ts": {
+      "bytes": 8339,
+      "sha256": "53def595e981cf84050ac417d379df5472b73e8f38c3020f739124042d0c2ab2",
+      "mode": "100644"
+    },
+    "apps/web/src/server/operations/m4-assignment-protocol.ts": {
+      "bytes": 2171,
+      "sha256": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04",
+      "mode": "100644"
+    },
+    "apps/web/src/lib/auth/current-store-session.ts": {
+      "bytes": 3644,
+      "sha256": "27ac8a959e4c7488867b92b4c0df327dd327f79cbbe49c3ca1305cf9f54a37a7",
+      "mode": "100644"
+    },
+    "apps/web/src/lib/auth/user-schema.ts": {
+      "bytes": 1109,
+      "sha256": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec",
+      "mode": "100644"
+    },
+    "packages/shared-auth/src/session.ts": {
+      "bytes": 1596,
+      "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
+      "mode": "100644"
+    },
+    "packages/shared-auth/package.json": {
+      "bytes": 459,
+      "sha256": "6ebec4086f0400e61264e6944644c5d538127fc8d72048761074b4f64ddc71a1",
+      "mode": "100644"
+    },
+    "apps/web/src/server/operations/m4-private-runtime.ts": {
+      "bytes": 7748,
+      "sha256": "7e0053d1f6cc3fde99bc637f2b14b2dbb8e130579b2cde4348aa5c6feb128882",
+      "mode": "100644"
+    },
+    "apps/web/src/server/operations/m4-pool-posture.ts": {
+      "bytes": 4494,
+      "sha256": "213f3749dc7b85ba1d53bd5e69617c21cd19ee176ca5fda9c55b6302cb4dda62",
+      "mode": "100644"
+    }
+  }
+}

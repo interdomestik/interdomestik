@@ -1,3 +1,4 @@
+import { providerRuntimeProducerRecords } from './db-access-provider-runtime-producer-records.mjs';
 import {
   crmCandidateRecords,
   executeCrmProof,
@@ -20,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { PROVIDER_UNIT_POLICY as policy } from './db-access-provider-unit-policy.mjs';
 import { ADOPTION } from './db-access-adoption.mjs';
 import { materializeProviderRuntime } from './db-access-provider-runtime-materialize.mjs';
-
+import { bindM4CandidateRecords } from './db-access-m4-runtime-records.mjs';
 // Context is created by the fixed workflow from its authenticated event and fresh bare Git.
 // This command never accepts a prior runtime result, candidate policy, or candidate test runner.
 
@@ -92,20 +93,8 @@ export async function runRequiredProviderRuntime({
     ...(policy.namedProof ? { 'apps/web/tsconfig.json': policy.namedProof.configuration } : {}),
     ...baseline,
   };
-  const producerRecords = {
-    ...policy.producerFiles,
-    ...policy.runtimeFiles,
-    ...Object.fromEntries(
-      [
-        'scripts/ci/db-access-provider-unit-policy.mjs',
-        'scripts/ci/db-access-provider-unit-policy.json',
-        'scripts/ci/db-access-adoption.mjs',
-      ].map(file => {
-        const bytes = fs.readFileSync(path.join(producer, file));
-        return [file, { sha256: hash(bytes), bytes: bytes.length, mode: '100644' }];
-      })
-    ),
-  };
+  bindM4CandidateRecords(candidateRecords, policy);
+  const producerRecords = providerRuntimeProducerRecords(policy, producer);
   const before = {
     candidate: snapshot(candidate, context.candidateCommit, candidateRecords, git),
     producer: snapshot(producer, context.sourceCommit, producerRecords, git),

@@ -1,3 +1,5 @@
+import { isAuthorizedM4WorkerInput } from './db-access-m4-worker-input.mjs';
+import { collectM4NativeInventory } from './db-access-m4-native-prerequisite.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ADOPTION } from './db-access-adoption.mjs';
@@ -129,12 +131,20 @@ export function completeGuardPreparation(prepared, workerInput) {
   // Keep the complete pre-amendment operation inventory, including DB-looking mock
   // handles. The named boundary changes proof obligations, never inventory visibility.
   const inventoryProvenance =
-    !workerInput && providerUnit?.namedProofFiles.length
+    !workerInput && !providerUnit?.m4Proof && providerUnit?.namedProofFiles.length
       ? createProvenance(providerUnitAnalysisModel(model, providerUnit, true))
       : provenance;
-  const inventory = workerInput
-    ? hydrateInventory(model, workerInput.inventory)
-    : collectInventory(model, inventoryProvenance, trusted);
+  if (workerInput && providerUnit?.m4Proof && !isAuthorizedM4WorkerInput(workerInput, model))
+    throw new Error('incomplete: M4 worker inventory lacks owned parentPort authority');
+  const m4NativeInventory =
+    !workerInput && providerUnit?.m4Proof
+      ? collectM4NativeInventory(model, trusted, providerUnit)
+      : undefined;
+  const inventory =
+    m4NativeInventory?.inventory ??
+    (workerInput
+      ? hydrateInventory(model, workerInput.inventory)
+      : collectInventory(model, inventoryProvenance, trusted));
   // Provider SQL/handles remain inventoried and non-debt, with explicit fixed-runtime obligations.
   const providerEntries = inventory.entries.filter(entry => providerFiles.has(entry.file));
   for (const entry of providerEntries) entry.historicalDebt = false;
@@ -162,6 +172,7 @@ export function completeGuardPreparation(prepared, workerInput) {
     namedProofFiles,
     provenance,
     inventory,
+    m4NativeInventory,
     providerEntries,
     directChanges,
     moduleTargets,

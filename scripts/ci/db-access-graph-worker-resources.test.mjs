@@ -12,7 +12,13 @@ async function fixture(mode = 'normal') {
       this.messages = [];
       this.index = workers.length;
       workers.push(this);
-      queueMicrotask(() => this.emit('message', { type: 'READY', snapshot: 'same' }));
+      queueMicrotask(() =>
+        this.emit('message', {
+          type: 'READY',
+          snapshot: 'same',
+          channelId: options.workerData.m4ChannelId,
+        })
+      );
     }
     postMessage(message) {
       this.messages.push(message);
@@ -23,7 +29,9 @@ async function fixture(mode = 'normal') {
         } else if (mode === 'oom' && this.index === 0) {
           this.emit(
             'error',
-            Object.assign(new Error('worker heap exhausted'), { code: 'ERR_WORKER_OUT_OF_MEMORY' })
+            Object.assign(new Error('worker heap exhausted'), {
+              code: 'ERR_WORKER_OUT_OF_MEMORY',
+            })
           );
         } else {
           this.emit('message', {
@@ -44,9 +52,9 @@ async function fixture(mode = 'normal') {
   const source = fs
     .readFileSync(new URL('./db-access-graph-worker-pool.mjs', import.meta.url), 'utf8')
     .replace("import { Worker } from 'node:worker_threads';", `const Worker = globalThis.${key};`)
-    .replace(
-      "new URL('./db-access-graph-worker.mjs', import.meta.url)",
-      "new URL('file:///owned/db-access-graph-worker.mjs')"
+    .replaceAll(
+      'import.meta.url',
+      JSON.stringify(new URL('./db-access-graph-worker-pool.mjs', import.meta.url).href)
     );
   const module = await import('data:text/javascript,' + encodeURIComponent(source));
   delete globalThis[key];
@@ -56,14 +64,18 @@ async function fixture(mode = 'normal') {
 test('four capped workers, two jobs: idle workers STOP and all exit before acceptance', async () => {
   const f = await fixture();
   try {
-    const results = await f.runOwnedGraphWorkerPool(f.pool, [['a'], ['b']], { snapshot: 'same' });
+    const results = await f.runOwnedGraphWorkerPool(f.pool, [['a'], ['b']], {
+      snapshot: 'same',
+    });
     assert.equal(f.workers.length, 4);
     assert.deepEqual(
       results.map(x => x.jobId),
       [0, 1]
     );
     for (const worker of f.workers) {
-      assert.deepEqual(worker.options.resourceLimits, { maxOldGenerationSizeMb: 1536 });
+      assert.deepEqual(worker.options.resourceLimits, {
+        maxOldGenerationSizeMb: 1536,
+      });
       assert.deepEqual(worker.options.env, {});
       assert.deepEqual(worker.options.execArgv, []);
       assert.equal(worker.messages.at(-1).type, 'STOP');
@@ -82,7 +94,11 @@ for (const mode of ['oom', 'foreign'])
   test(mode + ' rejects whole pool and owned cleanup terminates all four', async () => {
     const f = await fixture(mode);
     try {
-      await assert.rejects(f.runOwnedGraphWorkerPool(f.pool, [['a'], ['b']], { snapshot: 'same' }));
+      await assert.rejects(
+        f.runOwnedGraphWorkerPool(f.pool, [['a'], ['b']], {
+          snapshot: 'same',
+        })
+      );
     } finally {
       await f.pool.close();
     }

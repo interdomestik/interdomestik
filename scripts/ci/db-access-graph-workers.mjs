@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runOwnedGraphWorkerPool } from './db-access-graph-worker-pool.mjs';
+import {
+  runOwnedGraphWorkerPool,
+  claimOwnedM4WorkerEvidence,
+} from './db-access-graph-worker-pool.mjs';
+import { bindM4WorkerRequest } from './db-access-m4-native-prerequisite.mjs';
+export { encodeInventory } from './db-access-inventory-wire.mjs';
 import { createHash } from 'node:crypto';
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { candidateSources } from './db-access-trust.mjs';
@@ -50,21 +55,6 @@ export function graphSnapshot(prepared) {
       policy: PROVIDER_UNIT_POLICY,
     })
   );
-}
-export function encodeInventory(prepared) {
-  return {
-    changed: [...prepared.inventory.changed],
-    entries: prepared.inventory.entries.map(row => {
-      const owner = row._owner;
-      if (!owner) fail('missing owner');
-      return {
-        row: Object.fromEntries(Object.entries(row).filter(([key]) => !key.startsWith('_'))),
-        indirect: row._indirect,
-        incomplete: row._incomplete,
-        owner: [prepared.model.fileOf(owner), owner.pos, owner.end, owner.kind],
-      };
-    }),
-  };
 }
 export function hydrateInventory(model, input) {
   const locators = new Map(),
@@ -159,11 +149,21 @@ export async function runParallelGraph(prepared, input, pool) {
   if (!roots.length) return mergeOwnedGraphs(prepared, [], []);
   const partitions = [];
   for (let i = 0; i < roots.length; i += 64) partitions.push(roots.slice(i, i + 64));
-  const results = await runOwnedGraphWorkerPool(pool, partitions, {
-    ...input,
-    initialUnknown: [...prepared.provenance.analysisUnknown],
-  });
+  const m4Request = prepared.m4NativeInventory
+    ? bindM4WorkerRequest(prepared.m4NativeInventory, input)
+    : undefined;
+  const results = await runOwnedGraphWorkerPool(
+    pool,
+    partitions,
+    {
+      ...input,
+      initialUnknown: [...prepared.provenance.analysisUnknown],
+    },
+    m4Request
+  );
   assertWorkerCode(prepared.repoRoot);
   if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
-  return mergeOwnedGraphs(prepared, partitions, results);
+  const merged = mergeOwnedGraphs(prepared, partitions, results);
+  if (m4Request) merged.m4WorkerTransport = claimOwnedM4WorkerEvidence(results);
+  return merged;
 }

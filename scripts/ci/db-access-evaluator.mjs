@@ -1,3 +1,4 @@
+import { m4NativePrerequisites } from './db-access-m4-native-prerequisite.mjs';
 import {
   captureStatusReturnPriorRow,
   classifyStatusReturnEquivalence,
@@ -130,6 +131,13 @@ function finalizeGuard(prepared, graph) {
     scannedCount: inventory.entries.length,
     baselineCount: baseline.entries.length,
   });
+  const m4Prerequisites = providerUnit?.m4Proof
+    ? m4NativePrerequisites(providerUnit.m4Proof, prepared.m4NativeInventory, graph, failures)
+    : undefined;
+  const unresolvedIncomplete = [
+    ...crmObligations.remaining,
+    ...(m4Prerequisites?.unresolved ?? []),
+  ];
   const failingNewEntries = [...failures.values()].map(entry => {
     const publicFailure = publicEntry(entry);
     const mounts = mountsByIdentity.get(entry.identity);
@@ -140,7 +148,7 @@ function finalizeGuard(prepared, graph) {
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
   let status = 'pass';
-  if (crmObligations.remaining.length) status = 'incomplete';
+  if (unresolvedIncomplete.length) status = 'incomplete';
   else if (failingNewEntries.length) status = 'fail';
   return {
     status,
@@ -176,7 +184,8 @@ function finalizeGuard(prepared, graph) {
     mountEvidence: observedMounts,
     rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
     incomplete: graph.incomplete,
-    unresolvedIncomplete: crmObligations.remaining,
+    unresolvedIncomplete,
+    m4Prerequisites,
     incompleteRawCount: graph.incompleteRawCount,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
