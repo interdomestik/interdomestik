@@ -76,20 +76,79 @@ on the untouched frozen diagnostic producer, then repaired with exact historical
 bytes and an explicit rejection of the real later export variant. All 119 integrated tests
 now pass. The current production source obligation remains held, not waived.
 
-Remaining acceptance work stays in this tracker:
+### M4 roadmap and failure comparison (26 October)
 
-- **T/P and lineage:** bind every affected old/current operation and executable context to
-  actual source, role/authority, required effects and evidence. The source kernel and 28-case
-  runtime are bounded premises; the old mounts still use their old paths. The gap ledger
-  classifies no obligations and does not remove any identity or raw diagnostic multiplicity.
-- **Semantic negative:** the freshly authenticated source-negative rejection is before native
-  inventory/join. Required final paired semantic-negative rejection is still open.
-- **Contexts and P2:** qualify the complete mounted/compiled/deployed loader and privilege
-  contexts, ordinary hosted proof, immutable workflow/policy pins and the same protected event.
-  Local fixture passes alone do not satisfy these obligations.
-- **Residual and delivery:** resolve current CRM inventory drift with finite source-bound proof,
-  obtain final ZERO while retaining baseline604 and every raw row, run full PR/security/E2E
-  checks, then protected delivery and exact-main health. S9 and pilot remain separately gated.
+This section is the actionable M4 roadmap under the unchanged RC3.1 authority. It
+replaces the category-only remaining-work bullets. The supporting
+[known-obligations.json](/Users/arbenlila/.codex/visualizations/2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36/recovery-20261023/s8-product-composition-v1/m4-qualification-v1/m4-failure-memory-v1/known-obligations.json)
+records the precise missing fact, actual source/mount, enforcing mechanism,
+remaining change, dependencies, owner, positive/negative acceptance and raw references
+for every row below. This tracker remains the sole status authority; the JSON is
+supporting data. The snapshot is proved source `67e288412a61e6b62a1f3471d1bb2261c2e87d43`
+and report `0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
+
+| ID        | Stage / status                            | Exact closure target                                                                                                                                                      | Depends on          |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| LOCAL-01  | Local construction / closed within scope  | Combined SQL/native execution, unchanged budget, source bookends and healthy cleanup: 287.966 seconds.                                                                    | Recorded receipt    |
+| LOCAL-02  | Local SQL / closed within scope           | Actual fixed 10 private + 18 profile SQL cases; private source/event/policy binding.                                                                                      | Recorded receipt    |
+| LOCAL-03  | Local proof fixture / closed within scope | Ordinary containment, V8 merge, existing line gate and one-use join; local origin only.                                                                                   | Recorded receipt    |
+| M4-01     | First M4 / open                           | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
+| **M4-02** | **First M4 / selected next**              | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
+| M4-03     | First M4 / open                           | Applicable current-store/auth, role/RLS, driver, SQL/schema/operator, compiler/intrinsic, TLS/endpoint and notifier premises qualified for each claimed context.          | M4-02               |
+| M4-04     | First M4 / open                           | Every affected historical/current ID, admin/agent/staff and ops mount, invocation and domain-effect lineage accounted; changed audit/noop/notification behavior explicit. | M4-01, M4-02        |
+| M4-05     | First M4 / open                           | Genuine ordinary-execution handle and exact source/assertion/context correspondence under the same protected source/policy/event; bounded consumer C0 remains.            | M4-02, M4-06        |
+| M4-06     | First M4 / open                           | Actual compiled/deployed loader, installed image, privilege and ingress contexts; independently retained worker-loader premise resolved for any stronger claim.           | None                |
+| M4-07     | First M4 / open                           | Valid-source, authenticated semantic-negative variant reaches the final paired acceptance boundary and is rejected for the missing guarantee.                             | M4-01 through M4-06 |
+| M4-08     | First M4 / open                           | Independent acceptance of genuine trusted/proof constructions and semantic refusal, with exact accepted old IDs/contexts and retained residuals.                          | M4-01 through M4-07 |
+| S8-01     | Later S8 / open                           | Finite current CRM inventory/source successor and held source classes resolved without digest wash.                                                                       | M4-08               |
+| S8-02     | Later S8 / open                           | All residual identities/diagnostics resolved to final global ZERO, retaining baseline604 and original tuple multiplicity.                                                 | M4-08               |
+| S8-03     | Later S8 / open                           | Complete same-candidate PR/security/E2E, review/Sonar and frozen journeys; widget failure isolation preserved.                                                            | S8-01, S8-02        |
+| S8-04     | Hosted/protected / open                   | Immutable producer/workflow pins and actual required hosted source/policy/event/image joins.                                                                              | S8-03               |
+| S8-05     | Delivery / open                           | Protected merge, exact-main health and frozen S8 acceptance. S9/pilot remain separate.                                                                                    | S8-04               |
+
+The eight first-M4 rows define the current construction/acceptance work. Resolving
+all 3,813 global failures is **not** a prerequisite to beginning or qualifying the
+approved first M4 vertical. Applicable unresolved deployment/consumer contexts stay
+explicit and cannot receive early production C credit. Local rows closed within
+scope do not close M4 acceptance rows.
+
+The supporting `m4-failure-memory-v1/residual-index.json` references every one of the
+3,813 failing IDs and 193,682 report tuples, preserving 11,839,555 occurrences and
+the separate M4 prerequisite row. `residual-families.json` also retains every public
+root-analysis unknown and all 55 selected operations. Exact raw diagnostic labels
+are triage groups, **not** 11,782 established root causes. The complete 200 live
+context rows were not serialized in the proved run: this is an explicit pre-existing
+observation/correspondence omission owned by M4-01, not a newly discovered gate.
+No association is inferred merely because rows share a file or diagnostic label.
+
+| Failure family                 | Recorded cause / decision                                                                                            | Correction and recurrence rule                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Combined timeout               | Attempts finished at 301.617 and 302.292 seconds; measured finalization repeated historical ADOPTION work after SQL. | Prepare identical historical controls during SQL and join the worker before native work. Fresh actual pass: 287.966 seconds. Reuse this scoped receipt; no identical heavy replay. |
+| Capture-plan proposal          | Full-wire parity passed, but provenance was 32.534 versus 32.432 seconds.                                            | Rejected as time-neutral; not integrated. Do not revive it based on cache-hit counts.                                                                                              |
+| Default-email positive fixture | Untouched frozen producer reproduces changed schema bytes outside the fixed class.                                   | Historical positive fixture plus current-source negative; 119 integrated tests pass. Production obligation remains held.                                                           |
+| P2 exec-negative oracle        | Enforced Node bootstrap denial is fatal EPERM/exit133, not a JSON/exit0 result.                                      | Strict denial and intentional-assertion-failure oracles; arbitrary crashes/timeouts never count as semantic rejection.                                                             |
+| OCI identity                   | Outer index changed while selected runnable platform/config/rootfs matched.                                          | Authenticate exact selected platform and retain both indexes; no blanket image-drift waiver.                                                                                       |
+| Missing producer closure       | Required CRM/runtime/helper source descriptors were absent.                                                          | Authenticate every declared dependency/resolution before expensive execution; no ambient fallback.                                                                                 |
+| Worker loader premise          | Worker does not inherit the main resolve hook; source bookends alone do not prove transient-swap containment.        | Retain review L1 under M4-06; no stronger loader claim until actually enforced and tested.                                                                                         |
+| Provider output capture        | Oversized multi-turn final JSON omitted the core code.                                                               | Bounded code-only requests with retained all-turn stream; no application of absent fragments.                                                                                      |
+| Unmapped proof relations       | All five pair correspondences remain unmapped; local runtime success supplies zero accepted coverage.                | Close M4-01 through M4-08 with actual private relations; artifacts/tests alone never count as obligation closure.                                                                  |
+
+Before another expensive run, compare its planned cause and changed mechanism with
+`m4-failure-memory-v1/history.json` using the supporting read-only `compare.py`.
+Record the changed-cause evidence hash, focused regression result and decisive
+acceptance condition. A new commit alone is insufficient. A repeated failure reopens
+its linked row and requires a focused reproducer/fix before another heavy attempt.
+The tool reports comparison/triage only and grants no proof admission or new authority.
+Historical failed attempts remain failed; cleanup/monitor failures remain visible.
+
+Any finding must cite concrete source/evidence, its hash and affected row/raw indices,
+and be classified **new**, **duplicate**, **reopened** or **pre-existing omission**.
+Update this roadmap explicitly rather than silently expanding prerequisites. Report
+accepted old identities, accepted contexts and accepted original occurrences alongside
+introduced/reopened obligations. Removed or regrouped rows are not accepted closures.
+At this checkpoint all three accepted-coverage measures remain zero. Next execution
+work is M4-02, beginning with the fixed assignment effect/assertion relation and its
+valid-source missing-assertion negative; no identical SQL/native replay is selected.
 
 Historical starting measurement on clean `2f0225a4e1eec865447ebdf67356dfcf71969fb4`
 completed in 289.321 seconds within the original 300-second/6-GiB measured envelope.
