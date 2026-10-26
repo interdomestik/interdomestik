@@ -1624,8 +1624,8 @@
     },
     "scripts/ci/db-access-resolver-snapshot.mjs": {
       "mode": "100644",
-      "bytes": 2474,
-      "sha256": "297c1dfa34335fd0c01b9418819368d1994cd3f447336abef83557847eb7b67f"
+      "bytes": 2475,
+      "sha256": "23b9de24a84e7033e3440893d023f8fe57ff5018e34b32926d19a09673b903d6"
     },
     "scripts/ci/db-access-m4-runtime-child.mjs": {
       "mode": "100644",

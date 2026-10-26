@@ -217,6 +217,26 @@ in `m4-effect-assertion-link-v1/repeated-budget-failure-comparison.json`.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 
+M4-02 diagnostic follow-up at base `956a91c8cf60519d719ebba867a1ff6a89c4c4eb`
+failed before native analysis in 56.581 seconds. All 28 real SQL cases completed,
+then `verifyCurrentResolverSnapshot` refused the old embedded workspace digest.
+The Next dependency refresh had updated current producer/configuration descriptors
+but missed this separate executable snapshot's current digest literals. This is
+a recurrence of the source-binding/producer-closure failure family, not a new gate
+or accepted progress. Healthy samplers and cleanup preserved prior services/source;
+the owned proof container/volumes were retired. No replacement census, timeout cause
+or M4 admission was obtained. The immutable diagnostic evidence is retained in
+`m4-effect-assertion-phase-diagnostic-v1`, with appended failure-memory record
+`m4-failure-memory-v1/updates/M4-02-DIAG-01.json`.
+
+The bounded repair promotes only the reviewed Next workspace/lock current pins in
+`RESOLVER_SNAPSHOT` and refreshes its one producer descriptor. Previous hashes,
+ADOPTION/tree, baseline604 and the complete verifier body remain unchanged. The
+existing resolver checks reproduced red before the edit; twenty-nine resolver and
+provider tests now pass. Historical driver parity is checked against its actual
+pre-Next source; old and mixed Next pairs still refuse. The same cheap real resolver
+check must run on both authenticated frozen roots before any further SQL run.
+
 Owner-authorized bounded framework security remediation temporarily precedes
 another M4 diagnostic or heavy qualification. The candidate now installs Next,
 its analyzer/ESLint family and the global peer override at **16.4.3**; sharp

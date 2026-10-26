@@ -26,6 +26,12 @@ const previous = new Map(
 const formerlyAccepted = new Map(
   pair.map(file => [file, runGit(['-C', rootDir, 'show', `${predecessor}:${file}`])])
 );
+const beforeNextSecurity = new Map(
+  pair.map(file => [
+    file,
+    runGit(['-C', rootDir, 'show', `8c6246b8c583cf4b17608bd37b30d55ee787c496:${file}`]),
+  ])
+);
 function fixture(t, contents = current) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'resolver-snapshot-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -74,7 +80,7 @@ test('old pair, mixed pair and same-size metadata tampering are rejected', t => 
   }
 });
 
-test('the driver successor changes only the reviewed patch identity and rejects its predecessor', t => {
+test('historical driver parity is retained and neither old lock can replace the security successor', t => {
   const oldPatch = 'dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612';
   const newPatch = '1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e';
   const oldLock = runGit([
@@ -84,12 +90,37 @@ test('the driver successor changes only the reviewed patch identity and rejects 
     '72363fd8492e95bbf564937b400c907781ce7e32^:pnpm-lock.yaml',
   ]).toString();
   assert.equal(oldLock.split(oldPatch).length - 1, 27);
-  assert.equal(oldLock.replaceAll(oldPatch, newPatch), current.get('pnpm-lock.yaml').toString());
-  const root = fixture(t, new Map([...current, ['pnpm-lock.yaml', oldLock]]));
-  assert.throws(
-    () => verifyCurrentResolverSnapshot(root, ADOPTION),
-    /resolver snapshot digest mismatch/u
+  assert.equal(
+    oldLock.replaceAll(oldPatch, newPatch),
+    beforeNextSecurity.get('pnpm-lock.yaml').toString()
   );
+  for (const lock of [oldLock, beforeNextSecurity.get('pnpm-lock.yaml')]) {
+    const root = fixture(t, new Map([...current, ['pnpm-lock.yaml', lock]]));
+    assert.throws(
+      () => verifyCurrentResolverSnapshot(root, ADOPTION),
+      /resolver snapshot digest mismatch/u
+    );
+  }
+});
+
+test('the previous Next pair and either mixed security successor pair are rejected', t => {
+  for (const contents of [
+    beforeNextSecurity,
+    new Map([
+      [pair[0], current.get(pair[0])],
+      [pair[1], beforeNextSecurity.get(pair[1])],
+    ]),
+    new Map([
+      [pair[0], beforeNextSecurity.get(pair[0])],
+      [pair[1], current.get(pair[1])],
+    ]),
+  ]) {
+    const root = fixture(t, contents);
+    assert.throws(
+      () => verifyCurrentResolverSnapshot(root, ADOPTION),
+      /resolver snapshot .*mismatch/u
+    );
+  }
 });
 
 test('the former accepted pair and both mixed successor states are rejected', t => {
