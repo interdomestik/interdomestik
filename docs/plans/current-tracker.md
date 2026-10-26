@@ -240,13 +240,44 @@ the coordinator separately ran nine existing candidate web suites with 84 tests 
 The official Next archive also passes exact verification of all eleven selected
 CRM source-only dependency witnesses; this is archive/source evidence, not admission.
 
-The coordinator's actual candidate production build passed Webpack compilation
+The coordinator's initial candidate production build passed Webpack compilation
 (90 seconds) and enforced TypeScript (31.8 seconds), then failed during page-data
 collection at `/api/ai/reviews/[id]` because no validated application database
-connection profile was supplied. No current separate admin/restricted application
-profile is retained and no Docker application services are active. Full production
-build, native no-JavaScript form/browser verification, full PR checks and delivery
-remain unverified; a retired M4 SQL fixture is not application qualification.
+connection profile was supplied. That failed attempt remains historical evidence;
+a retired M4 SQL fixture was not adopted as application qualification.
+
+Following the owner's approval of the researched unblock sequence, an owned pinned
+PostgreSQL16 fixture with generated local admin and genuinely restricted LOGIN
+credentials was provisioned on an ephemeral loopback port. The exact existing CI
+role/grant semantics, all migrations, deterministic E2E seed and seed assertions
+passed. The actual production application factory reached ready posture; its
+restricted role had no privileged flags, memberships or application-table ownership.
+Exact tenant-visible claim IDs matched the admin-derived canonical read scope
+(KS118, MK2); foreign writes and unscoped reads returned zero, and the same pooled
+backend cleared context after commit and rollback. The existing RLS integration
+passed all three tests with zero skips and `RLS_INTEGRATION_RAN=1`.
+
+At unchanged application source `95e0374ddde922bc9f8f154df78f2db55cee8e1e`, the
+**complete production build passed** in 77.467 seconds, including enforced
+TypeScript, page-data collection and standalone stamping. All fourteen existing
+`public-locale-no-js-shell.spec.ts` tests passed across KS/MK, including the real
+native business-form Server Action validation with JavaScript disabled. The profile
+blocker is resolved for this owned local application lane. The owned database/profile
+is retained for subsequent authorized checks; the test web server is stopped.
+
+Two early preflight failures were confined to the owned probe and are preserved:
+cleanup incorrectly assumed the bound `dbRls.$client` retained `.end`, then the
+oracle incorrectly required populated `access_tenant_id` instead of migration0086's
+canonical `coalesce(access_tenant_id, tenant_id)`. Corrected probes passed independent
+review; no product, seed or RLS-policy change was made. Playwright MCP first returned
+its existing browser-profile-in-use error; that browser was left untouched and the
+normal repository runner supplied the targeted proof. Full PR verification, the
+full E2E/doctor lanes, hosted checks and delivery remain separate and unverified.
+The fourteen targeted tests are not a full gate pass.
+
+Evidence is in the owner's `application-profile-live-1793044678745` directory;
+`qualification.json` SHA-256 is
+`076b7f4f80809a76b0ef7dfdb2cba96c5949c4e80b4e651d7b2a40f6a4da6112`.
 
 The message materializer separately retains a pre-existing mismatch between its
 hardcoded Postgres connection postimages and the unchanged current driver patch.
