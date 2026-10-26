@@ -980,8 +980,8 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "d11a51ab8380266e593c067d94e2ca45e3e2d77abc3e4e8d19ed0c202fe49e80": {
-    "snapshot": "@better-auth/drizzle-adapter@1.6.33(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@4.2.1))(jose@6.2.12)(kysely@0.28.17)(nanostores@1.4.0))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612)))",
+  "ff94d6db01eff674486b4b8bd6ccbde703b069c06880ef6dfd4d18a7665bb55a": {
+    "snapshot": "@better-auth/drizzle-adapter@1.6.33(@better-auth/core@1.6.33(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.4.0(zod@4.2.1))(jose@6.2.12)(kysely@0.28.17)(nanostores@1.4.0))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))",
     "name": "@better-auth/drizzle-adapter",
     "version": "1.6.33",
     "resolved": "https://registry.npmjs.org/@better-auth/drizzle-adapter/-/drizzle-adapter-1.6.33.tgz",
@@ -991,7 +991,7 @@
       "@better-auth/utils": "1df268eca7cb1be464d07e59f733da6d45a9e933eda47b773d07707a387c2de0"
     },
     "optionalDependencies": {
-      "drizzle-orm": "343b2dfe5b793f4ae9ad141a7dcc53b3143106da9abdfdf3e663908787d12288"
+      "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2"
     }
   },
   "d2edb73ed320da248197c66921338ba8eac7559628e4eb7cfb80eeabbfe84842": {
@@ -1527,15 +1527,15 @@
       "zod": "a72d581dd95759fe1ebac25380c6fba250b3cb8054dda56e2922d3469d09bdb7"
     }
   },
-  "e99511328e9e8d8fa821d4b062bbb2438c25a2275f6efde2e86c5e185bc8133d": {
-    "snapshot": "better-auth@1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)",
+  "6e02b469df4c4715a299d02ed84be79da645073a9a9a611508dd23e0c7c18a99": {
+    "snapshot": "better-auth@1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)",
     "name": "better-auth",
     "version": "1.6.33",
     "resolved": "https://registry.npmjs.org/better-auth/-/better-auth-1.6.33.tgz",
     "integrity": "sha512-QkVKOmJw/LQ3HjIib2wx2Td0xB9EuPgw0ARYPKeFu3niN0VSBW32j4QwfewFZOQi5Hb/jOB6U+wdvtBhF7+URw==",
     "dependencies": {
       "@better-auth/core": "3cdd0ca99a36ae3f1fb481a4605be00e5e547033f14708d04193a571526c5cd6",
-      "@better-auth/drizzle-adapter": "d11a51ab8380266e593c067d94e2ca45e3e2d77abc3e4e8d19ed0c202fe49e80",
+      "@better-auth/drizzle-adapter": "ff94d6db01eff674486b4b8bd6ccbde703b069c06880ef6dfd4d18a7665bb55a",
       "@better-auth/kysely-adapter": "72e2309bdb8ef432d208e18e3cd859e8f4717acef8851e8f23abf814582323a6",
       "@better-auth/memory-adapter": "946bac22abf037eb5d58822e543528010d1ec09a25ae9655da515b639585b30c",
       "@better-auth/mongo-adapter": "6e347a04c0bd8f711edc778a35a4e116036b94f34ec73a7001a60b597482333f",
@@ -1554,7 +1554,7 @@
     },
     "optionalDependencies": {
       "drizzle-kit": "90dbd73e9e2c6cd34b5667997999b8242fbd3344e4d4a7da0e4bf1f1cbaea1ea",
-      "drizzle-orm": "343b2dfe5b793f4ae9ad141a7dcc53b3143106da9abdfdf3e663908787d12288",
+      "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2",
       "mongodb": "7eab4bb609766e11a97fe2d8c699ba0484f847392022f36ae8551908c37e6bed",
       "next": "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707",
       "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e",

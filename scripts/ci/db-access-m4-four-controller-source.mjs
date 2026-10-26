@@ -121,7 +121,7 @@ export function deriveM4AssignmentControllers({ controllerSource, wireSource, pr
     ),
     guarantees: [
       'Four literal private factory bindings; source-selected profiles and captured concrete legacy notifier; no request handler registry.',
-      'A1 after owned transaction acquisition; current actor/home role and branch FOR SHARE; current effective resource scope FOR UPDATE before ledger replay.',
+      'A1 after owned transaction acquisition; current actor/home role FOR SHARE for every profile, plus current branch for legacy/staff; current effective resource scope FOR UPDATE before ledger replay.',
       'Legacy admin home/access and current staff branch/assignment/self authority remain before replay.',
       'Ops exact six-field fingerprint; legacy/staff add fixed entry identity; all six stored conflict fields retained.',
       'Strict serialized observation and fixed stored result/changed projection; private notification reference contains no email/title/name.',

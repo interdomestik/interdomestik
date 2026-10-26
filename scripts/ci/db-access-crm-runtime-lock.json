@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "sourceLockSha256": "f4e4858573b84e51044a0cb717ad3e1425b6bf8806dfb2a1ae19edb119b3a72d",
+  "sourceLockSha256": "8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7",
   "workspaceSha256": "d221eee059fc7b0fa680b2604d444b207b8a1a809492894b2fcdd86b6bdcc304",
   "roots": {
     "@upstash/ratelimit": "c2e9ba1a348ddba840b7a85e8b09ff8f3e5c1eb8082fdeb853ec52caac3fbdc6",
@@ -8,14 +8,14 @@
     "bcryptjs": "e9db6f826169687b3664217cd123bf69a300b2e86306209e7285449c69c3afc0",
     "nodemailer": "03baeff7a949122e08cf437799f104173cbed624925a355c2a0c8098afc45510",
     "resend": "40d74cc325307bff4a6a4c0fc103848f81b0d41ed712a2242b0462c2d410c5b8",
-    "better-auth": "e99511328e9e8d8fa821d4b062bbb2438c25a2275f6efde2e86c5e185bc8133d",
+    "better-auth": "6e02b469df4c4715a299d02ed84be79da645073a9a9a611508dd23e0c7c18a99",
     "zod": "04b0a925292ca235736936eed751d44f8c3e5565f6643d2e033328bbcc11d1e4",
     "@sentry/nextjs": "6f9112c09a1b8e14bcb51c1cb324d2bbc71f6f29503eb63b39bbc8fd9a084fb2",
     "next": "d636dd210e1f16c1627896c336bea719bb6761426164489355fb6e24d3b28707",
     "react": "bd679726788e3c19d89bfd28ed998dc0ecc3cc762ce165eb4dcc8e602e251ba5",
     "react-dom": "ea94f5e20ced1fccf04126083e7fd53eb94b93c5cd6a634517e55cd9f51293fa",
-    "drizzle-orm": "343b2dfe5b793f4ae9ad141a7dcc53b3143106da9abdfdf3e663908787d12288",
-    "postgres": "32eb5ea0d58579e0f1c83a465a6c2d83757c774406f077a62a2277b3d1808eea",
+    "drizzle-orm": "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2",
+    "postgres": "0afd56993e636b313a958ac21d5f0c648c11f00809ed92b0c7ac44d5d05f93d1",
     "esbuild": "0091ac1dc0891f181bdfbcc57a86d1c02d57c0679ac9fe3f4eef85be549be010",
     "@supabase/ssr": "f72f8fd4fb35e444d9cdeef1bfd7c591824987bf5dd2adcf3b685531c5d54c6b",
     "@supabase/supabase-js": "b482177eef23c99ee247e566cedbe6f029b1c226041767f4b6862421261adee4",
@@ -45,7 +45,7 @@
     },
     "better-auth": {
       "importer": "apps/web",
-      "version": "1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)"
+      "version": "1.6.33(@opentelemetry/api@1.9.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)))(mongodb@7.1.0(socks@2.8.8))(next@16.3.8(patch_hash=f84c70d8dafef075da90c63f9dd40951985dd2a9de24de6a326452fa98f58245)(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.12.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.10)(vitest@4.1.11)"
     },
     "zod": {
       "importer": "apps/web",
@@ -69,11 +69,11 @@
     },
     "drizzle-orm": {
       "importer": "packages/database",
-      "version": "0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612))"
+      "version": "0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e))"
     },
     "postgres": {
       "importer": "packages/database",
-      "version": "3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612)"
+      "version": "3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)"
     },
     "esbuild": {
       "snapshot": "esbuild@0.28.2",
@@ -98,8 +98,8 @@
   },
   "packageFiles": {
     "scripts/ci/db-access-crm-runtime-packages-1.json": {
-      "sha256": "3eb2b45e6e3469f4005f1a7c6d3c2dd840e0b58a8464bf4c98e39dbc50aea8a7",
-      "bytes": 105280,
+      "sha256": "b917e35c3fd346607dca133a063e67a38d45d8b3ede5fe3a1b866abfce88cb30",
+      "bytes": 105469,
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-2.json": {
@@ -108,7 +108,7 @@
       "mode": "100644"
     },
     "scripts/ci/db-access-crm-runtime-packages-3.json": {
-      "sha256": "cd5b6a41c74298c50de3a140488440500b4d116b5a8b3a6be520855068e04ffb",
+      "sha256": "91782a7aa4f650ac23e46756fc0fb43be4f9aa4c3985c31056f3ab37bcebb423",
       "bytes": 114478,
       "mode": "100644"
     }

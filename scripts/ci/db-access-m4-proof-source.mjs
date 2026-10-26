@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { exact } from './db-access-provider-runtime-identity.mjs';
 import { digest } from './db-access-trust.mjs';
 import { deriveM4AssignmentKernel } from './db-access-m4-source.mjs';
+import { deriveM4AssignmentKernels } from './db-access-m4-assignment-kernels-source.mjs';
 import { deriveM4OpsController } from './db-access-m4-controller-source.mjs';
 import { deriveM4IdentitySource } from './db-access-m4-identity-source.mjs';
 import { M4_PROOF_POLICY } from './db-access-m4-proof-policy.mjs';
@@ -117,6 +118,13 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       sharedAuthPackageSource: before.resolver,
     })
   );
+  attempt('assignmentKernels', () =>
+    deriveM4AssignmentKernels({
+      sharedSource: before.kernelShared,
+      legacySource: before.legacyKernel,
+      staffSource: before.staffKernel,
+    })
+  );
   const after = read();
   if (canonical(before) !== canonical(after)) fail('source changed during derivation');
   const receipt = freeze({
@@ -129,16 +137,13 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       after: digest(canonical(after)),
     },
     sourceBindingAuthenticated: true,
-    checkerAttempts: ['kernel', 'controller', 'identity'],
+    checkerAttempts: ['kernel', 'controller', 'identity', 'assignmentKernels'],
     derivations,
     failures,
     sourcePremiseOnly: true,
     bootstrapAndPosture: 'exact-source-bound; runtime semantics unproved',
     additionalSourceBoundOnlyFiles: [
       files.controllerTypes,
-      files.kernelShared,
-      files.legacyKernel,
-      files.staffKernel,
       files.notificationRuntime,
       files.notifier,
       files.runtimeTypes,
@@ -152,7 +157,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       'immutable producer distribution and authenticated event/source/policy join',
       'actual complete native inventory and all executable contexts',
       'executed role/current-store/bootstrap and caller qualification',
-      'separate finite/runtime qualification of the new legacy/staff kernels, actual bootstrap and restricted notifier/purpose-pool/transport',
+      'actual SQL qualification of shared/legacy/staff kernel premises and separate finite/runtime qualification of bootstrap and restricted notifier/purpose-pool/transport',
       'native authenticated semantic-negative rejection',
     ],
   });

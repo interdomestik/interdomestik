@@ -956,8 +956,8 @@
     "dependencies": {},
     "optionalDependencies": {}
   },
-  "32eb5ea0d58579e0f1c83a465a6c2d83757c774406f077a62a2277b3d1808eea": {
-    "snapshot": "postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612)",
+  "0afd56993e636b313a958ac21d5f0c648c11f00809ed92b0c7ac44d5d05f93d1": {
+    "snapshot": "postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e)",
     "name": "postgres",
     "version": "3.4.9",
     "resolved": "https://registry.npmjs.org/postgres/-/postgres-3.4.9.tgz",
@@ -966,13 +966,15 @@
     "optionalDependencies": {},
     "patch": {
       "file": "patches/postgres@3.4.9.patch",
-      "sha256": "dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612",
-      "bytes": 1436,
+      "sha256": "1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e",
+      "bytes": 63758,
       "mode": "100644",
-      "lockHash": "dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612",
+      "lockHash": "1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e",
       "patchedFiles": {
-        "src/connection.js": "12f2e1a77a0ea9c2fb01fcdc8cf46469c5569a0822f1c7e60b658c20a2d1ba33",
-        "cjs/src/connection.js": "143db23d9edf228a46ca23345b2faf0f47f14f2ab2eb460244c8b69a23d86c94"
+        "src/index.js": "6ecfbdd06384caa9c23a2d5eda3f4cfe2f9da1ffef718db44de9ed076cddee0c",
+        "src/connection.js": "fe0e03101e0df83606f6bcccfcf0c88730785a0ee4430cbb569585e82575e2ba",
+        "cjs/src/index.js": "af6048eb8934a438df19032c828560e2a7d9f1bdf1396e9a7974002cbdec231d",
+        "cjs/src/connection.js": "ecfbf6ab4abe320fe3d28c33928103ee5267e9cd15ecc14a6598c3fb09123e55"
       }
     }
   },
@@ -1019,8 +1021,8 @@
     },
     "optionalDependencies": {}
   },
-  "343b2dfe5b793f4ae9ad141a7dcc53b3143106da9abdfdf3e663908787d12288": {
-    "snapshot": "drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612))",
+  "0137686267b1aa4218258807b288e2e85d509c8f460b706c4ce32933a2a5b3a2": {
+    "snapshot": "drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(@upstash/redis@1.38.4)(kysely@0.28.17)(pg@8.23.0)(postgres@3.4.9(patch_hash=1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e))",
     "name": "drizzle-orm",
     "version": "0.45.2",
     "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.2.tgz",
@@ -1032,7 +1034,7 @@
       "@upstash/redis": "37df45bdb4c934e2a3495d10c5ecee7f83684c2fb5d98024a7986fb90d9cecce",
       "kysely": "8e110f26071dbe8cc3904b900ade8054c1ab8f8c42b834faf7aead8065c165de",
       "pg": "1628790238140ebb0ec0facbab25a090f1cc49086a048829cf4f728bc1d0601e",
-      "postgres": "32eb5ea0d58579e0f1c83a465a6c2d83757c774406f077a62a2277b3d1808eea"
+      "postgres": "0afd56993e636b313a958ac21d5f0c648c11f00809ed92b0c7ac44d5d05f93d1"
     }
   },
   "346b76e9a17e11c72a208103552d233f39e2237a72654fbbea9c613b11ceedc1": {

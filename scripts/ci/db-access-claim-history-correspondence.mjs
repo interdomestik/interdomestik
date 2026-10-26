@@ -11,7 +11,7 @@ if (
   !stat.isFile() ||
   stat.isSymbolicLink() ||
   stat.mode & 0o111 ||
-  hash(bytes) !== '6f8869819e233e269303d0c676ce07b307ad11ad58a606d18fb98f41f04d4aed'
+  hash(bytes) !== '30faa20675f84b525a25af6a90a2eb67c7e41b2cb92a9088566cf96b539b5763'
 )
   throw new Error('incomplete: fixed claim-history correspondence policy source mismatch');
 const policy = JSON.parse(bytes);
