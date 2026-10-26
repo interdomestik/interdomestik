@@ -3,6 +3,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { classifyDefaultEmailEquivalence } from './db-access-default-email-equivalence.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = process.env.DEFAULT_EMAIL_EQ_TEST_REPO ?? path.resolve(here, '../..');
@@ -10,13 +11,30 @@ const policy = JSON.parse(
   fs.readFileSync(path.join(here, 'db-access-default-email-equivalence-policy.json'))
 );
 const clone = value => structuredClone(value);
+const schemaFixture = JSON.parse(
+  fs.readFileSync(path.join(here, 'db-access-default-email-schema-fixture.json'))
+);
+const sha = source => createHash('sha256').update(source).digest('hex');
+for (const kind of ['qualified', 'unqualified'])
+  assert.equal(sha(schemaFixture[kind].source), schemaFixture[kind].sha256);
+assert.equal(
+  schemaFixture.qualified.sha256,
+  policy.files.find(item => item.file === schemaFixture.file).currentSha256
+);
 function fixture() {
   const rows = clone(policy.operations.map(item => item.row));
   const dependencies = new Map(
     policy.dependencies.map(([file, targets]) => [file, new Set(targets)])
   );
   const sources = new Map(
-    policy.files.map(item => [item.file, fs.readFileSync(path.join(repo, item.file), 'utf8')])
+    policy.files.map(item => [
+      item.file,
+      // This positive observation belongs to the fixed old contract. A later schema export
+      // remains unqualified in production and is an explicit negative immediately below.
+      item.file === schemaFixture.file
+        ? schemaFixture.qualified.source
+        : fs.readFileSync(path.join(repo, item.file), 'utf8'),
+    ])
   );
   // The fixture reconstructs exact ADOPTION source bytes from the authenticated observation's
   // matching source or Git. Production obtains these only through authenticateSnapshot.
@@ -77,6 +95,17 @@ test('exact finite source proof removes only eight failures while retaining full
   assert.deepEqual([...f.failures.keys()], ['unrelated']);
   assert.equal(snapshot(), before);
   assert.ok(f.prepared.inventory.entries.every(entry => entry.historicalDebt === false));
+});
+test('the real later schema export remains held without removing any failure', () => {
+  const f = fixture();
+  f.prepared.sources.set(schemaFixture.file, schemaFixture.unqualified.source);
+  const before = JSON.stringify([...f.failures]);
+  const result = classifyDefaultEmailEquivalence(f.prepared, f.graph, f.failures);
+  assert.equal(result.status, 'held');
+  assert.equal(result.reason, 'source binding changed: ' + schemaFixture.file);
+  assert.equal(JSON.stringify([...f.failures]), before);
+  assert.deepEqual(result.operations, []);
+  assert.equal(result.runtimeAdmission, false);
 });
 const negatives = [
   ['changed own core', f => f.prepared.sources.set(policy.operations[0].row.file, 'changed core')],

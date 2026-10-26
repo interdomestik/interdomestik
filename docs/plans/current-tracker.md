@@ -21,7 +21,7 @@ The sole owner starts the genuine M4 trusted/proof vertical and semantic negativ
 Broad migration remains conditional on their actual required pass/rejection; no native
 benefit, production C admission or S8 completion is claimed.
 
-The integrated local candidate is `988281eb74fda6ed06dc40cb6532c13ed1a30660`;
+The correction starts from integrated source checkpoint `988281eb74fda6ed06dc40cb6532c13ed1a30660`;
 its non-admitting live pair gap ledger retains the original raw arrays by index and
 accepts zero coverage. No production C, native admission, global ZERO or S8 completion
 is claimed. The approved program sequencing and original ADOPTION/baseline604 remain.
@@ -47,9 +47,10 @@ remedy and is not integrated. The bounded correction now prepares the identical 
 requires the owned worker to exit before native preparation. The actual extracted serial
 controls match the complete reference (60 scoped files and both prior rows); 28 lifecycle
 and sequencing unit-double cases pass. Independent review and one fresh combined actual
-proof remain pending. The integrated 118-test check has one inherited default-email positive
-fixture failure, reproduced on the untouched frozen diagnostic producer: the current schema
-export differs from its fixed old source contract. That obligation is held, not waived.
+proof remain pending. The inherited default-email positive-fixture failure was reproduced
+on the untouched frozen diagnostic producer, then repaired with exact historical schema
+bytes and an explicit rejection of the real later export variant. All 119 integrated tests
+now pass. The current production source obligation remains held, not waived.
 
 Remaining acceptance work stays in this tracker:
 

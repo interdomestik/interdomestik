@@ -964,8 +964,8 @@
     },
     "scripts/ci/db-access-default-email-equivalence.test.mjs": {
       "mode": "100644",
-      "bytes": 6234,
-      "sha256": "21ee47e7f919a3dc51398abd1f315f400b894b1a605b6010d4163c42531399e6"
+      "bytes": 7600,
+      "sha256": "9541db09a5df8f2f32d7dcb3c687386edec603d48d84cd1a5efa1f21895e4292"
     },
     "scripts/ci/db-access-source-dependencies.mjs": {
       "mode": "100644",
@@ -1796,6 +1796,11 @@
       "mode": "100644",
       "bytes": 5187,
       "sha256": "747e4a13832ade23e78a47df5be17a36f1eda36ba1f346bfad89cf969159c9c3"
+    },
+    "scripts/ci/db-access-default-email-schema-fixture.json": {
+      "mode": "100644",
+      "bytes": 3510,
+      "sha256": "1d86a1d9bdecf805dc7230fc78d0954d314f2a22ce45ebf0c8168d7e033eff46"
     }
   },
   "runtimeEnforcement": {
