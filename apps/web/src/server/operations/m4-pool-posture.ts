@@ -77,6 +77,7 @@ export async function assertM4PoolPosture(
     select 1 OPERATOR(pg_catalog./) case when
       CAST(checked.rolname AS pg_catalog.text) OPERATOR(pg_catalog.=) CAST(${target.login} AS pg_catalog.text)
       and session_user OPERATOR(pg_catalog.=) current_user
+      and pg_catalog.current_setting('client_connection_check_interval') OPERATOR(pg_catalog.=) '100ms'
       and CAST(pg_catalog.current_database() AS pg_catalog.text) OPERATOR(pg_catalog.=) CAST(${target.database} AS pg_catalog.text)
       and checked.rolcanlogin and not checked.rolsuper and not checked.rolbypassrls
       and not checked.rolcreatedb and not checked.rolcreaterole
