@@ -1,3 +1,4 @@
+import { deriveM4PrivateRuntimeSource } from './db-access-m4-runtime-source.mjs';
 import fs from 'node:fs';
 import { deriveM4AssignmentNotification } from './db-access-m4-notification-source.mjs';
 import { exact } from './db-access-provider-runtime-identity.mjs';
@@ -132,6 +133,14 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       staffSource: before.staffKernel,
     })
   );
+  attempt('privateRuntime', () =>
+    deriveM4PrivateRuntimeSource({
+      bootstrapSource: before.bootstrap,
+      postureSource: before.posture,
+      runtimeTypesSource: before.runtimeTypes,
+      controllerTypesSource: before.controllerTypes,
+    })
+  );
   const after = read();
   if (canonical(before) !== canonical(after)) fail('source changed during derivation');
   const receipt = freeze({
@@ -144,14 +153,21 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       after: digest(canonical(after)),
     },
     sourceBindingAuthenticated: true,
-    checkerAttempts: ['kernel', 'controller', 'notification', 'identity', 'assignmentKernels'],
+    checkerAttempts: [
+      'kernel',
+      'controller',
+      'notification',
+      'identity',
+      'assignmentKernels',
+      'privateRuntime',
+    ],
     derivations,
     failures,
     sourcePremiseOnly: true,
-    bootstrapAndPosture: 'exact-source-bound; runtime semantics unproved',
-    additionalSourceBoundOnlyFiles: [files.controllerTypes, files.runtimeTypes],
+    bootstrapAndPosture: 'finite source/control derived; executed runtime premises remain required',
+    additionalSourceBoundOnlyFiles: [],
     additionalSourceBoundOnlyGuarantee:
-      'Exact source/mode/model/bookend identity only; no bootstrap or complete-runtime semantic admission is inferred.',
+      'All fixed modules have finite source derivations, including erased type contracts; no complete-runtime or native admission is inferred.',
     runtimeAdmission: false,
     allExecutableContextsQualified: false,
     productionEventAuthenticated: false,
@@ -159,7 +175,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       'immutable producer distribution and authenticated event/source/policy join',
       'actual complete native inventory and all executable contexts',
       'executed role/current-store/bootstrap and caller qualification',
-      'actual SQL qualification of shared/legacy/staff kernel premises and separate finite/runtime qualification of bootstrap and restricted notifier/purpose-pool/transport',
+      'actual SQL qualification of kernel and bootstrap/purpose-pool premises, with independent current-store, driver, TLS and imported notifier/transport qualification',
       'native authenticated semantic-negative rejection',
     ],
   });
