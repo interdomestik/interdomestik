@@ -4,6 +4,16 @@ import { m4SourceMatchesModel } from './db-access-m4-proof-source.mjs';
 import { encodeInventory } from './db-access-inventory-wire.mjs';
 
 const received = new WeakSet();
+const hydrated = new WeakMap();
+export function isM4HydratedContextInventory(model, inventory, source) {
+  const bound = hydrated.get(inventory);
+  return (
+    !isMainThread &&
+    bound?.model === model &&
+    bound?.source === source &&
+    bound.digest === digest(JSON.stringify(encodeInventory({ model, inventory })))
+  );
+}
 const authorized = new WeakMap();
 let session;
 const fail = reason => {
@@ -55,6 +65,11 @@ export function assertM4HydratedInventory(input, prepared) {
     digest(JSON.stringify(encodeInventory(prepared))) !== input.m4Transport.inventoryDigest
   )
     fail('hydrated inventory differs');
+  hydrated.set(prepared.inventory, {
+    model: prepared.model,
+    source: prepared.providerUnit.m4Proof,
+    digest: input.m4Transport.inventoryDigest,
+  });
 }
 function acknowledgement(input, prepared, used) {
   const wire = validate(input, prepared);

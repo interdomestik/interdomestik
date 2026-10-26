@@ -1,3 +1,4 @@
+import { createM4ContextCensus } from './db-access-m4-context-census.mjs';
 import { isVerifiedProviderUnitSource } from './db-access-provider-unit-source.mjs';
 import ts from 'typescript';
 import { inspectGraphCall } from './db-access-graph-calls.mjs';
@@ -26,6 +27,7 @@ export function createGraphTraversal(
     ...(providerUnit?.namedProofFiles ?? []),
   ]);
   let failures, reachedTestSources, incomplete;
+  const census = createM4ContextCensus(model, provenance, inventory, providerUnit?.m4Proof);
   const byOwner = new Map();
   for (const entry of inventory.entries) {
     const list = byOwner.get(entry._owner) ?? [];
@@ -54,21 +56,27 @@ export function createGraphTraversal(
   function inspect(owner, origin, stack, depth, invocation, context, definingContext) {
     if (inspectDispatchContexts(owner, origin, stack, depth, context)) return;
     const ownerFile = model.fileOf(owner);
-    if (providerFiles.has(ownerFile)) return;
+    if (providerFiles.has(ownerFile)) {
+      census?.observe(owner, origin, invocation, context, definingContext, 'provider-boundary');
+      return;
+    }
     if (testOnlySource(ownerFile) && !testOnlySource(origin)) reachedTestSources.add(ownerFile);
     const frame = definingContext ?? context;
     if (stack.get(owner)?.has(frame)) {
+      census?.observe(owner, origin, invocation, context, definingContext, 'recursion');
       incomplete.push({ file: origin, reason: 'recursive executable edge' });
       return;
     }
     const count = (steps.get(origin) ?? 0) + 1;
     steps.set(origin, count);
     if (depth > 48 || count > 20000) {
+      census?.observe(owner, origin, invocation, context, definingContext, 'graph-bound');
       incomplete.push({ file: origin, reason: 'graph bound exceeded' });
       return;
     }
     stack = new Map(stack).set(owner, new Set(stack.get(owner) ?? []).add(frame));
     const scoped = forContext(context);
+    census?.observe(owner, origin, invocation, context, definingContext, 'visited');
     for (const entry of byOwner.get(owner) ?? []) {
       if (entry._incomplete) incomplete.push({ file: origin, reason: entry.reason });
       else if (isUnsafe(entry))
@@ -269,6 +277,8 @@ export function createGraphTraversal(
   }
   return createGraphSessionDriver(inventory, provenance, (origins, output) => {
     ({ failures, reachedTestSources, incomplete } = output);
+    census?.begin();
     inspectGraphRoots({ model, inventory, origins, references, incomplete, inspect });
+    if (census) output.m4Contexts = census.finish(origins, incomplete.entries);
   });
 }

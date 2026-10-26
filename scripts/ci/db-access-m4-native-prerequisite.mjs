@@ -1,3 +1,4 @@
+import { isM4HydratedContextInventory } from './db-access-m4-worker-input.mjs';
 import { collectInventory } from './db-access-inventory.mjs';
 import { randomUUID } from 'node:crypto';
 import { encodeInventory } from './db-access-inventory-wire.mjs';
@@ -11,6 +12,16 @@ import {
 } from './db-access-provider-unit-source.mjs';
 
 const collected = new WeakSet();
+const contextInventories = new WeakMap();
+export function isM4ContextInventory(model, inventory, source) {
+  const bound = contextInventories.get(inventory);
+  return (
+    (bound?.model === model &&
+      bound?.source === source &&
+      bound.digest === digest(JSON.stringify(encodeInventory({ model, inventory })))) ||
+    isM4HydratedContextInventory(model, inventory, source)
+  );
+}
 const workerRequests = new WeakMap();
 const consumedWorkerRequests = new WeakSet();
 const fail = reason => {
@@ -32,6 +43,11 @@ export function collectM4NativeInventory(model, trusted, unit) {
     runtimeAdmission: false,
   });
   collected.add(result);
+  contextInventories.set(inventory, {
+    model,
+    source,
+    digest: digest(JSON.stringify(encodeInventory(result))),
+  });
   return result;
 }
 

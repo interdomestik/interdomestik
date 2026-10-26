@@ -63,6 +63,7 @@ parentPort.on('message', input => {
     incomplete: graph.incomplete,
     incompleteRawCount: graph.incompleteRawCount,
     reachedTestSources: [...graph.reachedTestSources],
+    ...(graph.m4Contexts ? { m4Contexts: graph.m4Contexts } : {}),
   });
 });
 parentPort.postMessage({

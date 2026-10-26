@@ -50,6 +50,9 @@ export function createGraphSessionDriver(inventory, provenance, inspect) {
         incomplete: output.incomplete.entries,
         incompleteRawCount: output.incomplete.rawCount,
         reachedTestSources: delta,
+        ...(output.m4Contexts
+          ? { m4Contexts: { ...output.m4Contexts, unresolved: output.incomplete.entries } }
+          : {}),
       };
     },
   });

@@ -1,3 +1,4 @@
+import { mergeM4ContextBatches } from './db-access-m4-context-wire.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -101,6 +102,7 @@ export function mergeOwnedGraphs(prepared, partitions, results) {
     results.length !== partitions.length
   )
     fail('incomplete root partition');
+  const m4Contexts = mergeM4ContextBatches(prepared, partitions, results);
   const incomplete = createIncompleteCollector(),
     failures = [],
     reachedTestSources = new Set(),
@@ -141,6 +143,7 @@ export function mergeOwnedGraphs(prepared, partitions, results) {
     incomplete: incomplete.entries,
     incompleteRawCount: incomplete.rawCount,
     reachedTestSources,
+    ...(m4Contexts ? { m4Contexts: { ...m4Contexts, unresolved: incomplete.entries } } : {}),
   };
 }
 export async function runParallelGraph(prepared, input, pool) {

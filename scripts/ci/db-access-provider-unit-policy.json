@@ -667,8 +667,8 @@
     },
     "scripts/ci/db-access-graph-core.mjs": {
       "mode": "100644",
-      "bytes": 11666,
-      "sha256": "b48cabb5cfcdd302a13a9f0c50a53bd05d512cbd0de98b9ffc4f7d2d9f5ed245"
+      "bytes": 12311,
+      "sha256": "6df0e29bdf0fe318e2a0bbf62ad91e48fa6defd7ad7f72e6b69763edd1503ba1"
     },
     "scripts/ci/db-access-graph-roots.mjs": {
       "mode": "100644",
@@ -692,13 +692,13 @@
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
-      "bytes": 2841,
-      "sha256": "51c886b0025b5541c4d59d3444b431856d916ac2a859f041ffaf61fcc7c886fa"
+      "bytes": 2908,
+      "sha256": "c6892a746bc24786c5c683f7fc2a7c009cac4b207d23a4f64a516c8da5e99f17"
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 6421,
-      "sha256": "10d2ba64bcd893ec60211e5856882e7f2560682396484b59866e82f22ab92a8a"
+      "bytes": 6663,
+      "sha256": "27d73ce7388ff767a3b7a0ea295f4002bb88e8f882f40431642fcf878ab1912a"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
@@ -917,8 +917,8 @@
     },
     "scripts/ci/db-access-graph-session-driver.mjs": {
       "mode": "100644",
-      "bytes": 2028,
-      "sha256": "fe9e94443f176bb2cde229749619febc921e4977c4b7bbbf9b9939857db81954"
+      "bytes": 2167,
+      "sha256": "55d6c9fc1966f2abcd69b43fa4ad254a370b092898a38946dc61bd6d26f35257"
     },
     "scripts/ci/db-access-default-email-equivalence.mjs": {
       "mode": "100644",
@@ -1322,8 +1322,8 @@
     },
     "scripts/ci/db-access-m4-native-prerequisite.mjs": {
       "mode": "100644",
-      "bytes": 5757,
-      "sha256": "fc056df632bdf93a4094dd3769daa3c75afe3864bd7e270fcf0af883c88cbd21"
+      "bytes": 6354,
+      "sha256": "5a6a0e61e204cd8377cf2c678461eacda01f835e3820d7ba4becd1e1f4fe0f02"
     },
     "scripts/ci/db-access-m4-proof-policy.json": {
       "mode": "100644",
@@ -1367,8 +1367,8 @@
     },
     "scripts/ci/db-access-m4-worker-input.mjs": {
       "mode": "100644",
-      "bytes": 3206,
-      "sha256": "818a7c5d78dd8b0323c1deb3d0eaffa7fbef7b455d6835927f44da37adef13bd"
+      "bytes": 3696,
+      "sha256": "76ab26c700e9b4844325467a8f5eced219dd0b323b0fdfaed404834f113120e4"
     },
     "scripts/ci/db-access-module-edges.mjs": {
       "mode": "100644",
@@ -1419,6 +1419,16 @@
       "mode": "100644",
       "bytes": 1882,
       "sha256": "c3c770a17a20e25b5ca184ff85c6f919cdda93f3fd795a092516d068a388365b"
+    },
+    "scripts/ci/db-access-m4-context-census.mjs": {
+      "mode": "100644",
+      "bytes": 3606,
+      "sha256": "f8c418ff47c8bb90bb8b25b5302a2a323a437ef3ba66dc3a0e7b117cf85323b2"
+    },
+    "scripts/ci/db-access-m4-context-wire.mjs": {
+      "mode": "100644",
+      "bytes": 5530,
+      "sha256": "9cd214cf688b54e85b33aa4f84e8c509820280d8829b729be57349eb3b0377bc"
     }
   },
   "runtimeEnforcement": {
