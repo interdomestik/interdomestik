@@ -790,6 +790,16 @@
       "mode": "100644",
       "bytes": 1936,
       "sha256": "62b7e760bc0ece72604bb568c3f7f2cc65d0d00a622de6b6b21d940e8ba3f17f"
+    },
+    "apps/web/src/lib/auth/user-schema.ts": {
+      "mode": "100644",
+      "bytes": 1109,
+      "sha256": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec"
+    },
+    "packages/database/src/schema/operation-results.ts": {
+      "mode": "100644",
+      "bytes": 1983,
+      "sha256": "ecb292cdf789785fc39f838f9aa96e4e67a4889863d5ff9cedf1867a023dc244"
     }
   }
 }

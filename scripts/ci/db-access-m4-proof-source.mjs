@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { deriveM4AssignmentNotification } from './db-access-m4-notification-source.mjs';
 import { exact } from './db-access-provider-runtime-identity.mjs';
 import { digest } from './db-access-trust.mjs';
 import { deriveM4AssignmentKernel } from './db-access-m4-source.mjs';
@@ -110,6 +111,12 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       wireSource: before.wire,
     })
   );
+  attempt('notification', () =>
+    deriveM4AssignmentNotification({
+      notifierSource: before.notifier,
+      notificationRuntimeSource: before.notificationRuntime,
+    })
+  );
   attempt('identity', () =>
     deriveM4IdentitySource({
       verifierSource: before.verifier,
@@ -137,19 +144,14 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       after: digest(canonical(after)),
     },
     sourceBindingAuthenticated: true,
-    checkerAttempts: ['kernel', 'controller', 'identity', 'assignmentKernels'],
+    checkerAttempts: ['kernel', 'controller', 'notification', 'identity', 'assignmentKernels'],
     derivations,
     failures,
     sourcePremiseOnly: true,
     bootstrapAndPosture: 'exact-source-bound; runtime semantics unproved',
-    additionalSourceBoundOnlyFiles: [
-      files.controllerTypes,
-      files.notificationRuntime,
-      files.notifier,
-      files.runtimeTypes,
-    ],
+    additionalSourceBoundOnlyFiles: [files.controllerTypes, files.runtimeTypes],
     additionalSourceBoundOnlyGuarantee:
-      'Exact source/mode/model/bookend identity only; no kernel, bootstrap, notifier or runtime semantic admission is inferred.',
+      'Exact source/mode/model/bookend identity only; no bootstrap or complete-runtime semantic admission is inferred.',
     runtimeAdmission: false,
     allExecutableContextsQualified: false,
     productionEventAuthenticated: false,

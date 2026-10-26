@@ -122,8 +122,8 @@
     },
     "packages/database/src/schema/index.ts": {
       "mode": "100644",
-      "bytes": 1397,
-      "sha256": "068b28297411a8345d6006104df52b22ae8d7576dee9df8a651175fc01cb8b78",
+      "bytes": 1434,
+      "sha256": "0f4e2c20596231d02027c2f7f0355ffeb379d2bb17dcca886a018dfb105d7316",
       "imports": {
         "./agents": "packages/database/src/schema/agents.ts",
         "./ai": "packages/database/src/schema/ai.ts",
@@ -153,6 +153,7 @@
         "./memberships": "packages/database/src/schema/memberships.ts",
         "./notes": "packages/database/src/schema/notes.ts",
         "./notifications": "packages/database/src/schema/notifications.ts",
+        "./operation-results": "packages/database/src/schema/operation-results.ts",
         "./policies": "packages/database/src/schema/policies.ts",
         "./rbac": "packages/database/src/schema/rbac.ts",
         "./relations": "packages/database/src/schema/relations.ts",
@@ -1097,6 +1098,18 @@
         "drizzle-orm": null,
         "vitest": null
       }
+    },
+    "packages/database/src/schema/operation-results.ts": {
+      "mode": "100644",
+      "bytes": 1983,
+      "sha256": "ecb292cdf789785fc39f838f9aa96e4e67a4889863d5ff9cedf1867a023dc244",
+      "imports": {
+        "./auth": "packages/database/src/schema/auth.ts",
+        "./claims": "packages/database/src/schema/claims.ts",
+        "./tenants": "packages/database/src/schema/tenants.ts",
+        "drizzle-orm": null,
+        "drizzle-orm/pg-core": null
+      }
     }
   },
   "configuration": {
@@ -1669,8 +1682,13 @@
     },
     "packages/database/drizzle/meta/_journal.json": {
       "mode": "100644",
-      "bytes": 14792,
-      "sha256": "89fb16837f0d449262d9ea464a3bd06d5061ed1162f7ce15e1f82c54607c16f5"
+      "bytes": 14941,
+      "sha256": "875de3c252c1ab2329463545ac8608000f4a7b5986056a72a4d8179558cbd722"
+    },
+    "packages/database/drizzle/0097_m4_operation_results.sql": {
+      "mode": "100644",
+      "bytes": 1972,
+      "sha256": "95cfba0712eaee98032a375c376b95205e3f291f13144b03a36e4e939d68d84e"
     }
   },
   "identities": [

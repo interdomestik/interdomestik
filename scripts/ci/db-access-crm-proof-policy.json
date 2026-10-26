@@ -68,6 +68,7 @@
         "apps/web/src/lib/auth/schema.ts",
         "apps/web/src/lib/auth/social-providers.ts",
         "apps/web/src/lib/auth/user-authority-assignment.ts",
+        "apps/web/src/lib/auth/user-schema.ts",
         "apps/web/src/lib/auth/utils.ts",
         "apps/web/src/lib/email.core.ts",
         "apps/web/src/lib/email.ts",
@@ -141,6 +142,7 @@
         "packages/database/src/schema/memberships.ts",
         "packages/database/src/schema/notes.ts",
         "packages/database/src/schema/notifications.ts",
+        "packages/database/src/schema/operation-results.ts",
         "packages/database/src/schema/policies.ts",
         "packages/database/src/schema/rbac.ts",
         "packages/database/src/schema/relations.ts",
@@ -496,8 +498,8 @@
           "mode": "100644"
         },
         "apps/web/src/lib/auth/schema.ts": {
-          "sha256": "92d823faee68e35affee33c6aea2046838a18c7df4f1d697092be3c6ad821eb9",
-          "bytes": 1496,
+          "sha256": "f483ad6c76dfe51cdc84147131be9c93e935c34fb0cf890fafcea6adffaebb05",
+          "bytes": 443,
           "mode": "100644"
         },
         "apps/web/src/lib/auth/social-providers.ts": {
@@ -841,8 +843,8 @@
           "mode": "100644"
         },
         "packages/database/src/schema/index.ts": {
-          "sha256": "068b28297411a8345d6006104df52b22ae8d7576dee9df8a651175fc01cb8b78",
-          "bytes": 1397,
+          "sha256": "0f4e2c20596231d02027c2f7f0355ffeb379d2bb17dcca886a018dfb105d7316",
+          "bytes": 1434,
           "mode": "100644"
         },
         "packages/database/src/schema/leads.ts": {
@@ -1409,6 +1411,16 @@
           "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
           "bytes": 1596,
           "mode": "100644"
+        },
+        "apps/web/src/lib/auth/user-schema.ts": {
+          "mode": "100644",
+          "bytes": 1109,
+          "sha256": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec"
+        },
+        "packages/database/src/schema/operation-results.ts": {
+          "mode": "100644",
+          "bytes": 1983,
+          "sha256": "ecb292cdf789785fc39f838f9aa96e4e67a4889863d5ff9cedf1867a023dc244"
         }
       },
       "migrations": {
@@ -1918,9 +1930,14 @@
           "mode": "100644"
         },
         "packages/database/drizzle/meta/_journal.json": {
-          "sha256": "89fb16837f0d449262d9ea464a3bd06d5061ed1162f7ce15e1f82c54607c16f5",
-          "bytes": 14792,
+          "sha256": "875de3c252c1ab2329463545ac8608000f4a7b5986056a72a4d8179558cbd722",
+          "bytes": 14941,
           "mode": "100644"
+        },
+        "packages/database/drizzle/0097_m4_operation_results.sql": {
+          "mode": "100644",
+          "bytes": 1972,
+          "sha256": "95cfba0712eaee98032a375c376b95205e3f291f13144b03a36e4e939d68d84e"
         }
       },
       "configuration": {

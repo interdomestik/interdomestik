@@ -633,8 +633,8 @@
     },
     "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts": {
       "mode": "100644",
-      "bytes": 4718,
-      "sha256": "0f89f2738ee0b346d41171d8b06f2579d6e9856883b561c2a57e871cfa689402"
+      "bytes": 4724,
+      "sha256": "e84f9cfb93d9559493dcca449e123c872529c25e4b15d2bbccef495d4abc195d"
     },
     "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts": {
       "mode": "100644",
@@ -643,8 +643,8 @@
     },
     "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts": {
       "mode": "100644",
-      "bytes": 3819,
-      "sha256": "710e5d9d828f6d25882960bd3a490c90603633cd25c2bbc0b79022bc34e8b8d9"
+      "bytes": 3825,
+      "sha256": "c3eb54cb1d3cd247d472450d1117018e8e24d0bfeef0216eb23681612b0aa2f3"
     },
     "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts": {
       "mode": "100644",
@@ -673,8 +673,8 @@
     },
     "apps/web/src/features/admin/claims/actions/ops-assignment.ts": {
       "mode": "100644",
-      "bytes": 3662,
-      "sha256": "4bea064ac8ecc5c26ea4b8c14ac2584dab207d97493fa4ca30255b67a6265266"
+      "bytes": 4656,
+      "sha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93"
     },
     "apps/web/src/features/admin/claims/actions/ops-status-action.test.ts": {
       "mode": "100644",
@@ -1633,8 +1633,8 @@
     },
     "apps/web/src/lib/auth/schema.ts": {
       "mode": "100644",
-      "bytes": 1496,
-      "sha256": "92d823faee68e35affee33c6aea2046838a18c7df4f1d697092be3c6ad821eb9"
+      "bytes": 443,
+      "sha256": "f483ad6c76dfe51cdc84147131be9c93e935c34fb0cf890fafcea6adffaebb05"
     },
     "apps/web/src/lib/auth/social-providers.ts": {
       "mode": "100644",
@@ -2173,8 +2173,8 @@
     },
     "packages/database/src/schema/index.ts": {
       "mode": "100644",
-      "bytes": 1397,
-      "sha256": "068b28297411a8345d6006104df52b22ae8d7576dee9df8a651175fc01cb8b78"
+      "bytes": 1434,
+      "sha256": "0f4e2c20596231d02027c2f7f0355ffeb379d2bb17dcca886a018dfb105d7316"
     },
     "packages/database/src/schema/leads.ts": {
       "mode": "100644",
