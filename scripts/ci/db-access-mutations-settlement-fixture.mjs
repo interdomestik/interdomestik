@@ -57,8 +57,12 @@ function instrument(text) {
     ['previous = signature;', 'previous = signature; probe.passed = true;'],
     ['for (const node of opaqueCalls) {', 'probe.sweeps++; for (const node of opaqueCalls) {'],
     [
-      '      for (const sf of model.parsed.values())',
-      `      probe.afterOpaque = ${SIZES}; for (const sf of model.parsed.values())`,
+      text.includes('for (const node of propagationSyntax)')
+        ? '      for (const node of propagationSyntax)'
+        : '      for (const sf of model.parsed.values())',
+      text.includes('for (const node of propagationSyntax)')
+        ? `      probe.afterOpaque = ${SIZES}; for (const node of propagationSyntax)`
+        : `      probe.afterOpaque = ${SIZES}; for (const sf of model.parsed.values())`,
     ],
     ['if (beforeMutations ===', `probe.end = ${SIZES}; if (beforeMutations ===`],
   ].reduce((result, [from, to]) => replaceOnce(result, from, to), text);

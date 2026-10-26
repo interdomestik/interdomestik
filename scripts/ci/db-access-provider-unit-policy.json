@@ -699,8 +699,8 @@
     },
     "scripts/ci/db-access-evaluator.mjs": {
       "mode": "100644",
-      "bytes": 10055,
-      "sha256": "26333733f458651e5668990e8ed205c21777b26f38ad6ddba142cf13a93939a9"
+      "bytes": 10139,
+      "sha256": "ecd10529587125f2e306f5e2ab9b470022c7fd7e4bbffcdf5d19299cd90a9607"
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
@@ -1254,8 +1254,8 @@
     },
     "scripts/ci/db-access-inventory.mjs": {
       "mode": "100644",
-      "bytes": 8476,
-      "sha256": "fcf2085fa438fa985838d223255d7c867d4a5f8535877764f039a11cf1210cdc"
+      "bytes": 8461,
+      "sha256": "a6731a510d4976137a65b8c5c88dc5c5d717e3054f88be31b251db8c5f82124c"
     },
     "scripts/ci/db-access-invocation-contexts.mjs": {
       "mode": "100644",
@@ -1394,8 +1394,8 @@
     },
     "scripts/ci/db-access-mutations.mjs": {
       "mode": "100644",
-      "bytes": 12658,
-      "sha256": "e7cf87c49e68e66a80f963fb55cbdca7ba3d9d942762c9a46147f52480885b0c"
+      "bytes": 12895,
+      "sha256": "5b1db0584f294707e46bd080479a86d707899d61bef118463272133ea60cd3f4"
     },
     "scripts/ci/db-access-order.mjs": {
       "mode": "100644",

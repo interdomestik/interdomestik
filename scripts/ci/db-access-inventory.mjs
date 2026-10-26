@@ -36,12 +36,12 @@ export function collectInventory(model, provenance, trustedSources) {
   for (const [file, sf] of model.parsed) {
     const source = model.sources.get(file);
     const trusted = trustedSources.get(file);
+    const fingerprint = runtimeFingerprint(source);
     // Only executable changes invalidate debt, never a first-line/tuple identity.
     let identical = trusted === source;
     if (!identical && trusted !== undefined)
-      identical = runtimeFingerprint(source) === runtimeFingerprint(trusted);
+      identical = fingerprint === runtimeFingerprint(trusted);
     if (!identical) changed.add(file);
-    const fingerprint = runtimeFingerprint(source);
     fingerprints.set(file, fingerprint);
     model.walk(sf, node => {
       const returning =

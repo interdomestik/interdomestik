@@ -234,9 +234,10 @@ export function prepareNativeGraphWorker(repoRoot, input) {
 export async function evaluateGuardParallel(repoRoot, adoption) {
   if (adoption !== ADOPTION) return evaluateGuard(repoRoot, adoption);
   assertWorkerCode(repoRoot);
+  // Finish the parent's inventory before four independent worker preparations begin.
+  const prepared = prepareGuard(repoRoot, adoption);
   const pool = startGraphWorkerPool(repoRoot);
   try {
-    const prepared = prepareGuard(repoRoot, adoption);
     const graph = await runParallelGraph(
       prepared,
       {

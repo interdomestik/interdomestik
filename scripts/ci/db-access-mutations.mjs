@@ -15,6 +15,8 @@ function directReference(node) {
 export function collectMutationEffects(model) {
   const calls = new Map();
   const opaqueCalls = [];
+  // Ordered syntax only, owned by this collection; all propagation answers remain live.
+  const propagationSyntax = [];
   const mutations = new Set();
   const unsafeMutations = new Set(); // Explicit writes or changed opaque calls; never historical schema precision.
   const escapedFns = new Set();
@@ -96,6 +98,11 @@ export function collectMutationEffects(model) {
   }
   for (const sf of model.parsed.values())
     model.walk(sf, node => {
+      if (
+        (ts.isVariableDeclaration(node) && node.initializer) ||
+        (ts.isParameter(node) && isFunction(node.parent))
+      )
+        propagationSyntax.push(node);
       if (ts.isCallExpression(node)) {
         const decl = sourceDeclaration(unwrap(node.expression));
         if (decl && isFunction(decl)) {
@@ -252,16 +259,14 @@ export function collectMutationEffects(model) {
         if (sweepGeneration === mutations.size && dispatchGeneration === sweepGeneration)
           completedSweep = { state, generation: sweepGeneration };
       }
-      // The full initializer/caller propagation walk runs on every round, including rounds that
+      // Every indexed initializer/caller is revisited each round, including rounds that
       // reuse the sweep, so strict-only unsafeMutations growth reaches every syntax and resolved
       // method/factory/closure caller.
-      for (const sf of model.parsed.values())
-        model.walk(sf, node => {
-          if (ts.isVariableDeclaration(node) && node.initializer && isMutated(node.name))
-            invalidate(node.initializer, unsafeMutations.has(sourceSymbol(node.name)));
-          if (ts.isParameter(node) && isFunction(node.parent))
-            propagateMutatedParameter(node, state);
-        });
+      for (const node of propagationSyntax) {
+        if (ts.isVariableDeclaration(node) && node.initializer && isMutated(node.name))
+          invalidate(node.initializer, unsafeMutations.has(sourceSymbol(node.name)));
+        if (ts.isParameter(node) && isFunction(node.parent)) propagateMutatedParameter(node, state);
+      }
       if (beforeMutations === `${mutations.size}:${unsafeMutations.size}`) return;
     }
     analysisUnknown.add('mutation-dispatch-settlement-bound');
