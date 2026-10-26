@@ -44,6 +44,20 @@ function successResult(value: unknown, claimId: string, staffId: string): Assign
   return { success: true, data: { id: data.id, staffId: data.staffId, assignedAt } };
 }
 
+function storedResult(value: unknown, claimId: string, staffId: string): AssignmentResult {
+  if (value && typeof value === 'object') {
+    const row = value as Record<string, unknown>;
+    if (
+      row.success === false &&
+      typeof row.error === 'string' &&
+      row.error.length > 0 &&
+      row.error.length <= 512
+    )
+      return { success: false, error: row.error };
+  }
+  return successResult(value, claimId, staffId);
+}
+
 // Only the private backend entry constructs this closure with its actual A1 verifier and data
 // pool. No transaction, callback, client, verified-session DTO or generic dispatcher is exposed.
 // Complete driver/pool/ingress qualification remains required before mounting this controller.
@@ -77,13 +91,6 @@ export function createM4OpsAssignmentController(configuration: Configuration) {
           return { status: 'denied', reason: 'UNAUTHORIZED' };
         await tx.execute(sql`select set_config('app.user_role', ${actor.role}, true)`);
         const staffId = request.staffId!.trim();
-        if (!staffId || staffId === actor.id)
-          return {
-            status: 'completed',
-            operationId: request.operationId,
-            replayed: false,
-            result: { success: false, error: 'Staff member not found or out of scope' },
-          };
         // Reconciliation still requires present actor/resource authorization. Historical results
         // are never returned merely because the caller knows an operation UUID.
         const [claim] = await tx
@@ -132,34 +139,38 @@ export function createM4OpsAssignmentController(configuration: Configuration) {
             status: 'completed',
             operationId: request.operationId,
             replayed: true,
-            result: successResult(previous.response, request.claimId, staffId),
+            result: storedResult(previous.response, request.claimId, staffId),
           };
         }
         let result: AssignmentResult;
         try {
-          const assigned = await assignClaimOwnerInTransaction(tx, {
-            actorId: actor.id,
-            actorRole: actor.role,
-            tenantId: principal.accessTenantId,
-            claimId: request.claimId,
-            staffId,
-          });
+          const assigned =
+            !staffId || staffId === actor.id
+              ? { success: false as const, error: 'Staff member not found or out of scope' }
+              : await assignClaimOwnerInTransaction(tx, {
+                  actorId: actor.id,
+                  actorRole: actor.role,
+                  tenantId: principal.accessTenantId,
+                  claimId: request.claimId,
+                  staffId,
+                });
           result = assigned.success ? successResult(assigned, request.claimId, staffId) : assigned;
         } catch (error) {
           if (!(error instanceof OpsDomainDenialError)) throw error;
           result = { success: false, error: error.message };
         }
-        if (result.success)
-          await tx.insert(schema.operationResults).values({
-            operationId: request.operationId,
-            tenantId: principal.accessTenantId,
-            actorId: actor.id,
-            claimId: request.claimId,
-            command: request.command,
-            version: request.version,
-            requestFingerprint: fingerprint,
-            response: result,
-          });
+        // Completed denials also bind this identity: a changed payload must never turn a
+        // previously completed operation into a new write under the same operation UUID.
+        await tx.insert(schema.operationResults).values({
+          operationId: request.operationId,
+          tenantId: principal.accessTenantId,
+          actorId: actor.id,
+          claimId: request.claimId,
+          command: request.command,
+          version: request.version,
+          requestFingerprint: fingerprint,
+          response: result,
+        });
         return { status: 'completed', operationId: request.operationId, replayed: false, result };
       });
     } catch {
