@@ -1591,6 +1591,116 @@
       "mode": "100644",
       "bytes": 2474,
       "sha256": "297c1dfa34335fd0c01b9418819368d1994cd3f447336abef83557847eb7b67f"
+    },
+    "scripts/ci/db-access-m4-runtime-child.mjs": {
+      "mode": "100644",
+      "bytes": 5949,
+      "sha256": "fe1b4a13ae78fbb41fa3534236d31029cf9d4b7a0c5921a0888506f2c49aa392"
+    },
+    "scripts/ci/db-access-m4-runtime-client.mjs": {
+      "mode": "100644",
+      "bytes": 3689,
+      "sha256": "7f28dab5472efbcd51fcf23bbc2fcb93b51c73b0b7fcea30cfb45b8912a04f6a"
+    },
+    "scripts/ci/db-access-m4-runtime-closure.mjs": {
+      "mode": "100644",
+      "bytes": 1522,
+      "sha256": "d879c3792a4f90d2b85b5195f1b70c79f387e1744739e9dc822059191d2dfd1f"
+    },
+    "scripts/ci/db-access-m4-runtime-closure.test.mjs": {
+      "mode": "100644",
+      "bytes": 3412,
+      "sha256": "e624c3d48c7a9c2b999d8800792908edad5e1c11e122b54eb9324c0ed434188a"
+    },
+    "scripts/ci/db-access-m4-runtime-contract.json": {
+      "mode": "100644",
+      "bytes": 51959,
+      "sha256": "58806b6aaadad0423432926dff19da24af952434f79d73fdd5b3da3744731ac5"
+    },
+    "scripts/ci/db-access-m4-runtime-contract.mjs": {
+      "mode": "100644",
+      "bytes": 345,
+      "sha256": "b0ca419171ebd0268e4e625ba80167390f755e16cbdab9e10117f94d57c266b8"
+    },
+    "scripts/ci/db-access-m4-runtime-driver.mjs": {
+      "mode": "100644",
+      "bytes": 1349,
+      "sha256": "7352530d9c9092b7cf1340bd3e4239c552775c62226e1515d953ba0ed159f6b8"
+    },
+    "scripts/ci/db-access-m4-runtime-entry.ts": {
+      "mode": "100644",
+      "bytes": 369,
+      "sha256": "85f101f03b9afe78644161eb4b3881981f31cd7a520a9e295231323b2bc671a3"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-grants.mjs": {
+      "mode": "100644",
+      "bytes": 5040,
+      "sha256": "c23f6bef8d158fb185ac7d625a71991f5750ffd3073187f3e130305a67d995a1"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-minimal-grants.mjs": {
+      "mode": "100644",
+      "bytes": 1690,
+      "sha256": "c9e73096d0f1e00b63d38586120565eb40ba8ee337f4611f0e634adebf27b43b"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-private.mjs": {
+      "mode": "100644",
+      "bytes": 9168,
+      "sha256": "dc8b5c2c17d88791004c81bdb29d97aae54f266f84bc00b4ae4fadf53e269f66"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-profiles-1.mjs": {
+      "mode": "100644",
+      "bytes": 6001,
+      "sha256": "579b4335b88c13418b3f4308ba721390ed4f4046890e24b7fd7b901255ef0f53"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-profiles-2.mjs": {
+      "mode": "100644",
+      "bytes": 8666,
+      "sha256": "23260908459b14a36467bcc0e3c8bbad429c0c78aed093602aa831814e8fa728"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-profiles-3.mjs": {
+      "mode": "100644",
+      "bytes": 11709,
+      "sha256": "4a82dec24bb8a84f8823c25e649fcdefdcba086dfbbbc689fa72590c08e4d3ab"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-profiles.mjs": {
+      "mode": "100644",
+      "bytes": 3888,
+      "sha256": "122c657c29a8372e3f94273d0a9092d83ffb4cc1765be60fc6ecb556f2b4700a"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-provision.mjs": {
+      "mode": "100644",
+      "bytes": 9913,
+      "sha256": "f895e9aa904ed9615ba0fe247e0e245bc91eac35a50beb9f7fc32c63f9cc38e4"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture.mjs": {
+      "mode": "100644",
+      "bytes": 4915,
+      "sha256": "9b30529549656fc53b9e6b00f516d03c9a0f1d008154af70d7845084e159ed20"
+    },
+    "scripts/ci/db-access-m4-runtime-materialize.mjs": {
+      "mode": "100644",
+      "bytes": 4433,
+      "sha256": "6212dfffb85165b719ba17fb984ff9be2090e7b38a0089aecad4e98a94df052b"
+    },
+    "scripts/ci/db-access-m4-runtime-result.mjs": {
+      "mode": "100644",
+      "bytes": 1739,
+      "sha256": "2e8fcafa1a5051c183642f89ed8be29138bd3a99104f6b1341cd3e24a0a38a6f"
+    },
+    "scripts/ci/db-access-m4-runtime-result.test.mjs": {
+      "mode": "100644",
+      "bytes": 2631,
+      "sha256": "067c3795dad83678aaa98db45aea4ebf9d7c77fbd78abcf15fda034d548b7053"
+    },
+    "scripts/ci/db-access-m4-runtime-seal.mjs": {
+      "mode": "100644",
+      "bytes": 1979,
+      "sha256": "3d6e547d89d92be66a921a3824621f89570f0f83b2ef6d1dc4ce08ca115dd623"
+    },
+    "scripts/ci/db-access-m4-runtime.mjs": {
+      "mode": "100644",
+      "bytes": 6322,
+      "sha256": "6e93d59e05d0425cd308cbbd2687630772b2d98ad6f00d50274747e0b04d25ca"
     }
   },
   "runtimeEnforcement": {
