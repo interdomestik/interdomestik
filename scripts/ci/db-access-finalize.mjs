@@ -1,19 +1,12 @@
 import { m4NativePrerequisites } from './db-access-m4-native-prerequisite.mjs';
-import {
-  captureStatusReturnPriorRow,
-  classifyStatusReturnEquivalence,
-} from './db-access-status-return-equivalence.mjs';
+import { classifyStatusReturnEquivalence } from './db-access-status-return-equivalence.mjs';
 import { classifyDefaultEmailEquivalence } from './db-access-default-email-equivalence.mjs';
-import {
-  captureClaimHistoryPriorRow,
-  classifyClaimHistoryCorrespondence,
-} from './db-access-claim-history-correspondence.mjs';
+import { classifyClaimHistoryCorrespondence } from './db-access-claim-history-correspondence.mjs';
 import { proofReport } from './db-access-proof-report.mjs';
 import { runtimeProofObligations } from './db-access-runtime-obligations.mjs';
 import { digest } from './db-access-trust.mjs';
-import { createSourceModel } from './db-access-source.mjs';
-import { createProvenance } from './db-access-provenance.mjs';
-import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
+import { isUnsafe } from './db-access-inventory.mjs';
+import { priorControlsFor } from './db-access-m4-prior-preparation.mjs';
 import { rootDiagnostics } from './db-access-root-diagnostics.mjs';
 
 const publicEntry = entry =>
@@ -50,11 +43,9 @@ export function finalizeGuardAnalysis(prepared, graph, captureRaw = false) {
   let statusReturnPriorRow;
   let claimHistoryPriorRow;
   if ([...inventory.changed].some(file => trusted.has(file))) {
-    const beforeModel = createSourceModel(trusted, trusted);
-    const beforeProvenance = createProvenance(beforeModel);
-    const before = collectInventory(beforeModel, beforeProvenance, trusted);
+    const prior = priorControlsFor(prepared);
     // An incomplete adoption classification cannot erase the prior scoped-control obligation.
-    for (const reason of beforeProvenance.analysisUnknown) {
+    for (const reason of prior.analysisUnknown) {
       graph.incomplete.push({
         file: '<adoption-analysis>',
         reason,
@@ -62,16 +53,9 @@ export function finalizeGuardAnalysis(prepared, graph, captureRaw = false) {
       });
       graph.incompleteRawCount += 1;
     }
-    statusReturnPriorRow = captureStatusReturnPriorRow(before.entries);
-    claimHistoryPriorRow = captureClaimHistoryPriorRow(
-      before.entries,
-      beforeProvenance.analysisUnknown
-    );
-    priorScoped = new Set(
-      before.entries
-        .filter(entry => entry.tenantPosture === 'tenant-context')
-        .map(entry => entry.file)
-    );
+    statusReturnPriorRow = prior.statusReturnPriorRow;
+    claimHistoryPriorRow = prior.claimHistoryPriorRow;
+    priorScoped = new Set(prior.priorScoped);
   }
   const changedScopedControls = newEntries.filter(
     entry => priorScoped.has(entry.file) && !providerFiles.has(entry.file)

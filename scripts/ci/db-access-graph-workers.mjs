@@ -40,6 +40,10 @@ const codeFiles = [
   'db-access-graph-core.mjs',
   'db-access-graph-worker-pool.mjs',
   'db-access-graph-session-driver.mjs',
+  'db-access-prior-controls.mjs',
+  'db-access-m4-prior-source.mjs',
+  'db-access-m4-prior-worker.mjs',
+  'db-access-m4-prior-preparation.mjs',
 ];
 export function assertWorkerCode(repoRoot) {
   for (const name of codeFiles) {

@@ -1,3 +1,4 @@
+import { bindM4PriorPreparation } from './db-access-m4-prior-preparation.mjs';
 import { currentM4SessionAuthority } from './db-access-m4-session-authority.mjs';
 import fs from 'node:fs';
 import { inspectM4NativeEvent, assertM4NativeGitRoot } from './db-access-m4-native-event.mjs';
@@ -48,7 +49,7 @@ function nativeCurrent(prepared) {
 // The sole minting path executes the fixed producer's preparation, owned workers and
 // finalization itself. Optional event input is authenticated before/after analysis;
 // there is no prepared/graph/receipt or alternate evaluator argument.
-export async function evaluateM4NativeSession(repoRoot, event) {
+export async function evaluateM4NativeSession(repoRoot, event, prior) {
   if (event) outputShape(event);
   const eventInput = event
     ? freezeOutput({
@@ -62,6 +63,7 @@ export async function evaluateM4NativeSession(repoRoot, event) {
   nativeCurrent(prepared);
   const authorityDigest = currentM4SessionAuthority(prepared);
   const eventBinding = eventInput ? inspectM4NativeEvent(prepared, eventInput) : undefined;
+  if (prior !== undefined) bindM4PriorPreparation(prior, prepared, eventInput);
   const pool = startGraphWorkerPool(repoRoot);
   try {
     const snapshot = graphSnapshot(prepared);

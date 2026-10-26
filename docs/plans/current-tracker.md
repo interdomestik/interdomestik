@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-25
+last_reviewed: 2026-10-26
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -13,7 +13,7 @@ status_command: pnpm plan:status
 
 > This is the single active tracker. Historical proof is linked, not repeated.
 
-### Current RC3.1 M4 implementation checkpoint (25 October)
+### Current RC3.1 M4 implementation checkpoint (26 October)
 
 The direct human grant and exact approved solution/manifest are recorded in
 [current-program.md](current-program.md#rc31-implementation-authority-25-october).
@@ -21,7 +21,52 @@ The sole owner starts the genuine M4 trusted/proof vertical and semantic negativ
 Broad migration remains conditional on their actual required pass/rejection; no native
 benefit, production C admission or S8 completion is claimed.
 
-Fresh public CLI measurement on clean `2f0225a4e1eec865447ebdf67356dfcf71969fb4`
+The integrated local candidate is `988281eb74fda6ed06dc40cb6532c13ed1a30660`;
+its non-admitting live pair gap ledger retains the original raw arrays by index and
+accepts zero coverage. No production C, native admission, global ZERO or S8 completion
+is claimed. The approved program sequencing and original ADOPTION/baseline604 remain.
+
+Actual fresh restricted SQL executes all 28 M4 cases and passes the private live-handle
+and refusal checks in 50.06 seconds including cleanup (`m4-runtime-fresh-qualification-v2`).
+Local P2 stage1, composed stage2 controls and fresh stage3 runtime/V8 merge/line gate/
+one-use join pass (`p2-current-qualification-v1`); clone, wrong-context and replay are
+rejected. Stage3 is a local protected-event fixture, not actual GitHub execution or
+production policy activation. Its result SHA-256 is
+`9b41a3542fbb59b4288264374aa285fae701f5eda114b7f8951932d13ee35b61`.
+
+The combined actual SQL/native attempt remains failed. Its retained diagnostic attempt
+finished cleanup at 302.292 seconds and timed out during native finalization; no native
+session/pair handle was returned. Measured regions are SQL 30.232 seconds, parent
+preparation 70.202, four-worker startup 70.249 and graph execution 69.885. The isolated
+historical ADOPTION recomputation within finalization needs about 37 seconds, including
+32.432 seconds of provenance. Its complete ordered 7,059-row inventory has SHA-256
+`8aded72a4ef3c01cff6afbcbc5d1507fd654603db5a92811d6bbaca92bac0b39`, with zero analysis
+unknowns. The Opus capture-plan lifetime proposal passed 52 focused regressions and exact
+full-wire parity, but measured 32.534 seconds of provenance; it is rejected as a performance
+remedy and is not integrated. The bounded correction now prepares the identical historical controls during SQL and
+requires the owned worker to exit before native preparation. The actual extracted serial
+controls match the complete reference (60 scoped files and both prior rows); 28 lifecycle
+and sequencing unit-double cases pass. Independent review and one fresh combined actual
+proof remain pending. The integrated 118-test check has one inherited default-email positive
+fixture failure, reproduced on the untouched frozen diagnostic producer: the current schema
+export differs from its fixed old source contract. That obligation is held, not waived.
+
+Remaining acceptance work stays in this tracker:
+
+- **T/P and lineage:** bind every affected old/current operation and executable context to
+  actual source, role/authority, required effects and evidence. The source kernel and 28-case
+  runtime are bounded premises; the old mounts still use their old paths. The gap ledger
+  classifies no obligations and does not remove any identity or raw diagnostic multiplicity.
+- **Semantic negative:** the freshly authenticated source-negative rejection is before native
+  inventory/join. Required final paired semantic-negative rejection is still open.
+- **Contexts and P2:** qualify the complete mounted/compiled/deployed loader and privilege
+  contexts, ordinary hosted proof, immutable workflow/policy pins and the same protected event.
+  Local fixture passes alone do not satisfy these obligations.
+- **Residual and delivery:** resolve current CRM inventory drift with finite source-bound proof,
+  obtain final ZERO while retaining baseline604 and every raw row, run full PR/security/E2E
+  checks, then protected delivery and exact-main health. S9 and pilot remain separately gated.
+
+Historical starting measurement on clean `2f0225a4e1eec865447ebdf67356dfcf71969fb4`
 completed in 289.321 seconds within the original 300-second/6-GiB measured envelope.
 All 7,062 tracked source bookends matched. The result is INCOMPLETE:
 7,654 inventoried operations, 3,501 failing identities, 190,839 unresolved diagnostic

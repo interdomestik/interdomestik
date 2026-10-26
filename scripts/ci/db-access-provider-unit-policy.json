@@ -709,8 +709,8 @@
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 7305,
-      "sha256": "6d9c573ef7367514bdbc6f3724659850b204cd8bb130bd76989e3784964ad72f"
+      "bytes": 7449,
+      "sha256": "f8b81adf65b26818e1ae800e416a2c1bad0ba7b4040fffbaa4cc23525927f3ba"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
@@ -1604,13 +1604,13 @@
     },
     "scripts/ci/db-access-finalize.mjs": {
       "mode": "100644",
-      "bytes": 8208,
-      "sha256": "fb1fdf6f0013d923540a26008ee923f4301aba6f5290918b3b23582093bcdeb6"
+      "bytes": 7713,
+      "sha256": "2c1ba09ea4deb88fb171d98965dd5b660d03d1bf6b0dd8d68e547d7a70297178"
     },
     "scripts/ci/db-access-m4-native-session.mjs": {
       "mode": "100644",
-      "bytes": 7639,
-      "sha256": "4e25353dbd6f38a1eff4682d95dea40fe33642bf51c2674345c967edcfb9f839"
+      "bytes": 7805,
+      "sha256": "b97767728283a81765af4be2013f69ca19dd03bddb272cd4256569dd3df59646"
     },
     "scripts/ci/db-access-output-binding.mjs": {
       "mode": "100644",
@@ -1769,13 +1769,33 @@
     },
     "scripts/ci/db-access-m4-runtime-pairing.mjs": {
       "mode": "100644",
-      "bytes": 3062,
-      "sha256": "42c516a724c6729891df2280d49ec09c94162d85a64cf21c9186b12549e3494f"
+      "bytes": 3493,
+      "sha256": "f47eff60b7416c3509df45cb712ad37d0b32b08d7021f6332044f3f452a775da"
     },
     "scripts/ci/db-access-m4-gap-ledger.mjs": {
       "mode": "100644",
       "bytes": 3711,
       "sha256": "1c40574a990014cff15f8f56230c259387ae6d3954dec84ed8f3e0da0b7ae161"
+    },
+    "scripts/ci/db-access-prior-controls.mjs": {
+      "mode": "100644",
+      "bytes": 1250,
+      "sha256": "1dec5deff1a3d08c775ce874b7f37d7c8013e7b7cfa5a53c2b0aacbaec05109f"
+    },
+    "scripts/ci/db-access-m4-prior-source.mjs": {
+      "mode": "100644",
+      "bytes": 3711,
+      "sha256": "26c7d5b1d9d2768be9c50f7c7fc18ff81812a07b59919c07543c50ca2e931107"
+    },
+    "scripts/ci/db-access-m4-prior-worker.mjs": {
+      "mode": "100644",
+      "bytes": 1314,
+      "sha256": "994b28fceac99434b27c55dc02e9941a6d7ccc11d6ac4ec4098b52c229b73024"
+    },
+    "scripts/ci/db-access-m4-prior-preparation.mjs": {
+      "mode": "100644",
+      "bytes": 5187,
+      "sha256": "747e4a13832ade23e78a47df5be17a36f1eda36ba1f346bfad89cf969159c9c3"
     }
   },
   "runtimeEnforcement": {

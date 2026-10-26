@@ -5,6 +5,11 @@ import {
   evaluateM4NativeSession,
   assertM4NativeSessionEvent,
 } from './db-access-m4-native-session.mjs';
+import {
+  startM4PriorPreparation,
+  waitM4PriorPreparation,
+  closeM4PriorPreparation,
+} from './db-access-m4-prior-preparation.mjs';
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { hash } from './db-access-provider-runtime-identity.mjs';
 import { freezeOutput, outputShape } from './db-access-output-binding.mjs';
@@ -20,8 +25,16 @@ export async function executeM4Pairing(input) {
   if (input.policy !== PROVIDER_UNIT_POLICY) fail('foreign policy');
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
-  const runtime = runM4Runtime(input);
-  const native = await evaluateM4NativeSession(input.candidate, event);
+  // Historical ADOPTION work shares the measured SQL phase, then exits before native preparation.
+  const prior = startM4PriorPreparation(input.candidate, event);
+  let runtime, native;
+  try {
+    runtime = runM4Runtime(input);
+    await waitM4PriorPreparation(prior);
+    native = await evaluateM4NativeSession(input.candidate, event, prior);
+  } finally {
+    await closeM4PriorPreparation(prior);
+  }
   const handle = Object.freeze({ version: 1, id: randomUUID() });
   pairs.set(handle, { runtime, native });
   return handle;
