@@ -92,8 +92,8 @@ and report `0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
 | LOCAL-01  | Local construction / closed within scope  | Combined SQL/native execution, unchanged budget, source bookends and healthy cleanup: 287.966 seconds.                                                                    | Recorded receipt    |
 | LOCAL-02  | Local SQL / closed within scope           | Actual fixed 10 private + 18 profile SQL cases; private source/event/policy binding.                                                                                      | Recorded receipt    |
 | LOCAL-03  | Local proof fixture / closed within scope | Ordinary containment, V8 merge, existing line gate and one-use join; local origin only.                                                                                   | Recorded receipt    |
-| M4-01     | First M4 / open                           | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
-| **M4-02** | **First M4 / selected next**              | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
+| **M4-01** | **First M4 / selected next**              | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
+| M4-02     | First M4 / partial                        | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
 | M4-03     | First M4 / open                           | Applicable current-store/auth, role/RLS, driver, SQL/schema/operator, compiler/intrinsic, TLS/endpoint and notifier premises qualified for each claimed context.          | M4-02               |
 | M4-04     | First M4 / open                           | Every affected historical/current ID, admin/agent/staff and ops mount, invocation and domain-effect lineage accounted; changed audit/noop/notification behavior explicit. | M4-01, M4-02        |
 | M4-05     | First M4 / open                           | Genuine ordinary-execution handle and exact source/assertion/context correspondence under the same protected source/policy/event; bounded consumer C0 remains.            | M4-02, M4-06        |
@@ -146,9 +146,10 @@ and be classified **new**, **duplicate**, **reopened** or **pre-existing omissio
 Update this roadmap explicitly rather than silently expanding prerequisites. Report
 accepted old identities, accepted contexts and accepted original occurrences alongside
 introduced/reopened obligations. Removed or regrouped rows are not accepted closures.
-At this checkpoint all three accepted-coverage measures remain zero. Next execution
-work is M4-02, beginning with the fixed assignment effect/assertion relation and its
-valid-source missing-assertion negative; no identical SQL/native replay is selected.
+At that snapshot all three accepted-coverage measures were zero. M4-02 was selected
+for the fixed assignment effect/assertion relation and its valid-source
+missing-assertion negative. The later qualified checkpoint below selects M4-01;
+no identical SQL/native replay is selected.
 
 M4-02 execution checkpoint: code `e0bb6afbc160b658a4b9532fab5f5ff638276553`
 integrates three bounded successful kernel-effect links with six mandatory assertion
@@ -203,7 +204,7 @@ This is a necessary source premise, not runtime admission. Actual current-store 
 private lifetime control, restricted SQL, proof containment and the all-context native
 producer join remain pending. No historical runtime pass transfers to the changed source.
 
-Latest M4-02 qualification on `8c6246b8c583cf4b17608bd37b30d55ee787c496`
+Historical M4-02 qualification on `8c6246b8c583cf4b17608bd37b30d55ee787c496`
 also **failed**, at 303.036 seconds including cleanup. All 28 SQL cases passed
 in 40.408 seconds, but no complete native pair or replacement census returned.
 Both samplers remained healthy; cleanup had no errors and the owned processes,
@@ -249,10 +250,41 @@ independent filesystem validation, exact tree mode/path/OID matching, raw Git-bl
 SHA-256 comparison, original digest order and fresh reads at every bookend. Private
 authenticated readers and strict binary batch parsing refuse supplied readers and
 malformed data. This is a measured local I/O correction, not an analyzer change or
-a qualified whole-run timing remedy. Actual positive and source-valid negative
-qualification of the changed producer remain required. Historical early worker
+a qualified whole-run timing remedy on its own. Historical early worker
 overlap exceeded 6 GiB; current parent-before-workers ordering is retained. Detailed
 profile/equivalence evidence is in `m4-prepare-cpu-profile-v1`.
+
+The changed uninstrumented producer `e50b318305b433b2343462f5528edd2654cb73f9`
+now passes the actual positive pair in **275.075 seconds**, including cleanup, with
+sampled aggregate peak **4,492,058,951 bytes**. Its exact source-valid negative
+`1531e1bee573a13d5180c5e486e1ea217bcff229` passes in **277.461 seconds** with peak
+**6,013,658,071 bytes**: all 28 SQL cases and the genuine private native construction
+complete before final consumption refuses the missing audit assertion as
+`fixed assertion program or oracle dataflow changed`. An earlier authentication,
+runtime or timeout failure did not count. Both samplers are healthy, cleanup errors
+are empty, owned processes/container/volumes are retired and prior services plus
+source/helper bookends are preserved. Independent evidence review accepts this
+exact positive and one controlled negative within the unchanged 300-second/6-GiB
+envelope. Receipt SHA-256s:
+`2f68f31a94dd601e456c8315499d8938fda0838bb85c5cc224e9a744552c17ec`
+and `25564508b02a1a4a061a2c4624900fd3ec5c2d00991b7b0984909f4dc54a20bd`.
+Raw evidence is in `m4-effect-assertion-positive-v4` and
+`m4-effect-assertion-semantic-negative-v3`; the scoped comparison is
+`m4-prepare-cpu-profile-v1/paired-budget-qualification.json`. The earlier negative's
+timeout and sampler failure remain failed. This resolves the budget family for
+these exact constructions, not full M4-02/M4-07, whole guard, M4, S8 or delivery.
+Six other OPS effects and five other source derivations remain unmapped; existing
+legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs,
+contexts, original occurrences, native admission and production C credit remain zero.
+
+The next bounded increment is M4-01's pre-existing causal-attribution omission.
+Current diagnostic compaction retains only file/reason/multiplicity, so the missing
+owner/invocation/frame relation cannot be reconstructed from the 200 existing
+observations. Add attribution at the original selected entry and owner emissions,
+preserving all original diagnostic rows/counts, shared-owner multiplicity,
+unknown/open/escaped paths and explicitly unattributed remainder. An inspection
+projection alone cannot close this relation. No broad migration or new analyzer
+classification is selected.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 
