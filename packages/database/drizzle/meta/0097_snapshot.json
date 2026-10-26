@@ -1,5 +1,5 @@
 {
-  "id": "56cf59e1-562c-4c53-b63f-543795c67002",
+  "id": "9803d35c-4546-4ed7-91a5-65008c9e8847",
   "prevId": "f6394c6f-bc05-47f7-82c6-45dd15fa4f75",
   "version": "7",
   "dialect": "postgresql",
@@ -14170,8 +14170,8 @@
           "to": [
             "public"
           ],
-          "using": "\"operation_results\".\"tenant_id\" = public.current_access_tenant_id()",
-          "withCheck": "\"operation_results\".\"tenant_id\" = public.current_access_tenant_id()"
+          "using": "\"operation_results\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"operation_results\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
         }
       },
       "checkConstraints": {

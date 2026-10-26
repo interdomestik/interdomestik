@@ -52,8 +52,8 @@ export const operationResults = pgTable(
     pgPolicy('operation_results_access_tenant', {
       for: 'all',
       to: 'public',
-      using: sql`${table.tenantId} = public.current_access_tenant_id()`,
-      withCheck: sql`${table.tenantId} = public.current_access_tenant_id()`,
+      using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
+      withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
     }),
   ]
 ).enableRLS();
