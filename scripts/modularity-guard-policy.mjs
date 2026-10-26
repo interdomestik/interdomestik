@@ -43,6 +43,7 @@ const PRODUCTION_EXTENSIONS = new Set('.cjs .css .js .jsx .mjs .sh .ts .tsx'.spl
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
+  [/^scripts\/ci\/p2\/(?:policy|capsule-layout)\.json$/u, 'p2-fixed-producer-contract'],
   [/^docs\/delivery-contract\.yml$/u, 'track-audit-delivery-contract'],
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],

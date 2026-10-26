@@ -1,0 +1,208 @@
+{
+  "status": "BUILT_NOT_EXECUTED",
+  "sourceFiles": {
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+  },
+  "compilerVersion": "5.9.3",
+  "esbuildVersion": "0.28.2",
+  "vitestVersion": "4.1.11",
+  "tests": [
+    {
+      "name": "should call domain assignClaimCore with correct params",
+      "start": 1743,
+      "end": 2357,
+      "bodySha256": "68c48cc42a51e19c356a708e282ee4a7fa6e477f7083d24fbf8400e14eba8b7c"
+    },
+    {
+      "name": "should revalidate paths",
+      "start": 2362,
+      "end": 3588,
+      "bodySha256": "3221750a7508951f0446feeedbc22c059f7f283624e57a38e7b839a3c4ff9c85"
+    },
+    {
+      "name": "should not revalidate on denied/no-op result",
+      "start": 3593,
+      "end": 4135,
+      "bodySha256": "ddecb4166053b19b45c0abd154dc2f906cff367f50351ad5a88a8f6a8a85dcec"
+    },
+    {
+      "name": "should propagate errors from domain layer",
+      "start": 4140,
+      "end": 4514,
+      "bodySha256": "72290aa97eb4aa44b949dcccbf93873e4c814708fe5577abf213d76f521e20c4"
+    },
+    {
+      "name": "assignment no-op should not call domain mutation or revalidate",
+      "start": 4519,
+      "end": 5050,
+      "bodySha256": "36daaa7c49372c3c668da73caee0824e376ed2c4a8aedc502d1b53d36515efff"
+    },
+    {
+      "name": "fails closed for unauthorized role before any read/no-op check",
+      "start": 5055,
+      "end": 5657,
+      "bodySha256": "8826a324896cbbde82e017942a916fd715cc693cc00618bdf5c8b98996b81245"
+    },
+    {
+      "name": "fails closed for staff assigning another staff before read/no-op check",
+      "start": 5662,
+      "end": 6336,
+      "bodySha256": "214a01f99a42eb735cf5561dd45277170bf00365c2b2203380888b5bff408985"
+    },
+    {
+      "name": "does not revalidate when persisted assignee remains unchanged after domain success",
+      "start": 6341,
+      "end": 7097,
+      "bodySha256": "350d13a02d0548a855f3ed801a041a085a4148f05ad20d78a3cf11154024158d"
+    },
+    {
+      "name": "does not revalidate when post-mutation claim re-read is missing",
+      "start": 7102,
+      "end": 7805,
+      "bodySha256": "03a7a19d54fe5e7d695941c7aa6eb3f52234179ebeb31a5ea92e429499f443b3"
+    }
+  ],
+  "mockSpecifiers": [
+    "@interdomestik/domain-claims/agent-claims/assign",
+    "@/lib/audit",
+    "@/lib/notifications",
+    "next/cache",
+    "@interdomestik/database",
+    "@interdomestik/database/tenant-security"
+  ],
+  "retainedSegments": [
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 637,
+      "end": 820,
+      "sha256": "fa5d6559a1010efb5fd6005a35cbe2a4c770a1e383c614c17204a63d1c8c8f74",
+      "generatedStart": 120,
+      "generatedEnd": 303
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 328,
+      "end": 429,
+      "sha256": "22282d69b9d55deab90a6444c32b66680ed485a8fd30e09fcf53d7365f2dd3a9",
+      "generatedStart": 304,
+      "generatedEnd": 405
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 431,
+      "end": 493,
+      "sha256": "11d222376bdc406313da7640f155d2d135b27285e84f5777346aba2ecfbbeb0a",
+      "generatedStart": 406,
+      "generatedEnd": 468
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 495,
+      "end": 571,
+      "sha256": "0b442be826a83ea129670b03939fc9ee7bc4cee236159b754929b44d310ea7f3",
+      "generatedStart": 469,
+      "generatedEnd": 545
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 573,
+      "end": 635,
+      "sha256": "6d05541aef1a6999f619731baad03a27daf805630cc1c592b2c257e7e20522a9",
+      "generatedStart": 546,
+      "generatedEnd": 608
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 822,
+      "end": 971,
+      "sha256": "55b63b74393ac609fe44d009b6b8d1929c015a6e15ef7650eb67f26ec52ad18d",
+      "generatedStart": 609,
+      "generatedEnd": 758
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 973,
+      "end": 1071,
+      "sha256": "76ab27e04f8bd82898b5a2fd9ea1d3e3e9c8009bfff55865061e97a85797960c",
+      "generatedStart": 759,
+      "generatedEnd": 857
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "start": 1073,
+      "end": 7810,
+      "sha256": "7d6a98052d370fb0fb55a34ebe3a0ccf93ed19eb9acb44932bf4c02db0cdae91",
+      "generatedStart": 1146,
+      "generatedEnd": 7883
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+      "start": 419,
+      "end": 469,
+      "sha256": "a3f4c7a3ae0ef02e1dee8e585b65141770b792e8b85ba9b1305ceff7e11bd5ef",
+      "generatedStart": 418,
+      "generatedEnd": 468
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+      "start": 471,
+      "end": 604,
+      "sha256": "2106e9d3b48a606c24e072a272043a58952313fae84a5f1041448ed5ac7bd9a1",
+      "generatedStart": 469,
+      "generatedEnd": 602
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+      "start": 606,
+      "end": 2639,
+      "sha256": "6086e6ba50a8ba9da56b782c699280b751e10dfa9befe2ad0498bbdcb45ad59b",
+      "generatedStart": 603,
+      "generatedEnd": 2636
+    }
+  ],
+  "vendorInputHashes": {
+    "tinyrainbow@3.1.0/node_modules/tinyrainbow/dist/index.js": "3f40003470416586c9c72f6a9269eccd4533a2025aa7c5fc93551e9ed090d9e6",
+    "@vitest+pretty-format@4.1.11/node_modules/@vitest/pretty-format/dist/index.js": "8a0595b26463005d24e476de8129e3fedf2e10a117944a304afcc437ab30cde1",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/display.js": "d1ee20c8d65fe2e69c32bf69f13529e763e50e0d4f81b0711e9dede14f636762",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/constants.js": "c9db0d24cbad14ef1a38c5230f083e1d4194a7bb53c62f1b2edbd4af731c9e9d",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/helpers.js": "1a5e6ae2acfeb0477419d8e5bee9f89b873b7ef8b20d13490ea95e20615cf1ec",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/diff.js": "dc4196bc511cd2ef081d633b6cbcb14ba42ee62bd7b4f4a1157a0ffa18babe68",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/serialize.js": "abed14f12f71519d897c9626bc18f71f2e69bea3fb552d0d907f1ca882455b29",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/error.js": "2ce5a75a4a775415c4c8642e9c608d6c9334271d0eb4e586ac6a853d47c24c97",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/timers.js": "25b632685397407b240a15681b99f583b4bfdf8acb3f69c475f210153019374c",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/chunk-pathe.M-eThtNZ.js": "98056e87c62571d6267813ed5951c131957037bf8a3a6d91658ac84f819685b0",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/source-map.js": "bdc41c45e4bffd79dcc39422c85b98dca5f44e355bd17ef2c72d3e97aea15b50",
+    "pathe@2.0.3/node_modules/pathe/dist/shared/pathe.M-eThtNZ.mjs": "5a087c7848e128640d114aac23965f9fe73dce651a1e4c307f399dc72800afbc",
+    "pathe@2.0.3/node_modules/pathe/dist/index.mjs": "9998af9290974a85a0dea395aabe596dd267c3e3ea8668f0abf9248d04fd75b9",
+    "@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/chunk-artifact.js": "bf6af6d2f4469911879a67e83b8f9e7b20332cf42795032c53457b10ccc1c617",
+    "@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/index.js": "61a758d5e6d41e0928c92bfd5ab7152bde625d90b97a08b269dc5a0438485d35",
+    "@vitest+runner@4.1.11/node_modules/@vitest/runner/dist/utils.js": "f778f89df543143d276dc6e9233feb749531512dae30b29f80cb229560f19490",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/utils.BX5Fg8C4.js": "f7b093e5d0814fbf4a58675cd3448a7dea4359926cbc0d02f7621de3b5a1f498",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/benchmark.CX_oY03V.js": "59ba553727ee6330556a8edef46306eda832e5499cf6cf1348ff3e1524cac77e",
+    "@vitest+spy@4.1.11/node_modules/@vitest/spy/dist/index.js": "125bd25008172821d8d88c96fa2ebd189d52bf1494302486669dde9a4bc5c62d",
+    "chai@6.2.2/node_modules/chai/index.js": "5261e5ed7e75365c2a5d832c220ff409daf704a3088b5511de34694e881d5edb",
+    "@vitest+expect@4.1.11/node_modules/@vitest/expect/dist/index.js": "b177ca97952f1d65d3d2691edbc31ab1af56ac36b3cf08d7f56ad0ca69f07a45",
+    "@vitest+utils@4.1.11/node_modules/@vitest/utils/dist/offset.js": "2bd47509feeecca1c191e59d744becbecd9998b740d692fb49d5f4adbb9b22e2",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/_commonjsHelpers.D26ty3Ew.js": "0f94da1dc442bde150286e12305b2930f30ba483f35e3293ea8244b1bc7cf7ed",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/index.Chj8NDwU.js": "c9a26835aba20f5bca34ab581f9866e00f9ddd12d4df61c67e24b8840af9f0bf",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/rpc.MzXet3jl.js": "5be591fb05181d5b57f3bb506193e7558b2d3d4ed0402535c680e1c7653fadd0",
+    "@jridgewell+sourcemap-codec@1.5.5/node_modules/@jridgewell/sourcemap-codec/dist/sourcemap-codec.mjs": "e276b90d09864ee9cc96a49b84dbfdf311b8c65a986f78417b95a3d930968e77",
+    "magic-string@0.30.21/node_modules/magic-string/dist/magic-string.es.mjs": "d637092a6c7dd947e1b27aef30e97d1a5f59dc39b69ef8f4f0e37e766e4df159",
+    "@vitest+snapshot@4.1.11/node_modules/@vitest/snapshot/dist/index.js": "d1b07d9337f1caf8b9b59ddb1ba1d58df92ce77cb4646df7700e07e994522128",
+    "tinybench@2.9.0/node_modules/tinybench/dist/index.js": "e47e88c53aaa2ab5ac12299a13eea36d33b3abfe23ab30772da04d4fdeafe9fb",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/test.DNmyFkvJ.js": "f07fc8036b066834143b14748bd70c436a6a2f15f648455af8d3a003a4eafc94",
+    "vite@8.3.3_@types+node@24.12.2_esbuild@0.28.2_jiti@2.7.0_terser@5.51.2_tsx@4.23.13_yaml@2.8.3/node_modules/vite/dist/node/module-runner.js": "90ea19fcba6d8f49285a0979ec5dd5d415859b6dacfab424621ee4bfd442963c",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/evaluatedModules.Dg1zASAC.js": "08eb18ac661433d9b821c117911be6d5be0821297311a5d92652aaf4581a5a61",
+    "expect-type@1.4.0/node_modules/expect-type/dist/branding.js": "d43aa81f5bc89faa359e0f97c814ba25155591ff078fbb9bfd40f8c7c9683230",
+    "expect-type@1.4.0/node_modules/expect-type/dist/messages.js": "e062c2666b2204e889e64985d7d1bc7b9bcd9de0422cda1b1be4b4b63a5c4721",
+    "expect-type@1.4.0/node_modules/expect-type/dist/overloads.js": "d43aa81f5bc89faa359e0f97c814ba25155591ff078fbb9bfd40f8c7c9683230",
+    "expect-type@1.4.0/node_modules/expect-type/dist/utils.js": "57cbab158e5dd81f975b55d6a78918fdf03c28a2dfd7e9a6c0b8d55aba066152",
+    "expect-type@1.4.0/node_modules/expect-type/dist/index.js": "504d5879f4328b88c20d58391e5b493c72a2a18a530b3e05e71f79956a7700f5",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/chunks/index.DdgEv5B1.js": "ca2e9d3ffa586960ea2c403db8aa35757a85ae05291df340aad032a9f4d2d407",
+    "vitest@4.1.11_@opentelemetry+api@1.9.1_@types+node@24.12.2_@vitest+coverage-v8@4.1.11_jsdom@28.1.0_@noble+hashes@2.2.0_/node_modules/vitest/dist/index.js": "3986618dbcbbdc0a3e200e2a507a434ef6f13dd8cc20c234168edb7b16e98d29",
+    "vendor-entry.mjs": "645ba3a37beb10e05e0a5e62defb181558195421b02a826bbac7ddc7071a285e"
+  },
+  "vendorBytes": 670763,
+  "closureBytes": 730928
+}
