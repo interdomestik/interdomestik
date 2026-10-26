@@ -20,35 +20,9 @@ import {
 import { createSourceModel } from './db-access-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
 import { collectInventory } from './db-access-inventory.mjs';
-import { analyzeModuleTargets } from './db-access-root-diagnostics.mjs';
+import { prepareInventoryEffects } from './db-access-inventory-preparation.mjs';
 import { hydrateInventory } from './db-access-graph-workers.mjs';
 const BASELINE = 'scripts/ci/db-access-baseline.json';
-function invalidateConsumers(dependenciesByFile, inventory, providerUnit) {
-  const providerFiles = new Set(providerUnit?.files ?? []);
-  let changed = true;
-  const firstInvalidatingDependency = new Map();
-  while (changed) {
-    changed = false;
-    for (const [file, dependencies] of dependenciesByFile) {
-      const witness = !inventory.changed.has(file)
-        ? [...dependencies].find(
-            target =>
-              inventory.changed.has(target) &&
-              !(!providerFiles.has(file) && providerFiles.has(target))
-          )
-        : undefined;
-      if (witness) {
-        inventory.changed.add(file);
-        firstInvalidatingDependency.set(file, witness);
-        changed = true;
-      }
-    }
-  }
-  for (const entry of inventory.entries)
-    if (inventory.changed.has(entry.file)) entry.historicalDebt = false;
-  return firstInvalidatingDependency;
-}
-
 // Test harness may supply a real pinned fixture epoch; no CLI option exposes it.
 export function prepareGuardModel(
   repoRoot,
@@ -145,16 +119,8 @@ export function completeGuardPreparation(prepared, workerInput) {
     (workerInput
       ? hydrateInventory(model, workerInput.inventory)
       : collectInventory(model, inventoryProvenance, trusted));
-  // Provider SQL/handles remain inventoried and non-debt, with explicit fixed-runtime obligations.
-  const providerEntries = inventory.entries.filter(entry => providerFiles.has(entry.file));
-  for (const entry of providerEntries) entry.historicalDebt = false;
-  const directChanges = new Set(inventory.changed);
-  const moduleTargets = analyzeModuleTargets(model);
-  const firstInvalidatingDependency = invalidateConsumers(
-    moduleTargets.dependencies,
-    inventory,
-    providerUnit
-  );
+  const { providerEntries, directChanges, moduleTargets, firstInvalidatingDependency } =
+    m4NativeInventory?.preparation ?? prepareInventoryEffects(model, inventory, providerUnit);
   return {
     sources,
     resolutionSources,

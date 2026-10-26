@@ -1,34 +1,45 @@
+import type * as Runtime from './m4-private-runtime-types';
+export type * from './m4-private-runtime-types';
 import * as schema from '@interdomestik/database/schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { createCurrentStoreSessionVerifier } from '../../lib/auth/current-store-session';
 import { parseM4AssignmentRequest } from './m4-assignment-protocol';
-import { createM4OpsAssignmentController, type M4OpsResponse } from './m4-ops-controller';
+import {
+  createM4OpsAssignmentController,
+  createM4LegacyAdminAssignmentController,
+  createM4LegacyAgentAssignmentController,
+  createM4StaffAssignmentController,
+  type M4OpsResponse,
+} from './m4-ops-controller';
+import { createM4AssignmentPostcommitNotifier } from './m4-assignment-postcommit';
+import { createM4NotificationDatabaseOwner } from './m4-notification-runtime';
+import {
+  parseM4AssignmentObservation,
+  type M4Response,
+  type AssignmentResult,
+  type LegacyResult,
+  type StaffResult,
+} from './m4-assignment-wire';
 import {
   assertM4DriverEnvironment,
   assertM4PoolPosture,
   captureM4PoolTarget,
 } from './m4-pool-posture';
 
-export type M4PrivateRuntimeConfiguration = Readonly<{
-  identityDatabaseURL: string;
-  dataDatabaseURL: string;
-  issuerBaseURL: string;
-  issuerSecret: string;
-  operationDeadlineMs: number;
-}>;
-export type M4PrivateRuntime = Readonly<{
-  execute(cookie: unknown, serialized: unknown): Promise<M4OpsResponse>;
-  close(): Promise<void>;
-}>;
+type Profile = 'ops' | 'legacy-admin' | 'legacy-agent' | 'staff';
 type OwnedOperation = { stop(): void; done: Promise<void> };
 const MAX_CONCURRENT_OPERATIONS = 4;
 
 function construct(
-  configuration: M4PrivateRuntimeConfiguration,
-  loopbackQualification: boolean
-): M4PrivateRuntime {
+  configuration: Runtime.M4PrivateRuntimeConfiguration,
+  loopbackQualification: boolean,
+  notificationConfiguration?: Readonly<{
+    notificationDatabaseURL: string;
+    notificationDatabaseDeadlineMs: number;
+  }>
+): Runtime.M4PrivateRuntime | Runtime.M4PrivateAssignmentRuntime {
   assertM4DriverEnvironment();
   // Snapshot only primitive configuration. No caller factory, pool, callback, principal DTO,
   // arbitrary PostgreSQL option, or per-request transport flag enters this construction.
@@ -66,25 +77,74 @@ function construct(
     identityTarget.serverKey !== dataTarget.serverKey
   )
     throw new Error('Private M4 requires distinct purpose logins on the same database endpoint');
-  const captured = Object.freeze({ issuerBaseURL, issuerSecret, operationDeadlineMs });
+  const notificationDatabaseDeadlineMs = notificationConfiguration?.notificationDatabaseDeadlineMs;
+  const notificationTarget = notificationConfiguration
+    ? captureM4PoolTarget(notificationConfiguration.notificationDatabaseURL, loopbackQualification)
+    : undefined;
+  if (
+    notificationTarget &&
+    (!Number.isSafeInteger(notificationDatabaseDeadlineMs) ||
+      notificationDatabaseDeadlineMs! < 1 ||
+      notificationDatabaseDeadlineMs! > 2_147_483_647 ||
+      notificationTarget.login === identityTarget.login ||
+      notificationTarget.login === dataTarget.login ||
+      notificationTarget.serverKey !== dataTarget.serverKey)
+  )
+    throw new Error(
+      'Private assignment notification requires distinct purpose login and explicit DB deadline'
+    );
+  const captured = Object.freeze({
+    issuerBaseURL,
+    issuerSecret,
+    operationDeadlineMs,
+    notificationDatabaseDeadlineMs,
+  });
   const active = new Set<OwnedOperation>();
   let closed = false,
     closing: Promise<void> | undefined;
 
-  async function execute(cookie: unknown, serialized: unknown): Promise<M4OpsResponse> {
+  const notificationOwner = notificationTarget
+    ? createM4NotificationDatabaseOwner({
+        databaseURL: notificationTarget.url,
+        deadlineMs: captured.notificationDatabaseDeadlineMs!,
+        loopbackQualification,
+      })
+    : undefined;
+  const assignmentNotifier = notificationOwner
+    ? createM4AssignmentPostcommitNotifier(notificationOwner.open)
+    : undefined;
+
+  async function executeProfile(
+    profile: Profile,
+    cookie: unknown,
+    serialized: unknown,
+    observation?: unknown
+  ): Promise<M4Response<AssignmentResult>> {
     const request = parseM4AssignmentRequest(serialized);
-    if (!request || request.command !== 'm4.ops.assign-owner')
+    if (
+      !request ||
+      request.command !==
+        (profile === 'ops'
+          ? 'm4.ops.assign-owner'
+          : profile === 'staff'
+            ? 'm4.staff.assign-claim'
+            : 'm4.legacy.assign-claim') ||
+      (profile !== 'ops' && !parseM4AssignmentObservation(observation))
+    )
       return { status: 'denied', reason: 'INVALID_REQUEST' };
-    const uncertain: M4OpsResponse = { status: 'indeterminate', operationId: request.operationId };
+    const uncertain: M4Response<AssignmentResult> = {
+      status: 'indeterminate',
+      operationId: request.operationId,
+    };
     if (closed || active.size >= MAX_CONCURRENT_OPERATIONS) return uncertain;
     let identity: postgres.Sql | undefined, data: postgres.Sql | undefined;
     let stopped = false,
       ending: Promise<boolean> | undefined;
-    let finish!: () => void, expire!: (value: M4OpsResponse) => void;
+    let finish!: () => void, expire!: (value: M4Response<AssignmentResult>) => void;
     const done = new Promise<void>(resolve => {
       finish = resolve;
     });
-    const expiration = new Promise<M4OpsResponse>(resolve => {
+    const expiration = new Promise<M4Response<AssignmentResult>>(resolve => {
       expire = resolve;
     });
     function endOwnedPools(): Promise<boolean> {
@@ -108,7 +168,7 @@ function construct(
     active.add(operation);
     // This is the configured business deadline, not the driver recovery experiment's 5s bound.
     const timer = setTimeout(operation.stop, captured.operationDeadlineMs);
-    const work: Promise<M4OpsResponse> = (async () => {
+    const work: Promise<M4Response<AssignmentResult>> = (async () => {
       try {
         const connection = {
           statement_timeout: captured.operationDeadlineMs,
@@ -143,11 +203,25 @@ function construct(
           issuerBaseURL: captured.issuerBaseURL,
           issuerSecret: captured.issuerSecret,
         });
-        const run = createM4OpsAssignmentController({
-          database: drizzle(data, { schema }),
-          verifySession,
-        });
-        return await run(cookie, serialized);
+        const configuration = { database: drizzle(data, { schema }), verifySession };
+        if (profile === 'ops')
+          return await createM4OpsAssignmentController(configuration)(cookie, serialized);
+        if (profile === 'staff')
+          return await createM4StaffAssignmentController(configuration)(
+            cookie,
+            serialized,
+            observation
+          );
+        if (!assignmentNotifier) return uncertain;
+        if (profile === 'legacy-admin')
+          return await createM4LegacyAdminAssignmentController({
+            ...configuration,
+            assignmentNotifier,
+          })(cookie, serialized, observation);
+        return await createM4LegacyAgentAssignmentController({
+          ...configuration,
+          assignmentNotifier,
+        })(cookie, serialized, observation);
       } catch {
         return uncertain;
       }
@@ -172,23 +246,54 @@ function construct(
       closed = true;
       const pending = [...active];
       for (const operation of pending) operation.stop();
-      closing = Promise.all(pending.map(operation => operation.done)).then(() => undefined);
+      closing = Promise.all([
+        ...pending.map(operation => operation.done),
+        notificationOwner?.close(),
+      ]).then(() => undefined);
     }
     return closing;
   }
-  return Object.freeze({ execute, close });
+  const execute = (cookie: unknown, serialized: unknown) =>
+    executeProfile('ops', cookie, serialized) as Promise<M4OpsResponse>;
+  if (!notificationTarget) return Object.freeze({ execute, close });
+  return Object.freeze({
+    execute,
+    close,
+    executeLegacyAdmin: (cookie: unknown, serialized: unknown, observation: unknown) =>
+      executeProfile('legacy-admin', cookie, serialized, observation) as Promise<
+        M4Response<LegacyResult>
+      >,
+    executeLegacyAgent: (cookie: unknown, serialized: unknown, observation: unknown) =>
+      executeProfile('legacy-agent', cookie, serialized, observation) as Promise<
+        M4Response<LegacyResult>
+      >,
+    executeStaff: (cookie: unknown, serialized: unknown, observation: unknown) =>
+      executeProfile('staff', cookie, serialized, observation) as Promise<M4Response<StaffResult>>,
+  });
 }
 
 // Private trusted deployment entry. Every nonlocal connection verifies the server certificate.
 export function createM4PrivateRuntime(
-  configuration: M4PrivateRuntimeConfiguration
-): M4PrivateRuntime {
+  configuration: Runtime.M4PrivateRuntimeConfiguration
+): Runtime.M4PrivateRuntime {
   return construct(configuration, false);
 }
 // Separate fixed qualification entry, never selected by a request/HTTP/config mode flag.
 // It rejects any endpoint except literal localhost or 127.0.0.1 before creating pools.
 export function createM4LocalQualificationRuntime(
-  configuration: M4PrivateRuntimeConfiguration
-): M4PrivateRuntime {
+  configuration: Runtime.M4PrivateRuntimeConfiguration
+): Runtime.M4PrivateRuntime {
   return construct(configuration, true);
+}
+
+// Expanded constructors are fixed trusted entry points. Existing ops constructors stay unchanged.
+export function createM4PrivateAssignmentRuntime(
+  configuration: Runtime.M4PrivateAssignmentRuntimeConfiguration
+): Runtime.M4PrivateAssignmentRuntime {
+  return construct(configuration, false, configuration) as Runtime.M4PrivateAssignmentRuntime;
+}
+export function createM4LocalQualificationAssignmentRuntime(
+  configuration: Runtime.M4PrivateAssignmentRuntimeConfiguration
+): Runtime.M4PrivateAssignmentRuntime {
+  return construct(configuration, true, configuration) as Runtime.M4PrivateAssignmentRuntime;
 }

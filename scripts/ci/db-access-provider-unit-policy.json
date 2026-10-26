@@ -326,8 +326,8 @@
       "external": ["drizzle-orm", "drizzle-orm/pg-core"]
     },
     "packages/database/src/schema/index.ts": {
-      "sha256": "068b28297411a8345d6006104df52b22ae8d7576dee9df8a651175fc01cb8b78",
-      "bytes": 1397,
+      "sha256": "0f4e2c20596231d02027c2f7f0355ffeb379d2bb17dcca886a018dfb105d7316",
+      "bytes": 1434,
       "mode": "100644",
       "local": [
         "packages/database/src/schema/agents.ts",
@@ -358,6 +358,7 @@
         "packages/database/src/schema/memberships.ts",
         "packages/database/src/schema/notes.ts",
         "packages/database/src/schema/notifications.ts",
+        "packages/database/src/schema/operation-results.ts",
         "packages/database/src/schema/policies.ts",
         "packages/database/src/schema/rbac.ts",
         "packages/database/src/schema/relations.ts",
@@ -537,6 +538,17 @@
         "packages/database/src/tenant-transaction.ts"
       ],
       "external": []
+    },
+    "packages/database/src/schema/operation-results.ts": {
+      "mode": "100644",
+      "bytes": 1983,
+      "sha256": "ecb292cdf789785fc39f838f9aa96e4e67a4889863d5ff9cedf1867a023dc244",
+      "local": [
+        "packages/database/src/schema/auth.ts",
+        "packages/database/src/schema/claims.ts",
+        "packages/database/src/schema/tenants.ts"
+      ],
+      "external": ["drizzle-orm", "drizzle-orm/pg-core"]
     }
   },
   "resolverFiles": {
@@ -546,7 +558,7 @@
       "mode": "100644"
     },
     "pnpm-lock.yaml": {
-      "sha256": "f4e4858573b84e51044a0cb717ad3e1425b6bf8806dfb2a1ae19edb119b3a72d",
+      "sha256": "8e65eef6906ff84f50523a2ad03e0b35aced1b4b5dac98d027d21f7ec597f8b7",
       "bytes": 711992,
       "mode": "100644"
     },
@@ -556,8 +568,8 @@
       "mode": "100644"
     },
     "patches/postgres@3.4.9.patch": {
-      "sha256": "dc96b86c84794723397185911814bf60ec14a5b61b540ca86d8ce4b0fe7a6612",
-      "bytes": 1436,
+      "sha256": "1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e",
+      "bytes": 63758,
       "mode": "100644"
     }
   },
@@ -677,8 +689,8 @@
     },
     "scripts/ci/db-access-prepare.mjs": {
       "mode": "100644",
-      "bytes": 7167,
-      "sha256": "197d55233e23c379755696accda614f332cca3de1f5799d7a3df0af11f4eb59c"
+      "bytes": 5987,
+      "sha256": "5ed6d1a1a98e5be092b24f6105e8d02e2252d4ed8628c0697136769639a286f8"
     },
     "scripts/check-db-access-guard.mjs": {
       "mode": "100644",
@@ -1297,8 +1309,8 @@
     },
     "scripts/ci/db-access-m4-controller-source.mjs": {
       "mode": "100644",
-      "bytes": 13521,
-      "sha256": "c75ef7fece5526b804dbf7a4d4af074fbe29d12a04eef58ece43197ddb283d8b"
+      "bytes": 503,
+      "sha256": "090f5d073fa3d889940c11e31ea6b4b5bb7e7c676df6e19365b9eb98b2977610"
     },
     "scripts/ci/db-access-m4-expression.mjs": {
       "mode": "100644",
@@ -1322,13 +1334,13 @@
     },
     "scripts/ci/db-access-m4-native-prerequisite.mjs": {
       "mode": "100644",
-      "bytes": 6354,
-      "sha256": "5a6a0e61e204cd8377cf2c678461eacda01f835e3820d7ba4becd1e1f4fe0f02"
+      "bytes": 6780,
+      "sha256": "01d219fa221797ca8c479e3da5b7e9da0c06fcc54afb737fe0e10ac38088e469"
     },
     "scripts/ci/db-access-m4-proof-policy.json": {
       "mode": "100644",
-      "bytes": 2665,
-      "sha256": "3c84fb003c66b86a3a5ab9ce8706049ec15af54aa0310249ab47d227de2cd693"
+      "bytes": 4958,
+      "sha256": "4cb0547307b5f0b9fb5e8e8a2c641f5ddad6ce1ff6fb0a4d1a6fa7d4c97743e8"
     },
     "scripts/ci/db-access-m4-proof-policy.mjs": {
       "mode": "100644",
@@ -1337,8 +1349,8 @@
     },
     "scripts/ci/db-access-m4-proof-source.mjs": {
       "mode": "100644",
-      "bytes": 5665,
-      "sha256": "acbd672baf93d15ae05af348a934c5ab59636e92fd367071b35f2e3e7d3ffee5"
+      "bytes": 6870,
+      "sha256": "0bf53010aaf01b142db84ef39260531bdaf95603387c33ea2e142c070bb58a99"
     },
     "scripts/ci/db-access-m4-runtime-records.mjs": {
       "mode": "100644",
@@ -1429,6 +1441,61 @@
       "mode": "100644",
       "bytes": 5530,
       "sha256": "9cd214cf688b54e85b33aa4f84e8c509820280d8829b729be57349eb3b0377bc"
+    },
+    "scripts/ci/db-access-m4-four-controller-ast.mjs": {
+      "mode": "100644",
+      "bytes": 10524,
+      "sha256": "1c785a97e3840ff695a7590fccd27d8583383d2a4ce9625d884c9b213e05de77"
+    },
+    "scripts/ci/db-access-m4-four-controller-body.mjs": {
+      "mode": "100644",
+      "bytes": 12911,
+      "sha256": "32c8f4ef6daaed2a788937a15814b6f111c31eb2db34866b1deb2c2794b2aa1a"
+    },
+    "scripts/ci/db-access-m4-four-controller-contract.mjs": {
+      "mode": "100644",
+      "bytes": 2113,
+      "sha256": "b6221ed7b916e2d11ebe6e867c82e8a3b7ab7a0ec99386732fb8feb7f0b0956e"
+    },
+    "scripts/ci/db-access-m4-four-controller-source.mjs": {
+      "mode": "100644",
+      "bytes": 6785,
+      "sha256": "a74ba9fa7410d7ecdb31ee4277ab1f6de2acffdb19cb2fe711d91c2f882193d1"
+    },
+    "scripts/ci/db-access-m4-four-controller-source.test.mjs": {
+      "mode": "100644",
+      "bytes": 5940,
+      "sha256": "425532238048f6a3621e4abb821f316fd11cabee6eac4f4da73deab744bece94"
+    },
+    "scripts/ci/db-access-m4-four-controller-test.fixture.mjs": {
+      "mode": "100644",
+      "bytes": 4577,
+      "sha256": "322f11c38d06a60cd5db236813b0a1985977765ddb5df4d519fc4fb4055b4bb7"
+    },
+    "scripts/ci/db-access-m4-four-protocol-body.mjs": {
+      "mode": "100644",
+      "bytes": 2434,
+      "sha256": "4efecaba23a7b82a7ca9b5026e6368816c65af24c27af500baee3ab40653fc6f"
+    },
+    "scripts/ci/db-access-m4-four-wire-body.mjs": {
+      "mode": "100644",
+      "bytes": 5263,
+      "sha256": "056ebdbc12feade3ab2d073449272f08da705597eccc305dd4883be3d5cf688c"
+    },
+    "scripts/ci/db-access-inventory-preparation.mjs": {
+      "mode": "100644",
+      "bytes": 1660,
+      "sha256": "07bf44f0ad7dd1769026ded4ecb56f4a15ec2522f4203fc62efe45fbee69cea4"
+    },
+    "scripts/ci/db-access-m4-four-controller-ingress-cases.fixture.mjs": {
+      "mode": "100644",
+      "bytes": 2251,
+      "sha256": "e1e6fa392d19110d9c6b764239b4dca0f476893235137b5513e080fd87a17692"
+    },
+    "scripts/ci/db-access-m4-four-controller-transaction-cases.fixture.mjs": {
+      "mode": "100644",
+      "bytes": 6566,
+      "sha256": "a53e0ed834e2d20b2b6b012c2b3a62db948ae1881e3ab0385b2d2427f197da35"
     }
   },
   "runtimeEnforcement": {

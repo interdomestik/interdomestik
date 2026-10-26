@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "id": "s8-early-m4-source-prerequisite-v1",
+  "version": 2,
+  "id": "s8-early-m4-source-prerequisite-v2",
   "runtimeAdmission": false,
   "adoptionCommit": "278e33ab0dd448547fa81d4b0ff122b4d69c901e",
   "adoptionTree": "4f9330417466b4f7bee68349e7183db22a5260ff",
@@ -14,53 +14,101 @@
     "session": "packages/shared-auth/src/session.ts",
     "resolver": "packages/shared-auth/package.json",
     "bootstrap": "apps/web/src/server/operations/m4-private-runtime.ts",
-    "posture": "apps/web/src/server/operations/m4-pool-posture.ts"
+    "posture": "apps/web/src/server/operations/m4-pool-posture.ts",
+    "wire": "apps/web/src/server/operations/m4-assignment-wire.ts",
+    "controllerTypes": "apps/web/src/server/operations/m4-assignment-controller-types.ts",
+    "kernelShared": "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+    "legacyKernel": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+    "staffKernel": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+    "notificationRuntime": "apps/web/src/server/operations/m4-notification-runtime.ts",
+    "notifier": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+    "runtimeTypes": "apps/web/src/server/operations/m4-private-runtime-types.ts"
   },
   "sources": {
     "apps/web/src/features/admin/claims/actions/ops-assignment.ts": {
+      "mode": "100644",
       "bytes": 4656,
-      "sha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93",
-      "mode": "100644"
+      "sha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93"
     },
     "apps/web/src/server/operations/m4-ops-controller.ts": {
-      "bytes": 8339,
-      "sha256": "53def595e981cf84050ac417d379df5472b73e8f38c3020f739124042d0c2ab2",
-      "mode": "100644"
+      "mode": "100644",
+      "bytes": 11905,
+      "sha256": "7ed3371d6e16d7cb69429b5a752ba77b7f8806a37a26e686a2e21e3e743d3f5c"
     },
     "apps/web/src/server/operations/m4-assignment-protocol.ts": {
+      "mode": "100644",
       "bytes": 2171,
-      "sha256": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04",
-      "mode": "100644"
+      "sha256": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04"
     },
     "apps/web/src/lib/auth/current-store-session.ts": {
+      "mode": "100644",
       "bytes": 3644,
-      "sha256": "27ac8a959e4c7488867b92b4c0df327dd327f79cbbe49c3ca1305cf9f54a37a7",
-      "mode": "100644"
+      "sha256": "27ac8a959e4c7488867b92b4c0df327dd327f79cbbe49c3ca1305cf9f54a37a7"
     },
     "apps/web/src/lib/auth/user-schema.ts": {
+      "mode": "100644",
       "bytes": 1109,
-      "sha256": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec",
-      "mode": "100644"
+      "sha256": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec"
     },
     "packages/shared-auth/src/session.ts": {
+      "mode": "100644",
       "bytes": 1596,
-      "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd",
-      "mode": "100644"
+      "sha256": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd"
     },
     "packages/shared-auth/package.json": {
+      "mode": "100644",
       "bytes": 459,
-      "sha256": "6ebec4086f0400e61264e6944644c5d538127fc8d72048761074b4f64ddc71a1",
-      "mode": "100644"
+      "sha256": "6ebec4086f0400e61264e6944644c5d538127fc8d72048761074b4f64ddc71a1"
     },
     "apps/web/src/server/operations/m4-private-runtime.ts": {
-      "bytes": 7748,
-      "sha256": "7e0053d1f6cc3fde99bc637f2b14b2dbb8e130579b2cde4348aa5c6feb128882",
-      "mode": "100644"
+      "mode": "100644",
+      "bytes": 11985,
+      "sha256": "fc6eb0877dec23370847c7de394050cec40a01a6d761ebf525a35ff1d21d2cc7"
     },
     "apps/web/src/server/operations/m4-pool-posture.ts": {
+      "mode": "100644",
       "bytes": 4494,
-      "sha256": "213f3749dc7b85ba1d53bd5e69617c21cd19ee176ca5fda9c55b6302cb4dda62",
-      "mode": "100644"
+      "sha256": "213f3749dc7b85ba1d53bd5e69617c21cd19ee176ca5fda9c55b6302cb4dda62"
+    },
+    "apps/web/src/server/operations/m4-assignment-wire.ts": {
+      "mode": "100644",
+      "bytes": 4574,
+      "sha256": "b8f90e3f2b3d76aa1425aaac464783b74cdb215845b739ce79a810f9808210bd"
+    },
+    "apps/web/src/server/operations/m4-assignment-controller-types.ts": {
+      "mode": "100644",
+      "bytes": 1415,
+      "sha256": "b6ea436e232a4e5aef6773ac7829fa2288539c94ebf40c2c4210d39caef7330f"
+    },
+    "apps/web/src/server/operations/m4-assignment-kernel-shared.ts": {
+      "mode": "100644",
+      "bytes": 3054,
+      "sha256": "dc089e1cc921fa174b449e49b234eb7658ac8ded5e3e45235ebb8f3011f403d4"
+    },
+    "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts": {
+      "mode": "100644",
+      "bytes": 4165,
+      "sha256": "7d3a53b5c5b50adce1abc205801d9b4157586d246402fbd51dfddfa05f46e2f8"
+    },
+    "apps/web/src/server/operations/m4-staff-assignment-kernel.ts": {
+      "mode": "100644",
+      "bytes": 2893,
+      "sha256": "2863607b04d2e964f3c42d03719ff9efdefc35a94eb218fb427c719a65b42f08"
+    },
+    "apps/web/src/server/operations/m4-notification-runtime.ts": {
+      "mode": "100644",
+      "bytes": 4167,
+      "sha256": "6ae7cd365cd8ca22de5058a66e8fa79cad111dd028e62aeabd5d2fa44d949f26"
+    },
+    "apps/web/src/server/operations/m4-assignment-postcommit.ts": {
+      "mode": "100644",
+      "bytes": 6541,
+      "sha256": "34cfc30c1b8c6c634cd69a3d58c5f2076450064ccf73e9b4e01909bdf30d7c6f"
+    },
+    "apps/web/src/server/operations/m4-private-runtime-types.ts": {
+      "mode": "100644",
+      "bytes": 1171,
+      "sha256": "4ffeaba75631d76599d5a308cdee390880e4a53c7d933e041a13c7a454a2a7ba"
     }
   }
 }

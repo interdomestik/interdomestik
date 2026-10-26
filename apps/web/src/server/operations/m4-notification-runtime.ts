@@ -1,0 +1,118 @@
+import * as schema from '@interdomestik/database/schema';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import {
+  assertM4DriverEnvironment,
+  assertM4PoolPosture,
+  captureM4PoolTarget,
+} from './m4-pool-posture';
+
+type OwnedOperation = { stop(): void; done: Promise<void> };
+const MAX_CONCURRENT_OPERATIONS = 4;
+
+// Called only by the literal private runtime with already captured primitive configuration.
+export function createM4NotificationDatabaseOwner(
+  configuration: Readonly<{
+    databaseURL: string;
+    deadlineMs: number;
+    loopbackQualification: boolean;
+  }>
+) {
+  const { databaseURL, deadlineMs: deadline, loopbackQualification } = configuration;
+  const notificationTarget = captureM4PoolTarget(databaseURL, loopbackQualification);
+  if (!Number.isSafeInteger(deadline) || deadline < 1 || deadline > 2_147_483_647)
+    throw new Error('Explicit notification DB deadline required');
+  const activeNotificationDatabases = new Set<OwnedOperation>();
+  let notificationTerminationFailed = false,
+    closed = false,
+    closing: Promise<void> | undefined;
+  // Separate DB-only ownership: provider promises are not cancellable by the current helper.
+  // A notifier closes this resource after its transaction settles and before dispatching email.
+  async function openNotificationPurposeDatabase() {
+    if (closed || activeNotificationDatabases.size >= MAX_CONCURRENT_OPERATIONS)
+      throw new Error('Notification database unavailable');
+    let pool: postgres.Sql | undefined;
+    let stopped = false,
+      ending: Promise<boolean> | undefined,
+      finished = false;
+    let finish!: () => void;
+    const done = new Promise<void>(resolve => {
+      finish = resolve;
+    });
+    function endOwnedPool(): Promise<boolean> {
+      if (!ending)
+        ending = Promise.resolve()
+          .then(() => pool?.end({ timeout: 0 }))
+          .then(
+            () => true,
+            () => false
+          );
+      return ending;
+    }
+    const operation: OwnedOperation = {
+      done,
+      stop() {
+        stopped = true;
+        void endOwnedPool();
+      },
+    };
+    activeNotificationDatabases.add(operation);
+    const timer = setTimeout(operation.stop, deadline);
+    async function closeOwnedDatabase() {
+      const ended = await endOwnedPool();
+      clearTimeout(timer);
+      if (!finished) {
+        finished = true;
+        activeNotificationDatabases.delete(operation);
+        finish();
+      }
+      if (!ended) {
+        notificationTerminationFailed = true;
+        throw new Error('Notification database termination failed');
+      }
+    }
+    try {
+      assertM4DriverEnvironment();
+      pool = postgres(notificationTarget.url, {
+        max: 1,
+        connect_timeout: Math.max(1, Math.ceil(deadline / 1000)),
+        ssl: loopbackQualification ? false : { rejectUnauthorized: true },
+        connection: {
+          statement_timeout: deadline,
+          lock_timeout: deadline,
+          idle_in_transaction_session_timeout: deadline,
+          client_connection_check_interval: 100,
+          search_path: 'pg_catalog, public',
+          row_security: 'on',
+          application_name: 'interdomestik-m4-notification',
+        },
+      });
+      await assertM4PoolPosture(pool, notificationTarget);
+      if (closed || stopped) throw new Error('Notification database stopped');
+      return {
+        database: drizzle(pool, { schema }),
+        close: closeOwnedDatabase,
+        get deliveryAllowed() {
+          return !closed && !stopped;
+        },
+      };
+    } catch (error) {
+      await closeOwnedDatabase().catch(() => undefined);
+      throw error;
+    }
+  }
+
+  function close(): Promise<void> {
+    if (!closing) {
+      closed = true;
+      const pending = [...activeNotificationDatabases];
+      for (const operation of pending) operation.stop();
+      closing = Promise.all(pending.map(operation => operation.done)).then(() => {
+        if (notificationTerminationFailed)
+          throw new Error('Notification database termination failed');
+      });
+    }
+    return closing;
+  }
+  return Object.freeze({ open: openNotificationPurposeDatabase, close });
+}

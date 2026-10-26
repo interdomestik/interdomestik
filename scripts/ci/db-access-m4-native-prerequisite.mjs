@@ -1,3 +1,4 @@
+import { prepareInventoryEffects } from './db-access-inventory-preparation.mjs';
 import { isM4HydratedContextInventory } from './db-access-m4-worker-input.mjs';
 import { collectInventory } from './db-access-inventory.mjs';
 import { randomUUID } from 'node:crypto';
@@ -35,9 +36,12 @@ export function collectM4NativeInventory(model, trusted, unit) {
   if (!m4SourceMatchesModel(source, model)) fail('source/model brand');
   const provenance = createProvenance(providerUnitAnalysisModel(model, unit, true));
   const inventory = collectInventory(model, provenance, trusted);
+  // Complete the real deterministic debt/root transition before minting ownership.
+  const preparation = prepareInventoryEffects(model, inventory, unit);
   if (!m4SourceMatchesModel(source, model)) fail('source changed during actual collection');
   const result = Object.freeze({
     inventory,
+    preparation,
     source,
     model,
     runtimeAdmission: false,
@@ -54,7 +58,11 @@ export function collectM4NativeInventory(model, trusted, unit) {
 // The caller cannot substitute rows: compare the entire encoding with the parent's
 // actual privately branded collection, including changed roots, owners and posture.
 export function bindM4WorkerRequest(native, input) {
-  if (!collected.has(native) || !m4SourceMatchesModel(native.source, native.model))
+  if (
+    !collected.has(native) ||
+    !m4SourceMatchesModel(native.source, native.model) ||
+    !isM4ContextInventory(native.model, native.inventory, native.source)
+  )
     fail('worker request source/native brand');
   const expected = encodeInventory(native);
   if (
@@ -98,7 +106,12 @@ export function consumeM4WorkerRequest(request, input) {
 }
 
 export function m4NativePrerequisites(source, native, graph, failures) {
-  if (!isVerifiedM4ProofSource(source) || !collected.has(native) || native.source !== source)
+  if (
+    !isVerifiedM4ProofSource(source) ||
+    !collected.has(native) ||
+    native.source !== source ||
+    !isM4ContextInventory(native.model, native.inventory, source)
+  )
     fail('native/source brand');
   if (
     graph.m4WorkerTransport &&

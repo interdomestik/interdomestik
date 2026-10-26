@@ -19,6 +19,14 @@ const files = Object.freeze({
   resolver: 'packages/shared-auth/package.json',
   bootstrap: 'apps/web/src/server/operations/m4-private-runtime.ts',
   posture: 'apps/web/src/server/operations/m4-pool-posture.ts',
+  wire: 'apps/web/src/server/operations/m4-assignment-wire.ts',
+  controllerTypes: 'apps/web/src/server/operations/m4-assignment-controller-types.ts',
+  kernelShared: 'apps/web/src/server/operations/m4-assignment-kernel-shared.ts',
+  legacyKernel: 'apps/web/src/server/operations/m4-legacy-assignment-kernel.ts',
+  staffKernel: 'apps/web/src/server/operations/m4-staff-assignment-kernel.ts',
+  notificationRuntime: 'apps/web/src/server/operations/m4-notification-runtime.ts',
+  notifier: 'apps/web/src/server/operations/m4-assignment-postcommit.ts',
+  runtimeTypes: 'apps/web/src/server/operations/m4-private-runtime-types.ts',
 });
 const freeze = value => {
   if (value && typeof value === 'object') {
@@ -61,8 +69,8 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
   if (policy.m4Proof !== M4_PROOF_POLICY) fail('policy is not the fixed producer object');
   const contract = M4_PROOF_POLICY;
   if (
-    contract.version !== 1 ||
-    contract.id !== 's8-early-m4-source-prerequisite-v1' ||
+    contract.version !== 2 ||
+    contract.id !== 's8-early-m4-source-prerequisite-v2' ||
     contract.runtimeAdmission !== false ||
     canonical(contract.files) !== canonical(files) ||
     Object.keys(contract.sources).sort().join('|') !== Object.values(files).sort().join('|') ||
@@ -98,6 +106,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
     deriveM4OpsController({
       controllerSource: before.controller,
       protocolSource: before.protocol,
+      wireSource: before.wire,
     })
   );
   attempt('identity', () =>
@@ -125,6 +134,17 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
     failures,
     sourcePremiseOnly: true,
     bootstrapAndPosture: 'exact-source-bound; runtime semantics unproved',
+    additionalSourceBoundOnlyFiles: [
+      files.controllerTypes,
+      files.kernelShared,
+      files.legacyKernel,
+      files.staffKernel,
+      files.notificationRuntime,
+      files.notifier,
+      files.runtimeTypes,
+    ],
+    additionalSourceBoundOnlyGuarantee:
+      'Exact source/mode/model/bookend identity only; no kernel, bootstrap, notifier or runtime semantic admission is inferred.',
     runtimeAdmission: false,
     allExecutableContextsQualified: false,
     productionEventAuthenticated: false,
@@ -132,6 +152,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       'immutable producer distribution and authenticated event/source/policy join',
       'actual complete native inventory and all executable contexts',
       'executed role/current-store/bootstrap and caller qualification',
+      'separate finite/runtime qualification of the new legacy/staff kernels, actual bootstrap and restricted notifier/purpose-pool/transport',
       'native authenticated semantic-negative rejection',
     ],
   });
