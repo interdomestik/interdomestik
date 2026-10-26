@@ -571,6 +571,21 @@
       "sha256": "1bbddfcf186ca46187baec1f533111cdb8c1bb53a061b8feb02476c5ddae0e8e",
       "bytes": 63758,
       "mode": "100644"
+    },
+    "apps/web/next.config.mjs": {
+      "mode": "100644",
+      "bytes": 4688,
+      "sha256": "67bfa30192c13f30bf1d47ad06c4978c296d67d9ffed3f24ee977b0ce6f79d1a"
+    },
+    "apps/web/package.json": {
+      "mode": "100644",
+      "bytes": 6443,
+      "sha256": "056f67f3406064f25200beb36393607edb90aaad748ad109334c78476662f9a3"
+    },
+    "packages/ui/package.json": {
+      "mode": "100644",
+      "bytes": 3605,
+      "sha256": "7e30a421b2b82bcf94f9b34e5efe79ae2daf7feda17bb0a2fe8425ec78d01f6c"
     }
   },
   "publicModules": [

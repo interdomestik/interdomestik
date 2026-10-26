@@ -237,6 +237,27 @@ provider tests now pass. Historical driver parity is checked against its actual
 pre-Next source; old and mixed Next pairs still refuse. The same cheap real resolver
 check must run on both authenticated frozen roots before any further SQL run.
 
+The next diagnostic at repaired base `f0f846d01db89d2a0c7ae2b61eb3a80ed1b3fb68`
+passed that exact snapshot check on both exports, then failed in 57.106 seconds at
+the separate historical resolver boundary after all 28 SQL cases passed. A complete
+52-file resolver census found exactly three omissions: `apps/web/next.config.mjs`,
+`apps/web/package.json` and `packages/ui/package.json`. Their only historical-to-current
+changes are the reviewed Next-family versions and `partialPrefetching: false`.
+The existing exact-source policy now pins these three files; verifier algorithms,
+all other policy fields, historical ADOPTION and baseline604 remain unchanged.
+Independent review found no blockers. Thirty-three tests pass after reproducing red,
+including all seven old/mixed three-file combinations, same-size edits, symlinks and
+an unlisted resolver hook. The actual `prepareGuardModel` also passes on all 3,733
+current model sources in 34.262 seconds without SQL, inventory collection or a native
+session. Both full resolver authentication and actual source/model preflight must
+precede another heavy run. This repairs the source-binding recurrence only; the
+300-second cause, genuine uninstrumented pair and semantic negative remain unverified.
+The second immutable diagnostic and appended comparison are retained under
+`m4-effect-assertion-phase-diagnostic-v2` and
+`m4-failure-memory-v1/updates/M4-02-DIAG-02.json`. Cleanup/source bookends passed;
+the separate qualified application PostgreSQL service was preserved. Accepted
+identities, contexts and original occurrences remain zero.
+
 Owner-authorized bounded framework security remediation temporarily precedes
 another M4 diagnostic or heavy qualification. The candidate now installs Next,
 its analyzer/ESLint family and the global peer override at **16.4.3**; sharp
