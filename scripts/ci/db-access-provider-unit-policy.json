@@ -694,8 +694,8 @@
     },
     "scripts/ci/db-access-graph-core.mjs": {
       "mode": "100644",
-      "bytes": 12311,
-      "sha256": "6df0e29bdf0fe318e2a0bbf62ad91e48fa6defd7ad7f72e6b69763edd1503ba1"
+      "bytes": 12339,
+      "sha256": "3d24718958da73d4e42bfd1e104766427a1ea8a97ca0bb7f553b5074c73bc544"
     },
     "scripts/ci/db-access-graph-roots.mjs": {
       "mode": "100644",
@@ -1484,13 +1484,13 @@
     },
     "scripts/ci/db-access-m4-context-census.mjs": {
       "mode": "100644",
-      "bytes": 3606,
-      "sha256": "f8c418ff47c8bb90bb8b25b5302a2a323a437ef3ba66dc3a0e7b117cf85323b2"
+      "bytes": 4140,
+      "sha256": "e337fafebc0e776cea8efe1c481543023d97239af8e1d7aedc6891ad3c81fe71"
     },
     "scripts/ci/db-access-m4-context-wire.mjs": {
       "mode": "100644",
-      "bytes": 5530,
-      "sha256": "9cd214cf688b54e85b33aa4f84e8c509820280d8829b729be57349eb3b0377bc"
+      "bytes": 5771,
+      "sha256": "d93f51c27c094c6a6bdc1159bd59c169aa0bcdc46abb4262d78e4fe185f28cd1"
     },
     "scripts/ci/db-access-m4-four-controller-ast.mjs": {
       "mode": "100644",
@@ -1784,8 +1784,8 @@
     },
     "scripts/ci/db-access-m4-runtime-pairing.mjs": {
       "mode": "100644",
-      "bytes": 3665,
-      "sha256": "d56696d38d4dfa3af9b3bfb2b842fd03437cfc2cd71758ed368a34832da68573"
+      "bytes": 3891,
+      "sha256": "5cd0b89c48f56d5990bbf02ba3ddb0dc014ae478078bc2d71a877fc6c074f7ed"
     },
     "scripts/ci/db-access-m4-gap-ledger.mjs": {
       "mode": "100644",
@@ -1841,6 +1841,21 @@
       "mode": "100644",
       "bytes": 1699,
       "sha256": "08451068ddc65ce69e8511675f01c20f2d7f3606da2b4ef93d9e62e7617a6476"
+    },
+    "scripts/ci/db-access-graph-emissions.mjs": {
+      "mode": "100644",
+      "bytes": 1078,
+      "sha256": "28d0af62de90dd4d1fe4b47b72d105766151bb71bb123e9340b20bc5c21330d5"
+    },
+    "scripts/ci/db-access-m4-context-projection.mjs": {
+      "mode": "100644",
+      "bytes": 8812,
+      "sha256": "60ba7642d73f1689d1d4d5d9961f0855c83c04b478298f9a811e6de3114ac01b"
+    },
+    "scripts/ci/db-access-m4-context-attribution.mjs": {
+      "mode": "100644",
+      "bytes": 9096,
+      "sha256": "aa0b7178283625356bc377306f54232ddb7c98db944f7ab7c3c857e8dfa72a4e"
     }
   },
   "runtimeEnforcement": {

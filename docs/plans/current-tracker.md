@@ -92,7 +92,7 @@ and report `0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
 | LOCAL-01  | Local construction / closed within scope  | Combined SQL/native execution, unchanged budget, source bookends and healthy cleanup: 287.966 seconds.                                                                    | Recorded receipt    |
 | LOCAL-02  | Local SQL / closed within scope           | Actual fixed 10 private + 18 profile SQL cases; private source/event/policy binding.                                                                                      | Recorded receipt    |
 | LOCAL-03  | Local proof fixture / closed within scope | Ordinary containment, V8 merge, existing line gate and one-use join; local origin only.                                                                                   | Recorded receipt    |
-| **M4-01** | **First M4 / selected next**              | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
+| **M4-01** | **First M4 / proof pending**              | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
 | M4-02     | First M4 / partial                        | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
 | M4-03     | First M4 / open                           | Applicable current-store/auth, role/RLS, driver, SQL/schema/operator, compiler/intrinsic, TLS/endpoint and notifier premises qualified for each claimed context.          | M4-02               |
 | M4-04     | First M4 / open                           | Every affected historical/current ID, admin/agent/staff and ops mount, invocation and domain-effect lineage accounted; changed audit/noop/notification behavior explicit. | M4-01, M4-02        |
@@ -277,14 +277,26 @@ Six other OPS effects and five other source derivations remain unmapped; existin
 legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs,
 contexts, original occurrences, native admission and production C credit remain zero.
 
-The next bounded increment is M4-01's pre-existing causal-attribution omission.
-Current diagnostic compaction retains only file/reason/multiplicity, so the missing
-owner/invocation/frame relation cannot be reconstructed from the 200 existing
-observations. Add attribution at the original selected entry and owner emissions,
-preserving all original diagnostic rows/counts, shared-owner multiplicity,
-unknown/open/escaped paths and explicitly unattributed remainder. An inspection
-projection alone cannot close this relation. No broad migration or new analyzer
-classification is selected.
+M4-01 implementation adds attribution at four original selected entry/owner
+emission kinds, preserving original rows, multiplicity and unknown/open/escaped
+paths. The same validated private native view supplies finite context/frame rows
+and original diagnostic/failure namespace index groups, including shared-key and
+unattributed remainders; secondary key matching grants no per-row causal lineage.
+No second native owner validation, analyzer change or admission is introduced.
+Executable modularity initially refused the enlarged core/test. Cohesive entry
+emission extraction and test splitting preserve all assertions and pass that guard;
+the failed checkpoint remains in `m4-failure-memory-v1/updates/M4-01-MOD-01.json`.
+All 489 M4 regressions and 74 graph regressions pass without skips. Independent
+finite old/new private constructions preserve 184 failures, 290 diagnostic tuples,
+10,318 occurrences and 118 observations; 118 attributions and all 53 finite selected
+identities are observed, with five mutation negatives refused. Final extraction
+successor v5 takes 10.564 seconds and 729,858,048-byte peak RSS. Evidence is in
+`m4-attribution-authenticated-fixture-v1` and `m4-context-attribution-proposal-v1`;
+projection review is in `m4-context-projection-proposal-v1/final-filter-v2`.
+All 235 producer descriptors match; only seven exact producer descriptors change.
+Independent bounded source review passes. Actual full Worker/native/55-identity,
+200-context serialization and unchanged-budget pair qualification remain pending.
+Accepted old-ID/context/occurrence closures and production C credit remain zero.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 

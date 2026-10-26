@@ -1,3 +1,4 @@
+import { createM4AttributionCollector } from './db-access-m4-context-attribution.mjs';
 import { digest } from './db-access-trust.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { m4SourceMatchesModel } from './db-access-m4-proof-source.mjs';
@@ -41,14 +42,16 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
     frameRecords.set(key, values);
     return key;
   }
-  let rows;
+  let rows, attribution;
   return Object.freeze({
     begin() {
       rows = new Map();
+      attribution = createM4AttributionCollector();
     },
     observe(owner, origin, invocation, context, definingContext, outcome) {
       const entries = owners.get(owner);
       if (!entries) return;
+      const observed = new Map();
       const state = provenance.dispatch?.state();
       for (const entry of entries) {
         const row = {
@@ -67,11 +70,18 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
           open: Boolean(state?.openFns.has(owner)),
           dispatchUnknown: [...(state?.reasons ?? [])].sort(),
         };
+        observed.set(entry, row);
         const key = JSON.stringify(row);
         const previous = rows.get(key);
         if (previous) previous.occurrences++;
         else rows.set(key, { ...row, occurrences: 1 });
       }
+      return observed;
+    },
+    attribute(observed, kind, reason, entry) {
+      if (!observed) return;
+      const selected = entry ? [observed.get(entry)].filter(Boolean) : [...observed.values()];
+      if (selected.length) attribution.add(selected, kind, reason);
     },
     finish(origins, incomplete) {
       if (!m4SourceMatchesModel(source, model) || !isM4ContextInventory(model, inventory, source))
@@ -84,6 +94,7 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
         roots: [...origins],
         selectedIdentities: selected.map(row => row.identity),
         observations: [...rows.values()],
+        attributions: attribution.entries(),
         frames: Object.fromEntries(frameRecords),
         unresolved: incomplete,
         allExecutableContextsQualified: false,

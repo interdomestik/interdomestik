@@ -1,3 +1,4 @@
+import { describeM4ContextInspection } from './db-access-m4-context-projection.mjs';
 import { describeM4PairGaps } from './db-access-m4-gap-ledger.mjs';
 import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
 import { randomUUID } from 'node:crypto';
@@ -52,12 +53,18 @@ export function assertM4Pairing(handle, input) {
   state.effectAssertions ??= effectAssertions;
   // Cache only after both existing private bindings have been revalidated.
   state.gapLedger ??= describeM4PairGaps(native, state.native.outputDigest, state.runtime);
+  const contextInspection = describeM4ContextInspection(
+    native,
+    state.native.outputDigest,
+    state.runtime
+  );
   return freezeOutput({
     report: native.report,
     gapLedger: state.gapLedger,
     effectAssertions: state.effectAssertions,
     checkpoint: {
       version: 1,
+      contextInspection,
       gapLedger: state.gapLedger,
       contextSha256: state.runtime.contextSha256,
       policySha256,
@@ -65,8 +72,8 @@ export function assertM4Pairing(handle, input) {
       nativeSourcePolicyDigest: native.sourcePolicyDigest,
       nativeEvent: native.eventBinding,
       runtime: state.runtime,
-      // The raw report and context rows remain exclusively in the same native
-      // session; this small projection does not duplicate their large arrays.
+      // Full diagnostic/failure arrays remain in the native session/report.
+      // The finite context projection names their original index spaces.
       runtimeEvidenceAccepted: false,
       runtimeAdmission: false,
       nativeAdmission: false,

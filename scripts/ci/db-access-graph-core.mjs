@@ -5,7 +5,7 @@ import { inspectGraphCall } from './db-access-graph-calls.mjs';
 import { handleArguments, inspectTagChannels } from './db-access-channels.mjs';
 import { BUILTIN_CONSTRUCTORS, createReferences } from './db-access-references.mjs';
 import { isFunction } from './db-access-source.mjs';
-import { isUnsafe } from './db-access-inventory.mjs';
+import { createGraphEntryEmitter } from './db-access-graph-emissions.mjs';
 import { isErasedTypeEdge } from './db-access-module-edges.mjs';
 import { createGraphSessionDriver } from './db-access-graph-session-driver.mjs';
 import { createGraphProvenance } from './db-access-graph-provenance.mjs';
@@ -26,14 +26,9 @@ export function createGraphTraversal(
     ...(providerUnit?.producerHarnessFiles ?? []),
     ...(providerUnit?.namedProofFiles ?? []),
   ]);
-  let failures, reachedTestSources, incomplete;
+  let emissions, reachedTestSources, incomplete;
   const census = createM4ContextCensus(model, provenance, inventory, providerUnit?.m4Proof);
-  const byOwner = new Map();
-  for (const entry of inventory.entries) {
-    const list = byOwner.get(entry._owner) ?? [];
-    list.push(entry);
-    byOwner.set(entry._owner, list);
-  }
+  const emitEntries = createGraphEntryEmitter(inventory.entries, census);
   const references = createReferences(model, provenance);
   const forContext = createGraphProvenance(provenance);
   const targets = expression => references.resolve(expression).functions;
@@ -63,29 +58,44 @@ export function createGraphTraversal(
     if (testOnlySource(ownerFile) && !testOnlySource(origin)) reachedTestSources.add(ownerFile);
     const frame = definingContext ?? context;
     if (stack.get(owner)?.has(frame)) {
-      census?.observe(owner, origin, invocation, context, definingContext, 'recursion');
+      const observed = census?.observe(
+        owner,
+        origin,
+        invocation,
+        context,
+        definingContext,
+        'recursion'
+      );
       incomplete.push({ file: origin, reason: 'recursive executable edge' });
+      census?.attribute(observed, 'owner-recursion', 'recursive executable edge');
       return;
     }
     const count = (steps.get(origin) ?? 0) + 1;
     steps.set(origin, count);
     if (depth > 48 || count > 20000) {
-      census?.observe(owner, origin, invocation, context, definingContext, 'graph-bound');
+      const observed = census?.observe(
+        owner,
+        origin,
+        invocation,
+        context,
+        definingContext,
+        'graph-bound'
+      );
       incomplete.push({ file: origin, reason: 'graph bound exceeded' });
+      census?.attribute(observed, 'owner-bound', 'graph bound exceeded');
       return;
     }
     stack = new Map(stack).set(owner, new Set(stack.get(owner) ?? []).add(frame));
     const scoped = forContext(context);
-    census?.observe(owner, origin, invocation, context, definingContext, 'visited');
-    for (const entry of byOwner.get(owner) ?? []) {
-      if (entry._incomplete) incomplete.push({ file: origin, reason: entry.reason });
-      else if (isUnsafe(entry))
-        failures.push({
-          ...entry,
-          mountedFrom: origin,
-          reason: entry.reason ?? 'changed executable edge reaches ambient operation',
-        });
-    }
+    const observed = census?.observe(
+      owner,
+      origin,
+      invocation,
+      context,
+      definingContext,
+      'visited'
+    );
+    emitEntries(owner, origin, emissions, observed);
     function moduleEffect(specifier) {
       const name = specifier.text;
       const file = model.moduleFile(name, model.fileOf(specifier));
@@ -275,10 +285,12 @@ export function createGraphTraversal(
     if (isFunction(owner)) for (const parameter of owner.parameters) visit(parameter);
     visit(isFunction(owner) ? owner.body : owner);
   }
+  const rootInput = { model, inventory, references, inspect };
   return createGraphSessionDriver(inventory, provenance, (origins, output) => {
-    ({ failures, reachedTestSources, incomplete } = output);
+    emissions = output;
+    ({ reachedTestSources, incomplete } = output);
     census?.begin();
-    inspectGraphRoots({ model, inventory, origins, references, incomplete, inspect });
+    inspectGraphRoots({ ...rootInput, origins, incomplete });
     if (census) output.m4Contexts = census.finish(origins, incomplete.entries);
   });
 }

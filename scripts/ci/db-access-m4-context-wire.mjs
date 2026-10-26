@@ -1,3 +1,4 @@
+import { validateM4Attributions } from './db-access-m4-context-attribution.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { digest } from './db-access-trust.mjs';
 
@@ -35,6 +36,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     results.length !== partitions.length
   )
     fail('incomplete root partition');
+  const attributions = [];
   const observations = [],
     frames = {};
   const locators = new Map();
@@ -58,7 +60,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     if (
       !keys(
         batch,
-        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations frames unresolved allExecutableContextsQualified runtimeAdmission'
+        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations attributions frames unresolved allExecutableContextsQualified runtimeAdmission'
       ) ||
       batch.version !== 1 ||
       batch.sourcePolicyDigest !== source.policyDigest ||
@@ -126,6 +128,8 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
         fail('observation identity/origin/frame');
       observations.push(row);
     }
+    validateM4Attributions(batch, entries, results[i]);
+    attributions.push(...batch.attributions);
   }
   return {
     version: 1,
@@ -135,6 +139,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     roots,
     selectedIdentities: selected.map(row => row.identity),
     observations,
+    attributions,
     frames,
     allExecutableContextsQualified: false,
     runtimeAdmission: false,
