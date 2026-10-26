@@ -25,7 +25,10 @@ export function captureM4PoolTarget(value: unknown, loopbackQualification: boole
       !database ||
       /[\u0000-\u001f\u007f]/u.test(login + password + database) ||
       url.pathname.slice(1).includes('/') ||
-      !/^(?:[a-z0-9][a-z0-9.-]*|\[[a-f0-9:]+\])$/u.test(host) ||
+      // The pinned driver's URL parser retains encoded database names and splits IPv6 hosts.
+      // These endpoint forms require separate qualification rather than silent reinterpretation.
+      url.pathname.slice(1) !== database ||
+      !/^[a-z0-9][a-z0-9.-]*$/u.test(host) ||
       (loopbackQualification && host !== '127.0.0.1' && host !== 'localhost')
     )
       throw new Error();
