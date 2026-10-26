@@ -203,6 +203,28 @@ This is a necessary source premise, not runtime admission. Actual current-store 
 private lifetime control, restricted SQL, proof containment and the all-context native
 producer join remain pending. No historical runtime pass transfers to the changed source.
 
+### Approved AI tooling follow-up (26 October; separate from first M4)
+
+Arben approved selective adoption with “agree” in coordinator chat
+`01a16025-ff60-7341-9219-eeabcabafbc0`; the coordinator conveyed the bounded grant
+here. The original tooling audit inspected detached `18cd1a73`, not this active
+candidate. Relevant current-source findings must be checked at implementation.
+These follow-ups do not add first-M4 acceptance gates. M4-02 remains the immediate
+critical path; code changes are sequenced at a safe checkpoint after its current
+proof work, with one writer and the existing bounded review/verification rules.
+
+| ID     | Status / scope                                       | Acceptance                                                                                                                                                                                                                                           | Dependency / sequencing                                                                                                                                                                                                     |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI-F01 | Approved, queued: accurate execution attribution     | Workflow output/telemetry distinguishes deterministic rules, configured model and actual provider invocation; served-model claims use actual execution evidence. Preserve privacy, consent, trusted AI context, tenant/auth and security boundaries. | Current M4 proof safe checkpoint; inspect exact audited workflow/telemetry consumers and review any data-contract change before integration.                                                                                |
+| AI-F02 | Approved, queued: truthful offline evaluation labels | `scripts/ai/eval/run.mjs` and report consumers identify fixture-derived/offline telemetry, including `testCase.telemetry`, separately from actual measured provider results. Existing assertions/thresholds remain meaningful.                       | Same safe checkpoint; bounded source/report contract and focused regression checks. Representative multilingual/live evaluations precede product-AI readiness or model-selection claims under their applicable scoped work. |
+| AI-F03 | Approved, deferred trial: native Next diagnostics    | On the next real relevant UI/debugging task, try installed-framework native MCP diagnostics alongside the existing browser/E2E lane and record demonstrated benefit. It is not a custom M4 proof-engine repair or a required new gate.               | Next applicable UI task; installed framework and existing tool boundaries.                                                                                                                                                  |
+
+ADR-08 establishes the trusted posture/consent boundary and expressly does not add
+provider calls or a new product-AI requirement. The completed AGENTS/framework-guide
+refresh is `d45396821ac2b8b824cc47ce6f9151ec5058ae86`. Framework upgrades, production
+bundler changes, shared-cache migrations and AI SDK/provider rewrites remain outside
+this approval. No new tracker, standing panel or duplicate heavy proof is selected.
+
 ### Historical #1920 consolidation checkpoint (22 October, 19:43 Europe/Berlin)
 
 This was the 22 October blocker ledger. The earlier provider/message checkpoint below is
