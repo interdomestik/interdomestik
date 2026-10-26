@@ -887,6 +887,26 @@
       "bytes": 5658,
       "mode": "100644"
     },
+    "scripts/ci/db-access-crm-runtime-packages.mjs": {
+      "mode": "100644",
+      "bytes": 6803,
+      "sha256": "854408118b110a6cca9f20040568f5d43625582553b62a2d98ddbdc0419f6e19"
+    },
+    "scripts/ci/db-access-crm-runtime-graph.mjs": {
+      "mode": "100644",
+      "bytes": 7888,
+      "sha256": "99359bdcee8dd70cbf5652572f622bec8059505d26d94811bf6a2de03c2a72fb"
+    },
+    "scripts/ci/db-access-crm-runtime-archive.mjs": {
+      "mode": "100644",
+      "bytes": 3601,
+      "sha256": "c9e4cf7bb78897683eacd4b060783a03d852d69fc3b8126a68852f28809022cf"
+    },
+    "scripts/ci/db-access-crm-runtime-patch.mjs": {
+      "mode": "100644",
+      "bytes": 3565,
+      "sha256": "f1c3e804b91c47daad1ebc487188f949f47f275fa6d73c8fc1f28aa4786df894"
+    },
     "scripts/ci/db-access-crm-runtime-materialize.mjs": {
       "sha256": "f443866dad4b362d8c59ebc2cf6a62f277f532b9680004aba194e12b684a2bac",
       "bytes": 5734,
@@ -1211,6 +1231,21 @@
       "mode": "100644",
       "bytes": 1590,
       "sha256": "a64dcbaa7130d515f71d211aa54d163bd34371eb3f94f850bb756e117fc2a905"
+    },
+    "scripts/ci/db-access-crm-policy-loader.mjs": {
+      "mode": "100644",
+      "bytes": 4567,
+      "sha256": "3ef6f50a101266697e411d6053408314458f3a844eee3e1cc022e9287c050d19"
+    },
+    "scripts/ci/db-access-crm-diagnostic-encoding.mjs": {
+      "mode": "100644",
+      "bytes": 7987,
+      "sha256": "b132fda4eca5b403442f50f2466080be1a9186848072c4651771713f1b94a7a9"
+    },
+    "scripts/ci/db-access-crm-mount-wire.mjs": {
+      "mode": "100644",
+      "bytes": 2611,
+      "sha256": "b97fb17d0dbb78124c4e8e7b2913f443b2c81ff0259efb065f7f32cfed3d6934"
     },
     "scripts/ci/db-access-crm-proof-shape.mjs": {
       "mode": "100644",
