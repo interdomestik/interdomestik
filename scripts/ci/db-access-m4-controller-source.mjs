@@ -19,6 +19,7 @@ const freeze = value => {
 const CONTROLLER_CONTRACT =
   `
 import * as schema from '@interdomestik/database/schema';
+import { isSuperAdmin, isTenantAdmin } from '@interdomestik/shared-auth';
 import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { createHash } from 'node:crypto';
@@ -61,7 +62,7 @@ export function createM4OpsAssignmentController(configuration) {
   "`select set_config('app.current_tenant_id', ${principal.tenantId}, true), set_config('app.current_access_tenant_id', ${principal.accessTenantId}, true)`" +
   `);
         const [actor] = await tx.select({id:schema.user.id,role:schema.user.role}).from(schema.user).where(and(eq(schema.user.id,principal.actorId),eq(schema.user.tenantId,principal.tenantId))).limit(1).for('share');
-        if (!actor || !['admin','tenant_admin','super_admin'].includes(actor.role)) return {status:'denied',reason:'UNAUTHORIZED'};
+        if (!actor || !(isTenantAdmin(actor.role) || isSuperAdmin(actor.role))) return {status:'denied',reason:'UNAUTHORIZED'};
         await tx.execute(sql` +
   "`select set_config('app.user_role', ${actor.role}, true)`" +
   `);

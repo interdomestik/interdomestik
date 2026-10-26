@@ -90,13 +90,13 @@ const mutations = [
   ['session not awaited', 'await verifySession(cookie)', 'verifySession(cookie)'],
   [
     'role gate widened',
-    "['admin', 'tenant_admin', 'super_admin']",
-    "['admin', 'tenant_admin', 'super_admin', 'staff']",
+    'isTenantAdmin(actor.role) || isSuperAdmin(actor.role)',
+    "isTenantAdmin(actor.role) || isSuperAdmin(actor.role) || actor.role === 'staff'",
   ],
   [
     'current role replaced by admitted old role',
-    '.includes(actor.role)',
-    '.includes(principal.actorRole)',
+    'isTenantAdmin(actor.role)',
+    'isTenantAdmin(principal.actorRole)',
   ],
   ['role lock weakened', ".for('share')", ".for('key share')"],
   ['role lock omitted', ".for('share')", ''],
