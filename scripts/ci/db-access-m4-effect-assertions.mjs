@@ -22,7 +22,7 @@ const fail = reason => {
   throw Error('M4 effect/assertion join refused: ' + reason);
 };
 export function linkM4EffectAssertions(nativeHandle, runtime, event) {
-  const source = assertM4NativeProofSource(nativeHandle, event);
+  const { view: native, source } = assertM4NativeProofSource(nativeHandle, event);
   const records = assertM4RuntimeImageRecords(
     runtime,
     event.context,
@@ -69,7 +69,7 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
       scope: link.scope,
     };
   });
-  return freezeOutput({
+  const effectAssertions = freezeOutput({
     version: 1,
     kind: 'm4-finite-source-effect-executed-assertion-correspondence',
     sourcePolicyDigest: source.policyDigest,
@@ -87,4 +87,7 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     nativeAdmission: false,
     productionCCredit: 0,
   });
+  // The view was fully validated once by its live owner above. Do not rewalk or
+  // revalidate the same large graph just to pass it to the synchronous caller.
+  return Object.freeze({ native, effectAssertions });
 }

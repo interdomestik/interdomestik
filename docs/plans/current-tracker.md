@@ -150,6 +150,32 @@ At this checkpoint all three accepted-coverage measures remain zero. Next execut
 work is M4-02, beginning with the fixed assignment effect/assertion relation and its
 valid-source missing-assertion negative; no identical SQL/native replay is selected.
 
+M4-02 execution checkpoint: code `e0bb6afbc160b658a4b9532fab5f5ff638276553`
+integrates three bounded successful kernel-effect links with six mandatory assertion
+nodes and an independent fixed callback/oracle program. All 146 focused regressions
+and security/modularity checks passed; independent source review found no blocking
+issue for one local experiment. That actual experiment **failed** at 302.271 seconds
+including cleanup, after all 28 SQL cases passed in 37.685 seconds. No complete
+native/pair result was returned. The sampler hit an exhausted-deadline timeout and
+resource qualification failed; owned processes, container and volumes were retired,
+prior state and source/helper bookends were preserved. Receipt SHA-256:
+`25a74e1d962aa6026152d29cb9b1226ac25a1c0781b894725175a20a43854855`.
+This is a recurrence of the budget failure family, not accepted progress. The exact
+67e scoped pass above remains valid; it does not transfer to this changed source.
+
+Source inspection found an introduced duplicate full native/event/output validation
+in the new pairing/link composition. The bounded correction returns the current view
+and source from one existing owner validation, preserving all checks. Real frozen
+preparation/event-component timings are retained in
+`m4-effect-assertion-link-v1/validation-cost-result.json`; they exclude complete graph
+output validation and do not establish the exact timeout location. The one-validation
+composition regression and independent review are required before another changed-source
+experiment; no identical heavy replay is selected. Six other kernel effects and five
+other source derivations remain unresolved. M4-02, actual positive qualification and
+the final source-valid paired semantic negative remain open; accepted old-ID/context
+closures remain zero. Failure comparison and cleanup details are retained in
+`m4-effect-assertion-link-v1/positive-failure-classification.json`.
+
 Historical starting measurement on clean `2f0225a4e1eec865447ebdf67356dfcf71969fb4`
 completed in 289.321 seconds within the original 300-second/6-GiB measured envelope.
 All 7,062 tracked source bookends matched. The result is INCOMPLETE:

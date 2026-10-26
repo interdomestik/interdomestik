@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   mandatoryM4Assertion,
@@ -14,6 +15,8 @@ import {
 } from './db-access-m4-kernel-assertion-contract.mjs';
 import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
 import { assertM4RuntimeImageRecords } from './db-access-m4-runtime.mjs';
+import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
+import { deriveM4AssignmentKernel } from './db-access-m4-source.mjs';
 
 const source = fs.readFileSync(new URL('./' + fixture, import.meta.url), 'utf8');
 const parent = fs.readFileSync(
@@ -140,4 +143,88 @@ test('unchanged assertions cannot use a fabricated runtime result or oracle stat
       () => mandatoryM4Assertion(variant, fixture, caseId, expression, program),
       /oracle dataflow changed/
     );
+});
+
+test('unit owner doubles: one current native validation supplies both view and source to the synchronous join', async () => {
+  // Explicit isolated-module doubles: this tests call composition, not actual SQL,
+  // runtime freshness, native ownership, source admission or resource qualification.
+  const key = 'm4-owner-unit-' + randomUUID();
+  const kernelFile = 'apps/web/src/features/admin/claims/actions/ops-assignment.ts';
+  const root = fileURLToPath(new URL('../..', import.meta.url));
+  const record = PROVIDER_UNIT_POLICY.m4Proof.sources[kernelFile];
+  const native = Object.freeze({ unitOnly: true });
+  const derived = deriveM4AssignmentKernel(fs.readFileSync(root + '/' + kernelFile, 'utf8'));
+  let validations = 0;
+  const runtime = {
+    completion: { profileCaseIds: [caseId] },
+    reportSha256: 'a'.repeat(64),
+    contextSha256: 'b'.repeat(64),
+    imageDigest: 'c'.repeat(64),
+  };
+  const records = {
+    [kernelFile]: record,
+    [fixture]: PROVIDER_UNIT_POLICY.producerFiles['scripts/ci/' + fixture],
+    'db-access-m4-runtime-fixture.mjs':
+      PROVIDER_UNIT_POLICY.producerFiles['scripts/ci/db-access-m4-runtime-fixture.mjs'],
+  };
+  globalThis[key] = {
+    source() {
+      validations++;
+      return {
+        view: native,
+        source: {
+          policyDigest: 'd'.repeat(64),
+          sourceRecords: { [kernelFile]: record },
+          derivations: {
+            kernel: derived,
+            controller: {},
+            identity: {},
+            notification: {},
+            assignmentKernels: {},
+            privateRuntime: {},
+          },
+        },
+      };
+    },
+    records: () => records,
+  };
+  const data = value => 'data:text/javascript;base64,' + Buffer.from(value).toString('base64');
+  let code = fs.readFileSync(
+    new URL('./db-access-m4-effect-assertions.mjs', import.meta.url),
+    'utf8'
+  );
+  for (const [name, body] of [
+    [
+      'db-access-m4-native-session.mjs',
+      `export const assertM4NativeProofSource = globalThis[${JSON.stringify(key)}].source;`,
+    ],
+    [
+      'db-access-m4-runtime.mjs',
+      `export const assertM4RuntimeImageRecords = globalThis[${JSON.stringify(key)}].records;`,
+    ],
+  ]) {
+    const specifier = "'./" + name + "'";
+    assert.equal(code.split(specifier).length, 2);
+    code = code.replace(specifier, () => JSON.stringify(data(body)));
+  }
+  const producer = "path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')";
+  assert.equal(code.split(producer).length, 2);
+  code = code.replace(producer, () => JSON.stringify(root));
+  code = code.replace(
+    /from '\.\/([^']+)'/gu,
+    (_, name) => `from '${new URL(name, import.meta.url).href}'`
+  );
+  try {
+    const isolated = await import(data(code));
+    const linked = isolated.linkM4EffectAssertions({}, runtime, { context: {} });
+    assert.equal(validations, 1);
+    assert.equal(linked.native, native);
+    assert.equal(linked.effectAssertions.links.length, 3);
+    assert.equal(linked.effectAssertions.links.flatMap(link => link.assertions).length, 6);
+    assert.equal(linked.effectAssertions.unresolvedKernelEffects.length, 6);
+    assert.equal(linked.effectAssertions.acceptedCoverage, 0);
+    assert.equal(linked.effectAssertions.nativeAdmission, false);
+  } finally {
+    delete globalThis[key];
+  }
 });
