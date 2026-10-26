@@ -34,7 +34,31 @@ rejected. Stage3 is a local protected-event fixture, not actual GitHub execution
 production policy activation. Its result SHA-256 is
 `9b41a3542fbb59b4288264374aa285fae701f5eda114b7f8951932d13ee35b61`.
 
-The combined actual SQL/native attempt remains failed. Its retained diagnostic attempt
+The fresh combined local construction **passes** on source
+`67e288412a61e6b62a1f3471d1bb2261c2e87d43`, tree
+`941164e0001f85278ccd000c4e831f904ae12f3b`: **287.966 seconds including cleanup**, with a
+sampled aggregate owned-process/PostgreSQL peak of **4,841,325,199 bytes** inside the
+unchanged 300-second/6-GiB envelope. All 28 actual SQL cases and one genuine event-bound
+native session/pair complete; clone/JSON/foreign-policy/context refusals pass. Both samplers
+finish healthy (540 host/111 container samples, zero failures), all source/helper/dependency
+bookends match, owned processes/container/volumes are retired and prior resources are preserved.
+Sampling does not cover Docker VM overhead or sub-sample transients. The receipt SHA-256 is
+`e8aed370eb65b51fa14bfd536e49821f29d171acf1b432f108eb22224dea0bd6`; freeze is
+`fa2c3bc6cffb28df7cb3c20e43b732a4b0521c062ed50a5e883b49336555f9db`.
+
+The unchanged ordinary verdict remains **INCOMPLETE**: 7,709 inventory entries, baseline604,
+3,792 new entries, 3,813 failing identities, 193,682 report diagnostic tuples and 11,839,555
+occurrences. The original public report is retained with SHA-256
+`0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
+The live diagnostic ledger identifies 55 selected operations, 200 context tuples and 1,685
+context occurrences; all five correspondence relations remain unmapped and accepted coverage
+is zero. A tuple-grouping difference is not credited as an obligation reduction. This closes
+the scheduling/resource construction only, with no protected/hosted origin, native admission,
+production C, complete M4 or S8 credit. The independent source disposition remains limited to
+the immutable full-producer/TypeScript premise; worker-local loader enforcement is not claimed.
+The actual combined evidence is under `m4-runtime-native-qualification-v3` in the owner root.
+
+Historical combined SQL/native attempts failed. The retained diagnostic attempt
 finished cleanup at 302.292 seconds and timed out during native finalization; no native
 session/pair handle was returned. Measured regions are SQL 30.232 seconds, parent
 preparation 70.202, four-worker startup 70.249 and graph execution 69.885. The isolated
@@ -46,8 +70,8 @@ full-wire parity, but measured 32.534 seconds of provenance; it is rejected as a
 remedy and is not integrated. The bounded correction now prepares the identical historical controls during SQL and
 requires the owned worker to exit before native preparation. The actual extracted serial
 controls match the complete reference (60 scoped files and both prior rows); 28 lifecycle
-and sequencing unit-double cases pass. Independent review and one fresh combined actual
-proof remain pending. The inherited default-email positive-fixture failure was reproduced
+and sequencing unit-double cases pass. Independent bounded review permits the single
+combined experiment recorded above; full first-M4 T/P/context acceptance remains pending. The inherited default-email positive-fixture failure was reproduced
 on the untouched frozen diagnostic producer, then repaired with exact historical schema
 bytes and an explicit rejection of the real later export variant. All 119 integrated tests
 now pass. The current production source obligation remains held, not waived.
