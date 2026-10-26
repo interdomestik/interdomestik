@@ -166,7 +166,16 @@ const mutants = [
     "import { nanoid } from 'nanoid';",
     "import { nanoid } from 'nanoid';\nimport 'unreviewed-side-effect';",
   ],
-  ['ambient client import', '  auditLog,\n', '  auditLog,\n  db,\n'],
+  [
+    'ambient client import',
+    "import { type TenantTransaction } from '@interdomestik/database';",
+    "import { db, type TenantTransaction } from '@interdomestik/database';",
+  ],
+  [
+    'schema symbols loaded through ambient database barrel',
+    "import { auditLog, claims, user } from '@interdomestik/database/schema';",
+    "import { auditLog, claims, user } from '@interdomestik/database';",
+  ],
   [
     'extra top-level execution',
     'const CLAIM_NOT_FOUND_ERROR =',

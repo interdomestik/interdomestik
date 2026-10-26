@@ -32,6 +32,7 @@ export * from './member-counters';
 export * from './memberships';
 export * from './notes';
 export * from './notifications';
+export * from './operation-results';
 export * from './policies';
 export * from './rbac';
 export * from './services';

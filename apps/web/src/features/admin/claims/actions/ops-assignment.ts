@@ -1,14 +1,8 @@
-import {
-  and,
-  auditLog,
-  claims,
-  eq,
-  isNull,
-  user,
-  type TenantTransaction,
-} from '@interdomestik/database';
+import { type TenantTransaction } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import { auditLog, claims, user } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { isTerminalStatus } from '../types';

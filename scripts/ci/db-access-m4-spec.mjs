@@ -7,13 +7,14 @@ export const M4_KERNEL_FILE = 'apps/web/src/features/admin/claims/actions/ops-as
 export const M4_KERNEL_PREMISES = Object.freeze([
   'caller owns tx: an open tenant transaction that commits only after normal return and rolls back on any throw',
   'caller authenticates the actor and admits actorId, actorRole and tenantId; the kernel verifies no user identity and is not A1 admission',
-  'trusted imports are not derived: @interdomestik/database (and, eq, isNull, claims, user, auditLog), withTenant, claimStatusFromLifecycleFields, isTerminalStatus, OpsDomainDenialError, nanoid and their module-load effects',
+  'trusted imports are not derived: drizzle-orm (and, eq, isNull), @interdomestik/database/schema (claims, user, auditLog), withTenant, claimStatusFromLifecycleFields, isTerminalStatus, OpsDomainDenialError, nanoid and their module-load effects',
   'Drizzle 0.45.2 compiles each derived builder chain to one statement on tx; no executed SQL is claimed',
   'intrinsics (Date, Promise, Array, Object) are unmodified',
   'this source only: callers, other copies and every other executable use context remain separate obligations',
 ]);
 
-export const DATABASE = '@interdomestik/database';
+export const DATABASE = '@interdomestik/database/schema';
+export const OPERATORS = 'drizzle-orm';
 
 export const TENANT_SECURITY = '@interdomestik/database/tenant-security';
 
@@ -27,14 +28,12 @@ export const ASYNC = ts.SyntaxKind.AsyncKeyword;
 
 export const IMPORTS = {
   [DATABASE]: {
-    and: false,
     auditLog: false,
     claims: false,
-    eq: false,
-    isNull: false,
     user: false,
-    TenantTransaction: true,
   },
+  [OPERATORS]: { and: false, eq: false, isNull: false },
+  '@interdomestik/database': { TenantTransaction: true },
   [CLAIM_LIFECYCLE]: { claimStatusFromLifecycleFields: false },
   [TENANT_SECURITY]: { withTenant: false },
   nanoid: { nanoid: false },
@@ -89,11 +88,11 @@ export const FUNCTIONS = {
   },
 };
 
-export const AND = `${DATABASE}#and`;
+export const AND = `${OPERATORS}#and`;
 
-export const EQ = `${DATABASE}#eq`;
+export const EQ = `${OPERATORS}#eq`;
 
-export const IS_NULL = `${DATABASE}#isNull`;
+export const IS_NULL = `${OPERATORS}#isNull`;
 
 export const WITH_TENANT = `${TENANT_SECURITY}#withTenant`;
 

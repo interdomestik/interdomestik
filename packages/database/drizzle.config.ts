@@ -28,6 +28,7 @@ export default defineConfig({
     'claim_stage_history',
     'audit_log',
     'commercial_action_idempotency',
+    'operation_results',
     'domain_event_deliveries',
     'domain_event_keys',
     'domain_events',
