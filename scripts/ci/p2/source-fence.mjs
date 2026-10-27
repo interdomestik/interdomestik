@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 export const P2_SOURCE = 'apps/web/src/actions/admin-claims/assign.wrapper.test.ts';
+const VITE_DYNAMIC_IMPORT_HELPER = '\0vite/dynamic-import-helper.js';
 function canonical(id, importer, root) {
   let clean = id.replace(/[?#].*$/u, '');
   if (clean.startsWith('file:')) clean = fileURLToPath(clean);
@@ -21,6 +22,8 @@ function canonical(id, importer, root) {
 export function p2SourceFence(root) {
   const target = canonical(P2_SOURCE, undefined, root);
   const reject = (id, importer) => {
+    // This exact Vite-generated helper has no filesystem identity.
+    if (id === VITE_DYNAMIC_IMPORT_HELPER) return;
     if (canonical(id, importer, root) === target)
       throw new Error('P2_AMBIENT_SOURCE_LOAD_REFUSED: ' + P2_SOURCE);
   };

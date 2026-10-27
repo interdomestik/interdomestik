@@ -41,6 +41,18 @@ test('other source unaffected', () =>
     fence.load(path.join(root, 'apps/web/src/actions/admin-claims/assign.core.ts')),
     null
   ));
+test('Vite dynamic-import helper remains a virtual module in every fence hook', () => {
+  const id = '\0vite/dynamic-import-helper.js';
+  assert.equal(fence.resolveId(id, path.join(root, 'apps/web/src/i18n/messages.ts')), null);
+  assert.equal(fence.load(id), null);
+  assert.equal(fence.transform('export default function helper() {}', id), null);
+});
+test('virtual helper allowance cannot authorize the protected source or disguised IDs', () => {
+  const id = '\0vite/dynamic-import-helper.js';
+  assert.throws(() => fence.resolveId(absolute, id), /P2_AMBIENT_SOURCE_LOAD_REFUSED/);
+  for (const disguised of ['\0' + absolute, id + '?source=' + P2_SOURCE, id + '/' + P2_SOURCE])
+    assert.throws(() => fence.load(disguised));
+});
 test('partition conserves all actual source identities', () => {
   const files = ['other.test.ts', P2_SOURCE, 'third.test.ts'];
   const partition = partitionOrdinarySources(files);
