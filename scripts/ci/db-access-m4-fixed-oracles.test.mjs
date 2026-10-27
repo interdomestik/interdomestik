@@ -40,11 +40,23 @@ const input = { source, runtime, imageRecords, producer, policy };
 
 test('fixed oracle join binds exact derived facts and mandatory programs in all six families', () => {
   const links = linkM4FixedOracleCases(input);
-  assert.equal(contracts.length, 18);
-  assert.equal(links.length, 28);
-  assert.equal(links.flatMap(link => link.assertions).length, 137);
+  assert.equal(contracts.length, 19);
+  assert.equal(links.length, 29);
+  assert.equal(links.flatMap(link => link.assertions).length, 168);
   assert.equal(new Set(links.map(link => link.fact.path.split('/')[2])).size, 6);
   assert(links.every(link => link.completeEffectQualified === false));
+  assert.equal(
+    links.filter(link => link.executionContext === 'database-visibility-fault').length,
+    1
+  );
+  assert.equal(
+    new Set(
+      links
+        .filter(link => link.fact.path.startsWith('/derivations/kernel/'))
+        .map(link => link.fact.path)
+    ).size,
+    9
+  );
   assert(links.every(link => link.assertions.every(node => node.mandatoryOnSuccessfulCallback)));
 });
 

@@ -1663,8 +1663,8 @@
       "sha256": "e624c3d48c7a9c2b999d8800792908edad5e1c11e122b54eb9324c0ed434188a"
     },
     "scripts/ci/db-access-m4-runtime-contract.json": {
-      "sha256": "c6e92a4336b26c2ad8d3cbe59e966847753635fcde1600163fa8b0f98a0bb56d",
-      "bytes": 52346,
+      "sha256": "68bfe2e26fba3862eb08b46a961ca0c4592463e4f997b31767fec0e5bb087d45",
+      "bytes": 52499,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-contract.mjs": {
@@ -1673,9 +1673,9 @@
       "sha256": "b0ca419171ebd0268e4e625ba80167390f755e16cbdab9e10117f94d57c266b8"
     },
     "scripts/ci/db-access-m4-runtime-driver.mjs": {
-      "mode": "100644",
-      "bytes": 1349,
-      "sha256": "7352530d9c9092b7cf1340bd3e4239c552775c62226e1515d953ba0ed159f6b8"
+      "sha256": "74fb6d3c5e01ba6f6682a0dc20aefc16b2d9550a23ebe74a1891e20596bfe5ca",
+      "bytes": 1432,
+      "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-entry.ts": {
       "mode": "100644",
@@ -1693,8 +1693,8 @@
       "sha256": "c9e73096d0f1e00b63d38586120565eb40ba8ee337f4611f0e634adebf27b43b"
     },
     "scripts/ci/db-access-m4-runtime-fixture-private.mjs": {
-      "sha256": "39c6546f9d2439f371efc3965a127d5ac558135acf8cd74494637477fcae0527",
-      "bytes": 9282,
+      "sha256": "ca2f64953c6d5a8f7ecc0e921b3bef249b2967fe529df21df5d6f1ced0a21730",
+      "bytes": 9405,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-fixture-profiles-1.mjs": {
@@ -1723,8 +1723,8 @@
       "sha256": "f895e9aa904ed9615ba0fe247e0e245bc91eac35a50beb9f7fc32c63f9cc38e4"
     },
     "scripts/ci/db-access-m4-runtime-fixture.mjs": {
-      "sha256": "5e53c0fa2d2c2d55085bd8cd24447ab666c4df0bcf182b6bc68677a36e7e4e89",
-      "bytes": 4915,
+      "sha256": "9fbbf8fe47c4dba55c916fb82045c061b5f0b03f11a4c72856c1289dc9dec638",
+      "bytes": 5615,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-materialize.mjs": {
@@ -1738,8 +1738,8 @@
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-result.test.mjs": {
-      "sha256": "300a973af1f8dd53f99ceb02707d4c70a6b3b6af7ecc3a56798b86a5e8818f11",
-      "bytes": 2631,
+      "sha256": "c74d0f12daba819d1b865bc1a99b01fa27127965002d33433dc2df6b9345f0ba",
+      "bytes": 3382,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-seal.mjs": {
@@ -1918,18 +1918,23 @@
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-fixed-oracles.mjs": {
-      "sha256": "ad975ae43ed3bcd69fbb31106e802e368c4f2ad16a68a2160b5ed4460f5583dc",
-      "bytes": 3876,
+      "sha256": "561489a9eeb04692b3197fbf763bb1fb60bd9c4c22c25c74204f4e1e472cd2eb",
+      "bytes": 4118,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-ops-oracle-contract.json": {
-      "sha256": "365327f2cbb08feba44b9d035ff221ccc065e2e9ca87b61d42d483a638d998ad",
-      "bytes": 27631,
+      "sha256": "9ccec0ab50aec73ce1e678a62307ebecd87b25601be00d6daf7a012c91a3f604",
+      "bytes": 40332,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-runtime-fixture-ops-oracles.mjs": {
-      "sha256": "e83c86b1d96e3548b844109f87879b57549539f261ec6b247004a5470a81a986",
-      "bytes": 9151,
+      "sha256": "d0939161472ecfaf2b0372e804e911959d1275589c3b83b1ecfcbbc9493a5188",
+      "bytes": 9169,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-ops-visibility.mjs": {
+      "sha256": "62604adc822fdb4a32d996044fb97b12e663c41b7f5080397772eeec6c5bcdcf",
+      "bytes": 10016,
       "mode": "100644"
     }
   },

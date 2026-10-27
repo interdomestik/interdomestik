@@ -13,7 +13,11 @@ try {
     flag: 'wx',
     mode: 0o600,
   });
-  console.log('M4 fixed runtime completed its 28 asserted cases and cleanup.');
+  console.log(
+    'M4 fixed runtime completed its ' +
+      (report.privateCases.length + report.profileCases.length) +
+      ' asserted cases and cleanup.'
+  );
 } catch {
   fs.writeFileSync(
     path.join(output, 'm4-failure.json'),

@@ -123,7 +123,7 @@ export async function runOpsOracleCases(f) {
         const [{ pid }] = await tx`select pg_backend_pid() as pid`;
         const rows =
           await tx`update "user" set role='member' where id=${secondStaff} returning id,role`;
-        ready({ pid, rows });
+        ready({ pid, rows: Array.from(rows) });
         await released;
       });
       let pending;

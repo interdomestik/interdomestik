@@ -7,6 +7,19 @@ import { provisionM4Fixture, code } from './db-access-m4-runtime-fixture-provisi
 import { assertMinimalOpsGrants } from './db-access-m4-runtime-fixture-minimal-grants.mjs';
 import { runPrivateCases } from './db-access-m4-runtime-fixture-private.mjs';
 import { runProfileCases } from './db-access-m4-runtime-fixture-profiles.mjs';
+import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract.mjs';
+
+// Failure diagnostics expose only a fixed fixture basename and numeric location;
+// assertion messages, values, full stacks and connection configuration stay private.
+export function m4FixtureFailureSite(error) {
+  const site = String(error?.stack ?? '')
+    .split('\n')
+    .map(line =>
+      /^\s+at\s+.*\/(db-access-m4-runtime-fixture(?:-[a-z0-9-]+)?\.mjs):(\d+):(\d+)\)?$/u.exec(line)
+    )
+    .find(match => match && contract.fixtureFiles.includes(match[1]));
+  return site ? { file: site[1], line: Number(site[2]), column: Number(site[3]) } : undefined;
+}
 
 function dependencies(root) {
   const owned = fs.realpathSync(root);
@@ -95,13 +108,14 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
       cleanup.push(retired);
       assert.equal(retired.complete, true, 'Fixture teardown failed');
     }
-    assert.equal(result.privateCases.length, 14);
+    assert.equal(result.privateCases.length, 15);
     assert.equal(result.profileCases.length, 18);
   } catch (error) {
     result.failure = {
       stage,
       name: error?.name ?? 'Error',
       code: code(error) ?? null,
+      sourceSite: m4FixtureFailureSite(error),
     };
     if (error?.teardown) cleanup.push(error.teardown);
   } finally {
@@ -127,7 +141,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     !result.failure &&
     result.setupComplete &&
     result.cleanupComplete &&
-    result.privateCases.length === 14 &&
+    result.privateCases.length === 15 &&
     result.profileCases.length === 18 &&
     result.remainingOwnedSessions === 0;
   return result;

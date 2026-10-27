@@ -58,6 +58,9 @@ export function linkM4FixedOracleCases({ source, runtime, imageRecords, producer
         if (hash(JSON.stringify(fact)) !== link.factSha256) fail('derived fact changed');
         if (!link.sourceFiles?.length || !link.assertions?.length || !link.scope)
           fail('missing finite source/assertion scope');
+        const executionContext = link.executionContext ?? 'fixed-fixture';
+        if (!['fixed-fixture', 'database-visibility-fault'].includes(executionContext))
+          fail('unknown fixed execution context');
         const sourceFiles = link.sourceFiles.map(file => {
           const sha256 = source.sourceRecords[file]?.sha256;
           if (!sha256 || imageRecords[file]?.sha256 !== sha256)
@@ -79,6 +82,7 @@ export function linkM4FixedOracleCases({ source, runtime, imageRecords, producer
             )
           ),
           scope: link.scope,
+          executionContext,
           executionObserved: true,
           completeEffectQualified: false,
         });
