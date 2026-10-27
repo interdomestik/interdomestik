@@ -1918,8 +1918,8 @@
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-fixed-oracles.mjs": {
-      "sha256": "561489a9eeb04692b3197fbf763bb1fb60bd9c4c22c25c74204f4e1e472cd2eb",
-      "bytes": 4118,
+      "sha256": "a23a0a24edf8b13675e1b994bb383927214a6a033b6b9d9bec8945db5fd7c8a8",
+      "bytes": 4017,
       "mode": "100644"
     },
     "scripts/ci/db-access-m4-ops-oracle-contract.json": {
@@ -1935,6 +1935,11 @@
     "scripts/ci/db-access-m4-runtime-fixture-ops-visibility.mjs": {
       "sha256": "62604adc822fdb4a32d996044fb97b12e663c41b7f5080397772eeec6c5bcdcf",
       "bytes": 10016,
+      "mode": "100644"
+    },
+    "scripts/ci/db-access-m4-oracle-source-bindings.mjs": {
+      "sha256": "14a65e257cd66abaf9ad34e4fe56393cd4330f22f7bf668cfce5fbedfc0eec3e",
+      "bytes": 1826,
       "mode": "100644"
     }
   },

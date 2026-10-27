@@ -1,6 +1,7 @@
 // Fixed producer data selects finite consequences, never whole-effect qualification.
 import { exact, hash } from './db-access-provider-runtime-identity.mjs';
 import { mandatoryM4Assertion } from './db-access-m4-assertion-nodes.mjs';
+import { bindM4OracleSource } from './db-access-m4-oracle-source-bindings.mjs';
 
 const contracts = [
   'db-access-m4-ops-oracle-contract.json',
@@ -61,12 +62,9 @@ export function linkM4FixedOracleCases({ source, runtime, imageRecords, producer
         const executionContext = link.executionContext ?? 'fixed-fixture';
         if (!['fixed-fixture', 'database-visibility-fault'].includes(executionContext))
           fail('unknown fixed execution context');
-        const sourceFiles = link.sourceFiles.map(file => {
-          const sha256 = source.sourceRecords[file]?.sha256;
-          if (!sha256 || imageRecords[file]?.sha256 !== sha256)
-            fail('fact source differs between native and executed image');
-          return { file, sha256 };
-        });
+        const sourceFiles = link.sourceFiles.map(file =>
+          bindM4OracleSource(source, imageRecords, file)
+        );
         links.push({
           id: link.id,
           fact: { path: link.factPath, sha256: link.factSha256, sourceFiles },

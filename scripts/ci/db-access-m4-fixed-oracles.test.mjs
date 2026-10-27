@@ -9,6 +9,7 @@ import { mandatoryM4Assertion } from './db-access-m4-assertion-nodes.mjs';
 import { verifyM4ProofSource } from './db-access-m4-proof-source.mjs';
 import { M4_RUNTIME_CONTRACT } from './db-access-m4-runtime-contract.mjs';
 import { PROVIDER_UNIT_POLICY as policy } from './db-access-provider-unit-policy.mjs';
+import { bindM4OracleSource } from './db-access-m4-oracle-source-bindings.mjs';
 
 const producer = fileURLToPath(new URL('../..', import.meta.url));
 const contracts = [
@@ -33,7 +34,13 @@ const runtime = {
     profileCaseIds: [...M4_RUNTIME_CONTRACT.caseIDs.profiles],
   },
 };
-const imageRecords = { ...sourceRecords };
+// Match actual materialization membership: erased interfaces are not runtime
+// inputs. An overinclusive all-source mock previously hid this boundary.
+const imageRecords = {
+  ...M4_RUNTIME_CONTRACT.files,
+  ...M4_RUNTIME_CONTRACT.configuration,
+  ...M4_RUNTIME_CONTRACT.migrations,
+};
 for (const entry of contracts)
   imageRecords[entry.fixtureFile] = policy.producerFiles['scripts/ci/' + entry.fixtureFile];
 const input = { source, runtime, imageRecords, producer, policy };
@@ -58,6 +65,39 @@ test('fixed oracle join binds exact derived facts and mandatory programs in all 
     9
   );
   assert(links.every(link => link.assertions.every(node => node.mandatoryOnSuccessfulCallback)));
+});
+
+test('only the two exact native type-only witnesses avoid an executed-image claim', () => {
+  for (const [file, role] of [
+    ['apps/web/src/server/operations/m4-private-runtime-types.ts', 'runtimeTypes'],
+    ['apps/web/src/server/operations/m4-assignment-controller-types.ts', 'controllerTypes'],
+  ]) {
+    assert.equal(imageRecords[file], undefined);
+    const binding = bindM4OracleSource(source, imageRecords, file);
+    assert.equal(binding.binding, 'native-erased-type-witness');
+    assert.equal(binding.executedImageBinding, false);
+    for (const change of [
+      s => delete s.derivations.privateRuntime.facts.types[role],
+      s => s.derivations.privateRuntime.facts.types[role].runtimeEffects.push('execution'),
+      s => (s.derivations.privateRuntime.sourceSha256[file] = '0'.repeat(64)),
+      s => (s.sourceRecords[file].sha256 = '0'.repeat(64)),
+    ]) {
+      const changed = structuredClone(source);
+      change(changed);
+      assert.throws(
+        () => bindM4OracleSource(changed, imageRecords, file),
+        /exact native erased-type derivation/
+      );
+    }
+  }
+  const executable = 'apps/web/src/server/operations/m4-private-runtime.ts';
+  const missing = { ...imageRecords };
+  delete missing[executable];
+  assert.throws(() => bindM4OracleSource(source, missing, executable), /fact source differs/);
+  const unknown = 'apps/web/src/server/operations/unknown-types.ts';
+  const changed = structuredClone(source);
+  changed.sourceRecords[unknown] = { sha256: 'a'.repeat(64) };
+  assert.throws(() => bindM4OracleSource(changed, imageRecords, unknown), /fact source differs/);
 });
 
 test('changed or absent derived facts cannot retain a fixed consequence link', () => {

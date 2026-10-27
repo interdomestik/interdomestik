@@ -273,35 +273,38 @@ Raw evidence is in `m4-effect-assertion-positive-v4` and
 `m4-prepare-cpu-profile-v1/paired-budget-qualification.json`. The earlier negative's
 timeout and sampler failure remain failed. This resolves the budget family for
 these exact constructions, not full M4-02/M4-07, whole guard, M4, S8 or delivery.
-Six other OPS effects and five other source derivations remain unmapped; existing
+At that earlier checkpoint six OPS effects and five other derivations were unmapped; existing
 legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs,
 contexts, original occurrences, native admission and production C credit remain zero.
 
 M4-01 is **closed within native accounting** on
-`ba8931f26bbb553ecd4bdf3ddfa8a11e5426f065`, following independent actual-result review.
-The genuine28SQL/owned-Worker/native pair passed in **267.157 seconds**, sampled peak
-**5,385,450,291 bytes**, healthy samplers/cleanup, preserved source/helpers/prior services.
-Receipt SHA-256:`955b0ed9575c437070eb29986640484921c5d35baf311d5cd97f24d4b2532ff8`.
-All55 identities/200 observations/1685entry occurrences and every legacy context,
-frame, attribution/root and original public obligation array equal35e exactly:
-7709scanned/3792new/3813failing/193682tuples/11839555occurrences, baseline604.
-Selected-path counts:13480=949legacy overlap+12531additional;334scopes/1450records,
-4available frames/139selections/613361encoded bytes. All479 original key groups
-retain265079grouped occurrences and every remainder; no individual-row causation is claimed.
-Twenty batches cover1250roots and all200 observation keys. The37original push sites
-retain their order, including26synchronous selected-lifetime sites in the reviewed tree.
-Wrapped11839539/offpath11826059 plus15raw unwrapped metadata occurrences and1final
-prerequisite occurrence remain explicit. Outside/global/deferred applicability and
-171open/188escaped flags stay unknown for M4-03; loader completeness stays M4-06.
-Full evidence:`m4-selected-path-full-v1`; independent review SHA-256:
-`d14d1deb31e768b872fef18c2922c49a8662dfbb5b8349ba9bfd3050809a1b97`.
-All246 descriptors match;19 reviewed deltas preserve other policy fields. All743
-related tests, security/modularity/changed-format and real finite parity pass.
-Stale-overlap and corrected harness failures remain in `m4-failure-memory-v1/updates`;
-internal aggregate work counters were NOT measured. No globalZERO prerequisite is added.
-M4-02 is selected next: preserve3effect/6assertion links; add genuine OPS denial/target-lock
-oracles and finite source-fact correspondence, without inventing missing/CAS execution.
-Accepted debt/context/occurrence closures, admission and production C stay0; remaining M4/S8 stay open.
+`ba8931f26bbb553ecd4bdf3ddfa8a11e5426f065`, independently accepted. Its genuine 28 SQL/
+owned-Worker/native pair passed 267.157 seconds, sampled 5,385,450,291 bytes, healthy cleanup.
+All 55 identities / 200 observations / 1,685 entry occurrences and original public obligations
+match 35e: 7,709 scanned / 3,792 new / 3,813 failing / 193,682 tuples / 11,839,555 occurrences, baseline 604.
+Selected-path 13,480 = 949 legacy overlap + 12,531 additional; 479 original groups retain all
+265,079 grouped occurrences/remainders. Unknown/global/deferred applicability and
+171 open / 188 escaped flags remain explicit. Full evidence: `m4-selected-path-full-v1`;
+receipt 955b0ed9575c437070eb29986640484921c5d35baf311d5cd97f24d4b2532ff8;
+independent review d14d1deb31e768b872fef18c2922c49a8662dfbb5b8349ba9bfd3050809a1b97.
+No global ZERO prerequisite or whole-M4 admission follows; aggregate work counters unmeasured.
+
+M4-02 remains **selected/partial**. Exact `fae887fbbdfd3406172fab2cdf533511e8842c3a`
+passes 33 actual SQL-fixture cases (15 private + 18 profiles) in 32.237 seconds including
+cleanup, sampled 1,266,705,367 bytes; prior services/source/helpers preserved, owned
+processes/PG/volumes retired. Original 28 cases retained; OPS terminal/target-lock,
+historical empty-assignee CAS and explicit restrictive visibility-fault missing-claim,
+exact audit payload/rollback pass. Fault context is not ordinary production reachability.
+Evidence: `m4-ops-oracle-sql-qualification-v3`; actual-result review
+`e8a7324a25e9c838cb0db8a2adf88ab8da5e843212447d257853a403696ea42b`.
+At fae887f, 557 focused tests/security pass. Earlier 32-case 21.931s failure stays FAILED: parent
+postgres.Result versus Array mismatch before invoke; narrow normalization independently
+reproduced/fixed. Failure memory retains raw-column/result/type-witness omissions and
+comparisons. The image has 15 executable sources; two erased witnesses remain source-only;
+The exact two-file binding repair is source-tested; a fresh native/effect join and
+remaining control oracles are pending. 19 programs / 29 links / 168 refs are finite construction, not family qualification.
+Worker-loader mechanism feasibility passes locally; M4-06/L1 remains HOLD. All accepted
+debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 
