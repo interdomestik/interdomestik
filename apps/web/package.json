@@ -56,7 +56,7 @@
     "@interdomestik/ui": "workspace:*",
     "@paddle/paddle-js": "^1.6.5",
     "@paddle/paddle-node-sdk": "^3.10.0",
-    "@sentry/nextjs": "^10.74.0",
+    "@sentry/nextjs": "^10.75.2",
     "@supabase/supabase-js": "^2.110.9",
     "@tanstack/react-query": "^5.102.8",
     "@types/bcryptjs": "^3.0.0",
