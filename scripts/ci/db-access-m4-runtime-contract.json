@@ -749,6 +749,9 @@
       "invalid requests refuse before pool construction and expose only execute and close",
       "literal private bootstrap binds actual current-store verifier controller and distinct purpose pools",
       "fresh operation pools reconcile same identity and reject changed payload without duplicate effect",
+      "ops resolved lifecycle returns durable terminal denial without assignment effects",
+      "ops foreign and nonstaff targets produce exact durable ineligible denials",
+      "ops target role change blocks and is reread under the actual target share lock",
       "live session deletion denies next private operation despite earlier success",
       "session revoked during actual startup queue is reread before business admission",
       "per-operation deadline terminates its own blocked pools with original identity and no automatic retry",
@@ -769,6 +772,7 @@
   "fixtureFiles": [
     "db-access-m4-runtime-fixture-grants.mjs",
     "db-access-m4-runtime-fixture-minimal-grants.mjs",
+    "db-access-m4-runtime-fixture-ops-oracles.mjs",
     "db-access-m4-runtime-fixture-private.mjs",
     "db-access-m4-runtime-fixture-profiles-1.mjs",
     "db-access-m4-runtime-fixture-profiles-2.mjs",

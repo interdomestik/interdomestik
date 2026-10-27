@@ -47,7 +47,7 @@ export function validateM4RuntimeCompletion(report) {
   return Object.freeze({
     privateCases: report.privateCases.length,
     profileCases: report.profileCases.length,
-    total: 28,
+    total: contract.caseIDs.private.length + contract.caseIDs.profiles.length,
     privateCaseIds: Object.freeze(report.privateCases.map(row => row.id)),
     profileCaseIds: Object.freeze(report.profileCases.map(row => row.id)),
     completionValidated: true,

@@ -232,11 +232,13 @@ export async function runProfileGroup2(context) {
       const id = 'profile_audit_fail_' + suffix;
       await seedClaim(id);
       const r = req(id),
+        opsRequest = { ...req(id), command: 'm4.ops.assign-owner' },
         before = await state(id);
       const fn = 'm4_audit_fault_' + suffix.replaceAll('-', ''),
-        tr = fn + '_tr';
+        tr = fn + '_tr',
+        seq = fn + '_seq';
       await admin.unsafe(
-        `CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.entity_id='${id}' THEN RAISE EXCEPTION 'owned audit fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`
+        `CREATE SEQUENCE ${quote(seq)}; GRANT USAGE ON SEQUENCE ${quote(seq)} TO ${quote(dataRole)}; CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.entity_id='${id}' THEN PERFORM nextval('${seq}'); RAISE EXCEPTION 'owned audit fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`
       );
       try {
         assert.deepEqual(await invoke('executeLegacyAdmin', r), {
@@ -246,8 +248,31 @@ export async function runProfileGroup2(context) {
         assert.deepEqual(await state(id), before);
         await drain();
         assert.equal((await notification(r)).length, 0);
+        const [legacyAuditAttempt] = await admin.unsafe(
+          `select last_value::int as last_value,is_called from ${quote(seq)}`
+        );
+        assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true });
+        assert.deepEqual(await runtime.execute(cookie, JSON.stringify(opsRequest)), {
+          status: 'indeterminate',
+          operationId: opsRequest.operationId,
+        });
+        assert.deepEqual(
+          await state(id),
+          before,
+          'OPS audit fault rolls back assignment and ledger'
+        );
+        await drain();
+        const settledOpsFault = await state(id);
+        assert.deepEqual(settledOpsFault, before);
+        assert.equal((await notification(opsRequest)).length, 0);
+        const [opsAuditAttempt] = await admin.unsafe(
+          `select last_value::int as last_value,is_called from ${quote(seq)}`
+        );
+        assert.deepEqual(opsAuditAttempt, { last_value: 2, is_called: true });
       } finally {
-        await admin.unsafe(`DROP TRIGGER ${quote(tr)} ON audit_log; DROP FUNCTION ${quote(fn)}()`);
+        await admin.unsafe(
+          `DROP TRIGGER ${quote(tr)} ON audit_log; DROP FUNCTION ${quote(fn)}(); DROP SEQUENCE ${quote(seq)}`
+        );
       }
       assert.equal((await invoke('executeLegacyAdmin', r)).result.success, true);
       await awaitNotice(r);

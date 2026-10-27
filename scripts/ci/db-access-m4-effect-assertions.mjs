@@ -6,6 +6,7 @@ import { assertM4RuntimeImageRecords } from './db-access-m4-runtime.mjs';
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { exact, hash } from './db-access-provider-runtime-identity.mjs';
 import { freezeOutput } from './db-access-output-binding.mjs';
+import { linkM4FixedOracleCases } from './db-access-m4-fixed-oracles.mjs';
 import {
   mandatoryM4Assertion,
   assertM4AwaitedCaseRunner,
@@ -69,6 +70,13 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
       scope: link.scope,
     };
   });
+  const fixedOracleLinks = linkM4FixedOracleCases({
+    source,
+    runtime,
+    imageRecords: records,
+    producer,
+    policy: PROVIDER_UNIT_POLICY,
+  });
   const effectAssertions = freezeOutput({
     version: 1,
     kind: 'm4-finite-source-effect-executed-assertion-correspondence',
@@ -78,10 +86,26 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     fixtureSha256: hash(fixture),
     imageDigest: runtime.imageDigest,
     links,
+    fixedOracleLinks,
     unresolvedKernelEffects: effects.filter(
-      effect => !links.some(link => link.step === effect.step)
+      (effect, index) =>
+        !links.some(link => link.step === effect.step) &&
+        !fixedOracleLinks.some(
+          link => link.fact.path === '/derivations/kernel/facts/effects/' + index
+        )
     ),
-    otherSourceDerivationsUnmapped: Object.keys(source.derivations).filter(key => key !== 'kernel'),
+    otherSourceDerivationsUnmapped: Object.keys(source.derivations).filter(
+      key =>
+        key !== 'kernel' &&
+        !fixedOracleLinks.some(link => link.fact.path.startsWith('/derivations/' + key + '/'))
+    ),
+    // A finite executed consequence never discharges every control, SQL or context
+    // premise of the containing fact/derivation. All six families remain partial.
+    sourceDerivationScopes: Object.keys(source.derivations).map(derivation => ({
+      derivation,
+      completeEffectQualified: false,
+      unresolvedPremises: true,
+    })),
     correspondenceComplete: false,
     acceptedCoverage: 0,
     nativeAdmission: false,

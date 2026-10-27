@@ -1,0 +1,416 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "live session deletion denies next private operation despite earlier success",
+      "program": "async () => {\n      await admin`delete from session where id=${sessionId}`;\n      assert.deepEqual(await invoke(successRequest), {\n        status: 'denied',\n        reason: 'UNAUTHORIZED',\n      });\n      await admin`insert into session(id,token,\"userId\",\"expiresAt\",\"createdAt\",\"updatedAt\") values(${sessionId},${token},${actor},now()+interval '1 hour',now(),now())`;\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "identity-revoked-session",
+          "factPath": "/derivations/identity/facts/verifier/clauses/0",
+          "factSha256": "8ad042ff58c2938220952d8eb047940c88dc2e92e71fc9fa59d50afd43824b77",
+          "sourceFiles": [
+            "apps/web/src/lib/auth/current-store-session.ts",
+            "apps/web/src/lib/auth/user-schema.ts",
+            "packages/shared-auth/src/session.ts",
+            "packages/shared-auth/package.json"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke(successRequest), {\n        status: 'denied',\n        reason: 'UNAUTHORIZED',\n      })"
+          ],
+          "scope": "After a previous successful operation, deleting the exact current session causes the next request to return UNAUTHORIZED. This observes a fresh-session consequence, not every provider read/cache/cookie branch."
+        },
+        {
+          "id": "identity-absent-session-denial",
+          "factPath": "/derivations/identity/facts/verifier/clauses/1",
+          "factSha256": "58566a62dcd7190909f382359c56ca63cc61227e42f43261b3427aed914ef8e7",
+          "sourceFiles": [
+            "apps/web/src/lib/auth/current-store-session.ts",
+            "apps/web/src/lib/auth/user-schema.ts",
+            "packages/shared-auth/src/session.ts",
+            "packages/shared-auth/package.json"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke(successRequest), {\n        status: 'denied',\n        reason: 'UNAUTHORIZED',\n      })"
+          ],
+          "scope": "The deleted-session fixture observes the absent-session denial path only; malformed, expired and provider-unavailable paths remain separate."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "session revoked during actual startup queue is reread before business admission",
+      "program": "async () => {\n      const id = 'runtime_queued_' + suffix;\n      await seedClaim(id);\n      const r = request(id),\n        before = await state(id);\n      let release, ready;\n      const released = new Promise(resolve => (release = resolve)),\n        acquired = new Promise(resolve => (ready = resolve));\n      const held = blocker.begin(async tx => {\n        await tx`lock table pg_catalog.pg_type in access exclusive mode`;\n        ready();\n        await released;\n      });\n      let pending;\n      try {\n        await acquired;\n        pending = invoke(r);\n        await waitDataBlocked();\n        await admin`delete from session where id=${sessionId}`;\n        release();\n        await held;\n        assert.deepEqual(await pending, {\n          status: 'denied',\n          reason: 'UNAUTHORIZED',\n        });\n        assert.deepEqual(await state(id), before);\n        await noOwnedSessions();\n        record.sessionRevokedWhileStartupBlocked = true;\n      } finally {\n        release();\n        await held;\n        if (pending) await pending;\n      }\n      await admin`insert into session(id,token,\"userId\",\"expiresAt\",\"createdAt\",\"updatedAt\") values(${sessionId},${token},${actor},now()+interval '1 hour',now(),now())`;\n    }",
+      "links": [
+        {
+          "id": "controller-queued-session-denial",
+          "factPath": "/derivations/controller/facts/ownedClauses/1",
+          "factSha256": "14face91abebfa26ac0b2c056f8f7dc54f44a3cf6270c6e9c15e5748901a046b",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await pending, {\n          status: 'denied',\n          reason: 'UNAUTHORIZED',\n        })",
+            "assert.deepEqual(await state(id), before)"
+          ],
+          "scope": "Revocation while actual startup is blocked yields UNAUTHORIZED and leaves the exact claim/audit/ledger snapshot unchanged. Does not establish all transaction ordering or RLS clauses."
+        },
+        {
+          "id": "runtime-queued-current-store-binding",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/17",
+          "factSha256": "6e046459c1efb66036058d73ec43475844b63ad1f99ef521f2b1d1bc83125504",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await pending, {\n          status: 'denied',\n          reason: 'UNAUTHORIZED',\n        })",
+            "assert.deepEqual(await state(id), before)"
+          ],
+          "scope": "The constructed runtime observes session deletion before business admission after its startup wait. This is a narrow consequence of the verifier binding, not proof of every constructor argument or provider contract."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "four-operation capacity rejects fifth before additional purpose pools and close drains owned work",
+      "program": "async () => {\n      const id = 'runtime_capacity_' + suffix;\n      await seedClaim(id);\n      const owner = make(),\n        lock = await holdClaim(id);\n      const requests = Array.from({ length: 4 }, () => request(id));\n      let pending;\n      try {\n        pending = Promise.all(requests.map(r => invoke(r, cookie, owner)));\n        const observed = await waitDataBlocked(4);\n        assert.equal(observed.filter(r => r.usename === dataRole).length, 4);\n        assert.equal(observed.filter(r => r.usename === identityRole).length, 4);\n        const fifth = request(id);\n        assert.deepEqual(await invoke(fifth, cookie, owner), {\n          status: 'indeterminate',\n          operationId: fifth.operationId,\n        });\n        assert.equal((await sessions()).length, 8);\n        await owner.close();\n        assert.deepEqual(\n          await pending,\n          requests.map(r => ({\n            status: 'indeterminate',\n            operationId: r.operationId,\n          }))\n        );\n        await noOwnedSessions();\n        assert.equal((await state(id)).audit.length, 0);\n        const after = request(id);\n        assert.deepEqual(await invoke(after, cookie, owner), {\n          status: 'indeterminate',\n          operationId: after.operationId,\n        });\n        await noOwnedSessions();\n      } finally {\n        await lock.release();\n        await owner.close();\n        if (pending) await pending;\n      }\n    }",
+      "links": [
+        {
+          "id": "runtime-four-capacity-refusal",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/4",
+          "factSha256": "44339ab577221aa6110d86c2d22a423defafcc628eaa9eab7808d0c90b88ad48",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.equal(observed.filter(r => r.usename === dataRole).length, 4)",
+            "assert.equal(observed.filter(r => r.usename === identityRole).length, 4)",
+            "assert.deepEqual(await invoke(fifth, cookie, owner), {\n          status: 'indeterminate',\n          operationId: fifth.operationId,\n        })",
+            "assert.equal((await sessions()).length, 8)"
+          ],
+          "scope": "Four blocked operations have four actual data and four identity sessions; a fifth returns its original operation ID as indeterminate without increasing the observed session count. No general timing or pool-options claim."
+        },
+        {
+          "id": "runtime-close-owned-work",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/0",
+          "factSha256": "505814f14bb64dbaac716da55685eb289d334406ff7ea8d61d1d1e51968d17f0",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(\n          await pending,\n          requests.map(r => ({\n            status: 'indeterminate',\n            operationId: r.operationId,\n          }))\n        )",
+            "assert.equal((await state(id)).audit.length, 0)",
+            "assert.deepEqual(await invoke(after, cookie, owner), {\n          status: 'indeterminate',\n          operationId: after.operationId,\n        })"
+          ],
+          "scope": "After explicit close, the four owned pending requests settle indeterminate with their IDs, no audit is present, and the next request is refused. Session drain is retained in the frozen program but is a helper premise, not an independently selected assertion here."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-2.mjs",
+      "caseGroup": "profiles",
+      "caseId": "current role downgrade blocks prior administrator replay for another target",
+      "program": "async () => {\n      await actorRole('staff');\n      try {\n        assert.deepEqual(await invoke('executeLegacyAdmin', successRequest), {\n          status: 'denied',\n          reason: 'SELF_ASSIGNMENT_ONLY',\n        });\n      } finally {\n        await actorRole('admin');\n      }\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "controller-current-self-authority",
+          "factPath": "/derivations/controller/facts/ownedClauses/10",
+          "factSha256": "776f5decea11f7c5d1090e2d408eb90fce2b09bb8391545b9f5705bd216ed8eb",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeLegacyAdmin', successRequest), {\n          status: 'denied',\n          reason: 'SELF_ASSIGNMENT_ONLY',\n        })"
+          ],
+          "scope": "A formerly-admin current actor changed to staff cannot replay an assignment to another target; exact SELF_ASSIGNMENT_ONLY is observed. Does not prove all actor predicates, locks or role cases."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "legacy replay returns durable result without duplicate audit or notification and aliases conflict",
+      "program": "async () => {\n      const before = await state(success);\n      const result = await invoke('executeLegacyAdmin', successRequest);\n      assert.equal(result.status, 'completed');\n      assert.equal(result.replayed, true);\n      assert.deepEqual(await invoke('executeLegacyAgent', successRequest), {\n        status: 'denied',\n        reason: 'OPERATION_CONFLICT',\n      });\n      assert.deepEqual(await state(success), before);\n      assert.equal((await notification(successRequest)).length, 1);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "controller-legacy-replay-entry-conflict",
+          "factPath": "/derivations/controller/facts/ownedClauses/17",
+          "factSha256": "183577348ddaa9d677640697f5d97e350c5cdf720339fbef7548dfbaabca082f",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.status, 'completed')",
+            "assert.equal(result.replayed, true)",
+            "assert.deepEqual(await invoke('executeLegacyAgent', successRequest), {\n        status: 'denied',\n        reason: 'OPERATION_CONFLICT',\n      })",
+            "assert.deepEqual(await state(success), before)",
+            "assert.equal((await notification(successRequest)).length, 1)"
+          ],
+          "scope": "Same legacy-admin UUID replays with unchanged state and one notice; changing the literal legacy entry yields OPERATION_CONFLICT. Other fingerprint fields and stored projection branches remain unqualified."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "legacy admin commits assignment audit ledger and independent notification using restricted purposes",
+      "program": "async () => {\n      await seedClaim(success);\n      const before = await state(success);\n      const result = await invoke('executeLegacyAdmin', successRequest);\n      assert.equal(result.status, 'completed');\n      assert.equal(result.result.success, true);\n      assert.equal(result.changed, true);\n      const after = await state(success);\n      assert.equal(after.claim[0].staffId, staff);\n      assert.equal(after.claim[0].assignedAt, before.claim[0].assignedAt);\n      assert.equal(after.claim[0].assignedById, before.claim[0].assignedById);\n      assert.equal(after.audit.length, 1);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.audit[0].metadata.ip, '192.0.2.10');\n      assert.equal(after.audit[0].metadata.requestObservation.authoritative, false);\n      const rows = await awaitNotice(successRequest);\n      assert.equal(rows.length, 1);\n      assert.equal(rows[0].user_id, staff);\n      assert.equal(rows[0].tenant_id, home);\n      assert.equal(rows[0].title, 'New Claim Assigned');\n      assert.equal(rows[0].action_url, '/staff/claims/' + success);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "legacy-assignment-field-preservation",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/12",
+          "factSha256": "77a3089670b35ccc99ed0e5c55662a8766216b35bc192e771132cfa70cdd83d3",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(after.claim[0].staffId, staff)",
+            "assert.equal(after.claim[0].assignedAt, before.claim[0].assignedAt)",
+            "assert.equal(after.claim[0].assignedById, before.claim[0].assignedById)"
+          ],
+          "scope": "This legacy-admin write sets the requested staff while preserving the prior assignedAt and assignedById. The full UPDATE predicate/CAS/RETURNING and arbitrary column nonmutation are not inferred."
+        },
+        {
+          "id": "legacy-audit-observation-fields",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/14",
+          "factSha256": "d1276b9fb88a84d08c2551da746a3a6046f5e70ee182c615310a70cf2aae1fb9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(after.audit.length, 1)",
+            "assert.equal(after.audit[0].metadata.ip, '192.0.2.10')",
+            "assert.equal(after.audit[0].metadata.requestObservation.authoritative, false)"
+          ],
+          "scope": "One audit has the supplied bounded IP and explicitly nonauthoritative observation flag for this successful legacy assignment. Full audit payload, rollback and every observation field remain separate."
+        },
+        {
+          "id": "notification-fixed-row-consequence",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/store/10",
+          "factSha256": "782053a4153030281c17a4ab011a7c0d082b0d3fd163a09d2992dd72df69c250",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.equal(rows.length, 1)",
+            "assert.equal(rows[0].user_id, staff)",
+            "assert.equal(rows[0].tenant_id, home)",
+            "assert.equal(rows[0].title, 'New Claim Assigned')",
+            "assert.equal(rows[0].action_url, '/staff/claims/' + success)"
+          ],
+          "scope": "A completed legacy assignment produces one notice with the expected target, tenant, title and claim URL. This does not prove the complete insertion predicate/conflict behavior, prior ledger gates, verified email or external delivery."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "admin eligible noop preserves terminal case and emits neither audit nor notification",
+      "program": "async () => {\n      await admin`update claim set case_lifecycle_state='resolved',recovery_lifecycle_state='resolved' where id=${success}`;\n      const r = req(success),\n        before = await state(success),\n        result = await invoke('executeLegacyAdmin', r);\n      assert.equal(result.status, 'completed');\n      assert.equal(result.result.success, true);\n      assert.equal(result.changed, false);\n      const after = await state(success);\n      assert.deepEqual(after.claim, before.claim);\n      assert.deepEqual(after.audit, before.audit);\n      assert.equal(after.result.length, before.result.length + 1);\n      await drain();\n      assert.equal((await notification(r)).length, 0);\n    }",
+      "links": [
+        {
+          "id": "legacy-admin-terminal-noop",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/10",
+          "factSha256": "61ad3e15c209cf134b9b8b56951378833ed6ed44e69d1b278bb4be09e04d1188",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.result.success, true)",
+            "assert.equal(result.changed, false)",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, before.result.length + 1)",
+            "assert.equal((await notification(r)).length, 0)"
+          ],
+          "scope": "Eligible same-target legacy-admin request on the explicitly resolved fixture succeeds unchanged, preserves claim/audit and creates only its result row with no notice after drain. No claim about other eligibility or lifecycle branches."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-2.mjs",
+      "caseGroup": "profiles",
+      "caseId": "staff omitted target assigns current actor and explicit null clears assignment timestamps",
+      "program": "async () => {\n      await actorRole('staff');\n      const id = 'profile_staff_self_' + suffix;\n      await seedClaim(id);\n      try {\n        const r = { ...req(id), command: 'm4.staff.assign-claim' };\n        delete r.staffId;\n        const result = await invoke('executeStaff', r);\n        assert.equal(result.result.success, true);\n        assert.equal(result.changed, true);\n        const assigned = await state(id);\n        assert.equal(assigned.claim[0].staffId, actor);\n        assert.equal(assigned.claim[0].assignedById, actor);\n        assert(assigned.claim[0].assignedAt);\n        const cleared = await invoke('executeStaff', {\n          ...req(id, null),\n          command: 'm4.staff.assign-claim',\n        });\n        assert.equal(cleared.result.success, true);\n        const after = await state(id);\n        assert.equal(after.claim[0].staffId, null);\n        assert.equal(after.claim[0].assignedAt, null);\n        assert.equal(after.claim[0].assignedById, null);\n        assert.equal(after.audit.length, 2);\n        await drain();\n      } finally {\n        await actorRole('admin');\n      }\n    }",
+      "links": [
+        {
+          "id": "staff-omitted-target-self",
+          "factPath": "/derivations/assignmentKernels/facts/staff/clauses/assignStaffInTransaction/3",
+          "factSha256": "3aa8270de7c1eea87bed797588e886a2728fd56aeff5a72e0579062cfa4a852e",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.result.success, true)",
+            "assert.equal(assigned.claim[0].staffId, actor)",
+            "assert.equal(assigned.claim[0].assignedById, actor)"
+          ],
+          "scope": "The omitted staff target resolves to the current staff actor, observed in stored assignee/assigner. Complete actor/current-tenant authority and explicit malformed cases remain separate."
+        },
+        {
+          "id": "staff-null-clears-metadata",
+          "factPath": "/derivations/assignmentKernels/facts/staff/clauses/assignStaffInTransaction/12",
+          "factSha256": "396deea9b1005f2495c36ab387334c08f55cd8d89784f91df0781bfd4baee6f9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(cleared.result.success, true)",
+            "assert.equal(after.claim[0].staffId, null)",
+            "assert.equal(after.claim[0].assignedAt, null)",
+            "assert.equal(after.claim[0].assignedById, null)",
+            "assert.equal(after.audit.length, 2)"
+          ],
+          "scope": "Explicit null clears assignee, assignedAt and assignedById after this self assignment, with two audits total. Does not qualify complete UPDATE predicates, updatedAt clock authority, CAS or returning branches."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-2.mjs",
+      "caseGroup": "profiles",
+      "caseId": "staff current branch constrains both resource and target while sibling context remains usable",
+      "program": "async () => {\n      await actorRole('staff', branchA);\n      await targetRole(staff, 'staff', branchA);\n      await targetRole(secondStaff, 'staff', branchB);\n      try {\n        const id = 'profile_branch_' + suffix,\n          other = 'profile_other_branch_' + suffix;\n        await seedClaim(id);\n        await seedClaim(other);\n        await admin`update claim set branch_id=${branchA} where id=${id}`;\n        await admin`update claim set branch_id=${branchB} where id=${other}`;\n        const wrong = {\n            ...req(id, secondStaff),\n            command: 'm4.staff.assign-claim',\n          },\n          beforeTarget = await effects(id, other);\n        assert.equal(beforeTarget.states[0].result.length, 0);\n        assert.deepEqual(await invoke('executeStaff', wrong), {\n          status: 'completed',\n          operationId: wrong.operationId,\n          replayed: false,\n          result: {\n            success: false,\n            error: 'Staff member not found or out of scope',\n          },\n          changed: false,\n        });\n        const afterTarget = await effects(id, other);\n        assert.deepEqual(afterTarget.states[0].claim, beforeTarget.states[0].claim);\n        assert.deepEqual(afterTarget.states[0].audit, beforeTarget.states[0].audit);\n        denialLedger(\n          afterTarget.states[0].result,\n          wrong,\n          'Staff member not found or out of scope',\n          'staff'\n        );\n        assert.deepEqual(afterTarget.states[1], beforeTarget.states[1]);\n        assert.deepEqual(afterTarget.notices, beforeTarget.notices);\n        await drain();\n        assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Wrong target effects checked before next request'\n        );\n        const deniedResource = {\n          ...req(other, staff),\n          command: 'm4.staff.assign-claim',\n        };\n        assert.deepEqual(await invoke('executeStaff', deniedResource), {\n          status: 'denied',\n          reason: 'RESOURCE_DENIED',\n        });\n        assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Wrong resource must change neither claim, audit, ledger nor notifications'\n        );\n        await drain();\n        assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Each denial is settled before the later positive'\n        );\n        assert.equal(\n          (\n            await invoke('executeStaff', {\n              ...req(id, staff),\n              command: 'm4.staff.assign-claim',\n            })\n          ).result.success,\n          true\n        );\n        assert.equal((await state(other)).audit.length, 0);\n        await drain();\n      } finally {\n        await actorRole('admin');\n        await targetRole(staff, 'staff');\n        await targetRole(secondStaff, 'staff');\n      }\n    }",
+      "links": [
+        {
+          "id": "controller-branch-resource-denial",
+          "factPath": "/derivations/controller/facts/ownedClauses/13",
+          "factSha256": "bf7afe05fa30ed462d91220a87b28f9ee0624e82e31c14cb4532dd177e530849",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeStaff', deniedResource), {\n          status: 'denied',\n          reason: 'RESOURCE_DENIED',\n        })",
+            "assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Wrong resource must change neither claim, audit, ledger nor notifications'\n        )",
+            "assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Each denial is settled before the later positive'\n        )"
+          ],
+          "scope": "The sibling-branch request returns RESOURCE_DENIED and preserves both claims, audits, ledger and notices before the later positive request. Does not establish the complete source scope predicate or universal branch isolation."
+        },
+        {
+          "id": "staff-branch-target-denial",
+          "factPath": "/derivations/assignmentKernels/facts/staff/clauses/assignStaffInTransaction/8",
+          "factSha256": "be504b0009c9b2fc17595f4a9514f2b5d126066b1c85885dd706cded172c6e37",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeStaff', wrong), {\n          status: 'completed',\n          operationId: wrong.operationId,\n          replayed: false,\n          result: {\n            success: false,\n            error: 'Staff member not found or out of scope',\n          },\n          changed: false,\n        })",
+            "assert.deepEqual(afterTarget.states[0].claim, beforeTarget.states[0].claim)",
+            "assert.deepEqual(afterTarget.states[0].audit, beforeTarget.states[0].audit)",
+            "assert.deepEqual(afterTarget.states[1], beforeTarget.states[1])",
+            "assert.deepEqual(afterTarget.notices, beforeTarget.notices)",
+            "assert.deepEqual(\n          await effects(id, other),\n          afterTarget,\n          'Wrong target effects checked before next request'\n        )"
+          ],
+          "scope": "Wrong current target branch yields the exact ineligible denial with immediate unchanged claim/audit/sibling/notice snapshots. The helper denialLedger is retained but not credited as a direct assertion; other target eligibility and lock semantics remain open."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-3.mjs",
+      "caseGroup": "profiles",
+      "caseId": "observed notification store failure leaves committed assignment successful without automatic retry",
+      "program": "async () => {\n      const id = 'profile_notice_fail_' + suffix;\n      await seedClaim(id);\n      const r = req(id),\n        owner = f.make();\n      const seq = 'm4_notice_probe_' + suffix.replaceAll('-', ''),\n        fn = seq + '_fn',\n        tr = seq + '_tr';\n      // Sequence increment survives the failed transaction and proves the notifier reached\n      // this exact INSERT. Supplemental fixture grant is not a production privilege claim.\n      await admin.unsafe(\n        `CREATE SEQUENCE ${quote(seq)}; GRANT USAGE ON SEQUENCE ${quote(seq)} TO ${quote(notificationRole)}; CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='${noticeId(r)}' THEN PERFORM nextval('${seq}'); RAISE EXCEPTION 'owned notification fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON notifications FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`\n      );\n      try {\n        const result = await owner.executeLegacyAdmin(cookie, JSON.stringify(r), observation);\n        assert.equal(result.status, 'completed');\n        assert.equal(result.result.success, true);\n        const until = performance.now() + 3000;\n        let observed = false;\n        do {\n          const [row] = await admin.unsafe(`select is_called from ${quote(seq)}`);\n          if (row.is_called) {\n            observed = true;\n            break;\n          }\n          await new Promise(resolve => setTimeout(resolve, 10));\n        } while (performance.now() < until);\n        assert(observed, 'Actual notifier must reach the faulted INSERT before cleanup');\n        await owner.close();\n        // close() settles the owning notifier; the live fault/sequence still observes every attempt.\n        const [attempts] = await admin.unsafe(\n          `select last_value::int as last_value,is_called from ${quote(seq)}`\n        );\n        assert.deepEqual(\n          attempts,\n          { last_value: 1, is_called: true },\n          'Exactly one INSERT attempt after owning runtime closes'\n        );\n        await drain();\n        assert.equal((await notification(r)).length, 0);\n        assert.equal((await state(id)).audit.length, 1);\n      } finally {\n        await owner.close();\n        await admin.unsafe(\n          `DROP TRIGGER ${quote(tr)} ON notifications; DROP FUNCTION ${quote(fn)}(); DROP SEQUENCE ${quote(seq)}`\n        );\n      }\n      const replay = await invoke('executeLegacyAdmin', r);\n      assert.equal(replay.replayed, true);\n      await drain();\n      assert.equal((await notification(r)).length, 0);\n      const later = req(id);\n      assert.equal((await invoke('executeLegacyAgent', later)).result.success, true);\n      await awaitNotice(later);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "notification-one-faulted-insert-attempt",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/store/10",
+          "factSha256": "782053a4153030281c17a4ab011a7c0d082b0d3fd163a09d2992dd72df69c250",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(\n          attempts,\n          { last_value: 1, is_called: true },\n          'Exactly one INSERT attempt after owning runtime closes'\n        )",
+            "assert.equal(result.status, 'completed')",
+            "assert.equal(result.result.success, true)",
+            "assert.equal((await state(id)).audit.length, 1)"
+          ],
+          "scope": "The fault sequence records exactly one INSERT attempt after owning runtime close, while assignment reports success and audit remains committed. The explicit fault and extra fixture grant are scoped here; no universal no-retry or full insert-gate claim."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-3.mjs",
+      "caseGroup": "profiles",
+      "caseId": "blocked notification deadline retires its database while assignment remains committed",
+      "program": "async () => {\n      const owner = f.make(10000, 750),\n        observer = postgres(f.adminURL, { max: 1, ssl: false });\n      const id = 'profile_notice_timeout_' + suffix;\n      await seedClaim(id);\n      const r = req(id);\n      let release, ready;\n      const released = new Promise(resolve => (release = resolve)),\n        acquired = new Promise(resolve => (ready = resolve));\n      const hold = admin.begin(async tx => {\n        await tx`lock table notifications in access exclusive mode`;\n        ready();\n        await released;\n      });\n      await acquired;\n      try {\n        const result = await owner.executeLegacyAdmin(cookie, JSON.stringify(r), observation);\n        assert.equal(result.status, 'completed');\n        assert.equal(result.result.success, true);\n        const until = performance.now() + 2000;\n        let blocked = false;\n        do {\n          const rows =\n            await observer`select pid from pg_stat_activity where usename=${notificationRole} and cardinality(pg_blocking_pids(pid))>0`;\n          if (rows.length) {\n            blocked = true;\n            break;\n          }\n          await new Promise(resolve => setTimeout(resolve, 10));\n        } while (performance.now() < until);\n        assert(blocked, 'Notifier must reach actual blocked INSERT');\n        const retired = performance.now() + 2500;\n        let remaining = 1;\n        do {\n          const rows =\n            await observer`select pid from pg_stat_activity where usename=${notificationRole}`;\n          remaining = rows.length;\n          if (!remaining) break;\n          await new Promise(resolve => setTimeout(resolve, 10));\n        } while (performance.now() < retired);\n        assert.equal(remaining, 0, 'Only owned notifier deadline retires blocked backend');\n        release();\n        await hold;\n        await owner.close();\n        assert.equal((await state(id)).audit.length, 1);\n        assert.equal((await state(id)).claim[0].staffId, staff);\n        assert.equal((await notification(r)).length, 0);\n        assert.equal((await invoke('executeLegacyAdmin', r)).replayed, true);\n        await drain();\n        assert.equal((await notification(r)).length, 0);\n      } finally {\n        release();\n        await hold;\n        await owner.close();\n        await observer.end({ timeout: 0 });\n      }\n    }",
+      "links": [
+        {
+          "id": "notification-deadline-retirement",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/owner/8",
+          "factSha256": "ba684e35f4a929219d03869ad36bf9107e5120c3f3b475ed6166dd91bdf906de",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.equal(remaining, 0, 'Only owned notifier deadline retires blocked backend')",
+            "assert.equal(result.status, 'completed')",
+            "assert.equal(result.result.success, true)",
+            "assert.equal((await state(id)).audit.length, 1)",
+            "assert.equal((await state(id)).claim[0].staffId, staff)"
+          ],
+          "scope": "Under the fixed blocked-notification fixture the polled notification-role backend count reaches zero while assignment stays committed. Generic assert(blocked) remains in the fixed program, not a selected strict node; no exact timer bound, external provider or all-purpose proof."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-3.mjs",
+      "caseGroup": "profiles",
+      "caseId": "concurrent same UUID executes assignment audit and notification once",
+      "program": "async () => {\n    const id = 'profile_concurrent_' + suffix;\n    await seedClaim(id);\n    const r = req(id);\n    const results = await Promise.all([\n      invoke('executeLegacyAdmin', r),\n      invoke('executeLegacyAdmin', r),\n    ]);\n    assert(results.every(x => x.status === 'completed' && x.result.success));\n    assert.deepEqual(results.map(x => x.replayed).sort(), [false, true]);\n    const rows = await state(id);\n    assert.equal(rows.audit.length, 1);\n    assert.equal(rows.result.length, 1);\n    await awaitNotice(r);\n    await drain();\n    assert.equal((await notification(r)).length, 1);\n  }",
+      "links": [
+        {
+          "id": "controller-concurrent-replay-counts",
+          "factPath": "/derivations/controller/facts/ownedClauses/17",
+          "factSha256": "183577348ddaa9d677640697f5d97e350c5cdf720339fbef7548dfbaabca082f",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(results.map(x => x.replayed).sort(), [false, true])",
+            "assert.equal(rows.audit.length, 1)",
+            "assert.equal(rows.result.length, 1)",
+            "assert.equal((await notification(r)).length, 1)"
+          ],
+          "scope": "Two concurrent identical legacy-admin requests yield replay flags false/true, one audit, one result and one notice. Does not establish every advisory-lock/fingerprint/stored-result branch."
+        }
+      ]
+    }
+  ]
+}

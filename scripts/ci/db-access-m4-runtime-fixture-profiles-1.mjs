@@ -68,6 +68,7 @@ export async function runProfileGroup1(context) {
     async () => {
       const id = 'profile_ops_' + suffix;
       await seedClaim(id);
+      const before = await state(id);
       const r = { ...req(id), command: 'm4.ops.assign-owner' };
       const result = await runtime.execute(cookie, JSON.stringify(r));
       assert.equal(result.status, 'completed');
@@ -80,6 +81,40 @@ export async function runProfileGroup1(context) {
       assert.equal(after.audit.length, 1);
       assert.equal(after.result.length, 1);
       assert.equal(after.claim[0].staffId, staff);
+      assert.equal(after.claim[0].assignedById, actor);
+      assert.equal(after.claim[0].assignedAt instanceof Date, true);
+      assert.equal(after.claim[0].assignedAt.toISOString(), result.result.data.assignedAt);
+      assert.equal(after.claim[0].updatedAt.getTime(), after.claim[0].assignedAt.getTime());
+      assert.equal(typeof after.audit[0].id, 'string');
+      assert.equal(after.audit[0].id.length > 0, true);
+      assert.equal(after.audit[0].created_at instanceof Date, true);
+      assert.equal(Number.isFinite(after.audit[0].created_at.getTime()), true);
+      assert.deepEqual(after.audit[0], {
+        id: after.audit[0].id,
+        tenant_id: home,
+        actor_id: actor,
+        actor_role: null,
+        action: 'assign_owner',
+        entity_type: 'claim',
+        entity_id: id,
+        metadata: {
+          previousStaffId: before.claim[0].staffId,
+          newStaffId: staff,
+          claimNumber: before.claim[0].claim_number,
+        },
+        created_at: after.audit[0].created_at,
+      });
+      assert.deepEqual(result, {
+        status: 'completed',
+        operationId: r.operationId,
+        replayed: false,
+        result: {
+          success: true,
+          data: { id, staffId: staff, assignedAt: after.claim[0].assignedAt.toISOString() },
+        },
+      });
+      assert.equal(after.result[0].operation_id, r.operationId);
+      assert.deepEqual(after.result[0].response, result.result);
       await drain();
       assert.equal((await notification(r)).length, 0);
     }

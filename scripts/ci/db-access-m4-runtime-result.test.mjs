@@ -23,7 +23,7 @@ const good = () => ({
 test('complete report shape is never a fresh executed result', () => {
   const report = good(),
     validated = validateM4RuntimeCompletion(report);
-  assert.equal(validated.total, 28);
+  assert.equal(validated.total, 31);
   assert.equal(isFreshM4RuntimeResult(report), false);
   assert.equal(isFreshM4RuntimeResult(validated), false);
   assert.equal(isFreshM4RuntimeResult(JSON.parse(JSON.stringify(report))), false);

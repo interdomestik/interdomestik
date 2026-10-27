@@ -187,6 +187,7 @@ test('unit owner doubles: one current native validation supplies both view and s
       };
     },
     records: () => records,
+    oracles: () => [],
   };
   const data = value => 'data:text/javascript;base64,' + Buffer.from(value).toString('base64');
   let code = fs.readFileSync(
@@ -197,6 +198,10 @@ test('unit owner doubles: one current native validation supplies both view and s
     [
       'db-access-m4-native-session.mjs',
       `export const assertM4NativeProofSource = globalThis[${JSON.stringify(key)}].source;`,
+    ],
+    [
+      'db-access-m4-fixed-oracles.mjs',
+      `export const linkM4FixedOracleCases = globalThis[${JSON.stringify(key)}].oracles;`,
     ],
     [
       'db-access-m4-runtime.mjs',

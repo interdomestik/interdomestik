@@ -1,5 +1,6 @@
 // Trusted parent oracle. Two fixed diagnostic calls execute inside restricted child.
 import assert from 'node:assert/strict';
+import { runOpsOracleCases } from './db-access-m4-runtime-fixture-ops-oracles.mjs';
 export async function runPrivateCases(f) {
   const {
     admin,
@@ -80,6 +81,7 @@ export async function runPrivateCases(f) {
       await noOwnedSessions();
     }
   );
+  await runOpsOracleCases(f);
   await run(
     'live session deletion denies next private operation despite earlier success',
     async () => {
