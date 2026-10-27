@@ -4,16 +4,24 @@ No CLI-selected image, entry, source, mount, environment, or exclusion is accept
 """
 from pathlib import Path
 import hashlib,io,json,os,shutil,signal,subprocess,sys,tarfile,uuid
-from custody import inventory,sha,assert_owned_removed as remove_confirmed
+from custody import inventory,sha,assert_owned_removed as remove_confirmed, docker_argv, assert_daemon, validate_owned_inspection, ENDPOINT, DAEMON, LABEL
 from bounded_child import collect
 P=Path(__file__).resolve().parent
 JOURNAL=None
+OWNED={}
+SCOPE=None
 def journal(event,**fields):
  if JOURNAL is not None:
-  with JOURNAL.open('a') as f:f.write(json.dumps({'event':event,**fields})+'\n')
+  row=(json.dumps({'event':event,**fields})+'\n').encode()
+  if len(row)>65536 or (JOURNAL.exists() and JOURNAL.stat().st_size+len(row)>1024*1024):raise ValueError('Owned journal cap')
+  fd=os.open(JOURNAL,os.O_WRONLY|os.O_CREAT|os.O_APPEND|os.O_NOFOLLOW,0o600)
+  try:os.write(fd,row)
+  finally:os.close(fd)
 def assert_owned_removed(identifier):
  try:
-  receipt=remove_confirmed(identifier);journal('removed',containerId=identifier,receipt=receipt);return receipt
+  expected=next((item for item in OWNED.values() if identifier in (item['name'],item.get('containerId'))),None)
+  if expected is None:raise ValueError('Unknown owned container')
+  receipt=remove_confirmed(identifier,expected);journal('removed',name=expected['name'],containerId=expected.get('containerId'),receipt=receipt);del OWNED[expected['name']];return receipt
  except BaseException as error:
   journal('cleanup-failed',containerId=identifier,error=type(error).__name__);raise
 RECIPE='''FROM scratch
@@ -27,22 +35,28 @@ CMD ["suite"]
 '''
 
 def command(args,timeout=30,stdin=None):
+ if args[0]=='docker':args=docker_argv(args[1:])
  p=subprocess.run(args,stdin=stdin,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout)
  if p.returncode:raise RuntimeError('Fixed producer command failed: '+args[0]+' '+args[1]+' '+p.stderr.decode(errors='replace')[:1000])
  return p.stdout
 
 def inspect(identifier):return json.loads(command(['docker','inspect',identifier]))[0]
 
-def create_owned(args):
- name='p2-producer-'+uuid.uuid4().hex;journal('create-attempt',name=name)
- identifier=command(['docker','create','--pull=never','--name',name,*args]).decode().strip()
+def create_owned(args,role,image,compile_output=None):
+ assert_daemon()
+ owner=uuid.uuid4().hex;name='p2-producer-'+owner
+ expected={'name':name,'owner':owner,'scope':SCOPE,'role':role,'image':image,'producer':str(P),'compileOutput':str(compile_output) if compile_output else None,'daemon':DAEMON,'endpoint':ENDPOINT}
+ OWNED[name]=expected;journal('create-attempt',expected=expected)
+ identifier=command(['docker','create','--pull=never','--name',name,'--label',LABEL+'='+owner,'--label','s8.p2.scope='+SCOPE,*args]).decode().strip()
  if len(identifier)!=64 or any(c not in '0123456789abcdef' for c in identifier):raise ValueError('Invalid owned container identity')
- journal('created',name=name,containerId=identifier)
+ expected['containerId']=identifier
+ validate_owned_inspection(inspect(identifier),expected)
+ journal('created',expected=expected)
  return identifier
 
 def run_owned(identifier,timeout=12):
  try:
-  proc=subprocess.Popen(['docker','start','--attach',identifier],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,start_new_session=True)
+  proc=subprocess.Popen(docker_argv(['start','--attach',identifier]),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True,start_new_session=True)
   capture=collect(proc,timeout=timeout)
   if capture['reason']:
    # Cleanup always runs even if kill reports already stopped/daemon failure.
@@ -57,7 +71,7 @@ def compile_rootfs(output,policy):
  if image['Os']+'/'+image['Architecture'] not in policy['architectures']:raise ValueError('Unqualified actual image architecture')
  if policy['officialImage'] not in image.get('RepoDigests',[]):raise ValueError('Official immutable image identity')
  output.mkdir(mode=0o700)
- identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','--memory=384m','--memory-swap=384m','--pids-limit=32','--cpus=1','--ipc=none','--log-driver=none','--tmpfs','/tmp:rw,noexec,nosuid,nodev,size=16m','--mount','type=bind,src='+str(P)+',dst=/build,readonly','--mount','type=bind,src='+str(output)+',dst=/out',policy['officialImage'],'/bin/sh','/build/build-rootfs.sh'])
+ identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','--memory=384m','--memory-swap=384m','--pids-limit=32','--cpus=1','--ipc=none','--log-driver=none','--tmpfs','/tmp:rw,noexec,nosuid,nodev,size=16m','--mount','type=bind,src='+str(P)+',dst=/build,readonly','--mount','type=bind,src='+str(output)+',dst=/out',policy['officialImage'],'/bin/sh','/build/build-rootfs.sh'],'compile',policy['officialImage'],output)
  run_owned(identifier,timeout=60)
  if inventory(output/'rootfs')!=policy['rootfs']:raise ValueError('Compiled fixed rootfs exact set/type/hash mismatch')
  return output/'rootfs'
@@ -88,10 +102,10 @@ def census_image(image,roots):
  for name,entries in roots.items():
   for relative,record in entries.items():
    if record['type']=='file':expected[('' if name=='rootfs' else 'capsule/')+relative]=record
- identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true',image])
+ identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true',image],'census',image)
  records={};directories=[];special=[];total=0
  try:
-  proc=subprocess.Popen(['docker','export',identifier],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  proc=subprocess.Popen(docker_argv(['export',identifier]),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   try:
    with tarfile.open(fileobj=proc.stdout,mode='r|') as tar:
     for item in tar:
@@ -123,7 +137,7 @@ def census_image(image,roots):
  finally:assert_owned_removed(identifier)
 
 def run_suite(image):
- identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','--memory=384m','--memory-swap=384m','--pids-limit=32','--cpus=1','--ulimit','core=0','--ulimit','nofile=64:64','--log-driver=none','--ipc=none','--user','65532:65532','--tmpfs','/scratch:rw,noexec,nosuid,nodev,size=16m,uid=65532,gid=65532,mode=0700',image,'suite'])
+ identifier=create_owned(['--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges:true','--memory=384m','--memory-swap=384m','--pids-limit=32','--cpus=1','--ulimit','core=0','--ulimit','nofile=64:64','--log-driver=none','--ipc=none','--user','65532:65532','--tmpfs','/scratch:rw,noexec,nosuid,nodev,size=16m,uid=65532,gid=65532,mode=0700',image,'suite'],'runtime',image)
  try:
   state=inspect(identifier);h=state['HostConfig']
   if state['Image']!=image or state['Config']['User']!='65532:65532':raise ValueError('Actual runtime identity')
@@ -149,13 +163,15 @@ def materialize_capsule(output):
  return output
 
 def main():
- global JOURNAL
+ global JOURNAL,SCOPE
  if len(sys.argv)!=2:raise ValueError('Only fixed owned output argument')
  output=Path(sys.argv[1]).resolve()
  if output.exists():raise ValueError('Output must be fresh')
  if shutil.disk_usage(output.parent).free<=10*1024**3:raise ValueError('10GiB floor')
  output.mkdir(mode=0o700)
  JOURNAL=output/'owned-containers.jsonl'
+ SCOPE=hashlib.sha256(str(output).encode()).hexdigest();assert_daemon()
+ journal('scope',scope=SCOPE,daemon=DAEMON,endpoint=ENDPOINT)
  policy=json.loads((P/'policy.json').read_text());before=inventory(P)
  rootfs=compile_rootfs(output/'compile',policy)
  image,roots,archive_hash=seal_build(rootfs,materialize_capsule(output/'capsule'),output)
@@ -172,3 +188,9 @@ if __name__=='__main__':
  except BaseException as error:
   journal('failed',error=type(error).__name__,nativeAdmission=False)
   raise
+ finally:
+  failures=[]
+  for expected in list(OWNED.values()):
+   try:assert_owned_removed(expected.get('containerId',expected['name']))
+   except BaseException as error:failures.append(type(error).__name__)
+  if failures:raise RuntimeError('Owned P2 cleanup incomplete')

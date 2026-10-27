@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import {
   mandatoryM4Assertion,
@@ -14,9 +13,8 @@ import {
   M4_KERNEL_ASSERTION_LINKS as links,
 } from './db-access-m4-kernel-assertion-contract.mjs';
 import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
+import { createM4EffectAssertionOwnerFixture } from './db-access-m4-effect-assertions-test-fixture.mjs';
 import { assertM4RuntimeImageRecords } from './db-access-m4-runtime.mjs';
-import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
-import { deriveM4AssignmentKernel } from './db-access-m4-source.mjs';
 
 const source = fs.readFileSync(new URL('./' + fixture, import.meta.url), 'utf8');
 const parent = fs.readFileSync(
@@ -24,6 +22,7 @@ const parent = fs.readFileSync(
   'utf8'
 );
 const expression = 'assert.equal(after.audit.length, 1)';
+const hash = value => createHash('sha256').update(value).digest('hex');
 const locate = text => mandatoryM4Assertion(text, fixture, caseId, expression);
 const unit = body => `import assert from 'node:assert/strict';
 export async function fixture({ run }) {
@@ -149,42 +148,14 @@ test('unit owner doubles: one current native validation supplies both view and s
   // Explicit isolated-module doubles: this tests call composition, not actual SQL,
   // runtime freshness, native ownership, source admission or resource qualification.
   const key = 'm4-owner-unit-' + randomUUID();
-  const kernelFile = 'apps/web/src/features/admin/claims/actions/ops-assignment.ts';
-  const root = fileURLToPath(new URL('../..', import.meta.url));
-  const record = PROVIDER_UNIT_POLICY.m4Proof.sources[kernelFile];
-  const native = Object.freeze({ unitOnly: true });
-  const derived = deriveM4AssignmentKernel(fs.readFileSync(root + '/' + kernelFile, 'utf8'));
+  const { root, event, runtime, records, source, native, copiedInputCount } =
+    createM4EffectAssertionOwnerFixture();
   let validations = 0;
-  const runtime = {
-    completion: { profileCaseIds: [caseId] },
-    reportSha256: 'a'.repeat(64),
-    contextSha256: 'b'.repeat(64),
-    imageDigest: 'c'.repeat(64),
-  };
-  const records = {
-    [kernelFile]: record,
-    [fixture]: PROVIDER_UNIT_POLICY.producerFiles['scripts/ci/' + fixture],
-    'db-access-m4-runtime-fixture.mjs':
-      PROVIDER_UNIT_POLICY.producerFiles['scripts/ci/db-access-m4-runtime-fixture.mjs'],
-  };
+  const state = { native, source };
   globalThis[key] = {
     source() {
       validations++;
-      return {
-        view: native,
-        source: {
-          policyDigest: 'd'.repeat(64),
-          sourceRecords: { [kernelFile]: record },
-          derivations: {
-            kernel: derived,
-            controller: {},
-            identity: {},
-            notification: {},
-            assignmentKernels: {},
-            privateRuntime: {},
-          },
-        },
-      };
+      return { view: state.native, source: state.source };
     },
     records: () => records,
     oracles: () => [],
@@ -221,7 +192,8 @@ test('unit owner doubles: one current native validation supplies both view and s
   );
   try {
     const isolated = await import(data(code));
-    const linked = isolated.linkM4EffectAssertions({}, runtime, { context: {} });
+    const handle = { outputDigest: hash('unit native output') };
+    const linked = isolated.linkM4EffectAssertions(handle, runtime, event);
     assert.equal(validations, 1);
     assert.equal(linked.native, native);
     assert.equal(linked.effectAssertions.links.length, 3);
@@ -229,6 +201,32 @@ test('unit owner doubles: one current native validation supplies both view and s
     assert.equal(linked.effectAssertions.unresolvedKernelEffects.length, 6);
     assert.equal(linked.effectAssertions.acceptedCoverage, 0);
     assert.equal(linked.effectAssertions.nativeAdmission, false);
+    assert.equal(linked.effectAssertions.localPremises.copiedInputs.length, copiedInputCount);
+    state.source = {
+      ...source,
+      bookends: { ...source.bookends, after: hash('changed source') },
+    };
+    assert.throws(
+      () => isolated.linkM4EffectAssertions(handle, runtime, event),
+      /source\/event\/completion binding/
+    );
+    state.source = source;
+    assert.throws(
+      () =>
+        isolated.linkM4EffectAssertions(
+          handle,
+          { ...runtime, fixedContractSha256: hash('foreign contract') },
+          event
+        ),
+      /source\/event\/completion binding/
+    );
+    state.native = structuredClone(native);
+    delete state.native.rawGraph.m4Contexts.affectedLineage;
+    assert.throws(
+      () => isolated.linkM4EffectAssertions(handle, runtime, event),
+      /missing owned affected-lineage observation axis/
+    );
+    assert.equal(validations, 4);
   } finally {
     delete globalThis[key];
   }

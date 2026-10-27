@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "id": "m4-fixed-p2-registry-return-factories-v1",
+  "sourceFile": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+  "parserVersion": "5.9.3",
+  "pins": {
+    "originalTest": {
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "sha256": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+      "bytes": 7811
+    },
+    "generatedTestSource": {
+      "file": "scripts/ci/p2/capsule/dist/wrapper.test.source.ts",
+      "sha256": "52e49604fe58f3eb2ae483989f248364975a4f5cc246f9ade2cbe5de765c76e6",
+      "bytes": 7883
+    },
+    "generatedTest": {
+      "file": "scripts/ci/p2/capsule/dist/wrapper.test.mjs",
+      "sha256": "9de422216f2bed22cc21633fbd281506c96d007a9539a0787f7ec33c0707863c",
+      "bytes": 8697
+    },
+    "registry": {
+      "file": "scripts/ci/p2/capsule/registry.mjs",
+      "sha256": "c3ced4747ab1eb289091a482c09b3378dc5df8c1ba075b33b2050f7b6cb87a47",
+      "bytes": 951
+    },
+    "runSuite": {
+      "file": "scripts/ci/p2/capsule/run-suite.mjs",
+      "sha256": "3a74dc5b6bfcaf4f20710bd98f8fb7941223a4c1e2ea86cb8f7f085536cfd160",
+      "bytes": 3118
+    },
+    "sourceFence": {
+      "file": "scripts/ci/p2/source-fence.mjs",
+      "sha256": "85566c9bfed958ce027621e621ce9c86bff71770cae61201cd984c81b855f6d4",
+      "bytes": 1951
+    },
+    "ordinaryJob": {
+      "file": "scripts/ci/p2/ordinary-job.mjs",
+      "sha256": "3dcbbc36c2f59dec5492fea77d362063a7d089a116f20634effb31fe6769e9a1",
+      "bytes": 6010
+    },
+    "generatedWrapper": {
+      "file": "scripts/ci/p2/capsule/dist/wrapper.mjs",
+      "sha256": "f1f0bbdd05f862fca8bf38697c84a820c09bcd38895b2c4d530c55643ee4a997",
+      "bytes": 2737
+    }
+  },
+  "factoryIds": [
+    "3abe201e80665b5f1d95dd025e8694e386fd4eedab84512fa06b501c27ad7353",
+    "23045f68d4b176bb5a96c7ce1100eb6639006081e00ffbb87a42f31871abbab0"
+  ],
+  "specifiers": ["@interdomestik/database", "@interdomestik/database/tenant-security"],
+  "mockSpecifiers": [
+    "@interdomestik/domain-claims/agent-claims/assign",
+    "@/lib/audit",
+    "@/lib/notifications",
+    "next/cache",
+    "@interdomestik/database",
+    "@interdomestik/database/tenant-security"
+  ],
+  "tests": [
+    {
+      "name": "should call domain assignClaimCore with correct params",
+      "start": 1743,
+      "end": 2357,
+      "bodySha256": "68c48cc42a51e19c356a708e282ee4a7fa6e477f7083d24fbf8400e14eba8b7c"
+    },
+    {
+      "name": "should revalidate paths",
+      "start": 2362,
+      "end": 3588,
+      "bodySha256": "3221750a7508951f0446feeedbc22c059f7f283624e57a38e7b839a3c4ff9c85"
+    },
+    {
+      "name": "should not revalidate on denied/no-op result",
+      "start": 3593,
+      "end": 4135,
+      "bodySha256": "ddecb4166053b19b45c0abd154dc2f906cff367f50351ad5a88a8f6a8a85dcec"
+    },
+    {
+      "name": "should propagate errors from domain layer",
+      "start": 4140,
+      "end": 4514,
+      "bodySha256": "72290aa97eb4aa44b949dcccbf93873e4c814708fe5577abf213d76f521e20c4"
+    },
+    {
+      "name": "assignment no-op should not call domain mutation or revalidate",
+      "start": 4519,
+      "end": 5050,
+      "bodySha256": "36daaa7c49372c3c668da73caee0824e376ed2c4a8aedc502d1b53d36515efff"
+    },
+    {
+      "name": "fails closed for unauthorized role before any read/no-op check",
+      "start": 5055,
+      "end": 5657,
+      "bodySha256": "8826a324896cbbde82e017942a916fd715cc693cc00618bdf5c8b98996b81245"
+    },
+    {
+      "name": "fails closed for staff assigning another staff before read/no-op check",
+      "start": 5662,
+      "end": 6336,
+      "bodySha256": "214a01f99a42eb735cf5561dd45277170bf00365c2b2203380888b5bff408985"
+    },
+    {
+      "name": "does not revalidate when persisted assignee remains unchanged after domain success",
+      "start": 6341,
+      "end": 7097,
+      "bodySha256": "350d13a02d0548a855f3ed801a041a085a4148f05ad20d78a3cf11154024158d"
+    },
+    {
+      "name": "does not revalidate when post-mutation claim re-read is missing",
+      "start": 7102,
+      "end": 7805,
+      "bodySha256": "03a7a19d54fe5e7d695941c7aa6eb3f52234179ebeb31a5ea92e429499f443b3"
+    }
+  ],
+  "caseSourceSha256": "dbb674a5feb1159fcfaab8682396e0a39dd16579958f3adca07f6316aff31e1c",
+  "nativeAdmission": false,
+  "productionCCredit": 0
+}

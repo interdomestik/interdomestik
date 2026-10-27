@@ -5,7 +5,7 @@
   "officialImage": "node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940",
   "nodeVersion": "24.15.0",
   "architectures": ["linux/arm64"],
-  "qualification": "COVERAGE_SUCCESSOR_NOT_YET_EXECUTED",
+  "qualification": "QUALIFIED_LINUX_ARM64_COVERAGE",
   "sourceFiles": {
     "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
     "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"

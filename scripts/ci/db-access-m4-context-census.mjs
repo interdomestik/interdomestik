@@ -1,3 +1,6 @@
+import { M4_LINEAGE_CATALOG } from './db-access-m4-lineage-catalog.mjs';
+import { resolveLineageData } from './db-access-m4-lineage-selection.mjs';
+import { createLineageObserver } from './db-access-m4-lineage-observer.mjs';
 import { createM4SelectedPathObserver } from './db-access-m4-selected-path-observer.mjs';
 import { createM4AttributionCollector } from './db-access-m4-context-attribution.mjs';
 import { digest } from './db-access-trust.mjs';
@@ -16,6 +19,12 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
   if (!source) return undefined;
   if (!m4SourceMatchesModel(source, model) || !isM4ContextInventory(model, inventory, source))
     fail('unowned source/inventory');
+  const lineageSelection = resolveLineageData(model, inventory, M4_LINEAGE_CATALOG);
+  const lineage = createLineageObserver(
+    lineageSelection,
+    node => locator(model, node),
+    token => provenance.dispatch?.peekBindingsFor?.(token)
+  );
   const files = new Set(source.files);
   const selected = inventory.entries.filter(row => files.has(row.file));
   const owners = new Map();
@@ -48,12 +57,14 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
     locate: node => locator(model, node),
     peekBindings: token => provenance.dispatch?.peekBindingsFor?.(token),
   });
-  let rows, attribution;
+  let rows, attribution, lineageTokens;
   return Object.freeze({
     begin() {
       rows = new Map();
+      lineageTokens = new WeakMap();
       attribution = createM4AttributionCollector();
       path.begin();
+      lineage.begin();
     },
     installDiagnostics: collector => path.installDiagnostics(collector),
     enter: (owner, origin, invocation, context, definingContext) =>
@@ -62,8 +73,21 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
     enterEvaluation: (context, site) => path.enterEvaluation(context, site),
     leaveEvaluation: token => path.leaveEvaluation(token),
     observe(owner, origin, invocation, context, definingContext, outcome) {
+      const lineageVisit = lineage.observe(
+        owner,
+        origin,
+        invocation,
+        context,
+        definingContext,
+        outcome
+      );
       const entries = owners.get(owner);
-      if (!entries) return;
+      if (!entries) {
+        if (!lineageVisit) return;
+        const token = new Map();
+        lineageTokens.set(token, lineageVisit);
+        return token;
+      }
       const observed = new Map();
       const state = provenance.dispatch?.state();
       for (const entry of entries) {
@@ -90,9 +114,11 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
         observed.set(entry, rows.get(key));
       }
       path.activate(observed);
+      lineageTokens.set(observed, lineageVisit);
       return observed;
     },
     attribute(observed, kind, reason, entry) {
+      lineage.attribute(lineageTokens.get(observed), kind, reason, entry);
       if (!observed) return;
       const selected = entry ? [observed.get(entry)].filter(Boolean) : [...observed.values()];
       if (selected.length) {
@@ -109,6 +135,14 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
         sourceBookends: source.bookends,
         modelDigest: digest(JSON.stringify([...model.sources])),
         roots: [...origins],
+        affectedLineage: lineage.finish(
+          {
+            sourcePolicyDigest: source.policyDigest,
+            sourceBookends: source.bookends,
+            modelDigest: digest(JSON.stringify([...model.sources])),
+          },
+          origins
+        ),
         selectedIdentities: selected.map(row => row.identity),
         observations: [...rows.values()],
         attributions: attribution.entries(),

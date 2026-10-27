@@ -1,3 +1,6 @@
+import { M4_LINEAGE_CATALOG } from './db-access-m4-lineage-catalog.mjs';
+import { resolveLineageData } from './db-access-m4-lineage-selection.mjs';
+import { validateLineageBatch } from './db-access-m4-lineage-wire.mjs';
 import { validateM4Attributions } from './db-access-m4-context-attribution.mjs';
 import { validateM4PathDiagnostics } from './db-access-m4-path-wire.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
@@ -27,6 +30,17 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     if (results.some(result => result.m4Contexts)) fail('foreign contract');
     return undefined;
   }
+  const lineageSelection = resolveLineageData(
+    prepared.model,
+    prepared.inventory,
+    M4_LINEAGE_CATALOG
+  );
+  const lineageBinding = {
+    sourcePolicyDigest: source.policyDigest,
+    sourceBookends: source.bookends,
+    modelDigest: digest(JSON.stringify([...prepared.model.sources])),
+  };
+  const lineageBatches = [];
   const files = new Set(source.files);
   const selected = prepared.inventory.entries.filter(row => files.has(row.file));
   const entries = new Map(selected.map(row => [row.identity, row]));
@@ -62,7 +76,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     if (
       !keys(
         batch,
-        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations attributions pathDiagnostics frames unresolved allExecutableContextsQualified runtimeAdmission'
+        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations attributions pathDiagnostics frames unresolved allExecutableContextsQualified runtimeAdmission affectedLineage'
       ) ||
       batch.version !== 1 ||
       batch.sourcePolicyDigest !== source.policyDigest ||
@@ -81,6 +95,15 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
       Array.isArray(batch.frames)
     )
       fail('batch source/root/identity/diagnostic binding');
+    lineageBatches.push(
+      validateLineageBatch(
+        batch.affectedLineage,
+        lineageSelection,
+        lineageBinding,
+        partitions[i],
+        validLocator
+      )
+    );
     for (const [key, bindings] of Object.entries(batch.frames)) {
       if (
         !Array.isArray(bindings) ||
@@ -143,6 +166,15 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     sourceBookends: source.bookends,
     modelDigest: digest(JSON.stringify([...prepared.model.sources])),
     roots,
+    affectedLineage: {
+      version: 1,
+      catalogDataSha256: lineageSelection.description.catalogDataSha256,
+      selection: lineageSelection.description,
+      batches: lineageBatches,
+      acceptedCoverage: 0,
+      runtimeAdmission: false,
+      allExecutableContextsQualified: false,
+    },
     selectedIdentities: selected.map(row => row.identity),
     observations,
     attributions,

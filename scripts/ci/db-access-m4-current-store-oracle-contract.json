@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-current-store.mjs",
+      "caseGroup": "private",
+      "caseId": "invalid signature and expired current-store session deny without business effects",
+      "program": "async () => {\n      await noOwnedSessions();\n      const claimId = 'current_store_negative_' + suffix;\n      const sentinelId = 'current_store_live_' + suffix;\n      await seedClaim(claimId);\n      const operation = request(claimId);\n      const before = await state(claimId);\n      const noticesBefore = Array.from(\n        await admin`select * from notifications where tenant_id=${home} order by id`\n      );\n      const saved = await readSession(admin, sessionId);\n      assert.equal(saved.length, 1, 'Original genuine-cookie session exists');\n      assert.equal(saved[0].token, token, 'Original store token matches genuine signed cookie');\n      const purpose =\n        await admin`select has_table_privilege(${identityRole},'public.session','DELETE') as can_delete`;\n      assert.equal(\n        purpose[0].can_delete,\n        true,\n        'Existing identity purpose has session DELETE grant'\n      );\n      try {\n        const active =\n          await admin`select \"expiresAt\">now() as active from session where id=${sessionId}`;\n        assert.equal(\n          active[0].active,\n          true,\n          'Invalid-signature control starts with a live store session'\n        );\n        const invalidCookie = invalidM4Signature(cookie, token);\n        assert.equal(invalidCookie === cookie, false, 'Control changes the real cookie signature');\n        const decoded = decodeURIComponent(invalidCookie.slice(invalidCookie.indexOf('=') + 1));\n        assert.equal(\n          decoded.slice(0, decoded.lastIndexOf('.')),\n          token,\n          'Invalid signature retains exact store token'\n        );\n        assert.equal(\n          /^[A-Za-z0-9+/]{43}=$/.test(decoded.slice(decoded.lastIndexOf('.') + 1)),\n          true,\n          'Invalid signature retains provider accepted base64 shape'\n        );\n        assert.deepEqual(\n          await invoke(operation, invalidCookie),\n          { status: 'denied', reason: 'UNAUTHORIZED' },\n          'Actual verifier denies a well-formed wrong signature'\n        );\n        await noOwnedSessions();\n        assert.deepEqual(\n          await readSession(admin, sessionId),\n          saved,\n          'Signature denial leaves original session unchanged'\n        );\n        assert.deepEqual(\n          await state(claimId),\n          before,\n          'Signature denial leaves claim audit and result unchanged'\n        );\n        assert.deepEqual(\n          Array.from(await admin`select * from notifications where tenant_id=${home} order by id`),\n          noticesBefore,\n          'Signature denial leaves owned notifications unchanged'\n        );\n        await admin`insert into session(id,token,\"userId\",\"expiresAt\",\"createdAt\",\"updatedAt\")\n        values(${sentinelId},${'current_store_live_token_' + suffix},${actor},now()+interval '1 hour',now(),now())`;\n        const sentinel = await readSession(admin, sentinelId);\n        assert.equal(sentinel.length, 1, 'One separate live session guards cleanup scope');\n        const sentinelActive =\n          await admin`select \"expiresAt\">now() as active from session where id=${sentinelId}`;\n        assert.equal(sentinelActive[0].active, true, 'Cleanup sentinel is unexpired');\n        await admin`update session set \"expiresAt\"=now()-interval '1 minute' where id=${sessionId}`;\n        const expired =\n          await admin`select \"expiresAt\"<now() as expired,token from session where id=${sessionId}`;\n        assert.deepEqual(\n          Array.from(expired),\n          [{ expired: true, token }],\n          'Server confirms exact genuine-cookie session expired'\n        );\n        assert.deepEqual(\n          await invoke(operation, cookie),\n          { status: 'denied', reason: 'UNAUTHORIZED' },\n          'Actual verifier denies original signed cookie after store expiry'\n        );\n        await noOwnedSessions();\n        assert.deepEqual(\n          await readSession(admin, sessionId),\n          [],\n          'Actual expired-session cleanup deletes the matching session'\n        );\n        assert.deepEqual(\n          await readSession(admin, sentinelId),\n          sentinel,\n          'Expired cleanup preserves every live sentinel column'\n        );\n        assert.deepEqual(\n          await state(claimId),\n          before,\n          'Expiry denial leaves claim audit and result unchanged'\n        );\n        assert.deepEqual(\n          Array.from(await admin`select * from notifications where tenant_id=${home} order by id`),\n          noticesBefore,\n          'Expiry denial leaves owned notifications unchanged'\n        );\n        assert.equal(\n          (await sessions()).length,\n          0,\n          'Both negative operations drain existing purpose sessions'\n        );\n      } finally {\n        await restoreSession(admin, saved[0], sentinelId);\n      }\n      assert.deepEqual(\n        await readSession(admin, sessionId),\n        saved,\n        'Parent restores exact original session for unchanged later cases'\n      );\n      assert.deepEqual(\n        await readSession(admin, sentinelId),\n        [],\n        'Parent removes only its extra live control session'\n      );\n    }",
+      "links": [
+        {
+          "id": "current-store-invalid-signature-without-business-effects",
+          "factPath": "/derivations/identity/facts/verifier/clauses/0",
+          "factSha256": "8ad042ff58c2938220952d8eb047940c88dc2e92e71fc9fa59d50afd43824b77",
+          "sourceFiles": ["apps/web/src/lib/auth/current-store-session.ts"],
+          "assertions": [
+            "assert.equal(saved.length, 1, 'Original genuine-cookie session exists')",
+            "assert.equal(saved[0].token, token, 'Original store token matches genuine signed cookie')",
+            "assert.equal(\n        purpose[0].can_delete,\n        true,\n        'Existing identity purpose has session DELETE grant'\n      )",
+            "assert.equal(\n          active[0].active,\n          true,\n          'Invalid-signature control starts with a live store session'\n        )",
+            "assert.equal(invalidCookie === cookie, false, 'Control changes the real cookie signature')",
+            "assert.equal(\n          decoded.slice(0, decoded.lastIndexOf('.')),\n          token,\n          'Invalid signature retains exact store token'\n        )",
+            "assert.equal(\n          /^[A-Za-z0-9+/]{43}=$/.test(decoded.slice(decoded.lastIndexOf('.') + 1)),\n          true,\n          'Invalid signature retains provider accepted base64 shape'\n        )",
+            "assert.deepEqual(\n          await invoke(operation, invalidCookie),\n          { status: 'denied', reason: 'UNAUTHORIZED' },\n          'Actual verifier denies a well-formed wrong signature'\n        )",
+            "assert.deepEqual(\n          await readSession(admin, sessionId),\n          saved,\n          'Signature denial leaves original session unchanged'\n        )",
+            "assert.deepEqual(\n          await state(claimId),\n          before,\n          'Signature denial leaves claim audit and result unchanged'\n        )",
+            "assert.deepEqual(\n          Array.from(await admin`select * from notifications where tenant_id=${home} order by id`),\n          noticesBefore,\n          'Signature denial leaves owned notifications unchanged'\n        )"
+          ],
+          "scope": "Original genuine cookie token with exactly changed well-formed HMAC bytes enters the real current-store verifier through the ordinary restricted private facade. Exact UNAUTHORIZED, unchanged live session and owned claim/audit/result/notices. Finite local signature-control consequence; not whole verifier, general cryptography, issuer, production TLS or all-use qualification."
+        },
+        {
+          "id": "current-store-expired-session-cleanup-without-business-effects",
+          "factPath": "/derivations/identity/facts/verifier/clauses/1",
+          "factSha256": "58566a62dcd7190909f382359c56ca63cc61227e42f43261b3427aed914ef8e7",
+          "sourceFiles": ["apps/web/src/lib/auth/current-store-session.ts"],
+          "assertions": [
+            "assert.equal(saved.length, 1, 'Original genuine-cookie session exists')",
+            "assert.equal(saved[0].token, token, 'Original store token matches genuine signed cookie')",
+            "assert.equal(\n        purpose[0].can_delete,\n        true,\n        'Existing identity purpose has session DELETE grant'\n      )",
+            "assert.equal(sentinel.length, 1, 'One separate live session guards cleanup scope')",
+            "assert.equal(sentinelActive[0].active, true, 'Cleanup sentinel is unexpired')",
+            "assert.deepEqual(\n          Array.from(expired),\n          [{ expired: true, token }],\n          'Server confirms exact genuine-cookie session expired'\n        )",
+            "assert.deepEqual(\n          await invoke(operation, cookie),\n          { status: 'denied', reason: 'UNAUTHORIZED' },\n          'Actual verifier denies original signed cookie after store expiry'\n        )",
+            "assert.deepEqual(\n          await readSession(admin, sessionId),\n          [],\n          'Actual expired-session cleanup deletes the matching session'\n        )",
+            "assert.deepEqual(\n          await readSession(admin, sentinelId),\n          sentinel,\n          'Expired cleanup preserves every live sentinel column'\n        )",
+            "assert.deepEqual(\n          await state(claimId),\n          before,\n          'Expiry denial leaves claim audit and result unchanged'\n        )",
+            "assert.deepEqual(\n          Array.from(await admin`select * from notifications where tenant_id=${home} order by id`),\n          noticesBefore,\n          'Expiry denial leaves owned notifications unchanged'\n        )",
+            "assert.equal(\n          (await sessions()).length,\n          0,\n          'Both negative operations drain existing purpose sessions'\n        )",
+            "assert.deepEqual(\n        await readSession(admin, sessionId),\n        saved,\n        'Parent restores exact original session for unchanged later cases'\n      )",
+            "assert.deepEqual(\n        await readSession(admin, sentinelId),\n        [],\n        'Parent removes only its extra live control session'\n      )"
+          ],
+          "scope": "Original genuine signed cookie after committed server-side session expiry enters unchanged Better Auth via actual identity-purpose LOGIN and existing DELETE policy. Exact UNAUTHORIZED plus matching row deletion, live sentinel survival, unchanged business/notices and drained sessions. Parent restoration is fixture cleanup only. Narrow local expired-session DELETE consequence; store-failure/cleanup-exception branches, general vendor/RLS/driver correctness and production context remain unqualified."
+        }
+      ]
+    }
+  ]
+}

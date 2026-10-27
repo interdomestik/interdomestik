@@ -1,3 +1,5 @@
+import { projectFixedPrivateAcceptance } from './db-access-m4-private-acceptance-data.mjs';
+import { runFixedM4P2, takeFixedM4P2ForJoin } from './db-access-m4-p2-ordinary.mjs';
 import { describeM4ContextInspection } from './db-access-m4-context-projection.mjs';
 import { describeM4PairGaps } from './db-access-m4-gap-ledger.mjs';
 import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
@@ -24,12 +26,45 @@ const fail = reason => {
   throw Error('incomplete: M4 non-admitting pair ' + reason);
 };
 
+// Lexical private acceptance entry: no serialized row/projection can enter pairs.
+function acceptOwnedPrivateConstruction(
+  state,
+  input,
+  native,
+  event,
+  effectAssertions,
+  workerLoaderInspection
+) {
+  state.ordinaryTaken = true;
+  const ordinaryExecution = takeFixedM4P2ForJoin(state.ordinary, input);
+  const privateAcceptance = projectFixedPrivateAcceptance({
+    native,
+    nativeOutputDigest: state.native.outputDigest,
+    runtime: state.runtime,
+    ordinary: ordinaryExecution,
+    event,
+    effectAssertions,
+    workerLoaderInspection,
+  });
+  // This fixed two-factory construction is required as a whole. A residual
+  // context refuses the construction instead of forcing numerical credit.
+  const missing = privateAcceptance.decisions.filter(
+    row => !row.completeIdentityContextConjunction
+  );
+  if (missing.length)
+    fail(
+      'semantic missing fixed P2 factory guarantee: ' + missing.map(row => row.identity).join(',')
+    );
+  return { ordinaryExecution, privateAcceptance };
+}
+
 // Sole construction path: actual fixed runtime execution, then exactly one actual
 // native evaluation. No supplied observations, receipts or alternate evaluators.
 export async function executeM4Pairing(input) {
   if (input.policy !== PROVIDER_UNIT_POLICY) fail('foreign policy');
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
+  const ordinary = await runFixedM4P2(input);
   const loader = openM4WorkerLoaderSession({
     candidate: input.candidate,
     producer: input.producer,
@@ -49,7 +84,7 @@ export async function executeM4Pairing(input) {
     if (!complete) await abortM4WorkerLoaderSession(loader);
   }
   const handle = Object.freeze({ version: 1, id: randomUUID() });
-  pairs.set(handle, { runtime, native, loaderProof });
+  pairs.set(handle, { runtime, native, loaderProof, ordinary, ordinaryTaken: false });
   return handle;
 }
 
@@ -58,6 +93,7 @@ export async function executeM4Pairing(input) {
 export function assertM4Pairing(handle, input) {
   const state = pairs.get(handle);
   if (!state || input.policy !== PROVIDER_UNIT_POLICY) fail('foreign handle/policy');
+  if (state.ordinaryTaken) fail('ordinary result already consumed');
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
   const workerLoaderInspection = assertM4WorkerLoaderProofCurrent(state.loaderProof, {
@@ -76,6 +112,15 @@ export function assertM4Pairing(handle, input) {
     state.native.outputDigest,
     state.runtime
   );
+  // Root merge point: finite premise/context checks reuse the native view above.
+  const { ordinaryExecution, privateAcceptance } = acceptOwnedPrivateConstruction(
+    state,
+    input,
+    native,
+    event,
+    effectAssertions,
+    workerLoaderInspection
+  );
   return freezeOutput({
     report: native.report,
     gapLedger: state.gapLedger,
@@ -83,6 +128,8 @@ export function assertM4Pairing(handle, input) {
     checkpoint: {
       version: 1,
       workerLoaderInspection,
+      ordinaryExecution,
+      privateAcceptance,
       contextInspection,
       gapLedger: state.gapLedger,
       contextSha256: state.runtime.contextSha256,
@@ -90,6 +137,9 @@ export function assertM4Pairing(handle, input) {
       nativeOutputDigest: state.native.outputDigest,
       nativeSourcePolicyDigest: native.sourcePolicyDigest,
       nativeEvent: native.eventBinding,
+      // Clone already-validated data for independent index/occurrence review.
+      // Even plain-looking WeakMap keys inside graph data lose their identity.
+      nativeConstructionData: structuredClone(native),
       runtime: state.runtime,
       // Full diagnostic/failure arrays remain in the native session/report.
       // The finite context projection names their original index spaces.

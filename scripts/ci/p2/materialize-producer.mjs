@@ -6,6 +6,7 @@ import { authenticateRuntimeContext, safeEnv } from '../db-access-provider-runti
 const PREFIX = 'scripts/ci/p2/';
 const HELPERS = [
   'scripts/ci/db-access-provider-runtime-identity.mjs',
+  'scripts/ci/db-access-git-blob-batch.mjs',
   'scripts/ci/clean-coverage-artifacts.mjs',
   'scripts/ci/coverage-gate.mjs',
 ];

@@ -113,7 +113,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
       cleanup.push(retired);
       assert.equal(retired.complete, true, 'Fixture teardown failed');
     }
-    assert.equal(result.privateCases.length, 15);
+    assert.equal(result.privateCases.length, 16);
     assert.equal(result.profileCases.length, 20);
   } catch (error) {
     result.failure = {
@@ -146,7 +146,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     !result.failure &&
     result.setupComplete &&
     result.cleanupComplete &&
-    result.privateCases.length === 15 &&
+    result.privateCases.length === 16 &&
     result.profileCases.length === 20 &&
     result.remainingOwnedSessions === 0;
   return result;

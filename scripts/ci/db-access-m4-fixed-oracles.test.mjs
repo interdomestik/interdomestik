@@ -16,6 +16,7 @@ const contracts = [
   'db-access-m4-ops-oracle-contract.json',
   'db-access-m4-existing-oracle-contract.json',
   'db-access-m4-email-oracle-contract.json',
+  'db-access-m4-current-store-oracle-contract.json',
 ].flatMap(name => JSON.parse(fs.readFileSync(new URL(name, import.meta.url))).cases);
 const sourceRecords = policy.m4Proof.sources;
 const sources = new Map(),
@@ -48,9 +49,9 @@ const input = { source, runtime, imageRecords, producer, policy };
 
 test('fixed oracle join binds exact derived facts and mandatory programs in all six families', () => {
   const links = linkM4FixedOracleCases(input);
-  assert.equal(contracts.length, 31);
-  assert.equal(links.length, 62);
-  assert.equal(links.flatMap(link => link.assertions).length, 335);
+  assert.equal(contracts.length, 32);
+  assert.equal(links.length, 64);
+  assert.equal(links.flatMap(link => link.assertions).length, 360);
   assert.equal(new Set(links.map(link => link.fact.path.split('/')[2])).size, 6);
   assert(links.every(link => link.completeEffectQualified === false));
   for (const entry of contracts) {

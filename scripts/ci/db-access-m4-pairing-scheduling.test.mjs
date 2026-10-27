@@ -15,6 +15,18 @@ async function fixture(failure) {
   });
   joined.catch(() => {});
   const state = {
+    diagnosticToken: Object.freeze({ version: 1, unitDouble: true }),
+    ordinary() {
+      calls.push('ordinary-run');
+      if (failure === 'ordinary') throw Error('ordinary failed');
+      state.ordinaryToken = Object.freeze({ unitDouble: true });
+      return state.ordinaryToken;
+    },
+    ordinaryTake(token) {
+      calls.push('ordinary-take');
+      assert.equal(token, state.ordinaryToken);
+      return { unitDouble: true };
+    },
     loaderOpen(input) {
       calls.push('loader-open');
       state.loader = Object.freeze({ input });
@@ -66,13 +78,15 @@ async function fixture(failure) {
   const data = text => 'data:text/javascript;base64,' + Buffer.from(text).toString('base64');
   const value = `globalThis[${JSON.stringify(key)}]`;
   const modules = {
+    'db-access-m4-p2-ordinary.mjs': `export const runFixedM4P2=async()=>${value}.ordinary();export const takeFixedM4P2ForJoin=${value}.ordinaryTake;`,
+    'db-access-m4-private-acceptance-data.mjs': `export const projectFixedPrivateAcceptance=()=>({decisions:[],unitDouble:true});`,
     'db-access-m4-runtime.mjs': `export const runM4Runtime=${value}.runtime;export const hasM4RuntimeBinding=()=>true;`,
     'db-access-m4-native-session.mjs': `export const evaluateM4NativeSession=${value}.native;export const assertM4NativeSessionEvent=()=>{throw Error('not part of this unit test')};`,
     'db-access-m4-prior-preparation.mjs': `export const startM4PriorPreparation=${value}.start;export const waitM4PriorPreparation=${value}.wait;export const closeM4PriorPreparation=${value}.close;`,
     'db-access-m4-worker-loader-authority.mjs': `export const openM4WorkerLoaderSession=${value}.loaderOpen;export const finishM4WorkerLoaderSession=${value}.loaderFinish;export const assertM4WorkerLoaderProofCurrent=${value}.loaderAssert;export const abortM4WorkerLoaderSession=${value}.loaderAbort;`,
     'db-access-m4-context-projection.mjs': `export const describeM4ContextInspection=()=>({context:true});`,
     'db-access-m4-gap-ledger.mjs': `export const describeM4PairGaps=()=>({gaps:true});`,
-    'db-access-m4-effect-assertions.mjs': `export const linkM4EffectAssertions=()=>({native:{report:{rows:[]},outputDigest:'native-output',sourcePolicyDigest:'source-policy',eventBinding:{id:'event'}},effectAssertions:{effects:true}});`,
+    'db-access-m4-effect-assertions.mjs': `export const linkM4EffectAssertions=()=>({native:{report:{rows:[]},outputDigest:'native-output',sourcePolicyDigest:'source-policy',eventBinding:{id:'event'},diagnosticToken:${value}.diagnosticToken},effectAssertions:{effects:true}});`,
   };
   let source = fs.readFileSync(
     new URL('./db-access-m4-runtime-pairing.mjs', import.meta.url),
@@ -93,6 +107,8 @@ async function fixture(failure) {
     calls,
     finish,
     refuse,
+    diagnosticOwner: new WeakMap([[state.diagnosticToken, true]]),
+    diagnosticToken: state.diagnosticToken,
     input: {
       candidate: '/unit-fixture',
       producer: '/unit-producer',
@@ -110,12 +126,14 @@ test('unit sequencing doubles: historical worker joins before native starts and 
   const f = await fixture();
   try {
     const result = f.api.executeM4Pairing(f.input);
-    assert.deepEqual(f.calls, ['loader-open', 'start', 'runtime', 'wait']);
+    assert.deepEqual(f.calls, ['ordinary-run']);
     await Promise.resolve();
+    assert.deepEqual(f.calls, ['ordinary-run', 'loader-open', 'start', 'runtime', 'wait']);
     assert.ok(!f.calls.includes('native'));
     f.finish();
     const handle = await result;
     assert.deepEqual(f.calls, [
+      'ordinary-run',
       'loader-open',
       'start',
       'runtime',
@@ -130,7 +148,29 @@ test('unit sequencing doubles: historical worker joins before native starts and 
       scope: 'LOADER_ONLY_LOCAL',
       workers: 5,
     });
-    assert.equal(f.calls.at(-1), 'loader-assert');
+    assert.equal(f.calls.at(-1), 'ordinary-take');
+    assert.equal(f.calls.filter(value => value === 'loader-assert').length, 1);
+    assert.equal(f.calls.filter(value => value === 'ordinary-take').length, 1);
+    assert.deepEqual(projection.checkpoint.nativeConstructionData.report, { rows: [] });
+    assert.equal(projection.checkpoint.nativeConstructionData.sourcePolicyDigest, 'source-policy');
+    assert.equal(f.diagnosticOwner.has(f.diagnosticToken), true);
+    assert.deepEqual(
+      projection.checkpoint.nativeConstructionData.diagnosticToken,
+      f.diagnosticToken
+    );
+    assert.equal(
+      f.diagnosticOwner.has(projection.checkpoint.nativeConstructionData.diagnosticToken),
+      false
+    );
+  } finally {
+    f.cleanup();
+  }
+});
+test('unit sequencing doubles: ordinary prerequisite failure starts no loader or worker', async () => {
+  const f = await fixture('ordinary');
+  try {
+    await assert.rejects(f.api.executeM4Pairing(f.input), /ordinary failed/u);
+    assert.deepEqual(f.calls, ['ordinary-run']);
   } finally {
     f.cleanup();
   }

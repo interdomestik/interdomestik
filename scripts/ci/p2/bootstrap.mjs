@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const PREFIX = 'scripts/ci/p2/';
 const HELPERS = [
   'scripts/ci/db-access-provider-runtime-identity.mjs',
+  'scripts/ci/db-access-git-blob-batch.mjs',
   'scripts/ci/coverage-gate.mjs',
   'scripts/ci/clean-coverage-artifacts.mjs',
 ];
@@ -159,7 +160,7 @@ export async function runBootstrappedP2Coverage(givenOptions) {
   if (fileURLToPath(import.meta.url) !== path.join(producerRoot, PREFIX, 'bootstrap.mjs'))
     fail('bootstrap loaded outside fixed producer');
   const before = snapshot(producerRoot, gitDir, context);
-  // These imports occur only after all P2 bytes and all three extra helpers pass.
+  // These imports occur only after all P2 bytes and all four extra helpers pass.
   const identity = await import(pathToFileURL(path.join(producerRoot, HELPERS[0])).href);
   identity.authenticateRuntimeContext(gitDir, context);
   const dispatch = await import(

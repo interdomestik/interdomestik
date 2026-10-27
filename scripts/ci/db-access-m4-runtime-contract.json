@@ -756,6 +756,7 @@
       "ops target role change blocks and is reread under the actual target share lock",
       "ops empty historical assignee reaches exact zero-row CAS denial",
       "ops restrictive visibility fault reaches missing-claim denial after controller admission",
+      "invalid signature and expired current-store session deny without business effects",
       "live session deletion denies next private operation despite earlier success",
       "session revoked during actual startup queue is reread before business admission",
       "per-operation deadline terminates its own blocked pools with original identity and no automatic retry",
@@ -791,7 +792,9 @@
     "db-access-m4-email-observer-fixture.mjs",
     "db-access-m4-runtime-fixture-email-invocation.mjs",
     "db-access-m4-email-notice-conflict.mjs",
-    "db-access-m4-child-lifecycle.mjs"
+    "db-access-m4-child-lifecycle.mjs",
+    "db-access-m4-runtime-fixture-current-store.mjs",
+    "db-access-m4-invalid-signature.mjs"
   ],
   "fixturePortComplete": true,
   "migrations": {

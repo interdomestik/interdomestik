@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { runRequiredP2Runtime, withFreshP2Dispatch } from './runtime.mjs';
 import { safeEnv, authenticateRuntimeContext } from '../db-access-provider-runtime-identity.mjs';
 import { runCoverageGate } from '../coverage-gate.mjs';
@@ -17,6 +17,58 @@ import {
 import { reconcileOrdinaryWebSummary } from './coverage-completeness.mjs';
 import { takeP2BootstrapInvocation } from './bootstrap.mjs';
 const freshCoverageResults = new WeakMap();
+function immutable(value) {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(immutable);
+    Object.freeze(value);
+  }
+  return value;
+}
+function retainedExecution(state) {
+  const locations = {
+    originalTest: 'wrapper.test.original.ts',
+    generatedTestTs: 'wrapper.test.source.ts',
+    generatedTestJs: 'wrapper.test.mjs',
+    registry: '../registry.mjs',
+    runner: '../run-suite.mjs',
+    sourceFence: '../../source-fence.mjs',
+    ordinaryJob: '../../ordinary-job.mjs',
+    originalWrapper: 'wrapper.original.ts',
+    generatedWrapperTs: 'wrapper.source.ts',
+    generatedWrapperJs: 'wrapper.mjs',
+  };
+  let total = 0;
+  const sources = Object.fromEntries(
+    Object.entries(locations).map(([name, file]) => {
+      const bytes = fs.readFileSync(path.join(state.capsuleRoot, file));
+      total += bytes.length;
+      if (total > 65536) throw Error('Fixed P2 source-control byte cap');
+      return [
+        name,
+        {
+          text: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        },
+      ];
+    })
+  );
+  return immutable({
+    sourceFiles: structuredClone(state.oracle.sourceFiles),
+    compilerVersion: state.oracle.compilerVersion,
+    esbuildVersion: state.oracle.esbuildVersion,
+    vitestVersion: state.oracle.vitestVersion,
+    tests: structuredClone(state.oracle.tests),
+    mockSpecifiers: [...state.oracle.mockSpecifiers],
+    retainedSegments: structuredClone(state.oracle.retainedSegments),
+    actualCases: structuredClone(state.observation.cases),
+    actualSuites: structuredClone(state.observation.suites),
+    wrapperCoverage: structuredClone(state.observation.coverage),
+    ordinaryPartition: structuredClone(state.partition),
+    sources,
+    directFactoryCoverageObserved: false,
+    factorySourceControlRelationRequired: true,
+  });
+}
 function tracked(gitDir, commit) {
   const raw = execFileSync(
     '/usr/bin/git',
@@ -94,6 +146,7 @@ export async function runRequiredP2Coverage(givenOptions) {
   // fresh authority. Every required invocation executes the capsule again.
   const handle = await runRequiredP2Runtime(options);
   const discoveredSources = files.filter(file => /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file));
+  let execution;
   const result = await withFreshP2Dispatch(handle, { context, discoveredSources }, async state => {
     const cap = file => fs.readFileSync(path.join(state.capsuleRoot, file), 'utf8');
     const p2Coverage = await convertP2Coverage({
@@ -105,6 +158,7 @@ export async function runRequiredP2Coverage(givenOptions) {
       retainedSegments: state.oracle.retainedSegments,
       originalPath: path.join(candidateRoot, 'apps/web/src/actions/admin-claims/assign.core.ts'),
     });
+    execution = retainedExecution(state);
     const reportRoot = path.join(owned, 'merged');
     for (const [file, summary] of summaries) {
       const target = path.join(reportRoot, file);
@@ -148,6 +202,7 @@ export async function runRequiredP2Coverage(givenOptions) {
       imageId: result.imageId,
       ordinaryArtifactDigest: identity.digest,
       dispatchContext: 'required-pr-isolated',
+      execution,
       allSourceContextsClosed: false,
       nativeAdmission: false,
     }),

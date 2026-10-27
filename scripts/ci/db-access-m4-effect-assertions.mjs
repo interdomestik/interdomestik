@@ -1,3 +1,6 @@
+import { M4_RUNTIME_CONTRACT } from './db-access-m4-runtime-contract.mjs';
+import { describeLocalPremises } from './db-access-m4-local-premise-relation.mjs';
+import { describeLineageRawReferences } from './db-access-m4-lineage-raw-references.mjs';
 // Integrates one finite correspondence into the actual private pair. No discharge.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -77,6 +80,42 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     producer,
     policy: PROVIDER_UNIT_POLICY,
   });
+  const localPremises = describeLocalPremises({
+    source,
+    runtime,
+    imageRecords: records,
+    fixedLinks: fixedOracleLinks,
+    event,
+    contract: M4_RUNTIME_CONTRACT,
+  });
+  const lineage = native.rawGraph.m4Contexts?.affectedLineage;
+  if (!lineage) fail('missing owned affected-lineage observation axis');
+  const affectedLineageInspection = {
+    catalogDataSha256: lineage.catalogDataSha256,
+    selection: lineage.selection,
+    batches: lineage.batches.map((batch, index) => ({
+      roots: batch.roots,
+      observationSha256: batch.observationSha256,
+      metadataBytes: batch.metadataBytes,
+      observations: {
+        path: '/rawGraph/m4Contexts/affectedLineage/batches/' + index + '/observations',
+        start: 0,
+        endExclusive: batch.observations.length,
+      },
+      frames: {
+        path: '/rawGraph/m4Contexts/affectedLineage/batches/' + index + '/frames',
+        start: 0,
+        endExclusive: batch.frames.length,
+      },
+    })),
+    rawReferences: describeLineageRawReferences(
+      native,
+      lineage.selection,
+      nativeHandle.outputDigest
+    ),
+    acceptedCoverage: 0,
+    allExecutableContextsQualified: false,
+  };
   const effectAssertions = freezeOutput({
     version: 1,
     kind: 'm4-finite-source-effect-executed-assertion-correspondence',
@@ -87,6 +126,8 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     imageDigest: runtime.imageDigest,
     links,
     fixedOracleLinks,
+    localPremises,
+    affectedLineageInspection,
     unresolvedKernelEffects: effects.filter(
       (effect, index) =>
         !links.some(link => link.step === effect.step) &&

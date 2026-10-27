@@ -1,0 +1,1899 @@
+{
+  "version": 1,
+  "kind": "m4-finite-affected-lineage-observation-catalog",
+  "basisCommit": "a4e84ac6f56a21f0b02019efa4f8f27d6ec23747",
+  "frontier": {
+    "apps/web/src/actions/admin-claims.core.ts": "0f47493c8c00e152799a97c83a2c0af76d07118c10a04b6c2e27c041b544e230",
+    "apps/web/src/actions/admin-claims.ts": "b67d4bb79dd61feedf36f54272aabdb0259053405ecc435b039dab48dd125ee6",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
+    "apps/web/src/actions/admin-claims/assign.ts": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+    "apps/web/src/actions/admin-claims/context.core.ts": "5572db14c533bb1460ab53fe8f0b8fb149210439137dd1f99323437b35cc4841",
+    "apps/web/src/actions/admin-claims/context.ts": "944ac36ca9e66a4e5fbe572c500743832574b7a3781a772f3b7a06e15e051833",
+    "apps/web/src/actions/agent-claims.core.ts": "e3c270412dda4d2055ed39e61db9d8b349df07680bc4d1a909022a523d2234a5",
+    "apps/web/src/actions/agent-claims.test.ts": "d54ca5a8920b08fea25c064bb3dcce8222cef097f919265c39586d3decccb6fe",
+    "apps/web/src/actions/agent-claims.ts": "b38d0e01cfd2d5b62a6b1c604aaab18c0209f012063111173d2a7c008bdb3b25",
+    "apps/web/src/actions/agent-claims.wrapper.test.ts": "2cb2ec3855c9d23e554465494a0686d8ea799cb5a983b5c9a29ab216ae81fab2",
+    "apps/web/src/actions/agent-claims/assign.core.ts": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
+    "apps/web/src/actions/agent-claims/assign.ts": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+    "apps/web/src/actions/agent-claims/context.core.ts": "5572db14c533bb1460ab53fe8f0b8fb149210439137dd1f99323437b35cc4841",
+    "apps/web/src/actions/agent-claims/context.ts": "944ac36ca9e66a4e5fbe572c500743832574b7a3781a772f3b7a06e15e051833",
+    "apps/web/src/actions/staff-claims.core.ts": "5b32a6580e09631ce4028020182865e88edb3e6bfded08f7d72bd59df7185eb4",
+    "apps/web/src/actions/staff-claims/assign.core.audit.test.ts": "cbd86b9abf0effd9f2fbc39563cff08a3ef5aacf843b45b45353f53c95c1c97d",
+    "apps/web/src/actions/staff-claims/assign.core.ts": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
+    "apps/web/src/actions/staff-claims/assign.ts": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+    "apps/web/src/actions/staff-claims/context.core.ts": "384162262040e01ea70cfa9d27309b7d3c5d14ed15fc19c65a249a2c354c220d",
+    "apps/web/src/actions/staff-claims/context.ts": "944ac36ca9e66a4e5fbe572c500743832574b7a3781a772f3b7a06e15e051833",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-history.test.tsx": "c3e160f4df2b59cce2a8fc7f34226d9f4f70b2a5f1755b2ed3680ed4d3aa411f",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-test-support.tsx": "0e5623798b86f3ff1f49cd4badc6db23689237a6bbd90168157871cedcc4fe8e",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace-test-support.tsx": "edc367b9b50aeed72821f431bdcd7ca4da4571532ba1c74ca058a8fb14255cb9",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page-workspace.test.tsx": "16fbdfc06dbc63c6e8acc7eac77469823c6b71c7c3ecb1cc8de64655c88597ed",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.access-tenant.test.tsx": "72f42738f8c9342509af498312e6fafd9cd79fd931e5be7b5e0a0709265cd33e",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.test.tsx": "e2e8c043937122dde63669a923bc945a2b76d0d25422048762e26bc462e5fc29",
+    "apps/web/src/app/[locale]/(staff)/staff/claims/[id]/page.tsx": "16f662e0c362998291d80f516407cedb91069ca43403e92a472c891844205aa3",
+    "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx": "1b93c5a7a811b462dc3ed347d58fe7f225a409c75d4f04319c21426dc57790d1",
+    "apps/web/src/components/admin/claims/claim-assignment-form.test.tsx": "aa1b4eb56f10f79b5c569467a2f474ad76b7eb92e5d04c1277c8e2515a2f7e4e",
+    "apps/web/src/components/admin/claims/claim-assignment-form.tsx": "64c8a9e5f162779b13d3470e63d9c5be7f6e503751d3ed073782a407908641d8",
+    "apps/web/src/components/staff/claim-action-panel.test.tsx": "c3e0294eba96b668e58b065bbd24de60cafca27381b51130ee3457a6592dfad8",
+    "apps/web/src/components/staff/claim-action-panel/index.tsx": "23f3111061b8ddb84050bfbb9b499e09ea3d92c087e2073515b4186404bbdfdd",
+    "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-handlers.ts": "e6921448889bf74b2b5f100fbbc8d6f2abe2a97bf5adb605dec12ab202955d81",
+    "apps/web/src/components/staff/claim-action-panel/use-claim-action-panel-model.ts": "69864fd706eeb170521061ede3a13c50e18a9f93a191b0c53ae49ebd7efa563f",
+    "apps/web/src/features/admin/claims/actions/action-helpers.ts": "964aebe3990467ea7a101cac8027a6e161935da701640fe6c6be96d5f8f10e2b",
+    "apps/web/src/features/admin/claims/actions/ops-action-outcome.ts": "54b2edeac08f6732269a53b78f0096a364f1b4c4a333e7b2f4f2be1aa43686aa",
+    "apps/web/src/features/admin/claims/actions/ops-actions-test-setup.spec.ts": "b3b6eba18d8b652aafa039088f841041f6462981e9eb72efcedda2184c32deee",
+    "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts": "e84f9cfb93d9559493dcca449e123c872529c25e4b15d2bbccef495d4abc195d",
+    "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts": "a69951efe19c53ed902201cc402a3868e5ea16673ef2bfe4d10e2473944babc2",
+    "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts": "c3eb54cb1d3cd247d472450d1117018e8e24d0bfeef0216eb23681612b0aa2f3",
+    "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts": "15bb29fda49d16194724b6682fd06df69e0784b47d87ae4fc88809a5357b6e28",
+    "apps/web/src/features/admin/claims/actions/ops-actions.ts": "c0e28c738f041b910f013f57f1e473e1488a5cb07fd4efda40a903b97a484e86",
+    "apps/web/src/features/admin/claims/actions/ops-assignment.test-bootstrap.ts": "3261be2534f375491cbc932f14d5d98722e90bddfbf2fc1704f74b092c2dea15",
+    "apps/web/src/features/admin/claims/actions/ops-assignment.test-fixture.ts": "eb3f8b8e4d83e293833d321c4eac33278c5928031a0656a516051c772ad26391",
+    "apps/web/src/features/admin/claims/actions/ops-assignment.ts": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93",
+    "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx": "3839d4f22ec3c7f1ec89e4ab59215cbf9f765d0342871915e110fed01506985b",
+    "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx": "f05e886ada43ee77f8e722d73168d459b4db034ae747226070532feda6ce8bd7",
+    "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx": "55adf7d3ce012e27d9cd26aa90dc5b1c084864dbd836747ea216c2b2bb724315",
+    "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx": "cba820957ca55fd1b08e167be53737ba40b4f5c665dfecea09eaa7926969879e",
+    "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx": "ee2816952f599206cdeb43863e3be8822718c3da3f11091a0f0172ad7bb05c76",
+    "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx": "5bca3013c31cda89127e8588c4307e169cea6e101612cbbda1e88be59841dac8",
+    "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx": "91e4ac9f8ddf3ff5bd06acc8f1fbb743dbaf4a1415f879bef2e0e799f3df6c74",
+    "apps/web/src/features/staff/claims/components/StaffClaimDetailV2Page.tsx": "51c65f3e1b94307df3d571f6e2fe2bfc36742fdd3ec517461218584db92067f6",
+    "apps/web/src/lib/audit.core.ts": "d312b73800a5e4f424b3e13d8a87e9a642734cfd1e925d890dcb4e39626490ba",
+    "apps/web/src/lib/audit.ts": "85ff3da420b44ffb5ea204100b237965ae06ea862e83f2c87f6baaf6bae5e4ba",
+    "apps/web/src/lib/auth/current-store-session.ts": "27ac8a959e4c7488867b92b4c0df327dd327f79cbbe49c3ca1305cf9f54a37a7",
+    "apps/web/src/lib/auth/user-schema.ts": "9c3f3d5573d80de3a13d508df86963918989b504d0de019c20ec912576e0e4ec",
+    "apps/web/src/lib/notifications.core.ts": "f6becd38d9eb8e6881401f306993e03d75aa6cc2d5757f6587d808000967aa3e",
+    "apps/web/src/lib/notifications.ts": "40b5b7d15a7b47a8e606c1655731ed05c602a7adce356c36e227880acf5f409b",
+    "apps/web/src/server/operations/m4-assignment-controller-types.ts": "b6ea436e232a4e5aef6773ac7829fa2288539c94ebf40c2c4210d39caef7330f",
+    "apps/web/src/server/operations/m4-assignment-kernel-shared.ts": "dc089e1cc921fa174b449e49b234eb7658ac8ded5e3e45235ebb8f3011f403d4",
+    "apps/web/src/server/operations/m4-assignment-postcommit.ts": "34cfc30c1b8c6c634cd69a3d58c5f2076450064ccf73e9b4e01909bdf30d7c6f",
+    "apps/web/src/server/operations/m4-assignment-protocol.ts": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04",
+    "apps/web/src/server/operations/m4-assignment-wire.ts": "b8f90e3f2b3d76aa1425aaac464783b74cdb215845b739ce79a810f9808210bd",
+    "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts": "7d3a53b5c5b50adce1abc205801d9b4157586d246402fbd51dfddfa05f46e2f8",
+    "apps/web/src/server/operations/m4-notification-runtime.ts": "6ae7cd365cd8ca22de5058a66e8fa79cad111dd028e62aeabd5d2fa44d949f26",
+    "apps/web/src/server/operations/m4-ops-controller.ts": "75bc758ac7e7f79f3a1061f8a35b075ffba6598e2e4a346459b98f5b440c7f8a",
+    "apps/web/src/server/operations/m4-pool-posture.ts": "213f3749dc7b85ba1d53bd5e69617c21cd19ee176ca5fda9c55b6302cb4dda62",
+    "apps/web/src/server/operations/m4-private-runtime-types.ts": "4ffeaba75631d76599d5a308cdee390880e4a53c7d933e041a13c7a454a2a7ba",
+    "apps/web/src/server/operations/m4-private-runtime.ts": "fc6eb0877dec23370847c7de394050cec40a01a6d761ebf525a35ff1d21d2cc7",
+    "apps/web/src/server/operations/m4-staff-assignment-kernel.ts": "2863607b04d2e964f3c42d03719ff9efdefc35a94eb218fb427c719a65b42f08",
+    "packages/domain-claims/src/agent-claims/assign.test.ts": "8a601327a0390382daf40b1585620d8047dc542ca7fe71286536ca82bfd913f4",
+    "packages/domain-claims/src/agent-claims/assign.ts": "76b7965fc15b8f7bf5bc6c14f5858837e0736183c102c5027ae94cd2c63d09ab",
+    "packages/domain-claims/src/staff-claims/assign.test.ts": "f10231b9c8c12f58bd118fa6c6a8f2031b81e3567a9ee1a6a4ded0621a3a331b",
+    "packages/domain-claims/src/staff-claims/assign.ts": "f2fb88e64f859f84ad481d4a3b662f4495081792ac930e2684579efbf40cfea8",
+    "packages/domain-claims/src/staff-claims/scope.ts": "b0a271f7800b8d36372f0686d85bf8d9ad93c0ee186d8bbe83b3e8a0a95da0ac",
+    "packages/domain-claims/src/validators/claims.ts": "7edd549a8d498b0d6611dfd115f7b6b0eca7ceb77243e921bc90f7219b1a7daa",
+    "packages/domain-communications/src/email.ts": "9e1cec39cbad2c050d1c9609872a679ec839db83fac0a2629e24540033c5e66f",
+    "packages/domain-communications/src/notifications/notify.ts": "d57c205d816298cf38613da632146a17079515d3272c478e635177621154f500",
+    "packages/shared-auth/package.json": "6ebec4086f0400e61264e6944644c5d538127fc8d72048761074b4f64ddc71a1",
+    "packages/shared-auth/src/session.ts": "a902f9ad8638b9a3d4b9787b452f85699d77e5c88870c273fee4e53ff1f5b8cd"
+  },
+  "sites": [
+    {
+      "id": "request-context/retained/0",
+      "family": "request-context",
+      "side": "retained",
+      "file": "apps/web/src/actions/admin-claims/context.core.ts",
+      "sourceSha256": "5572db14c533bb1460ab53fe8f0b8fb149210439137dd1f99323437b35cc4841",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 222,
+          "endUtf16": 231,
+          "nodeSha256": "ca1984ef0ec78ef9e3aca69e708e3dfc3143efa9895cc34357178edcbf39dfd8",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 257,
+          "endUtf16": 305,
+          "nodeSha256": "75dffca8244b1ded3ec3c5e00750a72f79ff1749bbe1ffc40bf7d1d39dc9bdd7",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 148,
+          "endUtf16": 346,
+          "nodeSha256": "a3ef2554d7c73451f8c8fad2460ad515a6b254ed21589ef1e00f7687b4a4f3fb",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "c604e63c5e5857187db7e72ccf5b177e5dab1a1145a0fe26ca3dda9bc1724450"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "request-context/replacement/0",
+      "family": "request-context",
+      "side": "replacement",
+      "file": "apps/web/src/lib/auth/current-store-session.ts",
+      "sourceSha256": "27ac8a959e4c7488867b92b4c0df327dd327f79cbbe49c3ca1305cf9f54a37a7",
+      "calls": [],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1184,
+          "endUtf16": 3643,
+          "nodeSha256": "1b5dd897a597609773fa8e42e98d1c707acb527be213fd52a1b9e1938c29f9ea",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "61de01ecfc4f239d0382736a596946f5ad95a0091b7b1ea43e7973cfa4fe672e"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "request-context/replacement/1",
+      "family": "request-context",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "sourceSha256": "75bc758ac7e7f79f3a1061f8a35b075ffba6598e2e4a346459b98f5b440c7f8a",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3713,
+          "endUtf16": 11281,
+          "nodeSha256": "eed004371cfac9d276b3acb5c6de8fe8fd69cc3fa07cb6db35cfaf9ddf9f968b",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3912,
+          "endUtf16": 4144,
+          "nodeSha256": "8e25d7b72fed45fd9089628f3501f26cddb7ad4666c70ae5a414af973be607f2",
+          "kindCode": 214
+        },
+        {
+          "kind": "TaggedTemplateExpression",
+          "startUtf16": 3923,
+          "endUtf16": 4143,
+          "nodeSha256": "b07c257c5af3abcfdd0b7c7086b3200d5ac57953127fc0980809f29e9c2bfb09",
+          "kindCode": 216
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4160,
+          "endUtf16": 4204,
+          "nodeSha256": "d2d2e3b82b656b6cc6ffc3a5e111bad9b9decf14d7f801878dfe73b3b65ac7f2",
+          "kindCode": 214
+        },
+        {
+          "kind": "TaggedTemplateExpression",
+          "startUtf16": 4171,
+          "endUtf16": 4203,
+          "nodeSha256": "cdb0d4bb9b61c76def07837f58a321e5936c1de3080f4b120186885b7c4f304b",
+          "kindCode": 216
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4220,
+          "endUtf16": 4397,
+          "nodeSha256": "b847cc54b9041c8774107afc5032709bd36d97a059ce1022d175cc7a25646b1a",
+          "kindCode": 214
+        },
+        {
+          "kind": "TaggedTemplateExpression",
+          "startUtf16": 4231,
+          "endUtf16": 4396,
+          "nodeSha256": "abfe95e22c704d9bc89cb8099fa690cdd5569fbe70a315af6059a8170c5881bf",
+          "kindCode": 216
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5184,
+          "endUtf16": 5256,
+          "nodeSha256": "a3dfab41341c1450eceb4e2f102c16432f41b2f2ebab284fa0bdfdf900116336",
+          "kindCode": 214
+        },
+        {
+          "kind": "TaggedTemplateExpression",
+          "startUtf16": 5195,
+          "endUtf16": 5255,
+          "nodeSha256": "314bd39af5d48046453d0de1c1a1c533f3cbf9431be4b616278eb60c8223bd79",
+          "kindCode": 216
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionExpression",
+          "startUtf16": 2861,
+          "endUtf16": 11972,
+          "nodeSha256": "48795b9717f1a0555c078ddc7491e425babfdf5a4fa2e5912852bb2dd7aecf34",
+          "kindCode": 219
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 3734,
+          "endUtf16": 11280,
+          "nodeSha256": "dd729c268d04da3e59955479ee0b70a38d8e7fc09d8fe2b5c5ee7eaebb306274",
+          "kindCode": 220
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2463,
+          "endUtf16": 11975,
+          "nodeSha256": "5d2adfc76a03cc50e91239b702d6ddc64cd3d21170f626f9c886207b3b81cc65",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "00e43e337a430608880a450d86fbd0b45c717d0ec113a608b40ff34ec415029f",
+        "47a8f20af1751e5cf1a8b2ae32b2f0d5ccf0f738d8319780375194f6b995ae4f",
+        "1343df96174b26e30119f8d0dbbaca81c3de7fde6620995fd0d545c71a93a4c6",
+        "ab1657a0ae7477157e3f79ee3d01bf7f9bab6953bac02de529fc80806194458f",
+        "b1a25ed9ad861d404f66073328408f8a9cae6fedb002666430a48ae5d4bcf747",
+        "2578daa951cd9584d8b06d442117ffb7a31ca7def1b57f6ea5ebd6c49f5863b1"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-admin-pre-and-post-read/retained/0",
+      "family": "legacy-admin-pre-and-post-read",
+      "side": "retained",
+      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+      "sourceSha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1305,
+          "endUtf16": 1518,
+          "nodeSha256": "bcf3f9af4ca777eff5a39d29b565ec127dc74a3c2466330672fe732c741d6366",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1734,
+          "endUtf16": 1814,
+          "nodeSha256": "266d5a436628c66aba7b7932cdf9a03db26f2a28d4ecbc82738b25bffee852a4",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1872,
+          "endUtf16": 2081,
+          "nodeSha256": "271a8f4573213f1ed208af2dc1401cc5e75fc3da93c2267a31dd2913b109e6fb",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 606,
+          "endUtf16": 2639,
+          "nodeSha256": "6086e6ba50a8ba9da56b782c699280b751e10dfa9befe2ad0498bbdcb45ad59b",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "d79ddd457fd45d7be93b4b0a19216d9fa8e6f164bdf96a63822296a2419b3dbc",
+        "e25ca13641fbd203476a6935501e8f7ff98706af3a886a50505872f841a71ef1"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-admin-pre-and-post-read/replacement/0",
+      "family": "legacy-admin-pre-and-post-read",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "sourceSha256": "7d3a53b5c5b50adce1abc205801d9b4157586d246402fbd51dfddfa05f46e2f8",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1500,
+          "endUtf16": 1542,
+          "nodeSha256": "98eef5630dbfabd6fc0ee53fc57b9ddd9faba2fc76f9a8f5c9b915a97ddb2a14",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2746,
+          "nodeSha256": "9117cb81b29becac49d5393442adcf36a7c77bdb49be08383d90688fe2c4e818",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2727,
+          "nodeSha256": "92e341cfbe766763de4e12ec2e62e04bdd1c3557c2cd5aa0b6e1aac31418fd7b",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2713,
+          "nodeSha256": "c7918b52bab4cd3b71e3808759038bafdc83fff9af21c2dce91c9dbe9011453d",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2695,
+          "nodeSha256": "f1cd54c47c2bf9e48e8c2c5d368f1fedd8d519f39082b98c98347a7c273fc790",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2677,
+          "nodeSha256": "d735b036a25307f6d7dbd25d22b4a2aded3807db0c262ccb5d8ac7789b6bcd43",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3678,
+          "nodeSha256": "59852d87fea7a9b4dc17585dd65531054719c0f76aed9f5573eeabaa8efa72a5",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3644,
+          "nodeSha256": "73f6d13a405d325f7e56c2b57c301251abccd787035a9d16a6c45b284d3c42b7",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3589,
+          "nodeSha256": "d041faa803388a8178d5c1e436c4f17a52fb90a414a4b931be80df552c8d4ba0",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3567,
+          "nodeSha256": "af5e7c8423768b8cbc362c71f89533fd2bc5aa5cb0a3f17dadc5a6a413d05ec4",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3747,
+          "endUtf16": 3825,
+          "nodeSha256": "11c3a92106fb509c0e895fa888e884ba932490f0300d1305aae09e155912888d",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1399,
+          "endUtf16": 1545,
+          "nodeSha256": "d9d1d8f1bb2b1951b3afed7468e1cda99765c2b34f9737c5f5c0a338a2c3b8d0",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1695,
+          "endUtf16": 4164,
+          "nodeSha256": "13a2d98fea64a7313926e828e04fb2c0bf982c6081baee61d3a816df3ce3a70a",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+        "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-agent-domain-effects/retained/0",
+      "family": "legacy-agent-domain-effects",
+      "side": "retained",
+      "file": "apps/web/src/actions/agent-claims/assign.core.ts",
+      "sourceSha256": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 678,
+          "endUtf16": 758,
+          "nodeSha256": "266d5a436628c66aba7b7932cdf9a03db26f2a28d4ecbc82738b25bffee852a4",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 490,
+          "endUtf16": 1164,
+          "nodeSha256": "2e53cb276656c5054dba81a0267ea4147aebb7f3ce05f7cd1017979b67460a9b",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-agent-domain-effects/retained/1",
+      "family": "legacy-agent-domain-effects",
+      "side": "retained",
+      "file": "packages/domain-claims/src/agent-claims/assign.ts",
+      "sourceSha256": "76b7965fc15b8f7bf5bc6c14f5858837e0736183c102c5027ae94cd2c63d09ab",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1402,
+          "endUtf16": 1549,
+          "nodeSha256": "159b2bf6ef0d1110374eef5e42b2805edf4a0fa24311958af384c9d64add627b",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1903,
+          "endUtf16": 2048,
+          "nodeSha256": "1e790af44d11cd252cdc0d025772f7db5373a3892bb53d9ffd97b8d5d85373a0",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2163,
+          "endUtf16": 2281,
+          "nodeSha256": "f90931d21cb17c62155c77c25f41e0e2883eb90fd583b3247fb0e7c1e894693d",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2163,
+          "endUtf16": 2207,
+          "nodeSha256": "d07b7cab5a4df44e4ab2c59dab7807b22406da834509d5da72617d0b247e041a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2163,
+          "endUtf16": 2185,
+          "nodeSha256": "08cf53ee2896ed94c99f7c6f5b71aa7ecb1984e8a868256a83664089271928a9",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2322,
+          "endUtf16": 2683,
+          "nodeSha256": "dc8c071e0d8b1b202187847919c5ce9cdc8eaf14e4248d043c436fbdd93070dd",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2850,
+          "endUtf16": 3026,
+          "nodeSha256": "38667fb9b6bc78b4e7f146967b9412a85feb853970755d33870299a3b2e20fcb",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 520,
+          "endUtf16": 3159,
+          "nodeSha256": "c94d0253c11e19b1a7d1daf6bd564bdafefd6d5d46f4a74f5e62cf7f92de9f86",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "11827c702465dab935e57bbb6cbbd8b9c09291ec712efa96ff6896ef587c178c",
+        "1ee688478333f146b0eb8527d3618c559ddbf10cc4587315fcf096e4ff24f9e6",
+        "a7e33304236687ec65d770217865b113b0a45f661cc94f64ad606376781ca5e3"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-agent-domain-effects/replacement/0",
+      "family": "legacy-agent-domain-effects",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "sourceSha256": "7d3a53b5c5b50adce1abc205801d9b4157586d246402fbd51dfddfa05f46e2f8",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1647,
+          "endUtf16": 1690,
+          "nodeSha256": "1f3c0c00d52f783cf32e1a1705a00e9f5385780c00a6b4415d4a3fed7631dc33",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2746,
+          "nodeSha256": "9117cb81b29becac49d5393442adcf36a7c77bdb49be08383d90688fe2c4e818",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2727,
+          "nodeSha256": "92e341cfbe766763de4e12ec2e62e04bdd1c3557c2cd5aa0b6e1aac31418fd7b",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2713,
+          "nodeSha256": "c7918b52bab4cd3b71e3808759038bafdc83fff9af21c2dce91c9dbe9011453d",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2695,
+          "nodeSha256": "f1cd54c47c2bf9e48e8c2c5d368f1fedd8d519f39082b98c98347a7c273fc790",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2428,
+          "endUtf16": 2677,
+          "nodeSha256": "d735b036a25307f6d7dbd25d22b4a2aded3807db0c262ccb5d8ac7789b6bcd43",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3678,
+          "nodeSha256": "59852d87fea7a9b4dc17585dd65531054719c0f76aed9f5573eeabaa8efa72a5",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3644,
+          "nodeSha256": "73f6d13a405d325f7e56c2b57c301251abccd787035a9d16a6c45b284d3c42b7",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3589,
+          "nodeSha256": "d041faa803388a8178d5c1e436c4f17a52fb90a414a4b931be80df552c8d4ba0",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3545,
+          "endUtf16": 3567,
+          "nodeSha256": "af5e7c8423768b8cbc362c71f89533fd2bc5aa5cb0a3f17dadc5a6a413d05ec4",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3747,
+          "endUtf16": 3825,
+          "nodeSha256": "11c3a92106fb509c0e895fa888e884ba932490f0300d1305aae09e155912888d",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1546,
+          "endUtf16": 1693,
+          "nodeSha256": "e1907e1ea76f02ff92895610b2f01930b4bf9ad47d84acd9b08fca88ae58ce31",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1695,
+          "endUtf16": 4164,
+          "nodeSha256": "13a2d98fea64a7313926e828e04fb2c0bf982c6081baee61d3a816df3ce3a70a",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+        "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "legacy-agent-domain-effects/replacement/1",
+      "family": "legacy-agent-domain-effects",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+      "sourceSha256": "dc089e1cc921fa174b449e49b234eb7658ac8ded5e3e45235ebb8f3011f403d4",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2264,
+          "endUtf16": 3050,
+          "nodeSha256": "a2c848f111417da5c7641a85a1ed42572aae000b733d00386540e4f18d62875c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2264,
+          "endUtf16": 2283,
+          "nodeSha256": "98cb4f839332b03101e646974ef2d6f65bd5197895c964d2d9788c6e04103882",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2032,
+          "endUtf16": 3053,
+          "nodeSha256": "3510a605117d9495f76068613f3a4c9ae6d028c451451ade27b303d8c9cd0b81",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1531,
+          "endUtf16": 2030,
+          "nodeSha256": "b8a91b89e270b4bf5b5e470d732964fd2790003ba51eb230d3a9d4d5154a3a1e",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "staff-domain-effects/retained/0",
+      "family": "staff-domain-effects",
+      "side": "retained",
+      "file": "apps/web/src/actions/staff-claims/assign.core.ts",
+      "sourceSha256": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 621,
+          "endUtf16": 669,
+          "nodeSha256": "1fd8219eeab1b4e266683677219b079df7971fd6308efe69246eab973e86b7cc",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 431,
+          "endUtf16": 837,
+          "nodeSha256": "b801701d5fc292d1af06e94cac39d338e56c2a167f5d1ba49ae170094171d219",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "staff-domain-effects/retained/1",
+      "family": "staff-domain-effects",
+      "side": "retained",
+      "file": "packages/domain-claims/src/staff-claims/assign.ts",
+      "sourceSha256": "f2fb88e64f859f84ad481d4a3b662f4495081792ac930e2684579efbf40cfea8",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1315,
+          "endUtf16": 1477,
+          "nodeSha256": "c5e250323d52ae75532f2613657f6d728a79c899f97c4fc46dc495f942a437cd",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1315,
+          "endUtf16": 1463,
+          "nodeSha256": "f3957472fee4190d9e18a5c13ff427c2ed38b92a67afe3292d95b57af50a6a30",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1315,
+          "endUtf16": 1418,
+          "nodeSha256": "73f863a17e025eea510383f02f3cef5babafd39bd8fdb97aa9e429caaf841e86",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1315,
+          "endUtf16": 1400,
+          "nodeSha256": "a00fdfb0a7b923072eed0f01c62ff2c5bc8892e1f088740abc6dcd1aaffcd603",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2164,
+          "endUtf16": 2269,
+          "nodeSha256": "096d8f462d86888922beed3964a19a213d0c5956cc3e6df2de5020a0df4484fd",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3214,
+          "endUtf16": 3307,
+          "nodeSha256": "a723ef9d9f418592c1e33350eed58a5d58fea745bec33fbf07afcecec71f8fde",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3608,
+          "endUtf16": 3703,
+          "nodeSha256": "eafafddabd4e94209f12578a4e6b201af1d522dee1323369223e0eda75e24de0",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4215,
+          "endUtf16": 4527,
+          "nodeSha256": "2f8f6f1468b1f0c5800ff065ee615b552d4fceb9630974d1485d7106a4d440f0",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4215,
+          "endUtf16": 4491,
+          "nodeSha256": "9f25c315e87c51cd8465bdb5ea40455846a0adc5ee703d00193b42c2fafd2c0e",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4215,
+          "endUtf16": 4413,
+          "nodeSha256": "bf4c1edd6eaf266c2f5cbc3cd5c72e7a8b9a1918024121708132977eddb0846a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4215,
+          "endUtf16": 4239,
+          "nodeSha256": "5d1a63e572d437abaa7409acb8d335b186ed21578bc50dcb45c94940f22f5fbf",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4693,
+          "endUtf16": 5047,
+          "nodeSha256": "cca1b7dba117057297e32d6565b97839930b790bacc50b2d9855de14aa8cd3a5",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1004,
+          "endUtf16": 1505,
+          "nodeSha256": "6c309bb9363ba5d9809585003f40883c04d482dd02a5ebf90e0e9e07b8ad21a6",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1929,
+          "endUtf16": 2272,
+          "nodeSha256": "4aeef563bbb8b8adfe250f26b26a11438b5b66ac37e4360500ec6cb60a5d70ac",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2355,
+          "endUtf16": 5228,
+          "nodeSha256": "2418517e00fee119deef77831283610f06694e45bc5e5534d09b6f6d7b21218b",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "47d3e060d04eabf9449f0f756f1b34cad7222d7440001194e131767d1f2fcb1d",
+        "503a6e0b21e42df69e2dc8fc8b3fddd1275adb8024c5ecc5700cba478d9875e5",
+        "aff88f3d42b90fa70311e7fb43ff48f0ee1acd9d7253a9d4c210a17b3741d4e4"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "staff-domain-effects/replacement/0",
+      "family": "staff-domain-effects",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+      "sourceSha256": "2863607b04d2e964f3c42d03719ff9efdefc35a94eb218fb427c719a65b42f08",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1644,
+          "endUtf16": 1935,
+          "nodeSha256": "a1107b84ad3ff60b37ece24bd33e763f049e5065393e6fc80658109e7f6d32bd",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1644,
+          "endUtf16": 1916,
+          "nodeSha256": "2dd7a406ddd051f8fcff0c3b64e07c5709020dcd9a8d42ed45565e7c153aeaa1",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1644,
+          "endUtf16": 1902,
+          "nodeSha256": "985057cb4d8e406d16b8c6285e65acb667f2f9db2c67cd5e5541110f9ca8aa2a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1644,
+          "endUtf16": 1884,
+          "nodeSha256": "1277357e245fa402e4ccafffd68e369669bddabd511a2c987d079902741cfeba",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1644,
+          "endUtf16": 1866,
+          "nodeSha256": "a13bd27d8c80e81200fad21c113d10217ac9e4115765942491140f943551d48c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2419,
+          "endUtf16": 2672,
+          "nodeSha256": "67af1e0ef9b97e672b1249530a65bf0275ae76dd3633e3efa168becdd32a6784",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2419,
+          "endUtf16": 2638,
+          "nodeSha256": "606027922f5df2f6677646ac5004884b571477947ffcaa41f81431e0f1b9317d",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2419,
+          "endUtf16": 2583,
+          "nodeSha256": "2a5852508c387175a64cce6651d2f870aec0d82fab7eb06088fea6bbf2f4a1fa",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2419,
+          "endUtf16": 2441,
+          "nodeSha256": "af5e7c8423768b8cbc362c71f89533fd2bc5aa5cb0a3f17dadc5a6a413d05ec4",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2756,
+          "endUtf16": 2834,
+          "nodeSha256": "11c3a92106fb509c0e895fa888e884ba932490f0300d1305aae09e155912888d",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 772,
+          "endUtf16": 2892,
+          "nodeSha256": "0b8cf80ffee8e7e0c74a82ea3f5e0449109624b79d76906e2b11579d18fde49d",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "a3e7726d865ddb9ed10517fb2a30193cc61fd88f26b6081f6eff16e1eafce70a",
+        "abae1add2ed6b4d114f70eb75f32ad4cabb2dc2652354be73bb343e112298912"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "ops-owner/retained/0",
+      "family": "ops-owner",
+      "side": "retained",
+      "file": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "sourceSha256": "c0e28c738f041b910f013f57f1e473e1488a5cb07fd4efda40a903b97a484e86",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2118,
+          "endUtf16": 2360,
+          "nodeSha256": "99e3b9911db81870f710eaa3199ade1bed4b00a80d047d48950e774065351c9a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2193,
+          "endUtf16": 2354,
+          "nodeSha256": "fe67656ac7161eac71e101b721c8e73f962745f46c2d761c40a29086cf971b8a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2494,
+          "endUtf16": 2526,
+          "nodeSha256": "f2aeb1d446d7436ea00c0b9022af2d528c82da7d8ec679a4e6c10ba3cd47474a",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1467,
+          "endUtf16": 3039,
+          "nodeSha256": "6508bf739d7623d3d8fd6eb97a667758ddea3d24a9cbc7cc19570d64c9b6f551",
+          "kindCode": 263
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 2181,
+          "endUtf16": 2354,
+          "nodeSha256": "93d29dbc8fc05d9e457324dedc97ccfe26b30c449a3666b57331dcf655fb30ed",
+          "kindCode": 220
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "ops-owner/replacement/0",
+      "family": "ops-owner",
+      "side": "replacement",
+      "file": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "sourceSha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2288,
+          "endUtf16": 2511,
+          "nodeSha256": "e280237005854ae4e28cdcde89792c47331a59709c2b38f1ec7cbca5d6fb3f4f",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2288,
+          "endUtf16": 2493,
+          "nodeSha256": "fbf40fc9dd6e3110b67f79caa7da91e138eb5c2816d97ed3fbab026d40881108",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2288,
+          "endUtf16": 2335,
+          "nodeSha256": "e6ff1bbf1d91252a7a2a21c7b824e7d3dda8e9d7bac69e19942e612ea989db0c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2288,
+          "endUtf16": 2319,
+          "nodeSha256": "a06555711c73e3250c1201bd5dbc8d6bcf547c7b1740e0610b1b0308cdcc9317",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2952,
+          "endUtf16": 3262,
+          "nodeSha256": "540ca20b9005d0709652e1b888a7d3163dfa1260aca5b70c4fe659642d7e4c33",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2952,
+          "endUtf16": 3248,
+          "nodeSha256": "a533bf1095ff62efe16d217217cbaea08c4e99c9f343c38fa5de074414646ca7",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2952,
+          "endUtf16": 3177,
+          "nodeSha256": "ed60a605b59bfc798244b939998fb7f69e0a975e56efb246c3a8962c6e9935c5",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2952,
+          "endUtf16": 3159,
+          "nodeSha256": "0e46ca73e4b69d5edf60ea0ee47c78352461d34ed46f224d3154aade0640a6f3",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4298,
+          "endUtf16": 4605,
+          "nodeSha256": "7ffe33102fdc602a8d262fee6eca9ce445db5a952b31e09629d50eb625f7c1c2",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4298,
+          "endUtf16": 4317,
+          "nodeSha256": "98cb4f839332b03101e646974ef2d6f65bd5197895c964d2d9788c6e04103882",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2013,
+          "endUtf16": 2531,
+          "nodeSha256": "df0c13e6014744c959c8f5cc7f835b429c9bf9d53464654d59c2c9f6b7a4a31d",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2629,
+          "endUtf16": 4655,
+          "nodeSha256": "4d85a163e6e8608949ce115457e10a5f7b02261da64c48865d4b6a060321cdb6",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+        "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+        "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "ops-owner/replacement/1",
+      "family": "ops-owner",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "sourceSha256": "75bc758ac7e7f79f3a1061f8a35b075ffba6598e2e4a346459b98f5b440c7f8a",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8924,
+          "endUtf16": 9193,
+          "nodeSha256": "30eed5c46689a57d18b0902ffb85bc67c8febea5f4d23128671c3150c4d47e18",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 3734,
+          "endUtf16": 11280,
+          "nodeSha256": "dd729c268d04da3e59955479ee0b70a38d8e7fc09d8fe2b5c5ee7eaebb306274",
+          "kindCode": 220
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "audit/retained/0",
+      "family": "audit",
+      "side": "retained",
+      "file": "apps/web/src/lib/audit.ts",
+      "sourceSha256": "85ff3da420b44ffb5ea204100b237965ae06ea862e83f2c87f6baaf6bae5e4ba",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 476,
+          "endUtf16": 490,
+          "nodeSha256": "5e1dd4250a0c503812a879a238766ec2cc8bfef3c09aff44254b5c1b88ebd11b",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 412,
+          "endUtf16": 950,
+          "nodeSha256": "451bdef2716858388dd8a72e7a68d66b5be7e5840777e32bb408681b79c8330e",
+          "kindCode": 220
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "audit/retained/1",
+      "family": "audit",
+      "side": "retained",
+      "file": "apps/web/src/lib/audit.core.ts",
+      "sourceSha256": "d312b73800a5e4f424b3e13d8a87e9a642734cfd1e925d890dcb4e39626490ba",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1550,
+          "endUtf16": 1836,
+          "nodeSha256": "849e6acf39b99f0506543d61be74af0b49a1450764187ae43d54964e18a78776",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1550,
+          "endUtf16": 1569,
+          "nodeSha256": "f994324f06baafef682f150fef0a6f44e973eac9ee3fc4226b96a6a07e9426a2",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 697,
+          "endUtf16": 1919,
+          "nodeSha256": "5883d09127c0eac24173808dc628d7a9976ff18cd93fd5fa0bdaf867013ec7f0",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "82e0d0be49e21211aa7b4c064d3364e35b92eb9e5bc9a50da7cb6334485b09c5"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "audit/replacement/0",
+      "family": "audit",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+      "sourceSha256": "dc089e1cc921fa174b449e49b234eb7658ac8ded5e3e45235ebb8f3011f403d4",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2264,
+          "endUtf16": 3050,
+          "nodeSha256": "a2c848f111417da5c7641a85a1ed42572aae000b733d00386540e4f18d62875c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2264,
+          "endUtf16": 2283,
+          "nodeSha256": "98cb4f839332b03101e646974ef2d6f65bd5197895c964d2d9788c6e04103882",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2032,
+          "endUtf16": 3053,
+          "nodeSha256": "3510a605117d9495f76068613f3a4c9ae6d028c451451ade27b303d8c9cd0b81",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "audit/replacement/1",
+      "family": "audit",
+      "side": "replacement",
+      "file": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "sourceSha256": "06767eea45222a30362a68a1c63a7aa3b1290ac7bdb152930ba7fede0289dc93",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4298,
+          "endUtf16": 4605,
+          "nodeSha256": "7ffe33102fdc602a8d262fee6eca9ce445db5a952b31e09629d50eb625f7c1c2",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4298,
+          "endUtf16": 4317,
+          "nodeSha256": "98cb4f839332b03101e646974ef2d6f65bd5197895c964d2d9788c6e04103882",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2629,
+          "endUtf16": 4655,
+          "nodeSha256": "4d85a163e6e8608949ce115457e10a5f7b02261da64c48865d4b6a060321cdb6",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/retained/0",
+      "family": "notification-and-email",
+      "side": "retained",
+      "file": "apps/web/src/lib/notifications.core.ts",
+      "sourceSha256": "f6becd38d9eb8e6881401f306993e03d75aa6cc2d5757f6587d808000967aa3e",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1918,
+          "endUtf16": 1982,
+          "nodeSha256": "d7cf0cb37664a5e413645ae12831ce03007458ee6ac10c549807201a7a63b11e",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1767,
+          "endUtf16": 1985,
+          "nodeSha256": "9d0c4ebdb1828b8e4ea5f80f70c25937c6907654c967d067fb2dc92c7f87d43f",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/retained/1",
+      "family": "notification-and-email",
+      "side": "retained",
+      "file": "packages/domain-communications/src/notifications/notify.ts",
+      "sourceSha256": "d57c205d816298cf38613da632146a17079515d3272c478e635177621154f500",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1448,
+          "endUtf16": 1675,
+          "nodeSha256": "67f43fe06211ee2422d71ba86b6570f22ba9c6197f2bf6e4c1e40d4ead26dfa1",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4080,
+          "endUtf16": 4337,
+          "nodeSha256": "bb221b06d80338b719ceaa3084b412cbaa5e82a0e897cd65f5092d4aa0bbd51b",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4080,
+          "endUtf16": 4104,
+          "nodeSha256": "d46325fd0207c3138c3f97860d83d38d32e37ec74bf62e7a4b7f390c4ba04f8a",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 6192,
+          "endUtf16": 6427,
+          "nodeSha256": "4151f5f623990f75a98ad841ac1afbc79e0cf2e7e1c4f73a53df8c428dedd76f",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 6458,
+          "endUtf16": 6593,
+          "nodeSha256": "c8d03f24bf328159893e67dc30bc8af4b66e378f16264d915e6c6489f1e9afb5",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1372,
+          "endUtf16": 1678,
+          "nodeSha256": "3a1786f43f20777d3d111a5b3b48103ef142815bdda213c4909bdb478d45a61f",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 3032,
+          "endUtf16": 4713,
+          "nodeSha256": "700ceecd59ccde7c26781e6f3a8af9c46cf5c68c6b183f1c2cb4b6cf2b4d4f66",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 6020,
+          "endUtf16": 6618,
+          "nodeSha256": "24856e2569eb6f07c9d4fb5d50cdfef32cc98d358277698711a079dc662360f6",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1680,
+          "endUtf16": 2114,
+          "nodeSha256": "f216925fb329ad405f485858875de4708a2c44fdb34ef33fb9a96f5102e249a3",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "a56249f53f92f604ee7d73e7fb32cd3029210cde98e3a03e7e60acdddda30e5d",
+        "4c7d060ccd8655dd19addf3be28a1ea06e1682c600516833b538d12103dd49b9"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/retained/2",
+      "family": "notification-and-email",
+      "side": "retained",
+      "file": "packages/domain-communications/src/email.ts",
+      "sourceSha256": "9e1cec39cbad2c050d1c9609872a679ec839db83fac0a2629e24540033c5e66f",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5391,
+          "endUtf16": 5524,
+          "nodeSha256": "08eaa87758d1c99ff247ab7a42755413d5f2a7ffb1dcb1335a5e4e2f5c54bf11",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 5164,
+          "endUtf16": 5527,
+          "nodeSha256": "470a0caede4e5a1043ab0244b384db43d3c91ad4f2f56236c9e4f321d287a7f4",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2781,
+          "endUtf16": 4783,
+          "nodeSha256": "bc2af6c8bb21d9cb758fded674599c240c6da6fb4628abea930135756429b07e",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/replacement/0",
+      "family": "notification-and-email",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "sourceSha256": "75bc758ac7e7f79f3a1061f8a35b075ffba6598e2e4a346459b98f5b440c7f8a",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 11728,
+          "endUtf16": 11770,
+          "nodeSha256": "3d17ebc299a7966212bd0d8fb9d81255787616f7a0f9a0d177bf2f949c5c540c",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 11722,
+          "endUtf16": 11770,
+          "nodeSha256": "20decfa47c1882d562758fccbd80bacdca336e52c25092f0dfe231c3b3d41005",
+          "kindCode": 220
+        },
+        {
+          "kind": "FunctionExpression",
+          "startUtf16": 2861,
+          "endUtf16": 11972,
+          "nodeSha256": "48795b9717f1a0555c078ddc7491e425babfdf5a4fa2e5912852bb2dd7aecf34",
+          "kindCode": 219
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/replacement/1",
+      "family": "notification-and-email",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "sourceSha256": "34cfc30c1b8c6c634cd69a3d58c5f2076450064ccf73e9b4e01909bdf30d7c6f",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2225,
+          "endUtf16": 2295,
+          "nodeSha256": "c858cffba66482b3ac6e612895077170a2591cc64cf85eddfd4c0048a3e4d817",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 2258,
+          "endUtf16": 2294,
+          "nodeSha256": "dddfc66c7e886ec889ec2c7ea4aee7577cce7d5b7921b01a43adc250fbb69700",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3197,
+          "endUtf16": 3404,
+          "nodeSha256": "15b743ff13a2b98d8c42534eb41bcd2c4b683a1c93ec84ec1bd1206d379726d8",
+          "kindCode": 214
+        },
+        {
+          "kind": "TaggedTemplateExpression",
+          "startUtf16": 3208,
+          "endUtf16": 3403,
+          "nodeSha256": "600cb1d6aeecd638bcf2427f460fb56b4f199d7bef17a62a69e6479000da9964",
+          "kindCode": 216
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3431,
+          "endUtf16": 3686,
+          "nodeSha256": "fa035ff7d69c9673eb2c2e97db9a3118bdcfa89cdfcd374d6d4293fccb47ab89",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3431,
+          "endUtf16": 3668,
+          "nodeSha256": "b375eaf87c850254fc0502cdea32707b663731f55c9b10da1e7a0fcf4f6d5d72",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3431,
+          "endUtf16": 3654,
+          "nodeSha256": "35aa70f65ead12d1c650e9dd35978bece471ad9a35a9b46ed4dbbf533d66cae4",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3431,
+          "endUtf16": 3482,
+          "nodeSha256": "c487ef0bf55642e100e6b242a47e8a2f08cdfe1fb40d85fcb37ff5bfe00dff2c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3431,
+          "endUtf16": 3447,
+          "nodeSha256": "0f50965839661820636cb4ae5ac62e805babb672f9d3d1036abdb4f0c1fd5ea8",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3710,
+          "endUtf16": 3974,
+          "nodeSha256": "1180ef3413ac6e5b2e0e85ca8fa5b01cb98859db4d72fc4d45bf0f3c4b0c3e75",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 3710,
+          "endUtf16": 3955,
+          "nodeSha256": "afc3555dccd5fce4a6f33dab874a4dbc9b50ac2d02cbb591c86ec93b523ffa0e",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4745,
+          "endUtf16": 5062,
+          "nodeSha256": "088c7a47ac39e46f3bbfee15deb5458656eb241fce978be21deb3d04cf7476d7",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4745,
+          "endUtf16": 5044,
+          "nodeSha256": "3adad0d5dc34e4cbd17a8aac0fbe5a8e1bb2436ab6ec087fa7e2cb14241dc0d9",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4745,
+          "endUtf16": 5030,
+          "nodeSha256": "39b98ab2b8aa59d7abd7552bf0f9e6cf0a6e94e91af4bfe32e55ea715e841235",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4745,
+          "endUtf16": 4838,
+          "nodeSha256": "bc9e74d6ca7fde76dcfd1bd5be8ac9524aaed0767499a57eb658cb4edf87c0e1",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4745,
+          "endUtf16": 4813,
+          "nodeSha256": "53ac48c391fbd656f67491449b0fe876dfc51c408cdbd343f90b247045b5c7a7",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5115,
+          "endUtf16": 5503,
+          "nodeSha256": "27a6b4330b3cb46a6ae493059afc84cc700498b457407cccdf7a08749602248e",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5115,
+          "endUtf16": 5485,
+          "nodeSha256": "fae35536f4ffd80ee157382819312fd949d52013a4931c7a1accfdd977ff79d8",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5115,
+          "endUtf16": 5471,
+          "nodeSha256": "dafbb21d4592256a4afbce9150b123b3761925522ca907e85c84b09547ca2233",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5115,
+          "endUtf16": 5297,
+          "nodeSha256": "03c3dac7ec7970aa7dc2e2b5844588c245415290035bb7db613873c9153eb32f",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5115,
+          "endUtf16": 5274,
+          "nodeSha256": "71ae26463d22adc9b0c46515df95a7d210d259bd88b1b2cd5bd278016ec3e353",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5559,
+          "endUtf16": 6016,
+          "nodeSha256": "e05dee914a44956add493e98313a716d5d6b4b825a08a17be18e4c9d9e457d44",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5559,
+          "endUtf16": 5968,
+          "nodeSha256": "ccfc4594247883662773fbfd355c6aeee2c06f14575b2fa7609ff2139f0da945",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5559,
+          "endUtf16": 5906,
+          "nodeSha256": "e1a2473dbd2e92130a3e41fe57d868d1c3d942f1ed2df78cf8cc0a934758f17c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 5559,
+          "endUtf16": 5595,
+          "nodeSha256": "7973122ef819bfd72468da30eef00340c2321ec134f8dfe5ab4711ad42e3d136",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 6365,
+          "endUtf16": 6418,
+          "nodeSha256": "9c39818c19b35c296e41e7b60de51dae119981175c6acd5f531800cf4c3a9c55",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionExpression",
+          "startUtf16": 1127,
+          "endUtf16": 2927,
+          "nodeSha256": "842dd43f56fe7f1947b4f0877a6ae5714bf05fdc9699a6f4ccde939b98e4aefe",
+          "kindCode": 219
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 2252,
+          "endUtf16": 2294,
+          "nodeSha256": "5631358dff3de6cfae90dad90e3680a7ce37b72f574b0d47e52bd188aa859dc6",
+          "kindCode": 220
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 3106,
+          "endUtf16": 6433,
+          "nodeSha256": "742f7c0006dbe9e1cd9cf0b4a54f026f229665eb9736412a593cad6e28afa94a",
+          "kindCode": 263
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 6359,
+          "endUtf16": 6418,
+          "nodeSha256": "54f45ab0c9dbfbe29e03bae126a83afd4163b18a08c4387a8009ef89da6f0a3b",
+          "kindCode": 220
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 996,
+          "endUtf16": 2930,
+          "nodeSha256": "2c3a3ec5b9c7300d65fdbbd9e76a40b93982c51e30cb275b3f5a527db75008d3",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "58c8491cf77d2d74c7bb4afd7dc8a5497558ea1085f0802d416e092004b0beee",
+        "f9170a8645b2509c29474de52e49197d435501c659c5b11609ec88464b7911d1",
+        "2c2bb13ffb2b1503dd4166630bc1e85a02050d2e744fda2a0c589d6acd351b59",
+        "441c5669bfc332f7a168c074794f9632c9cd47bf7ae9de32fdc1eb0932793b62",
+        "feaa2f01f3bf53a4d30b387c128b876fda065853edb74de86d9cc0f13c0db115",
+        "e1b4b2485222111c5f9d3e260c5d6900d474b679e0bcf5f3385408f2e43d5c7b",
+        "52fad0afb62c1cc5b08c3de2b29caffefafa4fed59ae3243188e86d7515158f5",
+        "01d421db64300627abd6c60b1417df819230279c2c19c33fd8767b8bd5b65758"
+      ],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "notification-and-email/replacement/2",
+      "family": "notification-and-email",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "sourceSha256": "6ae7cd365cd8ca22de5058a66e8fa79cad111dd028e62aeabd5d2fa44d949f26",
+      "calls": [],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 447,
+          "endUtf16": 4166,
+          "nodeSha256": "4b7423441b6a1af9d6edb08353328cfa68d7995221210dbf2a676e0f89d46c6e",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1305,
+          "endUtf16": 3662,
+          "nodeSha256": "f60dd8e4fc4914b0f2d30e946343a867191e0600edf19f5e541f2528ce9f3b8e",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "two-returned-mock-factories/retained/0",
+      "family": "two-returned-mock-factories",
+      "side": "retained",
+      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
+      "sourceSha256": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 653,
+          "endUtf16": 819,
+          "nodeSha256": "9ccac73e33f09b6208953a5c4d10ba8b5695dfd9f3cb0c292aafe61da524155f",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 822,
+          "endUtf16": 970,
+          "nodeSha256": "3c0f6a25703931eeab4bc4303348070621f07e6c5dc31f6341e278536c3ce918",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 973,
+          "endUtf16": 1070,
+          "nodeSha256": "b4d8e79f0587ab6ff4ecd763b4ff6e4cc3415aa71b3a9db6bcc7a82b28b76488",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 857,
+          "endUtf16": 969,
+          "nodeSha256": "559bf166bdaa34a25f0a750112ceb8f56ad3521eba6e53b5a069b0cbeb7112cc",
+          "kindCode": 220
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 1024,
+          "endUtf16": 1069,
+          "nodeSha256": "9ef5470bf70259c8421a23726792fe8598d91fdce46a70f0da2f7ee1b0ffb449",
+          "kindCode": 220
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "3abe201e80665b5f1d95dd025e8694e386fd4eedab84512fa06b501c27ad7353",
+        "23045f68d4b176bb5a96c7ce1100eb6639006081e00ffbb87a42f31871abbab0"
+      ],
+      "unobservedAnchorResidual": false,
+      "ownerSelection": "two exact vi.mock callback function envelopes; other test functions unselected"
+    },
+    {
+      "id": "new-private-bootstrap-and-protocol/replacement/0",
+      "family": "new-private-bootstrap-and-protocol",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "sourceSha256": "fc6eb0877dec23370847c7de394050cec40a01a6d761ebf525a35ff1d21d2cc7",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4000,
+          "endUtf16": 4182,
+          "nodeSha256": "de0710b4bfae211669dd8203b06787691b7f2cfff2f333584ac217a85fc705ea",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 4253,
+          "endUtf16": 4313,
+          "nodeSha256": "02624f53b6ddbb32d53428b5f3f22d7b2486ad937b0be55963e7214bff3a9ff5",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 6459,
+          "endUtf16": 9002,
+          "nodeSha256": "26b983d2af703967ba49d20593a711551bd81a5b2eda292c65f19b0b4ca5e44c",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8258,
+          "endUtf16": 8324,
+          "nodeSha256": "b2a2eca0ff93a92d8784e225d9f37cf0b3d4f93dc24f1a749076aaac1fb84a6d",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8258,
+          "endUtf16": 8304,
+          "nodeSha256": "b4680bba0270f5c4abe48f6e696b7fc3fb5e532885aad34b604068310d9ae0a9",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8382,
+          "endUtf16": 8511,
+          "nodeSha256": "0c462964c11b5b789e35a0b328e1b673942e3eebf06adb1adfd13726e0133856",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8382,
+          "endUtf16": 8430,
+          "nodeSha256": "f2957c95fd5a283dd73637bd12a0f8fc4e25b8660c9d32d48159675bcc7114a9",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8627,
+          "endUtf16": 8776,
+          "nodeSha256": "d425c769bc2244962b7502b66826f71eb39367c1609857e8303c5a790d0cc6f1",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8627,
+          "endUtf16": 8743,
+          "nodeSha256": "ebffa2615ef53b83984fbc7e4f7dcac13563fc5aced05c86092bb005117f2732",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8799,
+          "endUtf16": 8942,
+          "nodeSha256": "814fbb0e9b9849aad0cf67cfc1145ce97f25db8359d8d45b5fccf41184837557",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 8799,
+          "endUtf16": 8909,
+          "nodeSha256": "c6cef3884b2bbbc1cb391bceaf79aae2de8e0f627e9c6ec7b356ff1863c68f66",
+          "kindCode": 214
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 9947,
+          "endUtf16": 9988,
+          "nodeSha256": "79b20eb9b6c41093159695c24f178f89977ec2fb61f07729be34ecd41ccc04fc",
+          "kindCode": 214
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1227,
+          "endUtf16": 10747,
+          "nodeSha256": "130604d31652d3d04d6203c5430bcca9fff214357d33b6f39a56a536b3b5bb64",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 4334,
+          "endUtf16": 9532,
+          "nodeSha256": "a15f9a2a2c607ce08c1863ca7b39593e43cbb5b30d430183fdcc6595a6e549c6",
+          "kindCode": 263
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 6460,
+          "endUtf16": 8999,
+          "nodeSha256": "4a01b1d534ca3916b0b2eb0d8e8143da591ffeae8ff6e67d7f026c1f4b3481a9",
+          "kindCode": 220
+        },
+        {
+          "kind": "ArrowFunction",
+          "startUtf16": 9901,
+          "endUtf16": 10014,
+          "nodeSha256": "5a7cf6c7913f5d5ae6a6c0ba0a96d8339618c7483ba4b1ee439c7967230a039a",
+          "kindCode": 220
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 10845,
+          "endUtf16": 11013,
+          "nodeSha256": "ff2aaf4da028ddbe20c3f7bc2b554f0ef841b10950fe61a96f2f336e1bd1b498",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 11192,
+          "endUtf16": 11370,
+          "nodeSha256": "a01503b57482444eda179c1e2846d9e671df89c23f4451be1b4ec53158c1b32e",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 11471,
+          "endUtf16": 11722,
+          "nodeSha256": "c08dd6b60822bb98cd449be51c6b18548cbb8e4c5efa0ff39e02f3eb1cd6fdb3",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 11723,
+          "endUtf16": 11984,
+          "nodeSha256": "8cd1a841115e82b3d37f84b49ad043b0d1c7909b70d6d49cf05a92932188fb48",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": false
+    },
+    {
+      "id": "new-private-bootstrap-and-protocol/replacement/1",
+      "family": "new-private-bootstrap-and-protocol",
+      "side": "replacement",
+      "file": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "sourceSha256": "b8f90e3f2b3d76aa1425aaac464783b74cdb215845b739ce79a810f9808210bd",
+      "calls": [],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 1802,
+          "endUtf16": 2635,
+          "nodeSha256": "7d985d7edffaa7ad77da23f5d1fe62d6c3f21360cbd37ad33d24b2f54bedbd49",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 2636,
+          "endUtf16": 3072,
+          "nodeSha256": "1b43ebc61451f7f579dce965739fbdf1fc1afc9dd38460516511a4e8de21f2f7",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 3073,
+          "endUtf16": 3945,
+          "nodeSha256": "e25558ca2c3ad0ba422124228dfbcca7ae1e4d7fd3d2ad1531c1fc0be19d3e60",
+          "kindCode": 263
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 3946,
+          "endUtf16": 4573,
+          "nodeSha256": "5d14e98c3b75fb28cb121dc6ddad9ddfbd369be7bbfc5e515974fb512a303ad1",
+          "kindCode": 263
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [
+        "cd10913b4eb9d33f2a52c1157e81285609c9aaf6786b1435186f6c519458565a",
+        "e6a590bd206988a3c9bcb021fcc3de207c8d93bc4102be30bfa11e6a1a8f2ba9",
+        "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+        "71acd5feda4357ec203c82440fab3c48af7ba5588bf94eee26c84d3c3af45fa9"
+      ],
+      "unobservedAnchorResidual": false
+    }
+  ],
+  "runtimeAdmission": false,
+  "productionCCredit": 0,
+  "historicalIdentitySelection": false,
+  "parserVersion": "5.9.3"
+}

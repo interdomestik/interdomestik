@@ -297,13 +297,24 @@ historical empty-assignee CAS and explicit restrictive visibility-fault missing-
 exact audit payload/rollback pass. Fault context is not ordinary production reachability.
 Evidence: `m4-ops-oracle-sql-qualification-v3`; actual-result review
 `e8a7324a25e9c838cb0db8a2adf88ab8da5e843212447d257853a403696ea42b`.
-The bc29 35-case pair timed out in 301.717s; cleanup/prior/source checks passed. A 55.088s
-trace-only probe completed 34 callbacks and localized observer-close; empty-map/no-SQL reproduction
-confirms exit 0/both EOFs but aggregate IPC close 3/4 never arrives. The narrow correction awaits
-exit+both EOFs with a rejecting 5s deadline; 612 focused tests/security pass, fresh pair pending.
-Finite scopes retain 31 programs/62 links/335 refs (265 nodes), 15 executable/two erased witnesses.
-`m4-oracle-consolidation-v1` and failure memory preserve Result/Array/type/EOF/loader/copy/disk
-failures and comparisons. Fresh native/effect/audit-payload negative and actual M4-06/L1 remain HOLD.
+The bc29 pair failed in 301.717s; the 55.088s diagnostic localized IPC aggregate-close after 34 callbacks.
+Corrected source `a4e84ac6f56a21f0b02019efa4f8f27d6ec23747` waits actual exit+both EOFs; 612 tests pass.
+Fresh 35-case SQL/native pair passed in 280.719s, sampled 4,629,558,067 bytes; cleanup/prior/source healthy.
+Evidence `m4-oracle-loader-full-v2`; receipt c19ed5993a1bb1d47ad841486575811bac4296ffb93de76fab1299c9f689dc50.
+Independent review 77022148f219f73a461316dbb36250ab482ba27a815afd57e846a7bb283b8351 accepts five loader seals.
+Finite31 programs/62 links/335 refs/265 nodes,15 image/two erased witnesses pass; original55/200/1685 conserved.
+Source-valid audit-payload omission `5ddfcbab90e58a0215abeb1dd5181691b5acbb88` refreshes only its fixture descriptor.
+Actual35 SQL/native/loader construction reaches the exact final missing-program refusal in278.853s, peak3,935,820,185B.
+Negative receipt f57e2deb986493643a7a138deaf7254234ca4144bb06179f24ae7954f67e0366 and independent actual review
+eda5d9436d7c1356c987844f5fd844f850ef5043537ba3a11bcf42658f7ac62b accept this finite refutation; cleanup/prior/source pass.
+The reviewed current-store/premise/lineage/P2/private continuation is locally source-integrated;631 pure controls pass.
+The new source requires36 actual SQL cases (16private/20profiles),32 programs/64links/360refs/287nodes; actual join pending.
+Current-parent Linux HOLD-source qualification executes fresh53-file producer: positive7.196s/actual9, abort1.773s,
+pending-absence1.168s; actual image/config/layers/census/enforcement match, prior resources/source/cleanup preserved.
+Actual-result review e3fe86573f9feba69be89d93f3392f2469d097bdd29c26e08e1badb80d28d6d0 accepts a local marker-only successor.
+The fresh common-event P2+36SQL/native/private join, changed-construction semantic negative and M4-03/04/05/06 remain open.
+Synthetic unrelated ordinary transport supplies no real ordinary-suite/hosted or unconditional identity credit.
+Failure memory retains all attempts and corrected unit-double/source-binding defects; no identical negative replay is selected.
 Accepted debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
 
 ### Urgent Next security remediation (26 October; delivery pending)
