@@ -13,6 +13,41 @@ status_command: pnpm plan:status
 
 > This is the single active tracker. Historical proof is linked, not repeated.
 
+### M4 verification budget amendment (27 October)
+
+The [current program amendment](current-program.md#m4-verification-budget-amendment-27-october)
+records the direct owner instruction following the proposed 10-minute budget.
+Future combined qualification uses 600 seconds including cleanup, with a 15-second
+cleanup reserve inside that limit. The 6-GiB ceiling and every source, event, policy,
+ownership, coverage, security and behavioral check remain required. Track actual
+300-second performance separately; do not relabel a historical failure as a pass.
+
+Latest source `94f927ec151a4c663db1c84daf3fe8689478a6b5` passed 718 focused checks
+and security/modularity verification. Its actual external Wv4 pair reached genuine
+native/private construction and then failed a supplemental checker that read
+`entry.identity` instead of the encoded `entry.row.identity`. Total time was 296.107
+seconds including clean retirement. Receipt SHA-256:
+`79c6407f272c2f2f16600ee9c12771a09d9faf7843c2488e46eb66a0eb73d6b0`.
+
+Wv5 corrected that checker and bounded full-data diagnostic writing; 33 focused
+controls and independent differential review passed. The actual fresh run passed
+all 36 SQL cases, then timed out without a durable paired-checkpoint record or diagnostic
+file. Cleanup finished at 304.810 seconds; sampled aggregate peak was 4,629,544,960
+bytes, with prior/source/helper and owned-resource retirement checks preserved.
+Receipt SHA-256:
+`ee8d49518649ac9525e3b0163fb1a940d119e66818808342a64d9dfeeb5e0230`.
+The exact post-SQL phase is unobserved; absence of output is not proof of a specific
+hot spot. This is a recurrence of the combined-budget failure family and grants
+zero closure credit. Supporting failure comparisons remain in `m4-failure-memory-v1`.
+
+The next qualification records bounded monotonic timestamps at its existing helper
+boundaries and executes the same genuine construction under the amended total limit.
+Do not repeat historical early worker overlap: it exceeded 6 GiB, as retained below.
+After actual positive and source-valid semantic-negative acceptance, finish the real
+admin/agent/staff/ops assignment-context and genuine ordinary-execution joins.
+The conditional two-factory relation alone cannot close the business cohort or M4.
+All M4 roadmap row statuses below remain unchanged pending actual evidence.
+
 ### Current RC3.1 M4 implementation checkpoint (26 October)
 
 The direct human grant and exact approved solution/manifest are recorded in

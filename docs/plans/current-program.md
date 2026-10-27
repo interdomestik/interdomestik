@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-25
+last_reviewed: 2026-10-27
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -42,10 +42,38 @@ general analyzer, test exemption, baseline reset or weaker delivery criterion.
 The working candidate starts at `2f0225a4e1eec865447ebdf67356dfcf71969fb4`,
 tree `7d1c7663690c2412a47acfa8d48b47115598fd38`, on
 `codex/pr1920-history-primitive-v2-experiment`. The older candidate identities below
-are historical. Original ADOPTION/baseline604, 300-second/6-GiB measured lane, fuel,
+are historical. Original ADOPTION/baseline604, the 6-GiB measured memory limit, fuel,
 private producer/source/policy/event joins, proxy authority and required delivery checks
 remain in force. ZERO is the final acceptance criterion, not a prerequisite to beginning
-the authorized M4 proof. See the current tracker for actual execution evidence.
+the authorized M4 proof. The combined M4 qualification time budget follows the explicit
+27 October amendment below. Other executable budgets remain unchanged. See the current
+tracker for actual execution evidence.
+
+### M4 verification budget amendment (27 October)
+
+In the implementation-owner chat `01a16025-dd86-7ab0-8454-293bbfd9fc36`, Arben asked
+why the five-minute limit could not be extended. After the owner recommended a
+10-minute total limit while retaining 6 GiB and every proof check, Arben directed:
+"Use whatever is needed go to the core of m4 problem and solve it". This authorizes
+the following narrow change to RC3.1's retained wall-clock budget.
+
+The complete fresh combined M4 qualification has a **600-second total wall-clock
+limit**, including preflight, owned PostgreSQL startup, fresh P2, all SQL cases,
+native construction, source/event/policy and ownership checks, supplemental checking,
+and owned-resource cleanup. Schedule 15 seconds of that same limit for cleanup;
+this is not an extension after the deadline. Acceptance still requires all checks,
+healthy monitoring, preserved source/prior resources, complete retirement and actual
+total elapsed time at or below 600 seconds. Retain a separately calculated literal
+300-second performance observation. Historical 300-second failures remain failures.
+
+This amends only the combined qualification wall-clock limit. Keep the 6-GiB sampled
+memory ceiling, PG768MiB/P2384MiB caps, fuel, baseline604, original inventories and
+multiplicities, fixed producer/loader/one-use joins and required negative controls.
+Do not change application/session/operation deadlines, public guard work bounds,
+required ordinary coverage, protected delivery or any security/correctness predicate.
+The approved solution bytes remain immutable; this explicit amendment supersedes
+its 300-second clause only for this combined M4 qualification. It grants no native
+admission, production C, global ZERO, M4 completion or S8 delivery by itself.
 
 On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
 resumption of the existing frozen S8 scope. This supersedes the handoff HOLD for that scope only.
