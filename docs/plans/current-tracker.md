@@ -317,6 +317,58 @@ Synthetic unrelated ordinary transport supplies no real ordinary-suite/hosted or
 Failure memory retains all attempts and corrected unit-double/source-binding defects; no identical negative replay is selected.
 Accepted debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
 
+### External combined execution checkpoint (27 October; native correction selected)
+
+The source composition was committed locally as `defa55d78506f0f42309ac97250f53b263b4d1c7`.
+Independent source and helper reviews accepted its bounded scope; 631 M4 tests, security,
+modularity, scope and whitespace checks passed. This was source preparation, not M4 acceptance.
+
+New bulk proof copies and outputs now execute physically on the verified external SSD.
+The preparer checks device identity and capacity before allocation and while commands run;
+the paired supervisor samples owned host memory plus full PG768MiB/P2384MiB reserves through
+startup and cleanup. Its fixed preparation guardian retires descendants after command exit,
+parent loss, timeout or guard refusal. These operational corrections do not grant semantic
+or hosted proof credit. The original 300-second/6-GiB envelope and 10-GiB internal floor remain.
+
+The first external combined attempt, freeze
+`6a169859dea283f7a08bc7e3e9dd152230603d7494590acba9754551702b3e64`, failed in 32.405 seconds.
+Actual P2 ran nine cases and SQL completed eight private cases before the new current-store
+restoration assertion failed. A focused real PG16/driver probe confirmed timestamp parameters
+were serialized through JavaScript Date and lost microseconds; text-first binding preserved
+all three timestamp vectors. The fix changes three restoration casts and one producer descriptor,
+preserving all 25 assertion references and all 36 cases. Independent review
+`e1cdb789eabb4fb088a556b9f0dd439b8690ce85aa02ff7af7bc2ca701242674` accepted this correction
+and the parent retirement helper's exact sibling-directory journal lookup.
+
+Corrected source `33478ad63de94dd3aa03c303ab611ef87182d487`, freeze
+`e85bd1d747565ad2f1b3e4a2d56267718c412a4cdb5a1121d9d0a655866b39ff`, passed the fresh full
+source/model/resolver preflight. Its paired attempt executed all 36 SQL cases in 21.469 seconds,
+then failed in native evaluation after 203.254 seconds with an absent operation AST node.
+The new lineage consumer needs `entry._node`; the actual inventory wire and worker hydration
+previously preserved only the owner. Direct unit doubles supplied the missing node and hid
+this integration gap. The selected correction must preserve its exact source-bound operation
+locator through the real encode/hydrate path, with missing, foreign and ambiguous locators
+refused. Owner substitution, null fallback, skipped obligations and analyzer admission changes
+are not selected. A real small-model protocol regression must precede another full native run.
+
+Both failed attempts retired owned resources and preserved prior services, source and helpers.
+The second confirmed all three P2 journal roles and same-daemon absence, with no parent recovery;
+its continuously sampled aggregate peak was 4,997,890,048 bytes and sampler health passed through
+final cleanup. Neither attempt completed the native/private construction or qualifies the
+changed semantic negative. Raw counts and accepted debt/context/occurrence closures are not
+inferred from the SQL pass. M4-02 remains selected/partial; M4-03 through M4-08 and S8 stay open.
+
+Measured internal growth during the second attempt was about 3.48 GiB, despite external proof
+outputs. The next preparation reserves at least 4 GiB for observed swap growth plus estimated
+internal overhead, retaining the original 10-GiB remaining floor. Only verified inactive historical
+runtime assemblies were archived; receipts, reports, active source and frozen inputs remain.
+Historical assembly replay requires physical restoration. System swap is not deleted.
+
+Evidence and comparisons remain under `m4-external-owner-execution-v2`,
+`m4-external-owner-execution-v3`, `m4-current-store-timestamp-diagnostic-v1` and the existing
+`m4-failure-memory-v1` ledger. No identical failed workload or older qualified negative is
+selected for repetition; fresh proof requires the reviewed causal correction and focused checks.
+
 ### Urgent Next security remediation (26 October; delivery pending)
 
 M4-02 diagnostic follow-up at base `956a91c8cf60519d719ebba867a1ff6a89c4c4eb`

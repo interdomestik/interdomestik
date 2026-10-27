@@ -724,8 +724,8 @@
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 7722,
-      "sha256": "0df2f6dedb86975549ef6b7bef41e2d15438a3ca67f29f1d02e9af026b64a313"
+      "bytes": 8836,
+      "sha256": "e273fce33f22bac01a79a7a67af2b3207ed006a2ce8dabf52c8a7befc291c9fc"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
@@ -1299,8 +1299,8 @@
     },
     "scripts/ci/db-access-inventory-wire.mjs": {
       "mode": "100644",
-      "bytes": 635,
-      "sha256": "6deb86902385788b6c22b738581602dde0fadc1f253c36ae206ee18b70189e93"
+      "bytes": 1439,
+      "sha256": "34e37aaf9eaa74764172bbef39d01f0467f79763e5755d646c3a7e1d74e20106"
     },
     "scripts/ci/db-access-inventory.mjs": {
       "mode": "100644",

@@ -86,15 +86,28 @@ export function hydrateInventory(model, input) {
     requested = new Set(),
     positions = new Map();
   for (const item of input.entries) {
-    requested.add(JSON.stringify(item.owner));
-    const [file, pos] = item.owner;
-    const selected = positions.get(file) ?? new Set();
-    selected.add(pos);
-    positions.set(file, selected);
+    for (const value of [item.owner, item.operation]) {
+      if (
+        !Array.isArray(value) ||
+        value.length !== 4 ||
+        typeof value[0] !== 'string' ||
+        !value.slice(1).every(Number.isSafeInteger) ||
+        value[1] < 0 ||
+        value[2] <= value[1] ||
+        value[3] < 0
+      )
+        fail('exact owner/operation locator');
+      requested.add(JSON.stringify(value));
+      const [file, pos] = value;
+      const selected = positions.get(file) ?? new Set();
+      selected.add(pos);
+      positions.set(file, selected);
+    }
   }
   for (const sf of model.parsed.values()) {
     const selected = positions.get(model.fileOf(sf));
     if (!selected) continue;
+    if (sf.text !== model.sources.get(model.fileOf(sf))) fail('locator source/model drift');
     model.walk(sf, node => {
       if (!selected.has(node.pos)) return;
       const key = JSON.stringify([model.fileOf(node), node.pos, node.end, node.kind]);
@@ -108,9 +121,24 @@ export function hydrateInventory(model, input) {
     entries: input.entries.map(item => {
       const owner = locators.get(JSON.stringify(item.owner));
       if (!owner) fail('missing or ambiguous owner');
+      const operation = locators.get(JSON.stringify(item.operation));
+      if (!operation) fail('missing or ambiguous operation');
+      let ancestor = operation;
+      while (ancestor && ancestor !== owner) ancestor = ancestor.parent;
+      const sf = model.parsed.get(item.row.file);
+      if (
+        !sf ||
+        operation.getSourceFile() !== sf ||
+        !ancestor ||
+        operation.getText(sf) !== item.row.source ||
+        operation.getText(sf) !== item.row.callee ||
+        sf.getLineAndCharacterOfPosition(operation.getStart(sf)).line + 1 !== item.row.line
+      )
+        fail('foreign operation/source/owner');
       return {
         ...item.row,
         _owner: owner,
+        _node: operation,
         _indirect: item.indirect,
         _incomplete: item.incomplete,
       };

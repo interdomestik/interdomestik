@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createSourceModel } from './db-access-source.mjs';
-import { hydrateInventory } from './db-access-graph-workers.mjs';
+import { encodeInventory, hydrateInventory } from './db-access-graph-workers.mjs';
+import { createProvenance } from './db-access-provenance.mjs';
+import { collectInventory } from './db-access-inventory.mjs';
 
 const file = 'apps/web/src/owner.ts';
 function fixture() {
   const model = createSourceModel(
     new Map([
-      [file, 'export function owned() { return 1; }'],
+      [
+        file,
+        "import {db} from '@interdomestik/database'; export function owned() { db.select(); db.update(claims); }",
+      ],
       [
         'apps/web/src/irrelevant.ts',
         Array.from({ length: 3000 }, (_, index) => `export const local${index}=${index};`).join(''),
@@ -19,31 +24,25 @@ function fixture() {
   model.walk(model.parsed.get(file), node => {
     if (node.name?.getText() === 'owned') owner = node;
   });
-  const locator = [model.fileOf(owner), owner.pos, owner.end, owner.kind];
-  const input = {
-    changed: ['apps/web/src/irrelevant.ts', file],
-    entries: [
-      {
-        owner: locator,
-        row: { identity: 'first', historicalDebt: false, retained: { value: 1 } },
-        indirect: true,
-        incomplete: 'unresolved owner',
-      },
-      { owner: [...locator], row: { identity: 'second' }, indirect: false },
-    ],
-  };
-  return { model, owner, input };
+  const inventory = collectInventory(model, createProvenance(model), new Map());
+  inventory.changed = new Set(['apps/web/src/irrelevant.ts', file]);
+  inventory.entries[0].retained = { value: 1 };
+  inventory.entries[0]._indirect = true;
+  inventory.entries[0]._incomplete = 'unresolved owner';
+  const input = encodeInventory({ model, inventory });
+  return { model, owner, input, operations: inventory.entries.map(row => row._node) };
 }
 
 test('owner hydration preserves every row, exact node identity and changed-root order', () => {
-  const { model, owner, input } = fixture();
+  const { model, owner, input, operations } = fixture();
   const result = hydrateInventory(model, input);
   assert.deepEqual([...result.changed], input.changed);
   assert.deepEqual(
     result.entries,
-    input.entries.map(item => ({
+    input.entries.map((item, index) => ({
       ...item.row,
       _owner: owner,
+      _node: operations[index],
       _indirect: item.indirect,
       _incomplete: item.incomplete,
     }))
