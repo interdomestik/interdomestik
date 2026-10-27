@@ -106,6 +106,7 @@ function snapshot(producerRoot, gitDir, context) {
     ...HELPERS,
     PREFIX + 'bootstrap.mjs',
     PREFIX + 'ordinary-artifact.mjs',
+    PREFIX + 'ordinary-provenance.mjs',
     PREFIX + 'ordinary-dispatch.mjs',
     PREFIX + 'unpack-ordinary.py',
   ])
@@ -143,6 +144,13 @@ function snapshot(producerRoot, gitDir, context) {
 
 // No public token-minting API: only this entry can create the private invocation.
 export async function runBootstrappedP2Coverage(givenOptions) {
+  return runBootstrappedCoverage(givenOptions, 'required');
+}
+export async function runBootstrappedM4C0Coverage(givenOptions) {
+  return runBootstrappedCoverage(givenOptions, 'm4-c0');
+}
+const artifactAuthorities = new WeakMap();
+async function runBootstrappedCoverage(givenOptions, purpose) {
   if (givenOptions?.context?.eventName !== 'pull_request') fail('pull_request event required');
   const options = Object.freeze({
     ...givenOptions,
@@ -170,14 +178,20 @@ export async function runBootstrappedP2Coverage(givenOptions) {
     identity.authenticateRuntimeContext(gitDir, context);
     if (snapshot(producerRoot, gitDir, context) !== before) fail('producer closure changed');
   };
-  invocations.set(options, { assertCurrent });
+  invocations.set(options, { assertCurrent, purpose });
   try {
-    const result = await dispatch.runRequiredP2Coverage(options);
+    const result = await (purpose === 'required'
+      ? dispatch.runRequiredP2Coverage(options)
+      : dispatch.runM4C0P2Coverage(options));
     assertCurrent();
     results.set(result, {
       assertCurrent,
       context: JSON.stringify(context),
-      join: dispatch.takeFreshP2CoverageForJoin,
+      purpose,
+      join:
+        purpose === 'required'
+          ? dispatch.takeFreshP2CoverageForJoin
+          : dispatch.takeFreshM4C0CoverageForJoin,
     });
     return result;
   } finally {
@@ -186,17 +200,45 @@ export async function runBootstrappedP2Coverage(givenOptions) {
 }
 
 export function takeP2BootstrapInvocation(options) {
+  return takeInvocation(options, 'required');
+}
+export function takeM4C0BootstrapInvocation(options) {
+  return takeInvocation(options, 'm4-c0');
+}
+function takeInvocation(options, purpose) {
   const state = invocations.get(options);
-  if (!state) fail('private authenticated invocation required');
+  if (!state || state.purpose !== purpose)
+    fail('private authenticated purpose invocation required');
   invocations.delete(options);
   state.assertCurrent();
+  if (purpose === 'm4-c0') {
+    const authority = Object.freeze({});
+    artifactAuthorities.set(authority, {
+      context: JSON.stringify(options.context),
+      assertCurrent: state.assertCurrent,
+    });
+    return { ...state, artifactAuthority: authority };
+  }
   return state;
+}
+export function consumeM4C0ArtifactAuthority(authority, context) {
+  const state = artifactAuthorities.get(authority);
+  if (!state || state.context !== JSON.stringify(context))
+    fail('fresh M4 C0 artifact authority required');
+  artifactAuthorities.delete(authority);
+  state.assertCurrent();
 }
 
 export function takeBootstrappedP2CoverageForJoin(result, context) {
+  return takeResult(result, context, 'required');
+}
+export function takeBootstrappedM4C0CoverageForJoin(result, context) {
+  return takeResult(result, context, 'm4-c0');
+}
+function takeResult(result, context, purpose) {
   if (context?.eventName !== 'pull_request') fail('pull_request event required');
   const state = results.get(result);
-  if (!state || state.context !== JSON.stringify(context))
+  if (!state || state.purpose !== purpose || state.context !== JSON.stringify(context))
     fail('fresh bootstrapped result required');
   results.delete(result);
   state.assertCurrent();

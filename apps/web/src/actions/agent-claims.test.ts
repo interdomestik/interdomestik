@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { revalidatePath } from 'next/cache';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
+  getHeaders: vi.fn(),
+  relayRequest: vi.fn(),
   dbUpdate: vi.fn(),
   dbSelect: vi.fn(),
   txUpdateReturning: vi.fn(),
@@ -91,7 +94,10 @@ vi.mock('next/cache', () => ({
 }));
 
 vi.mock('next/headers', () => ({
-  headers: vi.fn(),
+  headers: mocks.getHeaders,
+}));
+vi.mock('@/server/operations/m4-assignment-relay-client', () => ({
+  relayM4AssignmentRequest: mocks.relayRequest,
 }));
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { assignClaim, updateClaimStatus } from './agent-claims';
@@ -159,72 +165,112 @@ describe('Staff Claims Actions', () => {
   });
 
   describe('assignClaim', () => {
-    it('should throw if user is not authenticated', async () => {
-      mocks.getSession.mockResolvedValue(null);
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
+    const operationId = '11111111-1111-4111-8111-111111111111';
+    beforeEach(() => {
+      vi.stubEnv('M4_ASSIGNMENT_OWNER_ORIGIN', 'https://assignment.example.test');
+      vi.stubEnv('M4_ASSIGNMENT_RELAY_DEADLINE_MS', '12000');
+      vi.stubEnv('M4_ASSIGNMENT_OWNER_CA_FILE', undefined);
+      mocks.getHeaders.mockResolvedValue(
+        new Headers({
+          cookie: 'original-cookie',
+          'x-forwarded-for': '192.0.2.40',
+          'user-agent': 'Agent wrapper unit',
+        })
+      );
+    });
+    afterEach(() => vi.unstubAllEnvs());
+
+    function expectOwnedDelegation() {
+      expect(mocks.relayRequest).toHaveBeenCalledExactlyOnceWith(
+        { origin: 'https://assignment.example.test', deadlineMs: 12000 },
+        'legacy-agent',
+        'original-cookie',
+        JSON.stringify({
+          version: 1,
+          command: 'm4.legacy.assign-claim',
+          operationId,
+          claimId: 'claim-1',
+          staffId: 'staff-2',
+        }),
+        JSON.stringify({ ip: '192.0.2.40', userAgent: 'Agent wrapper unit' })
+      );
+      expect(mocks.getSession).not.toHaveBeenCalled();
+      expect(mocks.dbQueryClaims).not.toHaveBeenCalled();
+      expect(mocks.dbQueryUser).not.toHaveBeenCalled();
+      expect(mocks.dbUpdate).not.toHaveBeenCalled();
+      expect(notifyClaimAssigned).not.toHaveBeenCalled();
+    }
+
+    it('preserves backend authentication denial without success revalidation', async () => {
+      mocks.relayRequest.mockResolvedValue({ status: 'denied', reason: 'UNAUTHORIZED' });
+      await expect(assignClaim('claim-1', 'staff-2', operationId)).resolves.toEqual({
         success: false,
         error: 'Unauthorized',
+        data: undefined,
       });
+      expectOwnedDelegation();
+      expect(revalidatePath).not.toHaveBeenCalled();
     });
 
-    it('should not allow staff to assign claims to someone else', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
-      });
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
+    it('preserves backend staff self-assignment denial without local mutation', async () => {
+      mocks.relayRequest.mockResolvedValue({ status: 'denied', reason: 'SELF_ASSIGNMENT_ONLY' });
+      await expect(assignClaim('claim-1', 'staff-2', operationId)).resolves.toEqual({
         success: false,
         error: 'Access denied: Cannot assign other staff',
+        data: undefined,
       });
-      expect(mocks.dbUpdate).not.toHaveBeenCalled();
+      expectOwnedDelegation();
+      expect(revalidatePath).not.toHaveBeenCalled();
     });
 
-    it('should throw if claim does not exist', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
-      });
-      mocks.dbQueryUser.mockResolvedValue({ id: 'staff-2', email: 'staff@test.com' });
-      mocks.dbQueryClaims.mockResolvedValue(null); // No claim
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
+    it('preserves backend missing-claim refusal and performs no success effects', async () => {
+      mocks.relayRequest.mockResolvedValue({ status: 'denied', reason: 'RESOURCE_DENIED' });
+      await expect(assignClaim('claim-1', 'staff-2', operationId)).resolves.toEqual({
         success: false,
         error: 'Claim not found',
+        data: undefined,
       });
+      expectOwnedDelegation();
+      expect(revalidatePath).not.toHaveBeenCalled();
     });
 
-    it('should throw if staff member does not exist', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+    it('preserves completed staff eligibility failure without cache success', async () => {
+      mocks.relayRequest.mockResolvedValue({
+        status: 'completed',
+        operationId,
+        result: { success: false, error: 'Staff member not found' },
       });
-      mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
-      mocks.dbQueryUser.mockResolvedValue(null); // No agent
-
-      await expect(assignClaim('claim-1', 'staff-2')).resolves.toEqual({
+      await expect(assignClaim('claim-1', 'staff-2', operationId)).resolves.toEqual({
         success: false,
         error: 'Staff member not found',
       });
+      expectOwnedDelegation();
+      expect(revalidatePath).not.toHaveBeenCalled();
     });
 
-    it('should update staffId and notify staff', async () => {
-      mocks.getSession.mockResolvedValue({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+    it('delegates mutation and notification to the owner and revalidates completed success', async () => {
+      // Actual mutation/audit/notification assertions live in the restricted-owner SQL cases.
+      mocks.relayRequest.mockResolvedValue({
+        status: 'completed',
+        operationId,
+        result: { success: true, data: undefined },
+        changed: true,
       });
-      mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
-      mocks.dbQueryUser.mockResolvedValue({
-        id: 'staff-2',
-        email: 'staff@test.com',
-        name: 'Staff Smith',
+      await expect(assignClaim('claim-1', 'staff-2', operationId)).resolves.toEqual({
+        success: true,
+        data: undefined,
       });
-      mocks.dbUpdate.mockResolvedValue(undefined);
-
-      await assignClaim('claim-1', 'staff-2');
-
-      expect(mocks.dbUpdate).toHaveBeenCalled();
-      expect(notifyClaimAssigned).toHaveBeenCalledWith(
-        'staff-2',
-        'staff@test.com',
-        { id: 'claim-1', title: 'Test Claim' },
-        'Staff Smith'
+      expectOwnedDelegation();
+      const paths = [
+        '/member/claims',
+        '/member/claims/claim-1',
+        '/admin/claims',
+        '/admin/claims/claim-1',
+        '/staff/claims',
+        '/staff/claims/claim-1',
+      ];
+      expect(vi.mocked(revalidatePath).mock.calls).toEqual(
+        paths.flatMap(path => ['sq', 'en', 'sr', 'mk'].map(locale => ['/' + locale + path]))
       );
     });
   });

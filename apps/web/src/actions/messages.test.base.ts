@@ -90,7 +90,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   eq: vi.fn(),
   ne: vi.fn(),
   and: vi.fn(),

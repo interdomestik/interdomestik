@@ -1,5 +1,7 @@
 'use server';
 
+import { headers } from 'next/headers';
+
 import { assignClaimCore } from './staff-claims/assign';
 import { getActionContext } from './staff-claims/context';
 import { saveClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement.core';
@@ -36,9 +38,13 @@ export type {
 /**
  * Assign a claim to a staff member on the staff surface.
  */
-export async function assignClaim(claimId: string, staffId?: string | null): Promise<ActionResult> {
-  const { session, requestHeaders } = await getActionContext();
-  return assignClaimCore({ claimId, session, requestHeaders, staffId });
+export async function assignClaim(
+  claimId: string,
+  staffId?: string | null,
+  operationId?: string
+): Promise<ActionResult> {
+  const requestHeaders = await headers();
+  return assignClaimCore({ claimId, requestHeaders, staffId, operationId });
 }
 
 /**

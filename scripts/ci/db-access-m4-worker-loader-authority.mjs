@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertM4WorkerEvidenceCurrent } from './db-access-graph-worker-pool.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { freezeOutput, outputShape } from './db-access-output-binding.mjs';
@@ -119,6 +120,7 @@ export const completeM4WorkerLoaderLaunch = (handle, code) =>
 
 export function bindM4GraphLoaderEvidence(session, proof) {
   const state = owned(session);
+  assertM4WorkerEvidenceCurrent(proof);
   if (
     state.graphs.size !== 4 ||
     [...state.graphs.values()].some(
@@ -131,6 +133,7 @@ export function bindM4GraphLoaderEvidence(session, proof) {
 
 export function assertM4GraphLoaderEvidence(session, proof) {
   const state = owned(session);
+  assertM4WorkerEvidenceCurrent(proof);
   if (!state.graphEvidence.has(proof)) fail('foreign graph loader evidence');
 }
 

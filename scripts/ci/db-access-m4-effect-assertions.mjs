@@ -1,7 +1,9 @@
+import { bindMountedSourceImage } from './db-access-m4-mounted-source.mjs';
+import { linkOwnedAssignmentContexts } from './db-access-m4-assignment-context-proof.mjs';
 import { M4_RUNTIME_CONTRACT } from './db-access-m4-runtime-contract.mjs';
 import { describeLocalPremises } from './db-access-m4-local-premise-relation.mjs';
 import { describeLineageRawReferences } from './db-access-m4-lineage-raw-references.mjs';
-// Integrates one finite correspondence into the actual private pair. No discharge.
+// Binds finite source and executed assertions inside the existing private pair owner.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertM4NativeProofSource } from './db-access-m4-native-session.mjs';
@@ -88,6 +90,23 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     event,
     contract: M4_RUNTIME_CONTRACT,
   });
+  const assignmentContextProof = linkOwnedAssignmentContexts({
+    native,
+    source,
+    runtime,
+    event,
+    contract: M4_RUNTIME_CONTRACT,
+    fixedLinks: fixedOracleLinks,
+  });
+  const mountedAssignmentSource = bindMountedSourceImage(
+    source.derivations.mountedAssignment,
+    source,
+    runtime,
+    records,
+    fixedOracleLinks,
+    M4_RUNTIME_CONTRACT,
+    PROVIDER_UNIT_POLICY
+  );
   const lineage = native.rawGraph.m4Contexts?.affectedLineage;
   if (!lineage) fail('missing owned affected-lineage observation axis');
   const affectedLineageInspection = {
@@ -127,6 +146,8 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
     links,
     fixedOracleLinks,
     localPremises,
+    assignmentContextProof,
+    mountedAssignmentSource,
     affectedLineageInspection,
     unresolvedKernelEffects: effects.filter(
       (effect, index) =>

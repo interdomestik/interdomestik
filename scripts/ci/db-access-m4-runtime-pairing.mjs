@@ -46,15 +46,37 @@ function acceptOwnedPrivateConstruction(
     effectAssertions,
     workerLoaderInspection,
   });
-  // This fixed two-factory construction is required as a whole. A residual
-  // context refuses the construction instead of forcing numerical credit.
-  const missing = privateAcceptance.decisions.filter(
-    row => !row.completeIdentityContextConjunction
-  );
-  if (missing.length)
-    fail(
-      'semantic missing fixed P2 factory guarantee: ' + missing.map(row => row.identity).join(',')
-    );
+  // All three real local mounted routes and the current isolated proof program are required.
+  // Historical factory rows and whole original/native contexts receive no implicit credit.
+  const profiles = ['legacy-admin', 'legacy-agent', 'staff'];
+  const cases = [
+    'mounted-admin-assignment-source-route',
+    'mounted-agent-assignment-source-route',
+    'mounted-staff-assignment-source-route',
+  ];
+  const decisions = privateAcceptance.mountedAssignment?.localDecisions;
+  if (
+    privateAcceptance.construction?.kind !== 'm4-current-mounted-proof-construction' ||
+    privateAcceptance.construction.currentProofClassQualified !== true ||
+    privateAcceptance.construction.acceptedOldIdentityCount !== 0 ||
+    privateAcceptance.currentLocalConstructionQualified !== true ||
+    !Array.isArray(decisions) ||
+    decisions.length !== 3 ||
+    decisions.some(
+      (row, index) =>
+        row.profile !== profiles[index] ||
+        row.qualifiedLocalMountedConstruction !== true ||
+        row.adapterActuallyExecuted !== true ||
+        row.wholeOriginalIdentityQualified !== false ||
+        row.nextDeploymentQualified !== false ||
+        !Array.isArray(row.executedRoutes) ||
+        row.executedRoutes.length !== 1 ||
+        row.executedRoutes[0].caseId !== cases[index] ||
+        row.executedRoutes[0].profile !== profiles[index]
+    )
+  )
+    fail('semantic missing current mounted trusted/proof construction');
+
   return { ordinaryExecution, privateAcceptance };
 }
 

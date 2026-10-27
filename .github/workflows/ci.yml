@@ -391,7 +391,7 @@ jobs:
         env: { EXPECTED_IDENTITY: '${{ steps.main_coverage_reuse.outputs.identity }}' }
         run: node scripts/ci/main-coverage-reuse.mjs assert-identity
       - name: Release Gate Unit Tests
-        run: pnpm test:release-gate
+        uses: ./.github/actions/ordinary-pr-coverage
   ai-eval:
     needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'

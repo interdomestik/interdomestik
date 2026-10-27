@@ -1,0 +1,20 @@
+name: Release tests and ordinary PR coverage
+description: Run release tests and produce the ordinary coverage artifact for the current PR merge.
+runs:
+  using: composite
+  steps:
+    - name: Release Gate Unit Tests
+      shell: bash
+      run: pnpm test:release-gate
+    - name: Produce ordinary PR coverage partition
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: node scripts/ci/p2/ordinary-job.mjs
+    - name: Upload ordinary PR coverage partition
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      with:
+        name: ordinary-coverage-${{ github.run_attempt }}-${{ github.sha }}
+        path: tmp/p2-ordinary-artifact/
+        if-no-files-found: error
+        retention-days: 7

@@ -1,3 +1,4 @@
+import type { Profile } from './m4-assignment-controller-types';
 import type { M4OpsResponse } from './m4-ops-controller';
 import type { M4Response, LegacyResult, StaffResult } from './m4-assignment-wire';
 
@@ -35,3 +36,7 @@ export type M4PrivateAssignmentRuntime = M4PrivateRuntime &
       observation: unknown
     ): Promise<M4Response<StaffResult>>;
   }>;
+
+export type M4AssignmentProfile = Profile;
+
+export type M4OwnedOperation = { stop(): void; done: Promise<void> };

@@ -83,7 +83,7 @@ function visit(task) {
 files.forEach(visit);
 console.log(JSON.stringify({ kind: 'untrusted-wrapper-observations-v2', cases, suites, coverage }));
 if (
-  cases.length !== 9 ||
+  cases.length !== 10 ||
   cases.some(c => c.state !== 'pass') ||
   suites.some(s => s.state !== 'pass')
 )

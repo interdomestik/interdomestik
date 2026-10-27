@@ -15,7 +15,7 @@ test('actual coverage-enabled child fails deliberate assertion and collector ref
     materializeP2Capsule(fileURLToPath(source), root);
     const file = path.join(root, 'wrapper.test.mjs'),
       text = fs.readFileSync(file, 'utf8');
-    const needle = 'toHaveBeenCalledTimes(LOCALES.length * 6)';
+    const needle = 'toHaveBeenCalledTimes(24)';
     assert.equal(text.split(needle).length, 2);
     fs.writeFileSync(file, text.replace(needle, 'toHaveBeenCalledTimes(25)'));
     const child = spawnSync(process.execPath, [path.join(root, 'run-suite.mjs')], {
@@ -27,9 +27,9 @@ test('actual coverage-enabled child fails deliberate assertion and collector ref
     const value = JSON.parse(child.stdout);
     assert.deepEqual(
       value.cases.filter(c => c.state === 'fail').map(c => c.name),
-      ['should revalidate paths']
+      ['revalidates every original locale path after committed changed assignment']
     );
-    assert.equal(value.cases.filter(c => c.state === 'pass').length, 8);
+    assert.equal(value.cases.filter(c => c.state === 'pass').length, 9);
     assert.ok(value.coverage.functions.length > 0);
     assert.throws(
       () =>
@@ -38,7 +38,7 @@ test('actual coverage-enabled child fails deliberate assertion and collector ref
           JSON.parse(fs.readFileSync(new URL('dist/source-manifest.json', source))),
           fs.readFileSync(path.join(root, 'wrapper.mjs'))
         ),
-      /exact nine cases/
+      /exact ten cases/
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

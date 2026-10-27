@@ -14,6 +14,7 @@
     "session": "packages/shared-auth/src/session.ts",
     "resolver": "packages/shared-auth/package.json",
     "bootstrap": "apps/web/src/server/operations/m4-private-runtime.ts",
+    "context": "apps/web/src/server/operations/m4-private-runtime-context.ts",
     "posture": "apps/web/src/server/operations/m4-pool-posture.ts",
     "wire": "apps/web/src/server/operations/m4-assignment-wire.ts",
     "controllerTypes": "apps/web/src/server/operations/m4-assignment-controller-types.ts",
@@ -22,7 +23,25 @@
     "staffKernel": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
     "notificationRuntime": "apps/web/src/server/operations/m4-notification-runtime.ts",
     "notifier": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
-    "runtimeTypes": "apps/web/src/server/operations/m4-private-runtime-types.ts"
+    "runtimeTypes": "apps/web/src/server/operations/m4-private-runtime-types.ts",
+    "mountedAdminPublic": "apps/web/src/actions/admin-claims.ts",
+    "mountedAdminMount": "apps/web/src/actions/admin-claims.core.ts",
+    "mountedAdminBarrel": "apps/web/src/actions/admin-claims/assign.ts",
+    "mountedAdminAdapter": "apps/web/src/actions/admin-claims/assign.core.ts",
+    "mountedAgentPublic": "apps/web/src/actions/agent-claims.ts",
+    "mountedAgentMount": "apps/web/src/actions/agent-claims.core.ts",
+    "mountedAgentBarrel": "apps/web/src/actions/agent-claims/assign.ts",
+    "mountedAgentAdapter": "apps/web/src/actions/agent-claims/assign.core.ts",
+    "mountedStaffMount": "apps/web/src/actions/staff-claims.core.ts",
+    "mountedStaffBarrel": "apps/web/src/actions/staff-claims/assign.ts",
+    "mountedStaffAdapter": "apps/web/src/actions/staff-claims/assign.core.ts",
+    "mountedRelay": "apps/web/src/server/operations/m4-assignment-relay.ts",
+    "mountedClient": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+    "mountedRelayWire": "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+    "mountedOwner": "apps/web/src/server/operations/m4-assignment-owner.ts",
+    "mountedOwnerHttp": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+    "mountedOwnerConfig": "apps/web/src/server/operations/m4-assignment-owner-config.ts",
+    "mountedOwnerEntry": "apps/web/src/server/operations/m4-assignment-owner-entry.ts"
   },
   "sources": {
     "apps/web/src/features/admin/claims/actions/ops-assignment.ts": {
@@ -62,8 +81,8 @@
     },
     "apps/web/src/server/operations/m4-private-runtime.ts": {
       "mode": "100644",
-      "bytes": 11985,
-      "sha256": "fc6eb0877dec23370847c7de394050cec40a01a6d761ebf525a35ff1d21d2cc7"
+      "bytes": 11656,
+      "sha256": "19c74e59b47f330a4b8cfcaabbce07bfa09d61231ec5ecfe1f50ff23a50fd0ce"
     },
     "apps/web/src/server/operations/m4-pool-posture.ts": {
       "mode": "100644",
@@ -107,8 +126,103 @@
     },
     "apps/web/src/server/operations/m4-private-runtime-types.ts": {
       "mode": "100644",
-      "bytes": 1171,
-      "sha256": "4ffeaba75631d76599d5a308cdee390880e4a53c7d933e041a13c7a454a2a7ba"
+      "bytes": 1351,
+      "sha256": "aa401cd2f2e38eec5b9e99d3ba6b5a90d4161a349408409f1db885d7f3c23e1d"
+    },
+    "apps/web/src/server/operations/m4-private-runtime-context.ts": {
+      "mode": "100644",
+      "bytes": 7123,
+      "sha256": "963b457108dfc5f57d55eb559da444662572af037066f1de5395186d0f1dd60e"
+    },
+    "apps/web/src/actions/admin-claims.ts": {
+      "mode": "100644",
+      "bytes": 138,
+      "sha256": "b67d4bb79dd61feedf36f54272aabdb0259053405ecc435b039dab48dd125ee6"
+    },
+    "apps/web/src/actions/admin-claims.core.ts": {
+      "mode": "100644",
+      "bytes": 663,
+      "sha256": "1f0be7c4b740023a36352dd13703feda439ef5ab846991549f40ddb0047dfea2"
+    },
+    "apps/web/src/actions/admin-claims/assign.ts": {
+      "mode": "100644",
+      "bytes": 121,
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682"
+    },
+    "apps/web/src/actions/admin-claims/assign.core.ts": {
+      "mode": "100644",
+      "bytes": 1093,
+      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea"
+    },
+    "apps/web/src/actions/agent-claims.ts": {
+      "mode": "100644",
+      "bytes": 127,
+      "sha256": "b38d0e01cfd2d5b62a6b1c604aaab18c0209f012063111173d2a7c008bdb3b25"
+    },
+    "apps/web/src/actions/agent-claims.core.ts": {
+      "mode": "100644",
+      "bytes": 689,
+      "sha256": "62857fd740af2092f9b3a1f00de429710318d1fb64a4daffb9e704bcf28df2ae"
+    },
+    "apps/web/src/actions/agent-claims/assign.ts": {
+      "mode": "100644",
+      "bytes": 121,
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682"
+    },
+    "apps/web/src/actions/agent-claims/assign.core.ts": {
+      "mode": "100644",
+      "bytes": 1073,
+      "sha256": "a1f870ccae4712ebc31051312223e2a74fb92be9cb02d0b2300cf136deb0f117"
+    },
+    "apps/web/src/actions/staff-claims.core.ts": {
+      "mode": "100644",
+      "bytes": 3136,
+      "sha256": "a7a9870c5a9a2d0b18e1b9f7bda7f799a9a431af532de393cdf54056db833915"
+    },
+    "apps/web/src/actions/staff-claims/assign.ts": {
+      "mode": "100644",
+      "bytes": 121,
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682"
+    },
+    "apps/web/src/actions/staff-claims/assign.core.ts": {
+      "mode": "100644",
+      "bytes": 817,
+      "sha256": "339ea48581fc0c7c7c27e240c96bfb0b8453a4359302bf0f617e049d0ed390c1"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay.ts": {
+      "mode": "100644",
+      "bytes": 4887,
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay-client.ts": {
+      "mode": "100644",
+      "bytes": 5577,
+      "sha256": "562098cd73a890e0a7cbc08a917b17d41de2c01eb93400be152c502c073a237a"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay-wire.ts": {
+      "mode": "100644",
+      "bytes": 5355,
+      "sha256": "a266de0d9e16e03fd4031b0429d8904d6e6cebee4496714f038da20ff0b08a68"
+    },
+    "apps/web/src/server/operations/m4-assignment-owner.ts": {
+      "mode": "100644",
+      "bytes": 9178,
+      "sha256": "e0346a5a5caa4fc20d51aadd257e9a76f36ee5858f3024cf60c55b09e90e3505"
+    },
+    "apps/web/src/server/operations/m4-assignment-owner-http.ts": {
+      "mode": "100644",
+      "bytes": 6721,
+      "sha256": "b2488ec270791193bbbfa5bb9e650f3cf1b4ff3724ee8e73b80be70e8689308a"
+    },
+    "apps/web/src/server/operations/m4-assignment-owner-config.ts": {
+      "mode": "100644",
+      "bytes": 1903,
+      "sha256": "18c29fb1b2b0842abb1c9c9166f8bc57ad6eb5cc65b4eb90816761c4d923be1c"
+    },
+    "apps/web/src/server/operations/m4-assignment-owner-entry.ts": {
+      "mode": "100644",
+      "bytes": 830,
+      "sha256": "81254bf9b8a7a06c7ec7c5a971563ace1d66fe4d7c03be33823bbf862c61cfa7"
     }
   }
 }

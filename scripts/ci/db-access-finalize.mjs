@@ -1,3 +1,5 @@
+import { isOwnedM4ObservationGraph } from './db-access-graph-workers.mjs';
+import { isOwnedOrdinarySynchronousGraph } from './db-access-evaluator.mjs';
 import { m4NativePrerequisites } from './db-access-m4-native-prerequisite.mjs';
 import { classifyStatusReturnEquivalence } from './db-access-status-return-equivalence.mjs';
 import { classifyDefaultEmailEquivalence } from './db-access-default-email-equivalence.mjs';
@@ -13,6 +15,18 @@ const publicEntry = entry =>
   Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('_')));
 
 export function finalizeGuardAnalysis(prepared, graph, captureRaw = false) {
+  // Parent-only diagnostics never mutate the complete, privately owned ordinary worker axis.
+  const observationGraph = graph;
+  if (isOwnedM4ObservationGraph(graph) || isOwnedOrdinarySynchronousGraph(graph)) {
+    const incomplete = [...graph.incomplete];
+    graph = {
+      ...graph,
+      incomplete,
+      ...(graph.m4Contexts?.unresolved === graph.incomplete
+        ? { m4Contexts: { ...graph.m4Contexts, unresolved: incomplete } }
+        : {}),
+    };
+  }
   const {
     repoRoot,
     adoption,
@@ -115,7 +129,12 @@ export function finalizeGuardAnalysis(prepared, graph, captureRaw = false) {
     baselineCount: baseline.entries.length,
   });
   const m4Prerequisites = providerUnit?.m4Proof
-    ? m4NativePrerequisites(providerUnit.m4Proof, prepared.m4NativeInventory, graph, failures)
+    ? m4NativePrerequisites(
+        providerUnit.m4Proof,
+        prepared.m4NativeInventory,
+        observationGraph,
+        failures
+      )
     : undefined;
   const unresolvedIncomplete = [
     ...crmObligations.remaining,

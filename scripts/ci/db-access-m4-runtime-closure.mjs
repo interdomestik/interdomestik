@@ -2,6 +2,31 @@ import { createHash } from 'node:crypto';
 const fail = reason => {
   throw Error('M4 runtime closure refused: ' + reason);
 };
+function validateCacheObserverEdges(metafile, contract) {
+  const observer = 'db-access-m4-runtime-cache-observer.ts';
+  const adapters = [
+    'apps/web/src/actions/admin-claims/assign.core.ts',
+    'apps/web/src/actions/agent-claims/assign.core.ts',
+    'apps/web/src/actions/staff-claims/assign.core.ts',
+  ];
+  const expected = {
+    kind: 'fixed-cache-call-observer',
+    specifier: 'next/cache',
+    target: observer,
+    importers: adapters,
+    scope: 'revalidation-call-observation-only',
+  };
+  if (JSON.stringify(contract.qualificationTransforms) !== JSON.stringify(expected))
+    fail('exact cache observer transform');
+  const permitted = new Set([contract.entryFile, ...adapters]);
+  for (const [file, record] of Object.entries(metafile.inputs)) {
+    const edges = (record.imports ?? []).filter(row => row.path === observer);
+    if (edges.length !== (permitted.has(file) ? 1 : 0) || edges.some(row => row.external))
+      fail('exact cache observer edge');
+  }
+  if ([...permitted, observer].some(file => !Object.hasOwn(metafile.inputs, file)))
+    fail('missing cache observer participant');
+}
 export function verifyM4Metafile(metafile, contract) {
   const inputs = Object.keys(metafile.inputs ?? {}).sort(),
     expected = [contract.entryFile, ...contract.expectedInputs].sort();
@@ -10,6 +35,7 @@ export function verifyM4Metafile(metafile, contract) {
     JSON.stringify(inputs) !== JSON.stringify(expected)
   )
     fail('exact input set');
+  validateCacheObserverEdges(metafile, contract);
   const allowed = new Set(contract.externalSpecifiers);
   for (const [file, record] of Object.entries(metafile.inputs))
     for (const imported of record.imports ?? []) {

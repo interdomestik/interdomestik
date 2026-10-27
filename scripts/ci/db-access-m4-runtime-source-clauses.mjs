@@ -6,28 +6,35 @@ import {
   statement as s,
   guard as g,
 } from './db-access-m4-runtime-source-ast.mjs';
-export function runtimeClauses(bootstrap, posture) {
+export function runtimeClauses(bootstrap, posture, context) {
   return {
-    construction: clauses(bootstrap, [
-      ['trusted-constructor-only', fn('construct')],
-      [
-        'snapshot-primitive-configuration',
-        v(
-          '{ identityDatabaseURL, dataDatabaseURL, issuerBaseURL, issuerSecret, operationDeadlineMs }'
-        ),
-      ],
-      ['integer-deadline-required', g('Number.isSafeInteger(operationDeadlineMs)')],
-      ['original-issuer-url-validated', v('issuer')],
-      ['capture-identity-purpose-target', v('identityTarget')],
-      ['capture-data-purpose-target', v('dataTarget')],
-      ['distinct-purpose-same-endpoint', g('identityTarget.login === dataTarget.login')],
-      ['capture-notification-target', v('notificationTarget')],
-      ['distinct-notification-purpose-and-deadline', g('notificationTarget &&')],
-      ['freeze-captured-primitives', v('captured')],
-      ['private-owned-operation-set', v('active')],
-      ['concrete-notification-owner', v('notificationOwner')],
-      ['concrete-notifier-from-owned-opener', v('assignmentNotifier')],
-    ]),
+    construction: [
+      ...clauses(bootstrap, [['trusted-constructor-only', fn('construct')]]),
+      ...clauses(context, [
+        [
+          'snapshot-primitive-configuration',
+          v(
+            '{ identityDatabaseURL, dataDatabaseURL, issuerBaseURL, issuerSecret, operationDeadlineMs }'
+          ),
+        ],
+        ['integer-deadline-required', g('Number.isSafeInteger(operationDeadlineMs)')],
+        ['original-issuer-url-validated', v('issuer')],
+        ['capture-identity-purpose-target', v('identityTarget')],
+        ['capture-data-purpose-target', v('dataTarget')],
+        ['distinct-purpose-same-endpoint', g('identityTarget.login === dataTarget.login')],
+        ['capture-notification-target', v('notificationTarget')],
+        ['distinct-notification-purpose-and-deadline', g('notificationTarget &&')],
+        ['freeze-captured-primitives', v('captured')],
+      ]).map(row => ({
+        ...row,
+        file: 'apps/web/src/server/operations/m4-private-runtime-context.ts',
+      })),
+      ...clauses(bootstrap, [
+        ['private-owned-operation-set', v('active')],
+        ['concrete-notification-owner', v('notificationOwner')],
+        ['concrete-notifier-from-owned-opener', v('assignmentNotifier')],
+      ]),
+    ],
     operation: clauses(bootstrap, [
       ['fixed-profile-execution', fn('executeProfile')],
       ['parse-serialized-request', v('request')],
@@ -88,6 +95,10 @@ export function runtimeClauses(bootstrap, posture) {
       ['local-ops-fixed-loopback-mode', fn('createM4LocalQualificationRuntime')],
       ['production-all-profiles-fixed-tls-mode', fn('createM4PrivateAssignmentRuntime')],
       ['local-all-profiles-fixed-loopback-mode', fn('createM4LocalQualificationAssignmentRuntime')],
+    ]),
+    assignmentContext: clauses(bootstrap, [
+      ['lexical-local-owner-table', v('qualifiedContextOwners')],
+      ['take-actual-closed-owner-once', fn('takeM4OwnedAssignmentContexts')],
     ]),
     posture: clauses(posture, [
       ['capture-and-validate-credential-target', fn('captureM4PoolTarget')],

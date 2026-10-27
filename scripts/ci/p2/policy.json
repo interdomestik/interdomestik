@@ -1,19 +1,17 @@
 {
   "version": 1,
-  "scope": "exact-assign-wrapper-nine",
+  "scope": "exact-mounted-assign-wrapper-ten",
   "repository": "interdomestik/interdomestik",
   "officialImage": "node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940",
   "nodeVersion": "24.15.0",
   "architectures": ["linux/arm64"],
   "qualification": "QUALIFIED_LINUX_ARM64_COVERAGE",
   "sourceFiles": {
-    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
-    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
+    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
   },
-  "rawIdentities": [
-    "3abe201e80665b5f1d95dd025e8694e386fd4eedab84512fa06b501c27ad7353",
-    "23045f68d4b176bb5a96c7ce1100eb6639006081e00ffbb87a42f31871abbab0"
-  ],
+  "rawIdentities": [],
   "baseline": 604,
   "rootfs": {
     "bootstrap": {
@@ -121,6 +119,11 @@
     "apps/web/vitest.config.ts": "f243f0bcfc23c246530a53d600f08f3a7c1a66f1b7166f8d9eb5c155734c3725",
     "scripts/ci/clean-coverage-artifacts.mjs": "4c0319931f8a16b20fcef5f84d6427252d1061a667d6145e69f0b78d4a14e676",
     "scripts/ci/coverage-gate.mjs": "8118b7da1f4956165e18492f441408a20953ca02b023420242b023b909d89c12",
-    ".github/workflows/ci.yml": "3e71ca475047906621a6a426c9c52ee3ff4ea4926c13cd6d27c44d023cccfb9c"
-  }
+    ".github/workflows/ci.yml": "1b6c3a0cb26a66ad4a5ae6370a2071434f431f76f78072a0a2a8ede33a27179a",
+    ".github/actions/ordinary-pr-coverage/action.yml": "47b9cbaf8fc9ffdad9a64c7720b490beaf61a3de29877233ad22ba1dc75c6c9a"
+  },
+  "historicalRawIdentities": [
+    "3abe201e80665b5f1d95dd025e8694e386fd4eedab84512fa06b501c27ad7353",
+    "23045f68d4b176bb5a96c7ce1100eb6639006081e00ffbb87a42f31871abbab0"
+  ]
 }

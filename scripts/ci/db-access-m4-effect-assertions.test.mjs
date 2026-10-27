@@ -14,6 +14,9 @@ import {
 } from './db-access-m4-kernel-assertion-contract.mjs';
 import { linkM4EffectAssertions } from './db-access-m4-effect-assertions.mjs';
 import { createM4EffectAssertionOwnerFixture } from './db-access-m4-effect-assertions-test-fixture.mjs';
+import { M4_RUNTIME_CONTRACT } from './db-access-m4-runtime-contract.mjs';
+import { deriveM4MountedSource } from './db-access-m4-mounted-source.mjs';
+import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { assertM4RuntimeImageRecords } from './db-access-m4-runtime.mjs';
 
 const source = fs.readFileSync(new URL('./' + fixture, import.meta.url), 'utf8');
@@ -150,7 +153,47 @@ test('unit owner doubles: one current native validation supplies both view and s
   const key = 'm4-owner-unit-' + randomUUID();
   const { root, event, runtime, records, source, native, copiedInputCount } =
     createM4EffectAssertionOwnerFixture();
-  let validations = 0;
+  const fixed = JSON.parse(
+    fs.readFileSync(new URL('./db-access-m4-mounted-source-contract.json', import.meta.url))
+  );
+  source.derivations.mountedAssignment = deriveM4MountedSource(
+    Object.fromEntries(
+      fixed.files.map(row => [row.file, fs.readFileSync(root + '/' + row.file, 'utf8')])
+    ),
+    fixed
+  );
+  runtime.qualificationCompilation = {
+    kind: 'fixed-qualification-cache-transform',
+    scope: 'revalidation-call-observation-only',
+    transforms: M4_RUNTIME_CONTRACT.qualificationTransforms,
+    metafileSha256: runtime.metafileSha256,
+    bundleSha256: runtime.bundleSha256,
+  };
+  const observer = 'db-access-m4-runtime-cache-observer.ts';
+  records[observer] = PROVIDER_UNIT_POLICY.producerFiles['scripts/ci/' + observer];
+  const mountedWitnesses = source.derivations.mountedAssignment.routes.map((route, index) => ({
+    id: route.witnessId,
+    executionObserved: true,
+    completeEffectQualified: false,
+    caseGroup: 'profiles',
+    caseId: route.witnessId,
+    assertions: [
+      {
+        mandatoryOnSuccessfulCallback: true,
+        caseId: route.witnessId,
+        callbackSha256: hash('unit callback'),
+        assertionSha256: hash('unit assertion'),
+      },
+    ],
+    fact: {
+      path: '/derivations/mountedAssignment/routes/' + index,
+      sha256: hash(JSON.stringify(route)),
+      sourceFiles: [],
+    },
+  }));
+  let validations = 0,
+    contextJoins = 0;
+  const contextDouble = Object.freeze({ explicitUnitContextDouble: true });
   const state = { native, source };
   globalThis[key] = {
     source() {
@@ -158,7 +201,11 @@ test('unit owner doubles: one current native validation supplies both view and s
       return { view: state.native, source: state.source };
     },
     records: () => records,
-    oracles: () => [],
+    oracles: () => mountedWitnesses,
+    contexts: () => {
+      contextJoins++;
+      return contextDouble;
+    },
   };
   const data = value => 'data:text/javascript;base64,' + Buffer.from(value).toString('base64');
   let code = fs.readFileSync(
@@ -166,6 +213,10 @@ test('unit owner doubles: one current native validation supplies both view and s
     'utf8'
   );
   for (const [name, body] of [
+    [
+      'db-access-m4-assignment-context-proof.mjs',
+      `export const linkOwnedAssignmentContexts = globalThis[${JSON.stringify(key)}].contexts;`,
+    ],
     [
       'db-access-m4-native-session.mjs',
       `export const assertM4NativeProofSource = globalThis[${JSON.stringify(key)}].source;`,
@@ -195,6 +246,8 @@ test('unit owner doubles: one current native validation supplies both view and s
     const handle = { outputDigest: hash('unit native output') };
     const linked = isolated.linkM4EffectAssertions(handle, runtime, event);
     assert.equal(validations, 1);
+    assert.equal(contextJoins, 1);
+    assert.equal(linked.effectAssertions.assignmentContextProof, contextDouble);
     assert.equal(linked.native, native);
     assert.equal(linked.effectAssertions.links.length, 3);
     assert.equal(linked.effectAssertions.links.flatMap(link => link.assertions).length, 6);

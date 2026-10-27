@@ -11,6 +11,7 @@ import { validateP2Observation } from './observations.mjs';
 import { P2_SOURCE, partitionOrdinarySources } from './source-fence.mjs';
 const PREFIX = 'scripts/ci/p2/';
 const WRAPPER = 'apps/web/src/actions/admin-claims/assign.core.ts';
+const RELAY = 'apps/web/src/server/operations/m4-assignment-relay.ts';
 const fresh = new WeakMap();
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const fail = message => {
@@ -73,11 +74,11 @@ function sourceSnapshot(producerRoot, gitDir, context) {
 function candidateSnapshot(candidateRoot, gitDir, context, policy) {
   if (
     JSON.stringify(Object.keys(policy.sourceFiles).sort()) !==
-    JSON.stringify([P2_SOURCE, WRAPPER].sort())
+    JSON.stringify([P2_SOURCE, WRAPPER, RELAY].sort())
   )
     fail('widened source policy');
   const result = {};
-  for (const file of [P2_SOURCE, WRAPPER]) {
+  for (const file of [P2_SOURCE, WRAPPER, RELAY]) {
     const bytes = gitBytes(gitDir, ['show', context.candidateCommit + ':' + file]);
     if (digest(bytes) !== policy.sourceFiles[file])
       fail('candidate source requires reviewed capsule update');
@@ -96,13 +97,14 @@ function validateCapsule(root, policy) {
   const oracle = JSON.parse(fs.readFileSync(path.join(root, 'dist/source-manifest.json')));
   if (
     JSON.stringify(oracle.sourceFiles) !== JSON.stringify(policy.sourceFiles) ||
-    oracle.tests.length !== 9 ||
-    oracle.mockSpecifiers.length !== 6
+    oracle.tests.length !== 10 ||
+    oracle.mockSpecifiers.length !== 2
   )
     fail('closed capsule oracle');
   for (const [file, name] of [
     [P2_SOURCE, 'wrapper.test'],
     [WRAPPER, 'wrapper'],
+    [RELAY, 'relay'],
   ]) {
     const original = fs.readFileSync(
       path.join(root, 'capsule', 'dist', name + '.original.ts'),
@@ -184,7 +186,7 @@ export async function runRequiredP2Runtime({
     policy = JSON.parse(fs.readFileSync(path.join(root, 'policy.json')));
   if (
     policy.version !== 1 ||
-    policy.scope !== 'exact-assign-wrapper-nine' ||
+    policy.scope !== 'exact-mounted-assign-wrapper-ten' ||
     policy.baseline !== 604 ||
     policy.repository !== 'interdomestik/interdomestik'
   )

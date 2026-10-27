@@ -8,6 +8,8 @@ import { provisionM4Fixture, code } from './db-access-m4-runtime-fixture-provisi
 import { assertMinimalOpsGrants } from './db-access-m4-runtime-fixture-minimal-grants.mjs';
 import { runPrivateCases } from './db-access-m4-runtime-fixture-private.mjs';
 import { runProfileCases } from './db-access-m4-runtime-fixture-profiles.mjs';
+import { createM4RuntimeFixtureTls } from './db-access-m4-runtime-fixture-tls.mjs';
+import { runMountedAssignmentCases } from './db-access-m4-runtime-fixture-mounted.mjs';
 import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract.mjs';
 
 // Failure diagnostics expose only a fixed fixture basename and numeric location;
@@ -79,7 +81,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     } finally {
       await migrationPool.end({ timeout: 0 });
     }
-    client = await openM4RestrictedChild(root);
+    client = await openM4RestrictedChild(root, createM4RuntimeFixtureTls());
     for (const profiles of [false, true]) {
       stage = profiles ? 'profiles-setup' : 'private-setup';
       const record = {};
@@ -105,6 +107,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
       } else {
         result.setupComplete = true;
         await runProfileCases({ ...active, openObserverFixture });
+        await runMountedAssignmentCases(active);
       }
       result.diagnostics[profiles ? 'profiles' : 'private'] = record;
       stage = profiles ? 'profiles-cleanup' : 'private-cleanup';
@@ -114,7 +117,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
       assert.equal(retired.complete, true, 'Fixture teardown failed');
     }
     assert.equal(result.privateCases.length, 16);
-    assert.equal(result.profileCases.length, 20);
+    assert.equal(result.profileCases.length, 23);
   } catch (error) {
     result.failure = {
       stage,
@@ -127,7 +130,10 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     if (active) cleanup.push(await active.cleanup());
     if (client) {
       try {
-        await client.close();
+        const completion = await client.close();
+        const { mountedAssignments, ...construction } = completion;
+        result.assignmentContextConstruction = construction;
+        result.mountedAssignments = mountedAssignments;
       } catch (error) {
         result.failure ??= {
           stage: 'child-close',
@@ -147,7 +153,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     result.setupComplete &&
     result.cleanupComplete &&
     result.privateCases.length === 16 &&
-    result.profileCases.length === 20 &&
+    result.profileCases.length === 23 &&
     result.remainingOwnedSessions === 0;
   return result;
 }

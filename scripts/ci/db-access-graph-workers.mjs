@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   runOwnedGraphWorkerPool,
-  claimOwnedM4WorkerEvidence,
+  claimOwnedM4GraphTransport,
 } from './db-access-graph-worker-pool.mjs';
 import { bindM4WorkerRequest } from './db-access-m4-native-prerequisite.mjs';
 export { encodeInventory } from './db-access-inventory-wire.mjs';
@@ -16,6 +16,13 @@ const fail = reason => {
   throw new Error('incomplete: graph worker ' + reason);
 };
 const ownedGraphOutputs = new WeakMap();
+const ordinaryGraphOutputs = new WeakMap();
+export const isOwnedM4ObservationGraph = graph => ordinaryGraphOutputs.has(graph);
+export function assertOwnedM4ObservationGraph(graph) {
+  const bound = ordinaryGraphOutputs.get(graph);
+  if (!bound || !sameOutputShape(bound, graph)) fail('unowned/changed ordinary observation graph');
+  return bound.digest;
+}
 export function assertOwnedGraphOutput(graph) {
   const bound = ownedGraphOutputs.get(graph);
   if (!bound || !sameOutputShape(bound, graph)) fail('unowned/changed/replaced merged output');
@@ -220,8 +227,14 @@ export async function runParallelGraph(prepared, input, pool) {
   if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
   const merged = mergeOwnedGraphs(prepared, partitions, results);
   if (m4Request) {
-    merged.m4WorkerTransport = claimOwnedM4WorkerEvidence(results);
-    ownedGraphOutputs.set(merged, outputShape(merged));
+    const transport = claimOwnedM4GraphTransport(results);
+    if (transport.kind === 'qualified-loader') {
+      merged.m4WorkerTransport = transport.proof;
+      ownedGraphOutputs.set(merged, outputShape(merged));
+    } else if (transport.kind === 'ordinary-observation') {
+      merged.m4ObservationTransport = transport.proof;
+      ordinaryGraphOutputs.set(merged, outputShape(merged));
+    } else fail('foreign M4 transport mode');
   }
   return merged;
 }

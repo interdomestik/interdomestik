@@ -47,9 +47,11 @@ function candidateCurrent(input, context, git, policy) {
   const sourceNames = [
     'apps/web/src/actions/admin-claims/assign.core.ts',
     'apps/web/src/actions/admin-claims/assign.wrapper.test.ts',
+    'apps/web/src/server/operations/m4-assignment-relay.ts',
   ];
   const dispatchNames = [
     '.github/workflows/ci.yml',
+    '.github/actions/ordinary-pr-coverage/action.yml',
     'apps/web/vitest.config.ts',
     'scripts/ci/clean-coverage-artifacts.mjs',
     'scripts/ci/coverage-gate.mjs',
@@ -114,7 +116,7 @@ export async function runFixedM4P2(input) {
   const bootstrap = await import(
     pathToFileURL(path.join(exported.root, 'scripts/ci/p2/bootstrap.mjs')).href
   );
-  const result = await bootstrap.runBootstrappedP2Coverage({
+  const result = await bootstrap.runBootstrappedM4C0Coverage({
     candidateRoot: input.candidate,
     producerRoot: exported.root,
     outputRoot,
@@ -165,7 +167,7 @@ export function takeFixedM4P2ForJoin(handle, input) {
   )
     fail('final source/policy/candidate bookend');
   states.delete(handle); // A failed genuine one-use join also burns this adapter handle.
-  const evidence = state.bootstrap.takeBootstrappedP2CoverageForJoin(state.result, input.context);
+  const evidence = state.bootstrap.takeBootstrappedM4C0CoverageForJoin(state.result, input.context);
   return Object.freeze({
     ...evidence,
     candidateSnapshot: state.candidateBefore,

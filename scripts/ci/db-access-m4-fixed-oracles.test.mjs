@@ -17,6 +17,7 @@ const contracts = [
   'db-access-m4-existing-oracle-contract.json',
   'db-access-m4-email-oracle-contract.json',
   'db-access-m4-current-store-oracle-contract.json',
+  'db-access-m4-mounted-oracle-contract.json',
 ].flatMap(name => JSON.parse(fs.readFileSync(new URL(name, import.meta.url))).cases);
 const sourceRecords = policy.m4Proof.sources;
 const sources = new Map(),
@@ -47,12 +48,12 @@ for (const entry of contracts)
   imageRecords[entry.fixtureFile] = policy.producerFiles['scripts/ci/' + entry.fixtureFile];
 const input = { source, runtime, imageRecords, producer, policy };
 
-test('fixed oracle join binds exact derived facts and mandatory programs in all six families', () => {
+test('fixed oracle join binds exact derived facts and mandatory programs in all seven families', () => {
   const links = linkM4FixedOracleCases(input);
-  assert.equal(contracts.length, 32);
-  assert.equal(links.length, 64);
-  assert.equal(links.flatMap(link => link.assertions).length, 360);
-  assert.equal(new Set(links.map(link => link.fact.path.split('/')[2])).size, 6);
+  assert.equal(contracts.length, 35);
+  assert.equal(links.length, 67);
+  assert.equal(links.flatMap(link => link.assertions).length, 387);
+  assert.equal(new Set(links.map(link => link.fact.path.split('/')[2])).size, 7);
   assert(links.every(link => link.completeEffectQualified === false));
   for (const entry of contracts) {
     for (const expected of entry.links) {
@@ -77,7 +78,7 @@ test('fixed oracle join binds exact derived facts and mandatory programs in all 
   assert(links.every(link => link.assertions.every(node => node.mandatoryOnSuccessfulCallback)));
 });
 
-test('only the two exact native type-only witnesses avoid an executed-image claim', () => {
+test('two exact erased types retain their separate non-execution witness', () => {
   for (const [file, role] of [
     ['apps/web/src/server/operations/m4-private-runtime-types.ts', 'runtimeTypes'],
     ['apps/web/src/server/operations/m4-assignment-controller-types.ts', 'controllerTypes'],
@@ -108,6 +109,23 @@ test('only the two exact native type-only witnesses avoid an executed-image clai
   const changed = structuredClone(source);
   changed.sourceRecords[unknown] = { sha256: 'a'.repeat(64) };
   assert.throws(() => bindM4OracleSource(changed, imageRecords, unknown), /fact source differs/);
+});
+
+test('ten exact mounted source-only roles remain distinct from executed image claims', () => {
+  const records = source.derivations.mountedAssignment.sourceRecords.filter(
+    row => !row.executionRequired
+  );
+  assert.equal(records.length, 10);
+  for (const row of records) {
+    assert.equal(imageRecords[row.file], undefined);
+    const binding = bindM4OracleSource(source, imageRecords, row.file);
+    assert.equal(binding.executedImageBinding, false);
+    const changed = structuredClone(source);
+    changed.derivations.mountedAssignment.sourceRecords.find(
+      value => value.file === row.file
+    ).sha256 = '0'.repeat(64);
+    assert.throws(() => bindM4OracleSource(changed, imageRecords, row.file));
+  }
 });
 
 test('changed or absent derived facts cannot retain a fixed consequence link', () => {

@@ -90,10 +90,10 @@ test('PR entry, bootstrap, ordinary partition and join reject push before IO', a
 });
 test('direct PR API cannot forge the private bootstrap invocation', async () => {
   const fake = { context: { eventName: 'pull_request' } };
-  await assert.rejects(runRequiredP2Coverage(fake), /private authenticated invocation/);
+  await assert.rejects(runRequiredP2Coverage(fake), /private authenticated purpose invocation/);
   assert.throws(
     () => takeP2BootstrapInvocation(JSON.parse(JSON.stringify(fake))),
-    /private authenticated invocation/
+    /private authenticated purpose invocation/
   );
   assert.throws(
     () => takeBootstrappedP2CoverageForJoin({ freshP2: true }, fake.context),
@@ -116,6 +116,7 @@ test('actual full source/PR authentication reaches metadata-token boundary witho
 });
 for (const file of [
   'scripts/ci/p2/ordinary-artifact.mjs',
+  'scripts/ci/p2/ordinary-provenance.mjs',
   'scripts/ci/p2/unpack-ordinary.py',
   'scripts/ci/db-access-provider-runtime-identity.mjs',
   'scripts/ci/coverage-gate.mjs',

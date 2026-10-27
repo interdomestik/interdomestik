@@ -1,3 +1,4 @@
+import ts from 'typescript';
 // Finite literal bootstrap/posture composition. No runtime or native admission authority.
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -6,6 +7,7 @@ import { runtimeClauses } from './db-access-m4-runtime-source-clauses.mjs';
 import { deepFreeze } from './db-access-m4-syntax.mjs';
 export const FILES = Object.freeze({
   bootstrap: 'apps/web/src/server/operations/m4-private-runtime.ts',
+  context: 'apps/web/src/server/operations/m4-private-runtime-context.ts',
   posture: 'apps/web/src/server/operations/m4-pool-posture.ts',
   runtimeTypes: 'apps/web/src/server/operations/m4-private-runtime-types.ts',
   controllerTypes: 'apps/web/src/server/operations/m4-assignment-controller-types.ts',
@@ -39,18 +41,84 @@ function matched(source, key) {
   );
   return { ...actual, expected };
 }
+
+function assignmentCaptureSource(bootstrap) {
+  const source = bootstrap.source,
+    file = FILES.bootstrap,
+    rows = [];
+  const locate = node => [file, node.pos, node.end, node.kind];
+  function visit(node) {
+    if (ts.isFunctionDeclaration(node) && node.name)
+      rows.push({ kind: 'function', name: node.name.text, locator: locate(node) });
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name))
+      rows.push({ kind: 'binding', name: node.name.text, locator: locate(node) });
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      [
+        'drizzle',
+        'bindM4AssignmentInvocation',
+        'createCurrentStoreSessionVerifier',
+        'createM4OpsAssignmentController',
+        'createM4LegacyAdminAssignmentController',
+        'createM4LegacyAgentAssignmentController',
+        'createM4StaffAssignmentController',
+      ].includes(node.expression.text)
+    )
+      rows.push({
+        kind: 'call',
+        name: node.expression.text,
+        locator: locate(node),
+        arguments: node.arguments.map(locate),
+      });
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  const one = (kind, name) => {
+    const found = rows.filter(row => row.kind === kind && row.name === name);
+    if (found.length !== 1) reject('unique assignment capture ' + name);
+    return found[0];
+  };
+  return {
+    version: 1,
+    ownerTable: one('binding', 'qualifiedContextOwners'),
+    oneUseTake: one('function', 'takeM4OwnedAssignmentContexts'),
+    captureList: one('binding', 'contextCaptures'),
+    captureBudget: one('binding', 'qualifiedContextBudget'),
+    invocationBinding: one('call', 'bindM4AssignmentInvocation'),
+    dataDatabase: one('binding', 'database'),
+    configuration: one('binding', 'configuration'),
+    verifier: one('binding', 'verifySession'),
+    factories: [
+      'createM4OpsAssignmentController',
+      'createM4LegacyAdminAssignmentController',
+      'createM4LegacyAgentAssignmentController',
+      'createM4StaffAssignmentController',
+    ].map(name => one('call', name)),
+    guarantees: [
+      'only construct() lexically enrolls actual returned local runtime objects',
+      'actual post-posture identity/data pools and fixed verifier/data Drizzle references are checked before retaining only frozen scalar rows',
+      'only a closed drained owner can be taken once; row data cannot register an owner',
+      'exact literal profile factories consume that same receiver/verifier; requests select no factory',
+    ],
+  };
+}
+
 export function deriveM4PrivateRuntimeSource({
   bootstrapSource,
+  contextSource,
   postureSource,
   runtimeTypesSource,
   controllerTypesSource,
 }) {
   const sources = {
     bootstrap: bootstrapSource,
+    context: contextSource,
     posture: postureSource,
     runtimeTypes: runtimeTypesSource,
     controllerTypes: controllerTypesSource,
   };
+  const context = matched(contextSource, 'context');
   const bootstrap = matched(bootstrapSource, 'bootstrap'),
     posture = matched(postureSource, 'posture');
   const types = {};
@@ -65,7 +133,7 @@ export function deriveM4PrivateRuntimeSource({
   // Complete module trees stay in facts once; named clauses bind their checked subtrees
   // without serializing the full construct/work body repeatedly in the source receipt.
   const namedOrderedFacts = Object.fromEntries(
-    Object.entries(runtimeClauses(bootstrap, posture)).map(([group, clauses]) => [
+    Object.entries(runtimeClauses(bootstrap, posture, context)).map(([group, clauses]) => [
       group,
       clauses.map(({ tree, ...clause }) => ({
         ...clause,
@@ -75,6 +143,7 @@ export function deriveM4PrivateRuntimeSource({
   );
   const facts = {
     bootstrapTree: bootstrap.runtimeTree,
+    contextTree: context.runtimeTree,
     bootstrapTypeExports: bootstrap.typeExports,
     postureTree: posture.runtimeTree,
     postureTaggedLiteralTokens: posture.taggedLiteralTokens,
@@ -92,11 +161,12 @@ export function deriveM4PrivateRuntimeSource({
       Object.entries(sources).map(([role, text]) => [FILES[role], digest(text)])
     ),
     facts,
+    assignmentContextSource: assignmentCaptureSource(bootstrap),
     factsSha256: digest(JSON.stringify(facts)),
     namedOrderedFacts,
     sourceNodes: Object.entries(namedOrderedFacts).flatMap(([group, clauses]) =>
       clauses.map(c => ({
-        file: group === 'posture' ? FILES.posture : FILES.bootstrap,
+        file: c.file ?? (group === 'posture' ? FILES.posture : FILES.bootstrap),
         group,
         name: c.name,
         start: c.start,

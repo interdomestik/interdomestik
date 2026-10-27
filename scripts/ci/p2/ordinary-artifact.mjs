@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { verifyOrdinaryProvenance, verifyM4C0UnitProvenance } from './ordinary-provenance.mjs';
+export { verifyOrdinaryProvenance } from './ordinary-provenance.mjs';
+import { consumeM4C0ArtifactAuthority } from './bootstrap.mjs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -94,48 +97,6 @@ export function validateSummary(bytes) {
   if (total.lines.total === 0) fail('empty required package coverage');
   return { total };
 }
-export function verifyOrdinaryProvenance({ run, job, artifact, context, runId, attempt }) {
-  if (!Number.isSafeInteger(runId) || runId <= 0 || !Number.isSafeInteger(attempt) || attempt <= 0)
-    fail('run identity');
-  if (
-    run.id !== runId ||
-    run.run_attempt !== attempt ||
-    run.event !== context.eventName ||
-    !['in_progress', 'completed'].includes(run.status) ||
-    (run.status === 'completed' && run.conclusion !== 'success') ||
-    run.path !== '.github/workflows/ci.yml' ||
-    run.repository?.full_name !== 'interdomestik/interdomestik' ||
-    run.head_repository?.full_name !== 'interdomestik/interdomestik' ||
-    run.head_sha !== context.headCommit
-  )
-    fail('canonical completed ordinary workflow');
-  if (
-    job.run_id !== runId ||
-    job.run_attempt !== attempt ||
-    job.name !== 'unit' ||
-    job.status !== 'completed' ||
-    job.conclusion !== 'success'
-  )
-    fail('canonical ordinary job');
-  const name = 'ordinary-coverage-' + attempt + '-' + context.candidateCommit;
-  if (
-    !Number.isSafeInteger(artifact.id) ||
-    artifact.id <= 0 ||
-    !Number.isFinite(Date.parse(artifact.created_at)) ||
-    !Number.isFinite(Date.parse(run.run_started_at)) ||
-    artifact.name !== name ||
-    artifact.expired !== false ||
-    artifact.workflow_run?.id !== runId ||
-    artifact.workflow_run?.head_sha !== run.head_sha ||
-    !/^sha256:[a-f0-9]{64}$/u.test(artifact.digest) ||
-    !Number.isSafeInteger(artifact.size_in_bytes) ||
-    artifact.size_in_bytes <= 0 ||
-    artifact.size_in_bytes > 32 * 1024 * 1024 ||
-    Date.parse(artifact.created_at) < Date.parse(run.run_started_at)
-  )
-    fail('artifact provenance');
-  return { artifactId: artifact.id, artifactName: name, digest: artifact.digest };
-}
 async function bounded(response, limit) {
   const chunks = [];
   let size = 0;
@@ -165,13 +126,17 @@ async function api(url, token) {
 }
 // Invoked only by protected parent; metadata is read independently from GitHub,
 // never taken on faith from an ordinary job's JSON manifest.
-export async function fetchOrdinaryCoverageArtifact({
-  runId,
-  attempt,
-  context,
-  outputDirectory,
-  token = process.env.GITHUB_TOKEN,
-}) {
+export async function fetchOrdinaryCoverageArtifact(options) {
+  return fetchCoverageArtifact(options, false);
+}
+export async function fetchM4C0OrdinaryCoverageArtifact(options, authority) {
+  consumeM4C0ArtifactAuthority(authority, options.context);
+  return fetchCoverageArtifact(options, true);
+}
+async function fetchCoverageArtifact(
+  { runId, attempt, context, outputDirectory, token = process.env.GITHUB_TOKEN },
+  m4C0
+) {
   if (typeof token !== 'string' || !token) fail('protected artifact read token absent');
   if (
     !SHA.test(context.candidateCommit) ||
@@ -192,7 +157,7 @@ export async function fetchOrdinaryCoverageArtifact({
   );
   if (matchingJobs.length !== 1 || matchingArtifacts.length !== 1) fail('unique job/artifact');
   const artifact = matchingArtifacts[0];
-  const identity = verifyOrdinaryProvenance({
+  const identity = (m4C0 ? verifyM4C0UnitProvenance : verifyOrdinaryProvenance)({
     run,
     job: matchingJobs[0],
     artifact,
@@ -240,6 +205,15 @@ export async function fetchOrdinaryCoverageArtifact({
     runId,
     attempt,
     context: structuredClone(context),
+    ...(m4C0
+      ? {
+          qualificationPurpose: 'm4-c0',
+          workflowStatus: run.status,
+          workflowConclusion: run.status === 'completed' ? run.conclusion : null,
+          workflowFailureNotDeliveryAccepted: true,
+          productionCCredit: 0,
+        }
+      : {}),
     ordinaryCoverageIsUntrusted: true,
     nativeAdmission: false,
   };

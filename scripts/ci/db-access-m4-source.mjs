@@ -1,3 +1,4 @@
+import { assignmentContextMetadata } from './db-access-m4-assignment-context-metadata.mjs';
 // Finite AST derivation of the admin assignment kernel; necessary source premise only.
 // No inventory deletion, SQL execution, context admission or active guard integration.
 import ts from 'typescript';
@@ -107,6 +108,11 @@ export function deriveM4AssignmentKernel(sourceText) {
     sourceSha256: sha256(sourceText),
     facts,
     factsSha256: sha256(canonicalJson(facts)),
+    contextFunctions: assignmentContextMetadata(
+      unit.functions.get('assignClaimOwnerInTransaction').getSourceFile(),
+      M4_KERNEL_FILE,
+      [...unit.functions].map(([name, node]) => ({ name, node }))
+    ),
     premises: M4_KERNEL_PREMISES,
     kernelPremiseOnly: true,
     runtimeAdmission: false,

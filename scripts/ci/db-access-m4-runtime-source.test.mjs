@@ -5,6 +5,7 @@ import ts from 'typescript';
 import { FILES, deriveM4PrivateRuntimeSource } from './db-access-m4-runtime-source.mjs';
 import {
   bootstrapCases,
+  contextCases,
   postureCases,
   typeCases,
 } from './db-access-m4-runtime-negative-cases.fixture.mjs';
@@ -27,13 +28,13 @@ function changed(role, needle, replacement) {
     );
   return text;
 }
-test('complete runtime contracts derive56 ordered clauses without executed admission', () => {
+test('complete runtime contracts derive58 ordered clauses without executed admission', () => {
   const result = deriveM4PrivateRuntimeSource(input(sources));
   assert.deepEqual(
     Object.values(result.namedOrderedFacts).map(x => x.length),
-    [13, 28, 7, 8]
+    [13, 28, 7, 2, 8]
   );
-  assert.equal(result.sourceNodes.length, 56);
+  assert.equal(result.sourceNodes.length, 58);
   assert(Object.isFrozen(result.facts));
   for (const key of [
     'runtimeAdmission',
@@ -67,6 +68,7 @@ test('formatting/comments preserve complete executable and type facts', () => {
   const result = deriveM4PrivateRuntimeSource(input(formatted));
   for (const key of [
     'bootstrapTree',
+    'contextTree',
     'postureTree',
     'bootstrapTypeExports',
     'postureTaggedLiteralTokens',
@@ -94,6 +96,8 @@ function negative(label, role, needle, replacement) {
 }
 for (const [label, needle, replacement] of bootstrapCases)
   negative(label, 'bootstrap', needle, replacement);
+for (const [label, needle, replacement] of contextCases)
+  negative(label, 'context', needle, replacement);
 for (const [label, needle, replacement] of postureCases)
   negative(label, 'posture', needle, replacement);
 for (const [role, label, needle, replacement] of typeCases)

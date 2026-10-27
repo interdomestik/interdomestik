@@ -1,7 +1,7 @@
 {
   "version": 1,
   "workflowDigests": {
-    ".github/workflows/ci.yml": "3e71ca475047906621a6a426c9c52ee3ff4ea4926c13cd6d27c44d023cccfb9c",
+    ".github/workflows/ci.yml": "1b6c3a0cb26a66ad4a5ae6370a2071434f431f76f78072a0a2a8ede33a27179a",
     ".github/workflows/security.yml": "4fb57012d21e9728ada15aee103fc8cbb35b048801353366b345498e6a97ff5b",
     ".github/workflows/e2e-pr.yml": "9fbf41723b7eee6364f8209cf4c34bd915b32a02f6bb88f78904f245827885b4",
     ".github/workflows/sonar-main-gate.yml": "1f041528aeba76428e7d47877387fd42e3aab32928507ca51ebeec06dcfe8b60",

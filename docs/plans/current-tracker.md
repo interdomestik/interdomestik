@@ -40,13 +40,162 @@ The exact post-SQL phase is unobserved; absence of output is not proof of a spec
 hot spot. This is a recurrence of the combined-budget failure family and grants
 zero closure credit. Supporting failure comparisons remain in `m4-failure-memory-v1`.
 
-The next qualification records bounded monotonic timestamps at its existing helper
-boundaries and executes the same genuine construction under the amended total limit.
+The fresh Wv6 positive qualification passes on source
+`63cd06846f53de95bb4de585764c59e7dabe2dc4`: **305.958 seconds including cleanup**,
+with sampled aggregate peak **5,684,822,016 bytes**. All nine fresh P2 cases, 36 SQL
+cases and genuine native/private construction and checking pass. The literal
+300-second observation is false; the authorized 600-second limit passes. Receipt:
+`48d95f4a0020ad0157878a7772444120af4948dcd9ab20633dd0ee7ec388498b`.
+Independent acceptance manifest:
+`9c600362893856ab6575ff372e4202096bd9c0aea34a4a24068ab02e274eef25`.
+
+The source-valid Wv6 negative also passes its required refusal on variant
+`ec66d14b09ffed7f52d932af2c8b4baceb309ffb`: **317.735 seconds including cleanup**,
+with sampled aggregate peak **6,235,668,480 bytes**. It removes only the fixed
+448-byte audit-payload assertion and refreshes its producer descriptor, while retaining
+the positive oracle. Fresh P2, all 36 SQL cases and genuine native/private construction
+reach the final boundary, which refuses the changed assertion program/dataflow.
+Receipt: `3ae6580fb1123acb495d982502cede1bc88a7ede0d83937b216e8f2c175c7a8b`;
+independent acceptance: `8c713775dcd1d196cfd9e7c5f6b08cefa7b47a741dfe511d1de18b739c22901f`.
+Both runs preserve source/helpers/prior resources and retire every owned resource.
+
+This resolves the combined-budget blocker without weakening evidence. It does not
+reduce the original 7,709 inventory entries, 3,813 failing identities or 193,682 report
+tuples: only the separately conditional two-factory relation is qualified. The actual
+new affected-lineage namespace also lacks the private constructor-to-controller
+configuration/receiver binding. The selected correction captures that binding at the
+real owned runtime and derives its fixed transaction/profile relation; it must pass
+fresh actual qualification before receiving any business-context credit. Independent
+review caught a shutdown-failure cleanup gap before integration; the correction must
+retire the child even when shutdown or completion validation refuses. Ordinary CI
+artifact production is separately reviewed and integrated locally; actual current-event
+artifact production and its private consumer join remain pending.
+
+Qualification records bounded monotonic timestamps at its existing helper boundaries.
 Do not repeat historical early worker overlap: it exceeded 6 GiB, as retained below.
 After actual positive and source-valid semantic-negative acceptance, finish the real
 admin/agent/staff/ops assignment-context and genuine ordinary-execution joins.
 The conditional two-factory relation alone cannot close the business cohort or M4.
 All M4 roadmap row statuses below remain unchanged pending actual evidence.
+
+### M4 source integration and ordinary-mode corrections (27 October)
+
+The reviewed source composition after `63cd06846f53de95bb4de585764c59e7dabe2dc4`
+is integrated locally and remains uncommitted. The actual local runtime now captures
+the four fixed assignment profiles through its lexical owner map, retains bounded
+scalar observations and exposes them once only after complete close/drain. Failed
+shutdown and malformed completion still retire the child. Exact parameter and literal
+source laws reject the reviewed matching-hash counterexamples. Core source review:
+`06f74a0e1e9243dc1031358f0a669a24ce0d37bd1c5e11946cbc1bf5929d9f66`.
+Actual security guard, modularity and web type-check pass after the reviewed role-source
+correction; no role allowlist or security threshold changed.
+
+The integrated lineage catalog refreshes the changed bootstrap's genuine AST bindings,
+preserves its original 12 call roles and eight owner roles, and retains all 82 original
+frontier files and 28 sites. The source-pinned helper adds frontier file 83 and site 29
+with 16 calls and five owners as an explicit residual observation axis. Catalog SHA-256:
+`403b8c8359196445b3efa74ea876bdf0606bcb5e2dc9390768ded79379fa489e`.
+The old 67-entry selection is historical evidence; measure the new selection during
+actual execution. No original native row or occurrence is allocated or removed.
+
+The ordinary producer wiring preserves release tests and PR-only mandatory coverage
+artifact upload in a cohesive composite. A circular dependency was also identified:
+the ordinary reader required overall CI success, while that same CI audit invokes the
+still-incomplete global guard. A separately reviewed, privately purpose-bound M4 C0
+route can consume the exact successful unit artifact after overall conclusion `failure`.
+It preserves source/event/tree/digest/ZIP checks, fresh capsule execution, the 60% merged
+coverage gate and one-use joins. Required/default APIs remain strict and reject C0
+results. Cancelled and other unsuccessful terminal conclusions remain refused. The
+54-file fixed producer closure is exact; CI failure remains visible and grants no delivery,
+native or production credit. Semantic review:
+`9675c524782b23aa3ec08b70af53dd4fee4a930f043d8de2d1f2ebd3cff20156`.
+
+The expanded focused run passed 809 of 810 controls; its remaining assertion expected
+the older refusal-message wording. The corrected bootstrap test file then passed all
+19 controls without changing production refusal behavior. The earlier broad CI-contract
+run was interrupted after confirmed failures, with its log preserved and its owned
+processes retired; it is not a full-suite pass. It exposed the catalog/VM-fixture defects
+above and an inherited ordinary CLI mode error: a normal worker pool receives an M4
+request without a private loader session, producing a 285-byte protocol-error report
+instead of the full raw report. A bounded observations-only transport correction is
+being prepared; ordinary observations must never become private loader/native evidence.
+Independent review held the first proposal because finalizer-added prior UNKNOWN rows
+invalidated its earlier snapshot. The actual counterexample retains rows 5→6 and raw
+occurrences 9→10; both parallel and synchronous paths need the corrected conservation
+check before integration. The reviewed V2 correction now copies only parent diagnostic
+state for the ordinary path and still validates the complete original worker graph;
+private behavior is unchanged. All 844 integrated focused controls pass, alongside
+security and modularity checks. Supplied invalid loader capabilities refuse before
+worker creation. Source review manifest:
+`fcd0f6d48e6c6cbad711e5572981d009d316c595fb03128ee8e73a1b25615e88`.
+The rejected V1 remains preserved. Actual normal CLI execution now writes the full
+106,029,408-byte INCOMPLETE report in 280.514 seconds, with baseline 604, 7,719
+inventoried operations, 3,829 failing new identities, 193,717 diagnostic tuples and
+11,840,340 raw occurrences. This repairs report construction and grants no closure.
+All 352 producer descriptors now match actual
+source after correcting two test descriptors omitted by the earlier core integration.
+
+The shared message test fixture now retains actual Drizzle schema helpers while keeping
+its existing spies. All three suites pass all 27 tests, with no skipped cases. Full actual
+coverage verification passes at 83.06% (29,690/35,747 lines) against the unchanged 60%
+gate, including web, shared-auth and all domain suites. This is a code coverage result,
+not genuine-event, SQL/native or complete M4 qualification.
+
+A deeper source gap was confirmed in the pre-migration code: the four-profile assignment-context derivation
+qualifies only new private constructions and explicitly retains original generic frames
+with accepted coverage zero. The admin/agent/staff wrappers still used their
+original ambient/domain paths; no exact trusted identity/context acceptance bridge
+connected them to that construction. Another local runtime pass alone cannot close
+M4-04 or M4-08. Complete the approved first-vertical source migration and real
+correspondence before counting first M4 complete or starting bulk migration.
+The bounded source, correspondence and runtime proposals are independently reviewed
+and integrated locally: three mounted assignment adapters relay serialized requests to the
+literal HTTPS owner and existing restricted runtime. The local proof retains all 36
+SQL cases and adds three real adapter/relay/database cases, with exact cache-call
+observation and explicit Next ingress/deployment residuals. The old P2 mocks are
+removed by the migration, so their nine-case proof is historical; the current finite
+three-source, ten-case capsule is prepared without changing the Linux isolation
+backend. Vanished catalog calls remain in historical correspondence and are never
+relabeled as new AST calls. The fixed worker closures contain 133 executable files per
+role; the current P2 namespace contains exactly 58 paths. All 368 producer descriptors
+matched at integration. These source checks grant no current SQL/native qualification.
+
+The actual compiled localhost TLS regression found a close/drain race that the mocked
+controls missed. The corrected source waits for physical socket retirement and passes
+the same immediate-close, operation-ID and one-use-take probe with zero database
+connection attempts. Independent source and runtime-fixture reviews approve integration.
+The full web TypeScript check passes after an erased Socket-to-Duplex type correction.
+
+The first integrated focused run passes 830 of 837 tests with zero skips. Its failures
+expose stale source/oracle and test-fixture bindings plus a sandbox loopback refusal;
+they are retained as failures. Real derivation identifies 13 changed fact digests:
+ten preserve their exact named subtree with changed source offsets, and three preserve
+the mounted call relations with shifted dispatch locators. The catalog also exceeds the
+unchanged 128-KiB structured-file budget; an exact authenticated shard proposal preserves
+all 90 frontier records and 40 ordered sites. Review and integration of these corrections,
+fresh focused/security/modularity checks and full application coverage precede the
+genuine combined run. No heavy qualification is replayed merely to rediscover these gaps.
+
+The consolidated source now passes all 842 focused M4/worker controls with zero skips,
+all 169 release-gate unit controls, web TypeScript, production lint (zero warnings),
+architecture and E2E contract checks, formatting and the full security guard including
+modularity. The full web/shared-auth/domain coverage run passes; the web reports 6,404
+passing tests and its unchanged 15 skips. Sixty actual coverage reports are preserved
+before the direct merged gate: **82.63% (29,699/35,941 lines) against unchanged 60%**.
+
+The normal publication size guard exposed an inherited 3,825,187-byte coverage vendor
+bundle above the unchanged 3,266,530-byte file cap. A reviewed deterministic static
+partition produces a 3,246,896-byte main bundle and one 574,663-byte fixed support
+module. All TypeScript exports and 2,121 diagnostics, ten capsule cases, V8 observations,
+converted coverage, denominator, legal notice and assets are preserved. The exact P2
+namespace now contains 59 files and all 372 producer descriptors match. The actual
+repository size guard and 58 affected P2 host controls pass without a threshold change.
+These checks permit source publication and fresh qualification; they do not complete M4.
+
+Current-source SQL/native qualification, genuine ordinary-event consumption and an
+applicable source-valid semantic negative remain pending. The accepted older Wv6
+receipts are preserved, not transferred to changed code. The existing M4 roadmap
+statuses remain unchanged, with no whole-M4, global ZERO or S8 completion claim.
 
 ### Current RC3.1 M4 implementation checkpoint (26 October)
 

@@ -2,7 +2,7 @@
 import { fork } from 'node:child_process';
 import path from 'node:path';
 const fail = () => Error('M4 restricted child failed');
-export async function openM4RestrictedChild(root) {
+export async function openM4RestrictedChild(root, tls) {
   const child = fork(path.join(root, 'db-access-m4-runtime-child.mjs'), [], {
     cwd: root,
     execArgv: [],
@@ -22,6 +22,7 @@ export async function openM4RestrictedChild(root) {
     closed = false,
     outputBytes = 0;
   const pending = new Map();
+  const facadeIds = new WeakMap();
   let resolveReady, rejectReady;
   const ready = new Promise((resolve, reject) => {
     resolveReady = resolve;
@@ -81,7 +82,12 @@ export async function openM4RestrictedChild(root) {
       profile === 'ops'
         ? ['close', 'execute']
         : ['close', 'execute', 'executeLegacyAdmin', 'executeLegacyAgent', 'executeStaff'];
-    const created = call('create', [id, profile, configuration]).then(result => {
+    const created = call('create', [
+      id,
+      profile,
+      configuration,
+      ...(profile === 'profiles' ? [tls] : []),
+    ]).then(result => {
       if (result?.frozen !== true || JSON.stringify(result.methods) !== JSON.stringify(names))
         throw fail();
     });
@@ -94,23 +100,71 @@ export async function openM4RestrictedChild(root) {
         },
       ])
     );
+    facadeIds.set(facade, { id, created });
     return Object.freeze(facade);
   }
   return Object.freeze({
     createOps: configuration => create('ops', configuration),
     createProfiles: configuration => create('profiles', configuration),
+    async invokeMounted(owner, profile, input) {
+      const binding = facadeIds.get(owner);
+      if (!binding) throw fail();
+      await binding.created;
+      // No operation is invoked by an untrusted runtime id or URL.
+      return call('invoke-mounted', [binding.id, profile, input]);
+    },
     probePosture: url => call('posture', [url]),
     probeInvalidConfigurations: configuration => call('invalid-configurations', [configuration]),
     async close() {
       if (closed) return;
-      await call('shutdown', []);
-      closed = true;
-      child.disconnect();
-      const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
-      const termination = await exited;
-      clearTimeout(timeout);
-      clearTimeout(startup);
-      if (termination.code !== 0 || termination.signal) throw fail();
+      let completion;
+      try {
+        completion = await call('shutdown', []);
+        if (
+          completion?.closed !== runtimeId ||
+          !Array.isArray(completion.assignmentContexts) ||
+          completion.assignmentContexts.length !== runtimeId ||
+          !completion.assignmentContexts.every((owner, index) => owner?.runtimeId === index + 1)
+        )
+          throw fail();
+      } finally {
+        // Refusal never skips retirement of this exact child, including IPC/validation errors.
+        closed = true;
+        for (const item of pending.values()) {
+          clearTimeout(item.timer);
+          item.reject(fail());
+        }
+        pending.clear();
+        const kill = () => {
+          try {
+            child.kill('SIGKILL');
+          } catch {}
+        };
+        let killTimer, exitTimer;
+        try {
+          try {
+            child.disconnect();
+          } catch {
+            kill();
+          }
+          killTimer = setTimeout(kill, 4000);
+          const termination = await Promise.race([
+            exited,
+            new Promise(resolve => {
+              exitTimer = setTimeout(() => {
+                kill();
+                resolve(null);
+              }, 5000);
+            }),
+          ]);
+          if (!termination || termination.code !== 0 || termination.signal) throw fail();
+        } finally {
+          clearTimeout(killTimer);
+          clearTimeout(exitTimer);
+          clearTimeout(startup);
+        }
+      }
+      return completion;
     },
   });
 }

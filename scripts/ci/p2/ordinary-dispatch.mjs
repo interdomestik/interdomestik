@@ -9,13 +9,14 @@ import { convertP2Coverage, mergeP2Coverage } from './coverage-adapter.mjs';
 import {
   expectedCoverageFiles,
   fetchOrdinaryCoverageArtifact,
+  fetchM4C0OrdinaryCoverageArtifact,
   unpackOrdinaryArtifact,
   normalizeOrdinaryCoverage,
   validateSummary,
   parseUntrustedJSON,
 } from './ordinary-artifact.mjs';
 import { reconcileOrdinaryWebSummary } from './coverage-completeness.mjs';
-import { takeP2BootstrapInvocation } from './bootstrap.mjs';
+import { takeP2BootstrapInvocation, takeM4C0BootstrapInvocation } from './bootstrap.mjs';
 const freshCoverageResults = new WeakMap();
 function immutable(value) {
   if (value && typeof value === 'object') {
@@ -36,6 +37,9 @@ function retainedExecution(state) {
     originalWrapper: 'wrapper.original.ts',
     generatedWrapperTs: 'wrapper.source.ts',
     generatedWrapperJs: 'wrapper.mjs',
+    originalRelay: 'relay.original.ts',
+    generatedRelayTs: 'relay.source.ts',
+    generatedRelayJs: 'relay.mjs',
   };
   let total = 0;
   const sources = Object.fromEntries(
@@ -67,6 +71,8 @@ function retainedExecution(state) {
     sources,
     directFactoryCoverageObserved: false,
     factorySourceControlRelationRequired: true,
+    suiteName: state.oracle.suiteName,
+    actualExportProjection: structuredClone(state.oracle.actualExportProjection),
   });
 }
 function tracked(gitDir, commit) {
@@ -85,9 +91,18 @@ function tracked(gitDir, commit) {
 // Required workflow calls this pinned parent directly AFTER the separate ordinary
 // job. Candidate code is never spawned under this process's host identity.
 export async function runRequiredP2Coverage(givenOptions) {
+  return runCoverage(givenOptions, 'required');
+}
+export async function runM4C0P2Coverage(givenOptions) {
+  return runCoverage(givenOptions, 'm4-c0');
+}
+async function runCoverage(givenOptions, purpose) {
   if (givenOptions?.context?.eventName !== 'pull_request')
     throw Error('Required P2 coverage needs pull_request event');
-  takeP2BootstrapInvocation(givenOptions);
+  const invocation =
+    purpose === 'required'
+      ? takeP2BootstrapInvocation(givenOptions)
+      : takeM4C0BootstrapInvocation(givenOptions);
   const options = { ...givenOptions, context: structuredClone(givenOptions.context) };
   const {
     candidateRoot,
@@ -110,12 +125,15 @@ export async function runRequiredP2Coverage(givenOptions) {
   const expectedFiles = expectedCoverageFiles(domains);
   const owned = path.join(fs.realpathSync(outputRoot), 'p2-coverage-' + randomUUID());
   fs.mkdirSync(owned, { mode: 0o700 });
-  const identity = await fetchOrdinaryCoverageArtifact({
+  const artifactOptions = {
     runId: ordinaryRunId,
     attempt: ordinaryRunAttempt,
     context,
     outputDirectory: path.join(owned, 'download'),
-  });
+  };
+  const identity = await (purpose === 'required'
+    ? fetchOrdinaryCoverageArtifact(artifactOptions)
+    : fetchM4C0OrdinaryCoverageArtifact(artifactOptions, invocation.artifactAuthority));
   const extracted = unpackOrdinaryArtifact({
     identity,
     expectedFiles,
@@ -175,12 +193,27 @@ export async function runRequiredP2Coverage(givenOptions) {
     return Object.freeze({
       version: 1,
       freshP2: true,
+      ...(purpose === 'm4-c0'
+        ? {
+            qualificationPurpose: 'm4-c0',
+            productionCCredit: 0,
+            workflowFailureNotDeliveryAccepted: true,
+            ordinaryWorkflowStatus: identity.workflowStatus,
+            ordinaryWorkflowConclusion: identity.workflowConclusion,
+          }
+        : {}),
       coverageMerged: true,
       ordinaryJob: {
         runId: identity.runId,
         attempt: identity.attempt,
         artifactId: identity.artifactId,
         digest: identity.digest,
+        ...(purpose === 'm4-c0'
+          ? {
+              workflowStatus: identity.workflowStatus,
+              workflowConclusion: identity.workflowConclusion,
+            }
+          : {}),
         dataIsUntrusted: true,
       },
       ordinarySourcePartition: state.partition,
@@ -195,6 +228,7 @@ export async function runRequiredP2Coverage(givenOptions) {
   });
   freshCoverageResults.set(result, {
     context: JSON.stringify(context),
+    purpose,
     consumed: false,
     evidence: Object.freeze({
       sourceBefore: handle.sourceBefore,
@@ -202,6 +236,15 @@ export async function runRequiredP2Coverage(givenOptions) {
       imageId: result.imageId,
       ordinaryArtifactDigest: identity.digest,
       dispatchContext: 'required-pr-isolated',
+      ...(purpose === 'm4-c0'
+        ? {
+            qualificationPurpose: 'm4-c0',
+            productionCCredit: 0,
+            workflowFailureNotDeliveryAccepted: true,
+            ordinaryWorkflowStatus: identity.workflowStatus,
+            ordinaryWorkflowConclusion: identity.workflowConclusion,
+          }
+        : {}),
       execution,
       allSourceContextsClosed: false,
       nativeAdmission: false,
@@ -213,10 +256,21 @@ export async function runRequiredP2Coverage(givenOptions) {
 // The required M4 join must call this in the same protected parent. A serialized
 // receipt, cache result, or already-consumed handle is never source authority.
 export function takeFreshP2CoverageForJoin(result, context) {
+  return takeFreshResult(result, context, 'required');
+}
+export function takeFreshM4C0CoverageForJoin(result, context) {
+  return takeFreshResult(result, context, 'm4-c0');
+}
+function takeFreshResult(result, context, purpose) {
   if (context?.eventName !== 'pull_request')
     throw Error('Required P2 join needs pull_request event');
   const state = freshCoverageResults.get(result);
-  if (!state || state.consumed || state.context !== JSON.stringify(context))
+  if (
+    !state ||
+    state.purpose !== purpose ||
+    state.consumed ||
+    state.context !== JSON.stringify(context)
+  )
     throw Error('Fresh same-event P2 result required');
   state.consumed = true;
   return state.evidence;

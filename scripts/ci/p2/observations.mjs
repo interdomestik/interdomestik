@@ -16,13 +16,13 @@ export function validateP2Observation(raw, oracle, generatedJs) {
   keys(value, ['kind', 'cases', 'suites', 'coverage']);
   if (value.kind !== 'untrusted-wrapper-observations-v2') throw Error('P2 observation kind');
   const expected = oracle.tests.map(test => ({ name: test.name, state: 'pass' }));
-  if (expected.length !== 9 || JSON.stringify(value.cases) !== JSON.stringify(expected))
-    throw Error('P2 exact nine cases');
+  if (expected.length !== 10 || JSON.stringify(value.cases) !== JSON.stringify(expected))
+    throw Error('P2 exact ten cases');
   if (
     JSON.stringify(value.suites) !==
     JSON.stringify([
       { name: 'wrapper.test.mjs', state: 'pass' },
-      { name: 'assignClaimCore (Wrapper Means)', state: 'pass' },
+      { name: 'admin assignment relay adapter', state: 'pass' },
     ])
   )
     throw Error('P2 suite states');

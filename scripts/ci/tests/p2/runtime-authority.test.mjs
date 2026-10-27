@@ -12,6 +12,10 @@ function prepare() {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'p2-dispatch-test-')));
   copyProducer(artifact, root);
   const policy = JSON.parse(fs.readFileSync(path.join(root, 'scripts/ci/p2/policy.json')));
+  // This fixture tests refusal before any backend execution, independently of
+  // the real producer's later qualification state.
+  policy.qualification = 'COVERAGE_SUCCESSOR_NOT_YET_EXECUTED';
+  fs.writeFileSync(path.join(root, 'scripts/ci/p2/policy.json'), JSON.stringify(policy) + '\n');
   for (const file of [...Object.keys(policy.sourceFiles), ...Object.keys(policy.dispatchFiles)]) {
     fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     fs.copyFileSync(path.join(candidate, file), path.join(root, file));

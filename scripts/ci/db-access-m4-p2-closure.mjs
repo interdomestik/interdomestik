@@ -12,6 +12,10 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/capsule-layout.json',
   'scripts/ci/p2/capsule-layout.mjs',
   'scripts/ci/p2/capsule/collector-controls.mjs',
+  'scripts/ci/p2/capsule/dist/relay.js.map',
+  'scripts/ci/p2/capsule/dist/relay.mjs',
+  'scripts/ci/p2/capsule/dist/relay.original.ts',
+  'scripts/ci/p2/capsule/dist/relay.source.ts',
   'scripts/ci/p2/capsule/dist/vendor.mjs',
   'scripts/ci/p2/capsule/dist/wrapper.js.map',
   'scripts/ci/p2/capsule/dist/wrapper.mjs',
@@ -36,6 +40,7 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/coverage-vendor/dist/assets/sorter.js',
   'scripts/ci/p2/coverage-vendor/dist/assets/vendor/prettify.css',
   'scripts/ci/p2/coverage-vendor/dist/assets/vendor/prettify.js',
+  'scripts/ci/p2/coverage-vendor/dist/coverage-support.cjs',
   'scripts/ci/p2/coverage-vendor/dist/coverage-vendor.cjs',
   'scripts/ci/p2/coverage-vendor/dist/coverage-vendor.cjs.LEGAL.txt',
   'scripts/ci/p2/custody.py',
@@ -49,6 +54,7 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/ordinary-artifact.mjs',
   'scripts/ci/p2/ordinary-dispatch.mjs',
   'scripts/ci/p2/ordinary-job.mjs',
+  'scripts/ci/p2/ordinary-provenance.mjs',
   'scripts/ci/p2/policy.json',
   'scripts/ci/p2/runtime.mjs',
   'scripts/ci/p2/source-fence.mjs',
@@ -60,5 +66,5 @@ export function assertM4P2ClosureNames(names) {
     !Array.isArray(names) ||
     JSON.stringify([...names].sort()) !== JSON.stringify(M4_P2_CLOSURE_FILES)
   )
-    throw Error('M4 P2 exact53-file producer closure required');
+    throw Error('M4 P2 exact59-file producer closure required');
 }

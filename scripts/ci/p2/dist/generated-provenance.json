@@ -1,9 +1,10 @@
 {
   "version": 1,
-  "status": "RETAINED_GENERATED_BYTES_NOT_NEW_RUNTIME_QUALIFICATION",
+  "status": "CURRENT_GENERATED_BYTES_NOT_CURRENT_LINUX_EXECUTION_QUALIFICATION",
   "sourceFiles": {
-    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
-    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
+    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
   },
   "versions": {
     "compilerVersion": "5.9.3",
@@ -12,49 +13,69 @@
   },
   "outputs": [
     {
+      "path": "capsule/dist/relay.js.map",
+      "bytes": 2059,
+      "sha256": "eba3f0ae334ec19e9967232717f1b21e20c4b1d97107bf5554392bb98152c673"
+    },
+    {
+      "path": "capsule/dist/relay.mjs",
+      "bytes": 1103,
+      "sha256": "3fc9201910c0046f559efb33714f2f21ad500dc5e6463d87c2fa1a948b88f6be"
+    },
+    {
+      "path": "capsule/dist/relay.original.ts",
+      "bytes": 4887,
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    },
+    {
+      "path": "capsule/dist/relay.source.ts",
+      "bytes": 1098,
+      "sha256": "229559fbbd95ead8615c0d3217b5417c0a3fde961eabd0a0a763a400fc63e254"
+    },
+    {
       "path": "capsule/dist/vendor.mjs",
       "bytes": 670763,
       "sha256": "42b1a1bee69a32fd3beb61f0fbe08f46da453109a5f8d1e10e2a5047f04ba4f0"
     },
     {
       "path": "capsule/dist/wrapper.js.map",
-      "bytes": 5534,
-      "sha256": "b5339aeea9222ab43f5a39744c39ad5c9bc0228046214a1d0e67b2e3d071b665"
+      "bytes": 2233,
+      "sha256": "c2acec7a3fa2d1e2c2e5905d8257e44e2c93001dbeccee3d4ee5c79abf8660e9"
     },
     {
       "path": "capsule/dist/wrapper.mjs",
-      "bytes": 2737,
-      "sha256": "f1f0bbdd05f862fca8bf38697c84a820c09bcd38895b2c4d530c55643ee4a997"
+      "bytes": 1113,
+      "sha256": "afe65fc82428bb3d3f2f2a9c522f872b3788ea18556e5ec18e31c6416e3843c0"
     },
     {
       "path": "capsule/dist/wrapper.original.ts",
-      "bytes": 2640,
-      "sha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+      "bytes": 1093,
+      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea"
     },
     {
       "path": "capsule/dist/wrapper.source.ts",
-      "bytes": 2636,
-      "sha256": "967c4d542be66dad3b405af345373c7b7929adc9f7fd0a158741697fdd064622"
+      "bytes": 1128,
+      "sha256": "a18a4fc9482ef9e7576f5eadc1d2b101bd215707fe3ce4a8bba58a1476dfae0d"
     },
     {
       "path": "capsule/dist/wrapper.test.js.map",
-      "bytes": 16015,
-      "sha256": "67747b2b50643f156f2537fed551b76f02513a10be50c68bd26dbbbd9d662a92"
+      "bytes": 10320,
+      "sha256": "423508691e54192f9a95aedc81724db14064c7274cd46142b2a7037a56dabfee"
     },
     {
       "path": "capsule/dist/wrapper.test.mjs",
-      "bytes": 8697,
-      "sha256": "9de422216f2bed22cc21633fbd281506c96d007a9539a0787f7ec33c0707863c"
+      "bytes": 5472,
+      "sha256": "1ae86cf03b9a6dbd045c66aa455c7f8c0a11d8028d375b62cfde86b9a284336a"
     },
     {
       "path": "capsule/dist/wrapper.test.original.ts",
-      "bytes": 7811,
-      "sha256": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925"
+      "bytes": 5134,
+      "sha256": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9"
     },
     {
       "path": "capsule/dist/wrapper.test.source.ts",
-      "bytes": 7883,
-      "sha256": "52e49604fe58f3eb2ae483989f248364975a4f5cc246f9ade2cbe5de765c76e6"
+      "bytes": 5222,
+      "sha256": "75084bf04ef116a86e5b85f2b698ccd7c805dc2ad5b2d8711a88a72d5a5ac62a"
     },
     {
       "path": "coverage-vendor/dist/assets/base.css",
@@ -92,9 +113,14 @@
       "sha256": "67126b6cd4d1b2305f8c8fa5974971ebe90ab2b0f6e209ba2f1c6e4af05f0207"
     },
     {
+      "path": "coverage-vendor/dist/coverage-support.cjs",
+      "bytes": 574663,
+      "sha256": "d0c951a26a8e4701b88bd28a78623f6bea096ebbf907bc6ffc367a8b467fb6dd"
+    },
+    {
       "path": "coverage-vendor/dist/coverage-vendor.cjs",
-      "bytes": 3825187,
-      "sha256": "1dbed32627f866595c3265d54196defe077fe6fd3c7f3d7985e0b2e29dec5398"
+      "bytes": 3246896,
+      "sha256": "75f2330bab33d59ff621b3f7fd7e13251c927f30056e3a8c6442dc7305ccbd46"
     },
     {
       "path": "coverage-vendor/dist/coverage-vendor.cjs.LEGAL.txt",
@@ -102,14 +128,14 @@
       "sha256": "ab1fbb4a8cd93f8da2ecaf67e418c748cd6c2ef00609e7d60923fc46aa5745da"
     },
     {
-      "path": "dist/source-manifest.json",
-      "bytes": 12102,
-      "sha256": "aef8f7a38dcc2be6d5c601181191155ff91a58c4b10209b78fb9ec4da2bab21f"
+      "path": "dist/ordinary-denominator.json",
+      "bytes": 5025,
+      "sha256": "ab944fb975a9d23f471d3394f64fc8f3f30557ba1e76a14a988cc97fb723bbc5"
     },
     {
-      "path": "dist/ordinary-denominator.json",
-      "bytes": 13189,
-      "sha256": "1728f3b9237af9f023e75d9937a8fc551a2547d310fa39953dc478c5e6296185"
+      "path": "dist/source-manifest.json",
+      "bytes": 5992,
+      "sha256": "fa57465d91cd467d14a22ca17f5b73e6cabee78209bad1eefa08392a183ab72b"
     }
   ],
   "vitestVendorInputs": [
@@ -696,6 +722,6 @@
   ],
   "reproduction": {
     "wrapperCompiler": "two retained generated TS inputs, TypeScript5.9.3 targetES2022/moduleESNext/sourceMap/inlineSources; checked by generated-layout.test.mjs",
-    "vendorBundles": "Historical build recipes and every input hash retained; bundles are byte-pinned. Cross-directory byte-for-byte vendor rebuild has not been executed by this integration task."
+    "vendorBundles": "Historical original recipes and inputs remain recorded. Coverage vendor successor rebuilt from installed pinned dependencies with the sealed build-split.cjs; static support partition has one fixed module and preserves the original legal notice and assets."
   }
 }

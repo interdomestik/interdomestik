@@ -1,10 +1,11 @@
 import { Worker } from 'node:worker_threads';
 import { randomUUID } from 'node:crypto';
-import { currentM4ProducerSeal } from './db-access-m4-worker-evidence.mjs';
+import { currentM4ProducerSeal, expectedM4TransportAck } from './db-access-m4-worker-evidence.mjs';
 import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
 
 const owned = new WeakMap();
 const evidence = new WeakSet();
+const observations = new WeakSet();
 const resultEvidence = new WeakMap();
 const evidenceSeals = new WeakMap();
 const receivedOutputs = new WeakSet();
@@ -15,27 +16,26 @@ export function assertM4WorkerEvidenceCurrent(proof) {
     throw fail('foreign or changed producer evidence');
 }
 export const isOwnedM4WorkerEvidence = value => evidence.has(value);
-export function claimOwnedM4WorkerEvidence(results) {
+function takeTransportResult(results) {
   const value = resultEvidence.get(results);
   if (!value) throw fail('unowned or replayed transport result');
   resultEvidence.delete(results);
   if (!sameOutputShape(value.output, results)) throw fail('changed/replaced transport output');
+  return value;
+}
+export function claimOwnedM4WorkerEvidence(results) {
+  const value = takeTransportResult(results);
+  if (value.kind !== 'qualified-loader')
+    throw fail('ordinary observations are not private evidence');
   return value.proof;
 }
-
-function expectedAck(wire, used, jobId) {
-  return {
-    channelId: wire.channelId,
-    requestId: wire.requestId,
-    snapshot: wire.snapshot,
-    inventoryDigest: wire.inventoryDigest,
-    inventoryCount: wire.inventoryCount,
-    modelDigest: wire.modelDigest,
-    sourcePolicyDigest: wire.sourcePolicyDigest,
-    sourceBookends: wire.sourceBookends,
-    used,
-    ...(jobId === undefined ? {} : { jobId }),
-  };
+export function claimOwnedM4GraphTransport(results) {
+  const { kind, proof } = takeTransportResult(results);
+  return Object.freeze({ kind, proof });
+}
+export function assertM4ObservationEvidenceCurrent(proof) {
+  if (!observations.has(proof) || evidenceSeals.get(proof) !== currentM4ProducerSeal())
+    throw fail('foreign or changed ordinary observation evidence');
 }
 
 function buildPool(repoRoot, loaderSession, loaderAuthority) {
@@ -55,12 +55,13 @@ function buildPool(repoRoot, loaderSession, loaderAuthority) {
   owned.set(pool, state);
   try {
     for (let index = 0; index < 4; index++) {
-      const launch = loaderSession
-        ? loaderAuthority.launchM4GraphWorker(loaderSession, {
-            repoRoot,
-            index,
-          })
-        : undefined;
+      const launch =
+        loaderSession !== undefined
+          ? loaderAuthority.launchM4GraphWorker(loaderSession, {
+              repoRoot,
+              index,
+            })
+          : undefined;
       const channelId = launch
         ? loaderAuthority.bindingForM4LoaderLaunch(launch).binding
         : randomUUID();
@@ -171,7 +172,7 @@ function buildPool(repoRoot, loaderSession, loaderAuthority) {
 }
 
 export function startGraphWorkerPool(repoRoot, loaderSession) {
-  if (!loaderSession) return buildPool(repoRoot);
+  if (loaderSession === undefined) return buildPool(repoRoot);
   return import(new URL('./db-access-m4-worker-loader-authority.mjs', import.meta.url)).then(
     authority => buildPool(repoRoot, loaderSession, authority)
   );
@@ -181,7 +182,7 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
   const state = owned.get(pool);
   if (!state || state.used || !Array.isArray(partitions)) throw fail('unowned or reused pool');
   if (!partitions.length && !m4Request) throw fail('empty ordinary partition');
-  if (Boolean(state.loaderSession) !== Boolean(m4Request)) throw fail('M4 loader/request mismatch');
+  if (state.loaderSession !== undefined && !m4Request) throw fail('M4 loader/request mismatch');
   state.used = true;
   let m4Authority;
   if (m4Request) {
@@ -211,7 +212,7 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
             jobId,
             resolve,
             reject,
-            m4Expected: wire ? expectedAck(wire, true, jobId) : undefined,
+            m4Expected: wire ? expectedM4TransportAck(wire, true, jobId) : undefined,
           };
         });
         used = true;
@@ -228,7 +229,7 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
       }
       if (slot.error) throw slot.error;
       slot.phase = 'stopping';
-      slot.m4DoneExpected = wire ? expectedAck(wire, used) : undefined;
+      slot.m4DoneExpected = wire ? expectedM4TransportAck(wire, used) : undefined;
       slot.worker.postMessage({
         type: 'STOP',
         snapshot: input.snapshot,
@@ -261,11 +262,20 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
       partitions: results.length,
       runtimeAdmission: false,
       allExecutableContextsQualified: false,
+      ...(state.loaderSession === undefined
+        ? { observationOnly: true, loaderQualified: false }
+        : {}),
     });
-    evidence.add(proof);
+    if (state.loaderSession !== undefined) evidence.add(proof);
+    else observations.add(proof);
     evidenceSeals.set(proof, state.producerSeal);
-    resultEvidence.set(results, { proof, output });
-    state.loaderAuthority.bindM4GraphLoaderEvidence(state.loaderSession, proof);
+    resultEvidence.set(results, {
+      kind: state.loaderSession !== undefined ? 'qualified-loader' : 'ordinary-observation',
+      proof,
+      output,
+    });
+    if (state.loaderSession !== undefined)
+      state.loaderAuthority.bindM4GraphLoaderEvidence(state.loaderSession, proof);
   }
   return results;
 }

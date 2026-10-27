@@ -1,10 +1,5 @@
 export const bootstrapCases = [
   [
-    'ambient secret fallback',
-    'issuerSecret,\n    operationDeadlineMs,',
-    'issuerSecret: issuerSecret || process.env.BETTER_AUTH_SECRET,\n    operationDeadlineMs,',
-  ],
-  [
     'admin fallback',
     'data = postgres(dataTarget.url, {',
     'data = postgres(process.env.DATABASE_URL || dataTarget.url, {',
@@ -16,26 +11,19 @@ export const bootstrapCases = [
   ],
   [
     'crossed business pool',
-    'const configuration = { database: drizzle(data, { schema }), verifySession };',
-    'const configuration = { database: drizzle(identity, { schema }), verifySession };',
+    'const database = drizzle(data, { schema });',
+    'const database = drizzle(identity, { schema });',
   ],
   [
     'A1 caller-selected bypass',
-    'const configuration = { database: drizzle(data, { schema }), verifySession };',
-    'const configuration = { database: drizzle(data, { schema }), verifySession: async () => cookie };',
+    'Object.freeze({ database, verifySession })',
+    'Object.freeze({ database, verifySession: async () => cookie })',
   ],
   [
     'cached prior principal',
     'const verifySession = createCurrentStoreSessionVerifier({',
     'const verifySession = cache(createCurrentStoreSessionVerifier({',
   ],
-  [
-    'same purpose logins admitted',
-    'identityTarget.login === dataTarget.login',
-    'identityTarget.login !== dataTarget.login',
-  ],
-  ['endpoint mismatch admitted', 'identityTarget.serverKey !== dataTarget.serverKey', 'false'],
-  ['crossed notification purpose', 'notificationTarget.login === dataTarget.login', 'false'],
   [
     'notification owner crossing',
     'databaseURL: notificationTarget.url',
@@ -46,7 +34,6 @@ export const bootstrapCases = [
     'createM4AssignmentPostcommitNotifier(notificationOwner.open)',
     'createM4AssignmentPostcommitNotifier(configuration.open)',
   ],
-  ['noninteger deadline accepted', '!Number.isSafeInteger(operationDeadlineMs)', 'false'],
   [
     'deadline never scheduled',
     'const timer = setTimeout(operation.stop, captured.operationDeadlineMs);',
@@ -97,13 +84,13 @@ export const bootstrapCases = [
   ],
   [
     'outward secret capability',
-    'return Object.freeze({ execute, close });',
-    'return Object.freeze({ execute, close, issuerSecret });',
+    'ownRuntime(Object.freeze({ execute, close }))',
+    'ownRuntime(Object.freeze({ execute, close, issuerSecret }))',
   ],
   [
     'outward pool opener',
-    'return Object.freeze({ execute, close });',
-    'return Object.freeze({ execute, close, postgres });',
+    'ownRuntime(Object.freeze({ execute, close }))',
+    'ownRuntime(Object.freeze({ execute, close, postgres }))',
   ],
   [
     'consumer profile chooses staff',
@@ -213,4 +200,20 @@ export const typeCases = [
     'execute(cookie: unknown, serialized: unknown)',
     'execute(cookie: unknown, serialized: unknown, principal: unknown)',
   ],
+];
+
+export const contextCases = [
+  [
+    'ambient secret fallback',
+    'issuerSecret,\n    operationDeadlineMs,',
+    'issuerSecret: issuerSecret || process.env.BETTER_AUTH_SECRET,\n    operationDeadlineMs,',
+  ],
+  [
+    'same purpose logins admitted',
+    'identityTarget.login === dataTarget.login',
+    'identityTarget.login !== dataTarget.login',
+  ],
+  ['endpoint mismatch admitted', 'identityTarget.serverKey !== dataTarget.serverKey', 'false'],
+  ['crossed notification purpose', 'notificationTarget.login === dataTarget.login', 'false'],
+  ['noninteger deadline accepted', '!Number.isSafeInteger(operationDeadlineMs)', 'false'],
 ];

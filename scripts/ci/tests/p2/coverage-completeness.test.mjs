@@ -82,8 +82,8 @@ test('actual old/new threshold witness: dropped 0/100 web map is rejected before
     outputDirectory: dropped + '/apps/web/coverage',
   });
   write(dropped, sharedSummary, { total: { lines: { total: 1, covered: 1 } } });
-  assert.equal(bad.summary.lines.covered, 29);
-  assert.equal(bad.summary.lines.total, 32);
+  assert.equal(bad.summary.lines.covered, 13);
+  assert.equal(bad.summary.lines.total, 13);
   assert.equal(runCoverageGate({ rootDir: dropped, stdout: false }).ok, true);
   assert.throws(
     () => reconcileOrdinaryWebSummary({ coverage: {}, summary: original, candidateRoot: root }),
@@ -106,7 +106,7 @@ test('actual old/new threshold witness: dropped 0/100 web map is rejected before
     outputDirectory: retained + '/apps/web/coverage',
   });
   write(retained, sharedSummary, { total: { lines: { total: 1, covered: 1 } } });
-  assert.equal(result.summary.lines.total, 132);
+  assert.equal(result.summary.lines.total, 113);
   assert.equal(runCoverageGate({ rootDir: retained, stdout: false }).ok, false);
 });
 test('consistent zero-total web map and required summary remain valid', async t => {

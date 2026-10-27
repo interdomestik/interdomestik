@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 import { materializeP2Capsule } from '../../p2/capsule-layout.mjs';
 import { ts } from '../../p2/libraries.mjs';
 import {
@@ -23,7 +24,7 @@ test('every retained generated output matches its exact provenance bytes', () =>
 });
 test('actual pinned TypeScript reproduces both wrapper scripts and source maps byte-for-byte', () => {
   assert.equal(ts.version, provenance.versions.compilerVersion);
-  for (const name of ['wrapper', 'wrapper.test']) {
+  for (const name of ['wrapper', 'wrapper.test', 'relay']) {
     const source = read('capsule/dist/' + name + '.source.ts').toString();
     const result = ts.transpileModule(source, {
       fileName: name + '.source.ts',
@@ -92,4 +93,27 @@ test('generated class applies to real dist outputs; authored controls remain pro
     );
   assert.equal(structuredArtifactOwner('scripts/ci/p2/foreign.json'), null);
   assert.equal(structuredArtifactOwner('scripts/ci/foreign/policy.json'), null);
+});
+
+test('current capsule actual export authority is exactly one pure mapper', async () => {
+  const parent = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'p2-mapper-authority-'))),
+    output = path.join(parent, 'capsule');
+  try {
+    materializeP2Capsule(root, output);
+    const { adapter } = await import(pathToFileURL(path.join(output, 'registry.mjs')).href);
+    const actual = adapter.importActual('@/server/operations/m4-assignment-relay');
+    assert(Object.isFrozen(actual));
+    assert.deepEqual(Object.keys(actual), ['assignmentRelayFailure']);
+    assert.equal(typeof actual.assignmentRelayFailure, 'function');
+    for (const id of [
+      'node:fs',
+      'node:https',
+      '@/server/operations/m4-assignment-relay-extra',
+      'next/cache',
+    ])
+      assert.throws(() => adapter.importActual(id), /No actual module authority/);
+    assert.throws(() => adapter.queueMock('node:https', null, () => ({})), /Unclosed mock/);
+  } finally {
+    fs.rmSync(parent, { recursive: true, force: true });
+  }
 });

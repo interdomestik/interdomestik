@@ -8,7 +8,14 @@ import { verifyM4Metafile } from './db-access-m4-runtime-closure.mjs';
 import { sealM4Image, assertM4ImageUnchanged } from './db-access-m4-runtime-seal.mjs';
 const meta = () => ({
   inputs: Object.fromEntries(
-    [contract.entryFile, ...contract.expectedInputs].map(file => [file, { imports: [] }])
+    [contract.entryFile, ...contract.expectedInputs].map(file => [
+      file,
+      {
+        imports: [contract.entryFile, ...contract.qualificationTransforms.importers].includes(file)
+          ? [{ path: contract.qualificationTransforms.target, external: false }]
+          : [],
+      },
+    ])
   ),
   outputs: {
     'm4-runtime.cjs': {
@@ -22,6 +29,26 @@ test('fixed finite closure identity accepts only declared inputs/output/external
 });
 for (const [name, change] of [
   ['extra input', m => (m.inputs['unbound.ts'] = { imports: [] })],
+  [
+    'missing observer edge',
+    m => (m.inputs[contract.qualificationTransforms.importers[0]].imports = []),
+  ],
+  [
+    'duplicate observer edge',
+    m =>
+      m.inputs[contract.qualificationTransforms.importers[0]].imports.push({
+        path: contract.qualificationTransforms.target,
+        external: false,
+      }),
+  ],
+  [
+    'foreign observer importer',
+    m =>
+      m.inputs['apps/web/src/server/operations/m4-private-runtime.ts'].imports.push({
+        path: contract.qualificationTransforms.target,
+        external: false,
+      }),
+  ],
   ['missing input', m => delete m.inputs[contract.expectedInputs[0]]],
   [
     'new external',
@@ -82,3 +109,9 @@ test('writable home cannot contain alternate input', () =>
     fs.writeFileSync(path.join(root, 'home', 'loader.mjs'), '');
     assert.throws(() => sealM4Image(root), /unexpected writable image input/);
   }));
+
+test('cache observation cannot be relabelled as production Next qualification', () => {
+  const changed = structuredClone(contract);
+  changed.qualificationTransforms.scope = 'production-next-behavior';
+  assert.throws(() => verifyM4Metafile(meta(), changed), /M4 runtime closure refused/u);
+});

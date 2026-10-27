@@ -1,3 +1,4 @@
+import { deriveM4MountedSource } from './db-access-m4-mounted-source.mjs';
 import { deriveM4PrivateRuntimeSource } from './db-access-m4-runtime-source.mjs';
 import fs from 'node:fs';
 import { deriveM4AssignmentNotification } from './db-access-m4-notification-source.mjs';
@@ -21,6 +22,7 @@ const files = Object.freeze({
   session: 'packages/shared-auth/src/session.ts',
   resolver: 'packages/shared-auth/package.json',
   bootstrap: 'apps/web/src/server/operations/m4-private-runtime.ts',
+  context: 'apps/web/src/server/operations/m4-private-runtime-context.ts',
   posture: 'apps/web/src/server/operations/m4-pool-posture.ts',
   wire: 'apps/web/src/server/operations/m4-assignment-wire.ts',
   controllerTypes: 'apps/web/src/server/operations/m4-assignment-controller-types.ts',
@@ -30,6 +32,24 @@ const files = Object.freeze({
   notificationRuntime: 'apps/web/src/server/operations/m4-notification-runtime.ts',
   notifier: 'apps/web/src/server/operations/m4-assignment-postcommit.ts',
   runtimeTypes: 'apps/web/src/server/operations/m4-private-runtime-types.ts',
+  mountedAdminPublic: 'apps/web/src/actions/admin-claims.ts',
+  mountedAdminMount: 'apps/web/src/actions/admin-claims.core.ts',
+  mountedAdminBarrel: 'apps/web/src/actions/admin-claims/assign.ts',
+  mountedAdminAdapter: 'apps/web/src/actions/admin-claims/assign.core.ts',
+  mountedAgentPublic: 'apps/web/src/actions/agent-claims.ts',
+  mountedAgentMount: 'apps/web/src/actions/agent-claims.core.ts',
+  mountedAgentBarrel: 'apps/web/src/actions/agent-claims/assign.ts',
+  mountedAgentAdapter: 'apps/web/src/actions/agent-claims/assign.core.ts',
+  mountedStaffMount: 'apps/web/src/actions/staff-claims.core.ts',
+  mountedStaffBarrel: 'apps/web/src/actions/staff-claims/assign.ts',
+  mountedStaffAdapter: 'apps/web/src/actions/staff-claims/assign.core.ts',
+  mountedRelay: 'apps/web/src/server/operations/m4-assignment-relay.ts',
+  mountedClient: 'apps/web/src/server/operations/m4-assignment-relay-client.ts',
+  mountedRelayWire: 'apps/web/src/server/operations/m4-assignment-relay-wire.ts',
+  mountedOwner: 'apps/web/src/server/operations/m4-assignment-owner.ts',
+  mountedOwnerHttp: 'apps/web/src/server/operations/m4-assignment-owner-http.ts',
+  mountedOwnerConfig: 'apps/web/src/server/operations/m4-assignment-owner-config.ts',
+  mountedOwnerEntry: 'apps/web/src/server/operations/m4-assignment-owner-entry.ts',
 });
 const freeze = value => {
   if (value && typeof value === 'object') {
@@ -42,6 +62,11 @@ const fail = reason => {
   throw Error('incomplete: m4 source ' + reason);
 };
 const canonical = value => JSON.stringify(value);
+const mountedContract = freeze(
+  JSON.parse(
+    fs.readFileSync(new URL('./db-access-m4-mounted-source-contract.json', import.meta.url), 'utf8')
+  )
+);
 
 export function isVerifiedM4ProofSource(value) {
   return authenticated.has(value);
@@ -136,10 +161,23 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
   attempt('privateRuntime', () =>
     deriveM4PrivateRuntimeSource({
       bootstrapSource: before.bootstrap,
+      contextSource: before.context,
       postureSource: before.posture,
       runtimeTypesSource: before.runtimeTypes,
       controllerTypesSource: before.controllerTypes,
     })
+  );
+  attempt('mountedAssignment', () =>
+    deriveM4MountedSource(
+      Object.fromEntries(
+        mountedContract.files.map(row => {
+          const role = Object.keys(files).find(key => files[key] === row.file);
+          if (!role) fail('fixed mounted file is outside source closure');
+          return [row.file, before[role]];
+        })
+      ),
+      mountedContract
+    )
   );
   const after = read();
   if (canonical(before) !== canonical(after)) fail('source changed during derivation');
@@ -160,12 +198,15 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       'identity',
       'assignmentKernels',
       'privateRuntime',
+      'mountedAssignment',
     ],
     derivations,
     failures,
     sourcePremiseOnly: true,
     bootstrapAndPosture: 'finite source/control derived; executed runtime premises remain required',
-    additionalSourceBoundOnlyFiles: [],
+    additionalSourceBoundOnlyFiles: mountedContract.files
+      .filter(row => !row.executionRequired)
+      .map(row => row.file),
     additionalSourceBoundOnlyGuarantee:
       'All fixed modules have finite source derivations, including erased type contracts; no complete-runtime or native admission is inferred.',
     runtimeAdmission: false,

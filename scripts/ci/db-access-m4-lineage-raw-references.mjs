@@ -1,5 +1,5 @@
 // Called only inside the existing native/runtime owner join, after worker validation.
-// References every original array index; never substitutes a filtered native report.
+// References current fresh raw-array indices; historical cohorts stay in their own artifacts.
 export function describeLineageRawReferences(native, selection, nativeOutputDigest) {
   const byIdentity = new Map(),
     affectedFailureIndices = [];
@@ -20,6 +20,8 @@ export function describeLineageRawReferences(native, selection, nativeOutputDige
   const reference = (path, rows) => ({ path, start: 0, endExclusive: rows.length });
   return {
     version: 1,
+    namespace: 'current-fresh-native-source',
+    historicalOriginalCohortReused: false,
     nativeOutputDigest,
     inventoryIndices: selection.entries.map(entry => entry.inventoryIndex),
     affectedFailureIndices,

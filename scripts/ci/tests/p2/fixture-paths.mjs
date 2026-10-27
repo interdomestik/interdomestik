@@ -8,6 +8,7 @@ export function copyProducer(sourceRoot, targetRoot) {
   fs.cpSync(path.join(sourceRoot, 'scripts/ci/p2'), path.join(scripts, 'p2'), { recursive: true });
   for (const file of [
     'db-access-provider-runtime-identity.mjs',
+    'db-access-git-blob-batch.mjs',
     'coverage-gate.mjs',
     'clean-coverage-artifacts.mjs',
   ])

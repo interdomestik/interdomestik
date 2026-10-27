@@ -7,8 +7,8 @@ const oracle = JSON.parse(fs.readFileSync(new URL('dist/source-manifest.json', q
 const js = fs.readFileSync(new URL('capsule/dist/wrapper.mjs', q));
 const raw = fs.readFileSync(new URL('./dist/local-coverage-observation.json', import.meta.url));
 const value = JSON.parse(raw);
-test('actual nine wrapper cases and actual V8 coverage accepted', () =>
-  assert.equal(validateP2Observation(raw, oracle, js).cases.length, 9));
+test('current ten wrapper cases and actual host V8 shape accepted', () =>
+  assert.equal(validateP2Observation(raw, oracle, js).cases.length, 10));
 const mutations = {
   forgedAdmission: v => (v.runtimeAdmission = true),
   missingCase: v => v.cases.pop(),

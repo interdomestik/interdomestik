@@ -1,28 +1,25 @@
-const allowed = new Set([
-  '@interdomestik/domain-claims/agent-claims/assign',
-  '@/lib/audit',
-  '@/lib/notifications',
-  'next/cache',
-  '@interdomestik/database',
-  '@interdomestik/database/tenant-security',
-]);
-const pending = new Map();
-const mocks = new Map();
+// Fixed source-derived pure actual export; no SDK, filesystem or network module is loaded here.
+import { assignmentRelayFailure } from './relay.mjs';
+const actual = Object.freeze({ assignmentRelayFailure });
+const allowed = new Set(['@/server/operations/m4-assignment-relay', 'next/cache']);
+const pending = new Map(),
+  mocks = new Map();
 export const adapter = Object.freeze({
   queueMock(id, importer, factory) {
     if (!allowed.has(id) || pending.has(id) || typeof factory !== 'function')
       throw Error('Unclosed mock registration');
     pending.set(id, factory);
   },
-  importActual() {
-    throw Error('No actual module authority');
+  importActual(id) {
+    if (id !== '@/server/operations/m4-assignment-relay') throw Error('No actual module authority');
+    return actual;
   },
   getMockContext() {
     return { callstack: [] };
   },
 });
 export async function materializeMocks() {
-  if (pending.size !== 6) throw Error('Expected six source mocks');
+  if (pending.size !== 2) throw Error('Expected two source mocks');
   for (const [id, factory] of pending) mocks.set(id, await factory());
 }
 export function getMock(id) {

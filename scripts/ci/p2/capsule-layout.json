@@ -13,5 +13,9 @@
   "probes-linux.mjs": "capsule/probes-linux.mjs",
   "probes.mjs": "capsule/probes.mjs",
   "registry.mjs": "capsule/registry.mjs",
-  "run-suite.mjs": "capsule/run-suite.mjs"
+  "run-suite.mjs": "capsule/run-suite.mjs",
+  "relay.original.ts": "capsule/dist/relay.original.ts",
+  "relay.source.ts": "capsule/dist/relay.source.ts",
+  "relay.mjs": "capsule/dist/relay.mjs",
+  "relay.js.map": "capsule/dist/relay.js.map"
 }

@@ -5,6 +5,18 @@ const typeRoles = Object.freeze({
   'apps/web/src/server/operations/m4-private-runtime-types.ts': 'runtimeTypes',
   'apps/web/src/server/operations/m4-assignment-controller-types.ts': 'controllerTypes',
 });
+const mountedSourceOnly = new Set([
+  'apps/web/src/actions/admin-claims.ts',
+  'apps/web/src/actions/admin-claims.core.ts',
+  'apps/web/src/actions/admin-claims/assign.ts',
+  'apps/web/src/actions/agent-claims.ts',
+  'apps/web/src/actions/agent-claims.core.ts',
+  'apps/web/src/actions/agent-claims/assign.ts',
+  'apps/web/src/actions/staff-claims.core.ts',
+  'apps/web/src/actions/staff-claims/assign.ts',
+  'apps/web/src/server/operations/m4-assignment-owner-config.ts',
+  'apps/web/src/server/operations/m4-assignment-owner-entry.ts',
+]);
 const fail = reason => {
   throw Error('M4 oracle source binding refused: ' + reason);
 };
@@ -35,6 +47,26 @@ export function bindM4OracleSource(source, imageRecords, file) {
       typeFactPath: '/derivations/privateRuntime/facts/types/' + role,
       typeFactSha256: hash(JSON.stringify(fact)),
       executedImageBinding: false,
+    };
+  }
+  if (mountedSourceOnly.has(file)) {
+    const records = source.derivations.mountedAssignment?.sourceRecords;
+    const matches =
+      records?.flatMap((record, index) => (record.file === file ? [{ record, index }] : [])) ?? [];
+    if (
+      matches.length !== 1 ||
+      matches[0].record.executionRequired !== false ||
+      matches[0].record.sha256 !== sha256
+    )
+      fail('missing exact mounted source-only derivation');
+    return {
+      file,
+      sha256,
+      binding: 'native-mounted-source-only',
+      sourceFactPath: '/derivations/mountedAssignment/sourceRecords/' + matches[0].index,
+      sourceFactSha256: hash(JSON.stringify(matches[0].record)),
+      executedImageBinding: false,
+      nextDeploymentQualified: false,
     };
   }
   if (imageRecords[file]?.sha256 !== sha256)

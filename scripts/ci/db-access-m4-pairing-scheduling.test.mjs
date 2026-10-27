@@ -15,6 +15,34 @@ async function fixture(failure) {
   });
   joined.catch(() => {});
   const state = {
+    privateAcceptance: {
+      construction: {
+        kind: 'm4-current-mounted-proof-construction',
+        currentProofClassQualified: true,
+        acceptedOldIdentityCount: 0,
+      },
+      currentLocalConstructionQualified: true,
+      mountedAssignment: {
+        localDecisions: ['legacy-admin', 'legacy-agent', 'staff'].map((profile, index) => ({
+          profile,
+          qualifiedLocalMountedConstruction: true,
+          adapterActuallyExecuted: true,
+          wholeOriginalIdentityQualified: false,
+          nextDeploymentQualified: false,
+          executedRoutes: [
+            {
+              profile,
+              caseId: [
+                'mounted-admin-assignment-source-route',
+                'mounted-agent-assignment-source-route',
+                'mounted-staff-assignment-source-route',
+              ][index],
+            },
+          ],
+        })),
+      },
+      unitDouble: true,
+    },
     diagnosticToken: Object.freeze({ version: 1, unitDouble: true }),
     ordinary() {
       calls.push('ordinary-run');
@@ -79,7 +107,7 @@ async function fixture(failure) {
   const value = `globalThis[${JSON.stringify(key)}]`;
   const modules = {
     'db-access-m4-p2-ordinary.mjs': `export const runFixedM4P2=async()=>${value}.ordinary();export const takeFixedM4P2ForJoin=${value}.ordinaryTake;`,
-    'db-access-m4-private-acceptance-data.mjs': `export const projectFixedPrivateAcceptance=()=>({decisions:[],unitDouble:true});`,
+    'db-access-m4-private-acceptance-data.mjs': `export const projectFixedPrivateAcceptance=()=>${value}.privateAcceptance;`,
     'db-access-m4-runtime.mjs': `export const runM4Runtime=${value}.runtime;export const hasM4RuntimeBinding=()=>true;`,
     'db-access-m4-native-session.mjs': `export const evaluateM4NativeSession=${value}.native;export const assertM4NativeSessionEvent=()=>{throw Error('not part of this unit test')};`,
     'db-access-m4-prior-preparation.mjs': `export const startM4PriorPreparation=${value}.start;export const waitM4PriorPreparation=${value}.wait;export const closeM4PriorPreparation=${value}.close;`,
@@ -109,6 +137,7 @@ async function fixture(failure) {
     refuse,
     diagnosticOwner: new WeakMap([[state.diagnosticToken, true]]),
     diagnosticToken: state.diagnosticToken,
+    privateAcceptance: state.privateAcceptance,
     input: {
       candidate: '/unit-fixture',
       producer: '/unit-producer',
@@ -200,3 +229,40 @@ test('unit sequencing doubles: foreign policy is refused before starting any wor
     f.cleanup();
   }
 });
+
+for (const [name, change] of [
+  ['absent proof class', p => (p.construction.currentProofClassQualified = false)],
+  ['legacy class substituted', p => (p.construction.kind = 'old-two-factories')],
+  ['empty mounted decision list', p => (p.mountedAssignment.localDecisions.length = 0)],
+  ['one missing mounted profile', p => p.mountedAssignment.localDecisions.pop()],
+  [
+    'replayed mounted case',
+    p =>
+      (p.mountedAssignment.localDecisions[1].executedRoutes[0].caseId =
+        p.mountedAssignment.localDecisions[0].executedRoutes[0].caseId),
+  ],
+  [
+    'unsupported production claim',
+    p => (p.mountedAssignment.localDecisions[0].nextDeploymentQualified = true),
+  ],
+])
+  test(
+    'unit sequencing doubles: ' + name + ' refuses after one private ordinary take',
+    async () => {
+      const f = await fixture();
+      try {
+        const running = f.api.executeM4Pairing(f.input);
+        f.finish();
+        const handle = await running;
+        change(f.privateAcceptance);
+        assert.throws(
+          () => f.api.assertM4Pairing(handle, f.input),
+          /semantic missing current mounted/u
+        );
+        assert.equal(f.calls.filter(value => value === 'ordinary-take').length, 1);
+        assert.throws(() => f.api.assertM4Pairing(handle, f.input), /already consumed/u);
+      } finally {
+        f.cleanup();
+      }
+    }
+  );

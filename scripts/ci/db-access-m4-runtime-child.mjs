@@ -1,13 +1,20 @@
 // This process receives restricted purpose credentials only. The administrator runs elsewhere.
 import { createRequire } from 'node:module';
 import postgres from 'postgres';
+import {
+  createM4MountedFixtureRuntime,
+  invokeM4MountedFixtureAdapter,
+  takeM4MountedFixtureRuntime,
+} from './db-access-m4-runtime-mounted-child.mjs';
 const {
   createM4LocalQualificationRuntime,
   createM4LocalQualificationAssignmentRuntime,
+  takeM4OwnedAssignmentContexts,
   captureM4PoolTarget,
   assertM4PoolPosture,
 } = createRequire(import.meta.url)('./m4-runtime.cjs');
 const runtimes = new Map();
+const creating = new Map();
 const methods = new Set([
   'execute',
   'executeLegacyAdmin',
@@ -78,31 +85,48 @@ async function handle(message) {
     !Array.isArray(message.args)
   )
     refuse();
-  const [id, profile, config] = message.args;
+  if (shuttingDown && !['shutdown', 'output-fence'].includes(message.op)) refuse();
+  const [id, profile, config, tls] = message.args;
   if (message.op === 'create') {
     if (
       shuttingDown ||
       runtimes.has(id) ||
+      creating.has(id) ||
+      runtimes.size + creating.size >= 256 ||
       !Number.isSafeInteger(id) ||
-      !['ops', 'profiles'].includes(profile)
+      id < 1 ||
+      !['ops', 'profiles'].includes(profile) ||
+      message.args.length !== (profile === 'ops' ? 3 : 4)
     )
       refuse();
     const captured = configuration(config, profile);
-    const runtime =
-      profile === 'ops'
-        ? createM4LocalQualificationRuntime(captured)
-        : createM4LocalQualificationAssignmentRuntime(captured);
-    const expected =
-      profile === 'ops'
-        ? ['close', 'execute']
-        : ['close', 'execute', 'executeLegacyAdmin', 'executeLegacyAgent', 'executeStaff'];
-    if (
-      JSON.stringify(Object.keys(runtime).sort()) !== JSON.stringify(expected) ||
-      !Object.isFrozen(runtime)
-    )
-      refuse();
-    runtimes.set(id, runtime);
-    return { methods: Object.keys(runtime).sort(), frozen: Object.isFrozen(runtime) };
+    // Reserve before constructor awaits so duplicate IDs and shutdown cannot lose a listener.
+    const pending = Promise.resolve().then(async () => {
+      const runtime =
+        profile === 'ops'
+          ? createM4LocalQualificationRuntime(captured)
+          : await createM4MountedFixtureRuntime(id, captured, tls);
+      const expected =
+        profile === 'ops'
+          ? ['close', 'execute']
+          : ['close', 'execute', 'executeLegacyAdmin', 'executeLegacyAgent', 'executeStaff'];
+      if (
+        shuttingDown ||
+        JSON.stringify(Object.keys(runtime).sort()) !== JSON.stringify(expected) ||
+        !Object.isFrozen(runtime)
+      ) {
+        await runtime.close();
+        refuse();
+      }
+      runtimes.set(id, runtime);
+      return { methods: Object.keys(runtime).sort(), frozen: Object.isFrozen(runtime) };
+    });
+    creating.set(id, pending);
+    try {
+      return await pending;
+    } finally {
+      creating.delete(id);
+    }
   }
   if (message.op === 'invoke') {
     const [runtimeId, method, args] = message.args;
@@ -116,6 +140,13 @@ async function handle(message) {
     const runtime = runtimes.get(runtimeId);
     if (!runtime || typeof runtime[method] !== 'function') refuse();
     return await runtime[method](...args);
+  }
+  if (message.op === 'invoke-mounted') {
+    if (shuttingDown || message.args.length !== 3) refuse();
+    const [runtimeId, profile, input] = message.args;
+    const runtime = runtimes.get(runtimeId);
+    if (!runtime) refuse();
+    return await invokeM4MountedFixtureAdapter(runtime, profile, input);
   }
   if (message.op === 'invalid-configurations') {
     const [valid] = message.args;
@@ -174,11 +205,32 @@ async function handle(message) {
     }
   }
   if (message.op === 'shutdown') {
+    if (shuttingDown) refuse();
     shuttingDown = true;
     shutdownComplete = false;
+    const constructors = await Promise.allSettled([...creating.values()]);
     await Promise.all([...runtimes.values()].map(runtime => runtime.close()));
+    if (constructors.some(result => result.status === 'rejected')) refuse();
+    const assignmentContexts = [],
+      owners = [],
+      cases = [];
+    for (const [runtimeId, runtime] of runtimes) {
+      const mounted = takeM4MountedFixtureRuntime(runtime);
+      assignmentContexts.push({
+        runtimeId,
+        ...(mounted ? mounted.contexts : takeM4OwnedAssignmentContexts(runtime)),
+      });
+      if (mounted) {
+        owners.push(mounted.owner);
+        cases.push(...mounted.cases);
+      }
+    }
     shutdownComplete = true;
-    return { closed: runtimes.size };
+    return {
+      closed: runtimes.size,
+      assignmentContexts,
+      mountedAssignments: { version: 1, owners, cases },
+    };
   }
   if (message.op === 'output-fence') {
     if (!shuttingDown || !shutdownComplete || outputFenceRequested || message.args.length !== 0)
@@ -197,9 +249,10 @@ process.on('message', message => {
   );
 });
 process.on('disconnect', () => {
-  void Promise.allSettled([...runtimes.values()].map(x => x.close())).finally(() =>
-    process.exit(0)
-  );
+  shuttingDown = true;
+  void Promise.allSettled([...creating.values()])
+    .then(() => Promise.allSettled([...runtimes.values()].map(x => x.close())))
+    .finally(() => process.exit(0));
 });
 process.send?.({
   ready: true,

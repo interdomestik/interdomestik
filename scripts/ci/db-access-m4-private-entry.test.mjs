@@ -6,9 +6,8 @@ import { hash } from './db-access-m4-private-test.fixture.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
-import { acceptanceFixture } from './db-access-m4-private-test.fixture.mjs';
+import { mountedAcceptanceFixture as acceptanceFixture } from './db-access-m4-mounted-integration-test.fixture.mjs';
 import * as privateData from './db-access-m4-private-acceptance-data.mjs';
-import { lineageObservationKey } from './db-access-m4-factory-context-rule.mjs';
 
 function emissionFixture() {
   const owner = {},
@@ -137,22 +136,16 @@ function fixture(input) {
 test('proposed lexical private entry consumes once and returns conditional exact class acceptance', () => {
   const f = fixture(acceptanceFixture()),
     result = f.call();
-  assert.equal(result.privateAcceptance.acceptedOriginalIdentities.length, 2);
+  assert.equal(result.privateAcceptance.acceptedOriginalIdentities.length, 0);
   assert.equal(f.takes(), 1);
   assert.equal(f.state.ordinaryTaken, true);
   assert.throws(f.call, /burned/u);
 });
 test('valid source/runtime inputs with missing native context guarantee fail final proposed private entry', () => {
-  const input = acceptanceFixture(),
-    batch = input.native.rawGraph.m4Contexts.affectedLineage.batches.find(
-      batch => batch.observations.length
-    );
-  const row = batch.observations[0];
-  row.origin = batch.roots.find(root => root !== row.origin);
-  batch.entryEmissions[0].origin = row.origin;
-  batch.entryEmissions[0].observationKey = lineageObservationKey(row);
+  const input = acceptanceFixture();
+  input.effectAssertions.assignmentContextProof.profiles[0].capturedConstructions[0].ordinal = 99;
   const f = fixture(input);
-  assert.throws(f.call, /semantic missing fixed P2 factory guarantee/u);
+  assert.throws(f.call, /M4 mounted assignment refused: foreign construction reference/u);
   assert.equal(f.state.ordinaryTaken, true);
   assert.equal(f.takes(), 1);
   assert.throws(f.call, /burned/u);

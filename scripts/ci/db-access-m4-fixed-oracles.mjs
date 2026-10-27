@@ -8,6 +8,7 @@ const contracts = [
   'db-access-m4-existing-oracle-contract.json',
   'db-access-m4-email-oracle-contract.json',
   'db-access-m4-current-store-oracle-contract.json',
+  'db-access-m4-mounted-oracle-contract.json',
 ];
 const fail = reason => {
   throw Error('M4 fixed oracle correspondence refused: ' + reason);

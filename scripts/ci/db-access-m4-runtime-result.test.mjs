@@ -1,3 +1,4 @@
+import { mountedCompletionFixture } from './db-access-m4-runtime-mounted-result.fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract.mjs';
@@ -18,27 +19,11 @@ test('failure location excludes assertion values, credentials, unknown files and
   );
   assert.equal(m4FixtureFailureSite({ stack: 'PRIVATE_DATABASE_URL' }), undefined);
 });
-const good = () => ({
-  version: 1,
-  complete: true,
-  setupComplete: true,
-  cleanupComplete: true,
-  remainingOwnedSessions: 0,
-  runtimeAdmission: false,
-  nativeAdmission: false,
-  privateCases: contract.caseIDs.private.map(id => ({ id, passed: true })),
-  profileCases: contract.caseIDs.profiles.map(id => ({ id, passed: true })),
-  minimalOpsPrivilegeDiagnostic: {
-    expectedMinimalGrants: true,
-    positiveRows: 1,
-    forbiddenBranchSelectSqlstate: '42501',
-    roleGrantExpansion: false,
-  },
-});
+const good = () => mountedCompletionFixture(contract);
 test('complete report shape is never a fresh executed result', () => {
   const report = good(),
     validated = validateM4RuntimeCompletion(report);
-  assert.equal(validated.total, 36);
+  assert.equal(validated.total, 39);
   assert.equal(isFreshM4RuntimeResult(report), false);
   assert.equal(isFreshM4RuntimeResult(validated), false);
   assert.equal(isFreshM4RuntimeResult(JSON.parse(JSON.stringify(report))), false);

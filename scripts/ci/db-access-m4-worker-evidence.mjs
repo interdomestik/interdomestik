@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const names = [
   'db-access-graph-worker.mjs',
+  'db-access-evaluator.mjs',
   'db-access-graph-worker-pool.mjs',
   'db-access-graph-workers.mjs',
   'db-access-m4-worker-evidence.mjs',
@@ -51,4 +52,20 @@ export function currentM4ProducerSeal() {
     return digest;
   });
   return createHash('sha256').update(policyBytes).update(JSON.stringify(hashes)).digest('hex');
+}
+
+// Pure wire formatting, shared by qualified and ordinary observation transport.
+export function expectedM4TransportAck(wire, used, jobId) {
+  return {
+    channelId: wire.channelId,
+    requestId: wire.requestId,
+    snapshot: wire.snapshot,
+    inventoryDigest: wire.inventoryDigest,
+    inventoryCount: wire.inventoryCount,
+    modelDigest: wire.modelDigest,
+    sourcePolicyDigest: wire.sourcePolicyDigest,
+    sourceBookends: wire.sourceBookends,
+    used,
+    ...(jobId === undefined ? {} : { jobId }),
+  };
 }

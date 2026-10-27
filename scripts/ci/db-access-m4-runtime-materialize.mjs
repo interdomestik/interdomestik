@@ -91,6 +91,9 @@ export function materializeM4Runtime({
     '--tsconfig=' + contract.tsconfigFile,
     '--log-level=error',
     '--color=false',
+    // Only the Next revalidation import is substituted in this local qualification image.
+    // Adapter bodies remain exact; the fixed observer proves calls, never Next deployment.
+    '--alias:next/cache=' + path.join(root, 'db-access-m4-runtime-cache-observer.ts'),
     ...contract.aliases.map(
       name => '--alias:@interdomestik/' + name + '=' + path.join(root, 'packages', name, 'src')
     ),

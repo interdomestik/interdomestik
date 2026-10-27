@@ -1,3 +1,4 @@
+import { assignmentContextMetadata } from './db-access-m4-assignment-context-metadata.mjs';
 // Finite source/control proof only. No runtime or native admission is minted here.
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
@@ -67,7 +68,18 @@ function deriveModule(source, contract, file) {
     ts.forEachChild(node, visit);
   }
   visit(actual.source);
-  return { imports: actual.imports, constants, functions, clauses, effects };
+  return {
+    imports: actual.imports,
+    constants,
+    functions,
+    clauses,
+    effects,
+    contextFunctions: assignmentContextMetadata(
+      actual.source,
+      file,
+      [...actual.functions].map(([name, node]) => ({ name, node }))
+    ),
+  };
 }
 export function deriveM4AssignmentKernels({ sharedSource, legacySource, staffSource }) {
   const sources = { shared: sharedSource, legacy: legacySource, staff: staffSource };

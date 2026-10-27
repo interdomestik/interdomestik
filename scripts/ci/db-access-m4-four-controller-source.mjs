@@ -1,3 +1,4 @@
+import { assignmentContextMetadata } from './db-access-m4-assignment-context-metadata.mjs';
 // Source/control premise only: neither a matching hash nor this result grants runtime admission.
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
@@ -46,7 +47,7 @@ function construct(text, contract, file) {
   }
   return { actual, observed, derivation: { imports: actual.imports, constants, functions } };
 }
-function ownedClauses(controller) {
+function ownedCallback(controller) {
   const constructor = controller.actual.functions.get('createPrivateAssignmentController');
   const callbacks = [];
   function visit(node) {
@@ -66,7 +67,10 @@ function ownedClauses(controller) {
   if (callbacks.length !== 1) reject('one concrete owned transaction');
   // Complete AST equivalence already proves this is the captured database receiver, awaited and
   // admitted in the exact fixed sequence. Indexes describe actual source trees, not exemptions.
-  return callbacks[0].body.statements.map((statement, index) => ({
+  return callbacks[0];
+}
+function ownedClauses(controller) {
+  return ownedCallback(controller).body.statements.map((statement, index) => ({
     index,
     kind: ts.SyntaxKind[statement.kind],
     tree: controller.observed.get(statement),
@@ -116,6 +120,34 @@ export function deriveM4AssignmentControllers({ controllerSource, wireSource, pr
     ),
     facts,
     factsSha256: digest(JSON.stringify(facts)),
+    transactionBinding: (() => {
+      const callback = ownedCallback(modules.controller),
+        call = callback.parent;
+      const locate = node => [FILES.controller, node.pos, node.end, node.kind];
+      if (
+        !ts.isCallExpression(call) ||
+        call.arguments.length !== 1 ||
+        !ts.isPropertyAccessExpression(call.expression) ||
+        call.expression.expression.getText() !== 'database' ||
+        call.expression.name.text !== 'transaction'
+      )
+        reject('captured data transaction receiver');
+      return {
+        call: locate(call),
+        receiver: locate(call.expression.expression),
+        receiverName: 'database',
+        method: 'transaction',
+        callback: locate(callback),
+        parameter: locate(callback.parameters[0]),
+        executionLaw:
+          'canonical-tx callback receives the actual transaction of the captured data Drizzle; same pinned installed image',
+      };
+    })(),
+    contextFunctions: assignmentContextMetadata(
+      modules.controller.actual.source,
+      FILES.controller,
+      [{ name: '$owned-transaction', node: ownedCallback(modules.controller) }]
+    ),
     sourceNodes: Object.keys(FILES).flatMap(key =>
       sourceNodes(modules[key].actual.source, FILES[key])
     ),

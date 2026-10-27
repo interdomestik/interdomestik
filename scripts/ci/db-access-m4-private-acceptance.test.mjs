@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { acceptanceFixture } from './db-access-m4-private-test.fixture.mjs';
-import * as privateData from './db-access-m4-private-acceptance-data.mjs';
+import { historicalFactoryProjection } from './db-access-m4-private-test.fixture.mjs';
 import { lineageObservationKey } from './db-access-m4-factory-context-rule.mjs';
 import { executionFixture } from './db-access-m4-private-test.fixture.mjs';
 import * as sourceRule from './db-access-m4-factory-source-rule.mjs';
 import FIXED from './db-access-m4-factory-contract.json' with { type: 'json' };
-const project = privateData.projectFixedPrivateAcceptance;
+const project = historicalFactoryProjection;
 const active = input =>
   input.native.rawGraph.m4Contexts.affectedLineage.batches.find(batch => batch.observations.length);
 function rekey(batch) {
   for (let i = 0; i < batch.observations.length; i++)
     batch.entryEmissions[i].observationKey = lineageObservationKey(batch.observations[i]);
 }
-test('complete fixed construction conditionally accepts exact two current factory rows and exact occurrences', () => {
+test('historical pure construction conditionally accepts its exact two factory rows and occurrences', () => {
   const input = acceptanceFixture(),
     before = JSON.stringify(input),
     result = project(input);
@@ -144,7 +144,7 @@ test('event, policy, current inventory index/owner or diagnostic overclaim refus
   }
 });
 
-test('exact retained callbacks derive current native factory IDs and mandatory registry path', () => {
+test('historical retained callbacks derive original factory IDs and mandatory registry path', () => {
   const result = sourceRule.deriveFixedFactoryConstruction(executionFixture());
   assert.equal(result.factories.length, 2);
   assert.deepEqual(

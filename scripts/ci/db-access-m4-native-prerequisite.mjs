@@ -1,9 +1,17 @@
+import { assertOwnedM4ObservationGraph } from './db-access-graph-workers.mjs';
+import {
+  isOwnedOrdinarySynchronousGraph,
+  assertOwnedOrdinarySynchronousGraph,
+} from './db-access-evaluator.mjs';
 import { prepareInventoryEffects } from './db-access-inventory-preparation.mjs';
 import { isM4HydratedContextInventory } from './db-access-m4-worker-input.mjs';
 import { collectInventory } from './db-access-inventory.mjs';
 import { randomUUID } from 'node:crypto';
 import { encodeInventory } from './db-access-inventory-wire.mjs';
-import { isOwnedM4WorkerEvidence } from './db-access-graph-worker-pool.mjs';
+import {
+  isOwnedM4WorkerEvidence,
+  assertM4ObservationEvidenceCurrent,
+} from './db-access-graph-worker-pool.mjs';
 import { digest } from './db-access-trust.mjs';
 import { isVerifiedM4ProofSource, m4SourceMatchesModel } from './db-access-m4-proof-source.mjs';
 import { createProvenance } from './db-access-provenance.mjs';
@@ -108,18 +116,31 @@ export function consumeM4WorkerRequest(request, input) {
 export function m4NativePrerequisites(source, native, graph, failures) {
   if (
     !isVerifiedM4ProofSource(source) ||
+    !m4SourceMatchesModel(source, native?.model) ||
     !collected.has(native) ||
     native.source !== source ||
     !isM4ContextInventory(native.model, native.inventory, source)
   )
     fail('native/source brand');
+  const privateTransport = Object.hasOwn(graph, 'm4WorkerTransport');
+  const ordinaryTransport = Object.hasOwn(graph, 'm4ObservationTransport');
+  const synchronous = isOwnedOrdinarySynchronousGraph(graph);
+  if (Number(privateTransport) + Number(ordinaryTransport) + Number(synchronous) !== 1)
+    fail('missing or mixed graph transport scope');
+  const transport = privateTransport ? graph.m4WorkerTransport : graph.m4ObservationTransport;
+  if (privateTransport) {
+    if (!isOwnedM4WorkerEvidence(transport)) fail('foreign worker transport evidence');
+  } else if (ordinaryTransport) {
+    assertM4ObservationEvidenceCurrent(transport);
+    assertOwnedM4ObservationGraph(graph);
+  } else assertOwnedOrdinarySynchronousGraph(graph, native, source);
   if (
-    !graph.m4WorkerTransport ||
-    !isOwnedM4WorkerEvidence(graph.m4WorkerTransport) ||
-    graph.m4WorkerTransport.sourcePolicyDigest !== source.policyDigest ||
-    graph.m4WorkerTransport.inventoryDigest !== digest(JSON.stringify(encodeInventory(native)))
+    !synchronous &&
+    (transport.sourcePolicyDigest !== source.policyDigest ||
+      transport.inventoryDigest !== digest(JSON.stringify(encodeInventory(native))) ||
+      JSON.stringify(transport.sourceBookends) !== JSON.stringify(source.bookends))
   )
-    fail('foreign worker transport evidence');
+    fail('foreign worker transport binding');
   const files = new Set(source.files);
   const operations = native.inventory.entries
     .filter(entry => files.has(entry.file))
@@ -161,7 +182,13 @@ export function m4NativePrerequisites(source, native, graph, failures) {
     nativeInventoryCollected: true,
     contextCensusComplete: false,
     runtimeEvidenceAccepted: false,
-    ownedWorkerTransportVerified: Boolean(graph.m4WorkerTransport),
+    ownedWorkerTransportVerified: privateTransport,
+    ...(!privateTransport
+      ? {
+          ordinaryObservationOnly: true,
+          observationMode: synchronous ? 'synchronous' : 'parallel',
+        }
+      : {}),
     runtimeAdmission: false,
     sourcePremiseOnly: true,
   });

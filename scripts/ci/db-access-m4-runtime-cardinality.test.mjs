@@ -42,15 +42,15 @@ function result(
   };
 }
 
-test('actual wrapper gates accept the exact contract16 private20 profile case cardinalities', () => {
+test('actual wrapper gates accept the exact contract16 private23 profile case cardinalities', () => {
   assert.equal(
     contract.fixtureFiles.filter(file => file === 'db-access-m4-runtime-fixture.mjs').length,
     1
   );
   assert.equal(contract.caseIDs.private.length, 16);
-  assert.equal(contract.caseIDs.profiles.length, 20);
+  assert.equal(contract.caseIDs.profiles.length, 23);
   assert.equal(new Set(contract.caseIDs.private).size, 16);
-  assert.equal(new Set(contract.caseIDs.profiles).size, 20);
+  assert.equal(new Set(contract.caseIDs.profiles).size, 23);
   const actual = gates(source),
     context = { assert, result: result() };
   actual.assertions.runInNewContext(context);
@@ -61,10 +61,10 @@ test('actual wrapper gates accept the exact contract16 private20 profile case ca
 test('actual wrapper rejects missing or extra cases in either family at both gates', () => {
   const actual = gates(source);
   for (const [privateCount, profileCount] of [
-    [15, 20],
-    [17, 20],
-    [16, 19],
-    [16, 21],
+    [15, 23],
+    [17, 23],
+    [16, 22],
+    [16, 24],
   ]) {
     const context = { assert, result: result(privateCount, profileCount) };
     assert.throws(() => actual.assertions.runInNewContext(context), { code: 'ERR_ASSERTION' });
@@ -117,5 +117,32 @@ test('actual completion still refuses failure incomplete setup cleanup and remai
     const context = { assert, result: { ...result(), ...refused } };
     actual.completion.runInNewContext(context);
     assert.equal(context.result.complete, false);
+  }
+});
+
+test('the previous twenty-profile contract cannot satisfy either current gate', () => {
+  const actual = gates(source),
+    context = { assert, result: result(16, 20) };
+  assert.throws(() => actual.assertions.runInNewContext(context), { code: 'ERR_ASSERTION' });
+  actual.completion.runInNewContext(context);
+  assert.equal(context.result.complete, false);
+  for (const variant of [
+    source.replace(
+      'assert.equal(result.profileCases.length, 23);',
+      'assert.equal(result.profileCases.length, 20);'
+    ),
+    source.replace('result.profileCases.length === 23', 'result.profileCases.length === 20'),
+  ]) {
+    assert.notEqual(variant, source);
+    const changed = gates(variant),
+      value = { assert, result: result() };
+    let accepted = true;
+    try {
+      changed.assertions.runInNewContext(value);
+    } catch {
+      accepted = false;
+    }
+    changed.completion.runInNewContext(value);
+    assert.equal(accepted && value.result.complete, false);
   }
 });

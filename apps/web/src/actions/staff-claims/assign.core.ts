@@ -1,30 +1,26 @@
-import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/staff-claims/assign';
-
-import { logAuditEvent } from '@/lib/audit';
+import {
+  relayStaffAssignment,
+  assignmentRelayFailure,
+} from '@/server/operations/m4-assignment-relay';
 import { revalidatePath } from 'next/cache';
 
-import type { Session } from './context';
-
 const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
-
 function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) {
-    revalidatePath(`/${locale}${path}`);
-  }
+  for (const locale of LOCALES) revalidatePath(`/${locale}${path}`);
 }
-
 export async function assignClaimCore(params: {
   claimId: string;
-  session: NonNullable<Session> | null;
-  requestHeaders?: Headers;
   staffId?: string | null;
+  requestHeaders: Headers;
+  operationId?: string;
 }) {
-  const result = await assignClaimCoreDomain(params, { logAuditEvent });
-
-  if (result.success) {
+  const response = await relayStaffAssignment(params);
+  if (response.status !== 'completed') {
+    return assignmentRelayFailure(response, 'staff');
+  }
+  if (response.result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
     revalidatePathForAllLocales('/staff/claims');
   }
-
-  return result;
+  return response.result;
 }

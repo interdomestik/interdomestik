@@ -684,8 +684,8 @@
   "producerFiles": {
     "scripts/ci/db-access-graph-worker-pool.mjs": {
       "mode": "100644",
-      "bytes": 9650,
-      "sha256": "320a7dbcca3bf79f60dd04bb9712369d0ebd119d5e5c82077d03bd4a24ab89aa"
+      "bytes": 10284,
+      "sha256": "24269a5411c49fc9b963ff27d1188cab869922c970ffaed2da80f91c85ea7af6"
     },
     "scripts/ci/db-access-cli.mjs": {
       "mode": "100644",
@@ -714,8 +714,8 @@
     },
     "scripts/ci/db-access-evaluator.mjs": {
       "mode": "100644",
-      "bytes": 2303,
-      "sha256": "a9b356d3aa5733c43b3d25d0763689e66e6a35b33a1391a410df73b80ab1fc1a"
+      "bytes": 3425,
+      "sha256": "b6aede46c9ada8a1257c395642c7086374cc76c3c60990e163d6f405877702b7"
     },
     "scripts/ci/db-access-graph-worker.mjs": {
       "mode": "100644",
@@ -724,8 +724,8 @@
     },
     "scripts/ci/db-access-graph-workers.mjs": {
       "mode": "100644",
-      "bytes": 8836,
-      "sha256": "e273fce33f22bac01a79a7a67af2b3207ed006a2ce8dabf52c8a7befc291c9fc"
+      "bytes": 9506,
+      "sha256": "be73c6d78be155c28644f5c6f4fdc845530f14c9cf682efcd59e79d5197b6144"
     },
     "scripts/ci/db-access-graph.mjs": {
       "mode": "100644",
@@ -1384,13 +1384,13 @@
     },
     "scripts/ci/db-access-m4-native-prerequisite.mjs": {
       "mode": "100644",
-      "bytes": 6775,
-      "sha256": "c6c68b1fd630be77a3033bc8c40a7fa89ee5bf9a8f70477234048c07288aefdd"
+      "bytes": 7964,
+      "sha256": "9fed1e00a9a0055be0772c1c7a9c36ac8ebf9594feed71b000b98e8cfedcb652"
     },
     "scripts/ci/db-access-m4-proof-policy.json": {
       "mode": "100644",
-      "bytes": 4958,
-      "sha256": "d1298c3735e5fc29e0f966c4e0262df0939d701435effba5a6c049e840b005ee"
+      "bytes": 10099,
+      "sha256": "761498c098e8440b6d0a4fd3d7920d0b65e84c0ab2604d997f14478f6118fd0f"
     },
     "scripts/ci/db-access-m4-proof-policy.mjs": {
       "mode": "100644",
@@ -1399,8 +1399,8 @@
     },
     "scripts/ci/db-access-m4-proof-source.mjs": {
       "mode": "100644",
-      "bytes": 7747,
-      "sha256": "d59baf51b419a86c2bb0f772301863a065fc28a54f8a978f462b2783204c7533"
+      "bytes": 9906,
+      "sha256": "87bfbccf4d70f2fa85c38da4092a30527432cdc6cab1c0ca8c03496a81a38793"
     },
     "scripts/ci/db-access-m4-runtime-records.mjs": {
       "mode": "100644",
@@ -1409,8 +1409,8 @@
     },
     "scripts/ci/db-access-m4-source.mjs": {
       "mode": "100644",
-      "bytes": 3945,
-      "sha256": "7fa87e527dcd45f88be8870b141e682c20b421ff3a5a6e921040bb95e1d0dacf"
+      "bytes": 4256,
+      "sha256": "822cf21a61e742b017325aa873540832b60abeae31f37751557e7e265b440654"
     },
     "scripts/ci/db-access-m4-spec.mjs": {
       "mode": "100644",
@@ -1509,8 +1509,8 @@
     },
     "scripts/ci/db-access-m4-four-controller-source.mjs": {
       "mode": "100644",
-      "bytes": 6830,
-      "sha256": "e37f0731f5f3d869711835c1d55e89d63d8e8a8d4def793938806d8bd7251327"
+      "bytes": 8139,
+      "sha256": "ef24a063dd6f9caf2da35809b20b1347ea98514c1b7f1e1a73283e15597b51fb"
     },
     "scripts/ci/db-access-m4-four-controller-source.test.mjs": {
       "mode": "100644",
@@ -1559,8 +1559,8 @@
     },
     "scripts/ci/db-access-m4-assignment-kernels-source.mjs": {
       "mode": "100644",
-      "bytes": 6444,
-      "sha256": "8f186dcf546ed448581f930c6681149b277822a1252876bd3a925bd59106f51b"
+      "bytes": 6716,
+      "sha256": "ab1a2331177c79b4e3b7fec326358efce60a0d7a70ff3a6558d35e28fba921c7"
     },
     "scripts/ci/db-access-m4-assignment-kernels-source.test.mjs": {
       "mode": "100644",
@@ -1619,8 +1619,8 @@
     },
     "scripts/ci/db-access-finalize.mjs": {
       "mode": "100644",
-      "bytes": 7713,
-      "sha256": "2c1ba09ea4deb88fb171d98965dd5b660d03d1bf6b0dd8d68e547d7a70297178"
+      "bytes": 8382,
+      "sha256": "06dc4c97ce497cab22a78dca83ffdf22c9a0c0c51315b9950d1b845b59c43022"
     },
     "scripts/ci/db-access-m4-native-session.mjs": {
       "mode": "100644",
@@ -1644,28 +1644,28 @@
     },
     "scripts/ci/db-access-m4-runtime-child.mjs": {
       "mode": "100644",
-      "bytes": 6599,
-      "sha256": "f1fe08c534d48dd44b4cc48c9467b2a85371af8a3ce263bdc0a21de0e335cdd8"
+      "bytes": 8529,
+      "sha256": "183edff24bcc7f6060b0a1be70b949830e2605e56dc6e301cddddd0381874ba1"
     },
     "scripts/ci/db-access-m4-runtime-client.mjs": {
       "mode": "100644",
-      "bytes": 3689,
-      "sha256": "7f28dab5472efbcd51fcf23bbc2fcb93b51c73b0b7fcea30cfb45b8912a04f6a"
+      "bytes": 5332,
+      "sha256": "42a9086257eff0402ea1b7cb22b3f86139d68a376229b571994981a381ffb67c"
     },
     "scripts/ci/db-access-m4-runtime-closure.mjs": {
       "mode": "100644",
-      "bytes": 1522,
-      "sha256": "d879c3792a4f90d2b85b5195f1b70c79f387e1744739e9dc822059191d2dfd1f"
+      "bytes": 2683,
+      "sha256": "4a5ba1ff7a1224767cb68e60f9607d01e2d91a979c0553ce31cbf03a7c94d8fd"
     },
     "scripts/ci/db-access-m4-runtime-closure.test.mjs": {
       "mode": "100644",
-      "bytes": 3412,
-      "sha256": "e624c3d48c7a9c2b999d8800792908edad5e1c11e122b54eb9324c0ed434188a"
+      "bytes": 4481,
+      "sha256": "51bc96c244fbe3e7a8c1babddba2b1bff9d1500c187d49dc6b813eb85c9c4644"
     },
     "scripts/ci/db-access-m4-runtime-contract.json": {
       "mode": "100644",
-      "bytes": 53214,
-      "sha256": "1ad5eb2e3f54437b73e6f019a21c62d51c0d8577f856f9c43ec783e50791c7c5"
+      "bytes": 56623,
+      "sha256": "c63e6d8e602d89b30fa1c19ab022c78a4b3814fd7b2400c9dc7b424efd445307"
     },
     "scripts/ci/db-access-m4-runtime-contract.mjs": {
       "mode": "100644",
@@ -1679,8 +1679,8 @@
     },
     "scripts/ci/db-access-m4-runtime-entry.ts": {
       "mode": "100644",
-      "bytes": 369,
-      "sha256": "85f101f03b9afe78644161eb4b3881981f31cd7a520a9e295231323b2bc671a3"
+      "bytes": 976,
+      "sha256": "766d25a2f0c2b61959ed5a989e33344f3c724d9225fcb505391799ec777db9dd"
     },
     "scripts/ci/db-access-m4-runtime-fixture-grants.mjs": {
       "mode": "100644",
@@ -1724,23 +1724,23 @@
     },
     "scripts/ci/db-access-m4-runtime-fixture.mjs": {
       "mode": "100644",
-      "bytes": 5860,
-      "sha256": "9eb7ca268c69222e4b840999b88553baf78b0d12d25d65795cf02afef99b0f51"
+      "bytes": 6314,
+      "sha256": "3487e698495d640edb657eb6a6a023fbf7448f8f8d4bb765f9a2d71fb47fe982"
     },
     "scripts/ci/db-access-m4-runtime-materialize.mjs": {
       "mode": "100644",
-      "bytes": 4433,
-      "sha256": "6212dfffb85165b719ba17fb984ff9be2090e7b38a0089aecad4e98a94df052b"
+      "bytes": 4703,
+      "sha256": "b3da6625671e818525b7d777484c87c532c796fda6e588d5ff5b1355a9b1e986"
     },
     "scripts/ci/db-access-m4-runtime-result.mjs": {
       "mode": "100644",
-      "bytes": 1803,
-      "sha256": "86589d3481bd82b39698caddc7dfee041d41ff04c686bb3e3be6877f515e9b0b"
+      "bytes": 4238,
+      "sha256": "3d954be5d22a360fe5edb098129c9f96618fa7a6a89f0c44898847223ea3d8ef"
     },
     "scripts/ci/db-access-m4-runtime-result.test.mjs": {
       "mode": "100644",
-      "bytes": 3382,
-      "sha256": "8c8209ad700a9c2833e1a589a697f47a65cc2170931967424f2f49da3554252d"
+      "bytes": 3021,
+      "sha256": "408fa0977a7711e72a7b9cda311b77f211b3a8d544e1aaad24f60edd912c7a67"
     },
     "scripts/ci/db-access-m4-runtime-seal.mjs": {
       "mode": "100644",
@@ -1749,8 +1749,8 @@
     },
     "scripts/ci/db-access-m4-runtime.mjs": {
       "mode": "100644",
-      "bytes": 6538,
-      "sha256": "d56e857b4d815ac0f627f487dd3eb892a73ea36fe8f5bb1f4b5ce028da29e481"
+      "bytes": 6906,
+      "sha256": "17f9c9fda4a6bd7452114a4e36a53f0036882fb7b791a53e17110ac3793bf563"
     },
     "scripts/ci/db-access-m4-runtime-source-ast.mjs": {
       "mode": "100644",
@@ -1759,18 +1759,18 @@
     },
     "scripts/ci/db-access-m4-runtime-source-clauses.mjs": {
       "mode": "100644",
-      "bytes": 4726,
-      "sha256": "61ec4ad85a9aac9ec3051f7b82625a9718e38cef3cc5e4d30bbb9e4d108616b8"
+      "bytes": 5166,
+      "sha256": "68a8fbaf0a88ce7e7e95a768e87cdec3e3dd3e882312c83a3b835397cb0ef0b0"
     },
     "scripts/ci/db-access-m4-runtime-source-contract.json": {
       "mode": "100644",
-      "bytes": 20001,
-      "sha256": "6cc7c90d9016c970d6d7937e0fa0cebf2d30f1d25e8b0c722a8fb041fef283c5"
+      "bytes": 27283,
+      "sha256": "003d11d7bd7b5880eebf871375034f1457c42fd8db99e2e224f5649e5b202020"
     },
     "scripts/ci/db-access-m4-runtime-source.mjs": {
       "mode": "100644",
-      "bytes": 7264,
-      "sha256": "0247e0dc4f77bc10cfb60e40f93d36aff19158c6c61884615347f0c4d3c63033"
+      "bytes": 10120,
+      "sha256": "7ab03925595bcb9abca3ffabd7a548679a06673d719b5125ddcad40956da6df4"
     },
     "scripts/ci/db-access-crm-runtime-required.mjs": {
       "mode": "100644",
@@ -1784,8 +1784,8 @@
     },
     "scripts/ci/db-access-m4-runtime-pairing.mjs": {
       "mode": "100644",
-      "bytes": 6439,
-      "sha256": "1f467e3362108c62376ce5af103820f91955a95da5806944ad81a33769360064"
+      "bytes": 7472,
+      "sha256": "66ed01ff4e050cfb93e045d09f866772a8b41a9330c467818afd814e2f67bf46"
     },
     "scripts/ci/db-access-m4-gap-ledger.mjs": {
       "mode": "100644",
@@ -1829,13 +1829,13 @@
     },
     "scripts/ci/db-access-m4-effect-assertions.mjs": {
       "mode": "100644",
-      "bytes": 6441,
-      "sha256": "60ac51b41aca6394d555ff7ed756b3340083fd27498f4db727edd1c5c6f49505"
+      "bytes": 7069,
+      "sha256": "6fc090f1ab06fb65495c154ef59904f6b3bedf2239ff6e5970eb2ea9d3e36a27"
     },
     "scripts/ci/db-access-m4-effect-assertions.test.mjs": {
       "mode": "100644",
-      "bytes": 9191,
-      "sha256": "8b6fb76a8f0035e9ba772237302f49472c0c4b8fbf897d0e5fb7e67dce51f0ce"
+      "bytes": 11255,
+      "sha256": "fbd68f2c8776613c3a38ea43ac2f2878bc784cee3dbfe4c0067d540df0d3b5ff"
     },
     "scripts/ci/db-access-git-blob-batch.mjs": {
       "mode": "100644",
@@ -1914,13 +1914,13 @@
     },
     "scripts/ci/db-access-m4-existing-oracle-contract.json": {
       "mode": "100644",
-      "bytes": 89846,
-      "sha256": "47222af67f8181ebd80155be4018ff1f08e5abd2039220835dd638e150db2e4c"
+      "bytes": 90758,
+      "sha256": "c4d3e8fb46c50e02757c5b4110d922a8bb6bf75059ef72a87749162e8ea46121"
     },
     "scripts/ci/db-access-m4-fixed-oracles.mjs": {
       "mode": "100644",
-      "bytes": 4189,
-      "sha256": "535d3711036b57c524fc41182de3ceefaf17ab0387116ebbe713e6dd652a9174"
+      "bytes": 4236,
+      "sha256": "4f9c0482fe661eaa83ff8acc24de4317ad83057ef97eac43d9ab5bda8505a8d1"
     },
     "scripts/ci/db-access-m4-ops-oracle-contract.json": {
       "mode": "100644",
@@ -1939,8 +1939,8 @@
     },
     "scripts/ci/db-access-m4-oracle-source-bindings.mjs": {
       "mode": "100644",
-      "bytes": 1826,
-      "sha256": "14a65e257cd66abaf9ad34e4fe56393cd4330f22f7bf668cfce5fbedfc0eec3e"
+      "bytes": 3124,
+      "sha256": "ec8103b9a18a36e92254b475aee3b0ba78c912aac2772f995b52b2656bc87b2b"
     },
     "scripts/ci/db-access-m4-email-marker.mjs": {
       "mode": "100644",
@@ -1989,18 +1989,18 @@
     },
     "scripts/ci/db-access-m4-worker-evidence.mjs": {
       "mode": "100644",
-      "bytes": 1912,
-      "sha256": "ad925f360ee6a3bdc7374125fddc9620a70f963cdde5a5a4dda01dc01220919b"
+      "bytes": 2458,
+      "sha256": "c617d9ac151cfbdfa25ccf9e554b5c3ba6b694b1b430e1dbc504955a2f6f3238"
     },
     "scripts/ci/db-access-m4-worker-loader-authority.mjs": {
       "mode": "100644",
-      "bytes": 7281,
-      "sha256": "d9041cd69c8268ffd3e3c13bd515edc03bab59ce12fe0de6628dc64594681ef6"
+      "bytes": 7444,
+      "sha256": "f8220969785ac4f8ad0e310ff00bb8cb4249142301edb0f583bc3beb89002146"
     },
     "scripts/ci/db-access-m4-worker-loader-contract.json": {
-      "mode": "100644",
-      "bytes": 37299,
-      "sha256": "a46460d9eb0417b2b2f41ec067a605d3eadb98e2501edfb71e9d9ddf07d6de02"
+      "sha256": "ff7a9c7d4d17e1abf68c0cb5d9b7916c3e51f0517735e374964d2ce51d4cf2e6",
+      "bytes": 40069,
+      "mode": "100644"
     },
     "scripts/ci/db-access-m4-worker-loader-image.mjs": {
       "mode": "100644",
@@ -2039,13 +2039,13 @@
     },
     "scripts/ci/db-access-m4-lineage-catalog.json": {
       "mode": "100644",
-      "bytes": 72941,
-      "sha256": "5a9fa894f5b7853c941eb599deb4baafd7ad7078a4be4c1f5a57118a752a6166"
+      "bytes": 1035,
+      "sha256": "8a77dc9d40363634378c061bc1c57354b7d8fb26370e38f7c3cd5de9dd82a670"
     },
     "scripts/ci/db-access-m4-lineage-catalog.mjs": {
       "mode": "100644",
-      "bytes": 870,
-      "sha256": "b3518af004e2a2c9194495c3c83b9ffcc6c1c06baa4155e88586ed432d788d9f"
+      "bytes": 3761,
+      "sha256": "b577054f8f4e49108976e3befd133121c40dc1006adc8b3708c4fa58ac6a0490"
     },
     "scripts/ci/db-access-m4-lineage-observer.mjs": {
       "mode": "100644",
@@ -2054,8 +2054,8 @@
     },
     "scripts/ci/db-access-m4-lineage-raw-references.mjs": {
       "mode": "100644",
-      "bytes": 2067,
-      "sha256": "22d2efcd1783c546377c59f591614b7b363aba1ce5bcaa9932f9f10caa47de54"
+      "bytes": 2165,
+      "sha256": "d7cba5b1afbf42424644b26c2cf7bea507bc2411c183f4b1970c711334b66b27"
     },
     "scripts/ci/db-access-m4-lineage-selection.mjs": {
       "mode": "100644",
@@ -2109,23 +2109,23 @@
     },
     "scripts/ci/db-access-m4-p2-closure.mjs": {
       "mode": "100644",
-      "bytes": 2790,
-      "sha256": "18bf2947def79e2191412a9a6decad7ade3b2e05f6145e04f95d7964e276865e"
+      "bytes": 3079,
+      "sha256": "8ae40e596496da92b097a8308034a6962fa63920242d67c1751ac648cc0f6cd8"
     },
     "scripts/ci/db-access-m4-p2-ordinary.mjs": {
       "mode": "100644",
-      "bytes": 6813,
-      "sha256": "269397c2594e8cdf832561cdca3ed97d178a0626cf8432aaadb2aa7e6b3f8647"
+      "bytes": 6933,
+      "sha256": "58649f20b6ce8d3824e502e38162f39fccfe9a9ebf94348d92057667b70670b6"
     },
     "scripts/ci/db-access-m4-private-acceptance-data.mjs": {
       "mode": "100644",
-      "bytes": 3239,
-      "sha256": "d3f2ea2bc1e78c12c6bfbd3a1d93c4297f29f398090af37efd82dacc6e72b163"
+      "bytes": 4660,
+      "sha256": "ee69a34b82d3e39b978e1ef476fb9a12795482d43fb2d011c75e8da3eee32c97"
     },
     "scripts/ci/p2/bootstrap.mjs": {
       "mode": "100644",
-      "bytes": 7435,
-      "sha256": "571e7ead31b9e35b866d51ad71229dedb876251cbb2f62522cab06805e304f7f"
+      "bytes": 9012,
+      "sha256": "ac37cdd413a04e5c9e637e93f67dd49d91e8336856080379213abdc423b9d24f"
     },
     "scripts/ci/p2/bootstrap/entry.mjs": {
       "mode": "100644",
@@ -2149,8 +2149,8 @@
     },
     "scripts/ci/p2/capsule-layout.json": {
       "mode": "100644",
-      "bytes": 792,
-      "sha256": "0ca6ec1ccd36f519272de3427d90b4a14829c864d26a6141cfee416df12c388e"
+      "bytes": 990,
+      "sha256": "0e13e89463e04eeb99e1decf865fc336e63d1e5a1f23c561aea9273a7a172f00"
     },
     "scripts/ci/p2/capsule-layout.mjs": {
       "mode": "100644",
@@ -2169,43 +2169,43 @@
     },
     "scripts/ci/p2/capsule/dist/wrapper.js.map": {
       "mode": "100644",
-      "bytes": 5534,
-      "sha256": "b5339aeea9222ab43f5a39744c39ad5c9bc0228046214a1d0e67b2e3d071b665"
+      "bytes": 2233,
+      "sha256": "c2acec7a3fa2d1e2c2e5905d8257e44e2c93001dbeccee3d4ee5c79abf8660e9"
     },
     "scripts/ci/p2/capsule/dist/wrapper.mjs": {
       "mode": "100644",
-      "bytes": 2737,
-      "sha256": "f1f0bbdd05f862fca8bf38697c84a820c09bcd38895b2c4d530c55643ee4a997"
+      "bytes": 1113,
+      "sha256": "afe65fc82428bb3d3f2f2a9c522f872b3788ea18556e5ec18e31c6416e3843c0"
     },
     "scripts/ci/p2/capsule/dist/wrapper.original.ts": {
       "mode": "100644",
-      "bytes": 2640,
-      "sha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+      "bytes": 1093,
+      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea"
     },
     "scripts/ci/p2/capsule/dist/wrapper.source.ts": {
       "mode": "100644",
-      "bytes": 2636,
-      "sha256": "967c4d542be66dad3b405af345373c7b7929adc9f7fd0a158741697fdd064622"
+      "bytes": 1128,
+      "sha256": "a18a4fc9482ef9e7576f5eadc1d2b101bd215707fe3ce4a8bba58a1476dfae0d"
     },
     "scripts/ci/p2/capsule/dist/wrapper.test.js.map": {
       "mode": "100644",
-      "bytes": 16015,
-      "sha256": "67747b2b50643f156f2537fed551b76f02513a10be50c68bd26dbbbd9d662a92"
+      "bytes": 10320,
+      "sha256": "423508691e54192f9a95aedc81724db14064c7274cd46142b2a7037a56dabfee"
     },
     "scripts/ci/p2/capsule/dist/wrapper.test.mjs": {
       "mode": "100644",
-      "bytes": 8697,
-      "sha256": "9de422216f2bed22cc21633fbd281506c96d007a9539a0787f7ec33c0707863c"
+      "bytes": 5472,
+      "sha256": "1ae86cf03b9a6dbd045c66aa455c7f8c0a11d8028d375b62cfde86b9a284336a"
     },
     "scripts/ci/p2/capsule/dist/wrapper.test.original.ts": {
       "mode": "100644",
-      "bytes": 7811,
-      "sha256": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925"
+      "bytes": 5134,
+      "sha256": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9"
     },
     "scripts/ci/p2/capsule/dist/wrapper.test.source.ts": {
       "mode": "100644",
-      "bytes": 7883,
-      "sha256": "52e49604fe58f3eb2ae483989f248364975a4f5cc246f9ade2cbe5de765c76e6"
+      "bytes": 5222,
+      "sha256": "75084bf04ef116a86e5b85f2b698ccd7c805dc2ad5b2d8711a88a72d5a5ac62a"
     },
     "scripts/ci/p2/capsule/package.json": {
       "mode": "100644",
@@ -2224,13 +2224,13 @@
     },
     "scripts/ci/p2/capsule/registry.mjs": {
       "mode": "100644",
-      "bytes": 951,
-      "sha256": "c3ced4747ab1eb289091a482c09b3378dc5df8c1ba075b33b2050f7b6cb87a47"
+      "bytes": 1099,
+      "sha256": "d3e2fd60dc27b4d59319aa1ad5afe8934beda3cc9a8b0ac0c2f4a4a70c4b75f6"
     },
     "scripts/ci/p2/capsule/run-suite.mjs": {
       "mode": "100644",
-      "bytes": 3118,
-      "sha256": "3a74dc5b6bfcaf4f20710bd98f8fb7941223a4c1e2ea86cb8f7f085536cfd160"
+      "bytes": 3119,
+      "sha256": "de1282212897bb496723975f8e713a7482e35987794c430349f7d81edd3c1d9b"
     },
     "scripts/ci/p2/compose-mapping.mjs": {
       "mode": "100644",
@@ -2284,8 +2284,8 @@
     },
     "scripts/ci/p2/coverage-vendor/dist/coverage-vendor.cjs": {
       "mode": "100644",
-      "bytes": 3825187,
-      "sha256": "1dbed32627f866595c3265d54196defe077fe6fd3c7f3d7985e0b2e29dec5398"
+      "bytes": 3246896,
+      "sha256": "75f2330bab33d59ff621b3f7fd7e13251c927f30056e3a8c6442dc7305ccbd46"
     },
     "scripts/ci/p2/coverage-vendor/dist/coverage-vendor.cjs.LEGAL.txt": {
       "mode": "100644",
@@ -2299,18 +2299,18 @@
     },
     "scripts/ci/p2/dist/generated-provenance.json": {
       "mode": "100644",
-      "bytes": 27049,
-      "sha256": "409e398a348ae52e1862a23adcf51841b0bc59892ac140587e53cf0bbc082104"
+      "bytes": 28092,
+      "sha256": "2355c7d7369d5e110a3a949371cd0fcec68944db4cc96f5bd9530bbc85e4c6ae"
     },
     "scripts/ci/p2/dist/ordinary-denominator.json": {
       "mode": "100644",
-      "bytes": 13189,
-      "sha256": "1728f3b9237af9f023e75d9937a8fc551a2547d310fa39953dc478c5e6296185"
+      "bytes": 5025,
+      "sha256": "ab944fb975a9d23f471d3394f64fc8f3f30557ba1e76a14a988cc97fb723bbc5"
     },
     "scripts/ci/p2/dist/source-manifest.json": {
       "mode": "100644",
-      "bytes": 12102,
-      "sha256": "aef8f7a38dcc2be6d5c601181191155ff91a58c4b10209b78fb9ec4da2bab21f"
+      "bytes": 5992,
+      "sha256": "fa57465d91cd467d14a22ca17f5b73e6cabee78209bad1eefa08392a183ab72b"
     },
     "scripts/ci/p2/libraries.mjs": {
       "mode": "100644",
@@ -2329,18 +2329,18 @@
     },
     "scripts/ci/p2/observations.mjs": {
       "mode": "100644",
-      "bytes": 2575,
-      "sha256": "0b6ccb1e7e53a0a2960df93b2471747296d6e63577670ca217380a973a02a61b"
+      "bytes": 2574,
+      "sha256": "09905263ffc9f06d65c3d3669cf4977b26bfc16402ac74054cca8f5e92cb585f"
     },
     "scripts/ci/p2/ordinary-artifact.mjs": {
       "mode": "100644",
-      "bytes": 10870,
-      "sha256": "4a64deec698b68d43077119b8cb6c40493444d799fde801f7478f4647035befd"
+      "bytes": 9968,
+      "sha256": "00d06857bc1750a11bd59db88a4b9d277f5978a38a69765f74930ef7279e65c1"
     },
     "scripts/ci/p2/ordinary-dispatch.mjs": {
       "mode": "100644",
-      "bytes": 8568,
-      "sha256": "1608f483809f67ae8a1a05c8523d910c77040e576b17be95cb0ab922e9b018a7"
+      "bytes": 10486,
+      "sha256": "62e2916c55a4d75e161211ff523f89c98ed466e534d24298a83c36d3d1ba532b"
     },
     "scripts/ci/p2/ordinary-job.mjs": {
       "mode": "100644",
@@ -2349,13 +2349,13 @@
     },
     "scripts/ci/p2/policy.json": {
       "mode": "100644",
-      "bytes": 3958,
-      "sha256": "fae026fab1a02235d919cc47ead4e55eec05cf071a0d4fec02a2fcf4261ef181"
+      "bytes": 4250,
+      "sha256": "87012ead4d6a972f544c4bcc3df4e32515a6a5f6e5cd35e894d1bfc87a1697c0"
     },
     "scripts/ci/p2/runtime.mjs": {
       "mode": "100644",
-      "bytes": 10157,
-      "sha256": "722fbd517ffa60813eb549324c5b30b85a36768c3eb0e772a9bf0a46e084b195"
+      "bytes": 10272,
+      "sha256": "94a38c4f7d0640dbef37f630efcf9aab434fb11c5d41777242d4a4b3d4954cb3"
     },
     "scripts/ci/p2/source-fence.mjs": {
       "mode": "100644",
@@ -2369,8 +2369,8 @@
     },
     "scripts/ci/db-access-m4-private-acceptance.test.mjs": {
       "mode": "100644",
-      "bytes": 7765,
-      "sha256": "d4ffb736e6a3fe68de19c2a6a62a02c71f9632eb93929b320b15207c1e89712b"
+      "bytes": 7753,
+      "sha256": "3a90d0ece9ac618c439bd30601d9569caa8514353c473117f10c4b574b2b647b"
     },
     "scripts/ci/db-access-m4-private-cohort.test-fixture.json": {
       "mode": "100644",
@@ -2379,18 +2379,18 @@
     },
     "scripts/ci/db-access-m4-private-entry.test.mjs": {
       "mode": "100644",
-      "bytes": 8711,
-      "sha256": "cbbe384e77d4468c14ad9a288c60aa2e84233e7630200770e50efe4829fbaf5d"
+      "bytes": 8447,
+      "sha256": "c2e209c2c67c30664cbe8072495195023f100134c5b949cc68ebe392defa6d2b"
     },
     "scripts/ci/db-access-m4-private-test.fixture.mjs": {
       "mode": "100644",
-      "bytes": 6532,
-      "sha256": "38f9c3c522997e7e6a66163bdb974618300064cfb027d00cd9e5e191d66ed78e"
+      "bytes": 9802,
+      "sha256": "7a0bec23e90b6bf7ff227d01bcc29279319bf6d4669f499e6ab053214b1fb9f8"
     },
     "scripts/ci/db-access-m4-pairing-scheduling.test.mjs": {
       "mode": "100644",
-      "bytes": 8068,
-      "sha256": "fda206dee9daa0a6c3472f0df71dfcff36bd511f6966d7fb7fe91c5db3f9f170"
+      "bytes": 10400,
+      "sha256": "18ecc709319bd620984847c1a32d6368d79d2cb7268ee002294434e3de24e9c7"
     },
     "scripts/ci/db-access-m4-private-runtime-contexts.test-fixture.json": {
       "mode": "100644",
@@ -2401,6 +2401,146 @@
       "mode": "100644",
       "bytes": 61281,
       "sha256": "e57e956be0f52e090255719d8307d997bcb1032ef14a25dd41ee0bb26b5672c2"
+    },
+    "scripts/ci/db-access-m4-assignment-context-metadata.mjs": {
+      "mode": "100644",
+      "bytes": 1676,
+      "sha256": "d9b2ed0e6655807279118b0c9d5ea30a826e530bd52c3bb115be5902acd1cf78"
+    },
+    "scripts/ci/db-access-m4-assignment-context-proof.mjs": {
+      "mode": "100644",
+      "bytes": 11939,
+      "sha256": "eae498d900103373b346b4156135199578b8583dde35c5350621edcc837f534d"
+    },
+    "scripts/ci/db-access-m4-assignment-primitive-contract.mjs": {
+      "mode": "100644",
+      "bytes": 84627,
+      "sha256": "8cd25968edb63292abf192fa31a699eabeb1ba1f1973ca60bbf4638f6e53bdcf"
+    },
+    "scripts/ci/db-access-m4-assignment-primitive-semantics.mjs": {
+      "mode": "100644",
+      "bytes": 8903,
+      "sha256": "c6adade89508d5e8ab87be7636e9f924d7e62b9ab4e03d001cc21894cc136789"
+    },
+    "scripts/ci/db-access-m4-assignment-context-profiles.mjs": {
+      "mode": "100644",
+      "bytes": 1444,
+      "sha256": "22adb0415d8103b2c1271c40c4d54b308ccfec081fa0edf5b24de10a3a065646"
+    },
+    "scripts/ci/db-access-m4-assignment-operator-semantics.mjs": {
+      "mode": "100644",
+      "bytes": 5276,
+      "sha256": "2741ff862f64f2d589416cb0bbbf91018c010c6a844d5b6b30312eaa650d9d66"
+    },
+    "scripts/ci/db-access-m4-assignment-primitive-ast.mjs": {
+      "mode": "100644",
+      "bytes": 3096,
+      "sha256": "b61267129081ebf9d811a5f9ce14a12d9999b1910b2487452ce493c02bd52457"
+    },
+    "scripts/ci/p2/ordinary-provenance.mjs": {
+      "mode": "100644",
+      "bytes": 2151,
+      "sha256": "67e03c8066828f796d6dacdbc62b9c654249c76aa9d72ac3ea5fceb8c7fe2331"
+    },
+    "scripts/ci/db-access-m4-mounted-p2-proof-contract.json": {
+      "mode": "100644",
+      "bytes": 14839,
+      "sha256": "0c0b13882792b33f3d83bd15485bf8e1c86cdc89f861141d66ae5b865820d087"
+    },
+    "scripts/ci/db-access-m4-mounted-p2-proof.mjs": {
+      "mode": "100644",
+      "bytes": 9477,
+      "sha256": "5169f7b100b09fa8d7a724e483da5b90ebf548987b8eb8479df4064e05145ba6"
+    },
+    "scripts/ci/p2/capsule/dist/relay.js.map": {
+      "mode": "100644",
+      "bytes": 2059,
+      "sha256": "eba3f0ae334ec19e9967232717f1b21e20c4b1d97107bf5554392bb98152c673"
+    },
+    "scripts/ci/p2/capsule/dist/relay.mjs": {
+      "mode": "100644",
+      "bytes": 1103,
+      "sha256": "3fc9201910c0046f559efb33714f2f21ad500dc5e6463d87c2fa1a948b88f6be"
+    },
+    "scripts/ci/p2/capsule/dist/relay.original.ts": {
+      "mode": "100644",
+      "bytes": 4887,
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    },
+    "scripts/ci/p2/capsule/dist/relay.source.ts": {
+      "mode": "100644",
+      "bytes": 1098,
+      "sha256": "229559fbbd95ead8615c0d3217b5417c0a3fde961eabd0a0a763a400fc63e254"
+    },
+    "scripts/ci/db-access-m4-mounted-correspondence.mjs": {
+      "mode": "100644",
+      "bytes": 8875,
+      "sha256": "9a9c1647fb46e303e4b9d6f7c2140b49c2e32e74f56873bc588e9e44e1fba80a"
+    },
+    "scripts/ci/db-access-m4-mounted-lineage.mjs": {
+      "mode": "100644",
+      "bytes": 2570,
+      "sha256": "5e0a6ef976dc74fbfdc7814d79c282f79dd243677038a159b03fca1f1cc193bb"
+    },
+    "scripts/ci/db-access-m4-mounted-oracle-contract.json": {
+      "mode": "100644",
+      "bytes": 9565,
+      "sha256": "17c78ad6749413f3127c4c60eefafc835609c6d12a9ba3bd75a445b6fa24d8bd"
+    },
+    "scripts/ci/db-access-m4-mounted-source-contract.json": {
+      "mode": "100644",
+      "bytes": 15576,
+      "sha256": "4bff31146afe250ef9a9671ed5e3bc62eb6022aa57464208dbbbd87af7dce8d6"
+    },
+    "scripts/ci/db-access-m4-mounted-source.mjs": {
+      "mode": "100644",
+      "bytes": 5377,
+      "sha256": "25c50bba90fbdb753a4af2fcd7d79e049339f0741f8e8497398b4a08b54fc483"
+    },
+    "scripts/ci/db-access-m4-runtime-cache-observer.ts": {
+      "mode": "100644",
+      "bytes": 477,
+      "sha256": "72106dc20764767281ceeed55c1a5a668011d85346c8b1f368558e565882aa0a"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-mounted.mjs": {
+      "mode": "100644",
+      "bytes": 4396,
+      "sha256": "60e30a0afd84fd1b924a7a37513c6fc9db47abfde85a88b9d58ac8312640032f"
+    },
+    "scripts/ci/db-access-m4-runtime-fixture-tls.mjs": {
+      "mode": "100644",
+      "bytes": 3938,
+      "sha256": "f1e3f4f82a59effe59ca3d26cff5f1325ce55518aa870b8cbb36fa3dd3664270"
+    },
+    "scripts/ci/db-access-m4-runtime-mounted-child.mjs": {
+      "mode": "100644",
+      "bytes": 6309,
+      "sha256": "599a7d1f400ac94348767f65fc58116f9ef621ae3866f6804e2226d75e083291"
+    },
+    "scripts/ci/db-access-m4-runtime-mounted-result.mjs": {
+      "mode": "100644",
+      "bytes": 4955,
+      "sha256": "4e9826e6843e56497875af7ff520c1d48f89563f9e1c66f00ac5c4a2d9f8a646"
+    },
+    "scripts/ci/db-access-m4-lineage-catalog-frontier.json": {
+      "mode": "100644",
+      "bytes": 12073,
+      "sha256": "6fbed41ab2b5db8eee20a47950ed8e14f2b65b3ddcaf43e475f2245215340977"
+    },
+    "scripts/ci/db-access-m4-lineage-catalog-sites-1.json": {
+      "mode": "100644",
+      "bytes": 36930,
+      "sha256": "4ea97b06b3494694a9cbf322267a1f91ed2399cac2c8304a72f8555e01e42975"
+    },
+    "scripts/ci/db-access-m4-lineage-catalog-sites-2.json": {
+      "mode": "100644",
+      "bytes": 118255,
+      "sha256": "726daf8c7e817de3b4913ba9e9a41bfb1a507fae4724e698615991bea7693605"
+    },
+    "scripts/ci/p2/coverage-vendor/dist/coverage-support.cjs": {
+      "mode": "100644",
+      "bytes": 574663,
+      "sha256": "d0c951a26a8e4701b88bd28a78623f6bea096ebbf907bc6ffc367a8b467fb6dd"
     }
   },
   "runtimeEnforcement": {
