@@ -20,6 +20,7 @@ export async function runOpsOracleCases(f) {
     nonStaff,
     foreignStaff,
     dataRole,
+    home,
     suffix,
   } = f;
 
@@ -179,4 +180,43 @@ export async function runOpsOracleCases(f) {
       assert.deepEqual(restoredTarget, targetBefore);
     }
   );
+  await run('ops empty historical assignee reaches exact zero-row CAS denial', async () => {
+    const id = 'ops_empty_prior_' + suffix;
+    await seedClaim(id);
+    // Plain INSERT must fail on any pre-existing empty-ID user; never adopt/overwrite one.
+    await admin`insert into "user"(id,tenant_id,name,email,"emailVerified",role,"createdAt","updatedAt")
+      values('',${home},'Synthetic empty historical ID',${'empty-prior-' + suffix + '@example.test'},false,'staff',now(),now())`;
+    try {
+      await admin`update claim set "staffId"='' where id=${id} and tenant_id=${home}`;
+      const before = await state(id),
+        r = request(id, staff);
+      assert.equal(before.claim[0].staffId, '');
+      assert.equal(before.claim[0].case_lifecycle_state, 'evaluation');
+      assert.equal(before.claim[0].recovery_lifecycle_state, 'not_started');
+      assert.equal(before.result.length, 0);
+      const response = await invoke(r);
+      assert.deepEqual(response, {
+        status: 'completed',
+        operationId: r.operationId,
+        replayed: false,
+        result: { success: false, error: 'Claim changed. Reload and try again.' },
+      });
+      const after = await state(id);
+      assert.deepEqual(after.claim, before.claim);
+      assert.deepEqual(after.audit, before.audit);
+      assert.equal(after.result.length, 1);
+      assert.equal(after.result[0].operation_id, r.operationId);
+      assert.deepEqual(after.result[0].response, response.result);
+      await noOwnedSessions();
+      const replay = await invoke(r);
+      assert.deepEqual(replay, { ...response, replayed: true });
+      await noOwnedSessions();
+      assert.deepEqual(await state(id), after);
+    } finally {
+      // Invoke is awaited, including bounded work termination, before this block.
+      // The normal fixture cleanup is still mandatory if this cleanup throws.
+      await admin`update claim set "staffId"=null where id=${id} and tenant_id=${home}`;
+      await admin`delete from "user" where id='' and tenant_id=${home}`;
+    }
+  });
 }

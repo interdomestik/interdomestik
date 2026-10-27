@@ -171,6 +171,35 @@
           "scope": "A parent-owned fail-before-INSERT trigger and nontransactional sequence observe one legacy and exactly one genuine OPS audit attempt. OPS returns indeterminate; complete claim/audit/result state remains unchanged after drain and no OPS notice exists. Supplemental fixture sequence USAGE is not a production grant. No automatic retry or universal fault schedule is inferred."
         }
       ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-oracles.mjs",
+      "caseGroup": "private",
+      "caseId": "ops empty historical assignee reaches exact zero-row CAS denial",
+      "program": "async () => {\n    const id = 'ops_empty_prior_' + suffix;\n    await seedClaim(id);\n    // Plain INSERT must fail on any pre-existing empty-ID user; never adopt/overwrite one.\n    await admin`insert into \"user\"(id,tenant_id,name,email,\"emailVerified\",role,\"createdAt\",\"updatedAt\")\n      values('',${home},'Synthetic empty historical ID',${'empty-prior-' + suffix + '@example.test'},false,'staff',now(),now())`;\n    try {\n      await admin`update claim set \"staffId\"='' where id=${id} and tenant_id=${home}`;\n      const before = await state(id),\n        r = request(id, staff);\n      assert.equal(before.claim[0].staffId, '');\n      assert.equal(before.claim[0].case_lifecycle_state, 'evaluation');\n      assert.equal(before.claim[0].recovery_lifecycle_state, 'not_started');\n      assert.equal(before.result.length, 0);\n      const response = await invoke(r);\n      assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Claim changed. Reload and try again.' },\n      });\n      const after = await state(id);\n      assert.deepEqual(after.claim, before.claim);\n      assert.deepEqual(after.audit, before.audit);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.result[0].operation_id, r.operationId);\n      assert.deepEqual(after.result[0].response, response.result);\n      await noOwnedSessions();\n      const replay = await invoke(r);\n      assert.deepEqual(replay, { ...response, replayed: true });\n      await noOwnedSessions();\n      assert.deepEqual(await state(id), after);\n    } finally {\n      // Invoke is awaited, including bounded work termination, before this block.\n      // The normal fixture cleanup is still mandatory if this cleanup throws.\n      await admin`update claim set \"staffId\"=null where id=${id} and tenant_id=${home}`;\n      await admin`delete from \"user\" where id='' and tenant_id=${home}`;\n    }\n  }",
+      "links": [
+        {
+          "id": "ops-schema-valid-empty-prior-assignee-cas-denial",
+          "factPath": "/derivations/kernel/facts/effects/6",
+          "factSha256": "aa14ee6c0a1213554b9a77130172a2be45cc5cf247d8f05dfa0e37e4f65a5d5a",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(before.claim[0].staffId, '')",
+            "assert.equal(before.claim[0].case_lifecycle_state, 'evaluation')",
+            "assert.equal(before.claim[0].recovery_lifecycle_state, 'not_started')",
+            "assert.equal(before.result.length, 0)",
+            "assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Claim changed. Reload and try again.' },\n      })",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, response.result)",
+            "assert.deepEqual(replay, { ...response, replayed: true })",
+            "assert.deepEqual(await state(id), after)"
+          ],
+          "scope": "Actual ordinary OPS dispatch on a fresh claim with schema-permitted historical staffId empty-string reaches the zero-row CAS denial because the source snapshot guard tests truthiness. Exact durable denial, unchanged claim/audit and replay are asserted. This is a historical database-state witness; ordinary identity issuer provenance, other CAS cases and all schema/operator premises remain separate. No SQL trigger/policy/source mutation."
+        }
+      ]
     }
   ]
 }

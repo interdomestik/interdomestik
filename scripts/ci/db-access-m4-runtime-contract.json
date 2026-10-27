@@ -752,6 +752,7 @@
       "ops resolved lifecycle returns durable terminal denial without assignment effects",
       "ops foreign and nonstaff targets produce exact durable ineligible denials",
       "ops target role change blocks and is reread under the actual target share lock",
+      "ops empty historical assignee reaches exact zero-row CAS denial",
       "live session deletion denies next private operation despite earlier success",
       "session revoked during actual startup queue is reread before business admission",
       "per-operation deadline terminates its own blocked pools with original identity and no automatic retry",
