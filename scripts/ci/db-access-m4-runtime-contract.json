@@ -790,7 +790,8 @@
     "db-access-m4-email-observer-client.mjs",
     "db-access-m4-email-observer-fixture.mjs",
     "db-access-m4-runtime-fixture-email-invocation.mjs",
-    "db-access-m4-email-notice-conflict.mjs"
+    "db-access-m4-email-notice-conflict.mjs",
+    "db-access-m4-child-lifecycle.mjs"
   ],
   "fixturePortComplete": true,
   "migrations": {

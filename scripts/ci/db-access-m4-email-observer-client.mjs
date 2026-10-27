@@ -3,6 +3,7 @@
 import { fork } from 'node:child_process';
 import path from 'node:path';
 import { createM4EmailMarker } from './db-access-m4-email-marker.mjs';
+import { observeM4ChildLifecycle } from './db-access-m4-child-lifecycle.mjs';
 const fail = () => Error('M4 restricted child failed');
 export async function openM4EmailObserverChild(root) {
   const child = fork(path.join(root, 'db-access-m4-runtime-child.mjs'), [], {
@@ -23,9 +24,7 @@ export async function openM4EmailObserverChild(root) {
     runtimeId = 0,
     closed = false,
     forced = false,
-    aborted = false,
-    stdoutEnded = false,
-    stderrEnded = false;
+    aborted = false;
   const observation = createM4EmailMarker();
   const pending = new Map();
   let resolveReady, rejectReady;
@@ -33,9 +32,15 @@ export async function openM4EmailObserverChild(root) {
     resolveReady = resolve;
     rejectReady = reject;
   });
-  const exited = new Promise(resolve =>
-    child.once('close', (code, signal) => resolve({ code, signal }))
-  );
+  const lifecycle = observeM4ChildLifecycle(child);
+  async function retireFailure() {
+    abort();
+    try {
+      await lifecycle.waitForExit();
+    } finally {
+      for (const stream of [child.stdin, child.stdout, child.stderr]) stream?.destroy();
+    }
+  }
   function abort() {
     if (aborted) return;
     aborted = true;
@@ -48,15 +53,13 @@ export async function openM4EmailObserverChild(root) {
       item.reject(fail());
     }
     pending.clear();
-    child.kill('SIGKILL');
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      /* strict aborted state remains decisive */
+    }
   }
   const startup = setTimeout(abort, 10000);
-  child.stdout.once('end', () => {
-    stdoutEnded = true;
-  });
-  child.stderr.once('end', () => {
-    stderrEnded = true;
-  });
   for (const name of ['stdout', 'stderr'])
     child[name].on('data', chunk => {
       try {
@@ -88,8 +91,7 @@ export async function openM4EmailObserverChild(root) {
   try {
     await ready;
   } catch (error) {
-    abort();
-    await exited;
+    await retireFailure();
     throw error;
   }
   function call(op, args) {
@@ -134,7 +136,7 @@ export async function openM4EmailObserverChild(root) {
     async close() {
       if (closed) throw fail();
       if (aborted) {
-        await exited;
+        await retireFailure();
         throw fail();
       }
       let termination;
@@ -145,15 +147,9 @@ export async function openM4EmailObserverChild(root) {
           throw fail();
         closed = true;
         child.disconnect();
-        const timeout = setTimeout(abort, 5000);
-        try {
-          termination = await exited;
-        } finally {
-          clearTimeout(timeout);
-        }
+        termination = await lifecycle.waitForExitAndEOF();
       } catch (error) {
-        abort();
-        await exited;
+        await retireFailure();
         throw error;
       } finally {
         clearTimeout(startup);
@@ -162,8 +158,6 @@ export async function openM4EmailObserverChild(root) {
       return observation.finish({
         ...termination,
         forced,
-        stdoutEnded,
-        stderrEnded,
         outputFenceAcknowledged: true,
       });
     },

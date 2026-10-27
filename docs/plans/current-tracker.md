@@ -297,13 +297,13 @@ historical empty-assignee CAS and explicit restrictive visibility-fault missing-
 exact audit payload/rollback pass. Fault context is not ordinary production reachability.
 Evidence: `m4-ops-oracle-sql-qualification-v3`; actual-result review
 `e8a7324a25e9c838cb0db8a2adf88ab8da5e843212447d257853a403696ea42b`.
-The successor to 54c passes 598 focused tests/security; 35 cases are declared, not executed.
-Independent source reviews accept 31 programs / 62 links / 335 refs (265 distinct nodes);
-finite scopes retain 15 executable-image sources and two exact erased source-only witnesses.
-Earlier 32-case 21.931s Result/Array failure stays FAILED; normalization is reproduced/fixed.
-Failure memory retains raw-column/result/type/observer-EOF and loader opacity/cleanup findings;
-`m4-oracle-consolidation-v1` binds reviews and comparisons. Fresh native/effect and audit-payload
-semantic-negative pairs remain pending; loader source review passes, actual M4-06/L1 stays HOLD.
+The bc29 35-case pair timed out in 301.717s; cleanup/prior/source checks passed. A 55.088s
+trace-only probe completed 34 callbacks and localized observer-close; empty-map/no-SQL reproduction
+confirms exit 0/both EOFs but aggregate IPC close 3/4 never arrives. The narrow correction awaits
+exit+both EOFs with a rejecting 5s deadline; 612 focused tests/security pass, fresh pair pending.
+Finite scopes retain 31 programs/62 links/335 refs (265 nodes), 15 executable/two erased witnesses.
+`m4-oracle-consolidation-v1` and failure memory preserve Result/Array/type/EOF/loader/copy/disk
+failures and comparisons. Fresh native/effect/audit-payload negative and actual M4-06/L1 remain HOLD.
 Accepted debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
 
 ### Urgent Next security remediation (26 October; delivery pending)

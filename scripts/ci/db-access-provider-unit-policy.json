@@ -1664,8 +1664,8 @@
     },
     "scripts/ci/db-access-m4-runtime-contract.json": {
       "mode": "100644",
-      "bytes": 52987,
-      "sha256": "d2ac2d240e15f23d13e132268b75374441158da97588c1151fdfa8573b0b715d"
+      "bytes": 53027,
+      "sha256": "6f1a20189435618c7b9311775b33b5fd583ca3e956aa79eac6f830a9587a2422"
     },
     "scripts/ci/db-access-m4-runtime-contract.mjs": {
       "mode": "100644",
@@ -1949,8 +1949,8 @@
     },
     "scripts/ci/db-access-m4-email-observer-client.mjs": {
       "mode": "100644",
-      "bytes": 5080,
-      "sha256": "4e7b910e01060a7ad9da48375c5efd38b42259a6c95c162f60b7fe68ed506aa3"
+      "bytes": 5058,
+      "sha256": "33f57d04583e1c8d2ce6f0c19f549b1001534eb71236b181b02c80120ab224b7"
     },
     "scripts/ci/db-access-m4-email-observer-fixture.mjs": {
       "mode": "100644",
@@ -2021,6 +2021,11 @@
       "mode": "100644",
       "bytes": 7711,
       "sha256": "97d1e220a3229820d86063d74cf6c50d1464f1d2e9bbe9f56d71c26ac8ef6f9c"
+    },
+    "scripts/ci/db-access-m4-child-lifecycle.mjs": {
+      "mode": "100644",
+      "bytes": 1449,
+      "sha256": "ee44385676ac7bddda893df7f22dfaa11e25bbbd744622786615f48e8a8d91ad"
     }
   },
   "runtimeEnforcement": {
