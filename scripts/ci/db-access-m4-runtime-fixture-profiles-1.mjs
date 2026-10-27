@@ -51,7 +51,7 @@ export async function runProfileGroup1(context) {
         'executeLegacyAgent',
         'executeStaff',
       ]);
-      assert(Object.isFrozen(runtime));
+      assert.equal(Object.isFrozen(runtime), true);
       assert.deepEqual(
         await runtime.executeLegacyAdmin(cookie, JSON.stringify(successRequest), '{}'),
         { status: 'denied', reason: 'INVALID_REQUEST' }

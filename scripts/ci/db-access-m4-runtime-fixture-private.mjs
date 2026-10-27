@@ -37,7 +37,7 @@ export async function runPrivateCases(f) {
     'invalid requests refuse before pool construction and expose only execute and close',
     async () => {
       assert.deepEqual(Object.keys(runtime).sort(), ['close', 'execute']);
-      assert(Object.isFrozen(runtime));
+      assert.equal(Object.isFrozen(runtime), true);
       assert.deepEqual(await runtime.execute(cookie, '{}'), {
         status: 'denied',
         reason: 'INVALID_REQUEST',
@@ -152,7 +152,7 @@ export async function runPrivateCases(f) {
           operationId: r.operationId,
         });
         const elapsed = performance.now() - started;
-        assert(elapsed < 3000);
+        assert.equal(elapsed < 3000, true);
         record.deadlineObservedMs = elapsed;
         await noOwnedSessions();
         assert.deepEqual(await state(id), before);

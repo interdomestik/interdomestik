@@ -1,8 +1,10 @@
+import { runEmailInvocationCase } from './db-access-m4-runtime-fixture-email-invocation.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { runProfileGroup1 } from './db-access-m4-runtime-fixture-profiles-1.mjs';
 import { runProfileGroup2 } from './db-access-m4-runtime-fixture-profiles-2.mjs';
 import { runProfileGroup3 } from './db-access-m4-runtime-fixture-profiles-3.mjs';
+import { runStaffNoopTerminalCase } from './db-access-m4-runtime-fixture-staff-noop-terminal.mjs';
 // Shared oracle values are parent-owned; case order and assertions are unchanged.
 export async function runProfileCases(f) {
   const {
@@ -139,5 +141,7 @@ export async function runProfileCases(f) {
   };
   await runProfileGroup1(context);
   await runProfileGroup2(context);
+  await runStaffNoopTerminalCase(context);
   await runProfileGroup3(context);
+  await runEmailInvocationCase({ run, openObserverFixture: f.openObserverFixture });
 }

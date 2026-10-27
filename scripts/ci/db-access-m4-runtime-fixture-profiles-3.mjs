@@ -134,7 +134,7 @@ export async function runProfileGroup3(context) {
           'Exactly one INSERT attempt after owning runtime closes'
         );
         await drain();
-        assert.equal((await notification(r)).length, 0);
+        assert.equal((await notification(r)).length, 0, 'Failed notice absent after owner close');
         assert.equal((await state(id)).audit.length, 1);
       } finally {
         await owner.close();
@@ -145,7 +145,7 @@ export async function runProfileGroup3(context) {
       const replay = await invoke('executeLegacyAdmin', r);
       assert.equal(replay.replayed, true);
       await drain();
-      assert.equal((await notification(r)).length, 0);
+      assert.equal((await notification(r)).length, 0, 'Replay does not retry failed notice');
       const later = req(id);
       assert.equal((await invoke('executeLegacyAgent', later)).result.success, true);
       await awaitNotice(later);

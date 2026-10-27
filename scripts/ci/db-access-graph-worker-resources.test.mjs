@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
 let sequence = 0;
+const evidenceModule =
+  'data:text/javascript;base64,' +
+  Buffer.from(
+    `export const currentM4ProducerSeal=()=>"unit-seal";
+export const markReceivedM4WorkerOutput=()=>{};
+export const isReceivedM4WorkerOutput=()=>true;
+export const registerM4WorkerEvidence=()=>{};
+export const shapeM4WorkerResults=()=>({digest:"unit-output"});
+export const assertM4WorkerEvidenceCurrent=()=>{};
+export const isOwnedM4WorkerEvidence=()=>false;
+export const claimOwnedM4WorkerEvidence=()=>{throw Error("not M4")};`
+  ).toString('base64');
 async function fixture(mode = 'normal') {
   const workers = [];
   class Worker extends EventEmitter {
@@ -51,7 +63,8 @@ async function fixture(mode = 'normal') {
   globalThis[key] = Worker;
   const source = fs
     .readFileSync(new URL('./db-access-graph-worker-pool.mjs', import.meta.url), 'utf8')
-    .replace(
+    .replaceAll("'./db-access-m4-worker-evidence.mjs'", JSON.stringify(evidenceModule))
+    .replaceAll(
       "'./db-access-output-binding.mjs'",
       JSON.stringify(new URL('./db-access-output-binding.mjs', import.meta.url).href)
     )

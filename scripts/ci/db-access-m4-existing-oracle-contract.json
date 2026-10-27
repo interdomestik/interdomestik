@@ -342,7 +342,7 @@
       "fixtureFile": "db-access-m4-runtime-fixture-profiles-3.mjs",
       "caseGroup": "profiles",
       "caseId": "observed notification store failure leaves committed assignment successful without automatic retry",
-      "program": "async () => {\n      const id = 'profile_notice_fail_' + suffix;\n      await seedClaim(id);\n      const r = req(id),\n        owner = f.make();\n      const seq = 'm4_notice_probe_' + suffix.replaceAll('-', ''),\n        fn = seq + '_fn',\n        tr = seq + '_tr';\n      // Sequence increment survives the failed transaction and proves the notifier reached\n      // this exact INSERT. Supplemental fixture grant is not a production privilege claim.\n      await admin.unsafe(\n        `CREATE SEQUENCE ${quote(seq)}; GRANT USAGE ON SEQUENCE ${quote(seq)} TO ${quote(notificationRole)}; CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='${noticeId(r)}' THEN PERFORM nextval('${seq}'); RAISE EXCEPTION 'owned notification fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON notifications FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`\n      );\n      try {\n        const result = await owner.executeLegacyAdmin(cookie, JSON.stringify(r), observation);\n        assert.equal(result.status, 'completed');\n        assert.equal(result.result.success, true);\n        const until = performance.now() + 3000;\n        let observed = false;\n        do {\n          const [row] = await admin.unsafe(`select is_called from ${quote(seq)}`);\n          if (row.is_called) {\n            observed = true;\n            break;\n          }\n          await new Promise(resolve => setTimeout(resolve, 10));\n        } while (performance.now() < until);\n        assert(observed, 'Actual notifier must reach the faulted INSERT before cleanup');\n        await owner.close();\n        // close() settles the owning notifier; the live fault/sequence still observes every attempt.\n        const [attempts] = await admin.unsafe(\n          `select last_value::int as last_value,is_called from ${quote(seq)}`\n        );\n        assert.deepEqual(\n          attempts,\n          { last_value: 1, is_called: true },\n          'Exactly one INSERT attempt after owning runtime closes'\n        );\n        await drain();\n        assert.equal((await notification(r)).length, 0);\n        assert.equal((await state(id)).audit.length, 1);\n      } finally {\n        await owner.close();\n        await admin.unsafe(\n          `DROP TRIGGER ${quote(tr)} ON notifications; DROP FUNCTION ${quote(fn)}(); DROP SEQUENCE ${quote(seq)}`\n        );\n      }\n      const replay = await invoke('executeLegacyAdmin', r);\n      assert.equal(replay.replayed, true);\n      await drain();\n      assert.equal((await notification(r)).length, 0);\n      const later = req(id);\n      assert.equal((await invoke('executeLegacyAgent', later)).result.success, true);\n      await awaitNotice(later);\n      await drain();\n    }",
+      "program": "async () => {\n      const id = 'profile_notice_fail_' + suffix;\n      await seedClaim(id);\n      const r = req(id),\n        owner = f.make();\n      const seq = 'm4_notice_probe_' + suffix.replaceAll('-', ''),\n        fn = seq + '_fn',\n        tr = seq + '_tr';\n      // Sequence increment survives the failed transaction and proves the notifier reached\n      // this exact INSERT. Supplemental fixture grant is not a production privilege claim.\n      await admin.unsafe(\n        `CREATE SEQUENCE ${quote(seq)}; GRANT USAGE ON SEQUENCE ${quote(seq)} TO ${quote(notificationRole)}; CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='${noticeId(r)}' THEN PERFORM nextval('${seq}'); RAISE EXCEPTION 'owned notification fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON notifications FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`\n      );\n      try {\n        const result = await owner.executeLegacyAdmin(cookie, JSON.stringify(r), observation);\n        assert.equal(result.status, 'completed');\n        assert.equal(result.result.success, true);\n        const until = performance.now() + 3000;\n        let observed = false;\n        do {\n          const [row] = await admin.unsafe(`select is_called from ${quote(seq)}`);\n          if (row.is_called) {\n            observed = true;\n            break;\n          }\n          await new Promise(resolve => setTimeout(resolve, 10));\n        } while (performance.now() < until);\n        assert(observed, 'Actual notifier must reach the faulted INSERT before cleanup');\n        await owner.close();\n        // close() settles the owning notifier; the live fault/sequence still observes every attempt.\n        const [attempts] = await admin.unsafe(\n          `select last_value::int as last_value,is_called from ${quote(seq)}`\n        );\n        assert.deepEqual(\n          attempts,\n          { last_value: 1, is_called: true },\n          'Exactly one INSERT attempt after owning runtime closes'\n        );\n        await drain();\n        assert.equal((await notification(r)).length, 0, 'Failed notice absent after owner close');\n        assert.equal((await state(id)).audit.length, 1);\n      } finally {\n        await owner.close();\n        await admin.unsafe(\n          `DROP TRIGGER ${quote(tr)} ON notifications; DROP FUNCTION ${quote(fn)}(); DROP SEQUENCE ${quote(seq)}`\n        );\n      }\n      const replay = await invoke('executeLegacyAdmin', r);\n      assert.equal(replay.replayed, true);\n      await drain();\n      assert.equal((await notification(r)).length, 0, 'Replay does not retry failed notice');\n      const later = req(id);\n      assert.equal((await invoke('executeLegacyAgent', later)).result.success, true);\n      await awaitNotice(later);\n      await drain();\n    }",
       "links": [
         {
           "id": "notification-one-faulted-insert-attempt",
@@ -359,6 +359,42 @@
             "assert.equal((await state(id)).audit.length, 1)"
           ],
           "scope": "The fault sequence records exactly one INSERT attempt after owning runtime close, while assignment reports success and audit remains committed. The explicit fault and extra fixture grant are scoped here; no universal no-retry or full insert-gate claim."
+        },
+        {
+          "id": "r5-postcommit-failure-isolation",
+          "factPath": "/derivations/controller/facts/controller/functions/createPrivateAssignmentController",
+          "factSha256": "dddd165bd7dc44f218aa34033c41e5ea953ca40f01eb5445926dcbd2c4328474",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.status, 'completed')",
+            "assert.equal(result.result.success, true)",
+            "assert.equal((await state(id)).audit.length, 1)",
+            "assert.equal(replay.replayed, true)"
+          ],
+          "scope": "A real notification INSERT fault leaves the already committed assignment successful with one audit; replay returns the durable result. The pointer is a full-function AST witness for this limited outer-postcommit consequence, not whole-controller coverage."
+        },
+        {
+          "id": "r5-notification-fault-no-retry",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/adapter/3",
+          "factSha256": "f4efd27e2f8c8626860e1dd64e55eaffe11aad343f05538847765dd94040f88f",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.status, 'completed')",
+            "assert.equal(result.result.success, true)",
+            "assert.equal((await state(id)).audit.length, 1)",
+            "assert.equal(replay.replayed, true)",
+            "assert.deepEqual(\n          attempts,\n          { last_value: 1, is_called: true },\n          'Exactly one INSERT attempt after owning runtime closes'\n        )",
+            "assert.equal((await notification(r)).length, 0, 'Failed notice absent after owner close')",
+            "assert.equal((await notification(r)).length, 0, 'Replay does not retry failed notice')"
+          ],
+          "scope": "The real faulted store transaction attempts INSERT exactly once through owner close, has no persisted notice, and same-UUID replay still creates none. The success-path adapter close statement and external effect invocation are not executed by this fault case."
         }
       ]
     },
@@ -409,6 +445,453 @@
             "assert.equal((await notification(r)).length, 1)"
           ],
           "scope": "Two concurrent identical legacy-admin requests yield replay flags false/true, one audit, one result and one notice. Does not establish every advisory-lock/fingerprint/stored-result branch."
+        },
+        {
+          "id": "r5-concurrent-notice-idempotency",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/store/10",
+          "factSha256": "782053a4153030281c17a4ab011a7c0d082b0d3fd163a09d2992dd72df69c250",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(results.map(x => x.replayed).sort(), [false, true])",
+            "assert.equal(rows.audit.length, 1)",
+            "assert.equal(rows.result.length, 1)",
+            "assert.equal((await notification(r)).length, 1)"
+          ],
+          "scope": "Two identical concurrent legacy requests produce one result/audit/notice with false/true replay flags. Controller replay suppresses the second notifier call; this does not exercise notifier !inserted or !effect branches."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "invalid requests refuse before pool construction and expose only execute and close",
+      "program": "async () => {\n      assert.deepEqual(Object.keys(runtime).sort(), ['close', 'execute']);\n      assert.equal(Object.isFrozen(runtime), true);\n      assert.deepEqual(await runtime.execute(cookie, '{}'), {\n        status: 'denied',\n        reason: 'INVALID_REQUEST',\n      });\n      await noOwnedSessions();\n      assert.deepEqual(await client.probeInvalidConfigurations(config), {\n        rejected: 4,\n      });\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "r1-invalid-ops-request",
+          "factPath": "/derivations/controller/facts/protocol/functions/parseM4AssignmentRequest",
+          "factSha256": "2a1b275e86a5b7c6df556f6c6aedc28243229f4ba3f4f0f768d74641fbb16f5f",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await runtime.execute(cookie, '{}'), {\n        status: 'denied',\n        reason: 'INVALID_REQUEST',\n      })"
+          ],
+          "scope": "The fixed empty-object request yields INVALID_REQUEST through the actual OPS facade. This is one invalid input, not every parser branch or complete parser semantics."
+        },
+        {
+          "id": "r1-ops-frozen-public-capability",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/2",
+          "factSha256": "ed2d3dd8c47c44c7fc0bf3a3e6df955bfb2b0cd9365b9a2c8a774c8e389a3120",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(Object.keys(runtime).sort(), ['close', 'execute'])",
+            "assert.equal(Object.isFrozen(runtime), true)"
+          ],
+          "scope": "The OPS facade exposes exactly execute/close and is frozen. This observes the public capability shape, not every constructor, TLS or pool property."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "four literal profiles expose fixed methods and reject invalid observation before effects",
+      "program": "async () => {\n      assert.deepEqual(Object.keys(runtime).sort(), [\n        'close',\n        'execute',\n        'executeLegacyAdmin',\n        'executeLegacyAgent',\n        'executeStaff',\n      ]);\n      assert.equal(Object.isFrozen(runtime), true);\n      assert.deepEqual(\n        await runtime.executeLegacyAdmin(cookie, JSON.stringify(successRequest), '{}'),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      );\n      assert.deepEqual(\n        await runtime.executeStaff(cookie, JSON.stringify(successRequest), observation),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      );\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "r1-malformed-observation",
+          "factPath": "/derivations/controller/facts/wire/functions/parseM4AssignmentObservation",
+          "factSha256": "ba5efcd9e434b993e1908a6767a0c0b677bd32fddccf50176c00a8ae51ffff84",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(\n        await runtime.executeLegacyAdmin(cookie, JSON.stringify(successRequest), '{}'),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      )"
+          ],
+          "scope": "An empty-object serialized observation is refused by the genuine legacy-admin entry; full observation projection, bounded strings and provenance remain source/premise obligations."
+        },
+        {
+          "id": "r1-profile-command-refusal",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/2",
+          "factSha256": "15f26bfbfd15574ecfaad2f892b8b56736847ee945207a914b8cc6cf34d14899",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(\n        await runtime.executeLegacyAdmin(cookie, JSON.stringify(successRequest), '{}'),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      )",
+            "assert.deepEqual(\n        await runtime.executeStaff(cookie, JSON.stringify(successRequest), observation),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      )"
+          ],
+          "scope": "The fixed malformed observation and staff entry carrying a legacy command both return INVALID_REQUEST. No before-any-pool timing claim follows solely from these responses."
+        },
+        {
+          "id": "r1-local-profile-capability",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/6",
+          "factSha256": "5b1c11ef7060552609ea08ecbdd7ba602b878145b9a38095c3a8a7ee99e2f01c",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(Object.keys(runtime).sort(), [\n        'close',\n        'execute',\n        'executeLegacyAdmin',\n        'executeLegacyAgent',\n        'executeStaff',\n      ])",
+            "assert.equal(Object.isFrozen(runtime), true)"
+          ],
+          "scope": "The local qualification all-profile factory exposes exactly the five fixed methods and a frozen facade. This is an output consequence of the full factory witness, not proof of production TLS or every factory argument."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "fresh operation pools reconcile same identity and reject changed payload without duplicate effect",
+      "program": "async () => {\n      const before = await state(successId),\n        replay = await invoke(successRequest);\n      assert.equal(replay.status, 'completed');\n      assert.equal(replay.replayed, true);\n      assert.deepEqual(await invoke({ ...successRequest, staffId: secondStaff }), {\n        status: 'denied',\n        reason: 'OPERATION_CONFLICT',\n      });\n      assert.deepEqual(await state(successId), before);\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "r2-ops-target-fingerprint-conflict",
+          "factPath": "/derivations/controller/facts/ownedClauses/15",
+          "factSha256": "e5ee36ab03a161968fcb968af1c4b18783b6645192b2b2ecbeda01bdd30ec2dc",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke({ ...successRequest, staffId: secondStaff }), {\n        status: 'denied',\n        reason: 'OPERATION_CONFLICT',\n      })",
+            "assert.deepEqual(await state(successId), before)"
+          ],
+          "scope": "For the existing OPS UUID, changing only staffId yields OPERATION_CONFLICT and preserves the entire stored state. Other fingerprint fields are not separately exercised here."
+        },
+        {
+          "id": "r2-ops-replay-reconciliation",
+          "factPath": "/derivations/controller/facts/ownedClauses/17",
+          "factSha256": "183577348ddaa9d677640697f5d97e350c5cdf720339fbef7548dfbaabca082f",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(replay.replayed, true)",
+            "assert.deepEqual(await invoke({ ...successRequest, staffId: secondStaff }), {\n        status: 'denied',\n        reason: 'OPERATION_CONFLICT',\n      })",
+            "assert.deepEqual(await state(successId), before)"
+          ],
+          "scope": "A fresh runtime pool replays the same OPS UUID and rejects a changed target without duplicate effects. Does not qualify every corrupt-ledger or replay projection branch."
+        },
+        {
+          "id": "r2-stored-ops-replay-result",
+          "factPath": "/derivations/controller/facts/wire/functions/storedOpsResult",
+          "factSha256": "1926a81c72ee0425fb24a52f242e2ae57ff90af844a7c1ec77b5850db84da62c",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(replay.replayed, true)",
+            "assert.deepEqual(await state(successId), before)",
+            "assert.equal(replay.status, 'completed')"
+          ],
+          "scope": "The existing valid OPS stored result supports a completed replay with unchanged persisted state. Exact replay DTO contents and malformed stored-result rejection are not directly asserted."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "agent terminal noop remains denial while active noop preserves its audit and notification behavior",
+      "program": "async () => {\n      const denied = req(success),\n        result = await invoke('executeLegacyAgent', denied);\n      assert.equal(result.status, 'completed');\n      assert.equal(result.result.success, false);\n      assert.equal(result.changed, false);\n      await drain();\n      assert.equal((await notification(denied)).length, 0);\n      await admin`update claim set case_lifecycle_state='evaluation',recovery_lifecycle_state='not_started' where id=${success}`;\n      const r = req(success),\n        before = await state(success),\n        afterResult = await invoke('executeLegacyAgent', r);\n      assert.equal(afterResult.result.success, true);\n      assert.equal(afterResult.changed, false);\n      assert.equal((await state(success)).audit.length, before.audit.length + 1);\n      await awaitNotice(r);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "r3-agent-terminal-denial",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/11",
+          "factSha256": "b99a1cd62fec2bb10eb35af0a8df8fa3e00271b9467b2fb14a6e29425fa2ed7c",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.result.success, false)",
+            "assert.equal((await notification(denied)).length, 0)"
+          ],
+          "scope": "The same-target agent request on the explicitly terminal fixture fails and produces no notice. This is distinct from the admin no-op; the exact error string and all lifecycle variants are not asserted here."
+        },
+        {
+          "id": "r3-agent-active-noop-audit",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/14",
+          "factSha256": "d1276b9fb88a84d08c2551da746a3a6046f5e70ee182c615310a70cf2aae1fb9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(afterResult.result.success, true)",
+            "assert.equal(afterResult.changed, false)",
+            "assert.equal((await state(success)).audit.length, before.audit.length + 1)"
+          ],
+          "scope": "After restoring the active lifecycle, same-target agent invocation succeeds with changed:false and increments audit count. It does not directly observe a physical UPDATE, complete audit payload, or positive email/notice delivery."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-2.mjs",
+      "caseGroup": "profiles",
+      "caseId": "historical nonstaff noop link is preserved and rejected after current eligibility check",
+      "program": "async () => {\n      const id = 'profile_historical_' + suffix;\n      await seedClaim(id);\n      await admin`update claim set \"staffId\"=${nonStaff} where id=${id}`;\n      const before = await state(id),\n        r = req(id, nonStaff),\n        result = await invoke('executeLegacyAdmin', r);\n      assert.equal(result.result.success, false);\n      assert.deepEqual((await state(id)).claim, before.claim);\n      assert.equal((await state(id)).audit.length, 0);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "r3-shared-nonstaff-eligibility",
+          "factPath": "/derivations/assignmentKernels/facts/shared/clauses/lockEligibleStaff/0",
+          "factSha256": "7b6a841c454da81c2bc8c31ba80b4f4353645966497cef22e937698860ae82ed",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.equal(result.result.success, false)",
+            "assert.deepEqual((await state(id)).claim, before.claim)",
+            "assert.equal((await state(id)).audit.length, 0)"
+          ],
+          "scope": "An existing historical assignment to a current member is refused with the claim unchanged and no audit. This observes the nonstaff eligibility consequence of the shared lookup, not its complete projection/predicate or SHARE lock semantics."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "per-operation deadline terminates its own blocked pools with original identity and no automatic retry",
+      "program": "async () => {\n      const id = 'runtime_timeout_' + suffix;\n      await seedClaim(id);\n      const r = request(id),\n        before = await state(id),\n        owner = make(750),\n        lock = await holdClaim(id);\n      try {\n        const started = performance.now(),\n          pending = invoke(r, cookie, owner);\n        await waitDataBlocked();\n        assert.deepEqual(await pending, {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        });\n        const elapsed = performance.now() - started;\n        assert.equal(elapsed < 3000, true);\n        record.deadlineObservedMs = elapsed;\n        await noOwnedSessions();\n        assert.deepEqual(await state(id), before);\n      } finally {\n        await lock.release();\n        await owner.close();\n      }\n      const reconciled = await invoke(r);\n      assert.equal(reconciled.status, 'completed');\n      assert.equal(reconciled.replayed, false);\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "r4-original-identity-uncertainty",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/3",
+          "factSha256": "2257c9926173be1e126884c277d2b0a106a4c06305fe942b37f04d67e6a3201b",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await pending, {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })"
+          ],
+          "scope": "The blocked operation returns indeterminate with its exact original request UUID; no automatic retry identity is manufactured in this observed case."
+        },
+        {
+          "id": "r4-owned-deadline-settlement",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/23",
+          "factSha256": "5d80fbb8db0e879d06721e5893ec647ecbf8a301fd3e2f5bb5c8052c2286cdc9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await pending, {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.equal(reconciled.status, 'completed')",
+            "assert.equal(reconciled.replayed, false)",
+            "assert.equal(elapsed < 3000, true)"
+          ],
+          "scope": "A blocked operation settles indeterminate within the unchanged 3000ms fixture bound with unchanged full state, and a later explicit same-ID invocation completes nonreplayed. This is a finite ownership/deadline consequence; driver termination internals and all exceptional settlement paths remain separate."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "deadline of blocked operation leaves independent successful operation intact",
+      "program": "async () => {\n      const blocked = 'runtime_isolated_' + suffix,\n        free = 'runtime_free_' + suffix;\n      await seedClaim(blocked);\n      await seedClaim(free);\n      const owner = make(1000),\n        lock = await holdClaim(blocked),\n        a = request(blocked),\n        b = request(free);\n      try {\n        const waiting = invoke(a, cookie, owner);\n        await waitDataBlocked();\n        const completed = await invoke(b, cookie, owner);\n        assert.equal(completed.status, 'completed');\n        assert.equal(completed.result.success, true);\n        assert.deepEqual(await waiting, {\n          status: 'indeterminate',\n          operationId: a.operationId,\n        });\n        assert.equal((await state(free)).audit.length, 1);\n        assert.equal((await state(blocked)).audit.length, 0);\n        await noOwnedSessions();\n      } finally {\n        await lock.release();\n        await owner.close();\n      }\n    }",
+      "links": [
+        {
+          "id": "r4-sibling-operation-independence",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/7",
+          "factSha256": "f7f8075635fdd77d24d8e857cc889ea0a2d93210a966cfd052b190219284cfc2",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.equal(completed.result.success, true)",
+            "assert.deepEqual(await waiting, {\n          status: 'indeterminate',\n          operationId: a.operationId,\n        })",
+            "assert.equal((await state(free)).audit.length, 1)",
+            "assert.equal((await state(blocked)).audit.length, 0)"
+          ],
+          "scope": "One blocked operation becomes original-ID indeterminate while an independent sibling succeeds with one audit and the blocked claim has none. This observes isolation of the owned-pool termination consequence, not every internal cleanup/cancellation path."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "server enforced posture rejects elevated purpose role before business dispatch",
+      "program": "async () => {\n      const id = 'runtime_posture_' + suffix;\n      await seedClaim(id);\n      const r = request(id),\n        before = await state(id);\n      await admin.unsafe(`ALTER ROLE ${quote(dataRole)} CREATEDB`);\n      try {\n        assert.deepEqual(await invoke(r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        });\n        await noOwnedSessions();\n        assert.deepEqual(await state(id), before);\n      } finally {\n        await admin.unsafe(`ALTER ROLE ${quote(dataRole)} NOCREATEDB`);\n      }\n      const success = await invoke(r);\n      assert.equal(success.status, 'completed');\n      assert.equal(success.result.success, true);\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "r6-posture-before-dispatch",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/15",
+          "factSha256": "2904fd990367d0052b160af0574b5fa3729589968ed3978f170f2cf614be0efc",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke(r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.equal(success.result.success, true)"
+          ],
+          "scope": "Elevating only the owned data role to CREATEDB makes the operation original-ID indeterminate before any durable state change; restoration allows success. No claim that every posture predicate or pool is independently exercised."
+        },
+        {
+          "id": "r6-elevated-role-gate",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/posture/5",
+          "factSha256": "5e9589382438865a55ce633c841fe2ccd3519bda726ccea847bbe695ef5fd027",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke(r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.equal(success.result.success, true)"
+          ],
+          "scope": "The actual server-backed gate refuses the owned CREATEDB role and later permits the restored role. Full SQL/operator/RLS/privilege truth, deployment and production endpoint/TLS remain M4-03 premises."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-private.mjs",
+      "caseGroup": "private",
+      "caseId": "actual server disconnect setting is observed and posture refuses disabled polling",
+      "program": "async () => {\n      const observed = await client.probePosture(dataUrl.href);\n      assert.equal(observed.polling, '100ms');\n      assert.equal(observed.disabledRejected, true);\n      record.observedServerDisconnectCheck = observed.polling;\n      await noOwnedSessions();\n    }",
+      "links": [
+        {
+          "id": "r6-disconnect-polling-gate",
+          "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/posture/5",
+          "factSha256": "5e9589382438865a55ce633c841fe2ccd3519bda726ccea847bbe695ef5fd027",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-pool-posture.ts",
+            "apps/web/src/server/operations/m4-private-runtime-types.ts",
+            "apps/web/src/server/operations/m4-assignment-controller-types.ts"
+          ],
+          "assertions": [
+            "assert.equal(observed.polling, '100ms')",
+            "assert.equal(observed.disabledRejected, true)"
+          ],
+          "scope": "The existing restricted child diagnostic observes 100ms polling, switches it off and reports rejection only after actual SQLSTATE22012, then restores it. This is an explicit diagnostic caller context, not business dispatch or proof of the final JavaScript numeric-result guard."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-3.mjs",
+      "caseGroup": "profiles",
+      "caseId": "legacy crossbranch assignment retains assignment notice without claiming staff detail visibility",
+      "program": "async () => {\n      const id = 'profile_legacy_crossbranch_' + suffix;\n      await seedClaim(id);\n      await admin`update claim set branch_id=${branchA} where id=${id}`;\n      await targetRole(secondStaff, 'staff', branchB);\n      try {\n        const r = req(id, secondStaff),\n          result = await invoke('executeLegacyAdmin', r);\n        assert.equal(result.status, 'completed');\n        assert.equal(result.result.success, true);\n        const rows = await awaitNotice(r);\n        assert.equal(rows[0].user_id, secondStaff);\n        assert.equal(rows[0].content, 'Update on: Synthetic case');\n        assert.equal((await state(id)).claim[0].staffId, secondStaff);\n        await drain();\n      } finally {\n        await targetRole(secondStaff, 'staff');\n      }\n    }",
+      "links": [
+        {
+          "id": "r5-crossbranch-notice-content",
+          "factPath": "/derivations/notification/facts/namedOrderedFacts/store/13",
+          "factSha256": "7020db036b49aa29b6718c1551d79c9f50dd5a3547e46a2623a80d1b505bf613",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+            "apps/web/src/server/operations/m4-notification-runtime.ts"
+          ],
+          "assertions": [
+            "assert.equal(rows[0].user_id, secondStaff)",
+            "assert.equal(rows[0].content, 'Update on: Synthetic case')",
+            "assert.equal((await state(id)).claim[0].staffId, secondStaff)"
+          ],
+          "scope": "A crossbranch legacy assignment stores the requested assignee and emits the expected current fixture title content and recipient. No staff-detail access, intervening-content-change freshness, email invocation or external delivery is inferred."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-staff-noop-terminal.mjs",
+      "caseGroup": "profiles",
+      "caseId": "staff eligible terminal noops precede terminal mutation denials and preserve every effect",
+      "program": "async () => {\n      const [originalActor] =\n        await admin`select id,tenant_id,role,branch_id from \"user\" where id=${actor}`;\n      const [originalTarget] =\n        await admin`select id,tenant_id,role,branch_id from \"user\" where id=${staff}`;\n      assert.deepEqual(originalActor, {\n        id: actor,\n        tenant_id: home,\n        role: 'admin',\n        branch_id: null,\n      });\n      assert.deepEqual(originalTarget, {\n        id: staff,\n        tenant_id: home,\n        role: 'staff',\n        branch_id: null,\n      });\n      const selfId = 'staff_terminal_self_' + suffix;\n      const differentId = 'staff_terminal_other_' + suffix;\n      const clearId = 'staff_terminal_clear_' + suffix;\n      const emptyId = 'staff_terminal_empty_' + suffix;\n      const assignedAt = new Date('2025-01-02T03:04:05.000Z');\n      const updatedAt = new Date('2025-01-03T04:05:06.000Z');\n      try {\n        await actorRole('staff', branchA);\n        await targetRole(staff, 'staff', branchA);\n        const activeRows = Array.from(\n          await admin`select id,tenant_id,role,branch_id from \"user\" where id in (${actor},${staff}) order by id`\n        );\n        assert.deepEqual(activeRows, [\n          { id: actor, tenant_id: home, role: 'staff', branch_id: branchA },\n          { id: staff, tenant_id: home, role: 'staff', branch_id: branchA },\n        ]);\n        await seedClaim(selfId);\n        await seedClaim(differentId);\n        await seedClaim(clearId);\n        await seedClaim(emptyId);\n        await admin`update claim set \"staffId\"=${actor},\"assignedAt\"=${assignedAt},\"assignedById\"=${actor},\"updatedAt\"=${updatedAt},branch_id=${branchA},case_lifecycle_state='resolved',recovery_lifecycle_state='resolved' where id in (${selfId},${differentId},${clearId}) and tenant_id=${home}`;\n        await admin`update claim set case_lifecycle_state='rejected',recovery_lifecycle_state='closed' where id=${differentId} and tenant_id=${home}`;\n        await admin`update claim set \"staffId\"=null,\"assignedAt\"=null,\"assignedById\"=null,\"updatedAt\"=${updatedAt},branch_id=${branchA},case_lifecycle_state='rejected',recovery_lifecycle_state='closed' where id=${emptyId} and tenant_id=${home}`;\n        const before = await effects(selfId, differentId, clearId, emptyId);\n        assert.deepEqual(\n          before.states.map(row => row.result),\n          [[], [], [], []]\n        );\n        assert.deepEqual(\n          before.states.map(row => row.audit),\n          [[], [], [], []]\n        );\n        assert.deepEqual(\n          before.states.map(row => row.claim.length),\n          [1, 1, 1, 1]\n        );\n        assert.deepEqual(\n          before.states.map(row => [\n            row.claim[0].id,\n            row.claim[0].tenant_id,\n            row.claim[0].branch_id,\n            row.claim[0].staffId,\n            row.claim[0].assignedAt,\n            row.claim[0].assignedById,\n            row.claim[0].updatedAt,\n            row.claim[0].case_lifecycle_state,\n            row.claim[0].recovery_lifecycle_state,\n          ]),\n          [\n            [selfId, home, branchA, actor, assignedAt, actor, updatedAt, 'resolved', 'resolved'],\n            [differentId, home, branchA, actor, assignedAt, actor, updatedAt, 'rejected', 'closed'],\n            [clearId, home, branchA, actor, assignedAt, actor, updatedAt, 'resolved', 'resolved'],\n            [emptyId, home, branchA, null, null, null, updatedAt, 'rejected', 'closed'],\n          ]\n        );\n\n        const selfRequest = { ...req(selfId, actor), command: 'm4.staff.assign-claim' };\n        delete selfRequest.staffId;\n        const selfResponse = await invoke('executeStaff', selfRequest);\n        assert.deepEqual(selfResponse, {\n          status: 'completed',\n          operationId: selfRequest.operationId,\n          replayed: false,\n          result: { success: true },\n          changed: false,\n        });\n        const selfAfter = await effects(selfId, differentId, clearId, emptyId);\n        assert.equal(selfAfter.states[0].result.length, 1);\n        assert.equal(selfAfter.states[0].result[0].operation_id, selfRequest.operationId);\n        assert.deepEqual(selfAfter.states[0].result[0].response, {\n          result: { success: true },\n          changed: false,\n        });\n        assert.deepEqual(selfAfter, {\n          ...before,\n          states: [\n            { ...before.states[0], result: selfAfter.states[0].result },\n            ...before.states.slice(1),\n          ],\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          selfAfter,\n          'self: original response must remain effect-free after drain'\n        );\n        assert.deepEqual(await invoke('executeStaff', selfRequest), {\n          ...selfResponse,\n          replayed: true,\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          selfAfter,\n          'self: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        );\n\n        const differentRequest = { ...req(differentId, staff), command: 'm4.staff.assign-claim' };\n        const differentResponse = await invoke('executeStaff', differentRequest);\n        assert.deepEqual(differentResponse, {\n          status: 'completed',\n          operationId: differentRequest.operationId,\n          replayed: false,\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        });\n        const differentAfter = await effects(selfId, differentId, clearId, emptyId);\n        assert.equal(differentAfter.states[1].result.length, 1);\n        assert.equal(differentAfter.states[1].result[0].operation_id, differentRequest.operationId);\n        assert.deepEqual(differentAfter.states[1].result[0].response, {\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        });\n        assert.deepEqual(differentAfter, {\n          ...selfAfter,\n          states: [\n            ...selfAfter.states.slice(0, 1),\n            { ...selfAfter.states[1], result: differentAfter.states[1].result },\n            ...selfAfter.states.slice(2),\n          ],\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          differentAfter,\n          'different: original response must remain effect-free after drain'\n        );\n        assert.deepEqual(await invoke('executeStaff', differentRequest), {\n          ...differentResponse,\n          replayed: true,\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          differentAfter,\n          'different: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        );\n\n        const clearRequest = { ...req(clearId, null), command: 'm4.staff.assign-claim' };\n        const clearResponse = await invoke('executeStaff', clearRequest);\n        assert.deepEqual(clearResponse, {\n          status: 'completed',\n          operationId: clearRequest.operationId,\n          replayed: false,\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        });\n        const clearAfter = await effects(selfId, differentId, clearId, emptyId);\n        assert.equal(clearAfter.states[2].result.length, 1);\n        assert.equal(clearAfter.states[2].result[0].operation_id, clearRequest.operationId);\n        assert.deepEqual(clearAfter.states[2].result[0].response, {\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        });\n        assert.deepEqual(clearAfter, {\n          ...differentAfter,\n          states: [\n            ...differentAfter.states.slice(0, 2),\n            { ...differentAfter.states[2], result: clearAfter.states[2].result },\n            ...differentAfter.states.slice(3),\n          ],\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          clearAfter,\n          'clear: original response must remain effect-free after drain'\n        );\n        assert.deepEqual(await invoke('executeStaff', clearRequest), {\n          ...clearResponse,\n          replayed: true,\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          clearAfter,\n          'clear: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        );\n\n        const emptyRequest = { ...req(emptyId, null), command: 'm4.staff.assign-claim' };\n        const emptyResponse = await invoke('executeStaff', emptyRequest);\n        assert.deepEqual(emptyResponse, {\n          status: 'completed',\n          operationId: emptyRequest.operationId,\n          replayed: false,\n          result: { success: true },\n          changed: false,\n        });\n        const emptyAfter = await effects(selfId, differentId, clearId, emptyId);\n        assert.equal(emptyAfter.states[3].result.length, 1);\n        assert.equal(emptyAfter.states[3].result[0].operation_id, emptyRequest.operationId);\n        assert.deepEqual(emptyAfter.states[3].result[0].response, {\n          result: { success: true },\n          changed: false,\n        });\n        assert.deepEqual(emptyAfter, {\n          ...clearAfter,\n          states: [\n            ...clearAfter.states.slice(0, 3),\n            { ...clearAfter.states[3], result: emptyAfter.states[3].result },\n          ],\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          emptyAfter,\n          'empty: original response must remain effect-free after drain'\n        );\n        assert.deepEqual(await invoke('executeStaff', emptyRequest), {\n          ...emptyResponse,\n          replayed: true,\n        });\n        await drain();\n        assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          emptyAfter,\n          'empty: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        );\n      } finally {\n        try {\n          await drain();\n        } finally {\n          try {\n            await actorRole(originalActor.role, originalActor.branch_id);\n          } finally {\n            await targetRole(staff, originalTarget.role, originalTarget.branch_id);\n          }\n        }\n      }\n      const [restoredActor] =\n        await admin`select id,tenant_id,role,branch_id from \"user\" where id=${actor}`;\n      const [restoredTarget] =\n        await admin`select id,tenant_id,role,branch_id from \"user\" where id=${staff}`;\n      assert.deepEqual(restoredActor, originalActor);\n      assert.deepEqual(restoredTarget, originalTarget);\n    }",
+      "links": [
+        {
+          "id": "staff-eligible-terminal-self-and-null-noops",
+          "factPath": "/derivations/assignmentKernels/facts/staff/clauses/assignStaffInTransaction/9",
+          "factSha256": "28bd8de517b9333be3ff5208046a0e09ccdca157df9f6292a3f0515e02d3841c",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(selfResponse, {\n          status: 'completed',\n          operationId: selfRequest.operationId,\n          replayed: false,\n          result: { success: true },\n          changed: false,\n        })",
+            "assert.equal(selfAfter.states[0].result.length, 1)",
+            "assert.equal(selfAfter.states[0].result[0].operation_id, selfRequest.operationId)",
+            "assert.deepEqual(selfAfter.states[0].result[0].response, {\n          result: { success: true },\n          changed: false,\n        })",
+            "assert.deepEqual(selfAfter, {\n          ...before,\n          states: [\n            { ...before.states[0], result: selfAfter.states[0].result },\n            ...before.states.slice(1),\n          ],\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          selfAfter,\n          'self: original response must remain effect-free after drain'\n        )",
+            "assert.deepEqual(await invoke('executeStaff', selfRequest), {\n          ...selfResponse,\n          replayed: true,\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          selfAfter,\n          'self: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        )",
+            "assert.deepEqual(emptyResponse, {\n          status: 'completed',\n          operationId: emptyRequest.operationId,\n          replayed: false,\n          result: { success: true },\n          changed: false,\n        })",
+            "assert.equal(emptyAfter.states[3].result.length, 1)",
+            "assert.equal(emptyAfter.states[3].result[0].operation_id, emptyRequest.operationId)",
+            "assert.deepEqual(emptyAfter.states[3].result[0].response, {\n          result: { success: true },\n          changed: false,\n        })",
+            "assert.deepEqual(emptyAfter, {\n          ...clearAfter,\n          states: [\n            ...clearAfter.states.slice(0, 3),\n            { ...clearAfter.states[3], result: emptyAfter.states[3].result },\n          ],\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          emptyAfter,\n          'empty: original response must remain effect-free after drain'\n        )",
+            "assert.deepEqual(await invoke('executeStaff', emptyRequest), {\n          ...emptyResponse,\n          replayed: true,\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          emptyAfter,\n          'empty: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        )"
+          ],
+          "scope": "Two controlled terminal states exercise omitted-self and explicit-null eligible noops before terminal denial. Full claim/audit/notice and all sibling state stay unchanged except the exact durable UUID/result; replay preserves the complete effect state. Eligibility, lifecycle helper and general context premises remain separate."
+        },
+        {
+          "id": "staff-terminal-different-target-and-clear-denials",
+          "factPath": "/derivations/assignmentKernels/facts/staff/clauses/assignStaffInTransaction/10",
+          "factSha256": "884547d6ca0cb655da75051e7853f2563af5df0ba877b29309e00bb3725a3a27",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(differentResponse, {\n          status: 'completed',\n          operationId: differentRequest.operationId,\n          replayed: false,\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        })",
+            "assert.equal(differentAfter.states[1].result.length, 1)",
+            "assert.equal(differentAfter.states[1].result[0].operation_id, differentRequest.operationId)",
+            "assert.deepEqual(differentAfter.states[1].result[0].response, {\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        })",
+            "assert.deepEqual(differentAfter, {\n          ...selfAfter,\n          states: [\n            ...selfAfter.states.slice(0, 1),\n            { ...selfAfter.states[1], result: differentAfter.states[1].result },\n            ...selfAfter.states.slice(2),\n          ],\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          differentAfter,\n          'different: original response must remain effect-free after drain'\n        )",
+            "assert.deepEqual(await invoke('executeStaff', differentRequest), {\n          ...differentResponse,\n          replayed: true,\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          differentAfter,\n          'different: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        )",
+            "assert.deepEqual(clearResponse, {\n          status: 'completed',\n          operationId: clearRequest.operationId,\n          replayed: false,\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        })",
+            "assert.equal(clearAfter.states[2].result.length, 1)",
+            "assert.equal(clearAfter.states[2].result[0].operation_id, clearRequest.operationId)",
+            "assert.deepEqual(clearAfter.states[2].result[0].response, {\n          result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n          changed: false,\n        })",
+            "assert.deepEqual(clearAfter, {\n          ...differentAfter,\n          states: [\n            ...differentAfter.states.slice(0, 2),\n            { ...differentAfter.states[2], result: clearAfter.states[2].result },\n            ...differentAfter.states.slice(3),\n          ],\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          clearAfter,\n          'clear: original response must remain effect-free after drain'\n        )",
+            "assert.deepEqual(await invoke('executeStaff', clearRequest), {\n          ...clearResponse,\n          replayed: true,\n        })",
+            "assert.deepEqual(\n          await effects(selfId, differentId, clearId, emptyId),\n          clearAfter,\n          'clear: exact UUID replay must preserve all four claims, audits, ledgers and notices'\n        )"
+          ],
+          "scope": "Eligible different-target and explicit-clear requests on the two seeded terminal states return exact durable terminal denials and preserve all four claims/audits/notices and sibling ledgers. Source-derived clause/order and these finite outcomes do not prove all lifecycle or SQL predicate contexts."
         }
       ]
     }

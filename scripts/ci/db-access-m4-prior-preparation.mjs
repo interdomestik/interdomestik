@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { Worker } from 'node:worker_threads';
 import { randomUUID } from 'node:crypto';
 import { ADOPTION } from './db-access-adoption.mjs';
 import { outputShape } from './db-access-output-binding.mjs';
@@ -11,6 +10,15 @@ import {
   validatePriorMessage,
   priorFailure,
 } from './db-access-m4-prior-source.mjs';
+import {
+  launchM4PriorWorker,
+  workerForM4LoaderLaunch,
+  bindingForM4LoaderLaunch,
+  isM4LoaderControlMessage,
+  sealM4WorkerLoads,
+  releaseM4PriorWorker,
+  completeM4WorkerLoaderLaunch,
+} from './db-access-m4-worker-loader-authority.mjs';
 
 const handles = new WeakMap(),
   records = new WeakMap(),
@@ -20,25 +28,26 @@ function owned(handle) {
   if (!state) throw priorFailure('foreign or serialized handle');
   return state;
 }
-export function startM4PriorPreparation(repoRoot, event) {
+export function startM4PriorPreparation(repoRoot, event, loaderSession) {
   const root = fs.realpathSync(repoRoot),
     bound = priorEvent(event);
   const state = {
     root,
     event: bound,
-    nonce: randomUUID(),
     binding: currentPriorBinding(root, bound),
     phase: 'running',
     closed: false,
     bound: false,
     waited: false,
   };
-  const worker = new Worker(new URL('./db-access-m4-prior-worker.mjs', import.meta.url), {
-    workerData: { repoRoot: root, event: bound, nonce: state.nonce },
-    env: {},
-    execArgv: [],
-    resourceLimits: { maxOldGenerationSizeMb: 3072 },
+  const launch = launchM4PriorWorker(loaderSession, {
+    repoRoot: root,
+    event: bound,
+    binding: state.binding,
   });
+  const worker = workerForM4LoaderLaunch(launch);
+  state.nonce = bindingForM4LoaderLaunch(launch).nonce;
+  state.launch = launch;
   state.worker = worker;
   let resolve,
     reject,
@@ -53,18 +62,26 @@ export function startM4PriorPreparation(repoRoot, event) {
     exitResolve = yes;
   });
   state.reject = error => {
-    if (state.phase !== 'running') return;
+    if (['complete', 'failed'].includes(state.phase)) return;
     state.phase = 'failed';
     state.result = undefined;
     reject(error);
   };
   // SQL blocks the parent synchronously; retain the rejection for the actual waiter.
   state.ready.catch(() => {});
-  worker.on('message', message => {
-    if (state.phase !== 'running') return;
+  worker.on('message', async message => {
+    if (isM4LoaderControlMessage(launch, message)) return;
+    if (state.phase !== 'running') {
+      state.reject(priorFailure('message during loader seal'));
+      return;
+    }
     try {
       if (++messages !== 1) throw priorFailure('duplicate result');
       result = validatePriorMessage(state, message);
+      state.phase = 'sealing';
+      await sealM4WorkerLoads(launch, message);
+      releaseM4PriorWorker(launch);
+      state.phase = 'released';
     } catch (error) {
       state.reject(error);
     }
@@ -73,12 +90,13 @@ export function startM4PriorPreparation(repoRoot, event) {
   worker.on('messageerror', error => state.reject(error));
   worker.once('exit', code => {
     exitResolve();
-    if (state.phase !== 'running') return;
-    if (state.closed || code !== 0 || messages !== 1 || !result) {
+    if (state.phase === 'failed') return;
+    if (state.closed || state.phase !== 'released' || code !== 0 || messages !== 1 || !result) {
       state.reject(priorFailure('missing result, premature close or nonzero exit'));
       return;
     }
     try {
+      completeM4WorkerLoaderLaunch(launch, code);
       if (currentPriorBinding(root, bound) !== state.binding)
         throw priorFailure('source/event changed before completion');
       state.result = result;
@@ -151,7 +169,7 @@ export async function closeM4PriorPreparation(handle) {
   }
   state.closed = true;
   state.reject(priorFailure('closed before completion'));
-  await state.worker.terminate();
+  if (state.phase !== 'complete') await state.worker.terminate();
   await state.exited;
   await state.ready.catch(() => {});
 }

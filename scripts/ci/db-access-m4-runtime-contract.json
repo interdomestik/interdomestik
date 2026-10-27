@@ -738,12 +738,14 @@
       "staff omitted target assigns current actor and explicit null clears assignment timestamps",
       "staff current branch constrains both resource and target while sibling context remains usable",
       "mandatory audit failure rolls back assignment and ledger and never dispatches notification",
+      "staff eligible terminal noops precede terminal mutation denials and preserve every effect",
       "notification role has no business write authority and business role cannot write notifications",
       "observed notification store failure leaves committed assignment successful without automatic retry",
       "concurrent same UUID executes assignment audit and notification once",
       "queued target role mutation is reread under the current target lock",
       "blocked notification deadline retires its database while assignment remains committed",
-      "legacy crossbranch assignment retains assignment notice without claiming staff detail visibility"
+      "legacy crossbranch assignment retains assignment notice without claiming staff detail visibility",
+      "verified-email invokes fixed provider refusal once with replay and unverified controls"
     ],
     "private": [
       "invalid requests refuse before pool construction and expose only execute and close",
@@ -782,7 +784,13 @@
     "db-access-m4-runtime-fixture-profiles-3.mjs",
     "db-access-m4-runtime-fixture-profiles.mjs",
     "db-access-m4-runtime-fixture-provision.mjs",
-    "db-access-m4-runtime-fixture.mjs"
+    "db-access-m4-runtime-fixture.mjs",
+    "db-access-m4-runtime-fixture-staff-noop-terminal.mjs",
+    "db-access-m4-email-marker.mjs",
+    "db-access-m4-email-observer-client.mjs",
+    "db-access-m4-email-observer-fixture.mjs",
+    "db-access-m4-runtime-fixture-email-invocation.mjs",
+    "db-access-m4-email-notice-conflict.mjs"
   ],
   "fixturePortComplete": true,
   "migrations": {

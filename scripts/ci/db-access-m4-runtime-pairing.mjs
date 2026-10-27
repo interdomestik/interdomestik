@@ -12,6 +12,12 @@ import {
 import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
 import { hash } from './db-access-provider-runtime-identity.mjs';
 import { freezeOutput, outputShape } from './db-access-output-binding.mjs';
+import {
+  openM4WorkerLoaderSession,
+  finishM4WorkerLoaderSession,
+  assertM4WorkerLoaderProofCurrent,
+  abortM4WorkerLoaderSession,
+} from './db-access-m4-worker-loader-authority.mjs';
 
 const pairs = new WeakMap();
 const fail = reason => {
@@ -24,18 +30,26 @@ export async function executeM4Pairing(input) {
   if (input.policy !== PROVIDER_UNIT_POLICY) fail('foreign policy');
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
+  const loader = openM4WorkerLoaderSession({
+    candidate: input.candidate,
+    producer: input.producer,
+    event,
+  });
   // Historical ADOPTION work shares the measured SQL phase, then exits before native preparation.
-  const prior = startM4PriorPreparation(input.candidate, event);
-  let runtime, native;
+  let prior, runtime, native, loaderProof, complete;
   try {
+    prior = startM4PriorPreparation(input.candidate, event, loader);
     runtime = runM4Runtime(input);
     await waitM4PriorPreparation(prior);
-    native = await evaluateM4NativeSession(input.candidate, event, prior);
+    native = await evaluateM4NativeSession(input.candidate, event, prior, loader);
+    loaderProof = finishM4WorkerLoaderSession(loader);
+    complete = true;
   } finally {
-    await closeM4PriorPreparation(prior);
+    if (prior) await closeM4PriorPreparation(prior);
+    if (!complete) await abortM4WorkerLoaderSession(loader);
   }
   const handle = Object.freeze({ version: 1, id: randomUUID() });
-  pairs.set(handle, { runtime, native });
+  pairs.set(handle, { runtime, native, loaderProof });
   return handle;
 }
 
@@ -46,6 +60,10 @@ export function assertM4Pairing(handle, input) {
   if (!state || input.policy !== PROVIDER_UNIT_POLICY) fail('foreign handle/policy');
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
+  const workerLoaderInspection = assertM4WorkerLoaderProofCurrent(state.loaderProof, {
+    producer: input.producer,
+    event,
+  });
   const policySha256 = hash(JSON.stringify(PROVIDER_UNIT_POLICY));
   if (!hasM4RuntimeBinding(state.runtime, input.context, policySha256))
     fail('runtime event/policy');
@@ -64,6 +82,7 @@ export function assertM4Pairing(handle, input) {
     effectAssertions: state.effectAssertions,
     checkpoint: {
       version: 1,
+      workerLoaderInspection,
       contextInspection,
       gapLedger: state.gapLedger,
       contextSha256: state.runtime.contextSha256,

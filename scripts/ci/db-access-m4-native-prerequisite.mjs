@@ -114,10 +114,10 @@ export function m4NativePrerequisites(source, native, graph, failures) {
   )
     fail('native/source brand');
   if (
-    graph.m4WorkerTransport &&
-    (!isOwnedM4WorkerEvidence(graph.m4WorkerTransport) ||
-      graph.m4WorkerTransport.sourcePolicyDigest !== source.policyDigest ||
-      graph.m4WorkerTransport.inventoryDigest !== digest(JSON.stringify(encodeInventory(native))))
+    !graph.m4WorkerTransport ||
+    !isOwnedM4WorkerEvidence(graph.m4WorkerTransport) ||
+    graph.m4WorkerTransport.sourcePolicyDigest !== source.policyDigest ||
+    graph.m4WorkerTransport.inventoryDigest !== digest(JSON.stringify(encodeInventory(native)))
   )
     fail('foreign worker transport evidence');
   const files = new Set(source.files);

@@ -44,6 +44,12 @@ const codeFiles = [
   'db-access-m4-prior-source.mjs',
   'db-access-m4-prior-worker.mjs',
   'db-access-m4-prior-preparation.mjs',
+  'db-access-m4-worker-evidence.mjs',
+  'db-access-m4-worker-loader-authority.mjs',
+  'db-access-m4-worker-loader-launch.mjs',
+  'db-access-m4-worker-loader-image.mjs',
+  'db-access-m4-worker-loader-preload.mjs',
+  'db-access-m4-worker-loader-contract.json',
 ];
 export function assertWorkerCode(repoRoot) {
   for (const name of codeFiles) {
@@ -167,12 +173,12 @@ export function mergeOwnedGraphs(prepared, partitions, results) {
 export async function runParallelGraph(prepared, input, pool) {
   assertWorkerCode(prepared.repoRoot);
   const roots = [...prepared.inventory.changed];
-  if (!roots.length) return mergeOwnedGraphs(prepared, [], []);
-  const partitions = [];
-  for (let i = 0; i < roots.length; i += 64) partitions.push(roots.slice(i, i + 64));
   const m4Request = prepared.m4NativeInventory
     ? bindM4WorkerRequest(prepared.m4NativeInventory, input)
     : undefined;
+  if (!roots.length && !m4Request) return mergeOwnedGraphs(prepared, [], []);
+  const partitions = [];
+  for (let i = 0; i < roots.length; i += 64) partitions.push(roots.slice(i, i + 64));
   const results = await runOwnedGraphWorkerPool(
     pool,
     partitions,

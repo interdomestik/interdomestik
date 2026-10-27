@@ -215,6 +215,7 @@ test('unit worker double: source/event changes before completion cannot produce 
   try {
     const item = f.start();
     item.worker.emit('message', item.message());
+    await Promise.resolve();
     f.state.generation++;
     item.worker.emit('exit', 0);
     await assert.rejects(f.api.waitM4PriorPreparation(item.handle), /changed before completion/u);

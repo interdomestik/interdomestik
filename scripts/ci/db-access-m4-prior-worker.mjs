@@ -32,4 +32,16 @@ parentPort.postMessage({
   controlsDigest: outputShape(controls).digest,
   controls,
 });
-parentPort.close();
+parentPort.once('message', message => {
+  if (
+    !message ||
+    Object.getPrototypeOf(message) !== Object.prototype ||
+    Object.keys(message).sort().join(',') !== 'binding,nonce,type' ||
+    message.type !== 'M4_LOADER_RELEASE' ||
+    message.nonce !== nonce ||
+    message.binding !== binding ||
+    currentPriorBinding(repoRoot, event) !== binding
+  )
+    throw priorFailure('loader release');
+  parentPort.close();
+});

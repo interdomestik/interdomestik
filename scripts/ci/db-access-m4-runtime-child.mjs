@@ -16,6 +16,8 @@ const methods = new Set([
   'close',
 ]);
 let shuttingDown = false;
+let shutdownComplete = false;
+let outputFenceRequested = false;
 function refuse() {
   throw Error('M4 restricted child protocol refused');
 }
@@ -55,6 +57,17 @@ function configuration(value, profile) {
       refuse();
   }
   return Object.freeze({ ...value });
+}
+async function fenceOutput() {
+  await Promise.all(
+    [process.stdout, process.stderr].map(
+      stream =>
+        new Promise((resolve, reject) => {
+          stream.write('', error => (error ? reject(error) : resolve()));
+        })
+    )
+  );
+  return { stdoutFlushed: true, stderrFlushed: true };
 }
 async function handle(message) {
   if (
@@ -162,8 +175,16 @@ async function handle(message) {
   }
   if (message.op === 'shutdown') {
     shuttingDown = true;
+    shutdownComplete = false;
     await Promise.all([...runtimes.values()].map(runtime => runtime.close()));
+    shutdownComplete = true;
     return { closed: runtimes.size };
+  }
+  if (message.op === 'output-fence') {
+    if (!shuttingDown || !shutdownComplete || outputFenceRequested || message.args.length !== 0)
+      refuse();
+    outputFenceRequested = true;
+    return await fenceOutput();
   }
   refuse();
 }

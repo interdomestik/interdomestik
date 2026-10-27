@@ -6,6 +6,7 @@ import { bindM4OracleSource } from './db-access-m4-oracle-source-bindings.mjs';
 const contracts = [
   'db-access-m4-ops-oracle-contract.json',
   'db-access-m4-existing-oracle-contract.json',
+  'db-access-m4-email-oracle-contract.json',
 ];
 const fail = reason => {
   throw Error('M4 fixed oracle correspondence refused: ' + reason);
@@ -68,8 +69,10 @@ export function linkM4FixedOracleCases({ source, runtime, imageRecords, producer
         links.push({
           id: link.id,
           fact: { path: link.factPath, sha256: link.factSha256, sourceFiles },
+          fixtureFile: entry.fixtureFile,
           fixtureSha256: hash(fixture),
           caseGroup: entry.caseGroup,
+          caseId: entry.caseId,
           assertions: link.assertions.map(expression =>
             mandatoryM4Assertion(
               fixture.toString('utf8'),

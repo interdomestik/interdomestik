@@ -1,15 +1,17 @@
-import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
-import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { createHash, randomUUID } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
+import { randomUUID } from 'node:crypto';
+import { currentM4ProducerSeal } from './db-access-m4-worker-evidence.mjs';
+import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
+
 const owned = new WeakMap();
-const evidence = new WeakSet(),
-  resultEvidence = new WeakMap();
-const receivedOutputs = new WeakSet(),
-  evidenceSeals = new WeakMap();
+const evidence = new WeakSet();
+const resultEvidence = new WeakMap();
+const evidenceSeals = new WeakMap();
+const receivedOutputs = new WeakSet();
+const fail = reason => new Error('incomplete: graph worker ' + reason);
+
 export function assertM4WorkerEvidenceCurrent(proof) {
-  if (!evidence.has(proof) || evidenceSeals.get(proof) !== producerSeal())
+  if (!evidence.has(proof) || evidenceSeals.get(proof) !== currentM4ProducerSeal())
     throw fail('foreign or changed producer evidence');
 }
 export const isOwnedM4WorkerEvidence = value => evidence.has(value);
@@ -20,46 +22,7 @@ export function claimOwnedM4WorkerEvidence(results) {
   if (!sameOutputShape(value.output, results)) throw fail('changed/replaced transport output');
   return value.proof;
 }
-function producerSeal() {
-  const policyBytes = fs.readFileSync(
-    new URL('./db-access-provider-unit-policy.json', import.meta.url)
-  );
-  const policy = JSON.parse(policyBytes);
-  const names = [
-    'db-access-graph-worker.mjs',
-    'db-access-graph-worker-pool.mjs',
-    'db-access-graph-workers.mjs',
-    'db-access-output-binding.mjs',
-    'db-access-finalize.mjs',
-    'db-access-m4-native-session.mjs',
-    'db-access-m4-session-authority.mjs',
-    'db-access-trust.mjs',
-    'db-access-resolver-snapshot.mjs',
-    'db-access-provider-unit-source.mjs',
-    'db-access-prepare.mjs',
-    'db-access-m4-worker-input.mjs',
-    'db-access-inventory-wire.mjs',
-    'db-access-m4-native-prerequisite.mjs',
-  ];
-  const hashes = names.map(name => {
-    const file = fileURLToPath(new URL('./' + name, import.meta.url));
-    const expected = policy.producerFiles['scripts/ci/' + name];
-    const bytes = fs.readFileSync(file),
-      stat = fs.lstatSync(file);
-    const digest = createHash('sha256').update(bytes).digest('hex');
-    if (
-      !expected ||
-      stat.isSymbolicLink() ||
-      fs.realpathSync(file) !== file ||
-      bytes.length !== expected.bytes ||
-      digest !== expected.sha256 ||
-      (stat.mode & 0o111 ? '100755' : '100644') !== expected.mode
-    )
-      throw fail('sealed producer URL/code mismatch');
-    return digest;
-  });
-  return createHash('sha256').update(policyBytes).update(JSON.stringify(hashes)).digest('hex');
-}
+
 function expectedAck(wire, used, jobId) {
   return {
     channelId: wire.channelId,
@@ -74,10 +37,16 @@ function expectedAck(wire, used, jobId) {
     ...(jobId === undefined ? {} : { jobId }),
   };
 }
-const fail = reason => new Error('incomplete: graph worker ' + reason);
-export function startGraphWorkerPool(repoRoot) {
-  const slots = [],
-    state = { slots, used: false, producerSeal: producerSeal() };
+
+function buildPool(repoRoot, loaderSession, loaderAuthority) {
+  const slots = [];
+  const state = {
+    slots,
+    used: false,
+    producerSeal: currentM4ProducerSeal(),
+    loaderSession,
+    loaderAuthority,
+  };
   const pool = Object.freeze({
     async close() {
       await Promise.allSettled(slots.map(slot => slot.worker.terminate()));
@@ -86,13 +55,23 @@ export function startGraphWorkerPool(repoRoot) {
   owned.set(pool, state);
   try {
     for (let index = 0; index < 4; index++) {
-      const channelId = randomUUID();
-      const worker = new Worker(new URL('./db-access-graph-worker.mjs', import.meta.url), {
-        env: {},
-        execArgv: [],
-        resourceLimits: { maxOldGenerationSizeMb: 1536 },
-        workerData: { repoRoot, m4ChannelId: channelId },
-      });
+      const launch = loaderSession
+        ? loaderAuthority.launchM4GraphWorker(loaderSession, {
+            repoRoot,
+            index,
+          })
+        : undefined;
+      const channelId = launch
+        ? loaderAuthority.bindingForM4LoaderLaunch(launch).binding
+        : randomUUID();
+      const worker = launch
+        ? loaderAuthority.workerForM4LoaderLaunch(launch)
+        : new Worker(new URL('./db-access-graph-worker.mjs', import.meta.url), {
+            env: {},
+            execArgv: [],
+            resourceLimits: { maxOldGenerationSizeMb: 1536 },
+            workerData: { repoRoot, m4ChannelId: channelId },
+          });
       let readyResolve, readyReject, exitResolve, exitReject;
       const ready = new Promise((resolve, reject) => {
         readyResolve = resolve;
@@ -106,6 +85,7 @@ export function startGraphWorkerPool(repoRoot) {
       exited.catch(() => {});
       const slot = {
         worker,
+        launch,
         channelId,
         ready,
         exited,
@@ -121,13 +101,16 @@ export function startGraphWorkerPool(repoRoot) {
         exitReject(error);
         slot.request?.reject(error);
       };
-      worker.on('message', message => {
+      const onMessage = async message => {
+        if (launch && loaderAuthority.isM4LoaderControlMessage(launch, message)) return;
         if (
           slot.phase === 'starting' &&
           message?.type === 'READY' &&
           typeof message.snapshot === 'string' &&
           message.channelId === slot.channelId
         ) {
+          slot.phase = 'sealing-ready';
+          if (launch) await loaderAuthority.sealM4WorkerLoads(launch, message);
           slot.snapshot = message.snapshot;
           slot.phase = 'ready';
           readyResolve();
@@ -142,10 +125,8 @@ export function startGraphWorkerPool(repoRoot) {
           if (
             slot.request.m4Expected &&
             JSON.stringify(message.m4TransportAck) !== JSON.stringify(slot.request.m4Expected)
-          ) {
-            reject(fail('foreign/replayed/partial worker transport acknowledgement'));
-            return;
-          }
+          )
+            throw fail('foreign/replayed/partial worker transport acknowledgement');
           if (slot.request.m4Expected) receivedOutputs.add(message);
           slot.phase = 'ready';
           slot.request.resolve(message);
@@ -160,31 +141,47 @@ export function startGraphWorkerPool(repoRoot) {
           if (
             slot.m4DoneExpected &&
             JSON.stringify(message.m4Done) !== JSON.stringify(slot.m4DoneExpected)
-          ) {
-            reject(fail('worker transport final bookend'));
-            return;
-          }
+          )
+            throw fail('worker transport final bookend');
+          if (launch) loaderAuthority.noteM4GraphWorkerDone(launch, message);
           slot.phase = 'done';
           return;
         }
-        reject(fail('invalid READY/RUN/RESULT/STOP sequence'));
-      });
+        throw fail('invalid READY/RUN/RESULT/STOP sequence');
+      };
+      worker.on('message', message => void onMessage(message).catch(reject));
       worker.once('error', reject);
-      worker.once('exit', code =>
-        code === 0 && slot.phase === 'done'
-          ? exitResolve()
-          : reject(fail('exit before complete batch session'))
-      );
+      worker.once('exit', code => {
+        if (code !== 0 || slot.phase !== 'done') {
+          reject(fail('exit before complete batch session'));
+          return;
+        }
+        try {
+          if (launch) loaderAuthority.completeM4WorkerLoaderLaunch(launch, code);
+          exitResolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
     }
   } catch (error) {
     state.error = error;
   }
   return pool;
 }
+
+export function startGraphWorkerPool(repoRoot, loaderSession) {
+  if (!loaderSession) return buildPool(repoRoot);
+  return import(new URL('./db-access-m4-worker-loader-authority.mjs', import.meta.url)).then(
+    authority => buildPool(repoRoot, loaderSession, authority)
+  );
+}
+
 export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request) {
   const state = owned.get(pool);
-  if (!state || state.used || !Array.isArray(partitions) || !partitions.length)
-    throw fail('unowned or reused pool');
+  if (!state || state.used || !Array.isArray(partitions)) throw fail('unowned or reused pool');
+  if (!partitions.length && !m4Request) throw fail('empty ordinary partition');
+  if (Boolean(state.loaderSession) !== Boolean(m4Request)) throw fail('M4 loader/request mismatch');
   state.used = true;
   let m4Authority;
   if (m4Request) {
@@ -192,7 +189,8 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
     m4Authority.consumeM4WorkerRequest(m4Request, input);
     if (JSON.stringify(partitions.flat()) !== JSON.stringify(input.inventory.changed))
       throw fail('M4 incomplete root partition');
-    if (producerSeal() !== state.producerSeal) throw fail('producer changed before dispatch');
+    if (currentM4ProducerSeal() !== state.producerSeal)
+      throw fail('producer changed before dispatch');
   }
   if (state.error) throw state.error;
   await Promise.all(state.slots.map(slot => slot.ready));
@@ -246,7 +244,7 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
     throw fail('missing batch result');
   if (m4Request) {
     m4Authority.assertM4WorkerRequestCurrent(m4Request);
-    if (producerSeal() !== state.producerSeal)
+    if (currentM4ProducerSeal() !== state.producerSeal)
       throw fail('producer changed after worker completion');
     if (results.some(result => !receivedOutputs.has(result)))
       throw fail('changed/replaced received output');
@@ -267,6 +265,7 @@ export async function runOwnedGraphWorkerPool(pool, partitions, input, m4Request
     evidence.add(proof);
     evidenceSeals.set(proof, state.producerSeal);
     resultEvidence.set(results, { proof, output });
+    state.loaderAuthority.bindM4GraphLoaderEvidence(state.loaderSession, proof);
   }
   return results;
 }

@@ -146,6 +146,36 @@
             "assert.deepEqual(after.result[0].response, result.result)"
           ],
           "scope": "Exact returned completed envelope and durable operation UUID/result agree with stored assignment timestamp. Other inputs and private controller premises remain separate."
+        },
+        {
+          "id": "r2-ops-result-registration",
+          "factPath": "/derivations/controller/facts/ownedClauses/21",
+          "factSha256": "d8a7659243350dc43d04abd9719624178ab6a2674d0d0c657a96c67f6763e2f9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, result.result)",
+            "assert.equal(after.result.length, 1)"
+          ],
+          "scope": "A successful OPS call persists exactly its operation UUID and exact returned domain response in the single result row. This is a durable-value consequence; atomic rollback and all ledger fields have separate oracles."
+        },
+        {
+          "id": "r2-ops-completed-envelope",
+          "factPath": "/derivations/controller/facts/ownedClauses/22",
+          "factSha256": "14e252845ad1d33e3fc3d21e23998dc8aab34a9830aa3a13e578cc24d125374b",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(result, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: {\n          success: true,\n          data: { id, staffId: staff, assignedAt: after.claim[0].assignedAt.toISOString() },\n        },\n      })"
+          ],
+          "scope": "The successful OPS response has the exact completed/nonreplayed/original-ID envelope and assignedAt aligned with stored assignment state. Other denial/noop envelopes remain separately linked."
         }
       ]
     },
@@ -169,6 +199,39 @@
             "assert.deepEqual(opsAuditAttempt, { last_value: 2, is_called: true })"
           ],
           "scope": "A parent-owned fail-before-INSERT trigger and nontransactional sequence observe one legacy and exactly one genuine OPS audit attempt. OPS returns indeterminate; complete claim/audit/result state remains unchanged after drain and no OPS notice exists. Supplemental fixture sequence USAGE is not a production grant. No automatic retry or universal fault schedule is inferred."
+        },
+        {
+          "id": "r3-legacy-mandatory-audit-rollback",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/14",
+          "factSha256": "d1276b9fb88a84d08c2551da746a3a6046f5e70ee182c615310a70cf2aae1fb9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeLegacyAdmin', r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true })",
+            "assert.equal((await notification(r)).length, 0)"
+          ],
+          "scope": "The exact legacy request returns original-ID indeterminate under the owned audit fault, leaves full claim/audit/ledger state unchanged and records exactly one attempted audit INSERT. This does not substitute for the distinct OPS kernel audit path."
+        },
+        {
+          "id": "r3-shared-audit-fault-propagation",
+          "factPath": "/derivations/assignmentKernels/facts/shared/clauses/insertAssignmentAudit/0",
+          "factSha256": "820858292c5bd76b6a863dc8b32bdcddf7c65e25d3c331e3722e96b5af2326d2",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeLegacyAdmin', r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true })"
+          ],
+          "scope": "The shared audit INSERT is reached once by the legacy request and its injected database failure prevents durable assignment/result effects. The full audit row construction remains a separate source/runtime consequence."
         }
       ]
     },

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createM4EmailObserverFixtureFactory } from './db-access-m4-email-observer-fixture.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -14,9 +15,7 @@ import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract
 export function m4FixtureFailureSite(error) {
   const site = String(error?.stack ?? '')
     .split('\n')
-    .map(line =>
-      /^\s+at\s+.*\/(db-access-m4-runtime-fixture(?:-[a-z0-9-]+)?\.mjs):(\d+):(\d+)\)?$/u.exec(line)
-    )
+    .map(line => /^\s+at\s+.*\/(db-access-m4-[a-z0-9-]+\.mjs):(\d+):(\d+)\)?$/u.exec(line))
     .find(match => match && contract.fixtureFiles.includes(match[1]));
   return site ? { file: site[1], line: Number(site[2]), column: Number(site[3]) } : undefined;
 }
@@ -49,6 +48,12 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
   const destination = fs.realpathSync(output);
   assert(fs.statSync(destination).isDirectory());
   const { postgres, drizzle, migrate, serializeSignedCookie } = dependencies(root);
+  const openObserverFixture = createM4EmailObserverFixtureFactory({
+    root,
+    postgres,
+    serializeSignedCookie,
+    adminURL: target.href,
+  });
   const result = {
     version: 1,
     complete: false,
@@ -99,7 +104,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
         await runPrivateCases(active);
       } else {
         result.setupComplete = true;
-        await runProfileCases(active);
+        await runProfileCases({ ...active, openObserverFixture });
       }
       result.diagnostics[profiles ? 'profiles' : 'private'] = record;
       stage = profiles ? 'profiles-cleanup' : 'private-cleanup';
@@ -109,7 +114,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
       assert.equal(retired.complete, true, 'Fixture teardown failed');
     }
     assert.equal(result.privateCases.length, 15);
-    assert.equal(result.profileCases.length, 18);
+    assert.equal(result.profileCases.length, 20);
   } catch (error) {
     result.failure = {
       stage,
@@ -142,7 +147,7 @@ export async function runM4RuntimeFixture({ root, adminURL, output }) {
     result.setupComplete &&
     result.cleanupComplete &&
     result.privateCases.length === 15 &&
-    result.profileCases.length === 18 &&
+    result.profileCases.length === 20 &&
     result.remainingOwnedSessions === 0;
   return result;
 }

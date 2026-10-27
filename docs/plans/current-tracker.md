@@ -297,14 +297,14 @@ historical empty-assignee CAS and explicit restrictive visibility-fault missing-
 exact audit payload/rollback pass. Fault context is not ordinary production reachability.
 Evidence: `m4-ops-oracle-sql-qualification-v3`; actual-result review
 `e8a7324a25e9c838cb0db8a2adf88ab8da5e843212447d257853a403696ea42b`.
-At fae887f, 557 focused tests/security pass. Earlier 32-case 21.931s failure stays FAILED: parent
-postgres.Result versus Array mismatch before invoke; narrow normalization independently
-reproduced/fixed. Failure memory retains raw-column/result/type-witness omissions and
-comparisons. The image has 15 executable sources; two erased witnesses remain source-only;
-The exact two-file binding repair is source-tested; a fresh native/effect join and
-remaining control oracles are pending. 19 programs / 29 links / 168 refs are finite construction, not family qualification.
-Worker-loader mechanism feasibility passes locally; M4-06/L1 remains HOLD. All accepted
-debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
+The successor to 54c passes 598 focused tests/security; 35 cases are declared, not executed.
+Independent source reviews accept 31 programs / 62 links / 335 refs (265 distinct nodes);
+finite scopes retain 15 executable-image sources and two exact erased source-only witnesses.
+Earlier 32-case 21.931s Result/Array failure stays FAILED; normalization is reproduced/fixed.
+Failure memory retains raw-column/result/type/observer-EOF and loader opacity/cleanup findings;
+`m4-oracle-consolidation-v1` binds reviews and comparisons. Fresh native/effect and audit-payload
+semantic-negative pairs remain pending; loader source review passes, actual M4-06/L1 stays HOLD.
+Accepted debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 

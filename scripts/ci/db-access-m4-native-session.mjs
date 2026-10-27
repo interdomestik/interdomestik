@@ -21,6 +21,10 @@ import {
 import { isM4ContextInventory } from './db-access-m4-native-prerequisite.mjs';
 import { m4SourceMatchesModel } from './db-access-m4-proof-source.mjs';
 import { outputShape, sameOutputShape, freezeOutput } from './db-access-output-binding.mjs';
+import {
+  assertM4GraphLoaderEvidence,
+  assertM4WorkerLoaderSessionCurrent,
+} from './db-access-m4-worker-loader-authority.mjs';
 
 const sessions = new WeakMap();
 const fail = reason => {
@@ -49,7 +53,10 @@ function nativeCurrent(prepared) {
 // The sole minting path executes the fixed producer's preparation, owned workers and
 // finalization itself. Optional event input is authenticated before/after analysis;
 // there is no prepared/graph/receipt or alternate evaluator argument.
-export async function evaluateM4NativeSession(repoRoot, event, prior) {
+export async function evaluateM4NativeSession(repoRoot, event, prior, loaderSession) {
+  if (!loaderSession) fail('worker loader capability');
+  assertM4WorkerLoaderSessionCurrent(loaderSession, { candidate: repoRoot, event });
+  const loaderEvent = structuredClone(event);
   if (event) outputShape(event);
   const eventInput = event
     ? freezeOutput({
@@ -64,17 +71,23 @@ export async function evaluateM4NativeSession(repoRoot, event, prior) {
   const authorityDigest = currentM4SessionAuthority(prepared);
   const eventBinding = eventInput ? inspectM4NativeEvent(prepared, eventInput) : undefined;
   if (prior !== undefined) bindM4PriorPreparation(prior, prepared, eventInput);
-  const pool = startGraphWorkerPool(repoRoot);
+  const pool = await startGraphWorkerPool(repoRoot, loaderSession);
   try {
     const snapshot = graphSnapshot(prepared);
     const inventory = encodeInventory(prepared);
     const graph = await runParallelGraph(prepared, { snapshot, inventory }, pool);
     const workerOutputDigest = assertOwnedGraphOutput(graph);
+    assertM4GraphLoaderEvidence(loaderSession, graph.m4WorkerTransport);
     const rawGraph = {
       ...graph,
       incomplete: [...graph.incomplete],
       ...(graph.m4Contexts
-        ? { m4Contexts: { ...graph.m4Contexts, unresolved: [...graph.m4Contexts.unresolved] } }
+        ? {
+            m4Contexts: {
+              ...graph.m4Contexts,
+              unresolved: [...graph.m4Contexts.unresolved],
+            },
+          }
         : {}),
       reachedTestSources: [...graph.reachedTestSources],
     };
@@ -109,7 +122,11 @@ export async function evaluateM4NativeSession(repoRoot, event, prior) {
     });
     const outputValue = { graph, report: analysis.report, view };
     const output = outputShape(outputValue);
-    const handle = Object.freeze({ version: 1, id: randomUUID(), outputDigest: output.digest });
+    const handle = Object.freeze({
+      version: 1,
+      id: randomUUID(),
+      outputDigest: output.digest,
+    });
     sessions.set(handle, {
       prepared,
       graph,
@@ -130,6 +147,8 @@ export async function evaluateM4NativeSession(repoRoot, event, prior) {
       modelDigest: view.modelDigest,
       eventInput,
       eventBinding,
+      loaderSession,
+      loaderEvent,
     });
     return handle;
   } finally {
@@ -172,6 +191,11 @@ export function assertM4NativeSessionCurrent(handle) {
   if (currentM4SessionAuthority(prepared) !== state.authorityDigest)
     fail('changed current resolver/baseline/config authority');
   assertM4WorkerEvidenceCurrent(graph.m4WorkerTransport);
+  assertM4GraphLoaderEvidence(state.loaderSession, graph.m4WorkerTransport);
+  assertM4WorkerLoaderSessionCurrent(state.loaderSession, {
+    candidate: prepared.repoRoot,
+    event: state.loaderEvent,
+  });
   assertWorkerCode(prepared.repoRoot);
   if (
     prepared.model !== state.model ||
