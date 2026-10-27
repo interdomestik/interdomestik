@@ -278,32 +278,33 @@ legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs
 contexts, original occurrences, native admission and production C credit remain zero.
 
 M4-01 remains **partial**. Source `35e2c4ea5d15a00b94b6d610cacef60b5c031229`
-passes the genuine 28-SQL/owned-Worker/native pair in **275.700 seconds**, including
-healthy cleanup, with sampled aggregate peak **5,490,733,219 bytes**. Source/helper
-bookends and prior services are preserved; owned processes, PG and volumes retire.
-Receipt SHA-256:
-`9003dc76a0c3f041d13cc86c714c6f8089a95226cf844921dc9f11114818c2e8`.
-All **55 selected identities, 200 visited observations and 1,685 occurrences** are
-observed and serialized from the same validated native view. The new 200 entry
-attributions bind 736 unsafe emissions and 949 incomplete diagnostic occurrences
-to original index groups. Shared-key/unattributed remainders remain explicit;
-secondary namespace references grant no individual-row causal lineage. Original
-public entry/failure/diagnostic/unresolved arrays, order, multiplicity, mounts and
-root diagnostics are exactly equal to the qualified e50 positive: 7,709 scanned,
-3,792 new, 3,813 failing, 193,682 diagnostic tuples and 11,839,555 occurrences.
-The 171 open and 188 escaped observation flags remain unresolved. Selected-owner
-and descendant call/module/constructor/JSX/provenance diagnostics are still unlinked;
-the next bounded M4-01 step must attribute those emitter paths or establish explicit
-applicability, preserving unrelated global remainder. The canonical target is not
-narrowed to four emission kinds. Actual selected recursion/bound observations are
-zero; handling tests are not runtime coverage of those paths. Evidence is in
-`m4-context-attribution-full-v1`, including exact-row comparison and inspection.
-All 489 M4 and 74 graph regressions, security/modularity/format/plan checks and
-independent bounded source review pass. Initial modularity failure and cohesive
-extraction/test-split correction remain in `m4-failure-memory-v1/updates/M4-01-MOD-01.json`.
-All 235 producer descriptors match; seven exact descriptors change and other policy
-fields remain unchanged. Accepted old-ID/context/occurrence closures, admission and
-production C credit remain zero; M4-02 through M4-08 and S8 are not closed.
+passed the genuine 28-SQL/owned-Worker/native pair in **275.700 seconds**, with sampled
+peak **5,490,733,219 bytes**, healthy cleanup and preserved source/helpers/prior services.
+Receipt SHA-256: `9003dc76a0c3f041d13cc86c714c6f8089a95226cf844921dc9f11114818c2e8`.
+All 55 identities / 200 visited observations / 1,685 occurrences were serialized; 200 entry
+attributions link 736 unsafe emissions and 949 diagnostic occurrences.
+The original public entry/failure/diagnostic/unresolved arrays, order, multiplicity,
+mounts and roots equal e50 exactly:7709scanned/3792new/3813failing/193682tuples/
+11839555occurrences. The171open/188escaped flags remain unresolved. Full evidence and
+independent scoped acceptance are in `m4-context-attribution-full-v1`.
+The selected-owner/descendant omission now has a fixed collector observer, exception-safe owner/evaluation
+scopes, passive metadata peeks,
+exact legacy overlap and batch-local wire/projection. All 246 producer descriptors
+match;19 exact descriptor deltas preserve every other policy field and baseline604.
+All743 related regressions, security/modularity and changed-file formatting pass;
+independent source review permits bounded qualification, not admission. A stale
+parent/child overlap defect was found and fixed before model/native execution;
+`m4-failure-memory-v1/updates/M4-01-PATH-OVERLAP-01.json` retains the counterexample.
+Corrected finite trial-v2 takes10.049s/744275968-byte RSS: real independent factories
+preserve184 failures/290tuples/10318occurrences/118observations and all legacy rows.
+All 53 finite identities are observed; 8,848 path occurrences = 667 legacy overlap + 8,181 additional;
+1,470 off-path; 12 negatives refuse. Wrong old-descriptor and TS-mutation assumptions remain failed
+harness attempts in `m4-selected-path-authenticated-fixture-v1`.
+Internal aggregate query/build/work counts were not measured: facade wrapping breaks identity-sensitive
+memoization. Added peeks have actual-factory noninterference tests. Full Worker/native/55-identity
+path qualification remains pending; outside-scope/global applicability stays unresolved.
+No canonical target narrows to four entry kinds. Accepted old-ID/context/occurrence closures, admission
+and production C remain zero; M4-02 through08 and S8 stay open.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 

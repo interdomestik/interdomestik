@@ -52,6 +52,13 @@ export function fixture() {
     observations,
     selectedIdentities: ['unsafe', 'incomplete', 'unobserved'],
     attributions: collector.entries(),
+    pathDiagnostics: {
+      version: 1,
+      batches: [],
+      outsideScopeApplicability: 'unresolved',
+      runtimeAdmission: false,
+      allExecutableContextsQualified: false,
+    },
     frames: {},
     unresolved: incomplete,
   };

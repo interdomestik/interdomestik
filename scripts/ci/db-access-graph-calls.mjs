@@ -43,16 +43,23 @@ function inspectArgumentCallback({ references, origin, stack, depth, inspect, in
 }
 
 function inspectCoveredCall(params, coverage) {
-  const { model, scoped, node, origin, incomplete, visit } = params;
+  const { model, scoped, node, origin, incomplete, visit, census } = params;
   for (const alternative of coverage.alternatives)
-    if (alternative.kind === 'canonical-tx')
-      inspectCallChannels(
-        model,
-        scoped.forContext(alternative.context),
-        { callee: node.expression, args: node.arguments, invocation: node, call: node },
-        origin,
-        incomplete
-      );
+    if (alternative.kind === 'canonical-tx') {
+      const alternativeScoped = scoped.forContext(alternative.context);
+      const token = census?.enterEvaluation(alternative.context, node);
+      try {
+        inspectCallChannels(
+          model,
+          alternativeScoped,
+          { callee: node.expression, args: node.arguments, invocation: node, call: node },
+          origin,
+          incomplete
+        );
+      } finally {
+        census?.leaveEvaluation(token);
+      }
+    }
   // Preserve executable callback/container edges even if a source-local callee ignores them.
   for (const arg of node.arguments) inspectArgumentCallback(params, arg);
   ts.forEachChild(node, visit);

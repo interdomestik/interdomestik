@@ -33,6 +33,20 @@ export function createInvocationContexts(model, createFrame) {
         );
     return Object.freeze(result);
   }
+  // Undefined means unavailable; an available open binding retains callerContext: undefined.
+  // Read existing tokens only. Observing a frame must never create its caller context.
+  function peekBindingsFor(token) {
+    const frame = frames.get(token);
+    if (!frame) return undefined;
+    const result = [];
+    for (let scope = frame; scope; scope = scope.parent) {
+      const callerContext = tokens.get(scope.callerEnv);
+      if (scope.callerEnv != null && callerContext === undefined) return undefined;
+      for (const [parameter, argument] of scope.bindings ?? [])
+        result.push(Object.freeze({ parameter, argument, callerContext }));
+    }
+    return Object.freeze(result);
+  }
   function register(fn, call, callerEnv, bindings, callerRunning) {
     const frame = createFrame(fn.node, fn.env, { bindings, callerEnv, callerRunning });
     const closureBindings = new Map();
@@ -52,5 +66,5 @@ export function createInvocationContexts(model, createFrame) {
       }),
     };
   }
-  return { register, lookup, bindingsFor };
+  return { register, lookup, bindingsFor, peekBindingsFor };
 }

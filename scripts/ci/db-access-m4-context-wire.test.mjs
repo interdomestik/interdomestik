@@ -1,57 +1,61 @@
+import ts from 'typescript';
+import { pathFixture } from './db-access-m4-path-test-utils.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mergeM4ContextBatches } from './db-access-m4-context-wire.mjs';
 import { digest } from './db-access-trust.mjs';
-import {
-  owner,
-  observation,
-  entry,
-  collect,
-  incomplete,
-} from './db-access-m4-context-test-utils.mjs';
+import { entry } from './db-access-m4-context-test-utils.mjs';
 
 function wireFixture() {
-  const rows = ['root-a.ts', 'root-b.ts'].map(origin => observation({ origin, incomplete: true }));
-  const model = {
-    sources: new Map([[owner[0], 'fixture']]),
-    parsed: new Map([[owner[0], {}]]),
-    walk: (_sf, visit) => visit({ pos: 0, end: 100, kind: 262 }),
+  const fixtures = ['root-a.ts', 'root-b.ts'].map(pathFixture);
+  const model = fixtures[0].model;
+  model.sources = new Map([...model.parsed].map(([file, sf]) => [file, sf.text]));
+  model.walk = (sf, visit) => {
+    const walk = node => {
+      visit(node);
+      ts.forEachChild(node, walk);
+    };
+    walk(sf);
   };
-  const source = {
-    files: [owner[0]],
-    policyDigest: 'fixture-only',
-    bookends: {},
-  };
+  const source = { files: [...model.parsed.keys()], policyDigest: 'fixture-only', bookends: {} };
   const prepared = {
     model,
     providerUnit: { m4Proof: source },
     inventory: {
-      changed: new Set(rows.map(row => row.origin)),
-      entries: [entry(rows[0], 'unknown')],
+      changed: new Set(fixtures.map(f => f.batch.roots[0])),
+      entries: fixtures[0].batch.observations.map(row =>
+        entry(row, row.incomplete ? 'legacy' : undefined)
+      ),
     },
   };
-  const results = rows.map(row => {
-    const diagnostics = incomplete({ file: row.origin, reason: 'unknown' });
+  const results = fixtures.map(f => {
+    const row = f.batch.observations[0];
+    const bindings = f.batch.pathDiagnostics.frames[0].bindings.map(binding => ({
+      parameter: binding.parameter,
+      argument: binding.argument,
+      caller: null,
+    }));
     return {
+      ...f.result,
       failures: [],
-      incomplete: diagnostics,
       m4Contexts: {
         version: 1,
         sourcePolicyDigest: source.policyDigest,
         sourceBookends: source.bookends,
         modelDigest: digest(JSON.stringify([...model.sources])),
-        roots: [row.origin],
-        selectedIdentities: ['a'],
-        observations: [row],
-        frames: {},
-        unresolved: diagnostics,
-        attributions: collect([row], 'entry-incomplete', 'unknown'),
+        roots: f.batch.roots,
+        selectedIdentities: f.batch.observations.map(value => value.identity),
+        observations: f.batch.observations,
+        attributions: f.batch.attributions,
+        pathDiagnostics: f.batch.pathDiagnostics,
+        frames: { [row.context]: bindings },
+        unresolved: f.result.incomplete,
         allExecutableContextsQualified: false,
         runtimeAdmission: false,
       },
     };
   });
-  return { prepared, results, partitions: rows.map(row => [row.origin]) };
+  return { prepared, results, partitions: fixtures.map(f => f.batch.roots) };
 }
 
 test('wire merges partition-local sidecars and unchanged rows; partition replay is rejected', () => {
@@ -65,6 +69,13 @@ test('wire merges partition-local sidecars and unchanged rows; partition replay 
   assert.deepEqual(
     merged.observations,
     results.flatMap(result => result.m4Contexts.observations)
+  );
+  assert.equal(merged.pathDiagnostics.batches.length, 2);
+  assert.equal(merged.pathDiagnostics.batches[0].diagnostics.scopes[0].id, 'scope:0');
+  assert.equal(merged.pathDiagnostics.batches[1].diagnostics.scopes[0].id, 'scope:0');
+  assert.notDeepEqual(
+    merged.pathDiagnostics.batches[0].roots,
+    merged.pathDiagnostics.batches[1].roots
   );
   assert.equal(merged.runtimeAdmission, false);
   assert.equal(merged.allExecutableContextsQualified, false);

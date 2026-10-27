@@ -26,9 +26,9 @@ export const observation = (overrides = {}) => ({
 });
 export const entry = (row, reason) => ({
   identity: row.identity,
-  file: owner[0],
+  file: row.owner[0],
   tenantPosture: row.receiver,
-  _owner: { pos: 0, end: 100, kind: 262 },
+  _owner: { pos: row.owner[1], end: row.owner[2], kind: row.owner[3] },
   _incomplete: row.incomplete,
   _indirect: row.indirect,
   reason,

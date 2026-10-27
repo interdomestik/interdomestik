@@ -1,3 +1,4 @@
+import { createM4SelectedPathObserver } from './db-access-m4-selected-path-observer.mjs';
 import { createM4AttributionCollector } from './db-access-m4-context-attribution.mjs';
 import { digest } from './db-access-trust.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
@@ -42,12 +43,24 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
     frameRecords.set(key, values);
     return key;
   }
+  const path = createM4SelectedPathObserver({
+    isSelectedOwner: owner => owners.has(owner),
+    locate: node => locator(model, node),
+    peekBindings: token => provenance.dispatch?.peekBindingsFor?.(token),
+  });
   let rows, attribution;
   return Object.freeze({
     begin() {
       rows = new Map();
       attribution = createM4AttributionCollector();
+      path.begin();
     },
+    installDiagnostics: collector => path.installDiagnostics(collector),
+    enter: (owner, origin, invocation, context, definingContext) =>
+      path.enter(owner, origin, invocation, context, definingContext),
+    leave: token => path.leave(token),
+    enterEvaluation: (context, site) => path.enterEvaluation(context, site),
+    leaveEvaluation: token => path.leaveEvaluation(token),
     observe(owner, origin, invocation, context, definingContext, outcome) {
       const entries = owners.get(owner);
       if (!entries) return;
@@ -70,18 +83,22 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
           open: Boolean(state?.openFns.has(owner)),
           dispatchUnknown: [...(state?.reasons ?? [])].sort(),
         };
-        observed.set(entry, row);
         const key = JSON.stringify(row);
         const previous = rows.get(key);
         if (previous) previous.occurrences++;
         else rows.set(key, { ...row, occurrences: 1 });
+        observed.set(entry, rows.get(key));
       }
+      path.activate(observed);
       return observed;
     },
     attribute(observed, kind, reason, entry) {
       if (!observed) return;
       const selected = entry ? [observed.get(entry)].filter(Boolean) : [...observed.values()];
-      if (selected.length) attribution.add(selected, kind, reason);
+      if (selected.length) {
+        const key = attribution.add(selected, kind, reason);
+        if (kind !== 'entry-unsafe') path.legacy(key, selected[0].origin, reason);
+      }
     },
     finish(origins, incomplete) {
       if (!m4SourceMatchesModel(source, model) || !isM4ContextInventory(model, inventory, source))
@@ -95,6 +112,7 @@ export function createM4ContextCensus(model, provenance, inventory, source) {
         selectedIdentities: selected.map(row => row.identity),
         observations: [...rows.values()],
         attributions: attribution.entries(),
+        pathDiagnostics: path.finish(),
         frames: Object.fromEntries(frameRecords),
         unresolved: incomplete,
         allExecutableContextsQualified: false,

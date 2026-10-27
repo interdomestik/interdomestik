@@ -73,17 +73,24 @@ const emissionKey = row =>
     observationKeys: row.observationKeys,
   });
 
+export const m4AttributionKey = row => digest(emissionKey(row));
+
 // Pure additive data; neither this collector nor its output mints authority.
 // Actual construction occurs only at the selected graph's original emissions.
 export function createM4AttributionCollector() {
-  const rows = new Map();
+  const rows = new Map(),
+    keys = new Map();
   return {
     add(observations, kind, reason) {
       const value = record(observations, kind, reason),
         key = emissionKey(value);
       const prior = rows.get(key);
       if (prior) prior.occurrences = add(prior.occurrences, 1);
-      else rows.set(key, { ...value, occurrences: 1 });
+      else {
+        rows.set(key, { ...value, occurrences: 1 });
+        keys.set(key, digest(key));
+      }
+      return keys.get(key);
     },
     entries: () => [...rows.values()],
   };

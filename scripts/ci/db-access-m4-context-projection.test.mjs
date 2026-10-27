@@ -98,6 +98,7 @@ test('one owner recursion record is not multiplied by its affected identities', 
   collector.add(rows, 'owner-recursion', 'recursive executable edge');
   collector.add(rows, 'owner-recursion', 'recursive executable edge');
   native.rawGraph.m4Contexts = {
+    ...native.rawGraph.m4Contexts,
     roots: ['root.ts'],
     selectedIdentities: ['a', 'b'],
     observations: rows,

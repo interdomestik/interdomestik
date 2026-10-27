@@ -694,8 +694,8 @@
     },
     "scripts/ci/db-access-graph-core.mjs": {
       "mode": "100644",
-      "bytes": 12339,
-      "sha256": "3d24718958da73d4e42bfd1e104766427a1ea8a97ca0bb7f553b5074c73bc544"
+      "bytes": 3282,
+      "sha256": "b53cf2b246d6f1fb80595a223a74918cc3e99c9b9abd66496bbf727eba4238b6"
     },
     "scripts/ci/db-access-graph-roots.mjs": {
       "mode": "100644",
@@ -1284,8 +1284,8 @@
     },
     "scripts/ci/db-access-dispatch.mjs": {
       "mode": "100644",
-      "bytes": 11640,
-      "sha256": "17d254c06d50885b0452df5d8b7304dea7dce750f8fc605569f2e14ed63cb6bc"
+      "bytes": 11716,
+      "sha256": "3b41d9657be0bd983e4a9c87747f4ef5716445211333671d27e2a15031ee8b4f"
     },
     "scripts/ci/db-access-external.mjs": {
       "mode": "100644",
@@ -1309,8 +1309,8 @@
     },
     "scripts/ci/db-access-invocation-contexts.mjs": {
       "mode": "100644",
-      "bytes": 2056,
-      "sha256": "4fb1c24891d11e8d5054eb224295da6f8b89d0618c2f5232c18d42e537221aa4"
+      "bytes": 2769,
+      "sha256": "244ccd404f33bc00940c45dd71b87a7d5b766c6b7f9813f31d762c33b970985b"
     },
     "scripts/ci/db-access-invocation-effects.mjs": {
       "mode": "100644",
@@ -1344,8 +1344,8 @@
     },
     "scripts/ci/db-access-invocations.mjs": {
       "mode": "100644",
-      "bytes": 4837,
-      "sha256": "8551dd63233f22f1c2a039f9baaf44c008af416e263dbebf516eb3d5a528b756"
+      "bytes": 4897,
+      "sha256": "9e043270b4960e331224754c3a0dedd16b1024e83c7ef80da16e8c04eaf9148b"
     },
     "scripts/ci/db-access-m4-assignment.mjs": {
       "mode": "100644",
@@ -1484,13 +1484,13 @@
     },
     "scripts/ci/db-access-m4-context-census.mjs": {
       "mode": "100644",
-      "bytes": 4140,
-      "sha256": "e337fafebc0e776cea8efe1c481543023d97239af8e1d7aedc6891ad3c81fe71"
+      "bytes": 5048,
+      "sha256": "1ab3baf4751a6c266a3cf26cfb23a6bac0d956205ca42b05132cb4c0b1407856"
     },
     "scripts/ci/db-access-m4-context-wire.mjs": {
       "mode": "100644",
-      "bytes": 5771,
-      "sha256": "d93f51c27c094c6a6bdc1159bd59c169aa0bcdc46abb4262d78e4fe185f28cd1"
+      "bytes": 6231,
+      "sha256": "6e54bfd4bfcb2e76101430ab5a44529615855994e180e14e811043106d85875b"
     },
     "scripts/ci/db-access-m4-four-controller-ast.mjs": {
       "mode": "100644",
@@ -1849,13 +1849,68 @@
     },
     "scripts/ci/db-access-m4-context-projection.mjs": {
       "mode": "100644",
-      "bytes": 8812,
-      "sha256": "60ba7642d73f1689d1d4d5d9961f0855c83c04b478298f9a811e6de3114ac01b"
+      "bytes": 6330,
+      "sha256": "871e772c93761a19cebb4b1b1f68eaf9316cf66d3085e62a8ed5c5884ce05774"
+    },
+    "scripts/ci/db-access-graph-inspector.mjs": {
+      "mode": "100644",
+      "bytes": 10264,
+      "sha256": "addb89b7ea207df53ddc16ebd251c0e76967a19d4f6202f1df99c522965a8e22"
+    },
+    "scripts/ci/db-access-graph-calls.mjs": {
+      "mode": "100644",
+      "bytes": 7696,
+      "sha256": "3e527e5948204dfececfb1c1a57974a496cbea53d8f97dd3a01a24ef619a8642"
+    },
+    "scripts/ci/db-access-m4-path-limits.mjs": {
+      "mode": "100644",
+      "bytes": 302,
+      "sha256": "d42c8ae1bf2a9cc944c2e99e191e8ac7c374a7b179fc79610b98845f3dd3d527"
+    },
+    "scripts/ci/db-access-m4-path-metadata.mjs": {
+      "mode": "100644",
+      "bytes": 1720,
+      "sha256": "513b70879facf37b80ea05cad34c235ebd1ce09bedd697a68bc7fb7a15cffa16"
+    },
+    "scripts/ci/db-access-m4-path-scopes.mjs": {
+      "mode": "100644",
+      "bytes": 3746,
+      "sha256": "5605d55d07d71c478b0b46d34d7ace66babcd1588e7cb5746c473d501c198e54"
+    },
+    "scripts/ci/db-access-m4-path-storage.mjs": {
+      "mode": "100644",
+      "bytes": 2840,
+      "sha256": "21ce3c29f62c67f356b58dc0e986422f65ce2b8632c4ebe57a88cdfacbfdcdc7"
+    },
+    "scripts/ci/db-access-m4-selected-path-observer.mjs": {
+      "mode": "100644",
+      "bytes": 7082,
+      "sha256": "959ea30de9583333b998cada0249feb73ca06b824f98d62fd2d3dc5cbfdcc1ce"
+    },
+    "scripts/ci/db-access-m4-path-locators.mjs": {
+      "mode": "100644",
+      "bytes": 1418,
+      "sha256": "1d68d607f32245b4fc26c531ef10b8660edcec90c4774caf4d23f707fae9d50b"
+    },
+    "scripts/ci/db-access-m4-path-wire.mjs": {
+      "mode": "100644",
+      "bytes": 8887,
+      "sha256": "3faeda1d41b8e825936d158a776b4d2caf950353bd3373213921ae54c3bf17a3"
+    },
+    "scripts/ci/db-access-m4-context-index.mjs": {
+      "mode": "100644",
+      "bytes": 3565,
+      "sha256": "4a294779d92962597f2549960af254c9269074d73abae3f6c268a0b0e118b06d"
+    },
+    "scripts/ci/db-access-m4-path-projection.mjs": {
+      "mode": "100644",
+      "bytes": 3995,
+      "sha256": "e8420eab73d1e5b253ec9a6e935345a893084006b28416e68442950aba0c291d"
     },
     "scripts/ci/db-access-m4-context-attribution.mjs": {
       "mode": "100644",
-      "bytes": 9096,
-      "sha256": "aa0b7178283625356bc377306f54232ddb7c98db944f7ab7c3c857e8dfa72a4e"
+      "bytes": 9266,
+      "sha256": "f8944711ecea86f003c760f032b492eb707719740e6640cbdd5b39279c60aa5b"
     }
   },
   "runtimeEnforcement": {

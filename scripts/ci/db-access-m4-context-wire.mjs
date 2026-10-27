@@ -1,4 +1,5 @@
 import { validateM4Attributions } from './db-access-m4-context-attribution.mjs';
+import { validateM4PathDiagnostics } from './db-access-m4-path-wire.mjs';
 import { isUnsafe } from './db-access-inventory.mjs';
 import { digest } from './db-access-trust.mjs';
 
@@ -37,6 +38,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
   )
     fail('incomplete root partition');
   const attributions = [];
+  const pathBatches = [];
   const observations = [],
     frames = {};
   const locators = new Map();
@@ -60,7 +62,7 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     if (
       !keys(
         batch,
-        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations attributions frames unresolved allExecutableContextsQualified runtimeAdmission'
+        'version sourcePolicyDigest sourceBookends modelDigest roots selectedIdentities observations attributions pathDiagnostics frames unresolved allExecutableContextsQualified runtimeAdmission'
       ) ||
       batch.version !== 1 ||
       batch.sourcePolicyDigest !== source.policyDigest ||
@@ -129,6 +131,10 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
       observations.push(row);
     }
     validateM4Attributions(batch, entries, results[i]);
+    pathBatches.push({
+      roots: [...partitions[i]],
+      diagnostics: validateM4PathDiagnostics(batch, results[i], prepared.model),
+    });
     attributions.push(...batch.attributions);
   }
   return {
@@ -140,6 +146,13 @@ export function mergeM4ContextBatches(prepared, partitions, results) {
     selectedIdentities: selected.map(row => row.identity),
     observations,
     attributions,
+    pathDiagnostics: {
+      version: 1,
+      batches: pathBatches,
+      outsideScopeApplicability: 'unresolved',
+      runtimeAdmission: false,
+      allExecutableContextsQualified: false,
+    },
     frames,
     allExecutableContextsQualified: false,
     runtimeAdmission: false,
