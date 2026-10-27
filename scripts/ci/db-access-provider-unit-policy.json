@@ -2445,7 +2445,7 @@
     "scripts/ci/db-access-m4-mounted-p2-proof-contract.json": {
       "mode": "100644",
       "bytes": 14839,
-      "sha256": "0c0b13882792b33f3d83bd15485bf8e1c86cdc89f861141d66ae5b865820d087"
+      "sha256": "af4ee813d356d544970d1a73f65a5381672b18e6d887165b5891709dfce6e903"
     },
     "scripts/ci/db-access-m4-mounted-p2-proof.mjs": {
       "mode": "100644",

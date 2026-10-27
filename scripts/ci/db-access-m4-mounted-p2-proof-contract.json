@@ -38,8 +38,8 @@
     },
     "sourceFence": {
       "file": "scripts/ci/p2/source-fence.mjs",
-      "bytes": 1951,
-      "sha256": "85566c9bfed958ce027621e621ce9c86bff71770cae61201cd984c81b855f6d4"
+      "bytes": 2140,
+      "sha256": "197e4ebf4019d39f9e43bf256876816f33d669ef4b442135f06aa1283481a03e"
     },
     "ordinaryJob": {
       "file": "scripts/ci/p2/ordinary-job.mjs",
