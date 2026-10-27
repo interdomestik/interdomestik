@@ -2074,8 +2074,8 @@
     },
     "scripts/ci/db-access-m4-runtime-fixture-current-store.mjs": {
       "mode": "100644",
-      "bytes": 6875,
-      "sha256": "3be70e77ac68d683e65fe21c3fd11c0b538f516e778b5aa2785ed2afd1fee28d"
+      "bytes": 6893,
+      "sha256": "b61960e68effc7acfdccd7bd85e85b3c1783caffc2935caced85e0078eb863e5"
     },
     "scripts/ci/clean-coverage-artifacts.mjs": {
       "mode": "100644",

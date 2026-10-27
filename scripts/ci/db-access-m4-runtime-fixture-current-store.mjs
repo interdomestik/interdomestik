@@ -17,8 +17,8 @@ async function restoreSession(admin, saved, sentinelId) {
     await tx`set local lock_timeout='1000ms'`;
     await tx`delete from session where id=${sentinelId}`;
     await tx`insert into session(id,token,"userId","expiresAt","createdAt","updatedAt","ipAddress","userAgent")
-      values(${saved.id},${saved.token},${saved.userId},${saved.expires_at}::timestamp,
-        ${saved.created_at}::timestamp,${saved.updated_at}::timestamp,${saved.ipAddress},${saved.userAgent})
+      values(${saved.id},${saved.token},${saved.userId},${saved.expires_at}::text::timestamp,
+        ${saved.created_at}::text::timestamp,${saved.updated_at}::text::timestamp,${saved.ipAddress},${saved.userAgent})
       on conflict(id) do update set token=excluded.token,"userId"=excluded."userId",
         "expiresAt"=excluded."expiresAt","createdAt"=excluded."createdAt",
         "updatedAt"=excluded."updatedAt","ipAddress"=excluded."ipAddress","userAgent"=excluded."userAgent"`;
