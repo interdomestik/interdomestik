@@ -92,8 +92,8 @@ and report `0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
 | LOCAL-01  | Local construction / closed within scope  | Combined SQL/native execution, unchanged budget, source bookends and healthy cleanup: 287.966 seconds.                                                                    | Recorded receipt    |
 | LOCAL-02  | Local SQL / closed within scope           | Actual fixed 10 private + 18 profile SQL cases; private source/event/policy binding.                                                                                      | Recorded receipt    |
 | LOCAL-03  | Local proof fixture / closed within scope | Ordinary containment, V8 merge, existing line gate and one-use join; local origin only.                                                                                   | Recorded receipt    |
-| **M4-01** | **First M4 / partial, selected**          | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
-| M4-02     | First M4 / partial                        | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
+| **M4-01** | **Native accounting / closed**            | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
+| M4-02     | **First M4 / partial, selected**          | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
 | M4-03     | First M4 / open                           | Applicable current-store/auth, role/RLS, driver, SQL/schema/operator, compiler/intrinsic, TLS/endpoint and notifier premises qualified for each claimed context.          | M4-02               |
 | M4-04     | First M4 / open                           | Every affected historical/current ID, admin/agent/staff and ops mount, invocation and domain-effect lineage accounted; changed audit/noop/notification behavior explicit. | M4-01, M4-02        |
 | M4-05     | First M4 / open                           | Genuine ordinary-execution handle and exact source/assertion/context correspondence under the same protected source/policy/event; bounded consumer C0 remains.            | M4-02, M4-06        |
@@ -277,34 +277,31 @@ Six other OPS effects and five other source derivations remain unmapped; existin
 legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs,
 contexts, original occurrences, native admission and production C credit remain zero.
 
-M4-01 remains **partial**. Source `35e2c4ea5d15a00b94b6d610cacef60b5c031229`
-passed the genuine 28-SQL/owned-Worker/native pair in **275.700 seconds**, with sampled
-peak **5,490,733,219 bytes**, healthy cleanup and preserved source/helpers/prior services.
-Receipt SHA-256: `9003dc76a0c3f041d13cc86c714c6f8089a95226cf844921dc9f11114818c2e8`.
-All 55 identities / 200 visited observations / 1,685 occurrences were serialized; 200 entry
-attributions link 736 unsafe emissions and 949 diagnostic occurrences.
-The original public entry/failure/diagnostic/unresolved arrays, order, multiplicity,
-mounts and roots equal e50 exactly:7709scanned/3792new/3813failing/193682tuples/
-11839555occurrences. The171open/188escaped flags remain unresolved. Full evidence and
-independent scoped acceptance are in `m4-context-attribution-full-v1`.
-The selected-owner/descendant omission now has a fixed collector observer, exception-safe owner/evaluation
-scopes, passive metadata peeks,
-exact legacy overlap and batch-local wire/projection. All 246 producer descriptors
-match;19 exact descriptor deltas preserve every other policy field and baseline604.
-All743 related regressions, security/modularity and changed-file formatting pass;
-independent source review permits bounded qualification, not admission. A stale
-parent/child overlap defect was found and fixed before model/native execution;
-`m4-failure-memory-v1/updates/M4-01-PATH-OVERLAP-01.json` retains the counterexample.
-Corrected finite trial-v2 takes10.049s/744275968-byte RSS: real independent factories
-preserve184 failures/290tuples/10318occurrences/118observations and all legacy rows.
-All 53 finite identities are observed; 8,848 path occurrences = 667 legacy overlap + 8,181 additional;
-1,470 off-path; 12 negatives refuse. Wrong old-descriptor and TS-mutation assumptions remain failed
-harness attempts in `m4-selected-path-authenticated-fixture-v1`.
-Internal aggregate query/build/work counts were not measured: facade wrapping breaks identity-sensitive
-memoization. Added peeks have actual-factory noninterference tests. Full Worker/native/55-identity
-path qualification remains pending; outside-scope/global applicability stays unresolved.
-No canonical target narrows to four entry kinds. Accepted old-ID/context/occurrence closures, admission
-and production C remain zero; M4-02 through08 and S8 stay open.
+M4-01 is **closed within native accounting** on
+`ba8931f26bbb553ecd4bdf3ddfa8a11e5426f065`, following independent actual-result review.
+The genuine28SQL/owned-Worker/native pair passed in **267.157 seconds**, sampled peak
+**5,385,450,291 bytes**, healthy samplers/cleanup, preserved source/helpers/prior services.
+Receipt SHA-256:`955b0ed9575c437070eb29986640484921c5d35baf311d5cd97f24d4b2532ff8`.
+All55 identities/200 observations/1685entry occurrences and every legacy context,
+frame, attribution/root and original public obligation array equal35e exactly:
+7709scanned/3792new/3813failing/193682tuples/11839555occurrences, baseline604.
+Selected-path counts:13480=949legacy overlap+12531additional;334scopes/1450records,
+4available frames/139selections/613361encoded bytes. All479 original key groups
+retain265079grouped occurrences and every remainder; no individual-row causation is claimed.
+Twenty batches cover1250roots and all200 observation keys. The37original push sites
+retain their order, including26synchronous selected-lifetime sites in the reviewed tree.
+Wrapped11839539/offpath11826059 plus15raw unwrapped metadata occurrences and1final
+prerequisite occurrence remain explicit. Outside/global/deferred applicability and
+171open/188escaped flags stay unknown for M4-03; loader completeness stays M4-06.
+Full evidence:`m4-selected-path-full-v1`; independent review SHA-256:
+`d14d1deb31e768b872fef18c2922c49a8662dfbb5b8349ba9bfd3050809a1b97`.
+All246 descriptors match;19 reviewed deltas preserve other policy fields. All743
+related tests, security/modularity/changed-format and real finite parity pass.
+Stale-overlap and corrected harness failures remain in `m4-failure-memory-v1/updates`;
+internal aggregate work counters were NOT measured. No globalZERO prerequisite is added.
+M4-02 is selected next: preserve3effect/6assertion links; add genuine OPS denial/target-lock
+oracles and finite source-fact correspondence, without inventing missing/CAS execution.
+Accepted debt/context/occurrence closures, admission and production C stay0; remaining M4/S8 stay open.
 
 ### Urgent Next security remediation (26 October; delivery pending)
 
