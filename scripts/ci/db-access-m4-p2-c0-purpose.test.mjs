@@ -138,11 +138,17 @@ test('artifact dedicated fetch requires consumed private authority before any re
   });
   await assert.rejects(a.fetchM4C0OrdinaryCoverageArtifact({ context, token: 'unit-double' }, {}));
 });
-test('exact76 closure, source-bound dedicated adapter and unchanged60percent gate', async () => {
+test('exact77 closure, source-bound dedicated adapter and unchanged60percent gate', async () => {
   const { M4_P2_CLOSURE_FILES, assertM4P2ClosureNames } =
     await import('./db-access-m4-p2-closure.mjs');
-  assert.equal(M4_P2_CLOSURE_FILES.length, 76);
+  assert.equal(M4_P2_CLOSURE_FILES.length, 77);
   assertM4P2ClosureNames(M4_P2_CLOSURE_FILES);
+  assert(M4_P2_CLOSURE_FILES.includes('scripts/ci/p2/ordinary-coverage-domain.mjs'));
+  assert.throws(() =>
+    assertM4P2ClosureNames(
+      M4_P2_CLOSURE_FILES.filter(file => !file.endsWith('ordinary-coverage-domain.mjs'))
+    )
+  );
   assert.throws(() =>
     assertM4P2ClosureNames(M4_P2_CLOSURE_FILES.filter(x => !x.endsWith('ordinary-provenance.mjs')))
   );

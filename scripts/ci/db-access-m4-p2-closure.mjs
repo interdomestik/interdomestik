@@ -68,6 +68,7 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/materialize-producer.mjs',
   'scripts/ci/p2/observations.mjs',
   'scripts/ci/p2/ordinary-artifact.mjs',
+  'scripts/ci/p2/ordinary-coverage-domain.mjs',
   'scripts/ci/p2/ordinary-dispatch.mjs',
   'scripts/ci/p2/ordinary-job.mjs',
   'scripts/ci/p2/ordinary-provenance.mjs',
@@ -83,5 +84,5 @@ export function assertM4P2ClosureNames(names) {
     !Array.isArray(names) ||
     JSON.stringify([...names].sort()) !== JSON.stringify(M4_P2_CLOSURE_FILES)
   )
-    throw Error('M4 P2 exact76-file producer closure required');
+    throw Error('M4 P2 exact77-file producer closure required');
 }

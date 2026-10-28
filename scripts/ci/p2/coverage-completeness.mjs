@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { libCoverage } from './libraries.mjs';
+import { captureOrdinarySignedElseResidual } from './ordinary-coverage-domain.mjs';
 
 const fail = reason => {
   throw Error('P2 ordinary coverage incomplete: ' + reason);
@@ -33,7 +34,7 @@ function location(value) {
 
 // Validate complete Istanbul geometry/counter joins before the library can merge
 // or silently normalize data. End-column null is the real OXC JSON sentinel.
-export function validateOrdinaryGeometry(row) {
+export function validateOrdinaryGeometry(row, context = {}) {
   if (!object(row) || typeof row.path !== 'string') fail('file shape');
   const fields = new Set([
     'path',
@@ -111,12 +112,10 @@ export function validateOrdinaryGeometry(row) {
             sameKeys(value.end, []);
           if (!implicitElse) location(value);
         });
-        if (
-          !Array.isArray(counters[id]) ||
-          counters[id].length !== item.locations.length ||
-          counters[id].some(value => !count(value))
-        )
+        if (!Array.isArray(counters[id]) || counters[id].length !== item.locations.length)
           fail('branch counters');
+        if (counters[id].some(value => !count(value)))
+          captureOrdinarySignedElseResidual(row, id, context);
       } else if (!count(counters[id])) fail('counter');
     }
   }
@@ -154,18 +153,28 @@ function assertSummary(actual, expected) {
       wanted.total === 0 &&
       wanted.covered === 0 &&
       wanted.skipped === 0 &&
-      (value.pct === 100 || value.pct === 'Unknown');
+      (value.pct === 0 || value.pct === 100 || value.pct === 'Unknown');
     if (!validEmpty && value.pct !== wanted.pct) fail('summary/map percentage ' + metric);
   }
 }
 
-export function reconcileOrdinaryWebSummary({ coverage, summary, candidateRoot }) {
+export function reconcileOrdinaryWebSummary({
+  coverage,
+  summary,
+  candidateRoot,
+  trackedSourceEntries,
+  ordinaryArtifactIdentity,
+}) {
   const entries = Object.entries(coverage);
   const relativeFiles = entries.map(([file]) => path.relative(candidateRoot, file));
   if (!sameKeys(summary, ['total', ...relativeFiles])) fail('summary/map file identity');
   for (const [file, row] of entries) {
     if (row.path !== file) fail('source path identity');
-    validateOrdinaryGeometry(row);
+    validateOrdinaryGeometry(row, {
+      candidateRoot,
+      trackedSourceEntries,
+      ordinaryArtifactIdentity,
+    });
     assertSummary(
       summary[path.relative(candidateRoot, file)],
       libCoverage.createFileCoverage(row).toSummary().toJSON()

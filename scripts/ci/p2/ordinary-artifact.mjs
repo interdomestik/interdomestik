@@ -6,6 +6,10 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { validateOrdinaryGeometry } from './coverage-completeness.mjs';
+import {
+  ordinaryCoverageSourceClass,
+  captureOrdinaryCoverageDataBinding,
+} from './ordinary-coverage-domain.mjs';
 import { safeEnv } from '../db-access-provider-runtime-identity.mjs';
 const API = 'https://api.github.com/repos/interdomestik/interdomestik';
 const SHA = /^[a-f0-9]{40}$/u;
@@ -53,7 +57,13 @@ export function expectedCoverageFiles(domainPackages) {
     ...domainPackages.map(name => 'packages/' + name + '/coverage/coverage-summary.json'),
   ].sort();
 }
-export function normalizeOrdinaryCoverage({ bytes, candidateRoot, allowedSourceFiles }) {
+export function normalizeOrdinaryCoverage({
+  bytes,
+  candidateRoot,
+  allowedSourceFiles,
+  trackedSourceEntries,
+  ordinaryArtifactIdentity,
+}) {
   const coverage = parseUntrustedJSON(bytes);
   if (!coverage || typeof coverage !== 'object' || Array.isArray(coverage)) fail('coverage object');
   const allowed = new Set(allowedSourceFiles),
@@ -61,8 +71,7 @@ export function normalizeOrdinaryCoverage({ bytes, candidateRoot, allowedSourceF
   for (const [file, row] of Object.entries(coverage)) {
     if (
       !relative(file) ||
-      !file.startsWith('apps/web/src/') ||
-      !/\.[cm]?[jt]sx?$/u.test(file) ||
+      !ordinaryCoverageSourceClass(file) ||
       !allowed.has(file) ||
       !row ||
       row.path !== file
@@ -71,7 +80,13 @@ export function normalizeOrdinaryCoverage({ bytes, candidateRoot, allowedSourceF
     const full = path.join(candidateRoot, file);
     if (fs.realpathSync(full) !== full || !fs.lstatSync(full).isFile())
       fail('source symlink/nonfile');
-    validateOrdinaryGeometry(row);
+    if (ordinaryCoverageSourceClass(file) !== 'web-source')
+      captureOrdinaryCoverageDataBinding({ file, candidateRoot, trackedSourceEntries });
+    validateOrdinaryGeometry(row, {
+      candidateRoot,
+      trackedSourceEntries,
+      ordinaryArtifactIdentity,
+    });
     result[full] = { ...row, path: full };
   }
   return result;

@@ -83,8 +83,9 @@ All M4 roadmap row statuses below remain unchanged pending actual evidence.
 Live admin, agent and staff assignments now retain their earlier domain behavior. Four
 new regressions failed before restoration; the integrated focused run passes 43 tests
 and web type checking. The separate qualification adapters do not replace those live
-entry points. Current source is a dirty correction of producer `27b45dfd1`; neither
-that commit nor the older PR artifact identifies these new bytes.
+entry points. These corrections were committed and published as `3a8936e9b`.
+Later producer-only coverage-consumer corrections require their own clean source,
+fresh preparation and source/policy binding; publication alone supplies no acceptance.
 
 The integrated C0 correction requires a completed workflow and preserves its
 coverage-only authority. The private source registry passes its actual cross-module
@@ -111,8 +112,8 @@ retirement, and a TIME_WAIT port check. The last failure repeated an already kno
 cleanup mechanism in a second consumer; the corrected bind-and-listen check now
 passes real TIME_WAIT and occupied-port controls before the successful run.
 
-The original factory bridge is being constructed as a fresh separate nine-case
-bank alongside the current ten cases. It must satisfy the original context and
+The original factory bridge is integrated as a separate nine-case bank alongside
+the current ten cases. Fresh execution must satisfy the original context and
 multiplicity rules with fresh private custody; historical receipts cannot substitute.
 The first compiled Next fixture preparation failed on an exportless installed Babel
 package. A bounded resolver fixed that refusal; the next build exposed a physical
@@ -129,12 +130,14 @@ The reviewed compiled runtime/platform and contextual old-to-new bridge are now
 integrated locally. After correcting the standard test fixtures, all 1,284 M4
 contract tests pass, along with current web type checking and the security guard.
 The ordinary worker resource tests pass all five cases with unchanged production
-limits and cleanup assertions. The root producer policy contains 486 exact
-records in 130,635 canonical bytes; its 131,072-byte cap and baseline 604 are unchanged.
+limits and cleanup assertions. The coverage-consumer successor has 487 exact
+producer records in 130,786 canonical bytes; its 131,072-byte cap and baseline 604
+are unchanged. All 116 focused consumer controls and the retained full data replay
+pass before another expensive run.
 Independent review caught a mutable diagnostic import-table alias and TLS-private
 cleanup preceding explicit container-absence readback in the proposed outer helpers.
 Both corrected successors passed independent review and are integrated. The fixed
-76-file dual-bank namespace, 44-helper preparation closure and current supplemental
+77-file dual-bank namespace, 44-helper preparation closure and current supplemental
 checks are integrated with exact source-role and oracle bindings. The oracle keeps
 its seven derivations; the eighth strict-observation law is separately bound to
 the compiled construction. The three original live assignment cores remain source-only.
@@ -144,6 +147,23 @@ protected-epoch cohorts. Two production-CLI checks reach their unchanged 300-sec
 timeouts; the M4 fixture import, source-role and private-owner drift failures are
 separately reproduced and corrected. Passing the focused M4 suite does not turn the
 broader run, global guard, protected delivery or PR checks green.
+
+The first genuine preparation authenticated PR head `3a8936e9b`, actual merge
+`c627401bd`, completed CI run `40670095708`, its successful unit job and exact
+ordinary artifact `12808761791`. The failed overall workflow supplies coverage
+input only, with zero delivery/native credit. Two combined attempts remain failed:
+the first refused before allocation because the launch omitted required Python
+isolation flags; the corrected launch reached the genuine coverage consumer and
+refused its narrower file schema after 20.620 seconds including clean retirement.
+The actual artifact has 1,463 rows, including 269 authenticated tracked JSON/support
+rows. Pure data replay then exposed 536 empty-metric percentage representation
+differences and two signed implicit-else residuals from the pinned V8 converter.
+Counts, all branch slots and the 60% threshold remain unchanged. The signed values
+are reporter residuals, not execution counts or proof of false-branch execution.
+Finite consumer corrections and independent review precede another full run; no row
+may be discarded to obtain a pass. Both failed receipts, the original freeze and
+all 44 helper preimages are retained in `m4-genuine-failed-generation-a0c1e37e-v1`;
+the cause and recurrence controls are in `m4-failure-memory-v1/updates`.
 
 The next acceptance lane composes the current ten and original nine factory cases,
 39 local SQL cases, fresh compiled browser/backend containment and native contextual

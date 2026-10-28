@@ -41,12 +41,15 @@ function tracked(gitDir, commit) {
     ['--no-replace-objects', '--git-dir', gitDir, 'ls-tree', '-r', '-z', commit],
     { env: safeEnv, maxBuffer: 16 * 1024 * 1024, timeout: 30000 }
   ).toString('utf8');
-  return raw
+  const entries = raw
     .split('\0')
     .filter(Boolean)
-    .map(row => /^(100644|100755) blob [a-f0-9]{40}\t(.+)$/u.exec(row))
-    .filter(Boolean)
-    .map(m => m[2]);
+    .map(row => /^(100644|100755) blob ([a-f0-9]{40})\t(.+)$/u.exec(row))
+    .filter(Boolean);
+  return {
+    files: entries.map(m => m[3]),
+    sourceEntries: Object.fromEntries(entries.map(m => [m[3], { mode: m[1], blob: m[2] }])),
+  };
 }
 // Required workflow calls this pinned parent directly AFTER the separate ordinary
 // job. Candidate code is never spawned under this process's host identity.
@@ -74,7 +77,7 @@ async function runCoverage(givenOptions, purpose) {
     ordinaryRunAttempt,
   } = options;
   authenticateRuntimeContext(gitDir, context);
-  const files = tracked(gitDir, context.candidateCommit);
+  const { files, sourceEntries } = tracked(gitDir, context.candidateCommit);
   const domains = [
     ...new Set(
       files
@@ -104,12 +107,16 @@ async function runCoverage(givenOptions, purpose) {
     bytes: fs.readFileSync(path.join(extracted, 'apps/web/coverage/coverage-final.json')),
     candidateRoot,
     allowedSourceFiles: files,
+    trackedSourceEntries: sourceEntries,
+    ordinaryArtifactIdentity: identity,
   });
   // The original web denominator is required and reconciled before replacement.
   // Empty web coverage is valid only with its matching explicit empty summary.
   reconcileOrdinaryWebSummary({
     coverage: ordinary,
     candidateRoot,
+    trackedSourceEntries: sourceEntries,
+    ordinaryArtifactIdentity: identity,
     summary: parseUntrustedJSON(
       fs.readFileSync(path.join(extracted, 'apps/web/coverage/coverage-summary.json')),
       16 * 1024 * 1024
