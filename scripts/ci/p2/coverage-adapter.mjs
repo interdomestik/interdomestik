@@ -5,6 +5,11 @@ import { convert, parseAstAsync, libCoverage, libReport, reports } from './libra
 import ordinaryDenominator from './dist/ordinary-denominator.json' with { type: 'json' };
 import legacyDenominator from './legacy-bank/dist/ordinary-denominator.json' with { type: 'json' };
 import { composeP2Mapping, compile, sha } from './compose-mapping.mjs';
+import { validateOrdinaryGeometry } from './coverage-completeness.mjs';
+import {
+  ordinaryCoverageSourceClass,
+  captureOrdinaryCoverageDataBinding,
+} from './ordinary-coverage-domain.mjs';
 const converted = new WeakSet();
 const convertedRoots = new WeakMap();
 const sourceTexts = new WeakMap();
@@ -196,26 +201,35 @@ async function convertFixedCoverage(
   return result;
 }
 
-export function mergeP2Coverage({ ambientCoverage, p2Coverage, outputDirectory }) {
+export function mergeP2Coverage({
+  ambientCoverage,
+  p2Coverage,
+  outputDirectory,
+  trackedSourceEntries,
+  ordinaryArtifactIdentity,
+}) {
   if (!converted.has(p2Coverage))
     fail('coverage must be converted in this process; this is not run authority');
   const candidateRoot = convertedRoots.get(p2Coverage);
   const merged = libCoverage.createCoverageMap(ambientCoverage ?? {});
   for (const file of merged.files()) {
+    const relative = path.relative(candidateRoot, file);
+    const kind = ordinaryCoverageSourceClass(relative);
     if (
-      file !== p2Coverage.originalPath &&
-      (!file.startsWith(candidateRoot + '/') || !/\.[cm]?[jt]sx?$/u.test(file))
+      !file.startsWith(candidateRoot + '/') ||
+      path.join(candidateRoot, relative) !== file ||
+      !kind
     )
       fail('ambient report source outside fixed repository');
     const coverage = merged.fileCoverageFor(file).toJSON();
     if (coverage.path !== file) fail('ambient source path identity');
-    const counts = [
-      ...Object.values(coverage.s),
-      ...Object.values(coverage.f),
-      ...Object.values(coverage.b).flat(),
-    ];
-    if (counts.some(count => !Number.isSafeInteger(count) || count < 0))
-      fail('invalid ambient counts');
+    if (kind !== 'web-source')
+      captureOrdinaryCoverageDataBinding({ file: relative, candidateRoot, trackedSourceEntries });
+    validateOrdinaryGeometry(coverage, {
+      candidateRoot,
+      trackedSourceEntries,
+      ordinaryArtifactIdentity,
+    });
   }
   if (
     merged.files().includes(p2Coverage.originalPath) &&

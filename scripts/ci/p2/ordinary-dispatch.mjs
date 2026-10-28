@@ -77,7 +77,7 @@ async function runCoverage(givenOptions, purpose) {
     ordinaryRunAttempt,
   } = options;
   authenticateRuntimeContext(gitDir, context);
-  const { files, sourceEntries } = tracked(gitDir, context.candidateCommit);
+  const { files, sourceEntries: trackedSourceEntries } = tracked(gitDir, context.candidateCommit);
   const domains = [
     ...new Set(
       files
@@ -103,20 +103,18 @@ async function runCoverage(givenOptions, purpose) {
     outputDirectory: path.join(owned, 'ordinary'),
     producerRoot,
   });
+  const coverageContext = { trackedSourceEntries, ordinaryArtifactIdentity: identity };
   const ordinary = normalizeOrdinaryCoverage({
     bytes: fs.readFileSync(path.join(extracted, 'apps/web/coverage/coverage-final.json')),
     candidateRoot,
     allowedSourceFiles: files,
-    trackedSourceEntries: sourceEntries,
-    ordinaryArtifactIdentity: identity,
+    ...coverageContext,
   });
-  // The original web denominator is required and reconciled before replacement.
-  // Empty web coverage is valid only with its matching explicit empty summary.
+  // Reconcile the full original denominator, including an explicitly matched empty summary.
   reconcileOrdinaryWebSummary({
     coverage: ordinary,
     candidateRoot,
-    trackedSourceEntries: sourceEntries,
-    ordinaryArtifactIdentity: identity,
+    ...coverageContext,
     summary: parseUntrustedJSON(
       fs.readFileSync(path.join(extracted, 'apps/web/coverage/coverage-summary.json')),
       16 * 1024 * 1024
@@ -154,6 +152,7 @@ async function runCoverage(givenOptions, purpose) {
       });
       originalFactoryMerged = mergeP2Coverage({
         ambientCoverage: ordinary,
+        ...coverageContext,
         p2Coverage: converted,
         outputDirectory: path.join(owned, 'original-factory-merged'),
       });
@@ -184,6 +183,7 @@ async function runCoverage(givenOptions, purpose) {
     }
     const merged = mergeP2Coverage({
       ambientCoverage: originalFactoryMerged.coverageMap,
+      ...coverageContext,
       p2Coverage,
       outputDirectory: path.join(reportRoot, 'apps/web/coverage'),
     });

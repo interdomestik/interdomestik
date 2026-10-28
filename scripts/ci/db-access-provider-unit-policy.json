@@ -2239,8 +2239,8 @@
     },
     "scripts/ci/p2/coverage-adapter.mjs": {
       "mode": "100644",
-      "bytes": 9988,
-      "sha256": "ab439df7457665398e5b174c40cf811332ed3cb510aeaf04871eadc4314533fe"
+      "bytes": 10347,
+      "sha256": "f863ce628fc6f32e3a1e4fdf6cc3aff51fd9da14f5c80551dbc8e79b84a51409"
     },
     "scripts/ci/p2/coverage-completeness.mjs": {
       "mode": "100644",
@@ -2339,8 +2339,8 @@
     },
     "scripts/ci/p2/ordinary-dispatch.mjs": {
       "mode": "100644",
-      "bytes": 11420,
-      "sha256": "1387b03668e82c5db59c69d691e5dab1a13376cd5641bc3876953dc126dc9ca4"
+      "bytes": 11402,
+      "sha256": "4cc4320537a6795f55ae85ecc2833e236e079764629be9d11a82b9dd4ff1a796"
     },
     "scripts/ci/p2/ordinary-job.mjs": {
       "mode": "100644",

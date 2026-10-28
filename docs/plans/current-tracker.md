@@ -127,11 +127,11 @@ failure traces. Its exact static 66-package supplier is freshly authenticated an
 materialized for the next compiled run; it grants no reuse of old runtime receipts.
 
 The reviewed compiled runtime/platform and contextual old-to-new bridge are now
-integrated locally. After correcting the standard test fixtures, all 1,284 M4
-contract tests pass, along with current web type checking and the security guard.
+integrated locally. At source checkpoint `3a8936e9b`, all 1,284 M4 contract tests,
+web type checking and the security guard passed after the test-fixture corrections.
 The ordinary worker resource tests pass all five cases with unchanged production
 limits and cleanup assertions. The coverage-consumer successor has 487 exact
-producer records in 130,786 canonical bytes; its 131,072-byte cap and baseline 604
+producer records in 130,787 canonical bytes; its 131,072-byte cap and baseline 604
 are unchanged. All 116 focused consumer controls and the retained full data replay
 pass before another expensive run.
 Independent review caught a mutable diagnostic import-table alias and TLS-private
@@ -151,7 +151,7 @@ broader run, global guard, protected delivery or PR checks green.
 The first genuine preparation authenticated PR head `3a8936e9b`, actual merge
 `c627401bd`, completed CI run `40670095708`, its successful unit job and exact
 ordinary artifact `12808761791`. The failed overall workflow supplies coverage
-input only, with zero delivery/native credit. Two combined attempts remain failed:
+input only, with zero delivery/native credit. Four combined attempts remain failed:
 the first refused before allocation because the launch omitted required Python
 isolation flags; the corrected launch reached the genuine coverage consumer and
 refused its narrower file schema after 20.620 seconds including clean retirement.
@@ -160,10 +160,31 @@ rows. Pure data replay then exposed 536 empty-metric percentage representation
 differences and two signed implicit-else residuals from the pinned V8 converter.
 Counts, all branch slots and the 60% threshold remain unchanged. The signed values
 are reporter residuals, not execution counts or proof of false-branch execution.
-Finite consumer corrections and independent review precede another full run; no row
-may be discarded to obtain a pass. Both failed receipts, the original freeze and
-all 44 helper preimages are retained in `m4-genuine-failed-generation-a0c1e37e-v1`;
-the cause and recurrence controls are in `m4-failure-memory-v1/updates`.
+The consumer-input repair was committed as `51633daf3` on the producer branch,
+retaining the real PR head/merge and artifact. Its next run exposed a P2 monitor
+schema mismatch after 21.841 seconds: genuine export descriptors contain SHA/mode,
+while the helper expected byte lengths, and its 72-file subtree omitted the new
+73rd member. That failed receipt retains three cleanup errors. Separate verified
+recovery removed only its exited compile container and restored all 34 prior
+containers and 305 volumes. The corrected accounting authenticates byte lengths
+from the frozen policy and checks both projections before resource allocation.
+
+The fourth run passed all nine original and ten current P2 cases with healthy
+monitoring and complete owned cleanup, then failed after 40.419 seconds at a second
+coverage-domain check in the downstream merger. This is a repeated coverage-family
+failure: the earlier replay stopped before that consumer. The full-run hold remains
+until the complete pure coverage path passes. The reviewed correction now passes
+61 focused controls, both actual conversions/merges/report writers, complete web
+summary reconciliation, all 19 package summaries and the unchanged 60% floor.
+All 1,463 raw ordinary rows remain; only the two fixed P2 targets change, including
+the legitimate 13-line target addition. Final ordinary-data coverage is
+29,749/35,993 (82.65%); this is not an M4 completion percentage or runtime admission.
+Private handle/DTO refusals remain enforced. No row or counter is dropped to pass.
+
+Every failed receipt and all 44 helper preimages for each generation are retained
+in the `m4-genuine-failed-generation-*` archives. The repeated family and scoped
+accounting resolution are recorded in `m4-failure-memory-v1/updates` and the
+diagnostic `m4-failure-memory-v2` successor; the original history is unchanged.
 
 The next acceptance lane composes the current ten and original nine factory cases,
 39 local SQL cases, fresh compiled browser/backend containment and native contextual
@@ -450,7 +471,7 @@ No association is inferred merely because rows share a file or diagnostic label.
 | Unmapped proof relations       | All five pair correspondences remain unmapped; local runtime success supplies zero accepted coverage.                | Close M4-01 through M4-08 with actual private relations; artifacts/tests alone never count as obligation closure.                                                                  |
 
 Before another expensive run, compare its planned cause and changed mechanism with
-`m4-failure-memory-v1/history.json` using the supporting read-only `compare.py`.
+`m4-failure-memory-v2/history.json` using its supporting read-only `compare.py`.
 Record the changed-cause evidence hash, focused regression result and decisive
 acceptance condition. A new commit alone is insufficient. A repeated failure reopens
 its linked row and requires a focused reproducer/fix before another heavy attempt.
