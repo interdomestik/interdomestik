@@ -6,20 +6,26 @@
   "shards": [
     {
       "file": "scripts/ci/db-access-m4-lineage-catalog-frontier.json",
-      "sha256": "6fbed41ab2b5db8eee20a47950ed8e14f2b65b3ddcaf43e475f2245215340977",
-      "bytes": 12073,
+      "sha256": "202bc8acadc50f713c522aaee192a502b37203de1b4f406473ea1b6e333c2b1c",
+      "bytes": 13342,
       "mode": "100644"
     },
     {
       "file": "scripts/ci/db-access-m4-lineage-catalog-sites-1.json",
-      "sha256": "4ea97b06b3494694a9cbf322267a1f91ed2399cac2c8304a72f8555e01e42975",
-      "bytes": 36930,
+      "sha256": "f2e9606df502e5d515a1fc1c61973fa687034f8f2916fcd030bb981ea46c2eb3",
+      "bytes": 40889,
       "mode": "100644"
     },
     {
       "file": "scripts/ci/db-access-m4-lineage-catalog-sites-2.json",
-      "sha256": "726daf8c7e817de3b4913ba9e9a41bfb1a507fae4724e698615991bea7693605",
-      "bytes": 118255,
+      "sha256": "3440e8554e28a5eb722adef63222732d17ef3b333434abdd591505c79caabdde",
+      "bytes": 117926,
+      "mode": "100644"
+    },
+    {
+      "file": "scripts/ci/db-access-m4-lineage-catalog-sites-3.json",
+      "sha256": "e403f31d5dc87e8de2b3648f26ff7872030d3f11010541256960c270594dd07b",
+      "bytes": 9547,
       "mode": "100644"
     }
   ],
@@ -27,5 +33,7 @@
   "productionCCredit": 0,
   "historicalIdentitySelection": false,
   "parserVersion": "5.9.3",
-  "reconstructedSha256": "8e75c18ce8085fd0cf4692f02cdbc77d2cd6f5ddd550259c62abff886cc4d8f4"
+  "reconstructedSha256": "dfa409fe00fcabbf1ffd2be283733ffd033308083a0496c1538a8fdb21c2479c",
+  "sourceClass": "retained-live-with-qualification-only-tls-v1",
+  "historicalCatalogReference": "16fe6ea2cb5642f832ccf9ccc71a121bac1836210b8d58df1129f5ae4c07722c"
 }

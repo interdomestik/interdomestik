@@ -26,7 +26,7 @@ export const bootstrapFixture = () =>
 export function dispatchFixture(context) {
   return lexical(
     'ordinary-dispatch.mjs',
-    `({takeFreshP2CoverageForJoin,takeFreshM4C0CoverageForJoin,seed:(r,p)=>freshCoverageResults.set(r,{purpose:p,context:JSON.stringify(${JSON.stringify(context)}),consumed:false,evidence:{nativeAdmission:false}})})`
+    `({takeFreshP2CoverageForJoin,takeFreshM4C0CoverageForJoin,seed:(r,p)=>freshCoverageResults.set(r,{purpose:p,context:JSON.stringify(${JSON.stringify(context)}),consumed:false,assertInputCurrent(){},evidence:{nativeAdmission:false}})})`
   );
 }
 export const artifactFixture = dependencies =>

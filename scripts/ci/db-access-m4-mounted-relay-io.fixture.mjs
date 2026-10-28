@@ -265,7 +265,7 @@ export async function relayIO() {
     [opsRoot + 'm4-private-runtime.ts']:
       'export const createM4PrivateAssignmentRuntime=c=>' +
       ref +
-      '.makeRuntime("production");export const createM4LocalQualificationAssignmentRuntime=c=>' +
+      '.makeRuntime("production");export const createM4ObservedPrivateAssignmentRuntime=()=>{throw Error("unit fixture forbids strict observed runtime")};export const takeM4StrictAssignmentContexts=()=>{throw Error("unit fixture cannot mint strict owner evidence")};export const createM4LocalQualificationAssignmentRuntime=c=>' +
       ref +
       '.makeRuntime("local");export const takeM4OwnedAssignmentContexts=r=>' +
       ref +

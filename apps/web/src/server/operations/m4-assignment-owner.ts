@@ -1,5 +1,8 @@
+import { captureOwnerConfiguration } from './m4-assignment-owner-capture';
 import {
   createM4PrivateAssignmentRuntime,
+  createM4ObservedPrivateAssignmentRuntime,
+  takeM4StrictAssignmentContexts,
   createM4LocalQualificationAssignmentRuntime,
   takeM4OwnedAssignmentContexts,
 } from './m4-private-runtime';
@@ -51,36 +54,13 @@ type OwnerState = {
   closing?: Promise<void>;
 };
 const qualifiedOwners = new WeakMap<object, OwnerState>();
-function captureOwnerConfiguration(configuration: M4AssignmentOwnerConfiguration, local: boolean) {
-  const { runtime, tls, host, port, relayDeadlineMs } = configuration;
-  if (
-    host !== '127.0.0.1' ||
-    !Number.isInteger(port) ||
-    port < (local ? 0 : 1) ||
-    port > 65535 ||
-    typeof tls.key !== 'string' ||
-    tls.key.length > 65536 ||
-    typeof tls.cert !== 'string' ||
-    tls.cert.length > 65536 ||
-    !tls.key.includes('PRIVATE KEY-----') ||
-    !tls.cert.includes('-----BEGIN CERTIFICATE-----') ||
-    !Number.isSafeInteger(relayDeadlineMs) ||
-    relayDeadlineMs < 1 ||
-    relayDeadlineMs > 2147483647
-  )
-    throw new Error('Invalid fixed assignment owner configuration');
-  return Object.freeze({
-    runtime: Object.freeze({ ...runtime }),
-    tls: Object.freeze({ ...tls }),
-    host,
-    port,
-    relayDeadlineMs,
-  });
-}
+const strictOwners = new WeakMap<object, OwnerState>();
+const strictOwnerRequests = new WeakSet<object>();
 async function listen(
   runtime: M4PrivateAssignmentRuntime,
   configuration: ReturnType<typeof captureOwnerConfiguration>,
-  localQualification: boolean
+  localQualification: boolean,
+  strictBudget?: { used: number; refused: boolean }
 ) {
   let listener: ReturnType<typeof createM4AssignmentOwnerListener>;
   try {
@@ -88,7 +68,8 @@ async function listen(
       runtime,
       configuration.tls,
       configuration.relayDeadlineMs,
-      localQualification
+      localQualification,
+      strictBudget
     );
   } catch (error) {
     await runtime.close();
@@ -149,10 +130,60 @@ async function listen(
 export async function startM4PrivateAssignmentOwner(
   configuration: M4AssignmentOwnerConfiguration
 ): Promise<M4AssignmentOwner> {
+  const observed = strictOwnerRequests.delete(configuration);
   const captured = captureOwnerConfiguration(configuration, false);
-  const runtime = createM4PrivateAssignmentRuntime(captured.runtime);
-  const owner = await listen(runtime, captured, false);
-  return Object.freeze({ origin: owner.origin, close: owner.close });
+  const runtime = observed
+    ? createM4ObservedPrivateAssignmentRuntime(captured.runtime)
+    : createM4PrivateAssignmentRuntime(captured.runtime);
+  const owner = await listen(
+    runtime,
+    captured,
+    false,
+    observed ? { used: 0, refused: false } : undefined
+  );
+  const handle = Object.freeze({ origin: owner.origin, close: owner.close });
+  if (observed) strictOwners.set(handle, owner.state);
+  return handle;
+}
+// The request identity is lexical and survives only through this actual named entry.
+export async function startM4ObservedPrivateAssignmentOwner(
+  configuration: M4AssignmentOwnerConfiguration
+): Promise<M4AssignmentOwner> {
+  const captured = captureOwnerConfiguration(configuration, false);
+  strictOwnerRequests.add(captured);
+  try {
+    return await startM4PrivateAssignmentOwner(captured);
+  } finally {
+    strictOwnerRequests.delete(captured);
+  }
+}
+export function takeM4StrictAssignmentOwnerContexts(handle: object) {
+  const state = strictOwners.get(handle);
+  if (
+    !state ||
+    !state.closed ||
+    !state.drained ||
+    state.listener.work.size ||
+    state.clients.size ||
+    state.listener.connections.size ||
+    state.listener.retirements.size ||
+    state.listener.refused ||
+    !state.runtime
+  )
+    throw new Error('Actual closed drained strict assignment HTTPS owner required');
+  const contexts = takeM4StrictAssignmentContexts(state.runtime);
+  strictOwners.delete(handle);
+  state.runtime = undefined;
+  return Object.freeze({
+    version: 1,
+    localQualificationOnly: false,
+    constructorName: 'startM4PrivateAssignmentOwner' as const,
+    loopbackQualification: false,
+    contexts,
+    transport: Object.freeze({
+      rows: Object.freeze(state.listener.rows.map(row => Object.freeze({ ...row }))),
+    }),
+  });
 }
 // Separate fixed qualification constructor; no network request or startup mode chooses it.
 export async function startM4LocalQualificationAssignmentOwner(

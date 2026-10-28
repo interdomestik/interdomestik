@@ -16,7 +16,7 @@ const completed = (changed, result = { success: true, error: undefined }) => ({ 
 await materializeMocks();
 const relay = getMock("@/server/operations/m4-assignment-relay");
 const { revalidatePath } = getMock('next/cache');
-const { assignClaimCore } = await import('./wrapper.mjs');
+const { executeM4QualificationAdminAssignment: assignClaimCore } = await import('./wrapper.mjs');
 describe('admin assignment relay adapter', () => {
     beforeEach(() => vi.clearAllMocks());
     it('calls only the literal admin relay with bounded request inputs', async () => {

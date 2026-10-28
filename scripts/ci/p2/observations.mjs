@@ -10,19 +10,25 @@ function keys(value, expected) {
     throw Error('P2 observation shape');
 }
 export function validateP2Observation(raw, oracle, generatedJs) {
+  return validateFixedObservation(raw, oracle, generatedJs, 10, 'admin assignment relay adapter');
+}
+export function validateLegacyP2Observation(raw, oracle, generatedJs) {
+  return validateFixedObservation(raw, oracle, generatedJs, 9, 'assignClaimCore (Wrapper Means)');
+}
+function validateFixedObservation(raw, oracle, generatedJs, count, suiteName) {
   if (!(raw instanceof Uint8Array) || raw.byteLength > 65536)
     throw Error('P2 observation byte cap');
   const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw));
   keys(value, ['kind', 'cases', 'suites', 'coverage']);
   if (value.kind !== 'untrusted-wrapper-observations-v2') throw Error('P2 observation kind');
   const expected = oracle.tests.map(test => ({ name: test.name, state: 'pass' }));
-  if (expected.length !== 10 || JSON.stringify(value.cases) !== JSON.stringify(expected))
-    throw Error('P2 exact ten cases');
+  if (expected.length !== count || JSON.stringify(value.cases) !== JSON.stringify(expected))
+    throw Error('P2 exact ' + (count === 10 ? 'ten' : 'nine') + ' cases');
   if (
     JSON.stringify(value.suites) !==
     JSON.stringify([
       { name: 'wrapper.test.mjs', state: 'pass' },
-      { name: 'admin assignment relay adapter', state: 'pass' },
+      { name: suiteName, state: 'pass' },
     ])
   )
     throw Error('P2 suite states');

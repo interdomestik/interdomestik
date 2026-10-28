@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { P2_SOURCE } from './source-fence.mjs';
+import { P2_SOURCES } from './source-fence.mjs';
 import { expectedCoverageFiles, parseUntrustedJSON } from './ordinary-artifact.mjs';
 const reporters = [
   '--coverage.reporter=text',
@@ -15,7 +15,7 @@ const reporters = [
 ];
 const repo = path.resolve(import.meta.dirname, '../../..');
 export function renderOrdinaryConfig(root) {
-  return `import base from ${JSON.stringify(pathToFileURL(path.join(root, 'apps/web/vitest.config.ts')).href)};\nimport {p2SourceFence} from ${JSON.stringify(pathToFileURL(path.join(repo, 'scripts/ci/p2/source-fence.mjs')).href)};\nexport default {...base,plugins:[p2SourceFence(${JSON.stringify(root)}),...(base.plugins??[])],test:{...base.test,exclude:[...(base.test.exclude??[]),'src/actions/admin-claims/assign.wrapper.test.ts']}};\n`;
+  return `import base from ${JSON.stringify(pathToFileURL(path.join(root, 'apps/web/vitest.config.ts')).href)};\nimport {p2SourceFence} from ${JSON.stringify(pathToFileURL(path.join(repo, 'scripts/ci/p2/source-fence.mjs')).href)};\nexport default {...base,plugins:[p2SourceFence(${JSON.stringify(root)}),...(base.plugins??[])],test:{...base.test,exclude:[...(base.test.exclude??[]),${P2_SOURCES.map(file => JSON.stringify(file.slice('apps/web/'.length))).join(',')}]}};\n`;
 }
 async function child(args) {
   const p = spawn('pnpm', args, { cwd: repo, env: process.env, stdio: 'inherit' });
@@ -122,7 +122,7 @@ export async function runOrdinaryCoverageJob() {
       candidateCommit: commit,
       candidateTree: tree,
       headCommit: head,
-      excludedSources: [P2_SOURCE],
+      excludedSources: [...P2_SOURCES],
       coverageThresholdPendingProtectedMerge: true,
     }) + '\n'
   );
@@ -131,7 +131,7 @@ export async function runOrdinaryCoverageJob() {
   console.log(
     JSON.stringify({
       artifactPrepared: true,
-      excludedSources: [P2_SOURCE],
+      excludedSources: [...P2_SOURCES],
       requiredCoverageGatePending: true,
       nativeAdmission: false,
     })

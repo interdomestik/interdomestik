@@ -1,114 +1,248 @@
+import * as audit from '@/lib/audit';
+import * as notifications from '@/lib/notifications';
+import * as domainAssign from '@interdomestik/domain-claims/agent-claims/assign';
+import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignClaimCore } from './assign.core';
-import * as relay from '@/server/operations/m4-assignment-relay';
-import { revalidatePath } from 'next/cache';
-vi.mock('@/server/operations/m4-assignment-relay', async () => ({
-  ...(await vi.importActual<typeof import('@/server/operations/m4-assignment-relay')>(
-    '@/server/operations/m4-assignment-relay'
-  )),
-  relayLegacyAdminAssignment: vi.fn(),
+
+vi.mock('@interdomestik/domain-claims/agent-claims/assign', () => ({
+  assignClaimCore: vi.fn(),
 }));
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-const operationId = '00000000-0000-4000-8000-000000000001';
-const params = {
-  claimId: 'claim1',
-  staffId: 'staff1',
-  requestHeaders: new Headers({ cookie: 'original' }),
-  operationId,
-};
-const completed = (
-  changed: boolean,
-  result = { success: true as boolean, error: undefined as string | undefined }
-) => ({ status: 'completed' as const, operationId, replayed: false, result, changed });
-describe('admin assignment relay adapter', () => {
-  beforeEach(() => vi.clearAllMocks());
-  it('calls only the literal admin relay with bounded request inputs', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce(completed(true) as never);
-    await assignClaimCore(params);
-    expect(relay.relayLegacyAdminAssignment).toHaveBeenCalledWith(params);
-    expect(relay.relayLegacyAdminAssignment).toHaveBeenCalledTimes(1);
+
+vi.mock('@/lib/audit', () => ({
+  logAuditEvent: vi.fn(),
+}));
+
+vi.mock('@/lib/notifications', () => ({
+  notifyClaimAssigned: vi.fn(),
+}));
+
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
+const dbMocks = vi.hoisted(() => ({
+  claimFindFirst: vi.fn(),
+  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
+    tenantId,
+    tenantColumn,
+    condition,
+  })),
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  db: {
+    query: {
+      claims: {
+        findFirst: dbMocks.claimFindFirst,
+      },
+    },
+  },
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: dbMocks.withTenant,
+}));
+
+describe('assignClaimCore (Wrapper Means)', () => {
+  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+  const mockSession = {
+    session: {
+      id: 'sess1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'admin1',
+      expiresAt: new Date(Date.now() + 3600000),
+      token: 'token1',
+    },
+    user: { id: 'admin1', role: 'admin', tenantId: 'tenant1', email: 'admin@test.com' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+  const mockHeaders = new Headers();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    dbMocks.claimFindFirst.mockResolvedValue({ id: 'claim1', staffId: 'staff-old' });
   });
-  it('revalidates every original locale path after committed changed assignment', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce(completed(true) as never);
-    await assignClaimCore(params);
-    expect(revalidatePath).toHaveBeenCalledTimes(24);
-    for (const locale of ['sq', 'en', 'sr', 'mk'])
-      for (const page of [
-        '/member/claims',
-        '/member/claims/claim1',
-        '/admin/claims',
-        '/admin/claims/claim1',
-        '/staff/claims',
-        '/staff/claims/claim1',
-      ])
-        expect(revalidatePath).toHaveBeenCalledWith('/' + locale + page);
-  });
-  it('does not revalidate on completed domain refusal', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce(
-      completed(false, { success: false, error: 'Claim not found' }) as never
-    );
-    expect(await assignClaimCore(params)).toEqual({ success: false, error: 'Claim not found' });
-    expect(revalidatePath).not.toHaveBeenCalled();
-  });
-  it('preserves unexpected relay exception propagation', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockRejectedValueOnce(
-      Error('unexpected owner failure')
-    );
-    await expect(assignClaimCore(params)).rejects.toThrow('unexpected owner failure');
-    expect(revalidatePath).not.toHaveBeenCalled();
-  });
-  it('backend-confirmed no-op returns success without cache mutation', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce(completed(false) as never);
-    expect((await assignClaimCore(params)).success).toBe(true);
-    expect(revalidatePath).not.toHaveBeenCalled();
-  });
-  it('passes current backend authorization denial without local read or success', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce({
-      status: 'denied',
-      reason: 'UNAUTHORIZED',
+
+  it('should call domain assignClaimCore with correct params', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
     });
-    expect(await assignClaimCore(params)).toEqual({ success: false, error: 'Unauthorized' });
-    expect(revalidatePath).not.toHaveBeenCalled();
+
+    const params = {
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    };
+
+    await assignClaimCore(params);
+
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledWith(
+      params,
+      expect.objectContaining({
+        logAuditEvent: audit.logAuditEvent,
+        notifyClaimAssigned: notifications.notifyClaimAssigned,
+      })
+    );
   });
-  it('preserves backend self-assignment denial and does not revalidate', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce({
-      status: 'denied',
-      reason: 'SELF_ASSIGNMENT_ONLY',
+
+  it('should revalidate paths', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
+
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
     });
-    expect(await assignClaimCore(params)).toEqual({
+
+    await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    for (const locale of LOCALES) {
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims/claim1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/admin/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/admin/claims/claim1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim1`);
+    }
+    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 6);
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not revalidate on denied/no-op result', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: false,
+      error: 'Claim not found',
+      data: undefined,
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('should propagate errors from domain layer', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockRejectedValueOnce(new Error('Domain Error'));
+
+    await expect(
+      assignClaimCore({
+        claimId: 'claim1',
+        staffId: 'staff1',
+        session: mockSession,
+        requestHeaders: mockHeaders,
+      })
+    ).rejects.toThrow('Domain Error');
+  });
+
+  it('assignment no-op should not call domain mutation or revalidate', async () => {
+    dbMocks.claimFindFirst.mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for unauthorized role before any read/no-op check', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: {
+        ...mockSession,
+        user: { ...mockSession.user, role: 'member' },
+      },
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized', data: undefined });
+    expect(dbMocks.claimFindFirst).not.toHaveBeenCalled();
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for staff assigning another staff before read/no-op check', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff2',
+      session: {
+        ...mockSession,
+        user: { ...mockSession.user, role: 'staff', id: 'staff1' },
+      },
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({
       success: false,
       error: 'Access denied: Cannot assign other staff',
+      data: undefined,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(dbMocks.claimFindFirst).not.toHaveBeenCalled();
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
-  it('unchanged committed assignee uses authoritative changed bit without second ambient read', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce({
-      ...completed(false),
-      replayed: true,
-    } as never);
-    await assignClaimCore(params);
-    expect(relay.relayLegacyAdminAssignment).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+
+  it('does not revalidate when persisted assignee remains unchanged after domain success', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' });
+
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
-  it('missing backend resource cannot become successful post-mutation read', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce({
-      status: 'denied',
-      reason: 'RESOURCE_DENIED',
+
+  it('does not revalidate when post-mutation claim re-read is missing', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce(null);
+
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
     });
-    expect(await assignClaimCore(params)).toEqual({ success: false, error: 'Claim not found' });
-    expect(revalidatePath).not.toHaveBeenCalled();
-  });
-  it('uncertain result retains original retry identity and never retries or revalidates', async () => {
-    vi.mocked(relay.relayLegacyAdminAssignment).mockResolvedValueOnce({
-      status: 'indeterminate',
-      operationId,
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
     });
-    expect(await assignClaimCore(params)).toMatchObject({
-      success: false,
-      status: 'indeterminate',
-      operationId,
-    });
-    expect(relay.relayLegacyAdminAssignment).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
 });

@@ -175,5 +175,5 @@ export function linkM4EffectAssertions(nativeHandle, runtime, event) {
   });
   // The view was fully validated once by its live owner above. Do not rewalk or
   // revalidate the same large graph just to pass it to the synchronous caller.
-  return Object.freeze({ native, effectAssertions });
+  return Object.freeze({ native, effectAssertions, source });
 }

@@ -1,3 +1,5 @@
+import { compiledAcceptanceData } from './db-access-m4-mounted-integration-test.fixture.mjs';
+import { addOriginalFactoryBankFixture } from './db-access-m4-original-factory-bank.fixture.mjs';
 import { projectFixedPrivateAcceptance } from './db-access-m4-private-acceptance-data.mjs';
 import { mountedP2ExecutionFixture } from './db-access-m4-mounted-p2-proof.fixture.mjs';
 import assert from 'node:assert/strict';
@@ -79,7 +81,10 @@ function fixture() {
     ...binding,
     mountedAssignmentSource: {
       ...binding,
-      kind: 'fixed-mounted-assignment-source',
+      kind: 'fixed-local-qualification-assignment-source',
+      qualificationScope: 'local-adapters-only-no-next-ingress',
+      localQualificationOnly: true,
+      nextActionIngressQualified: false,
       routes,
       sourceFiles: [],
       replacements: [],
@@ -194,7 +199,7 @@ test('completion order does not allocate context ordinals', () => {
   );
 });
 
-test('current pure P2/source projection joins local routes without restoring historical credit', () => {
+test('current pure dual P2/source projection joins only exact original factory credit', () => {
   // Data-only control: the actual entry still requires fresh private native/runtime/ordinary owners.
   const input = fixture();
   input.native.eventBinding = { contextSha256: input.effectAssertions.contextSha256 };
@@ -204,13 +209,36 @@ test('current pure P2/source projection joins local routes without restoring his
   input.ordinary.imageId = 'explicit-unit-image';
   input.nativeOutputDigest = hash('explicit-unit-native');
   input.workerLoaderInspection = { scope: 'LOADER_ONLY_LOCAL' };
+  addOriginalFactoryBankFixture(input);
+  input.compiledConstruction = compiledAcceptanceData(input);
   const result = projectFixedPrivateAcceptance(input);
+  assert.equal(
+    result.originalFactoryBank.accounting.originalSelectedCohort.contextOccurrences,
+    1685
+  );
   assert.equal(result.construction.currentProofClassQualified, true);
   assert.equal(result.currentLocalConstructionQualified, true);
-  assert.equal(result.acceptedOldIdentityCount, 0);
-  assert.equal(result.acceptedCoverage, 0);
+  assert.equal(result.acceptedOldIdentityCount, 2);
+  assert.equal(result.acceptedCoverage, 2);
   assert.equal(result.nativeAdmission, false);
   assert.ok(result.historicalFactoryTransitions.every(row => !row.currentNativeIdentityAccepted));
+  assert.equal(result.boundedCompiledConstructionQualified, true);
+  for (const mutate of [
+    x => delete x.compiledConstruction,
+    x => (x.compiledConstruction.scopedConstructionQualified = false),
+    x => (x.compiledConstruction.kind = 'foreign'),
+    x => x.compiledConstruction.acceptedTrustedContexts.pop(),
+    x => (x.compiledConstruction.acceptedPreservedSourceCorrespondences = []),
+    x => (x.compiledConstruction.policySha256 = 'foreign'),
+    x => (x.compiledConstruction.contextSha256 = 'foreign'),
+    x => (x.compiledConstruction.sourcePolicyDigest = 'foreign'),
+    x => x.compiledConstruction.acceptedOriginalIdentities.push('forged'),
+    x => (x.compiledConstruction.rawOccurrencesSubtracted = 1),
+  ]) {
+    const changed = structuredClone(input);
+    mutate(changed);
+    assert.throws(() => projectFixedPrivateAcceptance(changed), /compiled trusted\/preserved/);
+  }
   input.ordinary.execution.actualCases.pop();
   assert.throws(() => projectFixedPrivateAcceptance(input));
 });

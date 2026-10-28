@@ -45,7 +45,7 @@ test('strict public predicate keeps completed failure refused despite caller pur
   good.run.conclusion = 'success';
   assert.equal(verifyOrdinaryProvenance(good).artifactId, 3);
 });
-test('fixed C0 predicate admits exact successful unit with literal unrelated CI failure only', () => {
+test('C0 accepts terminal successful-unit coverage without certifying other CI failures', () => {
   assert.equal(verifyM4C0UnitProvenance(input).artifactId, 3);
   for (const value of [
     'cancelled',
@@ -62,6 +62,10 @@ test('fixed C0 predicate admits exact successful unit with literal unrelated CI 
 });
 test('C0 retains unit,attempt,event,source,artifact,expiry,digest and freshness refusals', () => {
   for (const mutate of [
+    x => (x.run.status = 'in_progress'),
+    x => (x.job.status = 'in_progress'),
+    x => (x.job.conclusion = 'skipped'),
+    x => (x.job.conclusion = 'cancelled'),
     x => (x.job.conclusion = 'failure'),
     x => (x.job.run_attempt = 1),
     x => (x.run.event = 'push'),
@@ -134,10 +138,10 @@ test('artifact dedicated fetch requires consumed private authority before any re
   });
   await assert.rejects(a.fetchM4C0OrdinaryCoverageArtifact({ context, token: 'unit-double' }, {}));
 });
-test('exact59 closure, source-bound dedicated adapter and unchanged60percent gate', async () => {
+test('exact76 closure, source-bound dedicated adapter and unchanged60percent gate', async () => {
   const { M4_P2_CLOSURE_FILES, assertM4P2ClosureNames } =
     await import('./db-access-m4-p2-closure.mjs');
-  assert.equal(M4_P2_CLOSURE_FILES.length, 59);
+  assert.equal(M4_P2_CLOSURE_FILES.length, 76);
   assertM4P2ClosureNames(M4_P2_CLOSURE_FILES);
   assert.throws(() =>
     assertM4P2ClosureNames(M4_P2_CLOSURE_FILES.filter(x => !x.endsWith('ordinary-provenance.mjs')))

@@ -1,7 +1,37 @@
 // Pure finite source derivation. Genuine execution ownership comes only from P2's private take.
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
-import FIXED from './db-access-m4-factory-contract.json' with { type: 'json' };
+import fs from 'node:fs';
+import path from 'node:path';
+function readFactoryContract() {
+  const file = path.join(import.meta.dirname, 'db-access-m4-factory-contract.json');
+  if (fs.realpathSync(file) !== file) throw Error('Physical fixed factory contract required');
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  try {
+    const before = fs.fstatSync(fd),
+      bytes = fs.readFileSync(fd),
+      after = fs.fstatSync(fd),
+      current = fs.lstatSync(file);
+    if (
+      !before.isFile() ||
+      before.nlink !== 1 ||
+      before.uid !== process.getuid() ||
+      ![0o644, 0o444].includes(before.mode & 0o7777) ||
+      before.size !== 4297 ||
+      bytes.length !== 4297 ||
+      createHash('sha256').update(bytes).digest('hex') !==
+        '0599c16deb90a431fe409160708a5171eecd418aab500be9c1e1c74297aa9295' ||
+      ['dev', 'ino', 'size', 'mode', 'uid', 'nlink', 'mtimeMs', 'ctimeMs'].some(
+        key => before[key] !== after[key] || after[key] !== current[key]
+      )
+    )
+      throw Error('Fixed factory contract bytes or custody changed');
+    return JSON.parse(bytes);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+const FIXED = readFactoryContract();
 const freeze = value => {
   if (value && typeof value === 'object') {
     Object.values(value).forEach(freeze);

@@ -7,6 +7,7 @@ const evidenceModule =
   'data:text/javascript;base64,' +
   Buffer.from(
     `export const currentM4ProducerSeal=()=>"unit-seal";
+export const expectedM4TransportAck=()=>{throw Error("unexpected M4 in ordinary resource unit");};
 export const markReceivedM4WorkerOutput=()=>{};
 export const isReceivedM4WorkerOutput=()=>true;
 export const registerM4WorkerEvidence=()=>{};

@@ -3,8 +3,10 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { convert, parseAstAsync, libCoverage, libReport, reports } from './libraries.mjs';
 import ordinaryDenominator from './dist/ordinary-denominator.json' with { type: 'json' };
+import legacyDenominator from './legacy-bank/dist/ordinary-denominator.json' with { type: 'json' };
 import { composeP2Mapping, compile, sha } from './compose-mapping.mjs';
 const converted = new WeakSet();
+const convertedRoots = new WeakMap();
 const sourceTexts = new WeakMap();
 const freeze = value => {
   if (value && typeof value === 'object') {
@@ -25,15 +27,24 @@ const geometry = file => ({
 
 // Pure conversion only. Fresh-run authority belongs to protected dispatch, not to
 // observation JSON, ambient coverage, this module's brand, or a generated report.
-export async function convertP2Coverage({
-  observation,
-  generatedJs,
-  generatedTs,
-  sourceMap,
-  originalSource,
-  retainedSegments,
-  originalPath,
-}) {
+export async function convertP2Coverage(options) {
+  return convertFixedCoverage(options, ordinaryDenominator);
+}
+export async function convertLegacyP2Coverage(options) {
+  return convertFixedCoverage(options, legacyDenominator);
+}
+async function convertFixedCoverage(
+  {
+    observation,
+    generatedJs,
+    generatedTs,
+    sourceMap,
+    originalSource,
+    retainedSegments,
+    originalPath,
+  },
+  ordinaryDenominator
+) {
   if (!path.isAbsolute(originalPath)) fail('original path must be canonical absolute path');
   const input = observation?.coverage;
   if (
@@ -177,6 +188,10 @@ export async function convertP2Coverage({
     proofMinted: false,
   });
   converted.add(result);
+  convertedRoots.set(
+    result,
+    originalPath.slice(0, -ordinaryDenominator.originalRelativePath.length - 1)
+  );
   sourceTexts.set(result, originalSource);
   return result;
 }
@@ -184,10 +199,7 @@ export async function convertP2Coverage({
 export function mergeP2Coverage({ ambientCoverage, p2Coverage, outputDirectory }) {
   if (!converted.has(p2Coverage))
     fail('coverage must be converted in this process; this is not run authority');
-  const candidateRoot = p2Coverage.originalPath.slice(
-    0,
-    -ordinaryDenominator.originalRelativePath.length - 1
-  );
+  const candidateRoot = convertedRoots.get(p2Coverage);
   const merged = libCoverage.createCoverageMap(ambientCoverage ?? {});
   for (const file of merged.files()) {
     if (

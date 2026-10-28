@@ -102,6 +102,19 @@ export function readM4ClosedAssignmentContexts(owner: M4LocalAssignmentOwner | u
   });
 }
 
+// Strict observations are separate from local receipts and never grant admission.
+export function readM4StrictAssignmentContexts(owner: M4LocalAssignmentOwner | undefined) {
+  if (!owner || !owner.closed() || owner.active() !== 0 || owner.refused())
+    throw new Error('M4 actual closed drained strict owner required');
+  return Object.freeze({
+    version: 1,
+    localQualificationOnly: false,
+    constructorName: 'createM4PrivateAssignmentRuntime' as const,
+    loopbackQualification: false,
+    rows: Object.freeze([...owner.captures]),
+  });
+}
+
 export function observeM4AssignmentInvocation(
   profile: Profile,
   configuration: Readonly<{ database: unknown; verifySession: unknown }>,

@@ -1,0 +1,531 @@
+{
+  "version": 1,
+  "tools": {
+    "openssl": "/usr/bin/openssl",
+    "sandbox": "/usr/bin/sandbox-exec",
+    "certutil": "/opt/homebrew/Cellar/nss/3.125/bin/certutil",
+    "node": "/Users/arbenlila/.nvm/versions/node/v24.15.0/bin/node",
+    "python": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+  },
+  "records": {
+    "/usr/bin/openssl": {
+      "sha256": "49db04c17e3a8c169ebc48a1149d78c165a86c04913203f46b2a14ce7f4a14fc",
+      "bytes": 1704416
+    },
+    "/usr/bin/sandbox-exec": {
+      "sha256": "58839ef01b4eef8aac0d2aa8f9d1c074ae45aafe3533965b030672450064acc8",
+      "bytes": 135136
+    },
+    "/opt/homebrew/Cellar/nss/3.125/bin/certutil": {
+      "sha256": "83b5f68acbf4e3ff102e64c697dc4556ae0fbaf588d3a5efca276557b72b8daa",
+      "bytes": 217344
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssutil3.dylib": {
+      "sha256": "9271f9b6b46ae80c6aa65e5c516b199f12b8b149b353adc1eae35cc23b44b574",
+      "bytes": 222080
+    },
+    "/opt/homebrew/Cellar/nspr/4.39/lib/libplc4.dylib": {
+      "sha256": "6e2ae657780f03d32280eb3d49e7fce3ca782846c8a495ebd824e4bd38b8fe7f",
+      "bytes": 70768
+    },
+    "/opt/homebrew/Cellar/nspr/4.39/lib/libnspr4.dylib": {
+      "sha256": "d989a5401d786a26b157cb382bb92a0bc8e53709b91f7b8d6007bd1e65098baa",
+      "bytes": 238752
+    },
+    "/opt/homebrew/Cellar/nspr/4.39/lib/libplds4.dylib": {
+      "sha256": "65fe758d0575a83952443a155c4c9894661a23dc65b896539ada439a22c1888b",
+      "bytes": 69632
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libssl3.dylib": {
+      "sha256": "a2c7a94e7d2ee5860104e69d5a227ea3d276cdf6d77c1278f4451a4979570f10",
+      "bytes": 383472
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnss3.dylib": {
+      "sha256": "30468bc0e4fe8886f83458360381d6d6e19e7f71334f2960c6082d3e71cb3e89",
+      "bytes": 1191632
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libsmime3.dylib": {
+      "sha256": "9620adbfdf7e29d3d1c66a4a3d4bbcc85028a6d9dce4ff084f892cd466112d18",
+      "bytes": 218960
+    },
+    "/Users/arbenlila/.nvm/versions/node/v24.15.0/bin/node": {
+      "sha256": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32",
+      "bytes": 119944608
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python": {
+      "sha256": "7ecc1ecbf9daa9303c4bf502ff62ffdd9010ed5c08729d470ae9380c10ce1211",
+      "bytes": 51392
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Python": {
+      "sha256": "e5728c35bdc26dee85e45b3fb94780afc1c9f97ced6b0af64d54e4eab3422e0a",
+      "bytes": 5438400
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/mmap.cpython-314-darwin.so": {
+      "sha256": "82e82935019cb32473797e0f2dbb07f8ca96fa5f9152d4373385ba659c5d6cf4",
+      "bytes": 90848
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes.cpython-314-darwin.so": {
+      "sha256": "50132e97cffc1fc702a4de56fe30329088ac30876bbff846d6667a4a99356296",
+      "bytes": 179472
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libfreebl3.dylib": {
+      "sha256": "79e73f583290b6c40fc5a0c7c5c2a2b1deb14a7b0fd73caf9590d4d5e39b1b5e",
+      "bytes": 736080
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libsoftokn3.dylib": {
+      "sha256": "815d760fbb5309371c23b61f3c766c16ce72721c80c132648d3c9f76c1eac006",
+      "bytes": 389648
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi-testlib.dylib": {
+      "sha256": "2dd0a4fb370af4499d6d82eb59393cf056cc008fd0e22f4f714c41bb664112fb",
+      "bytes": 150960
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssdbm3.dylib": {
+      "sha256": "7d12bae571fc0c0bc635ee1d8a3a2715cd744a461a1dc860861edc0b5048e82d",
+      "bytes": 230464
+    },
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi.dylib": {
+      "sha256": "a1d1e985a97e67d9ca401b3921de7e0ed6b7842927e2bfca09fd76abc8f9e961",
+      "bytes": 513536
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited.cpython-314-darwin.so": {
+      "sha256": "81d849398d7a146d2e2f744ac4d5e3f710ee30bb6623573254fa9e7dee4b7996",
+      "bytes": 70560
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_socket.cpython-314-darwin.so": {
+      "sha256": "ac659d4375c9bdcdc14eb7bd6c991a8c41f49c14e165bdbdd36c230f4324aba1",
+      "bytes": 133072
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_decimal.cpython-314-darwin.so": {
+      "sha256": "91520b22e9e2d7393f7a42c06fa3eb144ca8b9e0c97f78680318414bf905d5ac",
+      "bytes": 211408
+    },
+    "/opt/homebrew/Cellar/mpdecimal/4.0.1/lib/libmpdec.4.0.1.dylib": {
+      "sha256": "30a40206c5b075e7b92f11aead6e937559e7a418914fd01dc925e92894c1796d",
+      "bytes": 189472
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hashlib.cpython-314-darwin.so": {
+      "sha256": "e0002309643071b82219d09ef7efa5044f8216915630b4a2d113a432a6e3745a",
+      "bytes": 97968
+    },
+    "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libcrypto.3.dylib": {
+      "sha256": "ef2239cec921003b54b61968f00489271e2a2805d7d1b4e69d632423f38efe1e",
+      "bytes": 4845712
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses_panel.cpython-314-darwin.so": {
+      "sha256": "d358d5becfab346a99fe1888d1039fab0f1be6a8e8fd4fdac2168c9c8ff4a3db",
+      "bytes": 73120
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/grp.cpython-314-darwin.so": {
+      "sha256": "3cd98dbd1f65a8d3b177825f8aa489087229feeed14eda89b226cbd99a2d9a44",
+      "bytes": 70784
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testimportmultiple.cpython-314-darwin.so": {
+      "sha256": "6549e03b821251e0b2ee76f4c77ea498f5d77804155cc030e707dbf0e13573b5",
+      "bytes": 68064
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha3.cpython-314-darwin.so": {
+      "sha256": "3bee61e64bdbd260beb9df821604c4bb3575ff3209827815956cb1bd71ece187",
+      "bytes": 73568
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/fcntl.cpython-314-darwin.so": {
+      "sha256": "16c60f941d51da1dd4df7eb94e185a241f58584559b35e63d25904b7473ea56b",
+      "bytes": 70832
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ssl.cpython-314-darwin.so": {
+      "sha256": "43d16bd272c0e0be68f9b10ea95e8079e47d5b52c8c4203989f0d1d989576b4e",
+      "bytes": 222128
+    },
+    "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libssl.3.dylib": {
+      "sha256": "26ecfd43c742914a142c8b414b1f308cefe0531fcc6e38b6d45021649850e758",
+      "bytes": 884560
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_statistics.cpython-314-darwin.so": {
+      "sha256": "e68d08a3b22b1a8d01ee40203067b03daeeac62cbeef8bf8246533eafa80f2a4",
+      "bytes": 68528
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_csv.cpython-314-darwin.so": {
+      "sha256": "c8187a38eafa37228f31d650c7a2e076d19782c5837d8eb3c99e1fe01ed7227d",
+      "bytes": 91248
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_queue.cpython-314-darwin.so": {
+      "sha256": "d4f61ee92a9575935ec56733da2f20723ddfe4771ca32b29253ef5b8e49aa8ae",
+      "bytes": 71872
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testbuffer.cpython-314-darwin.so": {
+      "sha256": "3e8d00492ad2c72b0aba3287739dfa934871ead43657923afdc84a69fcdc8444",
+      "bytes": 91696
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_blake2.cpython-314-darwin.so": {
+      "sha256": "aca8fcf6a1ec9e7a1b0bebd6fff7894dcd21b896ddc7066c2aa4333294e6ca53",
+      "bytes": 89696
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zstd.cpython-314-darwin.so": {
+      "sha256": "c2a973a7ce9797cd7facb1564d6e7abf4ae2c3654117e7b48f2c0a75003368b6",
+      "bytes": 114176
+    },
+    "/opt/homebrew/Cellar/zstd/1.5.7_1/lib/libzstd.1.5.7.dylib": {
+      "sha256": "e2847c4613b386683c234913ae3b7b04299254096caf7616e3b3cd9bb97a39ab",
+      "bytes": 649648
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_struct.cpython-314-darwin.so": {
+      "sha256": "ac266e63101158e422888d7c1bc6060a83ed4cd4fc3ee4d8bb37541123f859f6",
+      "bytes": 95360
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/array.cpython-314-darwin.so": {
+      "sha256": "a90cfac92ba05c78a400090465b640ec042e52d5f9079f3eaa72fda944102274",
+      "bytes": 113856
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpreters.cpython-314-darwin.so": {
+      "sha256": "551d8aed023667ebe28fad1cc50dc3451f17189c33f55758ce2191470eb10c25",
+      "bytes": 95008
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zoneinfo.cpython-314-darwin.so": {
+      "sha256": "d8f695da73efeac5d7cb6d5eea75c58e4c5a546e50e78db4f3a916bff772a859",
+      "bytes": 91504
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha1.cpython-314-darwin.so": {
+      "sha256": "8a54ebd9f073e3501335238a33787e883f50a0da55f8dfb7ee083faaea4730bb",
+      "bytes": 71520
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixshmem.cpython-314-darwin.so": {
+      "sha256": "011dbea92850c3658b5fb8e84702e543f2ed319b46025377a12f9a36016d46b1",
+      "bytes": 69456
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-darwin.so": {
+      "sha256": "3093d70314857f9d5dffd97b3a9a6e47f42e3721f3bd1a7420530c76d9a02426",
+      "bytes": 72464
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxsubtype.cpython-314-darwin.so": {
+      "sha256": "2dbe712db7c838cb161c633dbac8859fa1cca7d111d62fde73477b65876d48a2",
+      "bytes": 69184
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpqueues.cpython-314-darwin.so": {
+      "sha256": "071fdd4a4fa42a2e6504a6fe6c06c62e954b9319b1aeeadbd078193b16b67c59",
+      "bytes": 74704
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testcapi.cpython-314-darwin.so": {
+      "sha256": "818d9c6c935df67a6ee0e03352a1e594f18382da73e79c02d11f13fbe20c6660",
+      "bytes": 341920
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_pickle.cpython-314-darwin.so": {
+      "sha256": "93a6ac9ebb1c191a3480c5c291ee3acb5e8e05ecd1ca89f4d42536613e3287bf",
+      "bytes": 169104
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/syslog.cpython-314-darwin.so": {
+      "sha256": "de200752c4beae0f2088ffe39d1342ca4443cbeaa3a163606062dabc2666a54a",
+      "bytes": 70352
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/readline.cpython-314-darwin.so": {
+      "sha256": "1e845063be7a39d8f41a0ddc092812024a2a7d147562cb6b757611bfb94af311",
+      "bytes": 94816
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/select.cpython-314-darwin.so": {
+      "sha256": "72590d08c6dafd3c2fe7ca5079a11ee812e7400a9a7f5d3c192d5cbf30c62420",
+      "bytes": 92544
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lzma.cpython-314-darwin.so": {
+      "sha256": "62fa2f69a29e84c24893bdc3c8d2da7be454db41e49881f665e9a58507dd1d23",
+      "bytes": 92176
+    },
+    "/opt/homebrew/Cellar/xz/5.8.3/lib/liblzma.5.dylib": {
+      "sha256": "3d5bfa2f097c31463642b1daab5e662b44368bb4da368f85e412e7f9adcbaa10",
+      "bytes": 184512
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so": {
+      "sha256": "28284cd7ac83d5dafda621ee75401c3c144b75f15e410480f2f5037ce441287d",
+      "bytes": 99456
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpchannels.cpython-314-darwin.so": {
+      "sha256": "0b5ed73077b6beceefb5a51218587d17177389aac7d1c137743b52488bb03403",
+      "bytes": 93360
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/unicodedata.cpython-314-darwin.so": {
+      "sha256": "eac2750d02bfb64aaa7f8894d0eebd9f9e5581ccc6c74a23e7ec85711193f5b8",
+      "bytes": 797008
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes_test.cpython-314-darwin.so": {
+      "sha256": "a310ab1c112d7bf854e26c211038e3f349c63b56ab643f4f5cc8608aca4c2802",
+      "bytes": 124944
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/zlib.cpython-314-darwin.so": {
+      "sha256": "8990c0a3cc42d50da3e5d6f115040e286230f8fb8a0f9f873f5ada350708c1f8",
+      "bytes": 93728
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/termios.cpython-314-darwin.so": {
+      "sha256": "c8cf7414b9e6d0022c5b28218214b99b8e89b7950ae2321d6cbb20b06f6c09ad",
+      "bytes": 71952
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testlimitedcapi.cpython-314-darwin.so": {
+      "sha256": "89f9e64af989f3bc4b1e963ada44a6d78e764bff1c4d6aa1cb31a2616a108035",
+      "bytes": 190112
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited_35.cpython-314-darwin.so": {
+      "sha256": "e22e48ac21e1fd0313491c81eec1bd2ebf3baf7b0f49e71fff930b6cbd4c55ce",
+      "bytes": 69904
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_asyncio.cpython-314-darwin.so": {
+      "sha256": "21a78a7c617edb7b2ac72281a32bd17f811822c3f94a7434a41b90c5861c92b3",
+      "bytes": 119552
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_cn.cpython-314-darwin.so": {
+      "sha256": "2a2c47b66865a1e03a9745c78423aaf3555a4608151e61157d48f65353ead290",
+      "bytes": 185248
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multibytecodec.cpython-314-darwin.so": {
+      "sha256": "4f256ab0909cf24b873c44eaf1d6f3fec641b2900b52d8ec460e196322a2808c",
+      "bytes": 96224
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bisect.cpython-314-darwin.so": {
+      "sha256": "f1c8bec242226c42f6422d3ae2e1263e53726aa3aa0eb9410ca32dabc48cf02b",
+      "bytes": 70752
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/math.cpython-314-darwin.so": {
+      "sha256": "8bdb6401920d20164fec798c4a2c02b86e9b4dea71ebfca954169b8428b261e4",
+      "bytes": 110896
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_xxtestfuzz.cpython-314-darwin.so": {
+      "sha256": "1b6ce2889121f62577cbd3f15a54ff03d50eeca6216b07d72370a87c9e762ccb",
+      "bytes": 71440
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testmultiphase.cpython-314-darwin.so": {
+      "sha256": "600e4aca4f85f4903f86971853e071c1ab49edef0c894d7c72ba8a95434a374f",
+      "bytes": 76832
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha2.cpython-314-darwin.so": {
+      "sha256": "5cd1784e21fffdae398965e0cd83b6780d9954f4ffcd79ae3610d2d5bbdf50d4",
+      "bytes": 89440
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic.cpython-314-darwin.so": {
+      "sha256": "312fafa8b11450555d98c9f4e6435810f41b54106e375545d1e3c3a520d4075b",
+      "bytes": 154576
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_dbm.cpython-314-darwin.so": {
+      "sha256": "b22ac19adca51699648f186a7d3df4fe99abcc5e8261bf330e99e6c6117e9d98",
+      "bytes": 72048
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses.cpython-314-darwin.so": {
+      "sha256": "2f3e686ee8f031db9f99628e290f655c5c6b4da22021cda29530f3a708297eee",
+      "bytes": 177600
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_iso2022.cpython-314-darwin.so": {
+      "sha256": "e1604efd546f749416727d34ed3219381e5eb5be57559ee88438ec250e117950",
+      "bytes": 72000
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testsinglephase.cpython-314-darwin.so": {
+      "sha256": "fa161b1cfe0445db823771e8982538f2a5c5d23451248e524569c653a8d244c0",
+      "bytes": 70944
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bz2.cpython-314-darwin.so": {
+      "sha256": "302d77097242a78092b8d9ff2a86d3eae8616cf2497ff79d103d3c0041c07e11",
+      "bytes": 72736
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_jp.cpython-314-darwin.so": {
+      "sha256": "7d263105b6e52bef772a9744e275382ce50b11f5fc35c6163576c5eefd15e66f",
+      "bytes": 301104
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_remote_debugging.cpython-314-darwin.so": {
+      "sha256": "df52f5c4a091db756133b90b54de282c9a004d80965b24a8c5b49e223a775d10",
+      "bytes": 107728
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_hk.cpython-314-darwin.so": {
+      "sha256": "69d124f95bbbda7592227348164a0a7a1367e5f659e7c710c17d1fec910cdcd0",
+      "bytes": 201760
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/resource.cpython-314-darwin.so": {
+      "sha256": "d480745ae5aec014e2587b197fce47df577cbd86a1e84145c3a0815154c18b22",
+      "bytes": 71024
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lsprof.cpython-314-darwin.so": {
+      "sha256": "7a7ffd2a4355f9c89f242cee0be64ba8ca8259ea18766f66c752be82303be898",
+      "bytes": 73744
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic_limited.cpython-314-darwin.so": {
+      "sha256": "00d399316c379e8828e583dd5e11b69b4d4e16e08019cee96361d6718e902d70",
+      "bytes": 68928
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testinternalcapi.cpython-314-darwin.so": {
+      "sha256": "8a357efc9edb7af0e1f43ee81d3c80dfccd9d1b12c139e80e36ee14119cfabc1",
+      "bytes": 125840
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_random.cpython-314-darwin.so": {
+      "sha256": "a7bd8d2b834f6c4eb3ca1a1901f8cb53d7a2a2097a66330255455c31ade8e8e7",
+      "bytes": 71632
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_json.cpython-314-darwin.so": {
+      "sha256": "a17e2f1076b173e5dfd553b0e046771198e6d6e4d332229f10932e0bda165821",
+      "bytes": 90496
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/binascii.cpython-314-darwin.so": {
+      "sha256": "07ef7a38004f01c462bf60db354b6b27e236b545fc936d6449e921fd0ea9692b",
+      "bytes": 72096
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multiprocessing.cpython-314-darwin.so": {
+      "sha256": "31f4c4ea7c6cb871211bf9fc4e75c383110dc80e13fe0f708807c3eb6d3b4390",
+      "bytes": 73600
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_md5.cpython-314-darwin.so": {
+      "sha256": "c8f7c67d70b9b33f4bb325073fa28af7ed3d6aa75f30e080e58922854d250455",
+      "bytes": 71536
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hmac.cpython-314-darwin.so": {
+      "sha256": "9872bc69edfe0c8246efe9686505acd6139881bbc36bda49b313adcad3307da5",
+      "bytes": 146192
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_scproxy.cpython-314-darwin.so": {
+      "sha256": "788dadbafdf946ba303fbc5bebe316b6db3e5a12101b95653b949173c7cc6041",
+      "bytes": 71056
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sqlite3.cpython-314-darwin.so": {
+      "sha256": "8b751990131722185775f5d532c89d4588285c88b23112d2758a4594721aa3ac",
+      "bytes": 165632
+    },
+    "/opt/homebrew/Cellar/sqlite/3.53.0/lib/libsqlite3.3.53.0.dylib": {
+      "sha256": "b4e993433371d8375b3db569a08789cbf2ea9ccc8c5e513d0e01b994fde73a78",
+      "bytes": 1270336
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_uuid.cpython-314-darwin.so": {
+      "sha256": "421a04b3f0d5cc6cfa4fc2973d6afd3bf493e133ee6bbcd6fab870e0ca9dc630",
+      "bytes": 68352
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_kr.cpython-314-darwin.so": {
+      "sha256": "6c54515f8eaa09a667e877d1e621ff0306c0326ba845759102f3c2dc2e4afdfd",
+      "bytes": 168912
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_tw.cpython-314-darwin.so": {
+      "sha256": "488f21fa9588d12e2575ec2fe0a1e57f4b7a6120e276bf78e5a92a6db0a14347",
+      "bytes": 168416
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_heapq.cpython-314-darwin.so": {
+      "sha256": "dd3b8658950319a62f7355381842459c92f569a58854703013ddb83ee32aa2a2",
+      "bytes": 69936
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/cmath.cpython-314-darwin.so": {
+      "sha256": "1f3361025e8eefe3e5662a35358501fec226203384464fd8b74afe2f51150bf8",
+      "bytes": 88672
+    },
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_elementtree.cpython-314-darwin.so": {
+      "sha256": "9b837ab284df933d4f384120c8378ed5aa8de8887cb7da30693e6557e8bd73bd",
+      "bytes": 117200
+    }
+  },
+  "systemSharedCacheTrusted": true,
+  "pythonPrefix": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14",
+  "pythonStdlib": {
+    "root": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14",
+    "records": 2871,
+    "sha256": "00213395ffc5f8a0cf074bd32120bf8201742772a4ca7ef2e6e073eb157a6d95"
+  },
+  "resolutions": {
+    "/usr/bin/openssl": "/usr/bin/openssl",
+    "/usr/bin/sandbox-exec": "/usr/bin/sandbox-exec",
+    "/opt/homebrew/Cellar/nss/3.125/bin/certutil": "/opt/homebrew/Cellar/nss/3.125/bin/certutil",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssutil3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssutil3.dylib",
+    "/opt/homebrew/opt/nss/lib/libnssutil3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssutil3.dylib",
+    "/opt/homebrew/opt/nspr/lib/libplc4.dylib": "/opt/homebrew/Cellar/nspr/4.39/lib/libplc4.dylib",
+    "/opt/homebrew/Cellar/nspr/4.39/lib/libnspr4.dylib": "/opt/homebrew/Cellar/nspr/4.39/lib/libnspr4.dylib",
+    "/opt/homebrew/opt/nspr/lib/libnspr4.dylib": "/opt/homebrew/Cellar/nspr/4.39/lib/libnspr4.dylib",
+    "/opt/homebrew/opt/nspr/lib/libplds4.dylib": "/opt/homebrew/Cellar/nspr/4.39/lib/libplds4.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libssl3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libssl3.dylib",
+    "/opt/homebrew/opt/nss/lib/libssl3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libssl3.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnss3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnss3.dylib",
+    "/opt/homebrew/opt/nss/lib/libnss3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnss3.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libsmime3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libsmime3.dylib",
+    "/opt/homebrew/opt/nss/lib/libsmime3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libsmime3.dylib",
+    "/Users/arbenlila/.nvm/versions/node/v24.15.0/bin/node": "/Users/arbenlila/.nvm/versions/node/v24.15.0/bin/node",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Python": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Python",
+    "/opt/homebrew/opt/python@3.14/Frameworks/Python.framework/Versions/3.14/Python": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/Python",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libfreebl3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libfreebl3.dylib",
+    "/opt/homebrew/opt/nss/lib/libfreebl3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libfreebl3.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libsoftokn3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libsoftokn3.dylib",
+    "/opt/homebrew/opt/nss/lib/libsoftokn3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libsoftokn3.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi-testlib.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi-testlib.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssdbm3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssdbm3.dylib",
+    "/opt/homebrew/opt/nss/lib/libnssdbm3.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssdbm3.dylib",
+    "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi.dylib": "/opt/homebrew/Cellar/nss/3.125/lib/libnssckbi.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_socket.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_socket.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_decimal.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_decimal.cpython-314-darwin.so",
+    "/opt/homebrew/opt/mpdecimal/lib/libmpdec.4.dylib": "/opt/homebrew/Cellar/mpdecimal/4.0.1/lib/libmpdec.4.0.1.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hashlib.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hashlib.cpython-314-darwin.so",
+    "/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib": "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libcrypto.3.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses_panel.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses_panel.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/grp.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/grp.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testimportmultiple.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testimportmultiple.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha3.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha3.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/fcntl.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/fcntl.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ssl.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ssl.cpython-314-darwin.so",
+    "/opt/homebrew/opt/openssl@3/lib/libssl.3.dylib": "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libssl.3.dylib",
+    "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libcrypto.3.dylib": "/opt/homebrew/Cellar/openssl@3/3.6.2/lib/libcrypto.3.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_statistics.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_statistics.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_csv.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_csv.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_queue.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_queue.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testbuffer.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testbuffer.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_blake2.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_blake2.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zstd.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zstd.cpython-314-darwin.so",
+    "/opt/homebrew/opt/zstd/lib/libzstd.1.dylib": "/opt/homebrew/Cellar/zstd/1.5.7_1/lib/libzstd.1.5.7.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_struct.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_struct.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/array.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/array.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpreters.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpreters.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zoneinfo.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_zoneinfo.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha1.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha1.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixshmem.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixshmem.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxsubtype.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxsubtype.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpqueues.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpqueues.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testcapi.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testcapi.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_pickle.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_pickle.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/syslog.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/syslog.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/readline.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/readline.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/select.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/select.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lzma.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lzma.cpython-314-darwin.so",
+    "/opt/homebrew/opt/xz/lib/liblzma.5.dylib": "/opt/homebrew/Cellar/xz/5.8.3/lib/liblzma.5.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/pyexpat.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpchannels.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_interpchannels.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/unicodedata.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/unicodedata.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes_test.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes_test.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/zlib.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/zlib.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/termios.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/termios.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testlimitedcapi.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testlimitedcapi.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited_35.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/xxlimited_35.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_asyncio.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_asyncio.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_cn.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_cn.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multibytecodec.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multibytecodec.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bisect.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bisect.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/math.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/math.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_xxtestfuzz.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_xxtestfuzz.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testmultiphase.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testmultiphase.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha2.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sha2.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_dbm.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_dbm.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_curses.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_iso2022.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_iso2022.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testsinglephase.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testsinglephase.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/mmap.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/mmap.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_ctypes.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bz2.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_bz2.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_jp.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_jp.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_remote_debugging.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_remote_debugging.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_hk.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_hk.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/resource.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/resource.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lsprof.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_lsprof.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic_limited.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testclinic_limited.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testinternalcapi.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_testinternalcapi.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_random.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_random.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_json.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_json.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/binascii.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/binascii.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multiprocessing.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_multiprocessing.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_md5.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_md5.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hmac.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_hmac.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_scproxy.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_scproxy.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sqlite3.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_sqlite3.cpython-314-darwin.so",
+    "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib": "/opt/homebrew/Cellar/sqlite/3.53.0/lib/libsqlite3.3.53.0.dylib",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_uuid.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_uuid.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_kr.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_kr.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_tw.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_codecs_tw.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_heapq.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_heapq.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/cmath.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/cmath.cpython-314-darwin.so",
+    "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_elementtree.cpython-314-darwin.so": "/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/lib-dynload/_elementtree.cpython-314-darwin.so"
+  }
+}

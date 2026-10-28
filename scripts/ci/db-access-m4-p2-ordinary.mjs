@@ -45,9 +45,11 @@ function sourceCurrent(input, context) {
 
 function candidateCurrent(input, context, git, policy) {
   const sourceNames = [
-    'apps/web/src/actions/admin-claims/assign.core.ts',
-    'apps/web/src/actions/admin-claims/assign.wrapper.test.ts',
+    'apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
+    'apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts',
     'apps/web/src/server/operations/m4-assignment-relay.ts',
+    'apps/web/src/actions/admin-claims/assign.wrapper.test.ts',
+    'apps/web/src/actions/admin-claims/assign.core.ts',
   ];
   const dispatchNames = [
     '.github/workflows/ci.yml',

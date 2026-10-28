@@ -1,24 +1,31 @@
-import {
-  relayLegacyAgentAssignment,
-  assignmentRelayFailure,
-} from '@/server/operations/m4-assignment-relay';
+import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/agent-claims/assign';
+
+import { logAuditEvent } from '@/lib/audit';
+import { notifyClaimAssigned } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
+import type { Session } from './context';
+
 const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
 function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) revalidatePath(`/${locale}${path}`);
+  for (const locale of LOCALES) {
+    revalidatePath(`/${locale}${path}`);
+  }
 }
+
 export async function assignClaimCore(params: {
   claimId: string;
   staffId: string | null;
+  session: NonNullable<Session> | null;
   requestHeaders: Headers;
-  operationId?: string;
 }) {
-  const response = await relayLegacyAgentAssignment(params);
-  if (response.status !== 'completed') {
-    return assignmentRelayFailure(response, 'legacy-agent');
-  }
-  if (response.result.success) {
+  const result = await assignClaimCoreDomain(params, {
+    logAuditEvent,
+    notifyClaimAssigned,
+  });
+
+  if (result.success) {
     revalidatePathForAllLocales('/member/claims');
     revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
     revalidatePathForAllLocales('/admin/claims');
@@ -26,5 +33,6 @@ export async function assignClaimCore(params: {
     revalidatePathForAllLocales('/staff/claims');
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
   }
-  return response.result;
+
+  return result;
 }

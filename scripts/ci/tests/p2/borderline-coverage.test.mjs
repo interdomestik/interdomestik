@@ -19,7 +19,7 @@ test('real merged coverage can pass where invented zero target pre-gate falsely 
       sourceMap: JSON.parse(read('capsule/dist/wrapper.js.map')),
       originalSource: read('capsule/dist/wrapper.original.ts'),
       retainedSegments: JSON.parse(read('dist/source-manifest.json')).retainedSegments,
-      originalPath: root + '/apps/web/src/actions/admin-claims/assign.core.ts',
+      originalPath: root + '/apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
     });
     const output = root + '/apps/web/coverage';
     mergeP2Coverage({ ambientCoverage: {}, p2Coverage: p2, outputDirectory: output });

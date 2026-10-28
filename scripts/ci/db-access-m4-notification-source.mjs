@@ -3,9 +3,11 @@ import { createHash } from 'node:crypto';
 import { notificationModule, sourceClause, reject } from './db-access-m4-notification-ast.mjs';
 import { NOTIFIER_CONTRACT } from './db-access-m4-notifier-contract.mjs';
 import { NOTIFICATION_RUNTIME_CONTRACT } from './db-access-m4-notification-runtime-contract.mjs';
+import { deriveM4DatabaseTlsSource } from './db-access-m4-database-tls-source.mjs';
 export const FILES = Object.freeze({
   notifier: 'apps/web/src/server/operations/m4-assignment-postcommit.ts',
   notificationRuntime: 'apps/web/src/server/operations/m4-notification-runtime.ts',
+  posture: 'apps/web/src/server/operations/m4-pool-posture.ts',
 });
 const digest = text => createHash('sha256').update(text).digest('hex');
 const freeze = value => {
@@ -46,7 +48,16 @@ function matched(source, contract, file) {
     reject(file + ': fixed imports/control/effects');
   return { ...actual, expected };
 }
-export function deriveM4AssignmentNotification({ notifierSource, notificationRuntimeSource }) {
+export function deriveM4AssignmentNotification({
+  notifierSource,
+  notificationRuntimeSource,
+  postureSource,
+}) {
+  const databaseTlsSource = deriveM4DatabaseTlsSource({
+    postureSource,
+    poolSource: notificationRuntimeSource,
+    poolRole: 'notification',
+  });
   const notifier = matched(notifierSource, NOTIFIER_CONTRACT, FILES.notifier);
   const owner = matched(
     notificationRuntimeSource,
@@ -133,6 +144,7 @@ export function deriveM4AssignmentNotification({ notifierSource, notificationRun
   const facts = {
     notifierTree: notifier.runtimeTree,
     notificationRuntimeTree: owner.runtimeTree,
+    databaseTls: databaseTlsSource.facts,
     namedOrderedFacts,
   };
   return freeze({
@@ -145,8 +157,10 @@ export function deriveM4AssignmentNotification({ notifierSource, notificationRun
     sourceSha256: {
       [FILES.notifier]: digest(notifierSource),
       [FILES.notificationRuntime]: digest(notificationRuntimeSource),
+      [FILES.posture]: digest(postureSource),
     },
     facts,
+    databaseTlsSource,
     namedOrderedFacts,
     factsSha256: digest(JSON.stringify(facts)),
     sourceNodes: Object.entries(namedOrderedFacts).flatMap(([groupName, clauses]) =>
@@ -165,6 +179,7 @@ export function deriveM4AssignmentNotification({ notifierSource, notificationRun
       'Private identity captured before await, fixed legacy operation fingerprint and durable success gate precede tenant/current-claim/eligible-staff locked reads.',
       'Exact deterministic assignment notice fields; only a newly returned INSERT row permits a private current verified-email closure.',
       'Await store transaction return and DB close before checking live delivery eligibility and invoking the fixed email helper; failures do not escape as assignment rollback claims.',
+      'Strict notification TLS uses only its own captured URL hostname and frozen standard Node certificate checker options; actual certificate/endpoint runtime evidence remains required.',
       'Separate max-four owned DB task set, captured deadline/target, fixed driver options, environment and posture checks, memoized force termination and completion tracking; no queue or automatic retry.',
       'Owner close stops registered DB tasks and waits their done markers; termination failure is surfaced instead of clean-termination success.',
     ],

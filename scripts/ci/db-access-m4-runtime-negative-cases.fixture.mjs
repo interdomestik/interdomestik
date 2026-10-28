@@ -47,12 +47,6 @@ export const bootstrapCases = [
     'active.add(operation); active.delete(operation);',
   ],
   [
-    'close without drain',
-    '...pending.map(operation => operation.done)',
-    '...pending.map(() => undefined)',
-  ],
-  ['close skips notification owner', 'notificationOwner?.close()', 'undefined'],
-  [
     'termination failure ignored',
     'return stopped || !ended ? uncertain : result;',
     'return stopped ? uncertain : result;',
@@ -98,11 +92,6 @@ export const bootstrapCases = [
     'executeProfile(cookie as Profile, cookie, serialized)',
   ],
   [
-    'optional notifier close made unconditional',
-    'notificationOwner?.close()',
-    'notificationOwner.close()',
-  ],
-  [
     'runtime export escapes type boundary',
     "export type * from './m4-private-runtime-types';",
     "export * from './m4-private-runtime-types';",
@@ -113,7 +102,34 @@ export const bootstrapCases = [
     "export type * from './other-runtime';",
   ],
 ];
-// The cache wrapping case needs a balanced close; the test supplies that one specific edit.
+export const retirementCases = [
+  [
+    'close without drain',
+    '...pending.map(operation => operation.done)',
+    '...pending.map(() => undefined)',
+  ],
+  ['close skips notification owner', 'notificationOwner?.close()', 'undefined'],
+  [
+    'optional notifier close made unconditional',
+    'notificationOwner?.close()',
+    'notificationOwner.close()',
+  ],
+];
+export const contextCases = [
+  [
+    'ambient secret fallback',
+    'issuerSecret,\n    operationDeadlineMs,',
+    'issuerSecret: issuerSecret || process.env.BETTER_AUTH_SECRET,\n    operationDeadlineMs,',
+  ],
+  [
+    'same purpose logins admitted',
+    'identityTarget.login === dataTarget.login',
+    'identityTarget.login !== dataTarget.login',
+  ],
+  ['endpoint mismatch admitted', 'identityTarget.serverKey !== dataTarget.serverKey', 'false'],
+  ['crossed notification purpose', 'notificationTarget.login === dataTarget.login', 'false'],
+  ['noninteger deadline accepted', '!Number.isSafeInteger(operationDeadlineMs)', 'false'],
+];
 export const postureCases = [
   ['credential URL query accepted', 'url.search ||', 'false ||'],
   ['credential URL fragment accepted', 'url.hash ||', 'false ||'],
@@ -200,20 +216,4 @@ export const typeCases = [
     'execute(cookie: unknown, serialized: unknown)',
     'execute(cookie: unknown, serialized: unknown, principal: unknown)',
   ],
-];
-
-export const contextCases = [
-  [
-    'ambient secret fallback',
-    'issuerSecret,\n    operationDeadlineMs,',
-    'issuerSecret: issuerSecret || process.env.BETTER_AUTH_SECRET,\n    operationDeadlineMs,',
-  ],
-  [
-    'same purpose logins admitted',
-    'identityTarget.login === dataTarget.login',
-    'identityTarget.login !== dataTarget.login',
-  ],
-  ['endpoint mismatch admitted', 'identityTarget.serverKey !== dataTarget.serverKey', 'false'],
-  ['crossed notification purpose', 'notificationTarget.login === dataTarget.login', 'false'],
-  ['noninteger deadline accepted', '!Number.isSafeInteger(operationDeadlineMs)', 'false'],
 ];

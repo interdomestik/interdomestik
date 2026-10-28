@@ -6,6 +6,10 @@ import test from 'node:test';
 import ts from 'typescript';
 import { deriveM4AssignmentNotification } from './db-access-m4-notification-source.mjs';
 const sources = {
+  postureSource: fs.readFileSync(
+    new URL('../../apps/web/src/server/operations/m4-pool-posture.ts', import.meta.url),
+    'utf8'
+  ),
   notifierSource: fs.readFileSync(
     new URL('../../apps/web/src/server/operations/m4-assignment-postcommit.ts', import.meta.url),
     'utf8'
@@ -52,6 +56,7 @@ test('comments and layout do not replace semantic identity', () => {
     formatted = deriveM4AssignmentNotification({
       notifierSource: print(sources.notifierSource),
       notificationRuntimeSource: print(sources.notificationRuntimeSource),
+      postureSource: print(sources.postureSource),
     });
   assert.deepEqual(formatted.facts.notifierTree, original.facts.notifierTree);
   assert.deepEqual(formatted.facts.notificationRuntimeTree, original.facts.notificationRuntimeTree);
@@ -73,7 +78,7 @@ function negative(label, key, mutate) {
     assert.notEqual(sha256, digest(sources[key]));
     assert.throws(
       () => deriveM4AssignmentNotification(repinned),
-      error => error.message.includes('fixed imports/control/effects')
+      error => /fixed imports\/control\/effects|database TLS source rejected/.test(error.message)
     );
     receipts.push({
       label,

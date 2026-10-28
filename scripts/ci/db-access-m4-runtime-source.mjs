@@ -5,8 +5,11 @@ import { createHash } from 'node:crypto';
 import { runtimeModule, typeModule, reject } from './db-access-m4-runtime-source-ast.mjs';
 import { runtimeClauses } from './db-access-m4-runtime-source-clauses.mjs';
 import { deepFreeze } from './db-access-m4-syntax.mjs';
+import { deriveM4DatabaseTlsSource } from './db-access-m4-database-tls-source.mjs';
 export const FILES = Object.freeze({
   bootstrap: 'apps/web/src/server/operations/m4-private-runtime.ts',
+  command: 'apps/web/src/server/operations/m4-runtime-command.ts',
+  retirement: 'apps/web/src/server/operations/m4-runtime-retirement.ts',
   context: 'apps/web/src/server/operations/m4-private-runtime-context.ts',
   posture: 'apps/web/src/server/operations/m4-pool-posture.ts',
   runtimeTypes: 'apps/web/src/server/operations/m4-private-runtime-types.ts',
@@ -83,6 +86,10 @@ function assignmentCaptureSource(bootstrap) {
     version: 1,
     ownerTable: one('binding', 'qualifiedContextOwners'),
     oneUseTake: one('function', 'takeM4OwnedAssignmentContexts'),
+    strictOwnerTable: one('binding', 'strictContextOwners'),
+    strictRequestTable: one('binding', 'strictObservationRequests'),
+    strictObservedFactory: one('function', 'createM4ObservedPrivateAssignmentRuntime'),
+    strictOneUseTake: one('function', 'takeM4StrictAssignmentContexts'),
     captureList: one('binding', 'contextCaptures'),
     captureBudget: one('binding', 'qualifiedContextBudget'),
     invocationBinding: one('call', 'bindM4AssignmentInvocation'),
@@ -96,7 +103,7 @@ function assignmentCaptureSource(bootstrap) {
       'createM4StaffAssignmentController',
     ].map(name => one('call', name)),
     guarantees: [
-      'only construct() lexically enrolls actual returned local runtime objects',
+      'only construct() lexically enrolls actual returned local or internally requested strict runtime objects; scope-specific one-use takes remain distinct',
       'actual post-posture identity/data pools and fixed verifier/data Drizzle references are checked before retaining only frozen scalar rows',
       'only a closed drained owner can be taken once; row data cannot register an owner',
       'exact literal profile factories consume that same receiver/verifier; requests select no factory',
@@ -106,6 +113,8 @@ function assignmentCaptureSource(bootstrap) {
 
 export function deriveM4PrivateRuntimeSource({
   bootstrapSource,
+  commandSource,
+  retirementSource,
   contextSource,
   postureSource,
   runtimeTypesSource,
@@ -113,11 +122,20 @@ export function deriveM4PrivateRuntimeSource({
 }) {
   const sources = {
     bootstrap: bootstrapSource,
+    command: commandSource,
+    retirement: retirementSource,
     context: contextSource,
     posture: postureSource,
     runtimeTypes: runtimeTypesSource,
     controllerTypes: controllerTypesSource,
   };
+  const databaseTlsSource = deriveM4DatabaseTlsSource({
+    postureSource,
+    poolSource: bootstrapSource,
+    poolRole: 'bootstrap',
+  });
+  const command = matched(commandSource, 'command');
+  const retirement = matched(retirementSource, 'retirement');
   const context = matched(contextSource, 'context');
   const bootstrap = matched(bootstrapSource, 'bootstrap'),
     posture = matched(postureSource, 'posture');
@@ -133,7 +151,7 @@ export function deriveM4PrivateRuntimeSource({
   // Complete module trees stay in facts once; named clauses bind their checked subtrees
   // without serializing the full construct/work body repeatedly in the source receipt.
   const namedOrderedFacts = Object.fromEntries(
-    Object.entries(runtimeClauses(bootstrap, posture, context)).map(([group, clauses]) => [
+    Object.entries(runtimeClauses(bootstrap, posture, context, command)).map(([group, clauses]) => [
       group,
       clauses.map(({ tree, ...clause }) => ({
         ...clause,
@@ -143,10 +161,13 @@ export function deriveM4PrivateRuntimeSource({
   );
   const facts = {
     bootstrapTree: bootstrap.runtimeTree,
+    commandTree: command.runtimeTree,
+    retirementTree: retirement.runtimeTree,
     contextTree: context.runtimeTree,
     bootstrapTypeExports: bootstrap.typeExports,
     postureTree: posture.runtimeTree,
     postureTaggedLiteralTokens: posture.taggedLiteralTokens,
+    databaseTls: databaseTlsSource.facts,
     types,
     namedOrderedFacts,
   };
@@ -162,6 +183,7 @@ export function deriveM4PrivateRuntimeSource({
     ),
     facts,
     assignmentContextSource: assignmentCaptureSource(bootstrap),
+    databaseTlsSource,
     factsSha256: digest(JSON.stringify(facts)),
     namedOrderedFacts,
     sourceNodes: Object.entries(namedOrderedFacts).flatMap(([group, clauses]) =>
@@ -180,6 +202,7 @@ export function deriveM4PrivateRuntimeSource({
       'Trusted construction captures and validates issuer/deadline/URL primitives, distinct purpose logins and one endpoint; it exposes only frozen fixed operation and close methods.',
       'Request command/observation validation and the max-four owned-operation gate precede pool creation; no request chooses an identity, purpose, verifier, arbitrary driver option or transport mode.',
       'Fresh identity/data pools use fixed options and awaited posture gates; concrete current-store verifier receives identity Drizzle and every fixed controller receives data Drizzle, with the actual owned notifier for legacy profiles.',
+      'Frozen strict TLS options return Node standard certificate identity validation for each captured purpose URL hostname; caller callbacks, mutable host aliases and driver-inferred hostname are not accepted.',
       'Production/local constructor literals fix TLS versus loopback qualification. Target normalization and driver-environment guards precede actual connection construction.',
       'Exact server-side posture SQL binds login/database and checks current/session identity, polling, forbidden privileges, memberships, ownership and callable definers before requiring one numeric gate row.',
       'Stop marks uncertainty and retains original operation identity; pool termination is memoized per owned operation, work settlement is awaited and slots are released only in cleanup. No automatic retry or no-dispatch inference exists.',

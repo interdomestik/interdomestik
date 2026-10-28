@@ -23,8 +23,8 @@ const metadata = {
     id: 123,
     run_attempt: 2,
     event: 'pull_request',
-    status: 'in_progress',
-    conclusion: null,
+    status: 'completed',
+    conclusion: 'success',
     path: '.github/workflows/ci.yml',
     repository: { full_name: 'interdomestik/interdomestik' },
     head_repository: { full_name: 'interdomestik/interdomestik' },
@@ -42,9 +42,12 @@ const metadata = {
     created_at: '2026-10-26T10:01:00Z',
   },
 };
-test('completed ordinary job is usable while other jobs remain running', () =>
+test('completed successful workflow and unit supply ordinary data', () =>
   assert.equal(verifyOrdinaryProvenance(metadata).artifactId, 321));
 const changes = {
+  runningWorkflow: v => (v.run.status = 'in_progress'),
+  cancelledWorkflow: v => (v.run.conclusion = 'cancelled'),
+  failedWorkflow: v => (v.run.conclusion = 'failure'),
   oldAttempt: v => (v.job.run_attempt = 1),
   failedJob: v => (v.job.conclusion = 'failure'),
   unfinishedJob: v => (v.job.status = 'in_progress'),

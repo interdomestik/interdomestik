@@ -10,37 +10,37 @@
       "bytes": 7811
     },
     "generatedTestSource": {
-      "file": "scripts/ci/p2/capsule/dist/wrapper.test.source.ts",
+      "file": "scripts/ci/p2/legacy-bank/dist/wrapper.test.source.ts",
       "sha256": "52e49604fe58f3eb2ae483989f248364975a4f5cc246f9ade2cbe5de765c76e6",
       "bytes": 7883
     },
     "generatedTest": {
-      "file": "scripts/ci/p2/capsule/dist/wrapper.test.mjs",
+      "file": "scripts/ci/p2/legacy-bank/dist/wrapper.test.mjs",
       "sha256": "9de422216f2bed22cc21633fbd281506c96d007a9539a0787f7ec33c0707863c",
       "bytes": 8697
     },
     "registry": {
-      "file": "scripts/ci/p2/capsule/registry.mjs",
+      "file": "scripts/ci/p2/legacy-bank/registry.mjs",
       "sha256": "c3ced4747ab1eb289091a482c09b3378dc5df8c1ba075b33b2050f7b6cb87a47",
       "bytes": 951
     },
     "runSuite": {
-      "file": "scripts/ci/p2/capsule/run-suite.mjs",
+      "file": "scripts/ci/p2/legacy-bank/run-suite.mjs",
       "sha256": "3a74dc5b6bfcaf4f20710bd98f8fb7941223a4c1e2ea86cb8f7f085536cfd160",
       "bytes": 3118
     },
     "sourceFence": {
       "file": "scripts/ci/p2/source-fence.mjs",
-      "sha256": "85566c9bfed958ce027621e621ce9c86bff71770cae61201cd984c81b855f6d4",
-      "bytes": 1951
+      "sha256": "a0b78729a579b1efd2526b60ad73456a093db33e6d36c194b552469286698bf0",
+      "bytes": 2403
     },
     "ordinaryJob": {
       "file": "scripts/ci/p2/ordinary-job.mjs",
-      "sha256": "3dcbbc36c2f59dec5492fea77d362063a7d089a116f20634effb31fe6769e9a1",
-      "bytes": 6010
+      "sha256": "ec371736ea354f5b0432ef9f02e1c627bbb9c82d7d4022ff3e2aefd54dc27bd0",
+      "bytes": 6053
     },
     "generatedWrapper": {
-      "file": "scripts/ci/p2/capsule/dist/wrapper.mjs",
+      "file": "scripts/ci/p2/legacy-bank/dist/wrapper.mjs",
       "sha256": "f1f0bbdd05f862fca8bf38697c84a820c09bcd38895b2c4d530c55643ee4a997",
       "bytes": 2737
     }

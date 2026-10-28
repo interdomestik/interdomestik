@@ -1,54 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { assignClaimCore } from './assign.core';
-import * as relay from '@/server/operations/m4-assignment-relay';
-import { revalidatePath } from 'next/cache';
-vi.mock('@/server/operations/m4-assignment-relay', async () => ({
-  ...(await vi.importActual<typeof import('@/server/operations/m4-assignment-relay')>(
-    '@/server/operations/m4-assignment-relay'
-  )),
-  relayStaffAssignment: vi.fn(),
+
+const hoisted = vi.hoisted(() => ({
+  domainAssignClaim: vi.fn(),
+  logAuditEvent: vi.fn(),
+  revalidatePath: vi.fn(),
 }));
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-describe('staff assignment mandatory-audit owner relay', () => {
-  beforeEach(() => vi.clearAllMocks());
-  it('uses literal staff owner instead of optional caller-provided audit callbacks', async () => {
-    const requestHeaders = new Headers({ 'user-agent': 'Vitest', cookie: 'original' }),
-      operationId = '00000000-0000-4000-8000-000000000001';
-    vi.mocked(relay.relayStaffAssignment).mockResolvedValueOnce({
-      status: 'completed',
-      operationId,
-      replayed: false,
-      result: { success: true },
-      changed: true,
-    });
-    expect(
-      await assignClaimCore({ claimId: 'claim-1', requestHeaders, staffId: 'staff-2', operationId })
-    ).toEqual({ success: true });
-    expect(relay.relayStaffAssignment).toHaveBeenCalledWith({
-      claimId: 'claim-1',
-      requestHeaders,
-      staffId: 'staff-2',
-      operationId,
-    });
-    expect(revalidatePath).toHaveBeenCalledTimes(8);
+
+vi.mock('@interdomestik/domain-claims/staff-claims/assign', () => ({
+  assignClaimCore: hoisted.domainAssignClaim,
+}));
+
+vi.mock('@/lib/audit', () => ({
+  logAuditEvent: hoisted.logAuditEvent,
+}));
+
+vi.mock('next/cache', () => ({
+  revalidatePath: hoisted.revalidatePath,
+}));
+
+import { assignClaimCore } from './assign.core';
+
+describe('staff assign.core audit wiring', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.domainAssignClaim.mockResolvedValue({ success: true });
   });
-  it('preserves omitted self target versus explicit clear target', async () => {
-    const requestHeaders = new Headers();
-    vi.mocked(relay.relayStaffAssignment).mockResolvedValue({
-      status: 'denied',
-      reason: 'UNAUTHORIZED',
-    });
-    await assignClaimCore({ claimId: 'claim-1', requestHeaders });
-    expect(relay.relayStaffAssignment).toHaveBeenLastCalledWith({
+
+  it('passes the audit logger into the staff domain assignment mutation', async () => {
+    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+
+    const result = await assignClaimCore({
       claimId: 'claim-1',
       requestHeaders,
+      session: {
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
+        session: { id: 'session-1' },
+      } as never,
+      staffId: 'staff-2',
     });
-    await assignClaimCore({ claimId: 'claim-1', requestHeaders, staffId: null });
-    expect(relay.relayStaffAssignment).toHaveBeenLastCalledWith({
-      claimId: 'claim-1',
-      requestHeaders,
-      staffId: null,
-    });
-    expect(revalidatePath).not.toHaveBeenCalled();
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.domainAssignClaim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: 'claim-1',
+        requestHeaders,
+        staffId: 'staff-2',
+      }),
+      { logAuditEvent: hoisted.logAuditEvent }
+    );
   });
 });

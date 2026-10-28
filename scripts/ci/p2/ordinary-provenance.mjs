@@ -15,10 +15,8 @@ function verifyProvenance({ run, job, artifact, context, runId, attempt }, m4C0)
     run.id !== runId ||
     run.run_attempt !== attempt ||
     run.event !== context.eventName ||
-    !['in_progress', 'completed'].includes(run.status) ||
-    (run.status === 'completed' &&
-      run.conclusion !== 'success' &&
-      !(m4C0 && run.conclusion === 'failure')) ||
+    run.status !== 'completed' ||
+    (run.conclusion !== 'success' && !(m4C0 && run.conclusion === 'failure')) ||
     run.path !== '.github/workflows/ci.yml' ||
     run.repository?.full_name !== 'interdomestik/interdomestik' ||
     run.head_repository?.full_name !== 'interdomestik/interdomestik' ||

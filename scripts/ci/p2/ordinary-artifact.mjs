@@ -208,6 +208,8 @@ async function fetchCoverageArtifact(
     ...(m4C0
       ? {
           qualificationPurpose: 'm4-c0',
+          hostedProtectedAuthorityAccepted: false,
+          globalGuardVerdictAccepted: false,
           workflowStatus: run.status,
           workflowConclusion: run.status === 'completed' ? run.conclusion : null,
           workflowFailureNotDeliveryAccepted: true,
@@ -254,7 +256,10 @@ export function unpackOrdinaryArtifact({ identity, expectedFiles, outputDirector
         ].sort()
       ) ||
     JSON.stringify(manifest.excludedSources) !==
-      JSON.stringify(['apps/web/src/actions/admin-claims/assign.wrapper.test.ts']) ||
+      JSON.stringify([
+        'apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts',
+        'apps/web/src/actions/admin-claims/assign.wrapper.test.ts',
+      ]) ||
     manifest.coverageThresholdPendingProtectedMerge !== true ||
     manifest.version !== 1 ||
     manifest.repository !== context.repository ||

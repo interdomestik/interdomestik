@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { checkServerIdentity } from 'node:tls';
 import ts from 'typescript';
 export const P = path.resolve(import.meta.dirname, '../..');
 
@@ -34,6 +35,8 @@ export const proof = await proposed('db-access-m4-assignment-context-proof.mjs')
 
 export const runtimeSources = {
   bootstrapSource: bootstrap,
+  commandSource: read('apps/web/src/server/operations/m4-runtime-command.ts'),
+  retirementSource: read('apps/web/src/server/operations/m4-runtime-retirement.ts'),
   contextSource: fs.readFileSync(
     new URL('../../apps/web/src/server/operations/m4-private-runtime-context.ts', import.meta.url),
     'utf8'
@@ -85,6 +88,22 @@ export function mockBootstrap(
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText
   )(protocol, protocol.exports);
+  const postureModule = { exports: {} };
+  new Function(
+    'require',
+    'module',
+    'exports',
+    ts.transpileModule(runtimeSources.postureSource, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText
+  )(
+    name => {
+      assert.equal(name, 'node:tls');
+      return { checkServerIdentity };
+    },
+    postureModule,
+    postureModule.exports
+  );
   const mocks = {
     'node:crypto': { createHash },
     '@interdomestik/database/schema': {},
@@ -105,6 +124,7 @@ export function mockBootstrap(
       }),
     },
     './m4-pool-posture': {
+      captureM4DatabaseTls: postureModule.exports.captureM4DatabaseTls,
       assertM4DriverEnvironment() {},
       assertM4PoolPosture: async () => {},
       captureM4PoolTarget: url => ({
@@ -120,6 +140,28 @@ export function mockBootstrap(
       createM4LegacyAgentAssignmentController: factory('legacy-agent'),
     },
   };
+  for (const [specifier, text] of [
+    ['./m4-runtime-command', runtimeSources.commandSource],
+    ['./m4-runtime-retirement', runtimeSources.retirementSource],
+  ]) {
+    const unit = { exports: {} };
+    new Function(
+      'require',
+      'module',
+      'exports',
+      ts.transpileModule(text, {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      }).outputText
+    )(
+      name => {
+        assert(Object.hasOwn(mocks, name), name);
+        return mocks[name];
+      },
+      unit,
+      unit.exports
+    );
+    mocks[specifier] = unit.exports;
+  }
   const helper = fs.readFileSync(
     new URL('../../apps/web/src/server/operations/m4-private-runtime-context.ts', import.meta.url),
     'utf8'

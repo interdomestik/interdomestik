@@ -5,7 +5,8 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { createCurrentStoreSessionVerifier } from '../../lib/auth/current-store-session';
-import { parseM4AssignmentRequest } from './m4-assignment-protocol';
+import { prepareM4RuntimeCommand, captureM4ConnectionOptions } from './m4-runtime-command';
+import { settleM4OwnedPools, stopM4OwnedOperations } from './m4-runtime-retirement';
 import {
   createM4OpsAssignmentController,
   createM4LegacyAdminAssignmentController,
@@ -16,24 +17,30 @@ import {
 import { createM4AssignmentPostcommitNotifier } from './m4-assignment-postcommit';
 import { createM4NotificationDatabaseOwner } from './m4-notification-runtime';
 import {
-  parseM4AssignmentObservation,
   type M4Response,
   type AssignmentResult,
   type LegacyResult,
   type StaffResult,
 } from './m4-assignment-wire';
-import { assertM4DriverEnvironment, assertM4PoolPosture } from './m4-pool-posture';
+import {
+  assertM4DriverEnvironment,
+  assertM4PoolPosture,
+  captureM4DatabaseTls,
+} from './m4-pool-posture';
 
 import {
   captureM4PrivateRuntimeConfiguration,
   bindM4AssignmentInvocation,
   type M4LocalAssignmentCaptureState,
   readM4ClosedAssignmentContexts,
+  readM4StrictAssignmentContexts,
   type M4LocalAssignmentOwner,
 } from './m4-private-runtime-context';
 
 const MAX_CONCURRENT_OPERATIONS = 4;
 
+const strictObservationRequests = new WeakSet<object>();
+const strictContextOwners = new WeakMap<object, M4LocalAssignmentOwner>();
 const qualifiedContextBudget = { used: 0, refused: false };
 const qualifiedContextOwners = new WeakMap<object, M4LocalAssignmentOwner>();
 
@@ -41,6 +48,24 @@ const qualifiedContextOwners = new WeakMap<object, M4LocalAssignmentOwner>();
 export function takeM4OwnedAssignmentContexts(runtime: object) {
   const observation = readM4ClosedAssignmentContexts(qualifiedContextOwners.get(runtime));
   qualifiedContextOwners.delete(runtime);
+  return observation;
+}
+
+// Fixed observed entry invokes the genuine strict constructor; no caller token or callback.
+export function createM4ObservedPrivateAssignmentRuntime(
+  configuration: Runtime.M4PrivateAssignmentRuntimeConfiguration
+): Runtime.M4PrivateAssignmentRuntime {
+  const captured = Object.freeze({ ...configuration });
+  strictObservationRequests.add(captured);
+  try {
+    return createM4PrivateAssignmentRuntime(captured);
+  } finally {
+    strictObservationRequests.delete(captured);
+  }
+}
+export function takeM4StrictAssignmentContexts(runtime: object) {
+  const observation = readM4StrictAssignmentContexts(strictContextOwners.get(runtime));
+  strictContextOwners.delete(runtime);
   return observation;
 }
 
@@ -60,17 +85,23 @@ function construct(
       notificationConfiguration
     );
   const active = new Set<Runtime.M4OwnedOperation>();
+  const strictObservation =
+    !loopbackQualification && strictObservationRequests.delete(configuration);
   const contextCaptures: M4LocalAssignmentCaptureState = {
-    budget: loopbackQualification ? qualifiedContextBudget : undefined,
+    budget: loopbackQualification
+      ? qualifiedContextBudget
+      : strictObservation
+        ? { used: 0, refused: false }
+        : undefined,
     refused: false,
     rows: [],
   };
   function ownRuntime<T extends object>(runtime: T): T {
-    if (loopbackQualification)
-      qualifiedContextOwners.set(runtime, {
+    if (loopbackQualification || strictObservation)
+      (loopbackQualification ? qualifiedContextOwners : strictContextOwners).set(runtime, {
         closed: () => closed && closeDrained,
         active: () => active.size,
-        refused: () => contextCaptures.refused || qualifiedContextBudget.refused,
+        refused: () => contextCaptures.refused || contextCaptures.budget!.refused,
         captures: contextCaptures.rows,
       });
     return runtime;
@@ -96,22 +127,9 @@ function construct(
     serialized: unknown,
     observation?: unknown
   ): Promise<M4Response<AssignmentResult>> {
-    const request = parseM4AssignmentRequest(serialized);
-    if (
-      !request ||
-      request.command !==
-        (profile === 'ops'
-          ? 'm4.ops.assign-owner'
-          : profile === 'staff'
-            ? 'm4.staff.assign-claim'
-            : 'm4.legacy.assign-claim') ||
-      (profile !== 'ops' && !parseM4AssignmentObservation(observation))
-    )
-      return { status: 'denied', reason: 'INVALID_REQUEST' };
-    const uncertain: M4Response<AssignmentResult> = {
-      status: 'indeterminate',
-      operationId: request.operationId,
-    };
+    const admission = prepareM4RuntimeCommand(profile, serialized, observation);
+    if (!admission) return { status: 'denied', reason: 'INVALID_REQUEST' };
+    const { request, uncertain } = admission;
     if (closed || active.size >= MAX_CONCURRENT_OPERATIONS) return uncertain;
     let identity: postgres.Sql | undefined, data: postgres.Sql | undefined;
     let stopped = false,
@@ -124,12 +142,7 @@ function construct(
       expire = resolve;
     });
     function endOwnedPools(): Promise<boolean> {
-      if (!ending)
-        ending = Promise.allSettled(
-          [identity, data]
-            .filter((pool): pool is postgres.Sql => Boolean(pool))
-            .map(pool => Promise.resolve().then(() => pool.end({ timeout: 0 })))
-        ).then(results => results.every(result => result.status === 'fulfilled'));
+      if (!ending) ending = settleM4OwnedPools(identity, data);
       return ending;
     }
     const operation: Runtime.M4OwnedOperation = {
@@ -146,27 +159,18 @@ function construct(
     const timer = setTimeout(operation.stop, captured.operationDeadlineMs);
     const work: Promise<M4Response<AssignmentResult>> = (async () => {
       try {
-        const connection = {
-          statement_timeout: captured.operationDeadlineMs,
-          lock_timeout: captured.operationDeadlineMs,
-          idle_in_transaction_session_timeout: captured.operationDeadlineMs,
-          // A server blocked on a lock must also notice our destroyed client socket.
-          // This is not a guarantee of bounded detection under arbitrary network failure.
-          client_connection_check_interval: 100,
-          search_path: 'pg_catalog, public',
-          row_security: 'on',
-        };
+        const connection = captureM4ConnectionOptions(captured.operationDeadlineMs);
         assertM4DriverEnvironment();
         identity = postgres(identityTarget.url, {
           max: 1,
           connect_timeout: Math.max(1, Math.ceil(captured.operationDeadlineMs / 1000)),
-          ssl: loopbackQualification ? false : { rejectUnauthorized: true },
+          ssl: loopbackQualification ? false : captureM4DatabaseTls(identityTarget),
           connection: { ...connection, application_name: 'interdomestik-m4-identity' },
         });
         data = postgres(dataTarget.url, {
           max: 1,
           connect_timeout: Math.max(1, Math.ceil(captured.operationDeadlineMs / 1000)),
-          ssl: loopbackQualification ? false : { rejectUnauthorized: true },
+          ssl: loopbackQualification ? false : captureM4DatabaseTls(dataTarget),
           connection: { ...connection, application_name: 'interdomestik-m4-data' },
         });
         await Promise.all([
@@ -240,11 +244,7 @@ function construct(
     if (!closing) {
       closed = true;
       const pending = [...active];
-      for (const operation of pending) operation.stop();
-      closing = Promise.all([
-        ...pending.map(operation => operation.done),
-        notificationOwner?.close(),
-      ]).then(() => {
+      closing = stopM4OwnedOperations(pending, notificationOwner).then(() => {
         closeDrained = true;
       });
     }

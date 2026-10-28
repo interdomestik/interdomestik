@@ -63,13 +63,15 @@
         {
           "id": "runtime-queued-current-store-binding",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/17",
-          "factSha256": "7aab9f458282544d3204f70d8a998e0907d96f0580201241adb379637310599a",
+          "factSha256": "660b73b388afb08581744349baffa972308dd4559664cbf3adffde0b9d853da6",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(await pending, {\n          status: 'denied',\n          reason: 'UNAUTHORIZED',\n        })",
@@ -88,13 +90,15 @@
         {
           "id": "runtime-four-capacity-refusal",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/4",
-          "factSha256": "8af375fb46a7b5f5140e3a8232da36e9f6560c3f8e858bf22665682606c4234e",
+          "factSha256": "595025d8a58a4e6fdd8538f46743a24afc227174ce14137ba67ba7c6767853c7",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.equal(observed.filter(r => r.usename === dataRole).length, 4)",
@@ -107,13 +111,15 @@
         {
           "id": "runtime-close-owned-work",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/0",
-          "factSha256": "6b0c917ebac42ab6f60b9aff73b1044fdb9ca011fa53753fd268b2a72d642887",
+          "factSha256": "d0009d0b8469e6d7f9150d3ed3bcd0f0ed7518bb1cacd3a4d030a7629e59d97a",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(\n          await pending,\n          requests.map(r => ({\n            status: 'indeterminate',\n            operationId: r.operationId,\n          }))\n        )",
@@ -410,7 +416,7 @@
         {
           "id": "notification-deadline-retirement",
           "factPath": "/derivations/notification/facts/namedOrderedFacts/owner/8",
-          "factSha256": "ba684e35f4a929219d03869ad36bf9107e5120c3f3b475ed6166dd91bdf906de",
+          "factSha256": "e51a15decfc9aba4e1c3435e6125e56a5fad0dd13f5794a7c6bb36acefe54ad5",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-assignment-postcommit.ts",
             "apps/web/src/server/operations/m4-notification-runtime.ts"
@@ -490,13 +496,15 @@
         {
           "id": "r1-ops-frozen-public-capability",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/2",
-          "factSha256": "5e9b23c06d77eaee884f5f67a8dbbbb8459370e2e776155789d5be853784e4de",
+          "factSha256": "de624517325d1bc949d36fcab3e596b6396681e2d8c1d894f6ad35f6d7439ed1",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(Object.keys(runtime).sort(), ['close', 'execute'])",
@@ -529,13 +537,15 @@
         {
           "id": "r1-profile-command-refusal",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/2",
-          "factSha256": "eb8cc80c5e0a2bba73d8cfacf59e8fe7d0a531b03ffd55ff27f435b191a73c3f",
+          "factSha256": "6bf2ece34882eec5fa01ae812823c9eec6016111d68ecbad2f67cf16a74e10da",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(\n        await runtime.executeLegacyAdmin(cookie, JSON.stringify(successRequest), '{}'),\n        { status: 'denied', reason: 'INVALID_REQUEST' }\n      )",
@@ -546,13 +556,15 @@
         {
           "id": "r1-local-profile-capability",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/closure/6",
-          "factSha256": "82d09102a2a3eddf45075236815cc83a95be29fba61768f8ea2cb46138685b79",
+          "factSha256": "a8a9d07156bec2e78add9a4d3d7fffe76a927f242e9875397e3bb0289de05f87",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(Object.keys(runtime).sort(), [\n        'close',\n        'execute',\n        'executeLegacyAdmin',\n        'executeLegacyAgent',\n        'executeStaff',\n      ])",
@@ -689,13 +701,15 @@
         {
           "id": "r4-original-identity-uncertainty",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/3",
-          "factSha256": "a00f711b847fadae20bf70c77473b32e74eb40c795de3628cf319cbc8e579431",
+          "factSha256": "a4de072fbe937199b8c68edaa75ee6d6b3f89be6a8d65b4ac722c6c0303e489f",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(await pending, {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })"
@@ -705,13 +719,15 @@
         {
           "id": "r4-owned-deadline-settlement",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/23",
-          "factSha256": "adf34f9ad1f8416c88d4108d58fa050eb477f369ddcc4a10468f9db945e98a00",
+          "factSha256": "c543a9a681a6572d8cf6d46b84e40668ba08ad7d73fa68bec268e20001e2e24b",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(await pending, {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
@@ -733,13 +749,15 @@
         {
           "id": "r4-sibling-operation-independence",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/7",
-          "factSha256": "67a56274ae1cf9632110cbd6bb4439224220aa7ac6a6ed30334f6c1f307bd06b",
+          "factSha256": "832ebf2a1852eb6c46c84af2fb26f9fdb128daa36eebe0c6a4ce485cdaefa9c8",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.equal(completed.result.success, true)",
@@ -760,13 +778,15 @@
         {
           "id": "r6-posture-before-dispatch",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/operation/15",
-          "factSha256": "0d9d6af6733539dc7a9c2da256f46cd8154fcab1726c6b48b0e0a5517f5b0f0d",
+          "factSha256": "63ff02a6f914b50745ef1090efe2d27e530938c03209f206fada91181216d9c2",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(await invoke(r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
@@ -778,13 +798,15 @@
         {
           "id": "r6-elevated-role-gate",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/posture/5",
-          "factSha256": "5e9589382438865a55ce633c841fe2ccd3519bda726ccea847bbe695ef5fd027",
+          "factSha256": "13ba27c96c520a02f1fe743669ad00b66f313cd4b7d5cdd010e65aa97b81b932",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.deepEqual(await invoke(r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
@@ -804,13 +826,15 @@
         {
           "id": "r6-disconnect-polling-gate",
           "factPath": "/derivations/privateRuntime/facts/namedOrderedFacts/posture/5",
-          "factSha256": "5e9589382438865a55ce633c841fe2ccd3519bda726ccea847bbe695ef5fd027",
+          "factSha256": "13ba27c96c520a02f1fe743669ad00b66f313cd4b7d5cdd010e65aa97b81b932",
           "sourceFiles": [
             "apps/web/src/server/operations/m4-private-runtime.ts",
             "apps/web/src/server/operations/m4-pool-posture.ts",
             "apps/web/src/server/operations/m4-private-runtime-types.ts",
             "apps/web/src/server/operations/m4-assignment-controller-types.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts"
           ],
           "assertions": [
             "assert.equal(observed.polling, '100ms')",

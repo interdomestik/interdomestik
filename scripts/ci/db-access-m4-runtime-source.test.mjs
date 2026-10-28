@@ -5,6 +5,7 @@ import ts from 'typescript';
 import { FILES, deriveM4PrivateRuntimeSource } from './db-access-m4-runtime-source.mjs';
 import {
   bootstrapCases,
+  retirementCases,
   contextCases,
   postureCases,
   typeCases,
@@ -96,6 +97,8 @@ function negative(label, role, needle, replacement) {
 }
 for (const [label, needle, replacement] of bootstrapCases)
   negative(label, 'bootstrap', needle, replacement);
+for (const [label, needle, replacement] of retirementCases)
+  negative(label, 'retirement', needle, replacement);
 for (const [label, needle, replacement] of contextCases)
   negative(label, 'context', needle, replacement);
 for (const [label, needle, replacement] of postureCases)

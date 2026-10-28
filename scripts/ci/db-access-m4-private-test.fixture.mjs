@@ -19,8 +19,9 @@ export function executionFixture() {
   };
   const sources = Object.fromEntries(
     Object.entries(names).map(([key, name]) => {
-      const text = historical.sources[name].text;
-      if (hash(text) !== contract.pins[name].sha256) throw Error('Historical source data drift');
+      const text = read(contract.pins[name].file);
+      if (hash(text) !== contract.pins[name].sha256)
+        throw Error('Current fixed bank source data drift');
       return [key, { text, sha256: hash(text) }];
     })
   );

@@ -181,7 +181,7 @@ export const ownerCases = [
   ['purpose max connection widened', '        max: 1,', '        max: 4,'],
   [
     'TLS validation disabled',
-    'ssl: loopbackQualification ? false : { rejectUnauthorized: true }',
+    'ssl: loopbackQualification ? false : captureM4DatabaseTls(notificationTarget)',
     'ssl: false',
   ],
   ['statement timeout disabled', 'statement_timeout: deadline', 'statement_timeout: 0'],

@@ -1,8 +1,8 @@
 {
-  "status": "BUILT_NOT_EXECUTED_CURRENT_MOUNTED_CAPSULE",
+  "status": "BUILT_NOT_EXECUTED_LOCAL_QUALIFICATION_CAPSULE",
   "sourceFiles": {
-    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9",
-    "apps/web/src/actions/admin-claims/assign.core.ts": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts": "b48386858936c01fc16fc6a64bacaf9ecddcc4e64f8e20808d98fb1d1247aca4",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
     "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
   },
   "compilerVersion": "5.9.3",
@@ -11,62 +11,62 @@
   "tests": [
     {
       "name": "calls only the literal admin relay with bounded request inputs",
-      "start": 1025,
-      "end": 1390,
+      "start": 1088,
+      "end": 1453,
       "bodySha256": "d49b8d139187829e6650a5e584d789ae99ef3e892fcf23f136bba3bac395b36d"
     },
     {
       "name": "revalidates every original locale path after committed changed assignment",
-      "start": 1394,
-      "end": 2012,
+      "start": 1457,
+      "end": 2075,
       "bodySha256": "e6afd9e908ddb069dc335cbfef1aa4b8ec45bc59b06cef4bfd1669979ad23b26"
     },
     {
       "name": "does not revalidate on completed domain refusal",
-      "start": 2016,
-      "end": 2392,
+      "start": 2079,
+      "end": 2455,
       "bodySha256": "ff1bb79e04a06d9ecac2c0cad2419cb12aa6a8f7412b67ea9f7cd616c0212c32"
     },
     {
       "name": "preserves unexpected relay exception propagation",
-      "start": 2396,
-      "end": 2725,
+      "start": 2459,
+      "end": 2788,
       "bodySha256": "0f9ed3efe50da8de15776a95fdb21cbc8d3de0ce9d83d06bd1ec3e526128d47a"
     },
     {
       "name": "backend-confirmed no-op returns success without cache mutation",
-      "start": 2729,
-      "end": 3029,
+      "start": 2792,
+      "end": 3092,
       "bodySha256": "6654132a7802e0262e2033e77f43f5d724d85ef9eac6d99199bfce8747a931bc"
     },
     {
       "name": "passes current backend authorization denial without local read or success",
-      "start": 3033,
-      "end": 3410,
+      "start": 3096,
+      "end": 3473,
       "bodySha256": "4b632876d2d8e56e87eebc3636d661fe216f968ea9edb53c61d7efe0edda1d93"
     },
     {
       "name": "preserves backend self-assignment denial and does not revalidate",
-      "start": 3414,
-      "end": 3835,
+      "start": 3477,
+      "end": 3898,
       "bodySha256": "e9f83e0ce0762622201cc2ca1759d23a73a396ac961b299f4559298ccdc983f5"
     },
     {
       "name": "unchanged committed assignee uses authoritative changed bit without second ambient read",
-      "start": 3839,
-      "end": 4246,
+      "start": 3902,
+      "end": 4309,
       "bodySha256": "529e50d89ee49af60e320b9cf3b29d7bce3920fffd2aba5ee02858e9c9a1abf2"
     },
     {
       "name": "missing backend resource cannot become successful post-mutation read",
-      "start": 4250,
-      "end": 4628,
+      "start": 4313,
+      "end": 4691,
       "bodySha256": "776e848b12ba0d5c3fdd0a22db33032921abb1fec24b95c8c27326cd26cadcce"
     },
     {
       "name": "uncertain result retains original retry identity and never retries or revalidates",
-      "start": 4632,
-      "end": 5128,
+      "start": 4695,
+      "end": 5191,
       "bodySha256": "9f8a7425c9eab766534cc1f6ad4c7de17590281bf72e0cea0c932a1a131f11a9"
     }
   ],
@@ -77,76 +77,76 @@
   ],
   "retainedSegments": [
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 223,
-      "end": 471,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 286,
+      "end": 534,
       "sha256": "a7dde31e10bad5806374fed3a9c24dc15cf24e703f5a55d89626321b988e0186",
       "generatedStart": 120,
       "generatedEnd": 368
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 472,
-      "end": 531,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 535,
+      "end": 594,
       "sha256": "53784217d16d492292e1f09c7ee8f663af9db1b123342de48b382d25b8278a84",
       "generatedStart": 369,
       "generatedEnd": 428
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 532,
-      "end": 591,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 595,
+      "end": 654,
       "sha256": "fbf063dbba293d5b1778c392c229a4d7aac507dd7a78c05f702ef44b54477be4",
       "generatedStart": 429,
       "generatedEnd": 488
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 592,
-      "end": 723,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 655,
+      "end": 786,
       "sha256": "921ac2547fb2a7071c86967d57173de7e8d2776f32dd2b4e7bd177f495e879a5",
       "generatedStart": 489,
       "generatedEnd": 620
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 724,
-      "end": 931,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 787,
+      "end": 994,
       "sha256": "20dd7e214692fcd90d53c326e2c784c2444b0c88b1fd3903840f106e2e35655f",
       "generatedStart": 621,
       "generatedEnd": 828
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.wrapper.test.ts",
-      "start": 932,
-      "end": 5133,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts",
+      "start": 995,
+      "end": 5196,
       "sha256": "e30d3b9f6402b064614b743fc5fea087d197b7db5579240e00bae5a9aee49e10",
-      "generatedStart": 1020,
-      "generatedEnd": 5221
+      "generatedStart": 1058,
+      "generatedEnd": 5259
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "start": 161,
-      "end": 211,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "start": 257,
+      "end": 307,
       "sha256": "a3f4c7a3ae0ef02e1dee8e585b65141770b792e8b85ba9b1305ceff7e11bd5ef",
       "generatedStart": 196,
       "generatedEnd": 246
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "start": 212,
-      "end": 335,
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "start": 308,
+      "end": 431,
       "sha256": "6bb64501ce6830e1b9403fce79a238d28620cd4226422275426c0f9c005669ee",
       "generatedStart": 247,
       "generatedEnd": 370
     },
     {
-      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "start": 336,
-      "end": 1092,
-      "sha256": "631e310f0a0bfdc0e62631b639e5ad490730b654f4955d79bbbf9d1c6623fb97",
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "start": 432,
+      "end": 1210,
+      "sha256": "b8ffbc6d2e861ad4a71b98d203984412c746aaddf4e951cdd974812a631282e9",
       "generatedStart": 371,
-      "generatedEnd": 1127
+      "generatedEnd": 1149
     },
     {
       "file": "apps/web/src/server/operations/m4-assignment-relay.ts",

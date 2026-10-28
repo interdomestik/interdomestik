@@ -55,7 +55,7 @@ async function actualP2(root) {
     sourceMap: JSON.parse(read('capsule/dist/wrapper.js.map')),
     originalSource: read('capsule/dist/wrapper.original.ts'),
     retainedSegments: JSON.parse(read('dist/source-manifest.json')).retainedSegments,
-    originalPath: root + '/apps/web/src/actions/admin-claims/assign.core.ts',
+    originalPath: root + '/apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
   });
 }
 const webSummary = 'apps/web/coverage/coverage-summary.json';

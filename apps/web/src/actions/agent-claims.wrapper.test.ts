@@ -1,10 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { assignClaim, updateClaimStatus } from './agent-claims';
-
-vi.mock('next/headers', () => ({
-  headers: vi.fn(async () => new Headers({ cookie: 'original' })),
-}));
 
 vi.mock('./agent-claims/context', () => ({
   getActionContext: vi.fn(async () => ({
@@ -22,7 +18,6 @@ vi.mock('./agent-claims/assign', () => ({
 }));
 
 describe('agent-claims action wrapper', () => {
-  beforeEach(() => vi.clearAllMocks());
   it('delegates updateClaimStatus to core', async () => {
     const { getActionContext } = await import('./agent-claims/context');
     const { updateClaimStatusCore } = await import('./agent-claims/update-status');
@@ -44,12 +39,12 @@ describe('agent-claims action wrapper', () => {
 
     await assignClaim('claim-1', 'staff-2');
 
-    expect(getActionContext).not.toHaveBeenCalled();
+    expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(assignClaimCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
       staffId: 'staff-2',
+      session: { user: { id: 'staff-1', role: 'staff' } },
       requestHeaders: expect.any(Headers),
-      operationId: undefined,
     });
   });
 });

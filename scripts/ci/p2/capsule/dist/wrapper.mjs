@@ -6,7 +6,7 @@ function revalidatePathForAllLocales(path) {
     for (const locale of LOCALES)
         revalidatePath(`/${locale}${path}`);
 }
-export async function assignClaimCore(params) {
+export async function executeM4QualificationAdminAssignment(params) {
     const response = await relayLegacyAdminAssignment(params);
     if (response.status !== 'completed') {
         return assignmentRelayFailure(response, 'legacy-admin');

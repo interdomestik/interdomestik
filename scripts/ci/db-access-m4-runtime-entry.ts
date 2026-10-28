@@ -13,7 +13,7 @@ export {
   startM4LocalQualificationAssignmentOwner,
   takeM4OwnedAssignmentOwnerContexts,
 } from './apps/web/src/server/operations/m4-assignment-owner';
-export { assignClaimCore as executeMountedM4AdminAdapter } from './apps/web/src/actions/admin-claims/assign.core';
-export { assignClaimCore as executeMountedM4AgentAdapter } from './apps/web/src/actions/agent-claims/assign.core';
-export { assignClaimCore as executeMountedM4StaffAdapter } from './apps/web/src/actions/staff-claims/assign.core';
+export { executeM4QualificationAdminAssignment as executeMountedM4AdminAdapter } from './apps/web/src/server/operations/m4-qualification-admin-assignment';
+export { executeM4QualificationAgentAssignment as executeMountedM4AgentAdapter } from './apps/web/src/server/operations/m4-qualification-agent-assignment';
+export { executeM4QualificationStaffAssignment as executeMountedM4StaffAdapter } from './apps/web/src/server/operations/m4-qualification-staff-assignment';
 export { takeM4CacheCalls } from './db-access-m4-runtime-cache-observer';

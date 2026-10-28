@@ -32,7 +32,12 @@ export function projectMountedAssignmentAcceptance({
   const contextSha256 = hash(JSON.stringify(event.context));
   if (
     !source ||
-    source.kind !== 'fixed-mounted-assignment-source' ||
+    source.kind !== 'fixed-local-qualification-assignment-source' ||
+    source.qualificationScope !== 'local-adapters-only-no-next-ingress' ||
+    source.localQualificationOnly !== true ||
+    source.nextActionIngressQualified !== false ||
+    !Array.isArray(source.replacements) ||
+    source.replacements.length !== 0 ||
     !capture ||
     capture.version !== 1 ||
     !runtime.completion.completionValidated
@@ -186,7 +191,7 @@ export function projectMountedAssignmentAcceptance({
       applicableTrustedConstruction: premise,
       executedRoutes: references,
       mandatoryAssertions: witness.assertions,
-      qualifiedLocalMountedConstruction: true,
+      qualifiedLocalQualificationConstruction: true,
       adapterActuallyExecuted: true,
       nextActionIngressSourceOnly: true,
       nextDeploymentQualified: false,
@@ -221,7 +226,10 @@ export function projectMountedAssignmentAcceptance({
 
   return {
     version: 1,
-    kind: 'fixed-local-mounted-assignment-acceptance',
+    kind: 'fixed-local-qualification-assignment-acceptance',
+    qualificationScope: 'local-adapters-only-no-next-ingress',
+    localQualificationOnly: true,
+    nextActionIngressQualified: false,
     contextSha256,
     sourcePolicyDigest: native.sourcePolicyDigest,
     runtimeReportSha256: runtime.reportSha256,

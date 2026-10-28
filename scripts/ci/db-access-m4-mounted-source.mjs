@@ -18,7 +18,10 @@ function locator(node, file) {
 export function deriveM4MountedSource(sources, fixed) {
   if (
     fixed.version !== 1 ||
-    fixed.reviewedConstruction !== 'mounted-assignment-three-profile-v1' ||
+    fixed.reviewedConstruction !== 'local-qualification-assignment-three-profile-v1' ||
+    fixed.qualificationScope !== 'local-adapters-only-no-next-ingress' ||
+    !Array.isArray(fixed.replacements) ||
+    fixed.replacements.length !== 0 ||
     !Array.isArray(fixed.files) ||
     !Array.isArray(fixed.routes)
   )
@@ -70,7 +73,10 @@ export function deriveM4MountedSource(sources, fixed) {
   )
     fail('three literal profiles');
   return {
-    kind: 'fixed-mounted-assignment-source',
+    kind: 'fixed-local-qualification-assignment-source',
+    qualificationScope: 'local-adapters-only-no-next-ingress',
+    localQualificationOnly: true,
+    nextActionIngressQualified: false,
     routes,
     sourceFiles: records.map(row => row.file),
     sourceRecords: records,
@@ -126,9 +132,9 @@ function bindCompilation(runtime, records, contract, policy) {
     specifier: 'next/cache',
     target,
     importers: [
-      'apps/web/src/actions/admin-claims/assign.core.ts',
-      'apps/web/src/actions/agent-claims/assign.core.ts',
-      'apps/web/src/actions/staff-claims/assign.core.ts',
+      'apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
+      'apps/web/src/server/operations/m4-qualification-agent-assignment.ts',
+      'apps/web/src/server/operations/m4-qualification-staff-assignment.ts',
     ],
     scope: 'revalidation-call-observation-only',
   };

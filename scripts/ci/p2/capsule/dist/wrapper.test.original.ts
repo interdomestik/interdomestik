@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { assignClaimCore } from './assign.core';
+import { executeM4QualificationAdminAssignment as assignClaimCore } from './m4-qualification-admin-assignment';
 import * as relay from '@/server/operations/m4-assignment-relay';
 import { revalidatePath } from 'next/cache';
 vi.mock('@/server/operations/m4-assignment-relay', async () => ({

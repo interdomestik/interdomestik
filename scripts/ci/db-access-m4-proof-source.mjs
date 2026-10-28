@@ -1,5 +1,6 @@
 import { deriveM4MountedSource } from './db-access-m4-mounted-source.mjs';
 import { deriveM4PrivateRuntimeSource } from './db-access-m4-runtime-source.mjs';
+import { deriveM4StrictObservationSource } from './db-access-m4-strict-observation-source.mjs';
 import fs from 'node:fs';
 import { deriveM4AssignmentNotification } from './db-access-m4-notification-source.mjs';
 import { exact } from './db-access-provider-runtime-identity.mjs';
@@ -43,6 +44,9 @@ const files = Object.freeze({
   mountedStaffMount: 'apps/web/src/actions/staff-claims.core.ts',
   mountedStaffBarrel: 'apps/web/src/actions/staff-claims/assign.ts',
   mountedStaffAdapter: 'apps/web/src/actions/staff-claims/assign.core.ts',
+  qualificationAdminAdapter: 'apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
+  qualificationAgentAdapter: 'apps/web/src/server/operations/m4-qualification-agent-assignment.ts',
+  qualificationStaffAdapter: 'apps/web/src/server/operations/m4-qualification-staff-assignment.ts',
   mountedRelay: 'apps/web/src/server/operations/m4-assignment-relay.ts',
   mountedClient: 'apps/web/src/server/operations/m4-assignment-relay-client.ts',
   mountedRelayWire: 'apps/web/src/server/operations/m4-assignment-relay-wire.ts',
@@ -50,6 +54,9 @@ const files = Object.freeze({
   mountedOwnerHttp: 'apps/web/src/server/operations/m4-assignment-owner-http.ts',
   mountedOwnerConfig: 'apps/web/src/server/operations/m4-assignment-owner-config.ts',
   mountedOwnerEntry: 'apps/web/src/server/operations/m4-assignment-owner-entry.ts',
+  command: 'apps/web/src/server/operations/m4-runtime-command.ts',
+  retirement: 'apps/web/src/server/operations/m4-runtime-retirement.ts',
+  ownerCapture: 'apps/web/src/server/operations/m4-assignment-owner-capture.ts',
 });
 const freeze = value => {
   if (value && typeof value === 'object') {
@@ -141,6 +148,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
     deriveM4AssignmentNotification({
       notifierSource: before.notifier,
       notificationRuntimeSource: before.notificationRuntime,
+      postureSource: before.posture,
     })
   );
   attempt('identity', () =>
@@ -162,9 +170,22 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
     deriveM4PrivateRuntimeSource({
       bootstrapSource: before.bootstrap,
       contextSource: before.context,
+      commandSource: before.command,
+      retirementSource: before.retirement,
       postureSource: before.posture,
       runtimeTypesSource: before.runtimeTypes,
       controllerTypesSource: before.controllerTypes,
+    })
+  );
+  attempt('strictObservation', () =>
+    deriveM4StrictObservationSource({
+      runtimeSource: before.bootstrap,
+      contextSource: before.context,
+      ownerSource: before.mountedOwner,
+      listenerSource: before.mountedOwnerHttp,
+      commandSource: before.command,
+      retirementSource: before.retirement,
+      ownerCaptureSource: before.ownerCapture,
     })
   );
   attempt('mountedAssignment', () =>
@@ -198,6 +219,7 @@ export function verifyM4ProofSource(repoRoot, model, policy) {
       'identity',
       'assignmentKernels',
       'privateRuntime',
+      'strictObservation',
       'mountedAssignment',
     ],
     derivations,

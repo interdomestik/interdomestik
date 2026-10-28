@@ -1,13 +1,85 @@
 import { createHash } from 'node:crypto';
+import { deriveM4DatabaseTlsSource } from './db-access-m4-database-tls-source.mjs';
+import { exact } from './db-access-provider-runtime-identity.mjs';
 const fail = reason => {
   throw Error('M4 runtime closure refused: ' + reason);
 };
+// Only these already authenticated source roles supply the approved TLS source law.
+export const M4_RUNTIME_TLS_SOURCE_FILES = Object.freeze({
+  postureSource: 'apps/web/src/server/operations/m4-pool-posture.ts',
+  bootstrapSource: 'apps/web/src/server/operations/m4-private-runtime.ts',
+  notificationRuntimeSource: 'apps/web/src/server/operations/m4-notification-runtime.ts',
+});
+export function verifyM4RuntimeTlsSourceRoot(sourceRoot, contract) {
+  const sources = Object.fromEntries(
+    Object.entries(M4_RUNTIME_TLS_SOURCE_FILES).map(([role, file]) => {
+      const descriptor = contract?.files?.[file];
+      if (!descriptor) fail('missing exact TLS source binding');
+      return [role, exact(sourceRoot, file, descriptor).toString('utf8')];
+    })
+  );
+  return verifyM4RuntimeTlsSources(sources);
+}
+export function verifyM4RuntimeTlsSources(sources) {
+  if (
+    !sources ||
+    JSON.stringify(Object.keys(sources).sort()) !==
+      JSON.stringify(Object.keys(M4_RUNTIME_TLS_SOURCE_FILES).sort()) ||
+    Object.values(sources).some(text => typeof text !== 'string')
+  )
+    fail('missing exact TLS source bindings');
+  try {
+    const bootstrap = deriveM4DatabaseTlsSource({
+      postureSource: sources.postureSource,
+      poolSource: sources.bootstrapSource,
+      poolRole: 'bootstrap',
+    });
+    const notification = deriveM4DatabaseTlsSource({
+      postureSource: sources.postureSource,
+      poolSource: sources.notificationRuntimeSource,
+      poolRole: 'notification',
+    });
+    return Object.freeze({
+      version: 1,
+      sourcePremiseOnly: true,
+      runtimeAdmission: false,
+      bootstrapFactsSha256: bootstrap.factsSha256,
+      notificationFactsSha256: notification.factsSha256,
+    });
+  } catch {
+    fail('approved captured-endpoint TLS source law');
+  }
+}
+// Metafile records cannot reveal named members or computed loads. The materializer
+// separately invokes the approved exact-source law above before copying/compiling.
+function validateTlsInputEdges(metafile, contract) {
+  const importer = 'apps/web/src/server/operations/m4-pool-posture.ts';
+  if (
+    !Object.hasOwn(metafile.inputs, importer) ||
+    contract.externalSpecifiers.filter(name => name === 'node:tls').length !== 1 ||
+    contract.outputExternalSpecifiers.filter(name => name === 'node:tls').length !== 1
+  )
+    fail('exact Node TLS contract member');
+  for (const [file, record] of Object.entries(metafile.inputs)) {
+    const edges = (record.imports ?? []).filter(row => row.path === 'node:tls');
+    if (
+      edges.length !== (file === importer ? 1 : 0) ||
+      edges.some(row => row.external !== true || row.kind !== 'import-statement')
+    )
+      fail('posture-only static Node TLS input edge');
+  }
+}
+function validateTlsOutputEdge(imports) {
+  const edges = imports.filter(row => row.path === 'node:tls');
+  if (edges.length !== 1 || edges[0].external !== true || edges[0].kind !== 'require-call')
+    fail('one fixed CJS Node TLS output edge');
+}
 function validateCacheObserverEdges(metafile, contract) {
   const observer = 'db-access-m4-runtime-cache-observer.ts';
   const adapters = [
-    'apps/web/src/actions/admin-claims/assign.core.ts',
-    'apps/web/src/actions/agent-claims/assign.core.ts',
-    'apps/web/src/actions/staff-claims/assign.core.ts',
+    'apps/web/src/server/operations/m4-qualification-admin-assignment.ts',
+    'apps/web/src/server/operations/m4-qualification-agent-assignment.ts',
+    'apps/web/src/server/operations/m4-qualification-staff-assignment.ts',
   ];
   const expected = {
     kind: 'fixed-cache-call-observer',
@@ -36,6 +108,7 @@ export function verifyM4Metafile(metafile, contract) {
   )
     fail('exact input set');
   validateCacheObserverEdges(metafile, contract);
+  validateTlsInputEdges(metafile, contract);
   const allowed = new Set(contract.externalSpecifiers);
   for (const [file, record] of Object.entries(metafile.inputs))
     for (const imported of record.imports ?? []) {
@@ -55,6 +128,7 @@ export function verifyM4Metafile(metafile, contract) {
   )
     fail('fixed output');
   const actual = outputs[0][1].imports ?? [];
+  validateTlsOutputEdge(actual);
   if (
     actual.some(x => !x.external || !allowed.has(x.path)) ||
     JSON.stringify([...new Set(actual.map(x => x.path))].sort()) !==

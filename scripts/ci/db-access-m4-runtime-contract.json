@@ -57,8 +57,8 @@
     },
     "apps/web/src/server/operations/m4-notification-runtime.ts": {
       "mode": "100644",
-      "bytes": 4167,
-      "sha256": "6ae7cd365cd8ca22de5058a66e8fa79cad111dd028e62aeabd5d2fa44d949f26"
+      "bytes": 4203,
+      "sha256": "96467156dd9e58063450f1f57b6f61e33085626c811e45b45eb0a54cb12de344"
     },
     "apps/web/src/server/operations/m4-ops-controller.ts": {
       "mode": "100644",
@@ -67,13 +67,13 @@
     },
     "apps/web/src/server/operations/m4-pool-posture.ts": {
       "mode": "100644",
-      "bytes": 4494,
-      "sha256": "213f3749dc7b85ba1d53bd5e69617c21cd19ee176ca5fda9c55b6302cb4dda62"
+      "bytes": 5081,
+      "sha256": "0aafdcca49cb276195f6c554e31a6ad26ac2a1042a598a8eb5c97a8b81002bf3"
     },
     "apps/web/src/server/operations/m4-private-runtime.ts": {
       "mode": "100644",
-      "bytes": 11656,
-      "sha256": "19c74e59b47f330a4b8cfcaabbce07bfa09d61231ec5ecfe1f50ff23a50fd0ce"
+      "bytes": 11729,
+      "sha256": "2180777067111ff073b52f225dbba7817f920a439a25c67fb8bb23b5662d8223"
     },
     "apps/web/src/server/operations/m4-staff-assignment-kernel.ts": {
       "mode": "100644",
@@ -557,23 +557,8 @@
     },
     "apps/web/src/server/operations/m4-private-runtime-context.ts": {
       "mode": "100644",
-      "bytes": 7123,
-      "sha256": "963b457108dfc5f57d55eb559da444662572af037066f1de5395186d0f1dd60e"
-    },
-    "apps/web/src/actions/admin-claims/assign.core.ts": {
-      "mode": "100644",
-      "bytes": 1093,
-      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea"
-    },
-    "apps/web/src/actions/agent-claims/assign.core.ts": {
-      "mode": "100644",
-      "bytes": 1073,
-      "sha256": "a1f870ccae4712ebc31051312223e2a74fb92be9cb02d0b2300cf136deb0f117"
-    },
-    "apps/web/src/actions/staff-claims/assign.core.ts": {
-      "mode": "100644",
-      "bytes": 817,
-      "sha256": "339ea48581fc0c7c7c27e240c96bfb0b8453a4359302bf0f617e049d0ed390c1"
+      "bytes": 7676,
+      "sha256": "b58f542e5d819c21dc531e970d9e15880c1776d7eabe7bc3607b4fb35c9e01c1"
     },
     "apps/web/src/server/operations/m4-assignment-relay.ts": {
       "mode": "100644",
@@ -592,13 +577,43 @@
     },
     "apps/web/src/server/operations/m4-assignment-owner.ts": {
       "mode": "100644",
-      "bytes": 9178,
-      "sha256": "e0346a5a5caa4fc20d51aadd257e9a76f36ee5858f3024cf60c55b09e90e3505"
+      "bytes": 10307,
+      "sha256": "429d0762c84600c794373abc83060efa39b43e6294d401658c1717336b85df0e"
     },
     "apps/web/src/server/operations/m4-assignment-owner-http.ts": {
       "mode": "100644",
-      "bytes": 6721,
-      "sha256": "b2488ec270791193bbbfa5bb9e650f3cf1b4ff3724ee8e73b80be70e8689308a"
+      "bytes": 7004,
+      "sha256": "f8e8e1a09d49a5c4a8a46ab6c2d1c9d42903014cc1c55c3a626a56b2bc3fb0bd"
+    },
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1211,
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89"
+    },
+    "apps/web/src/server/operations/m4-qualification-agent-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1191,
+      "sha256": "5192429ff0354cdc4c35636039d1783aca996c982492aed1c4a9397c993023fe"
+    },
+    "apps/web/src/server/operations/m4-qualification-staff-assignment.ts": {
+      "mode": "100644",
+      "bytes": 935,
+      "sha256": "5de3a8ff3a2ee76d06271acbeae0155dcdea5a59e3ac51a3d8b0b64b4945ed32"
+    },
+    "apps/web/src/server/operations/m4-runtime-command.ts": {
+      "mode": "100644",
+      "bytes": 1489,
+      "sha256": "c84d765db7fd964676fd4ccc1ee71fd3f1de002fee3df589f1a5b0d47c4003f8"
+    },
+    "apps/web/src/server/operations/m4-runtime-retirement.ts": {
+      "mode": "100644",
+      "bytes": 834,
+      "sha256": "365c9b140d87f1f4202013e197135fe68da6da0115ce7311684777688f645325"
+    },
+    "apps/web/src/server/operations/m4-assignment-owner-capture.ts": {
+      "mode": "100644",
+      "bytes": 1012,
+      "sha256": "c3ceebd107fc52e82559bc410338b37eed3667545b2c709c824eb47abeab977e"
     }
   },
   "configuration": {
@@ -629,15 +644,13 @@
     }
   },
   "expectedInputs": [
-    "apps/web/src/actions/admin-claims/assign.core.ts",
-    "apps/web/src/actions/agent-claims/assign.core.ts",
-    "apps/web/src/actions/staff-claims/assign.core.ts",
     "apps/web/src/features/admin/claims/actions/ops-action-outcome.ts",
     "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
     "apps/web/src/features/admin/claims/types.ts",
     "apps/web/src/lib/auth/current-store-session.ts",
     "apps/web/src/lib/auth/user-schema.ts",
     "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+    "apps/web/src/server/operations/m4-assignment-owner-capture.ts",
     "apps/web/src/server/operations/m4-assignment-owner-http.ts",
     "apps/web/src/server/operations/m4-assignment-owner.ts",
     "apps/web/src/server/operations/m4-assignment-postcommit.ts",
@@ -652,6 +665,11 @@
     "apps/web/src/server/operations/m4-pool-posture.ts",
     "apps/web/src/server/operations/m4-private-runtime-context.ts",
     "apps/web/src/server/operations/m4-private-runtime.ts",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+    "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+    "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+    "apps/web/src/server/operations/m4-runtime-command.ts",
+    "apps/web/src/server/operations/m4-runtime-retirement.ts",
     "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
     "db-access-m4-runtime-cache-observer.ts",
     "packages/database/src/claim-lifecycle.ts",
@@ -734,6 +752,7 @@
     "node:crypto",
     "node:fs",
     "node:https",
+    "node:tls",
     "nodemailer",
     "postgres",
     "resend"
@@ -748,6 +767,7 @@
     "node:crypto",
     "node:fs",
     "node:https",
+    "node:tls",
     "nodemailer",
     "postgres",
     "resend"
@@ -756,7 +776,8 @@
     "apps/web/src/features/admin/claims/actions/ops-assignment.ts": ["@interdomestik/database"],
     "packages/domain-communications/src/email/templates/claims.ts": [
       "@interdomestik/database/constants"
-    ]
+    ],
+    "apps/web/src/server/operations/m4-private-runtime.ts": ["./m4-assignment-wire"]
   },
   "compilerVersion": "0.28.2",
   "tsconfigFile": "apps/web/tsconfig.json",
@@ -1371,9 +1392,9 @@
     "specifier": "next/cache",
     "target": "db-access-m4-runtime-cache-observer.ts",
     "importers": [
-      "apps/web/src/actions/admin-claims/assign.core.ts",
-      "apps/web/src/actions/agent-claims/assign.core.ts",
-      "apps/web/src/actions/staff-claims/assign.core.ts"
+      "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+      "apps/web/src/server/operations/m4-qualification-staff-assignment.ts"
     ],
     "scope": "revalidation-call-observation-only"
   }

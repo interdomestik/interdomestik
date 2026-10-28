@@ -1,3 +1,8 @@
+import {
+  executeM4CompiledRuntime,
+  takeM4CompiledRuntimeForJoin,
+} from './db-access-m4-compiled-producer-loader.mjs';
+import { linkM4CompiledConstructionContexts } from './db-access-m4-compiled-context-bridge.mjs';
 import { projectFixedPrivateAcceptance } from './db-access-m4-private-acceptance-data.mjs';
 import { runFixedM4P2, takeFixedM4P2ForJoin } from './db-access-m4-p2-ordinary.mjs';
 import { describeM4ContextInspection } from './db-access-m4-context-projection.mjs';
@@ -31,13 +36,30 @@ function acceptOwnedPrivateConstruction(
   state,
   input,
   native,
+  source,
   event,
   effectAssertions,
   workerLoaderInspection
 ) {
   state.ordinaryTaken = true;
   const ordinaryExecution = takeFixedM4P2ForJoin(state.ordinary, input);
+  const compiledTaken = takeM4CompiledRuntimeForJoin(
+    state.compiled,
+    input.context,
+    state.runtime.policySha256
+  );
+  const compiledConstruction = linkM4CompiledConstructionContexts({
+    native,
+    source,
+    runtime: state.runtime,
+    compiledTaken,
+    event,
+    effectAssertions,
+    workerLoaderInspection,
+    candidateRoot: input.candidate,
+  });
   const privateAcceptance = projectFixedPrivateAcceptance({
+    compiledConstruction,
     native,
     nativeOutputDigest: state.native.outputDigest,
     runtime: state.runtime,
@@ -56,16 +78,27 @@ function acceptOwnedPrivateConstruction(
   ];
   const decisions = privateAcceptance.mountedAssignment?.localDecisions;
   if (
-    privateAcceptance.construction?.kind !== 'm4-current-mounted-proof-construction' ||
+    privateAcceptance.boundedCompiledConstructionQualified !== true ||
+    privateAcceptance.compiledConstruction?.scopedConstructionQualified !== true ||
+    privateAcceptance.construction?.kind !== 'm4-current-qualification-proof-construction' ||
     privateAcceptance.construction.currentProofClassQualified !== true ||
+    privateAcceptance.construction.localQualificationOnly !== true ||
+    privateAcceptance.construction.nextActionIngressQualified !== false ||
     privateAcceptance.construction.acceptedOldIdentityCount !== 0 ||
+    privateAcceptance.originalFactoryBank?.kind !==
+      'current-original-restored-factory-acceptance' ||
+    privateAcceptance.originalFactoryBank.originalSelectedTrustedCohortAccepted !== false ||
+    privateAcceptance.originalFactoryBank.accounting.acceptedOriginalIdentities.length !== 2 ||
+    privateAcceptance.originalFactoryBank.decisions.some(
+      row => row.completeIdentityContextConjunction !== true
+    ) ||
     privateAcceptance.currentLocalConstructionQualified !== true ||
     !Array.isArray(decisions) ||
     decisions.length !== 3 ||
     decisions.some(
       (row, index) =>
         row.profile !== profiles[index] ||
-        row.qualifiedLocalMountedConstruction !== true ||
+        row.qualifiedLocalQualificationConstruction !== true ||
         row.adapterActuallyExecuted !== true ||
         row.wholeOriginalIdentityQualified !== false ||
         row.nextDeploymentQualified !== false ||
@@ -87,26 +120,28 @@ export async function executeM4Pairing(input) {
   const event = { gitDir: input.gitDir, context: input.context };
   outputShape(event);
   const ordinary = await runFixedM4P2(input);
-  const loader = openM4WorkerLoaderSession({
-    candidate: input.candidate,
-    producer: input.producer,
-    event,
-  });
-  // Historical ADOPTION work shares the measured SQL phase, then exits before native preparation.
-  let prior, runtime, native, loaderProof, complete;
+  // Required phases are sequential: local SQL, actual strict compiled platform, then native workers.
+  // The platform owner closes every child before returning its private result.
+  let prior, runtime, compiled, native, loaderProof, loader, complete;
   try {
-    prior = startM4PriorPreparation(input.candidate, event, loader);
     runtime = runM4Runtime(input);
+    compiled = await executeM4CompiledRuntime({ ...input, databaseUrl: input.compiledDatabaseUrl });
+    loader = openM4WorkerLoaderSession({
+      candidate: input.candidate,
+      producer: input.producer,
+      event,
+    });
+    prior = startM4PriorPreparation(input.candidate, event, loader);
     await waitM4PriorPreparation(prior);
     native = await evaluateM4NativeSession(input.candidate, event, prior, loader);
     loaderProof = finishM4WorkerLoaderSession(loader);
     complete = true;
   } finally {
     if (prior) await closeM4PriorPreparation(prior);
-    if (!complete) await abortM4WorkerLoaderSession(loader);
+    if (loader && !complete) await abortM4WorkerLoaderSession(loader);
   }
   const handle = Object.freeze({ version: 1, id: randomUUID() });
-  pairs.set(handle, { runtime, native, loaderProof, ordinary, ordinaryTaken: false });
+  pairs.set(handle, { runtime, compiled, native, loaderProof, ordinary, ordinaryTaken: false });
   return handle;
 }
 
@@ -125,7 +160,11 @@ export function assertM4Pairing(handle, input) {
   const policySha256 = hash(JSON.stringify(PROVIDER_UNIT_POLICY));
   if (!hasM4RuntimeBinding(state.runtime, input.context, policySha256))
     fail('runtime event/policy');
-  const { native, effectAssertions } = linkM4EffectAssertions(state.native, state.runtime, event);
+  const { native, effectAssertions, source } = linkM4EffectAssertions(
+    state.native,
+    state.runtime,
+    event
+  );
   state.effectAssertions ??= effectAssertions;
   // Cache only after both existing private bindings have been revalidated.
   state.gapLedger ??= describeM4PairGaps(native, state.native.outputDigest, state.runtime);
@@ -139,6 +178,7 @@ export function assertM4Pairing(handle, input) {
     state,
     input,
     native,
+    source,
     event,
     effectAssertions,
     workerLoaderInspection
@@ -152,6 +192,7 @@ export function assertM4Pairing(handle, input) {
       workerLoaderInspection,
       ordinaryExecution,
       privateAcceptance,
+      compiledRuntime: state.compiled,
       contextInspection,
       gapLedger: state.gapLedger,
       contextSha256: state.runtime.contextSha256,

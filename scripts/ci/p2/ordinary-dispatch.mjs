@@ -1,11 +1,21 @@
+import { retainedExecution, retainedOriginalFactoryExecution } from './execution-data.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { randomUUID, createHash } from 'node:crypto';
-import { runRequiredP2Runtime, withFreshP2Dispatch } from './runtime.mjs';
+import { randomUUID } from 'node:crypto';
+import {
+  runRequiredP2Runtime,
+  runRequiredLegacyP2Runtime,
+  withFreshP2Dispatch,
+  assertP2InputProjectionCurrent,
+} from './runtime.mjs';
 import { safeEnv, authenticateRuntimeContext } from '../db-access-provider-runtime-identity.mjs';
 import { runCoverageGate } from '../coverage-gate.mjs';
-import { convertP2Coverage, mergeP2Coverage } from './coverage-adapter.mjs';
+import {
+  convertP2Coverage,
+  convertLegacyP2Coverage,
+  mergeP2Coverage,
+} from './coverage-adapter.mjs';
 import {
   expectedCoverageFiles,
   fetchOrdinaryCoverageArtifact,
@@ -24,56 +34,6 @@ function immutable(value) {
     Object.freeze(value);
   }
   return value;
-}
-function retainedExecution(state) {
-  const locations = {
-    originalTest: 'wrapper.test.original.ts',
-    generatedTestTs: 'wrapper.test.source.ts',
-    generatedTestJs: 'wrapper.test.mjs',
-    registry: '../registry.mjs',
-    runner: '../run-suite.mjs',
-    sourceFence: '../../source-fence.mjs',
-    ordinaryJob: '../../ordinary-job.mjs',
-    originalWrapper: 'wrapper.original.ts',
-    generatedWrapperTs: 'wrapper.source.ts',
-    generatedWrapperJs: 'wrapper.mjs',
-    originalRelay: 'relay.original.ts',
-    generatedRelayTs: 'relay.source.ts',
-    generatedRelayJs: 'relay.mjs',
-  };
-  let total = 0;
-  const sources = Object.fromEntries(
-    Object.entries(locations).map(([name, file]) => {
-      const bytes = fs.readFileSync(path.join(state.capsuleRoot, file));
-      total += bytes.length;
-      if (total > 65536) throw Error('Fixed P2 source-control byte cap');
-      return [
-        name,
-        {
-          text: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
-          sha256: createHash('sha256').update(bytes).digest('hex'),
-        },
-      ];
-    })
-  );
-  return immutable({
-    sourceFiles: structuredClone(state.oracle.sourceFiles),
-    compilerVersion: state.oracle.compilerVersion,
-    esbuildVersion: state.oracle.esbuildVersion,
-    vitestVersion: state.oracle.vitestVersion,
-    tests: structuredClone(state.oracle.tests),
-    mockSpecifiers: [...state.oracle.mockSpecifiers],
-    retainedSegments: structuredClone(state.oracle.retainedSegments),
-    actualCases: structuredClone(state.observation.cases),
-    actualSuites: structuredClone(state.observation.suites),
-    wrapperCoverage: structuredClone(state.observation.coverage),
-    ordinaryPartition: structuredClone(state.partition),
-    sources,
-    directFactoryCoverageObserved: false,
-    factorySourceControlRelationRequired: true,
-    suiteName: state.oracle.suiteName,
-    actualExportProjection: structuredClone(state.oracle.actualExportProjection),
-  });
 }
 function tracked(gitDir, commit) {
   const raw = execFileSync(
@@ -163,6 +123,35 @@ async function runCoverage(givenOptions, purpose) {
   // Reuse decisions, JSON receipts and ordinary target counters cannot create this
   // fresh authority. Every required invocation executes the capsule again.
   const handle = await runRequiredP2Runtime(options);
+  // The first backend returns only after its real cleanup. No bank containers overlap.
+  const originalFactoryHandle = await runRequiredLegacyP2Runtime(options);
+  let originalFactoryExecution, originalFactoryImageId, originalFactoryMerged;
+  await withFreshP2Dispatch(
+    originalFactoryHandle,
+    {
+      context,
+      discoveredSources: files.filter(file => /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file)),
+    },
+    async state => {
+      originalFactoryExecution = retainedOriginalFactoryExecution(state);
+      originalFactoryImageId = state.imageId;
+      const cap = file => fs.readFileSync(path.join(state.capsuleRoot, file), 'utf8');
+      const converted = await convertLegacyP2Coverage({
+        observation: state.observation,
+        generatedJs: cap('wrapper.mjs'),
+        generatedTs: cap('wrapper.source.ts'),
+        sourceMap: JSON.parse(cap('wrapper.js.map')),
+        originalSource: cap('wrapper.original.ts'),
+        retainedSegments: state.oracle.retainedSegments,
+        originalPath: path.join(candidateRoot, 'apps/web/src/actions/admin-claims/assign.core.ts'),
+      });
+      originalFactoryMerged = mergeP2Coverage({
+        ambientCoverage: ordinary,
+        p2Coverage: converted,
+        outputDirectory: path.join(owned, 'original-factory-merged'),
+      });
+    }
+  );
   const discoveredSources = files.filter(file => /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file));
   let execution;
   const result = await withFreshP2Dispatch(handle, { context, discoveredSources }, async state => {
@@ -174,7 +163,10 @@ async function runCoverage(givenOptions, purpose) {
       sourceMap: JSON.parse(cap('wrapper.js.map')),
       originalSource: cap('wrapper.original.ts'),
       retainedSegments: state.oracle.retainedSegments,
-      originalPath: path.join(candidateRoot, 'apps/web/src/actions/admin-claims/assign.core.ts'),
+      originalPath: path.join(
+        candidateRoot,
+        'apps/web/src/server/operations/m4-qualification-admin-assignment.ts'
+      ),
     });
     execution = retainedExecution(state);
     const reportRoot = path.join(owned, 'merged');
@@ -184,7 +176,7 @@ async function runCoverage(givenOptions, purpose) {
       fs.writeFileSync(target, JSON.stringify(summary) + '\n', { flag: 'wx' });
     }
     const merged = mergeP2Coverage({
-      ambientCoverage: ordinary,
+      ambientCoverage: originalFactoryMerged.coverageMap,
       p2Coverage,
       outputDirectory: path.join(reportRoot, 'apps/web/coverage'),
     });
@@ -193,9 +185,13 @@ async function runCoverage(givenOptions, purpose) {
     return Object.freeze({
       version: 1,
       freshP2: true,
+      freshOriginalFactoryP2: true,
+      fixedCaseCount: 19,
       ...(purpose === 'm4-c0'
         ? {
             qualificationPurpose: 'm4-c0',
+            hostedProtectedAuthorityAccepted: false,
+            globalGuardVerdictAccepted: false,
             productionCCredit: 0,
             workflowFailureNotDeliveryAccepted: true,
             ordinaryWorkflowStatus: identity.workflowStatus,
@@ -230,6 +226,10 @@ async function runCoverage(givenOptions, purpose) {
     context: JSON.stringify(context),
     purpose,
     consumed: false,
+    assertInputCurrent() {
+      assertP2InputProjectionCurrent(handle, context);
+      assertP2InputProjectionCurrent(originalFactoryHandle, context);
+    },
     evidence: Object.freeze({
       sourceBefore: handle.sourceBefore,
       parentBefore: handle.parentBefore,
@@ -239,6 +239,8 @@ async function runCoverage(givenOptions, purpose) {
       ...(purpose === 'm4-c0'
         ? {
             qualificationPurpose: 'm4-c0',
+            hostedProtectedAuthorityAccepted: false,
+            globalGuardVerdictAccepted: false,
             productionCCredit: 0,
             workflowFailureNotDeliveryAccepted: true,
             ordinaryWorkflowStatus: identity.workflowStatus,
@@ -246,6 +248,19 @@ async function runCoverage(givenOptions, purpose) {
           }
         : {}),
       execution,
+      originalFactoryBank: immutable({
+        kind: 'fresh-original-admin-factory-nine',
+        imageId: originalFactoryImageId,
+        inputProjection: originalFactoryHandle.inputProjection,
+        sourceBefore: originalFactoryHandle.sourceBefore,
+        parentBefore: originalFactoryHandle.parentBefore,
+        sourceContext: JSON.stringify(context),
+        ordinaryArtifactDigest: identity.digest,
+        execution: originalFactoryExecution,
+        directFactoryCoverageObserved: false,
+        productionCCredit: 0,
+        nativeAdmission: false,
+      }),
       allSourceContextsClosed: false,
       nativeAdmission: false,
     }),
@@ -273,5 +288,6 @@ function takeFreshResult(result, context, purpose) {
   )
     throw Error('Fresh same-event P2 result required');
   state.consumed = true;
+  state.assertInputCurrent();
   return state.evidence;
 }

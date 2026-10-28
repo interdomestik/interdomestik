@@ -184,11 +184,15 @@ test('changed source, missing retained callback, failed case and ambient partiti
     assert.throws(() => sourceRule.deriveFixedFactoryConstruction(x));
   }
 });
-test('fixed imported contract is deeply immutable before any acceptance projection', () => {
-  assert.equal(Object.isFrozen(FIXED), true);
-  assert.equal(Object.isFrozen(FIXED.pins.originalTest), true);
-  assert.equal(Object.isFrozen(FIXED.factoryIds), true);
-  assert.throws(() => {
+test('foreign imported JSON mutations cannot change the privately pinned factory contract', () => {
+  const execution = executionFixture();
+  const expected = sourceRule.deriveFixedFactoryConstruction(execution);
+  const original = structuredClone(FIXED);
+  try {
     FIXED.pins.originalTest.sha256 = 'forged';
-  }, TypeError);
+    FIXED.factoryIds.reverse();
+    assert.deepEqual(sourceRule.deriveFixedFactoryConstruction(execution), expected);
+  } finally {
+    Object.assign(FIXED, original);
+  }
 });

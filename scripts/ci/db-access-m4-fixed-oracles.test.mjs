@@ -111,21 +111,46 @@ test('two exact erased types retain their separate non-execution witness', () =>
   assert.throws(() => bindM4OracleSource(changed, imageRecords, unknown), /fact source differs/);
 });
 
-test('ten exact mounted source-only roles remain distinct from executed image claims', () => {
+test('thirteen exact mounted source-only roles remain distinct from executed image claims', () => {
   const records = source.derivations.mountedAssignment.sourceRecords.filter(
     row => !row.executionRequired
   );
-  assert.equal(records.length, 10);
+  assert.equal(records.length, 13);
   for (const row of records) {
     assert.equal(imageRecords[row.file], undefined);
     const binding = bindM4OracleSource(source, imageRecords, row.file);
     assert.equal(binding.executedImageBinding, false);
+    assert.equal(binding.binding, 'native-mounted-source-only');
+    assert.equal(binding.nextDeploymentQualified, false);
+    const relabelled = structuredClone(source);
+    relabelled.derivations.mountedAssignment.sourceRecords.find(
+      value => value.file === row.file
+    ).executionRequired = true;
+    assert.throws(() =>
+      bindM4OracleSource(
+        relabelled,
+        { ...imageRecords, [row.file]: { sha256: row.sha256 } },
+        row.file
+      )
+    );
     const changed = structuredClone(source);
     changed.derivations.mountedAssignment.sourceRecords.find(
       value => value.file === row.file
     ).sha256 = '0'.repeat(64);
     assert.throws(() => bindM4OracleSource(changed, imageRecords, row.file));
   }
+});
+
+test('matching-hash unknown source-only role cannot borrow an original mounted exemption', () => {
+  const changed = structuredClone(source),
+    file = 'apps/web/src/actions/foreign/assign.core.ts',
+    row = {
+      ...changed.derivations.mountedAssignment.sourceRecords.find(r => !r.executionRequired),
+      file,
+    };
+  changed.sourceRecords[file] = { sha256: row.sha256 };
+  changed.derivations.mountedAssignment.sourceRecords.push(row);
+  assert.throws(() => bindM4OracleSource(changed, imageRecords, file), /fact source differs/);
 });
 
 test('changed or absent derived facts cannot retain a fixed consequence link', () => {

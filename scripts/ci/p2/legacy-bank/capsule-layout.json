@@ -1,0 +1,17 @@
+{
+  "collector-controls.mjs": "capsule/collector-controls.mjs",
+  "vendor.mjs": "capsule/dist/vendor.mjs",
+  "wrapper.js.map": "capsule/dist/wrapper.js.map",
+  "wrapper.mjs": "capsule/dist/wrapper.mjs",
+  "wrapper.original.ts": "capsule/dist/wrapper.original.ts",
+  "wrapper.source.ts": "capsule/dist/wrapper.source.ts",
+  "wrapper.test.js.map": "capsule/dist/wrapper.test.js.map",
+  "wrapper.test.mjs": "capsule/dist/wrapper.test.mjs",
+  "wrapper.test.original.ts": "capsule/dist/wrapper.test.original.ts",
+  "wrapper.test.source.ts": "capsule/dist/wrapper.test.source.ts",
+  "package.json": "capsule/package.json",
+  "probes-linux.mjs": "capsule/probes-linux.mjs",
+  "probes.mjs": "capsule/probes.mjs",
+  "registry.mjs": "capsule/registry.mjs",
+  "run-suite.mjs": "capsule/run-suite.mjs"
+}

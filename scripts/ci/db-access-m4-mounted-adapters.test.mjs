@@ -45,7 +45,7 @@ test('actual assignment adapters route bounded data without old ambient reads an
       ['staff', 'executeStaff', 8],
     ])
       await t.test(kind + ' original profile/cache paths and no-op behavior', async () => {
-        const api = await f.load('apps/web/src/actions/' + kind + '-claims/assign.core.ts'),
+        const api = await f.load(opsRoot + 'm4-qualification-' + kind + '-assignment.ts'),
           requestHeaders = new Headers({
             cookie: 'opaque-original',
             'user-agent': 'unit',
@@ -57,7 +57,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         f.state.cacheCalls.length = 0;
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: 'staff-1',
               requestHeaders,
@@ -81,7 +83,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         f.state.cacheCalls.length = 0;
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: null,
               requestHeaders,
@@ -93,7 +97,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         assert.equal(f.state.cacheCalls.length, kind === 'admin' ? 0 : count);
         assert.equal(JSON.parse(JSON.parse(f.state.requests.at(-1).body).request).staffId, null);
         if (kind === 'staff') {
-          await api.assignClaimCore({ claimId: 'claim-1', requestHeaders, operationId });
+          await api[
+            'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+          ]({ claimId: 'claim-1', requestHeaders, operationId });
           assert.equal(
             Object.hasOwn(JSON.parse(JSON.parse(f.state.requests.at(-1).body).request), 'staffId'),
             false
@@ -103,7 +109,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         f.state.cacheCalls.length = 0;
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: null,
               requestHeaders,
@@ -117,7 +125,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         f.state.mode = 'error';
         const before = f.state.requests.length;
         f.state.cacheCalls.length = 0;
-        const uncertain = await api.assignClaimCore({
+        const uncertain = await api[
+          'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+        ]({
           claimId: 'claim-1',
           staffId: null,
           requestHeaders,
@@ -133,20 +143,26 @@ test('actual assignment adapters route bounded data without old ambient reads an
     await t.test(
       'runtime-untrusted nonprimitive action arguments deny before serialization or transport',
       async () => {
-        const api = await f.load('apps/web/src/actions/admin-claims/assign.core.ts'),
+        const kind = 'admin',
+          api = await f.load(opsRoot + 'm4-qualification-admin-assignment.ts'),
           requestHeaders = new Headers({ cookie: 'original' }),
           cyclic = {};
         cyclic.self = cyclic;
         const before = f.state.requests.length;
         for (const claimId of [1n, cyclic, null])
           assert.equal(
-            (await api.assignClaimCore({ claimId, staffId: null, requestHeaders, operationId }))
-              .success,
+            (
+              await api[
+                'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+              ]({ claimId, staffId: null, requestHeaders, operationId })
+            ).success,
             false
           );
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: cyclic,
               requestHeaders,
@@ -157,7 +173,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         );
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: null,
               requestHeaders,
@@ -172,7 +190,8 @@ test('actual assignment adapters route bounded data without old ambient reads an
     await t.test(
       'CA capture refuses symlink, writable or oversized startup files before HTTPS',
       async () => {
-        const api = await f.load('apps/web/src/actions/admin-claims/assign.core.ts'),
+        const kind = 'admin',
+          api = await f.load(opsRoot + 'm4-qualification-admin-assignment.ts'),
           requestHeaders = new Headers({ cookie: 'original' }),
           bad = path.join(tmp, 'bad.pem'),
           link = path.join(tmp, 'link.pem');
@@ -183,7 +202,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
           const before = f.state.requests.length;
           assert.equal(
             (
-              await api.assignClaimCore({
+              await api[
+                'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+              ]({
                 claimId: 'claim-1',
                 staffId: null,
                 requestHeaders,
@@ -200,7 +221,9 @@ test('actual assignment adapters route bounded data without old ambient reads an
         const before = f.state.requests.length;
         assert.equal(
           (
-            await api.assignClaimCore({
+            await api[
+              'executeM4Qualification' + kind[0].toUpperCase() + kind.slice(1) + 'Assignment'
+            ]({
               claimId: 'claim-1',
               staffId: null,
               requestHeaders,
@@ -214,18 +237,17 @@ test('actual assignment adapters route bounded data without old ambient reads an
       }
     );
     await t.test(
-      'only assignment mount switches to headers; status and shared contexts stay source-identical',
+      'live mounts retain session ingress and qualification adapters have no ambient reads',
       () => {
         for (const kind of ['admin', 'agent', 'staff']) {
           const text = source('apps/web/src/actions/' + kind + '-claims.core.ts');
-          assert.match(text, /const requestHeaders = await headers\(\)/);
           const assign = text.slice(
             text.indexOf('export async function assignClaim'),
             text.indexOf('export async function assignClaim') + 500
           );
-          assert.equal(assign.includes('getActionContext()'), false);
+          assert.equal(assign.includes('getActionContext()'), true);
           assert.match(text, /getActionContext\(\)/);
-          const adapter = source('apps/web/src/actions/' + kind + '-claims/assign.core.ts');
+          const adapter = source(opsRoot + 'm4-qualification-' + kind + '-assignment.ts');
           assert.equal(adapter.includes('getActionContext'), false);
           assert.equal(adapter.includes('@interdomestik/database'), false);
           assert.equal(adapter.includes('domain-claims'), false);

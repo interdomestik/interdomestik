@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { exact, hash } from './db-access-provider-runtime-identity.mjs';
 import { installCrmPackages } from './db-access-crm-runtime-packages.mjs';
 import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract.mjs';
-import { verifyM4Metafile } from './db-access-m4-runtime-closure.mjs';
+import { verifyM4Metafile, verifyM4RuntimeTlsSourceRoot } from './db-access-m4-runtime-closure.mjs';
 import { sealM4Image } from './db-access-m4-runtime-seal.mjs';
 const fail = reason => {
   throw Error('M4 materialization refused: ' + reason);
@@ -20,6 +20,8 @@ export function materializeM4Runtime({
   for (const input of [fs.realpathSync(sourceRoot), fs.realpathSync(producerRoot)])
     if (assemblyBase === input || assemblyBase.startsWith(input + path.sep))
       fail('output isolation');
+  // Exact source authentication and the approved TLS law precede all copy/build work.
+  const tlsSourceBinding = verifyM4RuntimeTlsSourceRoot(sourceRoot, contract);
   const root = path.join(assemblyBase, 'm4');
   fs.mkdirSync(root, { mode: 0o700 });
   const lockFile = 'scripts/ci/db-access-crm-runtime-lock.json';
@@ -108,6 +110,7 @@ export function materializeM4Runtime({
     copied,
     installed,
     metafileSha256,
+    tlsSourceBinding,
     bundleSha256: hash(fs.readFileSync(path.join(root, 'm4-runtime.cjs'))),
     image,
     runtimeAdmission: false,

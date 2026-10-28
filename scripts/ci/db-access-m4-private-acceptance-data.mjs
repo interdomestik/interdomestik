@@ -1,3 +1,4 @@
+import { projectOriginalFactoryBank } from './db-access-m4-original-factory-bank.mjs';
 import { projectMountedAssignmentAcceptance } from './db-access-m4-mounted-correspondence.mjs';
 // Data-only fixed projection. The actual entry remains a lexical private pair-owner function.
 import { createHash } from 'node:crypto';
@@ -14,6 +15,7 @@ export function projectFixedPrivateAcceptance({
   event,
   effectAssertions,
   workerLoaderInspection,
+  compiledConstruction,
 }) {
   const contextSha256 = hash(JSON.stringify(event.context));
   if (
@@ -43,8 +45,10 @@ export function projectFixedPrivateAcceptance({
   if (workerLoaderInspection?.scope !== 'LOADER_ONLY_LOCAL') fail('existing bounded loader scope');
   const construction = deriveMountedAssignmentProofConstruction(ordinary.execution);
   if (
-    construction.kind !== 'm4-current-mounted-proof-construction' ||
+    construction.kind !== 'm4-current-qualification-proof-construction' ||
     construction.currentProofClassQualified !== true ||
+    construction.localQualificationOnly !== true ||
+    construction.nextActionIngressQualified !== false ||
     construction.dataOnly !== true ||
     construction.exactCaseCount !== 10 ||
     construction.directFactoryCoverageObserved !== false ||
@@ -57,6 +61,8 @@ export function projectFixedPrivateAcceptance({
     fail('current fixed ordinary source/assertion class');
   const historicalFactoryTransitions = construction.historicalFactoryTransitions.map(row => ({
     ...row,
+    acceptanceScope: 'qualification-ten-bank-only',
+    originalFactoryBankEvaluatedSeparately: true,
     currentInventoryReferences: native.inventory.entries.flatMap((entry, inventoryIndex) =>
       entry.row.identity === row.identity
         ? [{ inventoryIndex, identity: row.identity, disposition: 'retained-current-native-entry' }]
@@ -71,6 +77,20 @@ export function projectFixedPrivateAcceptance({
     event,
     effectAssertions,
   });
+  const originalFactoryBank = projectOriginalFactoryBank(native, ordinary, event);
+  if (
+    compiledConstruction?.kind !== 'bounded-compiled-assignment-construction-contexts' ||
+    compiledConstruction.scopedConstructionQualified !== true ||
+    compiledConstruction.contextSha256 !== contextSha256 ||
+    compiledConstruction.policySha256 !== runtime.policySha256 ||
+    compiledConstruction.sourcePolicyDigest !== native.sourcePolicyDigest ||
+    compiledConstruction.acceptedTrustedContexts.length !== 4 ||
+    !compiledConstruction.acceptedPreservedSourceCorrespondences.length ||
+    compiledConstruction.acceptedOriginalIdentities.length ||
+    compiledConstruction.rawOccurrencesSubtracted !== 0 ||
+    originalFactoryBank.acceptedOriginalIdentities.length !== 2
+  )
+    fail('bounded compiled trusted/preserved + current original-factory proof conjunction');
   return {
     version: 1,
     kind: 'm4-fixed-private-construction-acceptance',
@@ -91,15 +111,20 @@ export function projectFixedPrivateAcceptance({
       'current fixed ordinary source/assertion class joined to three actual local mounted assignment routes',
     historicalFactoryTransitions,
     mountedAssignment,
-    acceptedOldIdentityCount: 0,
-    acceptedOriginalIdentities: [],
-    acceptedCoverage: 0,
+    originalFactoryBank,
+    compiledConstruction,
+    boundedCompiledConstructionQualified: true,
+    acceptedOldIdentityCount: originalFactoryBank.acceptedOriginalIdentities.length,
+    acceptedOriginalIdentities: originalFactoryBank.acceptedOriginalIdentities,
+    acceptedCoverage: originalFactoryBank.acceptedOriginalIdentities.length,
     nativeAdmission: false,
     productionCCredit: 0,
     workflowFailureNotDeliveryAccepted: true,
     currentLocalConstructionQualified:
       mountedAssignment.localDecisions.length === 3 &&
-      mountedAssignment.localDecisions.every(row => row.qualifiedLocalMountedConstruction === true),
+      mountedAssignment.localDecisions.every(
+        row => row.qualifiedLocalQualificationConstruction === true
+      ),
     otherApplicablePremises:
       'retained for every context outside the three fixed local mounted constructions; Next deployment and production consumer C0 remain residual',
     allExecutableContextsQualified: false,

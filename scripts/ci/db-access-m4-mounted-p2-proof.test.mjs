@@ -15,7 +15,7 @@ test('exact current unit class has ten retained cases and zero historical/native
   assert(
     result.historicalFactoryTransitions.every(
       row =>
-        row.currentSourceFactoryCallbacksAbsent === true &&
+        row.qualificationSourceFactoryCallbacksAbsent === true &&
         row.currentNativeIdentityAccepted === false
     )
   );

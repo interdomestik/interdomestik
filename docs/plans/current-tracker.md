@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-27
+last_reviewed: 2026-10-28
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -77,6 +77,118 @@ After actual positive and source-valid semantic-negative acceptance, finish the 
 admin/agent/staff/ops assignment-context and genuine ordinary-execution joins.
 The conditional two-factory relation alone cannot close the business cohort or M4.
 All M4 roadmap row statuses below remain unchanged pending actual evidence.
+
+### M4 correction evidence and remaining acceptance (28 October)
+
+Live admin, agent and staff assignments now retain their earlier domain behavior. Four
+new regressions failed before restoration; the integrated focused run passes 43 tests
+and web type checking. The separate qualification adapters do not replace those live
+entry points. Current source is a dirty correction of producer `27b45dfd1`; neither
+that commit nor the older PR artifact identifies these new bytes.
+
+The integrated C0 correction requires a completed workflow and preserves its
+coverage-only authority. The private source registry passes its actual cross-module
+check. A real current-context diagnostic finished in 279.533 seconds, with sampled
+peak 4,368,744,448 bytes and unchanged source bookends. It reports baseline 604,
+3,845 new identities, 3,866 failing identities, 194,473 incomplete tuples and
+12,134,911 raw occurrences. All five original witnesses remain failures. These are
+diagnostic counts, not accepted old-to-new discharge or progress toward ZERO.
+
+A concrete TLS counterexample was reproduced: postgres.js accepted a trusted
+localhost certificate for an IP endpoint and rejected the correct IP certificate.
+The bounded endpoint-binding correction passed ten corrected transport cases and
+179 source controls, with independent review. This experiment used a fake PostgreSQL
+transport. A later owned real-PostgreSQL run passes both trusted-TLS positives,
+unknown-CA, wrong-SAN and plaintext refusals through the actual strict constructor.
+It verifies real roles/RLS, own effects and foreign denial, then retires its owned
+container, volumes, private inputs and sessions. Receipt `5547f60df307a0092f0ce813`
+records 32.592 seconds including cleanup and sampled peak 1,786,036,224 bytes,
+including the full PostgreSQL/P2 reserves. This is component evidence only.
+
+Preparation failures are retained separately: omitted type-only metadata, a stale
+child return code, PostgreSQL network-address formatting, native Node TLS-socket
+retirement, and a TIME_WAIT port check. The last failure repeated an already known
+cleanup mechanism in a second consumer; the corrected bind-and-listen check now
+passes real TIME_WAIT and occupied-port controls before the successful run.
+
+The original factory bridge is being constructed as a fresh separate nine-case
+bank alongside the current ten cases. It must satisfy the original context and
+multiplicity rules with fresh private custody; historical receipts cannot substitute.
+The first compiled Next fixture preparation failed on an exportless installed Babel
+package. A bounded resolver fixed that refusal; the next build exposed a physical
+package-layout assumption in Next's built-in route detection. Both failures remain
+retained, with distinct causes and retry controls. The corrected third attempt prepares,
+builds and seals the actual Next16.4.3 fixture in 12.166 seconds, with sampled peak
+1,505,542,144 bytes and three compiler-observed action IDs. Image seal:
+`9a1242187858f446f882f9305a98bae3cf1ba32624fd3db97e3d3ec27d479055`.
+The fixture also enforces its finite server-side plan and disables cookie-bearing
+failure traces. Its exact static 66-package supplier is freshly authenticated and
+materialized for the next compiled run; it grants no reuse of old runtime receipts.
+
+The reviewed compiled runtime/platform and contextual old-to-new bridge are now
+integrated locally. After correcting the standard test fixtures, all 1,284 M4
+contract tests pass, along with current web type checking and the security guard.
+The ordinary worker resource tests pass all five cases with unchanged production
+limits and cleanup assertions. The root producer policy contains 486 exact
+records in 130,635 canonical bytes; its 131,072-byte cap and baseline 604 are unchanged.
+Independent review caught a mutable diagnostic import-table alias and TLS-private
+cleanup preceding explicit container-absence readback in the proposed outer helpers.
+Both corrected successors passed independent review and are integrated. The fixed
+76-file dual-bank namespace, 44-helper preparation closure and current supplemental
+checks are integrated with exact source-role and oracle bindings. The oracle keeps
+its seven derivations; the eighth strict-observation law is separately bound to
+the compiled construction. The three original live assignment cores remain source-only.
+
+The broader CI contract run retains failures in the ordinary production-guard and
+protected-epoch cohorts. Two production-CLI checks reach their unchanged 300-second
+timeouts; the M4 fixture import, source-role and private-owner drift failures are
+separately reproduced and corrected. Passing the focused M4 suite does not turn the
+broader run, global guard, protected delivery or PR checks green.
+
+The next acceptance lane composes the current ten and original nine factory cases,
+39 local SQL cases, fresh compiled browser/backend containment and native contextual
+evidence under one source/event/policy identity. The source-valid adverse run must
+then refuse the missing mandatory audit assertion through the unchanged positive
+oracle. Bounded contextual acceptance retains original live/shared residuals and
+production C credit zero; global ZERO is a later obligation. Genuine integrated
+positive/negative evidence, independent M4 acceptance and current-head CI remain open.
+No M4 roadmap row is closed by these local corrections.
+
+### M4 review correction and live assignment preservation (27 October)
+
+The owner-supplied Opus review identifies completion gaps beyond the eight stale CRM
+source bindings: original-to-current effect acceptance, real compiled ingress and TLS
+evidence, undeployed assignment-owner cutover, and the scope of ordinary C0 evidence.
+The review executed no checks or raw-receipt inspection. Its relevant source findings
+remain applicable after `18fa4a192`: producer `27b45dfd1e7813c7114c7afc32c96edf89ca89cc`
+and PR head `acfa086e8ede58998641e43b2a63f694d92d1e12` change only CI bindings and
+the Vite virtual-module correction. Neither is an M4 acceptance checkpoint.
+
+An actual genuine-event preparation authenticated the published producer, PR merge and
+successful unit artifact `12770945335` from run `40580765103`. An initial GitHub API
+schema failure was corrected with a reviewed supported-version pin. Preparation then
+refused the CRM source contract before SQL; no frozen positive, native acceptance or
+current-source semantic negative resulted. The eight changed source roots affect 86
+historical mount relations, including 15 CRM witnesses. A hash-only refresh is invalid.
+
+The newly authorized Opus correction actually served `claude-opus-5-5`. Four focused
+regressions first reproduced unintended indeterminate results when the owner endpoint
+is absent. Ten exact ADOPTION source/test restorations preserve the existing live
+assignment path; three separate qualification adapters retain the relay implementation
+and its current tests. Independent review verified all 16 postimages. The actual
+candidate passes all 43 focused live/restored/qualification tests and web TypeScript.
+This is local source integration, not hosted verification or deployed behavior proof.
+Old assignment invocations remain live: neither deletion correspondence nor original
+identity discharge may be inferred from the qualification adapters.
+
+The bridge must distinguish ADOPTION/baseline604, the original selected `2f0225a4`
+3501/190839 membership and the later experimental 55/200/1685 cohort. Exact original
+witness spans have been derived from Git; a current assignment-only pass cannot discharge
+the still-live `getActionContext` status-update caller. Source, runtime, bridge, compiled
+entry, C0 and negative contracts remain under correction. No M4 roadmap row closes and
+no new positive/negative heavy run starts until these prerequisites are reconciled.
+Failure comparisons and actual Opus inputs/output remain in the existing qualification
+evidence root, checkpoints v16/v17 and `opus-rc31-verdict-reception-v1`.
 
 ### M4 source integration and ordinary-mode corrections (27 October)
 

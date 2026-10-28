@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewedConstruction": "mounted-assignment-three-profile-v1",
+  "reviewedConstruction": "local-qualification-assignment-three-profile-v1",
   "files": [
     {
       "file": "apps/web/src/actions/admin-claims.ts",
@@ -10,8 +10,8 @@
     },
     {
       "file": "apps/web/src/actions/admin-claims.core.ts",
-      "sha256": "1f0be7c4b740023a36352dd13703feda439ef5ab846991549f40ddb0047dfea2",
-      "astSha256": "1c300292efdfe28db0717c20f90cbe9f11e37ad8514e50b0829ee9f9c202f7ce",
+      "sha256": "0f47493c8c00e152799a97c83a2c0af76d07118c10a04b6c2e27c041b544e230",
+      "astSha256": "b109e194a426bd8678babede3290c8fcf995f1c10ba0d164f6dec4b6ea436b4d",
       "executionRequired": false
     },
     {
@@ -22,9 +22,9 @@
     },
     {
       "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
-      "astSha256": "e654b7ba4939412b526e039496cbc167cf4766910e4c10b2b65984a15e2b5937",
-      "executionRequired": true
+      "sha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
+      "astSha256": "027fab5e08b0bddeff6ba04ac514e48db2aac62bf75573b8730b31aef111e878",
+      "executionRequired": false
     },
     {
       "file": "apps/web/src/actions/agent-claims.ts",
@@ -34,8 +34,8 @@
     },
     {
       "file": "apps/web/src/actions/agent-claims.core.ts",
-      "sha256": "62857fd740af2092f9b3a1f00de429710318d1fb64a4daffb9e704bcf28df2ae",
-      "astSha256": "7316cbc16be2389b787e845b03ffb0c7103cdcc2f2b96f18245903a9283fc04c",
+      "sha256": "e3c270412dda4d2055ed39e61db9d8b349df07680bc4d1a909022a523d2234a5",
+      "astSha256": "6e306e53b22bc7a2ddbd544931532198e4f57a615b54d1d39c2a8445be6f9723",
       "executionRequired": false
     },
     {
@@ -46,14 +46,14 @@
     },
     {
       "file": "apps/web/src/actions/agent-claims/assign.core.ts",
-      "sha256": "a1f870ccae4712ebc31051312223e2a74fb92be9cb02d0b2300cf136deb0f117",
-      "astSha256": "7cdbc24d417fcbe0b2120a8965b7b3c469f17d062346e0f6d1b8e1aa90f76c16",
-      "executionRequired": true
+      "sha256": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
+      "astSha256": "3af25c5a3e5d856be3d447b85d16d82383bc3522597602d244ae23e78a592c13",
+      "executionRequired": false
     },
     {
       "file": "apps/web/src/actions/staff-claims.core.ts",
-      "sha256": "a7a9870c5a9a2d0b18e1b9f7bda7f799a9a431af532de393cdf54056db833915",
-      "astSha256": "a3cb41d599c3b67c0b26ad8bfe60ec94cd954dde81c8e08bab3c0c219d41b268",
+      "sha256": "5b32a6580e09631ce4028020182865e88edb3e6bfded08f7d72bd59df7185eb4",
+      "astSha256": "d22c0d0046ae612cee2600a8f36894dabe63e3fbb2e9e85437b04b2aa55faf6b",
       "executionRequired": false
     },
     {
@@ -64,9 +64,9 @@
     },
     {
       "file": "apps/web/src/actions/staff-claims/assign.core.ts",
-      "sha256": "339ea48581fc0c7c7c27e240c96bfb0b8453a4359302bf0f617e049d0ed390c1",
-      "astSha256": "463ab394baad71952b5be7e1eb4d3087c86667dd7591e4c4069cacb5daac28b6",
-      "executionRequired": true
+      "sha256": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
+      "astSha256": "1ec70a323e80fb1dcdcb025589aca065ce3ca1b4538c0c29bbb0864749037edb",
+      "executionRequired": false
     },
     {
       "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
@@ -88,14 +88,14 @@
     },
     {
       "file": "apps/web/src/server/operations/m4-assignment-owner.ts",
-      "sha256": "e0346a5a5caa4fc20d51aadd257e9a76f36ee5858f3024cf60c55b09e90e3505",
-      "astSha256": "7b279b907325e3b6703f03db58518670db2f78075df17710cfafad2cfdceb60a",
+      "sha256": "429d0762c84600c794373abc83060efa39b43e6294d401658c1717336b85df0e",
+      "astSha256": "08d3228edbedd2a37a4be3ea1c7c8f99d8ea2ff542c27b96c2918d173d52fe5d",
       "executionRequired": true
     },
     {
       "file": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
-      "sha256": "b2488ec270791193bbbfa5bb9e650f3cf1b4ff3724ee8e73b80be70e8689308a",
-      "astSha256": "8d7a2e92a1a8426567a044eabbd6dfc8977f5d4f9d3233aa357eb6dfce8687b2",
+      "sha256": "f8e8e1a09d49a5c4a8a46ab6c2d1c9d42903014cc1c55c3a626a56b2bc3fb0bd",
+      "astSha256": "8853aec4e17d555d4c01a30e1e443c917cd6d8f2605d29e1736507ccd2944afc",
       "executionRequired": true
     },
     {
@@ -112,15 +112,39 @@
     },
     {
       "file": "apps/web/src/server/operations/m4-private-runtime.ts",
-      "sha256": "19c74e59b47f330a4b8cfcaabbce07bfa09d61231ec5ecfe1f50ff23a50fd0ce",
-      "astSha256": "f2beaf65b732dbbb45879cb89d908fad2e777d0470b941548963f1290d623ecc",
+      "sha256": "2180777067111ff073b52f225dbba7817f920a439a25c67fb8bb23b5662d8223",
+      "astSha256": "f8a379050cf9420ca425c0e63227de3680a93170e0c252063484af3dd1caf3a7",
       "executionRequired": true
     },
     {
       "file": "apps/web/src/server/operations/m4-private-runtime-context.ts",
-      "sha256": "963b457108dfc5f57d55eb559da444662572af037066f1de5395186d0f1dd60e",
-      "astSha256": "131a6eec464e96ecb5cee74ce912afe63b5bfc89e2a226e21bc83f969f90a5ef",
+      "sha256": "b58f542e5d819c21dc531e970d9e15880c1776d7eabe7bc3607b4fb35c9e01c1",
+      "astSha256": "9653b874f6578f8e570f93ebf743968caf64fa0b7d026cd5cc572dc28f78706f",
       "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
+      "astSha256": "13b81ddbcc24cfc0fec5fd0ffa0ec9366daec269bcfaeb6ca39718a988adec75",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+      "sha256": "5192429ff0354cdc4c35636039d1783aca996c982492aed1c4a9397c993023fe",
+      "astSha256": "2f051ae08fdde9805078839e4fd70fbba4705205bd809e42b9a2cdbfcc870f70",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+      "sha256": "5de3a8ff3a2ee76d06271acbeae0155dcdea5a59e3ac51a3d8b0b64b4945ed32",
+      "astSha256": "9bb0be2d575de9370fccc8f3256100c00f9792aea5aaf8a8b64942dfb573055f",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner-capture.ts",
+      "executionRequired": true,
+      "sha256": "c3ceebd107fc52e82559bc410338b37eed3667545b2c709c824eb47abeab977e",
+      "astSha256": "37112d128111ef3693138646858527e622499ae739ec03d1b80a5ccce7eef2cf"
     }
   ],
   "routes": [
@@ -130,13 +154,8 @@
       "witnessId": "mounted-admin-assignment-source-route",
       "calls": [
         {
-          "file": "apps/web/src/actions/admin-claims.core.ts",
-          "relation": "source-only Next ingress to exact adapter",
-          "astSha256": "0833f1b9433eed8d734ce7197fe71d00d62600f0991cc9e26e3bff222747d232"
-        },
-        {
-          "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-          "relation": "actual adapter to fixed profile relay",
+          "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
           "astSha256": "23b816b2c2e993043c23e59dde69729d168e07361fffb57d59d5b838ee117d4b"
         },
         {
@@ -177,13 +196,8 @@
       "witnessId": "mounted-agent-assignment-source-route",
       "calls": [
         {
-          "file": "apps/web/src/actions/agent-claims.core.ts",
-          "relation": "source-only Next ingress to exact adapter",
-          "astSha256": "0833f1b9433eed8d734ce7197fe71d00d62600f0991cc9e26e3bff222747d232"
-        },
-        {
-          "file": "apps/web/src/actions/agent-claims/assign.core.ts",
-          "relation": "actual adapter to fixed profile relay",
+          "file": "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
           "astSha256": "b06b943401134b04253afc6189abd2f87e5441a12d7ace59f7f1d80faf3d2acf"
         },
         {
@@ -224,13 +238,8 @@
       "witnessId": "mounted-staff-assignment-source-route",
       "calls": [
         {
-          "file": "apps/web/src/actions/staff-claims.core.ts",
-          "relation": "source-only Next ingress to exact adapter",
-          "astSha256": "b7d11f9d6e132d45e8e31d2e49a7f1ecabe553ee60f23d11f471bb14a5d7ff7f"
-        },
-        {
-          "file": "apps/web/src/actions/staff-claims/assign.core.ts",
-          "relation": "actual adapter to fixed profile relay",
+          "file": "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
           "astSha256": "543eedc98b3de03332811af61a96cb92a53eadc386bd28d2e1f2b476e5825429"
         },
         {
@@ -266,63 +275,6 @@
       ]
     }
   ],
-  "replacements": [
-    {
-      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "previousSha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
-      "currentSha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
-      "removedInvocations": [
-        {
-          "target": "db.query.claims.findFirst",
-          "preimageLocator": ["apps/web/src/actions/admin-claims/assign.core.ts", 1304, 1518, 214],
-          "sourceSha256": "bcf3f9af4ca777eff5a39d29b565ec127dc74a3c2466330672fe732c741d6366",
-          "astSha256": "01dd6a029a7505763e48ee60da161225a49ffcf4c62d75d5a476a8a94adaac27"
-        },
-        {
-          "target": "assignClaimCoreDomain",
-          "preimageLocator": ["apps/web/src/actions/admin-claims/assign.core.ts", 1733, 1814, 214],
-          "sourceSha256": "266d5a436628c66aba7b7932cdf9a03db26f2a28d4ecbc82738b25bffee852a4",
-          "astSha256": "520d11648d88079648e4798cda7477bc721a1314e2028d9875c4819be743554b"
-        },
-        {
-          "target": "db.query.claims.findFirst",
-          "preimageLocator": ["apps/web/src/actions/admin-claims/assign.core.ts", 1871, 2081, 214],
-          "sourceSha256": "271a8f4573213f1ed208af2dc1401cc5e75fc3da93c2267a31dd2913b109e6fb",
-          "astSha256": "bcb3f2f2f2b3eaa179f91182822fb70b81ff03751caacc8568b821479fe1792e"
-        }
-      ],
-      "disposition": "this mounted source delegates to fixed owned profile; other shared-domain callers remain residual",
-      "originalNativeAllocation": 0
-    },
-    {
-      "file": "apps/web/src/actions/agent-claims/assign.core.ts",
-      "previousSha256": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
-      "currentSha256": "a1f870ccae4712ebc31051312223e2a74fb92be9cb02d0b2300cf136deb0f117",
-      "removedInvocations": [
-        {
-          "target": "assignClaimCoreDomain",
-          "preimageLocator": ["apps/web/src/actions/agent-claims/assign.core.ts", 677, 758, 214],
-          "sourceSha256": "266d5a436628c66aba7b7932cdf9a03db26f2a28d4ecbc82738b25bffee852a4",
-          "astSha256": "520d11648d88079648e4798cda7477bc721a1314e2028d9875c4819be743554b"
-        }
-      ],
-      "disposition": "this mounted source delegates to fixed owned profile; other shared-domain callers remain residual",
-      "originalNativeAllocation": 0
-    },
-    {
-      "file": "apps/web/src/actions/staff-claims/assign.core.ts",
-      "previousSha256": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
-      "currentSha256": "339ea48581fc0c7c7c27e240c96bfb0b8453a4359302bf0f617e049d0ed390c1",
-      "removedInvocations": [
-        {
-          "target": "assignClaimCoreDomain",
-          "preimageLocator": ["apps/web/src/actions/staff-claims/assign.core.ts", 620, 669, 214],
-          "sourceSha256": "1fd8219eeab1b4e266683677219b079df7971fd6308efe69246eab973e86b7cc",
-          "astSha256": "793740c556c7f36d4fc513e3f6ffa22d934c433372b7316162c113a5b2058d97"
-        }
-      ],
-      "disposition": "this mounted source delegates to fixed owned profile; other shared-domain callers remain residual",
-      "originalNativeAllocation": 0
-    }
-  ]
+  "replacements": [],
+  "qualificationScope": "local-adapters-only-no-next-ingress"
 }

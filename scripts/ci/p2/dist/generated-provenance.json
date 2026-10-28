@@ -1,10 +1,12 @@
 {
   "version": 1,
-  "status": "CURRENT_GENERATED_BYTES_NOT_CURRENT_LINUX_EXECUTION_QUALIFICATION",
+  "status": "DUAL_BANK_GENERATED_NOT_CURRENT_LINUX_EXECUTION_QUALIFICATION",
   "sourceFiles": {
-    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9",
-    "apps/web/src/actions/admin-claims/assign.core.ts": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
-    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts": "b48386858936c01fc16fc6a64bacaf9ecddcc4e64f8e20808d98fb1d1247aca4",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
+    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73",
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
   },
   "versions": {
     "compilerVersion": "5.9.3",
@@ -39,43 +41,43 @@
     },
     {
       "path": "capsule/dist/wrapper.js.map",
-      "bytes": 2233,
-      "sha256": "c2acec7a3fa2d1e2c2e5905d8257e44e2c93001dbeccee3d4ee5c79abf8660e9"
+      "bytes": 2257,
+      "sha256": "7d8bbad4cccff83a65e7ae85a007ddc477498a8f078591f40e8cc66ae0429921"
     },
     {
       "path": "capsule/dist/wrapper.mjs",
-      "bytes": 1113,
-      "sha256": "afe65fc82428bb3d3f2f2a9c522f872b3788ea18556e5ec18e31c6416e3843c0"
+      "bytes": 1135,
+      "sha256": "7bdbd8ddf39db16d59799b4fb323f0f6918b7f8a383cb7fda3a1850e2fad77f2"
     },
     {
       "path": "capsule/dist/wrapper.original.ts",
-      "bytes": 1093,
-      "sha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea"
+      "bytes": 1211,
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89"
     },
     {
       "path": "capsule/dist/wrapper.source.ts",
-      "bytes": 1128,
-      "sha256": "a18a4fc9482ef9e7576f5eadc1d2b101bd215707fe3ce4a8bba58a1476dfae0d"
+      "bytes": 1150,
+      "sha256": "916808a71b10e03c6fa4ac2dbbf39846e5fc1918b035bb922888717301a02644"
     },
     {
       "path": "capsule/dist/wrapper.test.js.map",
-      "bytes": 10320,
-      "sha256": "423508691e54192f9a95aedc81724db14064c7274cd46142b2a7037a56dabfee"
+      "bytes": 10370,
+      "sha256": "2fc052bbbd760fd922adef7a7f0cbc9a7cee253527474d43a15c42a91e3853ab"
     },
     {
       "path": "capsule/dist/wrapper.test.mjs",
-      "bytes": 5472,
-      "sha256": "1ae86cf03b9a6dbd045c66aa455c7f8c0a11d8028d375b62cfde86b9a284336a"
+      "bytes": 5511,
+      "sha256": "a78d56a62f0a0329861137413c445e8f618bf994ec8020f86f25dfb62cf2baad"
     },
     {
       "path": "capsule/dist/wrapper.test.original.ts",
-      "bytes": 5134,
-      "sha256": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9"
+      "bytes": 5197,
+      "sha256": "b48386858936c01fc16fc6a64bacaf9ecddcc4e64f8e20808d98fb1d1247aca4"
     },
     {
       "path": "capsule/dist/wrapper.test.source.ts",
-      "bytes": 5222,
-      "sha256": "75084bf04ef116a86e5b85f2b698ccd7c805dc2ad5b2d8711a88a72d5a5ac62a"
+      "bytes": 5260,
+      "sha256": "aec68a24037f576a8df7eb8d503ca07e9779fc399f166922facb02a7081357eb"
     },
     {
       "path": "coverage-vendor/dist/assets/base.css",
@@ -129,13 +131,83 @@
     },
     {
       "path": "dist/ordinary-denominator.json",
-      "bytes": 5025,
-      "sha256": "ab944fb975a9d23f471d3394f64fc8f3f30557ba1e76a14a988cc97fb723bbc5"
+      "bytes": 5070,
+      "sha256": "1f8875494da39df239df685f969d3a16edbdc7a9c1134f529e217a76692fc745"
     },
     {
       "path": "dist/source-manifest.json",
-      "bytes": 5992,
-      "sha256": "fa57465d91cd467d14a22ca17f5b73e6cabee78209bad1eefa08392a183ab72b"
+      "bytes": 6184,
+      "sha256": "5da8c97d23b8fd971179952bc9af59a8f389da271756eff6d6664892db705292"
+    },
+    {
+      "path": "legacy-bank/capsule-layout.json",
+      "bytes": 792,
+      "sha256": "0ca6ec1ccd36f519272de3427d90b4a14829c864d26a6141cfee416df12c388e"
+    },
+    {
+      "path": "legacy-bank/dist/ordinary-denominator.json",
+      "bytes": 13189,
+      "sha256": "1728f3b9237af9f023e75d9937a8fc551a2547d310fa39953dc478c5e6296185"
+    },
+    {
+      "path": "legacy-bank/dist/source-manifest.json",
+      "bytes": 12151,
+      "sha256": "9375194c555c58392dacda5d0f7e75bc6463daf0d3320e2308e562200128f20e"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.js.map",
+      "bytes": 5534,
+      "sha256": "b5339aeea9222ab43f5a39744c39ad5c9bc0228046214a1d0e67b2e3d071b665"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.mjs",
+      "bytes": 2737,
+      "sha256": "f1f0bbdd05f862fca8bf38697c84a820c09bcd38895b2c4d530c55643ee4a997"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.original.ts",
+      "bytes": 2640,
+      "sha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.source.ts",
+      "bytes": 2636,
+      "sha256": "967c4d542be66dad3b405af345373c7b7929adc9f7fd0a158741697fdd064622"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.test.js.map",
+      "bytes": 16015,
+      "sha256": "67747b2b50643f156f2537fed551b76f02513a10be50c68bd26dbbbd9d662a92"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.test.mjs",
+      "bytes": 8697,
+      "sha256": "9de422216f2bed22cc21633fbd281506c96d007a9539a0787f7ec33c0707863c"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.test.original.ts",
+      "bytes": 7811,
+      "sha256": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925"
+    },
+    {
+      "path": "legacy-bank/dist/wrapper.test.source.ts",
+      "bytes": 7883,
+      "sha256": "52e49604fe58f3eb2ae483989f248364975a4f5cc246f9ade2cbe5de765c76e6"
+    },
+    {
+      "path": "legacy-bank/policy.json",
+      "bytes": 4268,
+      "sha256": "a94752c3181c4d245f1fd301a0b91c75be42eb0cd467cafa33d97ac1a73c504f"
+    },
+    {
+      "path": "legacy-bank/registry.mjs",
+      "bytes": 951,
+      "sha256": "c3ced4747ab1eb289091a482c09b3378dc5df8c1ba075b33b2050f7b6cb87a47"
+    },
+    {
+      "path": "legacy-bank/run-suite.mjs",
+      "bytes": 3118,
+      "sha256": "3a74dc5b6bfcaf4f20710bd98f8fb7941223a4c1e2ea86cb8f7f085536cfd160"
     }
   ],
   "vitestVendorInputs": [
@@ -723,5 +795,18 @@
   "reproduction": {
     "wrapperCompiler": "two retained generated TS inputs, TypeScript5.9.3 targetES2022/moduleESNext/sourceMap/inlineSources; checked by generated-layout.test.mjs",
     "vendorBundles": "Historical original recipes and inputs remain recorded. Coverage vendor successor rebuilt from installed pinned dependencies with the sealed build-split.cjs; static support partition has one fixed module and preserves the original legal notice and assets."
+  },
+  "banks": {
+    "qualification": {
+      "cases": 10,
+      "nativeAdmission": false
+    },
+    "originalFactories": {
+      "cases": 9,
+      "sourceCommitReference": "63cd06846f53de95bb4de585764c59e7dabe2dc4",
+      "generatedWrapperAndTestsEqualReviewedReference": true,
+      "runtimeReceiptReused": false,
+      "nativeAdmission": false
+    }
   }
 }

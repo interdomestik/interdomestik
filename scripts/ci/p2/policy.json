@@ -1,15 +1,17 @@
 {
   "version": 1,
-  "scope": "exact-mounted-assign-wrapper-ten",
+  "scope": "exact-dual-fixed-ten-plus-nine",
   "repository": "interdomestik/interdomestik",
   "officialImage": "node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940",
   "nodeVersion": "24.15.0",
   "architectures": ["linux/arm64"],
   "qualification": "QUALIFIED_LINUX_ARM64_COVERAGE",
   "sourceFiles": {
-    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "cbdc904e1f45794b4d2b6527ad03de9e20b2979b82e0687fa26a99f1b1c2f2a9",
-    "apps/web/src/actions/admin-claims/assign.core.ts": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
-    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts": "b48386858936c01fc16fc6a64bacaf9ecddcc4e64f8e20808d98fb1d1247aca4",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
+    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73",
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
   },
   "rawIdentities": [],
   "baseline": 604,

@@ -47,6 +47,22 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/dist/generated-provenance.json',
   'scripts/ci/p2/dist/ordinary-denominator.json',
   'scripts/ci/p2/dist/source-manifest.json',
+  'scripts/ci/p2/execution-data.mjs',
+  'scripts/ci/p2/legacy-bank.mjs',
+  'scripts/ci/p2/legacy-bank/capsule-layout.json',
+  'scripts/ci/p2/legacy-bank/dist/ordinary-denominator.json',
+  'scripts/ci/p2/legacy-bank/dist/source-manifest.json',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.js.map',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.mjs',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.original.ts',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.source.ts',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.test.js.map',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.test.mjs',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.test.original.ts',
+  'scripts/ci/p2/legacy-bank/dist/wrapper.test.source.ts',
+  'scripts/ci/p2/legacy-bank/policy.json',
+  'scripts/ci/p2/legacy-bank/registry.mjs',
+  'scripts/ci/p2/legacy-bank/run-suite.mjs',
   'scripts/ci/p2/libraries.mjs',
   'scripts/ci/p2/linux_backend.py',
   'scripts/ci/p2/materialize-producer.mjs',
@@ -56,6 +72,7 @@ export const M4_P2_CLOSURE_FILES = Object.freeze([
   'scripts/ci/p2/ordinary-job.mjs',
   'scripts/ci/p2/ordinary-provenance.mjs',
   'scripts/ci/p2/policy.json',
+  'scripts/ci/p2/runtime-source.mjs',
   'scripts/ci/p2/runtime.mjs',
   'scripts/ci/p2/source-fence.mjs',
   'scripts/ci/p2/unpack-ordinary.py',
@@ -66,5 +83,5 @@ export function assertM4P2ClosureNames(names) {
     !Array.isArray(names) ||
     JSON.stringify([...names].sort()) !== JSON.stringify(M4_P2_CLOSURE_FILES)
   )
-    throw Error('M4 P2 exact59-file producer closure required');
+    throw Error('M4 P2 exact76-file producer closure required');
 }

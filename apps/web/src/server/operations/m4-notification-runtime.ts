@@ -5,6 +5,7 @@ import {
   assertM4DriverEnvironment,
   assertM4PoolPosture,
   captureM4PoolTarget,
+  captureM4DatabaseTls,
 } from './m4-pool-posture';
 
 type OwnedOperation = { stop(): void; done: Promise<void> };
@@ -76,7 +77,7 @@ export function createM4NotificationDatabaseOwner(
       pool = postgres(notificationTarget.url, {
         max: 1,
         connect_timeout: Math.max(1, Math.ceil(deadline / 1000)),
-        ssl: loopbackQualification ? false : { rejectUnauthorized: true },
+        ssl: loopbackQualification ? false : captureM4DatabaseTls(notificationTarget),
         connection: {
           statement_timeout: deadline,
           lock_timeout: deadline,

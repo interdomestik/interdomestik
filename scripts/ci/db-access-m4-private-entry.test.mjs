@@ -6,7 +6,10 @@ import { hash } from './db-access-m4-private-test.fixture.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
-import { mountedAcceptanceFixture as acceptanceFixture } from './db-access-m4-mounted-integration-test.fixture.mjs';
+import {
+  compiledSinkDouble,
+  mountedAcceptanceFixture as acceptanceFixture,
+} from './db-access-m4-mounted-integration-test.fixture.mjs';
 import * as privateData from './db-access-m4-private-acceptance-data.mjs';
 
 function emissionFixture() {
@@ -96,6 +99,8 @@ function fixture(input) {
   const token = {},
     live = new WeakMap([[token, input.ordinary]]);
   let takes = 0;
+  const source = Object.freeze({ unitSourceOnly: true }),
+    compiled = compiledSinkDouble(input, source);
   const context = vm.createContext({
     takeFixedM4P2ForJoin(value) {
       const evidence = live.get(value);
@@ -104,6 +109,8 @@ function fixture(input) {
       takes++;
       return evidence;
     },
+    takeM4CompiledRuntimeForJoin: compiled.take,
+    linkM4CompiledConstructionContexts: compiled.link,
     projectFixedPrivateAcceptance: privateData.projectFixedPrivateAcceptance,
     fail: reason => {
       throw Error(reason);
@@ -111,11 +118,12 @@ function fixture(input) {
   });
   const invoke = vm.compileFunction(
     declaration.body.getText(unit).slice(1, -1),
-    ['state', 'input', 'native', 'event', 'effectAssertions', 'workerLoaderInspection'],
+    ['state', 'input', 'native', 'source', 'event', 'effectAssertions', 'workerLoaderInspection'],
     { parsingContext: context }
   );
   const state = {
     ordinary: token,
+    compiled: compiled.token,
     runtime: input.runtime,
     native: { outputDigest: input.nativeOutputDigest },
   };
@@ -123,25 +131,30 @@ function fixture(input) {
     call: () =>
       invoke(
         state,
-        {},
+        { context: input.event.context, candidate: 'explicit-unit-candidate' },
         input.native,
+        source,
         input.event,
         input.effectAssertions,
         input.workerLoaderInspection
       ),
     state,
     takes: () => takes,
+    compiled,
   };
 }
-test('proposed lexical private entry consumes once and returns conditional exact class acceptance', () => {
+test('unit lexical private entry consumes both owners once and forwards compiled conjunction', () => {
   const f = fixture(acceptanceFixture()),
     result = f.call();
-  assert.equal(result.privateAcceptance.acceptedOriginalIdentities.length, 0);
+  assert.equal(result.privateAcceptance.acceptedOriginalIdentities.length, 2);
+  assert.equal(result.privateAcceptance.boundedCompiledConstructionQualified, true);
+  assert.equal(f.compiled.takes(), 1);
+  assert.equal(f.compiled.links(), 1);
   assert.equal(f.takes(), 1);
   assert.equal(f.state.ordinaryTaken, true);
   assert.throws(f.call, /burned/u);
 });
-test('valid source/runtime inputs with missing native context guarantee fail final proposed private entry', () => {
+test('unit source/runtime inputs with missing native context fail the actual lexical entry', () => {
   const input = acceptanceFixture();
   input.effectAssertions.assignmentContextProof.profiles[0].capturedConstructions[0].ordinal = 99;
   const f = fixture(input);
@@ -149,6 +162,16 @@ test('valid source/runtime inputs with missing native context guarantee fail fin
   assert.equal(f.state.ordinaryTaken, true);
   assert.equal(f.takes(), 1);
   assert.throws(f.call, /burned/u);
+});
+
+test('unit lexical entry cannot substitute a foreign compiled owner', () => {
+  const f = fixture(acceptanceFixture());
+  f.state.compiled = {};
+  assert.throws(f.call, /compiled forwarding/);
+  assert.equal(f.takes(), 1);
+  assert.equal(f.compiled.takes(), 0);
+  assert.equal(f.compiled.links(), 0);
+  assert.throws(f.call, /burned/);
 });
 
 // Selected-path and lineage observers are real; ownership and the bridge are test doubles.

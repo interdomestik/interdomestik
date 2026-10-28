@@ -1,3 +1,4 @@
+// Qualification-only adapter; live admin assignments retain their existing path until cutover.
 import {
   relayLegacyAdminAssignment,
   assignmentRelayFailure,
@@ -8,7 +9,7 @@ const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
 function revalidatePathForAllLocales(path: string) {
   for (const locale of LOCALES) revalidatePath(`/${locale}${path}`);
 }
-export async function assignClaimCore(params: {
+export async function executeM4QualificationAdminAssignment(params: {
   claimId: string;
   staffId: string | null;
   requestHeaders: Headers;

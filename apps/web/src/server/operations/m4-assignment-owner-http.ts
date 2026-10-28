@@ -25,8 +25,13 @@ export function createM4AssignmentOwnerListener(
   runtime: M4PrivateAssignmentRuntime,
   tls: Readonly<{ key: string; cert: string }>,
   deadlineMs: number,
-  captureLocal: boolean
+  captureLocal: boolean,
+  strictObservationBudget?: { used: number; refused: boolean }
 ) {
+  if (captureLocal && strictObservationBudget)
+    throw new Error('Local and strict observation scopes cannot mix');
+  const transcriptBudget = captureLocal ? localTranscriptBudget : strictObservationBudget;
+  const capture = Boolean(transcriptBudget);
   const connections = new Set<Duplex>(),
     retirements = new Set<Promise<void>>();
   const rows: M4AssignmentTransportRow[] = [],
@@ -89,16 +94,16 @@ export function createM4AssignmentOwnerListener(
       return;
     }
     if (
-      captureLocal &&
-      (rows.length >= 128 || localTranscriptBudget.refused || localTranscriptBudget.used >= 2048)
+      capture &&
+      (rows.length >= 128 || transcriptBudget!.refused || transcriptBudget!.used >= 2048)
     ) {
       refused = true;
-      localTranscriptBudget.refused = true;
+      transcriptBudget!.refused = true;
       reply(response, { status: 'indeterminate', operationId: envelope.request.operationId });
       return;
     }
     // Allocation precedes awaits; every admitted call is retained, independent of completion order.
-    const row: M4AssignmentTransportRow | undefined = captureLocal
+    const row: M4AssignmentTransportRow | undefined = capture
       ? {
           profile,
           path: request.url!,
@@ -110,7 +115,7 @@ export function createM4AssignmentOwnerListener(
         }
       : undefined;
     if (row) {
-      localTranscriptBudget.used++;
+      transcriptBudget!.used++;
       rows.push(row);
     }
     let result;
@@ -197,7 +202,7 @@ export function createM4AssignmentOwnerListener(
     rows,
     work,
     get refused() {
-      return refused || (captureLocal && localTranscriptBudget.refused);
+      return refused || (capture && transcriptBudget!.refused);
     },
     stopAdmissions() {
       closing = true;

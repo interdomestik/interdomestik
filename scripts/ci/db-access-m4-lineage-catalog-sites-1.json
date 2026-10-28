@@ -168,14 +168,40 @@
       "family": "legacy-admin-pre-and-post-read",
       "side": "retained",
       "file": "apps/web/src/actions/admin-claims/assign.core.ts",
-      "sourceSha256": "c5de262008c4036007572fb6fd10c4e5ac3b4ac6aef5a7234b553eb179da92ea",
-      "calls": [],
-      "owners": [],
+      "sourceSha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
+      "calls": [
+        {
+          "kind": "PropertyAccessExpression",
+          "startUtf16": 1305,
+          "endUtf16": 1313,
+          "nodeSha256": "82223c7d347b9900900e405d0ca633afedcb4646216789d94a262b243322620a",
+          "kindCode": 212,
+          "posUtf16": 1304
+        },
+        {
+          "kind": "PropertyAccessExpression",
+          "startUtf16": 1872,
+          "endUtf16": 1880,
+          "nodeSha256": "82223c7d347b9900900e405d0ca633afedcb4646216789d94a262b243322620a",
+          "kindCode": 212,
+          "posUtf16": 1871
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 606,
+          "endUtf16": 2639,
+          "nodeSha256": "6086e6ba50a8ba9da56b782c699280b751e10dfa9befe2ad0498bbdcb45ad59b",
+          "kindCode": 263,
+          "posUtf16": 604
+        }
+      ],
       "historicalIdentitiesReferenceOnly": [
         "d79ddd457fd45d7be93b4b0a19216d9fa8e6f164bdf96a63822296a2419b3dbc",
         "e25ca13641fbd203476a6935501e8f7ff98706af3a886a50505872f841a71ef1"
       ],
-      "unobservedAnchorResidual": true
+      "unobservedAnchorResidual": false
     },
     {
       "id": "legacy-admin-pre-and-post-read/replacement/0",
@@ -289,11 +315,77 @@
       "family": "legacy-agent-domain-effects",
       "side": "retained",
       "file": "apps/web/src/actions/agent-claims/assign.core.ts",
-      "sourceSha256": "a1f870ccae4712ebc31051312223e2a74fb92be9cb02d0b2300cf136deb0f117",
-      "calls": [],
-      "owners": [],
+      "sourceSha256": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 678,
+          "endUtf16": 758,
+          "nodeSha256": "266d5a436628c66aba7b7932cdf9a03db26f2a28d4ecbc82738b25bffee852a4",
+          "kindCode": 214,
+          "posUtf16": 677
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 789,
+          "endUtf16": 834,
+          "nodeSha256": "96be42f1c86e93049509a41ebcdbd8a4aa373aa9991756c52475ee623f89bc6a",
+          "kindCode": 214,
+          "posUtf16": 784
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 840,
+          "endUtf16": 903,
+          "nodeSha256": "c45d2ba1f554051147cfc2af7efd240e3196bd9a4ee5b3d13b3572c666747d55",
+          "kindCode": 214,
+          "posUtf16": 835
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 909,
+          "endUtf16": 953,
+          "nodeSha256": "9dddec16a8c59a382763580647cff626f1c0e105dcd5839d78235dccec0e7ead",
+          "kindCode": 214,
+          "posUtf16": 904
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 959,
+          "endUtf16": 1021,
+          "nodeSha256": "2a72eed5606441200806d9ec144840821654795c1ebabf79cf1410b7a17ea135",
+          "kindCode": 214,
+          "posUtf16": 954
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1027,
+          "endUtf16": 1071,
+          "nodeSha256": "4b9117dd56feee3c3e4c2e00907af194da34f29010925ea8ed5d6cd359423999",
+          "kindCode": 214,
+          "posUtf16": 1022
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 1077,
+          "endUtf16": 1139,
+          "nodeSha256": "0be5080d41ed2f03054a028b8cbadea36dfec5c295974380987817813c52857b",
+          "kindCode": 214,
+          "posUtf16": 1072
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 490,
+          "endUtf16": 1164,
+          "nodeSha256": "2e53cb276656c5054dba81a0267ea4147aebb7f3ce05f7cd1017979b67460a9b",
+          "kindCode": 263,
+          "posUtf16": 488
+        }
+      ],
       "historicalIdentitiesReferenceOnly": [],
-      "unobservedAnchorResidual": true
+      "unobservedAnchorResidual": false
     },
     {
       "id": "legacy-agent-domain-effects/retained/1",
@@ -523,11 +615,45 @@
       "family": "staff-domain-effects",
       "side": "retained",
       "file": "apps/web/src/actions/staff-claims/assign.core.ts",
-      "sourceSha256": "339ea48581fc0c7c7c27e240c96bfb0b8453a4359302bf0f617e049d0ed390c1",
-      "calls": [],
-      "owners": [],
+      "sourceSha256": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 621,
+          "endUtf16": 669,
+          "nodeSha256": "1fd8219eeab1b4e266683677219b079df7971fd6308efe69246eab973e86b7cc",
+          "kindCode": 214,
+          "posUtf16": 620
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 700,
+          "endUtf16": 762,
+          "nodeSha256": "0be5080d41ed2f03054a028b8cbadea36dfec5c295974380987817813c52857b",
+          "kindCode": 214,
+          "posUtf16": 695
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 768,
+          "endUtf16": 812,
+          "nodeSha256": "4b9117dd56feee3c3e4c2e00907af194da34f29010925ea8ed5d6cd359423999",
+          "kindCode": 214,
+          "posUtf16": 763
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 431,
+          "endUtf16": 837,
+          "nodeSha256": "b801701d5fc292d1af06e94cac39d338e56c2a167f5d1ba49ae170094171d219",
+          "kindCode": 263,
+          "posUtf16": 429
+        }
+      ],
       "historicalIdentitiesReferenceOnly": [],
-      "unobservedAnchorResidual": true
+      "unobservedAnchorResidual": false
     },
     {
       "id": "staff-domain-effects/retained/1",

@@ -10,16 +10,19 @@
         {
           "id": "mounted-admin-assignment-source-route",
           "factPath": "/derivations/mountedAssignment/routes/0",
-          "factSha256": "941149866ff32bad4630b9f815a14ff61949dccccaab72c7a73dca8462efab9b",
+          "factSha256": "b9115c0ae3881481747b9c95bde06d105a84b0641f8322e139ff014b3a117285",
           "sourceFiles": [
-            "apps/web/src/actions/admin-claims/assign.core.ts",
+            "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
             "apps/web/src/server/operations/m4-assignment-relay.ts",
             "apps/web/src/server/operations/m4-assignment-relay-client.ts",
             "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
             "apps/web/src/server/operations/m4-assignment-owner.ts",
             "apps/web/src/server/operations/m4-assignment-owner-http.ts",
             "apps/web/src/server/operations/m4-private-runtime.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
           ],
           "assertions": [
             "assert.equal(response.result.success, true)",
@@ -45,16 +48,19 @@
         {
           "id": "mounted-agent-assignment-source-route",
           "factPath": "/derivations/mountedAssignment/routes/1",
-          "factSha256": "7cf10b8de0b7c375980d1e3c33e46d2cd3ca7f6544a662db002502e3aa8efe55",
+          "factSha256": "79d548ba03dca2bef7f4b4b3ac1cf0a09ca72ffd8eaddac21dff3400e8eeb361",
           "sourceFiles": [
-            "apps/web/src/actions/agent-claims/assign.core.ts",
+            "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
             "apps/web/src/server/operations/m4-assignment-relay.ts",
             "apps/web/src/server/operations/m4-assignment-relay-client.ts",
             "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
             "apps/web/src/server/operations/m4-assignment-owner.ts",
             "apps/web/src/server/operations/m4-assignment-owner-http.ts",
             "apps/web/src/server/operations/m4-private-runtime.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
           ],
           "assertions": [
             "assert.equal(response.result.success, true)",
@@ -80,16 +86,19 @@
         {
           "id": "mounted-staff-assignment-source-route",
           "factPath": "/derivations/mountedAssignment/routes/2",
-          "factSha256": "2b1798a3b13ad7754ce6bd5bb4acffd836b792c3f4e0c2973a5ee546d6a157d0",
+          "factSha256": "78760df76a983dad4b50823f1eeec4b69eb77a75b5d407e037fc93f415a0d761",
           "sourceFiles": [
-            "apps/web/src/actions/staff-claims/assign.core.ts",
+            "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
             "apps/web/src/server/operations/m4-assignment-relay.ts",
             "apps/web/src/server/operations/m4-assignment-relay-client.ts",
             "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
             "apps/web/src/server/operations/m4-assignment-owner.ts",
             "apps/web/src/server/operations/m4-assignment-owner-http.ts",
             "apps/web/src/server/operations/m4-private-runtime.ts",
-            "apps/web/src/server/operations/m4-private-runtime-context.ts"
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
           ],
           "assertions": [
             "assert.equal(response.result.success, true)",

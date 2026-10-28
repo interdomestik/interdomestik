@@ -3,27 +3,22 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { createHash } from 'node:crypto';
 import { M4_RUNTIME_CONTRACT as contract } from './db-access-m4-runtime-contract.mjs';
-import { verifyM4Metafile } from './db-access-m4-runtime-closure.mjs';
+import {
+  verifyM4Metafile,
+  verifyM4RuntimeTlsSources,
+  verifyM4RuntimeTlsSourceRoot,
+  M4_RUNTIME_TLS_SOURCE_FILES,
+} from './db-access-m4-runtime-closure.mjs';
 import { sealM4Image, assertM4ImageUnchanged } from './db-access-m4-runtime-seal.mjs';
-const meta = () => ({
-  inputs: Object.fromEntries(
-    [contract.entryFile, ...contract.expectedInputs].map(file => [
-      file,
-      {
-        imports: [contract.entryFile, ...contract.qualificationTransforms.importers].includes(file)
-          ? [{ path: contract.qualificationTransforms.target, external: false }]
-          : [],
-      },
-    ])
-  ),
-  outputs: {
-    'm4-runtime.cjs': {
-      entryPoint: contract.entryFile,
-      imports: contract.outputExternalSpecifiers.map(path => ({ path, external: true })),
-    },
-  },
-});
+import {
+  meta,
+  owned,
+  tlsSources,
+  posture,
+  writeBoundTlsSources,
+} from './db-access-m4-runtime-closure-test.fixture.mjs';
 test('fixed finite closure identity accepts only declared inputs/output/external identities', () => {
   assert.match(verifyM4Metafile(meta(), contract), /^[a-f0-9]{64}$/u);
 });
@@ -68,15 +63,6 @@ for (const [name, change] of [
     change(m);
     assert.throws(() => verifyM4Metafile(m, contract), /M4 runtime closure refused/);
   });
-function owned(body) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'm4-seal-test-'));
-  try {
-    fs.writeFileSync(path.join(root, 'module.mjs'), 'export const fixed = 1;');
-    return body(root);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-}
 test('same image seals identically', () =>
   owned(root => {
     const before = sealM4Image(root);

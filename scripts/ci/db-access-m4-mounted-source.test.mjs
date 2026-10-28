@@ -4,8 +4,33 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
+import { verifyM4ProofSource, isVerifiedM4ProofSource } from './db-access-m4-proof-source.mjs';
 import { deriveM4MountedSource, bindMountedSourceImage } from './db-access-m4-mounted-source.mjs';
 const hash = value => createHash('sha256').update(value).digest('hex');
+test('actual producer registry and source policy authenticate and derive together', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const sources = new Map(
+    Object.keys(PROVIDER_UNIT_POLICY.m4Proof.sources).map(file => [
+      file,
+      fs.readFileSync(new URL('../../' + file, import.meta.url), 'utf8'),
+    ])
+  );
+  const parsed = new Map(
+    [...sources]
+      .filter(([file]) => !file.endsWith('.json'))
+      .map(([file, text]) => [
+        file,
+        ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS),
+      ])
+  );
+  const proof = verifyM4ProofSource(root, { sources, parsed }, PROVIDER_UNIT_POLICY);
+  assert.equal(isVerifiedM4ProofSource(proof), true);
+  assert.equal(proof.derivations.mountedAssignment.nextActionIngressQualified, false);
+  assert.equal(proof.runtimeAdmission, false);
+});
 function shape(node) {
   const children = [];
   ts.forEachChild(node, child => {
@@ -41,7 +66,8 @@ function fixture() {
     sources,
     fixed: {
       version: 1,
-      reviewedConstruction: 'mounted-assignment-three-profile-v1',
+      reviewedConstruction: 'local-qualification-assignment-three-profile-v1',
+      qualificationScope: 'local-adapters-only-no-next-ingress',
       files,
       routes,
       replacements: [],
@@ -101,6 +127,8 @@ test('source/AST calls and exact executed-image links bind', () => {
   assert.ok(result.routes.every(row => row.calls[0].locator.length === 4));
 });
 for (const [label, mutate] of [
+  ['foreign live-ingress claim', f => (f.fixed.qualificationScope = 'production-next')],
+  ['fabricated removed invocation', f => f.fixed.replacements.push({ file: 'live.ts' })],
   [
     'changed source call',
     f => (f.sources['adapter-0.ts'] = f.sources['adapter-0.ts'].replace('relay(0)', 'foreign(0)')),

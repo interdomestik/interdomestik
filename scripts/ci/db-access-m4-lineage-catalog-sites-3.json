@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "kind": "sites-3",
+  "sites": [
+    {
+      "id": "strict-private-helper/source-observation/m4-runtime-command",
+      "family": "strict-private-helper",
+      "side": "source-only",
+      "file": "apps/web/src/server/operations/m4-runtime-command.ts",
+      "sourceSha256": "c84d765db7fd964676fd4ccc1ee71fd3f1de002fee3df589f1a5b0d47c4003f8",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 485,
+          "endUtf16": 521,
+          "nodeSha256": "8a2370f4e8a0038cbb741b9abfdc8bb1848a4681de786b29130d2a6bd8c6dea3",
+          "kindCode": 214,
+          "posUtf16": 484
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 761,
+          "endUtf16": 802,
+          "nodeSha256": "5d27a54a9c55c8c5b086600d6ba5d80b814d87a4c375e2fe8ff83f7f070bad18",
+          "kindCode": 214,
+          "posUtf16": 761
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 344,
+          "endUtf16": 983,
+          "nodeSha256": "12b6b1ad255879fff8e4c37b1a6e733e17279513a8e003230db14cc9508b4ff4",
+          "kindCode": 263,
+          "posUtf16": 255
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 984,
+          "endUtf16": 1488,
+          "nodeSha256": "2cc19b213f55b0a9f52ee6abc4c93001b8c398cc12c9e4916796020d86a4d3aa",
+          "kindCode": 263,
+          "posUtf16": 983
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": true,
+      "observationScope": "strict-private-helper-source-observation",
+      "runtimeAdmission": false,
+      "productionCCredit": 0,
+      "predecessorCatalogReferenceOnly": "5500c3b7271a61bd13c906c39f0d85b0d005685b46211b6d29bab73a51e4b355",
+      "previousObservationExists": false
+    },
+    {
+      "id": "strict-private-helper/source-observation/m4-runtime-retirement",
+      "family": "strict-private-helper",
+      "side": "source-only",
+      "file": "apps/web/src/server/operations/m4-runtime-retirement.ts",
+      "sourceSha256": "365c9b140d87f1f4202013e197135fe68da6da0115ce7311684777688f645325",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 257,
+          "endUtf16": 509,
+          "nodeSha256": "ea74343171758ffc158d4a9fde6257fa356f1f00b24b25afa9c1471843da384e",
+          "kindCode": 214,
+          "posUtf16": 256
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 257,
+          "endUtf16": 437,
+          "nodeSha256": "cb266a3c19af0f82f153ed2d3642675d30ea8d0a0af87764117aac5784dfb5ef",
+          "kindCode": 214,
+          "posUtf16": 256
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 281,
+          "endUtf16": 433,
+          "nodeSha256": "5d613082896f05a69a78b8795e5af01ea5ae118ba92b79c2b916f6118ad182c6",
+          "kindCode": 214,
+          "posUtf16": 276
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 281,
+          "endUtf16": 358,
+          "nodeSha256": "e9de928cbcaf279b431da8abf6e09e02d0291eb077c6d64cb68ca220d56938ce",
+          "kindCode": 214,
+          "posUtf16": 276
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 344,
+          "endUtf16": 357,
+          "nodeSha256": "401296241e58ac01c456eafd0b35271e9f7c7ea145f2e33924cdc94e1b7cbf73",
+          "kindCode": 214,
+          "posUtf16": 343
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 378,
+          "endUtf16": 432,
+          "nodeSha256": "0450c4679d5f87b59915495eb0ec2fb703260693578092d807f4147ab5ae5da5",
+          "kindCode": 214,
+          "posUtf16": 377
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 378,
+          "endUtf16": 395,
+          "nodeSha256": "9b8874eb7ffebcf300217391f3fb4a9d53d078bccf4ed67e3253de0dd1f14116",
+          "kindCode": 214,
+          "posUtf16": 377
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 407,
+          "endUtf16": 431,
+          "nodeSha256": "59555774b23d87963fd5b1d697fe70745ef30c4f814d90c71a3260f17f9e758f",
+          "kindCode": 214,
+          "posUtf16": 406
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 454,
+          "endUtf16": 508,
+          "nodeSha256": "e86967f31365991636c067bc626cb3ee6c91120646394018f86f1c22194ed054",
+          "kindCode": 214,
+          "posUtf16": 453
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 717,
+          "endUtf16": 733,
+          "nodeSha256": "55c8dc54b1f5b1be998b3072b4a7d130b68341d3bc5c8f733dd08f47d6409b02",
+          "kindCode": 214,
+          "posUtf16": 716
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 744,
+          "endUtf16": 830,
+          "nodeSha256": "69486100ea396c3dfc88beb170bc0471b3a48ab7921ae7ac9dd2702ecf74cac5",
+          "kindCode": 214,
+          "posUtf16": 743
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 760,
+          "endUtf16": 800,
+          "nodeSha256": "58840ca967881f36da95221ce6d38f1289640dff7da4d8e0f01ae447465754d3",
+          "kindCode": 214,
+          "posUtf16": 760
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 802,
+          "endUtf16": 828,
+          "nodeSha256": "1bc0064d3e051a28ee22e5185f6d23cb33500367cf3c93c5523313fff17cc971",
+          "kindCode": 214,
+          "posUtf16": 801
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 137,
+          "endUtf16": 512,
+          "nodeSha256": "d6a183e4308f6457e821cee81c5c37d10d4fa7a3c54b6d41be68a8c9caf5e152",
+          "kindCode": 263,
+          "posUtf16": 37
+        },
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 514,
+          "endUtf16": 833,
+          "nodeSha256": "9232093e702d5b814cef5aafc82cb9ddf36848d8de475e4b4ebba1e1dc90906c",
+          "kindCode": 263,
+          "posUtf16": 512
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": true,
+      "observationScope": "strict-private-helper-source-observation",
+      "runtimeAdmission": false,
+      "productionCCredit": 0,
+      "predecessorCatalogReferenceOnly": "5500c3b7271a61bd13c906c39f0d85b0d005685b46211b6d29bab73a51e4b355",
+      "previousObservationExists": false
+    },
+    {
+      "id": "strict-private-helper/source-observation/m4-assignment-owner-capture",
+      "family": "strict-private-helper",
+      "side": "source-only",
+      "file": "apps/web/src/server/operations/m4-assignment-owner-capture.ts",
+      "sourceSha256": "c3ceebd107fc52e82559bc410338b37eed3667545b2c709c824eb47abeab977e",
+      "calls": [
+        {
+          "kind": "CallExpression",
+          "startUtf16": 369,
+          "endUtf16": 391,
+          "nodeSha256": "7da8d80d9b75c9bf196cd4245170b36b66b4e0e1773f38c6101ac21e6f8d159d",
+          "kindCode": 214,
+          "posUtf16": 369
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 582,
+          "endUtf16": 618,
+          "nodeSha256": "e4174b296ba4292e4bb52fc5e1f944bc32349b55413dbfbe41298614cdad0d2a",
+          "kindCode": 214,
+          "posUtf16": 582
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 627,
+          "endUtf16": 675,
+          "nodeSha256": "5a0342faf25f80036164f6574aff747dda1980e1ac2baf1aee643110ce6a4bc3",
+          "kindCode": 214,
+          "posUtf16": 627
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 684,
+          "endUtf16": 721,
+          "nodeSha256": "e60ad6799aadb4b64942948b2ca80b946d15c67983682df713b7b9d53c2fb482",
+          "kindCode": 214,
+          "posUtf16": 684
+        },
+        {
+          "kind": "NewExpression",
+          "startUtf16": 799,
+          "endUtf16": 856,
+          "nodeSha256": "722556e3d3516d53b31d243b841041dabb319c0c885e6ee1e38823376dbc6046",
+          "kindCode": 215,
+          "posUtf16": 798
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 867,
+          "endUtf16": 1008,
+          "nodeSha256": "1aea472b8f642b7a47cbc717b387069c15984062c2e1ea532b1ab573107da614",
+          "kindCode": 214,
+          "posUtf16": 866
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 896,
+          "endUtf16": 925,
+          "nodeSha256": "33884c9e67306deebb32207e7570561d470bfd93594cf39c33ab8b6a1d12940b",
+          "kindCode": 214,
+          "posUtf16": 895
+        },
+        {
+          "kind": "CallExpression",
+          "startUtf16": 936,
+          "endUtf16": 961,
+          "nodeSha256": "cdae97dfb2c6e262e7133caf46334320831ca628727c8fdd3aa68865edc55704",
+          "kindCode": 214,
+          "posUtf16": 935
+        }
+      ],
+      "owners": [
+        {
+          "kind": "FunctionDeclaration",
+          "startUtf16": 145,
+          "endUtf16": 1011,
+          "nodeSha256": "b4d14ec87317d52f2bed2fa6740c31e13644d7ecc1ab5a4ccb06821fd3b21511",
+          "kindCode": 263,
+          "posUtf16": 76
+        }
+      ],
+      "historicalIdentitiesReferenceOnly": [],
+      "unobservedAnchorResidual": true,
+      "observationScope": "strict-private-helper-source-observation",
+      "runtimeAdmission": false,
+      "productionCCredit": 0,
+      "predecessorCatalogReferenceOnly": "5500c3b7271a61bd13c906c39f0d85b0d005685b46211b6d29bab73a51e4b355",
+      "previousObservationExists": false
+    }
+  ]
+}

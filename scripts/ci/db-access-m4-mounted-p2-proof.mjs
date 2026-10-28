@@ -76,7 +76,11 @@ function testPrograms(ast) {
   return tests;
 }
 export function deriveMountedAssignmentProofConstruction(execution) {
-  if (ts.version !== FIXED.parserVersion) fail('fixed parser');
+  if (
+    ts.version !== FIXED.parserVersion ||
+    FIXED.scope !== 'finite-local-qualification-unit-no-next-ingress-sdk-network-or-native-credit'
+  )
+    fail('fixed parser/scope');
   const texts = {};
   let total = 0;
   for (const [name, pin] of Object.entries(FIXED.pins)) {
@@ -129,7 +133,12 @@ export function deriveMountedAssignmentProofConstruction(execution) {
   const imports = ast =>
     ast.statements.filter(ts.isImportDeclaration).map(row => row.moduleSpecifier.text);
   if (
-    !same(imports(original), ['vitest', './assign.core', SPEC, 'next/cache']) ||
+    !same(imports(original), [
+      'vitest',
+      './m4-qualification-admin-assignment',
+      SPEC,
+      'next/cache',
+    ]) ||
     !same(imports(wrapper), [SPEC, 'next/cache'])
   )
     fail('closed current imports');
@@ -234,7 +243,9 @@ export function deriveMountedAssignmentProofConstruction(execution) {
   }
   return freeze({
     version: 1,
-    kind: 'm4-current-mounted-proof-construction',
+    kind: 'm4-current-qualification-proof-construction',
+    localQualificationOnly: true,
+    nextActionIngressQualified: false,
     dataOnly: true,
     currentProofClassQualified: true,
     exactCaseCount: FIXED.tests.length,
@@ -247,7 +258,7 @@ export function deriveMountedAssignmentProofConstruction(execution) {
       disposition: FIXED.historicalFactories.disposition,
       priorSourceSha256: FIXED.historicalFactories.sourceSha256,
       currentSourceSha256: FIXED.sourceFiles[FIXED.sourceFile],
-      currentSourceFactoryCallbacksAbsent: true,
+      qualificationSourceFactoryCallbacksAbsent: true,
       currentNativeIdentityAccepted: false,
     })),
     acceptedOldIdentityCount: 0,

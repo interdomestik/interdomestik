@@ -1,3 +1,4 @@
+import { addOriginalFactoryBankFixture } from './db-access-m4-original-factory-bank.fixture.mjs';
 // Explicit data doubles only; no private owner, SQL, HTTPS or native execution.
 import { createHash } from 'node:crypto';
 import { mountedP2ExecutionFixture } from './db-access-m4-mounted-p2-proof.fixture.mjs';
@@ -76,7 +77,10 @@ export function mountedAcceptanceFixture() {
     ...binding,
     mountedAssignmentSource: {
       ...binding,
-      kind: 'fixed-mounted-assignment-source',
+      kind: 'fixed-local-qualification-assignment-source',
+      qualificationScope: 'local-adapters-only-no-next-ingress',
+      localQualificationOnly: true,
+      nextActionIngressQualified: false,
       routes,
       sourceFiles: [],
       replacements: [],
@@ -106,7 +110,7 @@ export function mountedAcceptanceFixture() {
   ordinary.execution = mountedP2ExecutionFixture();
   ordinary.dispatchContext = 'required-pr-isolated';
   ordinary.imageId = 'explicit-unit-image';
-  return {
+  return addOriginalFactoryBankFixture({
     native,
     runtime,
     ordinary,
@@ -114,5 +118,68 @@ export function mountedAcceptanceFixture() {
     effectAssertions,
     nativeOutputDigest: hash('explicit-unit-native'),
     workerLoaderInspection: { scope: 'LOADER_ONLY_LOCAL' },
+  });
+}
+
+// Projection/forwarding unit data only. Never an actual compiled result or witness.
+export function compiledAcceptanceData(input) {
+  return {
+    kind: 'bounded-compiled-assignment-construction-contexts',
+    scopedConstructionQualified: true,
+    contextSha256: input.runtime.contextSha256,
+    policySha256: input.runtime.policySha256,
+    sourcePolicyDigest: input.native.sourcePolicyDigest,
+    acceptedTrustedContexts: ['ops', 'legacy-admin', 'legacy-agent', 'staff'].map(profile => ({
+      profile,
+    })),
+    acceptedPreservedSourceCorrespondences: [{ unitDataOnly: true }],
+    acceptedOriginalIdentities: [],
+    rawOccurrencesSubtracted: 0,
+    productionCCredit: 0,
+    nativeAdmission: false,
+  };
+}
+
+// Closed unit ownership doubles; these cannot enter the real pairing WeakMaps.
+export function compiledSinkDouble(input, source) {
+  const token = Object.freeze({ unitOnly: true });
+  const taken = Object.freeze({
+    result: Object.freeze({ unitOnly: true }),
+    imageRecords: Object.freeze({}),
+  });
+  let live = true,
+    takes = 0,
+    links = 0;
+  const requireSame = (actual, expected) => {
+    if (actual !== expected) throw Error('unit compiled forwarding mismatch');
+  };
+  return {
+    token,
+    takes: () => takes,
+    links: () => links,
+    take(value, context, policy) {
+      requireSame(value, token);
+      if (!live) throw Error('unit compiled owner already burned');
+      requireSame(context, input.event.context);
+      requireSame(policy, input.runtime.policySha256);
+      live = false;
+      takes++;
+      return taken;
+    },
+    link(args) {
+      for (const [key, expected] of Object.entries({
+        native: input.native,
+        source,
+        runtime: input.runtime,
+        compiledTaken: taken,
+        event: input.event,
+        effectAssertions: input.effectAssertions,
+        workerLoaderInspection: input.workerLoaderInspection,
+        candidateRoot: 'explicit-unit-candidate',
+      }))
+        requireSame(args[key], expected);
+      links++;
+      return compiledAcceptanceData(input);
+    },
   };
 }

@@ -1,4 +1,5 @@
 import type postgres from 'postgres';
+import { checkServerIdentity, type PeerCertificate } from 'node:tls';
 
 export type M4PoolTarget = Readonly<{
   url: string;
@@ -44,6 +45,18 @@ export function captureM4PoolTarget(value: unknown, loopbackQualification: boole
     // Never include a credential-bearing URL or the URL parser's original error.
     throw new Error('Invalid private M4 database configuration');
   }
+}
+
+// Bind the standard Node certificate identity check to the captured endpoint, not a
+// hostname inferred from the driver's already connected socket. No request supplies a callback.
+export function captureM4DatabaseTls(target: M4PoolTarget) {
+  const expectedHostname = new URL(target.url).hostname;
+  return Object.freeze({
+    rejectUnauthorized: true,
+    checkServerIdentity(_driverHostname: string, certificate: PeerCertificate) {
+      return checkServerIdentity(expectedHostname, certificate);
+    },
+  });
 }
 
 // These installed-driver fallbacks select unqualified behavior even with a complete URL.
