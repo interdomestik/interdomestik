@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { SOURCE_COMMIT, SOURCE_TREE, showAt, tmp } from './db-access-required-git.mjs';
 import { nodeEnv } from './db-access-required-fixtures.mjs';
+import { CLOSED_DATA_BOUNDARY } from './db-access-closed-data-policy.mjs';
 import {
   CHECKOUT,
   embedded,
@@ -180,7 +182,14 @@ test('embedded report contract: missing, blank, malformed, empty-scan or incompl
       encoding: 'utf8',
     });
   };
-  const valid = { status: 'pass', scannedCount: 3, newCount: 1, failingNewEntries: [] };
+  const valid = {
+    status: 'pass',
+    scannedCount: 3,
+    newCount: 1,
+    failingNewEntries: [],
+    incomplete: [],
+    incompleteRawCount: 0,
+  };
   const pass = JSON.stringify(valid);
   for (const content of [
     undefined,
@@ -201,6 +210,41 @@ test('embedded report contract: missing, blank, malformed, empty-scan or incompl
   const ok = summarize(pass);
   assert.equal(ok.status, 0, ok.stderr);
   assert.equal(ok.stdout, 'scanned=3 new=1 failing_new=0 source_baseline_entries=2');
+  const raw = CLOSED_DATA_BOUNDARY.diagnostics.map(row => ({ ...row }));
+  const qualified = {
+    ...valid,
+    unresolvedIncomplete: [],
+    rawIncomplete: raw,
+    rawIncompleteRawCount: 1251,
+    closedDataBoundary: {
+      id: CLOSED_DATA_BOUNDARY.id,
+      policySha256: createHash('sha256').update(JSON.stringify(CLOSED_DATA_BOUNDARY)).digest('hex'),
+      status: 'qualified',
+      files: CLOSED_DATA_BOUNDARY.files.map(({ file, bytes, sha256 }) => ({
+        file,
+        mode: '100644',
+        bytes,
+        sha256,
+      })),
+      resolvedDiagnostics: raw,
+      resolvedRawCount: 1251,
+    },
+  };
+  assert.equal(summarize(JSON.stringify(qualified)).status, 0);
+  for (const change of [
+    { incomplete: [raw[0]] },
+    { unresolvedIncomplete: [raw[0]] },
+    { incompleteRawCount: 1 },
+    { rawIncompleteRawCount: 1252 },
+    { closedDataBoundary: undefined },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, id: 'candidate-selected' } },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, policySha256: 'unsigned' } },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, policySha256: '0'.repeat(64) } },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, files: [] } },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, resolvedDiagnostics: raw.slice(1) } },
+    { closedDataBoundary: { ...qualified.closedDataBoundary, resolvedRawCount: 1250 } },
+  ])
+    assert.notEqual(summarize(JSON.stringify({ ...qualified, ...change })).status, 0);
   const zero = summarize(JSON.stringify({ ...valid, newCount: 0 }));
   assert.equal(zero.status, 0, zero.stderr);
   assert.equal(zero.stdout, 'scanned=3 new=0 failing_new=0 source_baseline_entries=2');

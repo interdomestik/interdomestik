@@ -25,10 +25,10 @@ import {
 } from './db-access-required-fixtures.mjs';
 
 for (const [label, base] of [
-  ['actual 278e adoption', ADOPTION_COMMIT],
-  ['actual e113 source', SOURCE_COMMIT],
+  ['historical 278e base with reviewed resolver candidate', ADOPTION_COMMIT],
+  ['actual fixed G0 source', SOURCE_COMMIT],
 ])
-  test(`${label} event base: approved e113 guard passes canonical, rejects new ambient access`, () => {
+  test(`${label} event base: approved fixed G0 guard passes canonical, rejects new ambient access`, () => {
     const origin = actualOrigin(base);
     const passing = route(
       openPullRequest(origin, root =>
@@ -52,7 +52,7 @@ for (const [label, base] of [
   });
 
 for (const target of ['scripts/check-db-access-guard.mjs', 'scripts/ci/db-access-evaluator.mjs'])
-  test(`roll-forward: squash main with forged ${target} and fake epoch still runs e113`, () => {
+  test(`roll-forward: squash main with forged ${target} and fake epoch still runs fixed G0`, () => {
     const origin = actualOrigin();
     const squash = git(
       origin,

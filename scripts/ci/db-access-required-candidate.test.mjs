@@ -27,7 +27,7 @@ import {
 const unsafe = 'apps/web/src/new.ts';
 const origin = actualOrigin();
 
-test('candidate modules, compiler, preload and selector-like inputs never execute; e113 flags the merge', () => {
+test('candidate modules, compiler, preload and selector-like inputs never execute; fixed G0 flags the merge', () => {
   const sentinel = path.join(tmp('sentinel'), 'candidate');
   const preload = path.join(tmp('preload'), 'evil.cjs');
   fs.writeFileSync(preload, `require('fs').writeFileSync(${JSON.stringify(sentinel)}, 'preload');`);
@@ -121,7 +121,7 @@ test('conditional no-arg entrypoint cannot waive the new ambient-query verdict',
   assertRejected(route(pr), unsafe);
 });
 
-test('candidate baseline, resolver, adoption and symlink edits cannot re-anchor e113 trust', () => {
+test('candidate baseline, resolver, adoption and symlink edits cannot re-anchor fixed G0 trust', () => {
   for (const [mutate, reason] of [
     [
       root =>
