@@ -39,8 +39,9 @@ jobs:
           expected_repo='interdomestik/interdomestik'
           expected_branch='main'
           # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
-          source_commit='00db888daf34c952abf107a92481f81a34bfb032'
-          source_tree='d7ccd6f3ca1e9afd47d08e27400abad2a5ad2559'
+          # Static-root G0: provider/helper transitions receive no proof exemption.
+          source_commit='18cd1a73b12f589c69934cba862092d857434013'
+          source_tree='7acfc0167bde4a8165d5649b3e83625b50b4878c'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
@@ -260,10 +261,33 @@ jobs:
             const read = file => JSON.parse(fs.readFileSync(file, "utf8"));
             const r = read(process.argv[1]);
             const b = read(process.argv[2]);
+            const rows = value => Array.isArray(value) && value.every(row =>
+              row && typeof row.file === "string" && typeof row.reason === "string"
+              && Number.isSafeInteger(row.occurrences) && row.occurrences > 0);
+            const unresolved = r?.unresolvedIncomplete ?? r?.incomplete;
+            const raw = r?.rawIncomplete ?? r?.incomplete;
+            const rawCount = r?.rawIncompleteRawCount ?? r?.incompleteRawCount;
+            const q = r?.closedDataBoundary;
+            const reviewedFiles = [
+              ["apps/web/src/server/operations/m4-assignment-protocol.ts", 2171, "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04"],
+              ["apps/web/src/server/operations/m4-assignment-protocol.test.ts", 4027, "2d6b81b7045048f4bf9944c545b9eea0e716a56b58e25f93ccc7e98fcc063e2a"],
+            ];
+            const finiteProof = Array.isArray(raw) && (raw.length === 0 ||
+              (q?.id === "rc31-m4-assignment-closed-data-v1" && q.status === "qualified"
+                && q.policySha256 === "c5cca4c0b1253f3d9b1bc33ba4631b2686e62c4f21248b37e76c9373407f0b46"
+                && q.resolvedRawCount === 1251 && rawCount === 1251
+                && Array.isArray(q.files) && q.files.every(file => file.mode === "100644")
+                && JSON.stringify(q.files.map(file => [file.file, file.bytes, file.sha256])) === JSON.stringify(reviewedFiles)
+                && rows(q.resolvedDiagnostics)
+                && JSON.stringify(q.resolvedDiagnostics) === JSON.stringify(raw)));
             const ok = r !== null && typeof r === "object" && r.status === "pass"
               && Number.isSafeInteger(r.scannedCount) && r.scannedCount > 0
               && Number.isSafeInteger(r.newCount) && r.newCount >= 0
               && Array.isArray(r.failingNewEntries) && r.failingNewEntries.length === 0
+              && Array.isArray(r.incomplete) && r.incomplete.length === 0
+              && Array.isArray(unresolved) && unresolved.length === 0 && r.incompleteRawCount === 0
+              && rows(raw) && Number.isSafeInteger(rawCount)
+              && raw.reduce((sum, row) => sum + row.occurrences, 0) === rawCount && finiteProof
               && b !== null && typeof b === "object" && Array.isArray(b.entries);
             if (!ok) process.exit(1);
             process.stdout.write(`scanned=${r.scannedCount} new=${r.newCount} failing_new=0 source_baseline_entries=${b.entries.length}`);

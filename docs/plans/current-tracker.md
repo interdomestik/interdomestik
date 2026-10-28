@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-10
+last_reviewed: 2026-10-28
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,7 +15,39 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-The [finite S7 closure boundary](current-program.md#finite-s7-closure-boundary) is the remaining execution checklist: #1902 protected/exact-staging delivery; one evidence-selected security remediation; only demonstrated required-journey transaction defects; necessary replacement-backed/owned cleanup; applicable acceptance and authority reconciliation; then evidence-backed S7 closure and one bounded S8 handoff start. Completed technical rows retain their credit. Later-stage/optional findings do not silently expand this queue; native GitHub identity confirmation and genuine human acceptance remain open controls.
+The owner's 28 October instruction selects the RC3.1 small-PR sequence in the
+[current program](current-program.md#current-phase). This is the active execution
+queue; the earlier S7 ledger below retains its evidence and unresolved obligations.
+
+| ID                | Status        | Bounded work                                                              | Required exit                                                                                                                                                          |
+| ----------------- | ------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RC31-G0`         | `in_progress` | Qualify main-compatible static guard G and separate immutable workflow W. | Authentic-main and parser-only positives, adversarial refusals, independent source/workflow review, active external pin readback and genuine exact-merge hosted proof. |
+| `RC31-PARSER`     | `pending`     | Exactly the closed M4 request parser and its tests.                       | Executed positive/negative tests, main-based type/required checks, protected merge and exact-main health. No M4/cohort credit.                                         |
+| `RC31-DRIVER`     | `pending`     | Coherent ESM+CJS lease/lifetime driver, exact lock/patch authentication.  | Restricted runtime, legacy/auth regressions, positive/negative checks, matched rollback and protected delivery.                                                        |
+| `RC31-PROOF-PREP` | `pending`     | Bounded proof/result/custody code with no premature policy activation.    | Authentic source/event joins and scoped checks; no cohort/M4 credit.                                                                                                   |
+| `M4-ADMISSION`    | `open`        | Atomic assignment/current-store/RLS/effect/audit/idempotency boundary.    | Integrated genuine positive and semantic negative, old-to-new bridge, proof custody, retained residuals and independent admission.                                     |
+| `S8-CLOSURE`      | `open`        | Remaining closed migration cohorts and deployed capability cut.           | Applicable ZERO, required full/protected/exact-main proof and genuine S8 acceptance.                                                                                   |
+
+Initial G0 preflight on clean main `18cd1a73b12f589c69934cba862092d857434013`
+passed the unchanged static guard:7047 inventoried operations, baseline604,new0,
+failing_new0,incomplete0. The frozen installation preserved the lock digest
+`221aac6195992ee283892ae9338a2ce880bd0f3d16f6915cbb4545209e494aca`.
+This is direct local evidence only; G0 publication, parser delivery, M4 and S8
+acceptance are pending. Review/attempt receipts remain with the approved small-PR
+implementation evidence; preserve prior failure families and do not transfer old
+candidate proof to a changed source.
+
+The first protected local parser-only merge failed before publication:35 grouped
+UNKNOWN witnesses /1251 occurrences (31 parser,1220 test), scanned7047,new0,
+failing_new0. This confirms a bounded precision blocker, not a passing parser or
+M4 admission. The original source/report/merge and diagnostics are retained as
+`RC31-G0-PURE-PARSER-UNKNOWN-01` in the existing failure memory. Exact-source
+closed-data qualification and its adversarial/report controls are in progress.
+Do not rerun the unchanged failed pair or publish its W pin as qualified.
+
+### Historical S7 queue
+
+The historical [finite S7 closure boundary](current-program.md#finite-s7-closure-boundary) recorded this execution checklist: #1902 protected/exact-staging delivery; one evidence-selected security remediation; only demonstrated required-journey transaction defects; necessary replacement-backed/owned cleanup; applicable acceptance and authority reconciliation; then evidence-backed S7 closure and one bounded S8 handoff start. Completed technical rows retain their credit. Later-stage/optional findings do not silently expand this queue; native GitHub identity confirmation and genuine human acceptance remain open controls.
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` is technically delivered by [#1858](https://github.com/interdomestik/interdomestik/pull/1858).
 Exact-merge staging/P0 passed. The remaining acceptance row is `blocked` only on

@@ -71,7 +71,7 @@ const closureFailure = (result, reason) => {
   assert.doesNotMatch(result.stdout, /executes on merge/u);
 };
 
-test('embedded closure walker loads exactly the regular approved e113 modules', () => {
+test('embedded closure walker loads exactly the regular approved fixed G0 modules', () => {
   for (const file of [
     entry,
     'scripts/ci/db-access-evaluator.mjs',
@@ -123,7 +123,7 @@ test('embedded closure diagnostics: missing, non-regular, parse, bare, escape, d
   );
 });
 
-test('compiler bytes authenticate only at the approved e113 lock; candidate and rolled base locks cannot waive', () => {
+test('compiler bytes authenticate only at the approved fixed G0 lock; candidate and rolled base locks cannot waive', () => {
   assert.equal(sri(officialArchive), protectedIntegrity);
   const repack = path.join(tmp('synthetic-repack'), 'typescript.tgz');
   fs.writeFileSync(repack, Buffer.concat([fs.readFileSync(officialArchive), Buffer.from([0])]));
