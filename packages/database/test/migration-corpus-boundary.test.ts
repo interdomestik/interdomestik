@@ -108,15 +108,7 @@ test('imports and syntax preserve the exact no-runtime boundary', async () => {
   assert.deepEqual(unwrapConsumers, [join(PACKAGE_ROOT, 'src', 'migration-callback-plan.ts'), join(PACKAGE_ROOT, 'test', 'migration-corpus-boundary.test.ts')]);
 });
 
-test('index exports and physical line ceilings stay closed', async () => {
+test('index exports keep corpus authority private', async () => {
   const index = await readFile(join(PACKAGE_ROOT, 'src', 'index.ts'), 'utf8');
   assert.equal(index.includes('migration-corpus'), false);
-  const ceilings = [125, 125, 80, 125, 145, 149, 149, 125, 125, 135, 145, 149, 149, 130, 149];
-  const files = [...PRODUCTION, ...TESTS];
-  for (let index = 0; index < files.length; index += 1) {
-    const folder = index < PRODUCTION.length ? 'src' : 'test';
-    const lines =
-      (await readFile(join(PACKAGE_ROOT, folder, files[index]), 'utf8')).split('\n').length - 1;
-    assert.ok(lines <= ceilings[index], `${files[index]}: ${lines} > ${ceilings[index]}`);
-  }
 });

@@ -43,7 +43,8 @@ export type ClaimsDeps = {
   notifyClaimSubmitted?: (
     userId: string,
     email: string,
-    claim: { id: string; title: string; category: string }
+    claim: { id: string; title: string; category: string },
+    options: { tenantId: string }
   ) => unknown;
   notifyStatusChanged?: (
     userId: string,

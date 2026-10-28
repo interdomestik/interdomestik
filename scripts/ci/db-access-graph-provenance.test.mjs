@@ -16,7 +16,7 @@ import {
 
 // Differential oracle: the identical graph implementation with only its facade memo bypassed.
 // No production flag or policy seam is added, and all traversal/limits/diagnostics remain real.
-const graphUrl = new URL('./db-access-graph.mjs', import.meta.url);
+const graphUrl = new URL('./db-access-graph-core.mjs', import.meta.url);
 const graphSource = fs.readFileSync(graphUrl, 'utf8');
 const memoLine = 'const forContext = createGraphProvenance(provenance);';
 let inspectUncached;
@@ -32,9 +32,11 @@ before(async () => {
       (_, name) =>
         `from '${name.startsWith('.') ? new URL(name, graphUrl).href : import.meta.resolve(name)}'`
     );
-  ({ inspectChangedEdges: inspectUncached } = await import(
+  const { createGraphTraversal } = await import(
     `data:text/javascript,${encodeURIComponent(uncachedSource)}`
-  ));
+  );
+  inspectUncached = (model, provenance, inventory) =>
+    createGraphTraversal(model, provenance, inventory).run([...inventory.changed], true);
 });
 
 function probe(inspect, chain, page, extra = []) {

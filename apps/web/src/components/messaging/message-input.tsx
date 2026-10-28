@@ -112,7 +112,7 @@ export function MessageInput({
       )}
 
       {allowInternal && (
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-start gap-2">
           <Checkbox
             id="internal"
             data-testid="internal-note-toggle"
@@ -122,9 +122,9 @@ export function MessageInput({
           />
           <Label
             htmlFor="internal"
-            className="text-sm text-muted-foreground flex items-center gap-1"
+            className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground [overflow-wrap:anywhere]"
           >
-            <Lock className="h-3 w-3" />
+            <Lock className="h-3 w-3 shrink-0" />
             {t('internalNoteLabel')}
           </Label>
         </div>

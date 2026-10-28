@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-10-10
+last_reviewed: 2026-10-28
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -13,9 +13,923 @@ status_command: pnpm plan:status
 
 > This is the single active tracker. Historical proof is linked, not repeated.
 
+### M4 verification budget amendment (27 October)
+
+The [current program amendment](current-program.md#m4-verification-budget-amendment-27-october)
+records the direct owner instruction following the proposed 10-minute budget.
+Future combined qualification uses 600 seconds including cleanup, with a 15-second
+cleanup reserve inside that limit. The 6-GiB ceiling and every source, event, policy,
+ownership, coverage, security and behavioral check remain required. Track actual
+300-second performance separately; do not relabel a historical failure as a pass.
+
+Latest source `94f927ec151a4c663db1c84daf3fe8689478a6b5` passed 718 focused checks
+and security/modularity verification. Its actual external Wv4 pair reached genuine
+native/private construction and then failed a supplemental checker that read
+`entry.identity` instead of the encoded `entry.row.identity`. Total time was 296.107
+seconds including clean retirement. Receipt SHA-256:
+`79c6407f272c2f2f16600ee9c12771a09d9faf7843c2488e46eb66a0eb73d6b0`.
+
+Wv5 corrected that checker and bounded full-data diagnostic writing; 33 focused
+controls and independent differential review passed. The actual fresh run passed
+all 36 SQL cases, then timed out without a durable paired-checkpoint record or diagnostic
+file. Cleanup finished at 304.810 seconds; sampled aggregate peak was 4,629,544,960
+bytes, with prior/source/helper and owned-resource retirement checks preserved.
+Receipt SHA-256:
+`ee8d49518649ac9525e3b0163fb1a940d119e66818808342a64d9dfeeb5e0230`.
+The exact post-SQL phase is unobserved; absence of output is not proof of a specific
+hot spot. This is a recurrence of the combined-budget failure family and grants
+zero closure credit. Supporting failure comparisons remain in `m4-failure-memory-v1`.
+
+The fresh Wv6 positive qualification passes on source
+`63cd06846f53de95bb4de585764c59e7dabe2dc4`: **305.958 seconds including cleanup**,
+with sampled aggregate peak **5,684,822,016 bytes**. All nine fresh P2 cases, 36 SQL
+cases and genuine native/private construction and checking pass. The literal
+300-second observation is false; the authorized 600-second limit passes. Receipt:
+`48d95f4a0020ad0157878a7772444120af4948dcd9ab20633dd0ee7ec388498b`.
+Independent acceptance manifest:
+`9c600362893856ab6575ff372e4202096bd9c0aea34a4a24068ab02e274eef25`.
+
+The source-valid Wv6 negative also passes its required refusal on variant
+`ec66d14b09ffed7f52d932af2c8b4baceb309ffb`: **317.735 seconds including cleanup**,
+with sampled aggregate peak **6,235,668,480 bytes**. It removes only the fixed
+448-byte audit-payload assertion and refreshes its producer descriptor, while retaining
+the positive oracle. Fresh P2, all 36 SQL cases and genuine native/private construction
+reach the final boundary, which refuses the changed assertion program/dataflow.
+Receipt: `3ae6580fb1123acb495d982502cede1bc88a7ede0d83937b216e8f2c175c7a8b`;
+independent acceptance: `8c713775dcd1d196cfd9e7c5f6b08cefa7b47a741dfe511d1de18b739c22901f`.
+Both runs preserve source/helpers/prior resources and retire every owned resource.
+
+This resolves the combined-budget blocker without weakening evidence. It does not
+reduce the original 7,709 inventory entries, 3,813 failing identities or 193,682 report
+tuples: only the separately conditional two-factory relation is qualified. The actual
+new affected-lineage namespace also lacks the private constructor-to-controller
+configuration/receiver binding. The selected correction captures that binding at the
+real owned runtime and derives its fixed transaction/profile relation; it must pass
+fresh actual qualification before receiving any business-context credit. Independent
+review caught a shutdown-failure cleanup gap before integration; the correction must
+retire the child even when shutdown or completion validation refuses. Ordinary CI
+artifact production is separately reviewed and integrated locally; actual current-event
+artifact production and its private consumer join remain pending.
+
+Qualification records bounded monotonic timestamps at its existing helper boundaries.
+Do not repeat historical early worker overlap: it exceeded 6 GiB, as retained below.
+After actual positive and source-valid semantic-negative acceptance, finish the real
+admin/agent/staff/ops assignment-context and genuine ordinary-execution joins.
+The conditional two-factory relation alone cannot close the business cohort or M4.
+All M4 roadmap row statuses below remain unchanged pending actual evidence.
+
+### M4 correction evidence and remaining acceptance (28 October)
+
+Live admin, agent and staff assignments now retain their earlier domain behavior. Four
+new regressions failed before restoration; the integrated focused run passes 43 tests
+and web type checking. The separate qualification adapters do not replace those live
+entry points. Current source is a dirty correction of producer `27b45dfd1`; neither
+that commit nor the older PR artifact identifies these new bytes.
+
+The integrated C0 correction requires a completed workflow and preserves its
+coverage-only authority. The private source registry passes its actual cross-module
+check. A real current-context diagnostic finished in 279.533 seconds, with sampled
+peak 4,368,744,448 bytes and unchanged source bookends. It reports baseline 604,
+3,845 new identities, 3,866 failing identities, 194,473 incomplete tuples and
+12,134,911 raw occurrences. All five original witnesses remain failures. These are
+diagnostic counts, not accepted old-to-new discharge or progress toward ZERO.
+
+A concrete TLS counterexample was reproduced: postgres.js accepted a trusted
+localhost certificate for an IP endpoint and rejected the correct IP certificate.
+The bounded endpoint-binding correction passed ten corrected transport cases and
+179 source controls, with independent review. This experiment used a fake PostgreSQL
+transport. A later owned real-PostgreSQL run passes both trusted-TLS positives,
+unknown-CA, wrong-SAN and plaintext refusals through the actual strict constructor.
+It verifies real roles/RLS, own effects and foreign denial, then retires its owned
+container, volumes, private inputs and sessions. Receipt `5547f60df307a0092f0ce813`
+records 32.592 seconds including cleanup and sampled peak 1,786,036,224 bytes,
+including the full PostgreSQL/P2 reserves. This is component evidence only.
+
+Preparation failures are retained separately: omitted type-only metadata, a stale
+child return code, PostgreSQL network-address formatting, native Node TLS-socket
+retirement, and a TIME_WAIT port check. The last failure repeated an already known
+cleanup mechanism in a second consumer; the corrected bind-and-listen check now
+passes real TIME_WAIT and occupied-port controls before the successful run.
+
+The original factory bridge is being constructed as a fresh separate nine-case
+bank alongside the current ten cases. It must satisfy the original context and
+multiplicity rules with fresh private custody; historical receipts cannot substitute.
+The first compiled Next fixture preparation failed on an exportless installed Babel
+package. A bounded resolver fixed that refusal; the next build exposed a physical
+package-layout assumption in Next's built-in route detection. Both failures remain
+retained, with distinct causes and retry controls. The corrected third attempt prepares,
+builds and seals the actual Next16.4.3 fixture in 12.166 seconds, with sampled peak
+1,505,542,144 bytes and three compiler-observed action IDs. Image seal:
+`9a1242187858f446f882f9305a98bae3cf1ba32624fd3db97e3d3ec27d479055`.
+The fixture also enforces its finite server-side plan and disables cookie-bearing
+failure traces. Its exact static 66-package supplier is freshly authenticated and
+materialized for the next compiled run; it grants no reuse of old runtime receipts.
+
+The reviewed compiled runtime/platform and contextual old-to-new bridge are now
+integrated locally. After correcting the standard test fixtures, all 1,284 M4
+contract tests pass, along with current web type checking and the security guard.
+The ordinary worker resource tests pass all five cases with unchanged production
+limits and cleanup assertions. The root producer policy contains 486 exact
+records in 130,635 canonical bytes; its 131,072-byte cap and baseline 604 are unchanged.
+Independent review caught a mutable diagnostic import-table alias and TLS-private
+cleanup preceding explicit container-absence readback in the proposed outer helpers.
+Both corrected successors passed independent review and are integrated. The fixed
+76-file dual-bank namespace, 44-helper preparation closure and current supplemental
+checks are integrated with exact source-role and oracle bindings. The oracle keeps
+its seven derivations; the eighth strict-observation law is separately bound to
+the compiled construction. The three original live assignment cores remain source-only.
+
+The broader CI contract run retains failures in the ordinary production-guard and
+protected-epoch cohorts. Two production-CLI checks reach their unchanged 300-second
+timeouts; the M4 fixture import, source-role and private-owner drift failures are
+separately reproduced and corrected. Passing the focused M4 suite does not turn the
+broader run, global guard, protected delivery or PR checks green.
+
+The next acceptance lane composes the current ten and original nine factory cases,
+39 local SQL cases, fresh compiled browser/backend containment and native contextual
+evidence under one source/event/policy identity. The source-valid adverse run must
+then refuse the missing mandatory audit assertion through the unchanged positive
+oracle. Bounded contextual acceptance retains original live/shared residuals and
+production C credit zero; global ZERO is a later obligation. Genuine integrated
+positive/negative evidence, independent M4 acceptance and current-head CI remain open.
+No M4 roadmap row is closed by these local corrections.
+
+### M4 review correction and live assignment preservation (27 October)
+
+The owner-supplied Opus review identifies completion gaps beyond the eight stale CRM
+source bindings: original-to-current effect acceptance, real compiled ingress and TLS
+evidence, undeployed assignment-owner cutover, and the scope of ordinary C0 evidence.
+The review executed no checks or raw-receipt inspection. Its relevant source findings
+remain applicable after `18fa4a192`: producer `27b45dfd1e7813c7114c7afc32c96edf89ca89cc`
+and PR head `acfa086e8ede58998641e43b2a63f694d92d1e12` change only CI bindings and
+the Vite virtual-module correction. Neither is an M4 acceptance checkpoint.
+
+An actual genuine-event preparation authenticated the published producer, PR merge and
+successful unit artifact `12770945335` from run `40580765103`. An initial GitHub API
+schema failure was corrected with a reviewed supported-version pin. Preparation then
+refused the CRM source contract before SQL; no frozen positive, native acceptance or
+current-source semantic negative resulted. The eight changed source roots affect 86
+historical mount relations, including 15 CRM witnesses. A hash-only refresh is invalid.
+
+The newly authorized Opus correction actually served `claude-opus-5-5`. Four focused
+regressions first reproduced unintended indeterminate results when the owner endpoint
+is absent. Ten exact ADOPTION source/test restorations preserve the existing live
+assignment path; three separate qualification adapters retain the relay implementation
+and its current tests. Independent review verified all 16 postimages. The actual
+candidate passes all 43 focused live/restored/qualification tests and web TypeScript.
+This is local source integration, not hosted verification or deployed behavior proof.
+Old assignment invocations remain live: neither deletion correspondence nor original
+identity discharge may be inferred from the qualification adapters.
+
+The bridge must distinguish ADOPTION/baseline604, the original selected `2f0225a4`
+3501/190839 membership and the later experimental 55/200/1685 cohort. Exact original
+witness spans have been derived from Git; a current assignment-only pass cannot discharge
+the still-live `getActionContext` status-update caller. Source, runtime, bridge, compiled
+entry, C0 and negative contracts remain under correction. No M4 roadmap row closes and
+no new positive/negative heavy run starts until these prerequisites are reconciled.
+Failure comparisons and actual Opus inputs/output remain in the existing qualification
+evidence root, checkpoints v16/v17 and `opus-rc31-verdict-reception-v1`.
+
+### M4 source integration and ordinary-mode corrections (27 October)
+
+The reviewed source composition after `63cd06846f53de95bb4de585764c59e7dabe2dc4`
+is integrated locally and remains uncommitted. The actual local runtime now captures
+the four fixed assignment profiles through its lexical owner map, retains bounded
+scalar observations and exposes them once only after complete close/drain. Failed
+shutdown and malformed completion still retire the child. Exact parameter and literal
+source laws reject the reviewed matching-hash counterexamples. Core source review:
+`06f74a0e1e9243dc1031358f0a669a24ce0d37bd1c5e11946cbc1bf5929d9f66`.
+Actual security guard, modularity and web type-check pass after the reviewed role-source
+correction; no role allowlist or security threshold changed.
+
+The integrated lineage catalog refreshes the changed bootstrap's genuine AST bindings,
+preserves its original 12 call roles and eight owner roles, and retains all 82 original
+frontier files and 28 sites. The source-pinned helper adds frontier file 83 and site 29
+with 16 calls and five owners as an explicit residual observation axis. Catalog SHA-256:
+`403b8c8359196445b3efa74ea876bdf0606bcb5e2dc9390768ded79379fa489e`.
+The old 67-entry selection is historical evidence; measure the new selection during
+actual execution. No original native row or occurrence is allocated or removed.
+
+The ordinary producer wiring preserves release tests and PR-only mandatory coverage
+artifact upload in a cohesive composite. A circular dependency was also identified:
+the ordinary reader required overall CI success, while that same CI audit invokes the
+still-incomplete global guard. A separately reviewed, privately purpose-bound M4 C0
+route can consume the exact successful unit artifact after overall conclusion `failure`.
+It preserves source/event/tree/digest/ZIP checks, fresh capsule execution, the 60% merged
+coverage gate and one-use joins. Required/default APIs remain strict and reject C0
+results. Cancelled and other unsuccessful terminal conclusions remain refused. The
+54-file fixed producer closure is exact; CI failure remains visible and grants no delivery,
+native or production credit. Semantic review:
+`9675c524782b23aa3ec08b70af53dd4fee4a930f043d8de2d1f2ebd3cff20156`.
+
+The expanded focused run passed 809 of 810 controls; its remaining assertion expected
+the older refusal-message wording. The corrected bootstrap test file then passed all
+19 controls without changing production refusal behavior. The earlier broad CI-contract
+run was interrupted after confirmed failures, with its log preserved and its owned
+processes retired; it is not a full-suite pass. It exposed the catalog/VM-fixture defects
+above and an inherited ordinary CLI mode error: a normal worker pool receives an M4
+request without a private loader session, producing a 285-byte protocol-error report
+instead of the full raw report. A bounded observations-only transport correction is
+being prepared; ordinary observations must never become private loader/native evidence.
+Independent review held the first proposal because finalizer-added prior UNKNOWN rows
+invalidated its earlier snapshot. The actual counterexample retains rows 5→6 and raw
+occurrences 9→10; both parallel and synchronous paths need the corrected conservation
+check before integration. The reviewed V2 correction now copies only parent diagnostic
+state for the ordinary path and still validates the complete original worker graph;
+private behavior is unchanged. All 844 integrated focused controls pass, alongside
+security and modularity checks. Supplied invalid loader capabilities refuse before
+worker creation. Source review manifest:
+`fcd0f6d48e6c6cbad711e5572981d009d316c595fb03128ee8e73a1b25615e88`.
+The rejected V1 remains preserved. Actual normal CLI execution now writes the full
+106,029,408-byte INCOMPLETE report in 280.514 seconds, with baseline 604, 7,719
+inventoried operations, 3,829 failing new identities, 193,717 diagnostic tuples and
+11,840,340 raw occurrences. This repairs report construction and grants no closure.
+All 352 producer descriptors now match actual
+source after correcting two test descriptors omitted by the earlier core integration.
+
+The shared message test fixture now retains actual Drizzle schema helpers while keeping
+its existing spies. All three suites pass all 27 tests, with no skipped cases. Full actual
+coverage verification passes at 83.06% (29,690/35,747 lines) against the unchanged 60%
+gate, including web, shared-auth and all domain suites. This is a code coverage result,
+not genuine-event, SQL/native or complete M4 qualification.
+
+A deeper source gap was confirmed in the pre-migration code: the four-profile assignment-context derivation
+qualifies only new private constructions and explicitly retains original generic frames
+with accepted coverage zero. The admin/agent/staff wrappers still used their
+original ambient/domain paths; no exact trusted identity/context acceptance bridge
+connected them to that construction. Another local runtime pass alone cannot close
+M4-04 or M4-08. Complete the approved first-vertical source migration and real
+correspondence before counting first M4 complete or starting bulk migration.
+The bounded source, correspondence and runtime proposals are independently reviewed
+and integrated locally: three mounted assignment adapters relay serialized requests to the
+literal HTTPS owner and existing restricted runtime. The local proof retains all 36
+SQL cases and adds three real adapter/relay/database cases, with exact cache-call
+observation and explicit Next ingress/deployment residuals. The old P2 mocks are
+removed by the migration, so their nine-case proof is historical; the current finite
+three-source, ten-case capsule is prepared without changing the Linux isolation
+backend. Vanished catalog calls remain in historical correspondence and are never
+relabeled as new AST calls. The fixed worker closures contain 133 executable files per
+role; the current P2 namespace contains exactly 58 paths. All 368 producer descriptors
+matched at integration. These source checks grant no current SQL/native qualification.
+
+The actual compiled localhost TLS regression found a close/drain race that the mocked
+controls missed. The corrected source waits for physical socket retirement and passes
+the same immediate-close, operation-ID and one-use-take probe with zero database
+connection attempts. Independent source and runtime-fixture reviews approve integration.
+The full web TypeScript check passes after an erased Socket-to-Duplex type correction.
+
+The first integrated focused run passes 830 of 837 tests with zero skips. Its failures
+expose stale source/oracle and test-fixture bindings plus a sandbox loopback refusal;
+they are retained as failures. Real derivation identifies 13 changed fact digests:
+ten preserve their exact named subtree with changed source offsets, and three preserve
+the mounted call relations with shifted dispatch locators. The catalog also exceeds the
+unchanged 128-KiB structured-file budget; an exact authenticated shard proposal preserves
+all 90 frontier records and 40 ordered sites. Review and integration of these corrections,
+fresh focused/security/modularity checks and full application coverage precede the
+genuine combined run. No heavy qualification is replayed merely to rediscover these gaps.
+
+The consolidated source now passes all 842 focused M4/worker controls with zero skips,
+all 169 release-gate unit controls, web TypeScript, production lint (zero warnings),
+architecture and E2E contract checks, formatting and the full security guard including
+modularity. The full web/shared-auth/domain coverage run passes; the web reports 6,404
+passing tests and its unchanged 15 skips. Sixty actual coverage reports are preserved
+before the direct merged gate: **82.63% (29,699/35,941 lines) against unchanged 60%**.
+
+The normal publication size guard exposed an inherited 3,825,187-byte coverage vendor
+bundle above the unchanged 3,266,530-byte file cap. A reviewed deterministic static
+partition produces a 3,246,896-byte main bundle and one 574,663-byte fixed support
+module. All TypeScript exports and 2,121 diagnostics, ten capsule cases, V8 observations,
+converted coverage, denominator, legal notice and assets are preserved. The exact P2
+namespace now contains 59 files and all 372 producer descriptors match. The actual
+repository size guard and 58 affected P2 host controls pass without a threshold change.
+These checks permit source publication and fresh qualification; they do not complete M4.
+
+Current-source SQL/native qualification, genuine ordinary-event consumption and an
+applicable source-valid semantic negative remain pending. The accepted older Wv6
+receipts are preserved, not transferred to changed code. The existing M4 roadmap
+statuses remain unchanged, with no whole-M4, global ZERO or S8 completion claim.
+
+### Current RC3.1 M4 implementation checkpoint (26 October)
+
+The direct human grant and exact approved solution/manifest are recorded in
+[current-program.md](current-program.md#rc31-implementation-authority-25-october).
+The sole owner starts the genuine M4 trusted/proof vertical and semantic negative.
+Broad migration remains conditional on their actual required pass/rejection; no native
+benefit, production C admission or S8 completion is claimed.
+
+The correction starts from integrated source checkpoint `988281eb74fda6ed06dc40cb6532c13ed1a30660`;
+its non-admitting live pair gap ledger retains the original raw arrays by index and
+accepts zero coverage. No production C, native admission, global ZERO or S8 completion
+is claimed. The approved program sequencing and original ADOPTION/baseline604 remain.
+
+Actual fresh restricted SQL executes all 28 M4 cases and passes the private live-handle
+and refusal checks in 50.06 seconds including cleanup (`m4-runtime-fresh-qualification-v2`).
+Local P2 stage1, composed stage2 controls and fresh stage3 runtime/V8 merge/line gate/
+one-use join pass (`p2-current-qualification-v1`); clone, wrong-context and replay are
+rejected. Stage3 is a local protected-event fixture, not actual GitHub execution or
+production policy activation. Its result SHA-256 is
+`9b41a3542fbb59b4288264374aa285fae701f5eda114b7f8951932d13ee35b61`.
+
+The fresh combined local construction **passes** on source
+`67e288412a61e6b62a1f3471d1bb2261c2e87d43`, tree
+`941164e0001f85278ccd000c4e831f904ae12f3b`: **287.966 seconds including cleanup**, with a
+sampled aggregate owned-process/PostgreSQL peak of **4,841,325,199 bytes** inside the
+unchanged 300-second/6-GiB envelope. All 28 actual SQL cases and one genuine event-bound
+native session/pair complete; clone/JSON/foreign-policy/context refusals pass. Both samplers
+finish healthy (540 host/111 container samples, zero failures), all source/helper/dependency
+bookends match, owned processes/container/volumes are retired and prior resources are preserved.
+Sampling does not cover Docker VM overhead or sub-sample transients. The receipt SHA-256 is
+`e8aed370eb65b51fa14bfd536e49821f29d171acf1b432f108eb22224dea0bd6`; freeze is
+`fa2c3bc6cffb28df7cb3c20e43b732a4b0521c062ed50a5e883b49336555f9db`.
+
+The unchanged ordinary verdict remains **INCOMPLETE**: 7,709 inventory entries, baseline604,
+3,792 new entries, 3,813 failing identities, 193,682 report diagnostic tuples and 11,839,555
+occurrences. The original public report is retained with SHA-256
+`0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
+The live diagnostic ledger identifies 55 selected operations, 200 context tuples and 1,685
+context occurrences; all five correspondence relations remain unmapped and accepted coverage
+is zero. A tuple-grouping difference is not credited as an obligation reduction. This closes
+the scheduling/resource construction only, with no protected/hosted origin, native admission,
+production C, complete M4 or S8 credit. The independent source disposition remains limited to
+the immutable full-producer/TypeScript premise; worker-local loader enforcement is not claimed.
+The actual combined evidence is under `m4-runtime-native-qualification-v3` in the owner root.
+
+Historical combined SQL/native attempts failed. The retained diagnostic attempt
+finished cleanup at 302.292 seconds and timed out during native finalization; no native
+session/pair handle was returned. Measured regions are SQL 30.232 seconds, parent
+preparation 70.202, four-worker startup 70.249 and graph execution 69.885. The isolated
+historical ADOPTION recomputation within finalization needs about 37 seconds, including
+32.432 seconds of provenance. Its complete ordered 7,059-row inventory has SHA-256
+`8aded72a4ef3c01cff6afbcbc5d1507fd654603db5a92811d6bbaca92bac0b39`, with zero analysis
+unknowns. The Opus capture-plan lifetime proposal passed 52 focused regressions and exact
+full-wire parity, but measured 32.534 seconds of provenance; it is rejected as a performance
+remedy and is not integrated. The bounded correction now prepares the identical historical controls during SQL and
+requires the owned worker to exit before native preparation. The actual extracted serial
+controls match the complete reference (60 scoped files and both prior rows); 28 lifecycle
+and sequencing unit-double cases pass. Independent bounded review permits the single
+combined experiment recorded above; full first-M4 T/P/context acceptance remains pending. The inherited default-email positive-fixture failure was reproduced
+on the untouched frozen diagnostic producer, then repaired with exact historical schema
+bytes and an explicit rejection of the real later export variant. All 119 integrated tests
+now pass. The current production source obligation remains held, not waived.
+
+### M4 roadmap and failure comparison (26 October)
+
+This section is the actionable M4 roadmap under the unchanged RC3.1 authority. It
+replaces the category-only remaining-work bullets. The supporting
+[known-obligations.json](/Users/arbenlila/.codex/visualizations/2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36/recovery-20261023/s8-product-composition-v1/m4-qualification-v1/m4-failure-memory-v1/known-obligations.json)
+records the precise missing fact, actual source/mount, enforcing mechanism,
+remaining change, dependencies, owner, positive/negative acceptance and raw references
+for every row below. This tracker remains the sole status authority; the JSON is
+supporting data. The snapshot is proved source `67e288412a61e6b62a1f3471d1bb2261c2e87d43`
+and report `0e3f1e5b1bdc0839d2b73579d2faf102a93547b9114788db4c8f8d4d3df14af3`.
+
+| ID        | Stage / status                            | Exact closure target                                                                                                                                                      | Depends on          |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| LOCAL-01  | Local construction / closed within scope  | Combined SQL/native execution, unchanged budget, source bookends and healthy cleanup: 287.966 seconds.                                                                    | Recorded receipt    |
+| LOCAL-02  | Local SQL / closed within scope           | Actual fixed 10 private + 18 profile SQL cases; private source/event/policy binding.                                                                                      | Recorded receipt    |
+| LOCAL-03  | Local proof fixture / closed within scope | Ordinary containment, V8 merge, existing line gate and one-use join; local origin only.                                                                                   | Recorded receipt    |
+| **M4-01** | **Native accounting / closed**            | Complete 55-operation native identity/context/owner/invocation/dispatch to original diagnostic-index and multiplicity relation; preserve unknown/open/escaped paths.      | None                |
+| M4-02     | **First M4 / partial, selected**          | Fixed derived source effects mapped to exact executed assertion nodes and case IDs in the private pair; missing assertion/effect refuses.                                 | None                |
+| M4-03     | First M4 / open                           | Applicable current-store/auth, role/RLS, driver, SQL/schema/operator, compiler/intrinsic, TLS/endpoint and notifier premises qualified for each claimed context.          | M4-02               |
+| M4-04     | First M4 / open                           | Every affected historical/current ID, admin/agent/staff and ops mount, invocation and domain-effect lineage accounted; changed audit/noop/notification behavior explicit. | M4-01, M4-02        |
+| M4-05     | First M4 / open                           | Genuine ordinary-execution handle and exact source/assertion/context correspondence under the same protected source/policy/event; bounded consumer C0 remains.            | M4-02, M4-06        |
+| M4-06     | First M4 / open                           | Actual compiled/deployed loader, installed image, privilege and ingress contexts; independently retained worker-loader premise resolved for any stronger claim.           | None                |
+| M4-07     | First M4 / open                           | Valid-source, authenticated semantic-negative variant reaches the final paired acceptance boundary and is rejected for the missing guarantee.                             | M4-01 through M4-06 |
+| M4-08     | First M4 / open                           | Independent acceptance of genuine trusted/proof constructions and semantic refusal, with exact accepted old IDs/contexts and retained residuals.                          | M4-01 through M4-07 |
+| S8-01     | Later S8 / open                           | Finite current CRM inventory/source successor and held source classes resolved without digest wash.                                                                       | M4-08               |
+| S8-02     | Later S8 / open                           | All residual identities/diagnostics resolved to final global ZERO, retaining baseline604 and original tuple multiplicity.                                                 | M4-08               |
+| S8-03     | Later S8 / open                           | Complete same-candidate PR/security/E2E, review/Sonar and frozen journeys; widget failure isolation preserved.                                                            | S8-01, S8-02        |
+| S8-04     | Hosted/protected / open                   | Immutable producer/workflow pins and actual required hosted source/policy/event/image joins.                                                                              | S8-03               |
+| S8-05     | Delivery / open                           | Protected merge, exact-main health and frozen S8 acceptance. S9/pilot remain separate.                                                                                    | S8-04               |
+
+The eight first-M4 rows define the current construction/acceptance work. Resolving
+all 3,813 global failures is **not** a prerequisite to beginning or qualifying the
+approved first M4 vertical. Applicable unresolved deployment/consumer contexts stay
+explicit and cannot receive early production C credit. Local rows closed within
+scope do not close M4 acceptance rows.
+
+The supporting `m4-failure-memory-v1/residual-index.json` references every one of the
+3,813 failing IDs and 193,682 report tuples, preserving 11,839,555 occurrences and
+the separate M4 prerequisite row. `residual-families.json` also retains every public
+root-analysis unknown and all 55 selected operations. Exact raw diagnostic labels
+are triage groups, **not** 11,782 established root causes. The complete 200 live
+context rows were not serialized in the proved run: this is an explicit pre-existing
+observation/correspondence omission owned by M4-01, not a newly discovered gate.
+No association is inferred merely because rows share a file or diagnostic label.
+
+| Failure family                 | Recorded cause / decision                                                                                            | Correction and recurrence rule                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Combined timeout               | Attempts finished at 301.617 and 302.292 seconds; measured finalization repeated historical ADOPTION work after SQL. | Prepare identical historical controls during SQL and join the worker before native work. Fresh actual pass: 287.966 seconds. Reuse this scoped receipt; no identical heavy replay. |
+| Capture-plan proposal          | Full-wire parity passed, but provenance was 32.534 versus 32.432 seconds.                                            | Rejected as time-neutral; not integrated. Do not revive it based on cache-hit counts.                                                                                              |
+| Default-email positive fixture | Untouched frozen producer reproduces changed schema bytes outside the fixed class.                                   | Historical positive fixture plus current-source negative; 119 integrated tests pass. Production obligation remains held.                                                           |
+| P2 exec-negative oracle        | Enforced Node bootstrap denial is fatal EPERM/exit133, not a JSON/exit0 result.                                      | Strict denial and intentional-assertion-failure oracles; arbitrary crashes/timeouts never count as semantic rejection.                                                             |
+| OCI identity                   | Outer index changed while selected runnable platform/config/rootfs matched.                                          | Authenticate exact selected platform and retain both indexes; no blanket image-drift waiver.                                                                                       |
+| Missing producer closure       | Required CRM/runtime/helper source descriptors were absent.                                                          | Authenticate every declared dependency/resolution before expensive execution; no ambient fallback.                                                                                 |
+| Worker loader premise          | Worker does not inherit the main resolve hook; source bookends alone do not prove transient-swap containment.        | Retain review L1 under M4-06; no stronger loader claim until actually enforced and tested.                                                                                         |
+| Provider output capture        | Oversized multi-turn final JSON omitted the core code.                                                               | Bounded code-only requests with retained all-turn stream; no application of absent fragments.                                                                                      |
+| Unmapped proof relations       | All five pair correspondences remain unmapped; local runtime success supplies zero accepted coverage.                | Close M4-01 through M4-08 with actual private relations; artifacts/tests alone never count as obligation closure.                                                                  |
+
+Before another expensive run, compare its planned cause and changed mechanism with
+`m4-failure-memory-v1/history.json` using the supporting read-only `compare.py`.
+Record the changed-cause evidence hash, focused regression result and decisive
+acceptance condition. A new commit alone is insufficient. A repeated failure reopens
+its linked row and requires a focused reproducer/fix before another heavy attempt.
+The tool reports comparison/triage only and grants no proof admission or new authority.
+Historical failed attempts remain failed; cleanup/monitor failures remain visible.
+
+Any finding must cite concrete source/evidence, its hash and affected row/raw indices,
+and be classified **new**, **duplicate**, **reopened** or **pre-existing omission**.
+Update this roadmap explicitly rather than silently expanding prerequisites. Report
+accepted old identities, accepted contexts and accepted original occurrences alongside
+introduced/reopened obligations. Removed or regrouped rows are not accepted closures.
+At that snapshot all three accepted-coverage measures were zero. M4-02 was selected
+for the fixed assignment effect/assertion relation and its valid-source
+missing-assertion negative. The later qualified checkpoint below selects M4-01;
+no identical SQL/native replay is selected.
+
+M4-02 execution checkpoint: code `e0bb6afbc160b658a4b9532fab5f5ff638276553`
+integrates three bounded successful kernel-effect links with six mandatory assertion
+nodes and an independent fixed callback/oracle program. All 146 focused regressions
+and security/modularity checks passed; independent source review found no blocking
+issue for one local experiment. That actual experiment **failed** at 302.271 seconds
+including cleanup, after all 28 SQL cases passed in 37.685 seconds. No complete
+native/pair result was returned. The sampler hit an exhausted-deadline timeout and
+resource qualification failed; owned processes, container and volumes were retired,
+prior state and source/helper bookends were preserved. Receipt SHA-256:
+`25a74e1d962aa6026152d29cb9b1226ac25a1c0781b894725175a20a43854855`.
+This is a recurrence of the budget failure family, not accepted progress. The exact
+67e scoped pass above remains valid; it does not transfer to this changed source.
+
+Source inspection found an introduced duplicate full native/event/output validation
+in the new pairing/link composition. The bounded correction returns the current view
+and source from one existing owner validation, preserving all checks. Real frozen
+preparation/event-component timings are retained in
+`m4-effect-assertion-link-v1/validation-cost-result.json`; they exclude complete graph
+output validation and do not establish the exact timeout location. The one-validation
+composition regression and independent review are required before another changed-source
+experiment; no identical heavy replay is selected. Six other kernel effects and five
+other source derivations remain unresolved. M4-02, actual positive qualification and
+the final source-valid paired semantic negative remain open; accepted old-ID/context
+closures remain zero. Failure comparison and cleanup details are retained in
+`m4-effect-assertion-link-v1/positive-failure-classification.json`.
+
+Historical starting measurement on clean `2f0225a4e1eec865447ebdf67356dfcf71969fb4`
+completed in 289.321 seconds within the original 300-second/6-GiB measured envelope.
+All 7,062 tracked source bookends matched. The result is INCOMPLETE:
+7,654 inventoried operations, 3,501 failing identities, 190,839 unresolved diagnostic
+rows, baseline604. Raw report SHA-256:
+`26ed03585be5b4f8de61fbbd042d8b04b88a9eacdebe7f0502c37b14bb87244c`.
+Owned-process wait4 peak RSS was 6,008,307,712 bytes; polling is not an instantaneous
+OS memory cap. The earlier sandbox attempt could not run the process monitor and
+terminated its owned child; both attempts are retained separately.
+
+Owner evidence is under `recovery-20261023/s8-product-composition-v1/m4-qualification-v1`.
+The conservative source-cohort ledger retains seven entries and their recorded imports,
+raw rows and multiplicities. It does not establish complete compiled/deployed use contexts.
+The admin assignment kernel now spells out its tenant-scoped read, locked staff target,
+staff/lifecycle compare-and-set and awaited mandatory audit on the caller's transaction.
+Its finite AST derivation rejects 32 freshly hashed semantic negatives. All 50 existing
+assignment tests and 62 source/context/lineage tests pass, as do web type checking,
+focused lint and the canonical modularity guard. Independent review found no supported
+new defect in this necessary source premise; 42 additional valid-TypeScript negatives
+were rejected and three harmless controls retained the same facts.
+The frozen 16-file source checkpoint manifest is
+`kernel-source-checkpoint/manifest.json`, SHA-256
+`01713c3177c8d5b8bc563a9904ac72e898bba63b6f27b5fa4d9424c06588fddb`.
+This is a necessary source premise, not runtime admission. Actual current-store admission,
+private lifetime control, restricted SQL, proof containment and the all-context native
+producer join remain pending. No historical runtime pass transfers to the changed source.
+
+Historical M4-02 qualification on `8c6246b8c583cf4b17608bd37b30d55ee787c496`
+also **failed**, at 303.036 seconds including cleanup. All 28 SQL cases passed
+in 40.408 seconds, but no complete native pair or replacement census returned.
+Both samplers remained healthy; cleanup had no errors and the owned processes,
+container and volumes were retired. Receipt SHA-256:
+`04e17faee86074695577f57f85f15f3d13cbaad879988095937a9b8d814eaea3`.
+The single-validation composition correction was insufficient to resolve timing.
+This reopens the same budget family and grants zero accepted old-ID, context or
+original-occurrence closures. The remaining timeout phase is unobserved; another
+acceptance replay is not justified by the focused test pass. Comparison is retained
+in `m4-effect-assertion-link-v1/repeated-budget-failure-comparison.json`.
+
+Current uninstrumented source `069cfe3218c93a7a5d8b9faa285210086dbde1dc`
+subsequently passed its genuine positive pair in **290.120 seconds**, including
+cleanup, with sampled aggregate peak 5,909,611,151 bytes. All 28 SQL cases, original
+source/dependency/private-owner/event/policy/image checks, freshness negatives and
+full public report serialization passed. The three effect links and six mandatory
+assertion nodes were returned. Receipt SHA-256:
+`666d1014573c0b170770fcc4f1a840bf3f2aa3e8ea1dded2c9a135893629e270`.
+Its preceding instrumented diagnostic passed in 292.198 seconds; that diagnostic
+alone was not used to qualify the uninstrumented source. The complete public census
+remains 7,709 operations, 3,813 failing identities, 193,682 tuples and 11,839,555
+occurrences. Accepted old identities, contexts and original occurrences remain zero.
+
+The source-valid negative `53021807a735a76f38bb09f3d3a53b38aa0527a1`, with only
+the required audit assertion removed and its exact producer descriptor refreshed,
+then **failed at 302.369 seconds**. No final correspondence result returned, so this
+does not qualify the negative or M4-07. Its child exited, no verified PIDs remained,
+owned PostgreSQL/volumes were retired and prior services/source/helpers were
+preserved. The deadline-induced container-sampler failure and terminal-health
+cleanup error remain failed evidence, not resource qualification. An additional
+read-only check confirmed the original PID and container absent. Receipt SHA-256:
+`ccd008e17004d049aa240c9289b4bc6848b43bd0abbc5f86aba2f949a26105fc`.
+The comparison and appended failure record are retained under
+`m4-effect-assertion-semantic-negative-v2` and
+`m4-failure-memory-v1/updates/M4-02-NEG-01.json`. No blind retry is selected.
+
+A bounded read-only CPU profile of the actual authenticated preparation isolated
+source-snapshot subprocess fanout. On the identical 453 frozen input records,
+the original snapshot pair took 5,711 ms and 906 Git subprocesses; the bounded batch
+implementation took 276 ms and four subprocesses, with both SHA-256 snapshot
+digests exactly unchanged and full source/dependency bookends preserved. It retains
+independent filesystem validation, exact tree mode/path/OID matching, raw Git-blob
+SHA-256 comparison, original digest order and fresh reads at every bookend. Private
+authenticated readers and strict binary batch parsing refuse supplied readers and
+malformed data. This is a measured local I/O correction, not an analyzer change or
+a qualified whole-run timing remedy on its own. Historical early worker
+overlap exceeded 6 GiB; current parent-before-workers ordering is retained. Detailed
+profile/equivalence evidence is in `m4-prepare-cpu-profile-v1`.
+
+The changed uninstrumented producer `e50b318305b433b2343462f5528edd2654cb73f9`
+now passes the actual positive pair in **275.075 seconds**, including cleanup, with
+sampled aggregate peak **4,492,058,951 bytes**. Its exact source-valid negative
+`1531e1bee573a13d5180c5e486e1ea217bcff229` passes in **277.461 seconds** with peak
+**6,013,658,071 bytes**: all 28 SQL cases and the genuine private native construction
+complete before final consumption refuses the missing audit assertion as
+`fixed assertion program or oracle dataflow changed`. An earlier authentication,
+runtime or timeout failure did not count. Both samplers are healthy, cleanup errors
+are empty, owned processes/container/volumes are retired and prior services plus
+source/helper bookends are preserved. Independent evidence review accepts this
+exact positive and one controlled negative within the unchanged 300-second/6-GiB
+envelope. Receipt SHA-256s:
+`2f68f31a94dd601e456c8315499d8938fda0838bb85c5cc224e9a744552c17ec`
+and `25564508b02a1a4a061a2c4624900fd3ec5c2d00991b7b0984909f4dc54a20bd`.
+Raw evidence is in `m4-effect-assertion-positive-v4` and
+`m4-effect-assertion-semantic-negative-v3`; the scoped comparison is
+`m4-prepare-cpu-profile-v1/paired-budget-qualification.json`. The earlier negative's
+timeout and sampler failure remain failed. This resolves the budget family for
+these exact constructions, not full M4-02/M4-07, whole guard, M4, S8 or delivery.
+At that earlier checkpoint six OPS effects and five other derivations were unmapped; existing
+legacy/controller denial cases cannot supply OPS-kernel credit. Accepted old IDs,
+contexts, original occurrences, native admission and production C credit remain zero.
+
+M4-01 is **closed within native accounting** on
+`ba8931f26bbb553ecd4bdf3ddfa8a11e5426f065`, independently accepted. Its genuine 28 SQL/
+owned-Worker/native pair passed 267.157 seconds, sampled 5,385,450,291 bytes, healthy cleanup.
+All 55 identities / 200 observations / 1,685 entry occurrences and original public obligations
+match 35e: 7,709 scanned / 3,792 new / 3,813 failing / 193,682 tuples / 11,839,555 occurrences, baseline 604.
+Selected-path 13,480 = 949 legacy overlap + 12,531 additional; 479 original groups retain all
+265,079 grouped occurrences/remainders. Unknown/global/deferred applicability and
+171 open / 188 escaped flags remain explicit. Full evidence: `m4-selected-path-full-v1`;
+receipt 955b0ed9575c437070eb29986640484921c5d35baf311d5cd97f24d4b2532ff8;
+independent review d14d1deb31e768b872fef18c2922c49a8662dfbb5b8349ba9bfd3050809a1b97.
+No global ZERO prerequisite or whole-M4 admission follows; aggregate work counters unmeasured.
+
+M4-02 remains **selected/partial**. Exact `fae887fbbdfd3406172fab2cdf533511e8842c3a`
+passes 33 actual SQL-fixture cases (15 private + 18 profiles) in 32.237 seconds including
+cleanup, sampled 1,266,705,367 bytes; prior services/source/helpers preserved, owned
+processes/PG/volumes retired. Original 28 cases retained; OPS terminal/target-lock,
+historical empty-assignee CAS and explicit restrictive visibility-fault missing-claim,
+exact audit payload/rollback pass. Fault context is not ordinary production reachability.
+Evidence: `m4-ops-oracle-sql-qualification-v3`; actual-result review
+`e8a7324a25e9c838cb0db8a2adf88ab8da5e843212447d257853a403696ea42b`.
+The bc29 pair failed in 301.717s; the 55.088s diagnostic localized IPC aggregate-close after 34 callbacks.
+Corrected source `a4e84ac6f56a21f0b02019efa4f8f27d6ec23747` waits actual exit+both EOFs; 612 tests pass.
+Fresh 35-case SQL/native pair passed in 280.719s, sampled 4,629,558,067 bytes; cleanup/prior/source healthy.
+Evidence `m4-oracle-loader-full-v2`; receipt c19ed5993a1bb1d47ad841486575811bac4296ffb93de76fab1299c9f689dc50.
+Independent review 77022148f219f73a461316dbb36250ab482ba27a815afd57e846a7bb283b8351 accepts five loader seals.
+Finite31 programs/62 links/335 refs/265 nodes,15 image/two erased witnesses pass; original55/200/1685 conserved.
+Source-valid audit-payload omission `5ddfcbab90e58a0215abeb1dd5181691b5acbb88` refreshes only its fixture descriptor.
+Actual35 SQL/native/loader construction reaches the exact final missing-program refusal in278.853s, peak3,935,820,185B.
+Negative receipt f57e2deb986493643a7a138deaf7254234ca4144bb06179f24ae7954f67e0366 and independent actual review
+eda5d9436d7c1356c987844f5fd844f850ef5043537ba3a11bcf42658f7ac62b accept this finite refutation; cleanup/prior/source pass.
+The reviewed current-store/premise/lineage/P2/private continuation is locally source-integrated;631 pure controls pass.
+The new source requires36 actual SQL cases (16private/20profiles),32 programs/64links/360refs/287nodes; actual join pending.
+Current-parent Linux HOLD-source qualification executes fresh53-file producer: positive7.196s/actual9, abort1.773s,
+pending-absence1.168s; actual image/config/layers/census/enforcement match, prior resources/source/cleanup preserved.
+Actual-result review e3fe86573f9feba69be89d93f3392f2469d097bdd29c26e08e1badb80d28d6d0 accepts a local marker-only successor.
+The fresh common-event P2+36SQL/native/private join, changed-construction semantic negative and M4-03/04/05/06 remain open.
+Synthetic unrelated ordinary transport supplies no real ordinary-suite/hosted or unconditional identity credit.
+Failure memory retains all attempts and corrected unit-double/source-binding defects; no identical negative replay is selected.
+Accepted debt/context/occurrence closures, admission and production C stay 0; M4/S8 remain open.
+
+### External combined execution checkpoint (27 October; native correction selected)
+
+The source composition was committed locally as `defa55d78506f0f42309ac97250f53b263b4d1c7`.
+Independent source and helper reviews accepted its bounded scope; 631 M4 tests, security,
+modularity, scope and whitespace checks passed. This was source preparation, not M4 acceptance.
+
+New bulk proof copies and outputs now execute physically on the verified external SSD.
+The preparer checks device identity and capacity before allocation and while commands run;
+the paired supervisor samples owned host memory plus full PG768MiB/P2384MiB reserves through
+startup and cleanup. Its fixed preparation guardian retires descendants after command exit,
+parent loss, timeout or guard refusal. These operational corrections do not grant semantic
+or hosted proof credit. The original 300-second/6-GiB envelope and 10-GiB internal floor remain.
+
+The first external combined attempt, freeze
+`6a169859dea283f7a08bc7e3e9dd152230603d7494590acba9754551702b3e64`, failed in 32.405 seconds.
+Actual P2 ran nine cases and SQL completed eight private cases before the new current-store
+restoration assertion failed. A focused real PG16/driver probe confirmed timestamp parameters
+were serialized through JavaScript Date and lost microseconds; text-first binding preserved
+all three timestamp vectors. The fix changes three restoration casts and one producer descriptor,
+preserving all 25 assertion references and all 36 cases. Independent review
+`e1cdb789eabb4fb088a556b9f0dd439b8690ce85aa02ff7af7bc2ca701242674` accepted this correction
+and the parent retirement helper's exact sibling-directory journal lookup.
+
+Corrected source `33478ad63de94dd3aa03c303ab611ef87182d487`, freeze
+`e85bd1d747565ad2f1b3e4a2d56267718c412a4cdb5a1121d9d0a655866b39ff`, passed the fresh full
+source/model/resolver preflight. Its paired attempt executed all 36 SQL cases in 21.469 seconds,
+then failed in native evaluation after 203.254 seconds with an absent operation AST node.
+The new lineage consumer needs `entry._node`; the actual inventory wire and worker hydration
+previously preserved only the owner. Direct unit doubles supplied the missing node and hid
+this integration gap. The selected correction must preserve its exact source-bound operation
+locator through the real encode/hydrate path, with missing, foreign and ambiguous locators
+refused. Owner substitution, null fallback, skipped obligations and analyzer admission changes
+are not selected. A real small-model protocol regression must precede another full native run.
+
+Both failed attempts retired owned resources and preserved prior services, source and helpers.
+The second confirmed all three P2 journal roles and same-daemon absence, with no parent recovery;
+its continuously sampled aggregate peak was 4,997,890,048 bytes and sampler health passed through
+final cleanup. Neither attempt completed the native/private construction or qualifies the
+changed semantic negative. Raw counts and accepted debt/context/occurrence closures are not
+inferred from the SQL pass. M4-02 remains selected/partial; M4-03 through M4-08 and S8 stay open.
+
+Measured internal growth during the second attempt was about 3.48 GiB, despite external proof
+outputs. The next preparation reserves at least 4 GiB for observed swap growth plus estimated
+internal overhead, retaining the original 10-GiB remaining floor. Only verified inactive historical
+runtime assemblies were archived; receipts, reports, active source and frozen inputs remain.
+Historical assembly replay requires physical restoration. System swap is not deleted.
+
+Evidence and comparisons remain under `m4-external-owner-execution-v2`,
+`m4-external-owner-execution-v3`, `m4-current-store-timestamp-diagnostic-v1` and the existing
+`m4-failure-memory-v1` ledger. No identical failed workload or older qualified negative is
+selected for repetition; fresh proof requires the reviewed causal correction and focused checks.
+
+### Urgent Next security remediation (26 October; delivery pending)
+
+M4-02 diagnostic follow-up at base `956a91c8cf60519d719ebba867a1ff6a89c4c4eb`
+failed before native analysis in 56.581 seconds. All 28 real SQL cases completed,
+then `verifyCurrentResolverSnapshot` refused the old embedded workspace digest.
+The Next dependency refresh had updated current producer/configuration descriptors
+but missed this separate executable snapshot's current digest literals. This is
+a recurrence of the source-binding/producer-closure failure family, not a new gate
+or accepted progress. Healthy samplers and cleanup preserved prior services/source;
+the owned proof container/volumes were retired. No replacement census, timeout cause
+or M4 admission was obtained. The immutable diagnostic evidence is retained in
+`m4-effect-assertion-phase-diagnostic-v1`, with appended failure-memory record
+`m4-failure-memory-v1/updates/M4-02-DIAG-01.json`.
+
+The bounded repair promotes only the reviewed Next workspace/lock current pins in
+`RESOLVER_SNAPSHOT` and refreshes its one producer descriptor. Previous hashes,
+ADOPTION/tree, baseline604 and the complete verifier body remain unchanged. The
+existing resolver checks reproduced red before the edit; twenty-nine resolver and
+provider tests now pass. Historical driver parity is checked against its actual
+pre-Next source; old and mixed Next pairs still refuse. The same cheap real resolver
+check must run on both authenticated frozen roots before any further SQL run.
+
+The next diagnostic at repaired base `f0f846d01db89d2a0c7ae2b61eb3a80ed1b3fb68`
+passed that exact snapshot check on both exports, then failed in 57.106 seconds at
+the separate historical resolver boundary after all 28 SQL cases passed. A complete
+52-file resolver census found exactly three omissions: `apps/web/next.config.mjs`,
+`apps/web/package.json` and `packages/ui/package.json`. Their only historical-to-current
+changes are the reviewed Next-family versions and `partialPrefetching: false`.
+The existing exact-source policy now pins these three files; verifier algorithms,
+all other policy fields, historical ADOPTION and baseline604 remain unchanged.
+Independent review found no blockers. Thirty-three tests pass after reproducing red,
+including all seven old/mixed three-file combinations, same-size edits, symlinks and
+an unlisted resolver hook. The actual `prepareGuardModel` also passes on all 3,733
+current model sources in 34.262 seconds without SQL, inventory collection or a native
+session. Both full resolver authentication and actual source/model preflight must
+precede another heavy run. This repairs the source-binding recurrence only; the
+300-second cause, genuine uninstrumented pair and semantic negative remain unverified.
+The second immutable diagnostic and appended comparison are retained under
+`m4-effect-assertion-phase-diagnostic-v2` and
+`m4-failure-memory-v1/updates/M4-02-DIAG-02.json`. Cleanup/source bookends passed;
+the separate qualified application PostgreSQL service was preserved. Accepted
+identities, contexts and original occurrences remain zero.
+
+Owner-authorized bounded framework security remediation temporarily precedes
+another M4 diagnostic or heavy qualification. The candidate now installs Next,
+its analyzer/ESLint family and the global peer override at **16.4.3**; sharp
+remains **0.35.5**. The existing form-state/postponed guard is ported to the exact
+official archive: ten targets and twelve strict-null guards, independently reviewed
+patch SHA-256 `94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4`.
+`partialPrefetching: false` is explicit; the existing `cacheComponents` expression,
+TypeScript build enforcement, proxy/routes/auth/tenant boundaries and canonical
+Postgres patch remain unchanged.
+
+The mechanical CRM dependency successor retains 529 package records and eighteen
+roots, including 517 unchanged records. Graph validation passes for all three
+supported platforms; installed Next patch postimages match the reviewed patch.
+The separate message producer retains all 198 entries, replacing only ten Next
+family package rows and its root version; 187 unrelated package records are exact.
+Its historical archive cache is preserved, with 118 verified Darwin archives in a
+separate owned successor cache. Current dependency/configuration/source pins are
+refreshed; ADOPTION, baseline604, historical witnesses and admission criteria are
+unchanged. Security guard and 248 focused dependency/source/contract tests pass;
+the coordinator separately ran nine existing candidate web suites with 84 tests passing.
+The official Next archive also passes exact verification of all eleven selected
+CRM source-only dependency witnesses; this is archive/source evidence, not admission.
+
+The coordinator's initial candidate production build passed Webpack compilation
+(90 seconds) and enforced TypeScript (31.8 seconds), then failed during page-data
+collection at `/api/ai/reviews/[id]` because no validated application database
+connection profile was supplied. That failed attempt remains historical evidence;
+a retired M4 SQL fixture was not adopted as application qualification.
+
+Following the owner's approval of the researched unblock sequence, an owned pinned
+PostgreSQL16 fixture with generated local admin and genuinely restricted LOGIN
+credentials was provisioned on an ephemeral loopback port. The exact existing CI
+role/grant semantics, all migrations, deterministic E2E seed and seed assertions
+passed. The actual production application factory reached ready posture; its
+restricted role had no privileged flags, memberships or application-table ownership.
+Exact tenant-visible claim IDs matched the admin-derived canonical read scope
+(KS118, MK2); foreign writes and unscoped reads returned zero, and the same pooled
+backend cleared context after commit and rollback. The existing RLS integration
+passed all three tests with zero skips and `RLS_INTEGRATION_RAN=1`.
+
+At unchanged application source `95e0374ddde922bc9f8f154df78f2db55cee8e1e`, the
+**complete production build passed** in 77.467 seconds, including enforced
+TypeScript, page-data collection and standalone stamping. All fourteen existing
+`public-locale-no-js-shell.spec.ts` tests passed across KS/MK, including the real
+native business-form Server Action validation with JavaScript disabled. The profile
+blocker is resolved for this owned local application lane. The owned database/profile
+is retained for subsequent authorized checks; the test web server is stopped.
+
+Two early preflight failures were confined to the owned probe and are preserved:
+cleanup incorrectly assumed the bound `dbRls.$client` retained `.end`, then the
+oracle incorrectly required populated `access_tenant_id` instead of migration0086's
+canonical `coalesce(access_tenant_id, tenant_id)`. Corrected probes passed independent
+review; no product, seed or RLS-policy change was made. Playwright MCP first returned
+its existing browser-profile-in-use error; that browser was left untouched and the
+normal repository runner supplied the targeted proof. Full PR verification, the
+full E2E/doctor lanes, hosted checks and delivery remain separate and unverified.
+The fourteen targeted tests are not a full gate pass.
+
+Evidence is in the owner's `application-profile-live-1793044678745` directory;
+`qualification.json` SHA-256 is
+`076b7f4f80809a76b0ef7dfdb2cba96c5949c4e80b4e651d7b2a40f6a4da6112`.
+
+The message materializer separately retains a pre-existing mismatch between its
+hardcoded Postgres connection postimages and the unchanged current driver patch.
+This is recorded as a prerequisite to a fresh message qualification, not repaired
+through metadata or counted as a Next-induced regression. Evidence and exact
+derivation/check logs are in the owner's `next-security-successor-v1` directory.
+No M4, S8, global ZERO, merge or deployment completion is claimed.
+
+### Approved AI tooling follow-up (26 October; separate from first M4)
+
+Arben approved selective adoption with “agree” in coordinator chat
+`01a16025-ff60-7341-9219-eeabcabafbc0`; the coordinator conveyed the bounded grant
+here. The original tooling audit inspected detached `18cd1a73`, not this active
+candidate. Relevant current-source findings must be checked at implementation.
+These follow-ups do not add first-M4 acceptance gates. M4-02 remains the immediate
+critical path; code changes are sequenced at a safe checkpoint after its current
+proof work, with one writer and the existing bounded review/verification rules.
+
+| ID     | Status / scope                                       | Acceptance                                                                                                                                                                                                                                           | Dependency / sequencing                                                                                                                                                                                                     |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI-F01 | Approved, queued: accurate execution attribution     | Workflow output/telemetry distinguishes deterministic rules, configured model and actual provider invocation; served-model claims use actual execution evidence. Preserve privacy, consent, trusted AI context, tenant/auth and security boundaries. | Current M4 proof safe checkpoint; inspect exact audited workflow/telemetry consumers and review any data-contract change before integration.                                                                                |
+| AI-F02 | Approved, queued: truthful offline evaluation labels | `scripts/ai/eval/run.mjs` and report consumers identify fixture-derived/offline telemetry, including `testCase.telemetry`, separately from actual measured provider results. Existing assertions/thresholds remain meaningful.                       | Same safe checkpoint; bounded source/report contract and focused regression checks. Representative multilingual/live evaluations precede product-AI readiness or model-selection claims under their applicable scoped work. |
+| AI-F03 | Approved, deferred trial: native Next diagnostics    | On the next real relevant UI/debugging task, try installed-framework native MCP diagnostics alongside the existing browser/E2E lane and record demonstrated benefit. It is not a custom M4 proof-engine repair or a required new gate.               | Next applicable UI task; installed framework and existing tool boundaries.                                                                                                                                                  |
+
+ADR-08 establishes the trusted posture/consent boundary and expressly does not add
+provider calls or a new product-AI requirement. The completed AGENTS/framework-guide
+refresh is `d45396821ac2b8b824cc47ce6f9151ec5058ae86`. Framework upgrades, production
+bundler changes, shared-cache migrations and AI SDK/provider rewrites remain outside
+this approval. No new tracker, standing panel or duplicate heavy proof is selected.
+
+### Historical #1920 consolidation checkpoint (22 October, 19:43 Europe/Berlin)
+
+This was the 22 October blocker ledger. The earlier provider/message checkpoint below is
+historical and does not certify the current CRM amendments. Published PR #1920 remains at
+`9fb3659efc8c0f2d4af9625e799502a3d091d41c`; it is open and unmerged. The latest completed immutable
+inventory is local candidate `7be9cab0acbd0f718e822d2c0fb5a19ebbb15095`, tree
+`08373af25750c4f07a6196c669dda8a76173ad0f`. Its 160-file manifest matched both Git and the authoring
+checkout during the scan. The authoring checkout's detached `18cd1a73` HEAD is not that candidate.
+Subsequent producer/test amendments are in progress and must receive a new immutable identity;
+no old result is transferred to them.
+
+Owner evidence files below are retained under `2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`.
+The implementation owner owns every correction and canonical write; the existing reviewer owns
+independent acceptance and the coordinator owns the consolidated schedule. No parallel product
+implementation, general audit, analyzer expansion, baseline change or blanket exception is selected.
+
+| Blocker                                          | Reproduced cause and connection to #1920                                                                                                                                                                                                                                                                                          | Minimal correction / owner                                                                                                                                                                                | Acceptance evidence and current status                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Privilege split and full-interval proof          | Restricted application LOGIN exposes reads/writes that previously relied on ambient privileged access. Administrative bootstrap/seed and approved auth lifecycle operations are separate explicit exceptions.                                                                                                                     | Implementation owner: preserve restricted LOGIN/RLS for ordinary application operations and existing bounded administrative authority.                                                                    | `crm-e2e-full-inventory-v12-role-observation.json` records restricted LOGIN, non-superuser/non-bypass flags and active application connections. This snapshot is positive evidence, not full-interval proof; final source/role bookends and required RLS gates remain pending.                                                                                             |
+| Approved CRM, confirmation and audit integration | Actual CRM reads, confirm-current lookup and classification audit lacked tenant transaction context.                                                                                                                                                                                                                              | Implementation owner: approved scoped operations, independent reporting reads, locked confirmation and separate best-effort audit.                                                                        | Previously failing mounted confirmation and agent follow-up cases pass. Fresh isolated ten-group SQL proof passes in `crm-followup-runtime-preparation-run-v3-receipt.json`; original seven CRM groups are retained. Final protected join remains pending. Audit is not mandatory atomic evidence.                                                                         |
+| Mounted agent workspace claims                   | Ambient assignment lookup returns no rows under restricted RLS, so the mounted view is empty although the privileged direct-query fixture passes.                                                                                                                                                                                 | Implementation owner: two-file scoped coherent reader proposal; preserve assignment, tenant, public-message and selection predicates.                                                                     | `workspace-claims-proof-v12-receipt.json` passes isolated KS/MK positive/denial/context-cleanup cases. Proposal is unapplied; bounded scope decision and mounted retest remain pending.                                                                                                                                                                                    |
+| Branch dashboards, list and risk metrics         | Ambient branch/aggregate reads are invisible; the joined tenant relation is also null under the tenants table's no-public-access policy.                                                                                                                                                                                          | Implementation owner: restricted scoped metrics plus explicit narrowly authorized branch discovery/currency metadata proposal; preserve role/branch checks.                                               | Four-file `branch-context-proposal-v12.json` passes isolated SQL and executable modularity. New privileged metadata boundaries are explicit and unapplied pending the consolidated decision; mounted verification remains pending.                                                                                                                                         |
+| Agent tier, member documents and public history  | Isolated restricted SQL reproduces invisible tenant rows, causing incorrect eligibility/empty documents/missing public history.                                                                                                                                                                                                   | Implementation owner: bounded tenant-context proposals for the existing readers; no role, visibility or route changes.                                                                                    | `groups9-16-context-triage-v12.md` and its restricted-SQL mechanism evidence. Proposed-function integration and consolidated scope decision remain pending.                                                                                                                                                                                                                |
+| Member registration                              | Actual PostgreSQL `42501` rejects the user insert inside an ambient transaction; the generic duplicate-email message does not establish an email collision.                                                                                                                                                                       | Implementation owner: tenant-bound transaction preserving retry behavior and existing validation.                                                                                                         | Reproduced SQL mechanism and unapplied proposal in `groups9-16-context-triage-v12.md`; actual function/denial/retry and mounted verification remain pending.                                                                                                                                                                                                               |
+| Notification side effects                        | Ambient recipient lookup returns no user and loses tenant context before notification insertion; a separate ambient insert also fails under RLS. Several journey teardown assertions observe the same missing notification effect.                                                                                                | Implementation owner: retain the authorized tenant through recipient lookup and insert, preserving idempotency and event semantics.                                                                       | Consolidated diagnosis in `groups9-16-context-triage-v12.md`. Nearby audit-log `42501` is not misreported as notification-insert evidence. Concrete proposal, bounded review and actual side-effect proof remain pending.                                                                                                                                                  |
+| Complete E2E and remaining observed failures     | Full 422-case corpus completed with supported `--max-failures=0`, unchanged assertions/projects/retries: 347 passed, 35 failed, one flaky and 39 inherited skips, with no unexecuted remainder. Failures include staff handoff and MK classification-control visibility; causes are not inferred from test titles.                | Implementation owner: finish inventory, group reproduced #1920 regressions, then correct only the consolidated bounded surface.                                                                           | `crm-e2e-full-inventory-v12-final.json` and the hashed 438-file artifact archive retain the final inventory and all attempts. Duplicate CTA rendering remains unclassified; no selector weakening or unrelated UI work is authorized. Final whole-suite acceptance is pending.                                                                                             |
+| Unit harness and required local verification     | One web test uses the old database mock and lacks the new tenant-context boundary.                                                                                                                                                                                                                                                | Implementation owner: adapt the focused mock and preserve all durable-branch assertions; split the oversized test only as required by executable modularity.                                              | Web run: 6,077 passed, one failed, 12 inherited skips. All 19 remaining domain/shared-auth coverage suites ran separately and passed (`crm-domain-coverage-v12-results.json`). The focused mock adaptation preserves all 15 assertions/tests and passes; final coverage gate and complete `pr:verify` remain pending.                                                      |
+| Finite proof and protected delivery              | The unchanged v12 analyzer reports 7,313 scanned operations, 1,256 failing obligations and 5,530,751 raw diagnostic occurrences, baseline 604, with zero manifest drift. These are unresolved proof obligations, not 1,256 demonstrated vulnerabilities. The older v9 finite mapping cannot certify the larger current inventory. | Implementation owner: authenticate and join only explicitly reviewed finite source/runtime obligations to the same candidate/policy/event; retain every raw diagnostic. Reviewer: independent acceptance. | `crm-context-guard-v12-receipt.json`, report SHA-256 `61949314229fef97eb28e4ee1af1c35397ac50c2bfdfc72d4808482a79fb17f0`. Status INCOMPLETE; policy activation, fresh protected join, immutable producer/workflow publication and required hosted acceptance remain pending.                                                                                                |
+| Current-candidate Sonar and closure              | Published C10 Sonar is now OK/A with zero bugs/vulnerabilities in the reviewer's 19:33 readback; the old D diagnosis is historical. This does not certify unpublished amendments.                                                                                                                                                 | Implementation owner: current-source correction or individually justified classification; reviewer: same-head findings/verdict.                                                                           | Published [PR checks](https://github.com/interdomestik/interdomestik/pull/1920/checks) and [Sonar PR view](https://sonarcloud.io/project/issues?id=interdomestik_interdomestik&pullRequest=1920). Final amended-candidate Sonar, protected delivery, exact-main/staging and frozen S8 journey acceptance remain pending. Tested, merged and S8 closed are separate states. |
+
+The full inventory completed before the **22 October 20:15 Europe/Berlin** target. The confirmed consolidation checkpoint is **22 October 21:00 Europe/Berlin**:
+report the completed inventory or concrete remaining runtime, bounded decision package, immutable
+candidate delta and revised targets. Independent final review targets at most 45 minutes after a
+complete same-candidate package is available. Candidate completion, final full proof and S8 closure
+are not confirmed dates while the finite proof and reproduced regression decisions remain open.
+The checkpoint is not a promise to merge or close S8, and grants no new merge/deploy authority.
+
 ## Active Queue
 
-The [finite S7 closure boundary](current-program.md#finite-s7-closure-boundary) is the remaining execution checklist: #1902 protected/exact-staging delivery; one evidence-selected security remediation; only demonstrated required-journey transaction defects; necessary replacement-backed/owned cleanup; applicable acceptance and authority reconciliation; then evidence-backed S7 closure and one bounded S8 handoff start. Completed technical rows retain their credit. Later-stage/optional findings do not silently expand this queue; native GitHub identity confirmation and genuine human acceptance remain open controls.
+On 2026-10-21 Arben approved the corrected holistic approach, canonical reconciliation and
+resumption of the existing frozen S8 scope. This supersedes the handoff HOLD for that scope only.
+S7 is closed within the bounded acceptance recorded on 2026-10-11, not certified as whole-SRS or
+pilot acceptance. The Interdomestik staff team owns operational follow-up and escalation.
+External email delivery, actual-device p95 and full accessibility/locale acceptance remain
+applicable pre-pilot obligations; prior delivered work is not reopened.
+
+The sole implementation owner is chat `01a16025-dd86-7ab0-8454-293bbfd9fc36`, with independent
+reviewer `01a16025-e952-7f00-accf-f426b5a741d3` and schedule coordinator
+`01a16025-ff60-7341-9219-eeabcabafbc0`. The active local candidate starts at
+`2f0225a4e1eec865447ebdf67356dfcf71969fb4` on
+`codex/pr1920-history-primitive-v2-experiment`; RC3.1 amendments are not delivered.
+Restricted production LOGIN and the narrow database boundary are already approved. Preserve
+session/effective identity checks, tenant/resource authorization, RLS, nonownership and no
+privilege recovery, atomic mandatory evidence, context lifetime, concurrency and idempotency.
+
+The immediate work is the bounded #1920 provider/trust prerequisite and the frozen S8
+agent handoff journeys. Preserve original ADOPTION and the 604-entry baseline. The accepted
+exact two-module fixed-producer class grants no general test exception or runtime admission.
+Direct runtime and residual must agree on source, policy and event; final immutable
+G2/candidate/merge identities, existing external-pin trust transition, intended connection
+topology, required local/hosted proof, protected delivery and exact-main staging remain required.
+Current source acceptance is governed by RC3.1 and the current checkpoint above; earlier
+local proof is historical, and ordinary audit/lifecycle dependencies remain independently enforced.
+The RC3.1 authority and current checkpoint above supersede these older candidate and
+sequencing statements. Outside that specific authority, no analyzer expansion, baseline
+reset, refused-action bypass, rewrite or universal transfer engine is authorized.
+S9 starts only after actual S8 acceptance; pilot/release needs separate
+authorization. S5/S6 residuals, H1 priority_when_ready and consumer-local service hard stops remain.
+
+Authority evidence: human turns `01a12951-0337-7c40-9fb1-04e18916de41` (bounded S7 approval),
+`01a1295b-bd5d-7162-a858-36238534366b` (staff-team ownership), and
+`01a12969-4cf6-72e0-a81c-1f4a86fef209` (bounded S8 continuation), retained in
+`s7-existing-acceptance-reconciliation-20261021.json` in the prior orchestrator evidence root.
+The 2026-10-21 architecture-chat authorization is retained as
+`handoff-20261021/RESUME-AUTHORIZATION.md` under chat `01a15a72-b71f-7c12-b16e-9914b4429d7e`.
+The copied fixed-producer review SHA-256 is
+`38601ceb259e1a10fda21c0f19d5b3d6bceecb90d454b14baef34496ffc58fa8`.
+These records preserve bounded acceptance and source limits; none is production release approval.
+
+### Historical provider and message proof checkpoint (22 October)
+
+The explicit message-contract approval and subsequent manual platform approval resolved the
+implementation/review-transmission blockers. The approved evaluator/source amendment is applied;
+the existing independent reviewer accepted the functional implementation and cohesive modularity
+split without new findings. The earlier refused attempts remain historical evidence.
+
+The message integration fixture connects directly through an ephemeral restricted LOGIN; it no
+longer relies on privileged LOGIN plus SET ROLE. The separate two-source message contract preserves
+all nine actual tests, including six behavioral cases. It authenticates source, configuration,
+migrations, fixed dependency archives, 24 operation identities and 115 diagnostic tuples. It does
+not expand the ten-source named contract or exempt ordinary business dependencies.
+
+Joined local proof at tree `24bd0c84b8555dd16683c7b7c86d72b0d3741bc2` passed nine provider, 17 named
+and nine message tests. Residual PASS retains 7,036 inventoried operations, original baseline 604,
+zero failing identities and zero unresolved diagnostics; the original 115 diagnostic tuples and
+916 occurrences remain reported. All 35 focused counterproofs, security and executable modularity
+checks passed. The v2 independent review receipt is retained under reviewer evidence root
+`2026/10/21/01a16025-e952-7f00-accf-f426b5a741d3`; the joined-v3 raw results and source manifest v2
+are under owner evidence root `2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`.
+
+Full PR/E2E verification is in progress on an owned clean clone and PG16 instance. The native
+workflow draft has source review only; immutable publication, required-workflow pin transition,
+actual hosted execution, protected merge and exact-main proof remain pending. No pilot/release
+acceptance follows from these local results. The full S8 candidate is preserved and S9 remains
+dependent on actual S8 acceptance.
+
+### Historical S8 execution checkpoint (21 October)
+
+The resumed implementation has completed canonical reconciliation, accepted applied-producer
+equivalence, the async startup-test correction (33 passes) and lifecycle projection preservation
+(four passes). The isolated prerequisite passed its direct local PG16 runtime (nine passes) and
+security guard. Its first frozen residual remained INCOMPLETE: 7,035 inventoried operations,
+29 new identities and 23 failing identities, baseline 604. These are pre-format/test-correction
+diagnostic counts, not defects or current-source acceptance. Runtime green is not residual PASS.
+
+The owner approved the named proof-contract amendment on 22 October 2026 (direct “Miratoj”).
+Bounded implementation and independent review are now in progress for startup/readiness/telemetry,
+administrative migration provisioning, health liveness and the specifically identified test
+fixtures. Independent review found and closed the async test defect; the remaining reported
+operations exceed the accepted two-module proof class. No generic producer/test exemption, general analyzer
+expansion, baseline reset or bypass is authorized. The existing S8 scope remains
+selected; admission and delivery await actual subsequent proof and independent review.
+The decision package is `named-proof-contract-decision.md` in owner evidence root
+`2026/10/21/01a16025-dd86-7ab0-8454-293bbfd9fc36`. The orchestrator's single plan records
+the approval and bounded execution status; S8/S9/pilot dates are not confirmed commitments.
+
+### Historical S7 implementation queue
+
+The rows and acceptance notes below retain their original evidence limits. They are historical
+selection state, superseded by the bounded 11-October acceptance above; unresolved pilot
+obligations remain open and are not claims of new verification.
 
 `S7-MEMBER-MESSAGE-READ-CONTINUITY` is technically delivered by [#1858](https://github.com/interdomestik/interdomestik/pull/1858).
 Exact-merge staging/P0 passed. The remaining acceptance row is `blocked` only on
@@ -176,20 +1090,29 @@ Human staff/member acceptance remains pending.
 
 ## Product Queue
 
-| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| S7 — staff handling                         | `active_bounded`      | Credit #1861 amount continuity, #1860 staff detail and earlier bounded repairs; overview next-action truth (#1862) and generic member detail guidance truth (#1863) are delivered with exact Actions/staging; handling-assurance truth (#1864) is also technically delivered; S7-MEMBER-CASE-WORKSPACE (#1865) is technically delivered as the first preauthorized successor; S7-STAFF-CASE-WORKSPACE (#1866) is technically delivered as the second successor; S7-STAFF-MESSAGE-READ-RECOVERY-TRUTH (#1867) is technically delivered as the third successor; member-search performance (#1868) is technically delivered; all three site-search increments #1869–#1871 and hero stability #1872 are technically delivered; neutral single entry #1873 is technically delivered; problem-first intake #1874, Login consolidation/header #1875/#1876, draft/save/submission #1877/#1878, monitoring #1879 and admin/Login #1881–#1885 are technically delivered; the additional three-outcome round and account draft continuity #1886 are technically delivered, with public-summary repair #1888 and HelpNow continuation/localization #1889 technically delivered; information-request read recovery #1890 and admin-claims read consistency #1891 are technically delivered; next bounded implementation continues under existing through-S7 authority; unified role-shell direction discovery is owner-authorized; human acceptance, whole S7 and staff public notification remain open. |
-| S8/S9 — agent handoff and activation        | `queued_conditional`  | Established assignment, attribution, ownership and Paddle contracts.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Outcome                                     | Status                | Direct next evidence                                                                                                                                                                                                                 |
+| ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S5 — member first-case journey              | `delivered_bounded`   | Credit #1841 shared evidence next action, #1840 Free Start boundary, #1836 retrieval and earlier work; remaining S5 and approved offer comparison remain open.                                                                       |
+| S6 — member continuation/membership         | `delivered_bounded`   | Credit #1838 period/grace truth, #1837 payment-method recovery and #1815/#1824–#1836; approved offer/terms, live paid activation and renewal remain open.                                                                            |
+| S7 — staff handling                         | `closed_bounded`      | Owner accepted bounded closeout on 2026-10-11; Interdomestik staff team owns follow-up/escalation. Retain delivered proof and pre-pilot email, actual-device p95 and full accessibility/locale obligations. No whole-SRS acceptance. |
+| S8 — agent handoff                          | `active_bounded`      | Frozen candidate and bounded #1920 provider/trust prerequisite; same-source/policy/event runtime and residual, actual topology/journeys, independent review, required proof and protected/exact-main delivery remain open.           |
+| S9 — assisted activation                    | `queued_conditional`  | Starts after actual S8 acceptance; preserve established identity, assignment, attribution, ownership, offer/terms and Paddle contracts.                                                                                              |
+| S10–S12 — branch/tenant/platform operations | `queued_conditional`  | Existing role/scope contracts; no custom-role or impersonation expansion.                                                                                                                                                            |
+| H1 — SVC-CORE / Help Now                    | `priority_when_ready` | First unmet service clause and accepted country/content/stop-rule authority.                                                                                                                                                         |
+| S13/S14 — closure and pilot rehearsal       | `queued_conditional`  | Applicable recovery/business/operations evidence and complete role/accessibility/locale rehearsal.                                                                                                                                   |
 
 The [requirement disposition map](requirement-disposition-map.md) preserves the full 510-clause
 frontier. Unresolved rows are neither automatic features nor blanket blockers.
 
 ## Proof Ledger
+
+2026-10-21 reconciliation credits #1918 CLOSED VERIFIED at `18cd1a73b12f589c69934cba862092d857434013`,
+with retained required local/hosted and exact-main staging/P0 receipts. No replay or S8 acceptance
+is inferred. The frozen S8 candidate retains a 267-path handoff snapshot (265 files, two deletions),
+manifest SHA-256 `ff077e8826dcc7d7e92cb6704e0e82c4b0457c1d11ac7a1f5eeb03d3f29278b2`.
+Fixed-producer review remains source-bound; its applied focused regression log records 44 passes,
+zero failures/skips. Earlier runtime proofs and residual INCOMPLETE retain their exact input scope.
+Final integration/trust/runtime/journey evidence is still pending.
 
 Completed #1865 proof lives in the [historical ledger](history/2026-09-22-current-tracker-ledger.md#s7-member-case-workspace-delivery-1865); successor evidence remains separate.
 
@@ -381,6 +1304,14 @@ stale provider-event-order status; its proof is credited, not repeated by this r
   #1855 has separate exact-merge staging proof on `6405f13a5`; human acceptance remains open. No production changes.
 
 ## Next Selection
+
+Continue active frozen S8 as defined in the Active Queue. Do not repeat delivered S7 or select S9
+before S8 acceptance. Carry this reconciliation in ordinary implementation, with no status-only PR.
+
+### Historical selection notes
+
+The following paragraphs preserve earlier selection and acceptance observations; they do not
+override the 11-October bounded acceptance or 21-October resumption above.
 
 Tenant guard prevention is already selected under continuing through-S7 authority; complete its bounded acceptance before choosing another implementation. Other audited product paths and format policy remain queued. Human acceptance, visual direction and approved performance budgets retain their separate boundaries.
 

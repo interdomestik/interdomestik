@@ -1,7 +1,9 @@
+import { storeClaimStatusNotification } from './claim-status-store';
+import { storeClaimSubmittedNotification } from './claim-submitted-store';
 import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { and, eq, like } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
   sendEmail,
@@ -78,7 +80,11 @@ function sendLifecycleEmail(
     details?: string[];
   }
 ) {
-  if (!to) return Promise.resolve({ success: false as const, error: 'Missing recipient email' });
+  if (!to)
+    return Promise.resolve({
+      success: false as const,
+      error: 'Missing recipient email',
+    });
 
   return sendEmail(
     to,
@@ -147,7 +153,9 @@ export async function sendNotification(
     });
 
     if (options?.notificationId) {
-      await insertNotification.onConflictDoNothing({ target: notifications.id });
+      await insertNotification.onConflictDoNothing({
+        target: notifications.id,
+      });
     } else {
       await insertNotification;
     }
@@ -165,59 +173,10 @@ export async function sendNotification(
  * This is intentionally in-app only for P32-CRM07; email, push, acknowledgements,
  * and support-handoff-specific unread semantics remain out of scope.
  */
-export async function notifySupportHandoffPublicResponse(
-  memberId: string,
-  handoff: { id: string; publicResponseVersion: number },
-  options: {
-    actionUrl?: string;
-    content?: string;
-    tenantId: string;
-    title?: string;
-  }
-) {
-  return sendNotification(
-    memberId,
-    'support_handoff_public_response',
-    {
-      handoffId: handoff.id,
-      publicResponseVersion: handoff.publicResponseVersion,
-    },
-    {
-      actionUrl: options.actionUrl ?? '/member/help',
-      content: options.content ?? 'A staff update is available on your support request.',
-      notificationId: `ntf_support_handoff_${options.tenantId}_${handoff.id}_${handoff.publicResponseVersion}`,
-      tenantId: options.tenantId,
-      title: options.title ?? 'Staff update available',
-    }
-  );
-}
-
-export async function clearSupportHandoffPublicResponseNotifications(
-  memberId: string,
-  handoff: { id: string },
-  options: { tenantId: string }
-) {
-  try {
-    await db
-      .delete(notifications)
-      .where(
-        withTenant(
-          options.tenantId,
-          notifications.tenantId,
-          and(
-            eq(notifications.userId, memberId),
-            eq(notifications.type, 'support_handoff_public_response'),
-            like(notifications.id, `ntf_support_handoff_${options.tenantId}_${handoff.id}_%`)
-          )
-        )
-      );
-
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to clear support handoff public response notifications:', error);
-    return { success: false, error: 'Database error' };
-  }
-}
+export {
+  notifySupportHandoffPublicResponse,
+  clearSupportHandoffPublicResponseNotifications,
+} from './support-handoff-store';
 
 /**
  * Notify member about claim submission
@@ -225,29 +184,28 @@ export async function clearSupportHandoffPublicResponseNotifications(
 export async function notifyClaimSubmitted(
   userId: string,
   _userEmail: string,
-  claim: { id: string; title: string; category: string }
+  claim: { id: string; title: string; category: string },
+  options: { tenantId: string }
 ) {
-  const result = await sendNotification(
+  const result = await storeClaimSubmittedNotification({
+    tenantId: options?.tenantId,
     userId,
-    'claim_submitted',
-    {
+    notificationId: `ntf_${nanoid()}`,
+    claimId: claim.id,
+    content: resolveNotificationContent('claim_submitted', {
       claimId: claim.id,
       claimTitle: claim.title,
       category: claim.category,
-    },
-    {
-      title: 'Claim Submitted',
-      actionUrl: `/member/claims/${claim.id}`,
-    }
-  );
-
-  if (result.success) {
-    sendVerifiedEmail(userId, null, 'claim submitted', verifiedEmail =>
-      sendClaimSubmittedEmail(verifiedEmail, claim)
-    );
+    }),
+  });
+  if (!result.success) return result;
+  const verifiedEmail = result.verifiedEmail;
+  if (verifiedEmail) {
+    Promise.resolve()
+      .then(() => sendClaimSubmittedEmail(verifiedEmail, claim))
+      .catch(error => console.error('Failed to send claim submitted email:', error));
   }
-
-  return result;
+  return { success: true };
 }
 
 /**
@@ -301,26 +259,20 @@ export async function notifyStatusChanged(
         payload: Parameters<typeof sendPushToUser>[2]
       ) => sendPushToUser(userId, channel, payload, { logAuditEvent: deps?.logAuditEvent });
 
-  const result = await sendNotification(
+  const result = await storeClaimStatusNotification({
+    tenantId: deps?.tenantId ?? '',
     userId,
-    'claim_status_changed',
-    {
-      claimId: claim.id,
-      claimTitle: claim.title,
-      oldStatus,
-      newStatus,
-    },
-    {
-      title: 'Claim Status Updated',
-      actionUrl: `/member/claims/${claim.id}`,
-      tenantId: deps?.tenantId,
-    }
-  );
+    notificationId: `ntf_${nanoid()}`,
+    claimId: claim.id,
+    content: claim.title ? `Update on: ${claim.title}` : 'New update: claim_status_changed',
+  });
 
   if (result.success) {
-    sendVerifiedEmail(userId, deps?.tenantId, 'status change', verifiedEmail =>
-      sendStatusChangedEmail(verifiedEmail, claim, oldStatus, newStatus)
-    );
+    if (result.verifiedEmail) {
+      Promise.resolve()
+        .then(() => sendStatusChangedEmail(result.verifiedEmail!, claim, oldStatus, newStatus))
+        .catch(error => console.error('Failed to send status change email:', error));
+    }
 
     push(userId, 'claim_updates', {
       title: 'Claim Status Updated',
@@ -329,7 +281,7 @@ export async function notifyStatusChanged(
     }).catch(error => console.error('Failed to send status change push:', error));
   }
 
-  return result;
+  return result.success ? { success: true } : result;
 }
 
 /**
@@ -349,7 +301,10 @@ export async function notifyNewMessage(
         userId: string,
         channel: 'claim_updates' | 'messages',
         payload: Parameters<typeof sendPushToUser>[2]
-      ) => sendPushToUser(userId, channel, payload, { logAuditEvent: deps?.logAuditEvent });
+      ) =>
+        sendPushToUser(userId, channel, payload, {
+          logAuditEvent: deps?.logAuditEvent,
+        });
 
   const result = await sendNotification(
     recipientId,

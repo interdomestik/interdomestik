@@ -1,6 +1,6 @@
+import { withTenantContext } from '@interdomestik/database';
 import type { AgentCrmLeadDetailRepository } from '@interdomestik/domain-crm/lead-details';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { db } from '@interdomestik/database/db';
 import { crmDeals, crmLeads } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -24,30 +24,34 @@ export const crmLeadDetailRepository: AgentCrmLeadDetailRepository<
   async findAgentLead(params) {
     const branchId = requireBranchScope(params.actor);
 
-    const lead = await db.query.crmLeads.findFirst({
-      where: and(
-        eq(crmLeads.id, params.leadId),
-        eq(crmLeads.tenantId, params.actor.tenantId),
-        eq(crmLeads.agentId, params.actor.actorId),
-        eq(crmLeads.branchId, branchId)
-      ),
-    });
+    const lead = await withTenantContext({ tenantId: params.actor.tenantId }, tx =>
+      tx.query.crmLeads.findFirst({
+        where: and(
+          eq(crmLeads.id, params.leadId),
+          eq(crmLeads.tenantId, params.actor.tenantId),
+          eq(crmLeads.agentId, params.actor.actorId),
+          eq(crmLeads.branchId, branchId)
+        ),
+      })
+    );
     return lead ?? null;
   },
 
   async listAgentLeadDeals(params) {
     requireBranchScope(params.actor);
 
-    const rows = await db
-      .select()
-      .from(crmDeals)
-      .where(
-        and(
-          eq(crmDeals.leadId, params.lead.id),
-          eq(crmDeals.tenantId, params.actor.tenantId),
-          eq(crmDeals.agentId, params.actor.actorId)
+    const rows = await withTenantContext({ tenantId: params.actor.tenantId }, tx =>
+      tx
+        .select()
+        .from(crmDeals)
+        .where(
+          and(
+            eq(crmDeals.leadId, params.lead.id),
+            eq(crmDeals.tenantId, params.actor.tenantId),
+            eq(crmDeals.agentId, params.actor.actorId)
+          )
         )
-      );
+    );
     return rows as AgentCrmLeadDetailDealRow[];
   },
 };

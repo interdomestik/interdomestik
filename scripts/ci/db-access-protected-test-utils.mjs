@@ -188,6 +188,14 @@ function epochOrigin(lock = fixtureLock()) {
   );
   for (const file of epochFiles)
     writeFixture(origin, file, fs.readFileSync(path.join(rootDir, file)));
+  // This synthetic epoch intentionally has no provider transition. Its cloned ADOPTION
+  // selects the fixture API below. Omit the real provider policy data as a whole;
+  // its presence would correctly require its authenticated message-policy companion.
+  writeFixture(
+    origin,
+    'scripts/ci/db-access-provider-unit-policy.mjs',
+    'export const PROVIDER_UNIT_POLICY = undefined;\n'
+  );
   const tree = git(origin, 'rev-parse', `${adoption}^{tree}`);
   writeFixture(
     origin,

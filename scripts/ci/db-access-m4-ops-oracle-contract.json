@@ -1,0 +1,320 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-oracles.mjs",
+      "caseGroup": "private",
+      "caseId": "ops resolved lifecycle returns durable terminal denial without assignment effects",
+      "program": "async () => {\n      const id = 'ops_terminal_' + suffix;\n      await seedClaim(id);\n      await admin`update claim set case_lifecycle_state='resolved',recovery_lifecycle_state='resolved' where id=${id}`;\n      const before = await state(id),\n        r = request(id, staff);\n      assert.equal(before.result.length, 0);\n      const response = await invoke(r);\n      assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n      });\n      const after = await state(id);\n      assert.deepEqual(after.claim, before.claim);\n      assert.deepEqual(after.audit, before.audit);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.result[0].operation_id, r.operationId);\n      assert.deepEqual(after.result[0].response, response.result);\n      await noOwnedSessions();\n      const replay = await invoke(r);\n      assert.deepEqual(replay, { ...response, replayed: true });\n      await noOwnedSessions();\n      assert.deepEqual(await state(id), after);\n    }",
+      "links": [
+        {
+          "id": "ops-terminal-denial",
+          "factPath": "/derivations/kernel/facts/effects/2",
+          "factSha256": "f24eeb27608c9b7d88b2064f64a9e44943c8f5dc7f45c4633f495b367516d838",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(before.result.length, 0)",
+            "assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Cannot perform assign on a terminal claim.' },\n      })",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, response.result)",
+            "assert.deepEqual(replay, { ...response, replayed: true })",
+            "assert.deepEqual(await state(id), after)"
+          ],
+          "scope": "Actual resolved/resolved lifecycle schedule returns the exact durable terminal denial, preserves claim/audit and replays only the saved response. Other lifecycle inputs, helper semantics and complete SQL predicates remain separate."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-oracles.mjs",
+      "caseGroup": "private",
+      "caseId": "ops foreign and nonstaff targets produce exact durable ineligible denials",
+      "program": "async () => {\n      const nonStaffId = 'ops_nonstaff_' + suffix;\n      await seedClaim(nonStaffId);\n      const nonStaffBefore = await state(nonStaffId),\n        nonStaffRequest = request(nonStaffId, nonStaff);\n      assert.equal(nonStaffBefore.result.length, 0);\n      const nonStaffResponse = await invoke(nonStaffRequest);\n      assert.deepEqual(nonStaffResponse, {\n        status: 'completed',\n        operationId: nonStaffRequest.operationId,\n        replayed: false,\n        result: { success: false, error: 'Staff member not found or out of scope' },\n      });\n      const nonStaffAfter = await state(nonStaffId);\n      assert.deepEqual(nonStaffAfter.claim, nonStaffBefore.claim);\n      assert.deepEqual(nonStaffAfter.audit, nonStaffBefore.audit);\n      assert.equal(nonStaffAfter.result.length, 1);\n      assert.equal(nonStaffAfter.result[0].operation_id, nonStaffRequest.operationId);\n      assert.deepEqual(nonStaffAfter.result[0].response, nonStaffResponse.result);\n      await noOwnedSessions();\n      assert.deepEqual(await state(nonStaffId), nonStaffAfter);\n\n      const foreignId = 'ops_foreign_' + suffix;\n      await seedClaim(foreignId);\n      const foreignBefore = await state(foreignId),\n        foreignRequest = request(foreignId, foreignStaff);\n      assert.equal(foreignBefore.result.length, 0);\n      const foreignResponse = await invoke(foreignRequest);\n      assert.deepEqual(foreignResponse, {\n        status: 'completed',\n        operationId: foreignRequest.operationId,\n        replayed: false,\n        result: { success: false, error: 'Staff member not found or out of scope' },\n      });\n      const foreignAfter = await state(foreignId);\n      assert.deepEqual(foreignAfter.claim, foreignBefore.claim);\n      assert.deepEqual(foreignAfter.audit, foreignBefore.audit);\n      assert.equal(foreignAfter.result.length, 1);\n      assert.equal(foreignAfter.result[0].operation_id, foreignRequest.operationId);\n      assert.deepEqual(foreignAfter.result[0].response, foreignResponse.result);\n      await noOwnedSessions();\n      assert.deepEqual(await state(foreignId), foreignAfter);\n      const settledNonStaff = await state(nonStaffId);\n      assert.deepEqual(settledNonStaff, nonStaffAfter);\n    }",
+      "links": [
+        {
+          "id": "ops-foreign-and-nonstaff-denial",
+          "factPath": "/derivations/kernel/facts/effects/4",
+          "factSha256": "2776a0a19683682791966524acefa335843e1084d9ffe900f095f56de8addf57",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(nonStaffBefore.result.length, 0)",
+            "assert.deepEqual(nonStaffResponse, {\n        status: 'completed',\n        operationId: nonStaffRequest.operationId,\n        replayed: false,\n        result: { success: false, error: 'Staff member not found or out of scope' },\n      })",
+            "assert.deepEqual(nonStaffAfter.claim, nonStaffBefore.claim)",
+            "assert.deepEqual(nonStaffAfter.audit, nonStaffBefore.audit)",
+            "assert.equal(nonStaffAfter.result.length, 1)",
+            "assert.equal(nonStaffAfter.result[0].operation_id, nonStaffRequest.operationId)",
+            "assert.deepEqual(nonStaffAfter.result[0].response, nonStaffResponse.result)",
+            "assert.deepEqual(await state(nonStaffId), nonStaffAfter)",
+            "assert.equal(foreignBefore.result.length, 0)",
+            "assert.deepEqual(foreignResponse, {\n        status: 'completed',\n        operationId: foreignRequest.operationId,\n        replayed: false,\n        result: { success: false, error: 'Staff member not found or out of scope' },\n      })",
+            "assert.deepEqual(foreignAfter.claim, foreignBefore.claim)",
+            "assert.deepEqual(foreignAfter.audit, foreignBefore.audit)",
+            "assert.equal(foreignAfter.result.length, 1)",
+            "assert.equal(foreignAfter.result[0].operation_id, foreignRequest.operationId)",
+            "assert.deepEqual(foreignAfter.result[0].response, foreignResponse.result)",
+            "assert.deepEqual(await state(foreignId), foreignAfter)",
+            "assert.deepEqual(settledNonStaff, nonStaffAfter)"
+          ],
+          "scope": "Actual nonstaff and foreign-tenant targets return the exact persisted ineligible denial with unchanged claim/audit and drained sessions. No universal eligibility or RLS predicate proof."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-oracles.mjs",
+      "caseGroup": "private",
+      "caseId": "ops target role change blocks and is reread under the actual target share lock",
+      "program": "async () => {\n      const id = 'ops_target_role_race_' + suffix;\n      await seedClaim(id);\n      const before = await state(id),\n        r = request(id, secondStaff);\n      const [targetBefore] = await admin`select id,role from \"user\" where id=${secondStaff}`;\n      assert.deepEqual(targetBefore, { id: secondStaff, role: 'staff' });\n      assert.equal(secondStaff === actor, false);\n      assert.equal(before.result.length, 0);\n      const owner = make();\n      let release, ready;\n      const released = new Promise(resolve => (release = resolve)),\n        acquired = new Promise(resolve => (ready = resolve));\n      // Only this parent connection holds the target UPDATE. The tested child gets no callback.\n      const hold = blocker.begin(async tx => {\n        const [{ pid }] = await tx`select pg_backend_pid() as pid`;\n        const rows =\n          await tx`update \"user\" set role='member' where id=${secondStaff} returning id,role`;\n        ready({ pid, rows: Array.from(rows) });\n        await released;\n      });\n      let pending;\n      try {\n        // A failed blocker rejects readiness instead of leaving an unobserved promise hanging.\n        const lockState = await Promise.race([acquired, hold]);\n        assert.deepEqual(lockState.rows, [{ id: secondStaff, role: 'member' }]);\n        const blockerPid = lockState.pid;\n        assert.equal(Number.isInteger(blockerPid), true);\n        pending = invoke(r, cookie, owner);\n        const blockedRows = await waitDataBlocked();\n        assert.equal(\n          blockedRows.some(row => row.usename === dataRole && row.blockers.includes(blockerPid)),\n          true\n        );\n        release();\n        await hold;\n        const response = await pending;\n        assert.deepEqual(response, {\n          status: 'completed',\n          operationId: r.operationId,\n          replayed: false,\n          result: { success: false, error: 'Staff member not found or out of scope' },\n        });\n        const after = await state(id);\n        assert.deepEqual(after.claim, before.claim);\n        assert.deepEqual(after.audit, before.audit);\n        assert.equal(after.result.length, 1);\n        assert.equal(after.result[0].operation_id, r.operationId);\n        assert.deepEqual(after.result[0].response, response.result);\n        await noOwnedSessions();\n        assert.deepEqual(await state(id), after);\n      } finally {\n        release();\n        try {\n          await hold;\n        } finally {\n          try {\n            await owner.close();\n          } finally {\n            try {\n              if (pending) await pending;\n            } finally {\n              try {\n                await noOwnedSessions();\n              } finally {\n                await admin`update \"user\" set role=${targetBefore.role} where id=${secondStaff}`;\n              }\n            }\n          }\n        }\n      }\n      const [restoredTarget] = await admin`select id,role from \"user\" where id=${secondStaff}`;\n      assert.deepEqual(restoredTarget, targetBefore);\n    }",
+      "links": [
+        {
+          "id": "ops-target-role-reread",
+          "factPath": "/derivations/kernel/facts/effects/3",
+          "factSha256": "45bb91420b01c76e8adb19702d54e0832f85ec1fa44a24f6fff3a7c8abadb52e",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.deepEqual(targetBefore, { id: secondStaff, role: 'staff' })",
+            "assert.equal(secondStaff === actor, false)",
+            "assert.equal(before.result.length, 0)",
+            "assert.deepEqual(lockState.rows, [{ id: secondStaff, role: 'member' }])",
+            "assert.equal(Number.isInteger(blockerPid), true)",
+            "assert.equal(\n          blockedRows.some(row => row.usename === dataRole && row.blockers.includes(blockerPid)),\n          true\n        )",
+            "assert.deepEqual(response, {\n          status: 'completed',\n          operationId: r.operationId,\n          replayed: false,\n          result: { success: false, error: 'Staff member not found or out of scope' },\n        })",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, response.result)",
+            "assert.deepEqual(await state(id), after)",
+            "assert.deepEqual(restoredTarget, targetBefore)"
+          ],
+          "scope": "One real target-role UPDATE schedule blocks the actual restricted data backend on the exact blocker PID and yields a persisted ineligible denial after commit, with unchanged claim/audit and cleanup restoration. This does not distinguish minimal lock strength, prove every projection/predicate or all interleavings."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-1.mjs",
+      "caseGroup": "profiles",
+      "caseId": "expanded runtime retains successful ops assignment response and atomic audit ledger",
+      "program": "async () => {\n      const id = 'profile_ops_' + suffix;\n      await seedClaim(id);\n      const before = await state(id);\n      const r = { ...req(id), command: 'm4.ops.assign-owner' };\n      const result = await runtime.execute(cookie, JSON.stringify(r));\n      assert.equal(result.status, 'completed');\n      assert.equal(result.result.success, true);\n      assert.equal(result.result.data.id, id);\n      assert.equal(result.result.data.staffId, staff);\n      assert.equal(typeof result.result.data.assignedAt, 'string');\n      assert.equal(result.changed, undefined);\n      const after = await state(id);\n      assert.equal(after.audit.length, 1);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.claim[0].staffId, staff);\n      assert.equal(after.claim[0].assignedById, actor);\n      assert.equal(after.claim[0].assignedAt instanceof Date, true);\n      assert.equal(after.claim[0].assignedAt.toISOString(), result.result.data.assignedAt);\n      assert.equal(after.claim[0].updatedAt.getTime(), after.claim[0].assignedAt.getTime());\n      assert.equal(typeof after.audit[0].id, 'string');\n      assert.equal(after.audit[0].id.length > 0, true);\n      assert.equal(after.audit[0].created_at instanceof Date, true);\n      assert.equal(Number.isFinite(after.audit[0].created_at.getTime()), true);\n      assert.deepEqual(after.audit[0], {\n        id: after.audit[0].id,\n        tenant_id: home,\n        actor_id: actor,\n        actor_role: null,\n        action: 'assign_owner',\n        entity_type: 'claim',\n        entity_id: id,\n        metadata: {\n          previousStaffId: before.claim[0].staffId,\n          newStaffId: staff,\n          claimNumber: before.claim[0].claim_number,\n        },\n        created_at: after.audit[0].created_at,\n      });\n      assert.deepEqual(result, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: {\n          success: true,\n          data: { id, staffId: staff, assignedAt: after.claim[0].assignedAt.toISOString() },\n        },\n      });\n      assert.equal(after.result[0].operation_id, r.operationId);\n      assert.deepEqual(after.result[0].response, result.result);\n      await drain();\n      assert.equal((await notification(r)).length, 0);\n    }",
+      "links": [
+        {
+          "id": "ops-claim-snapshot-audit-values",
+          "factPath": "/derivations/kernel/facts/effects/0",
+          "factSha256": "920c2979347763dcb30846d97390d2c46e4233edb154b1e5164fc3a961fad6d1",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.deepEqual(after.audit[0], {\n        id: after.audit[0].id,\n        tenant_id: home,\n        actor_id: actor,\n        actor_role: null,\n        action: 'assign_owner',\n        entity_type: 'claim',\n        entity_id: id,\n        metadata: {\n          previousStaffId: before.claim[0].staffId,\n          newStaffId: staff,\n          claimNumber: before.claim[0].claim_number,\n        },\n        created_at: after.audit[0].created_at,\n      })"
+          ],
+          "scope": "Executed audit payload preserves the pre-operation staff and claim-number values of the seeded claim. Complete read projection, tenant predicates and SQL visibility semantics remain separate."
+        },
+        {
+          "id": "ops-assignment-row-and-response-time",
+          "factPath": "/derivations/kernel/facts/effects/5",
+          "factSha256": "b13c80197d2e2b9ea274e6c18c4525b09f6237878600db785abc453d2fc48c0c",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(after.claim[0].assignedById, actor)",
+            "assert.equal(after.claim[0].assignedAt instanceof Date, true)",
+            "assert.equal(after.claim[0].assignedAt.toISOString(), result.result.data.assignedAt)",
+            "assert.equal(after.claim[0].updatedAt.getTime(), after.claim[0].assignedAt.getTime())"
+          ],
+          "scope": "Actual assignedById equals actor, stored assignedAt is a Date matching the response, and updatedAt equals assignedAt. Snapshot/CAS predicate and universal timestamp authority remain separate."
+        },
+        {
+          "id": "ops-exact-audit-payload",
+          "factPath": "/derivations/kernel/facts/effects/7",
+          "factSha256": "123a5012d1e2db2b97d5f075c07edbc260e1f166c103faeb31d632dc4c4d7b50",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(typeof after.audit[0].id, 'string')",
+            "assert.equal(after.audit[0].id.length > 0, true)",
+            "assert.equal(after.audit[0].created_at instanceof Date, true)",
+            "assert.equal(Number.isFinite(after.audit[0].created_at.getTime()), true)",
+            "assert.deepEqual(after.audit[0], {\n        id: after.audit[0].id,\n        tenant_id: home,\n        actor_id: actor,\n        actor_role: null,\n        action: 'assign_owner',\n        entity_type: 'claim',\n        entity_id: id,\n        metadata: {\n          previousStaffId: before.claim[0].staffId,\n          newStaffId: staff,\n          claimNumber: before.claim[0].claim_number,\n        },\n        created_at: after.audit[0].created_at,\n      })"
+          ],
+          "scope": "Exact complete stored audit row apart from checked fresh id/date values: tenant, actor, null actor_role, action/entity and all metadata agree with the seeded prior claim and requested target. Randomness/clock intrinsic correctness is not inferred."
+        },
+        {
+          "id": "ops-exact-success-envelope",
+          "factPath": "/derivations/kernel/facts/effects/8",
+          "factSha256": "ce632ee5143fdc16a822ad4a602736f80a42bc89b36d7af283df10b7cd87cf4e",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.deepEqual(result, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: {\n          success: true,\n          data: { id, staffId: staff, assignedAt: after.claim[0].assignedAt.toISOString() },\n        },\n      })",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, result.result)"
+          ],
+          "scope": "Exact returned completed envelope and durable operation UUID/result agree with stored assignment timestamp. Other inputs and private controller premises remain separate."
+        },
+        {
+          "id": "r2-ops-result-registration",
+          "factPath": "/derivations/controller/facts/ownedClauses/21",
+          "factSha256": "d8a7659243350dc43d04abd9719624178ab6a2674d0d0c657a96c67f6763e2f9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, result.result)",
+            "assert.equal(after.result.length, 1)"
+          ],
+          "scope": "A successful OPS call persists exactly its operation UUID and exact returned domain response in the single result row. This is a durable-value consequence; atomic rollback and all ledger fields have separate oracles."
+        },
+        {
+          "id": "r2-ops-completed-envelope",
+          "factPath": "/derivations/controller/facts/ownedClauses/22",
+          "factSha256": "14e252845ad1d33e3fc3d21e23998dc8aab34a9830aa3a13e578cc24d125374b",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-ops-controller.ts",
+            "apps/web/src/server/operations/m4-assignment-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-protocol.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(result, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: {\n          success: true,\n          data: { id, staffId: staff, assignedAt: after.claim[0].assignedAt.toISOString() },\n        },\n      })"
+          ],
+          "scope": "The successful OPS response has the exact completed/nonreplayed/original-ID envelope and assignedAt aligned with stored assignment state. Other denial/noop envelopes remain separately linked."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-profiles-2.mjs",
+      "caseGroup": "profiles",
+      "caseId": "mandatory audit failure rolls back assignment and ledger and never dispatches notification",
+      "program": "async () => {\n      const id = 'profile_audit_fail_' + suffix;\n      await seedClaim(id);\n      const r = req(id),\n        opsRequest = { ...req(id), command: 'm4.ops.assign-owner' },\n        before = await state(id);\n      const fn = 'm4_audit_fault_' + suffix.replaceAll('-', ''),\n        tr = fn + '_tr',\n        seq = fn + '_seq';\n      await admin.unsafe(\n        `CREATE SEQUENCE ${quote(seq)}; GRANT USAGE ON SEQUENCE ${quote(seq)} TO ${quote(dataRole)}; CREATE FUNCTION ${quote(fn)}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.entity_id='${id}' THEN PERFORM nextval('${seq}'); RAISE EXCEPTION 'owned audit fault'; END IF; RETURN NEW; END $$; CREATE TRIGGER ${quote(tr)} BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION ${quote(fn)}()`\n      );\n      try {\n        assert.deepEqual(await invoke('executeLegacyAdmin', r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        });\n        assert.deepEqual(await state(id), before);\n        await drain();\n        assert.equal((await notification(r)).length, 0);\n        const [legacyAuditAttempt] = await admin.unsafe(\n          `select last_value::int as last_value,is_called from ${quote(seq)}`\n        );\n        assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true });\n        assert.deepEqual(await runtime.execute(cookie, JSON.stringify(opsRequest)), {\n          status: 'indeterminate',\n          operationId: opsRequest.operationId,\n        });\n        assert.deepEqual(\n          await state(id),\n          before,\n          'OPS audit fault rolls back assignment and ledger'\n        );\n        await drain();\n        const settledOpsFault = await state(id);\n        assert.deepEqual(settledOpsFault, before);\n        assert.equal((await notification(opsRequest)).length, 0);\n        const [opsAuditAttempt] = await admin.unsafe(\n          `select last_value::int as last_value,is_called from ${quote(seq)}`\n        );\n        assert.deepEqual(opsAuditAttempt, { last_value: 2, is_called: true });\n      } finally {\n        await admin.unsafe(\n          `DROP TRIGGER ${quote(tr)} ON audit_log; DROP FUNCTION ${quote(fn)}(); DROP SEQUENCE ${quote(seq)}`\n        );\n      }\n      assert.equal((await invoke('executeLegacyAdmin', r)).result.success, true);\n      await awaitNotice(r);\n      await drain();\n    }",
+      "links": [
+        {
+          "id": "ops-audit-insert-failure-rollback",
+          "factPath": "/derivations/kernel/facts/effects/7",
+          "factSha256": "123a5012d1e2db2b97d5f075c07edbc260e1f166c103faeb31d632dc4c4d7b50",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true })",
+            "assert.deepEqual(await runtime.execute(cookie, JSON.stringify(opsRequest)), {\n          status: 'indeterminate',\n          operationId: opsRequest.operationId,\n        })",
+            "assert.deepEqual(\n          await state(id),\n          before,\n          'OPS audit fault rolls back assignment and ledger'\n        )",
+            "assert.deepEqual(settledOpsFault, before)",
+            "assert.equal((await notification(opsRequest)).length, 0)",
+            "assert.deepEqual(opsAuditAttempt, { last_value: 2, is_called: true })"
+          ],
+          "scope": "A parent-owned fail-before-INSERT trigger and nontransactional sequence observe one legacy and exactly one genuine OPS audit attempt. OPS returns indeterminate; complete claim/audit/result state remains unchanged after drain and no OPS notice exists. Supplemental fixture sequence USAGE is not a production grant. No automatic retry or universal fault schedule is inferred."
+        },
+        {
+          "id": "r3-legacy-mandatory-audit-rollback",
+          "factPath": "/derivations/assignmentKernels/facts/legacy/clauses/assignLegacyInTransaction/14",
+          "factSha256": "d1276b9fb88a84d08c2551da746a3a6046f5e70ee182c615310a70cf2aae1fb9",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeLegacyAdmin', r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true })",
+            "assert.equal((await notification(r)).length, 0)"
+          ],
+          "scope": "The exact legacy request returns original-ID indeterminate under the owned audit fault, leaves full claim/audit/ledger state unchanged and records exactly one attempted audit INSERT. This does not substitute for the distinct OPS kernel audit path."
+        },
+        {
+          "id": "r3-shared-audit-fault-propagation",
+          "factPath": "/derivations/assignmentKernels/facts/shared/clauses/insertAssignmentAudit/0",
+          "factSha256": "820858292c5bd76b6a863dc8b32bdcddf7c65e25d3c331e3722e96b5af2326d2",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+            "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+            "apps/web/src/server/operations/m4-staff-assignment-kernel.ts"
+          ],
+          "assertions": [
+            "assert.deepEqual(await invoke('executeLegacyAdmin', r), {\n          status: 'indeterminate',\n          operationId: r.operationId,\n        })",
+            "assert.deepEqual(await state(id), before)",
+            "assert.deepEqual(legacyAuditAttempt, { last_value: 1, is_called: true })"
+          ],
+          "scope": "The shared audit INSERT is reached once by the legacy request and its injected database failure prevents durable assignment/result effects. The full audit row construction remains a separate source/runtime consequence."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-oracles.mjs",
+      "caseGroup": "private",
+      "caseId": "ops empty historical assignee reaches exact zero-row CAS denial",
+      "program": "async () => {\n    const id = 'ops_empty_prior_' + suffix;\n    await seedClaim(id);\n    // Plain INSERT must fail on any pre-existing empty-ID user; never adopt/overwrite one.\n    await admin`insert into \"user\"(id,tenant_id,name,email,\"emailVerified\",role,\"createdAt\",\"updatedAt\")\n      values('',${home},'Synthetic empty historical ID',${'empty-prior-' + suffix + '@example.test'},false,'staff',now(),now())`;\n    try {\n      await admin`update claim set \"staffId\"='' where id=${id} and tenant_id=${home}`;\n      const before = await state(id),\n        r = request(id, staff);\n      assert.equal(before.claim[0].staffId, '');\n      assert.equal(before.claim[0].case_lifecycle_state, 'evaluation');\n      assert.equal(before.claim[0].recovery_lifecycle_state, 'not_started');\n      assert.equal(before.result.length, 0);\n      const response = await invoke(r);\n      assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Claim changed. Reload and try again.' },\n      });\n      const after = await state(id);\n      assert.deepEqual(after.claim, before.claim);\n      assert.deepEqual(after.audit, before.audit);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.result[0].operation_id, r.operationId);\n      assert.deepEqual(after.result[0].response, response.result);\n      await noOwnedSessions();\n      const replay = await invoke(r);\n      assert.deepEqual(replay, { ...response, replayed: true });\n      await noOwnedSessions();\n      assert.deepEqual(await state(id), after);\n    } finally {\n      // Invoke is awaited, including bounded work termination, before this block.\n      // The normal fixture cleanup is still mandatory if this cleanup throws.\n      await admin`update claim set \"staffId\"=null where id=${id} and tenant_id=${home}`;\n      await admin`delete from \"user\" where id='' and tenant_id=${home}`;\n    }\n  }",
+      "links": [
+        {
+          "id": "ops-schema-valid-empty-prior-assignee-cas-denial",
+          "factPath": "/derivations/kernel/facts/effects/6",
+          "factSha256": "aa14ee6c0a1213554b9a77130172a2be45cc5cf247d8f05dfa0e37e4f65a5d5a",
+          "sourceFiles": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts"],
+          "assertions": [
+            "assert.equal(before.claim[0].staffId, '')",
+            "assert.equal(before.claim[0].case_lifecycle_state, 'evaluation')",
+            "assert.equal(before.claim[0].recovery_lifecycle_state, 'not_started')",
+            "assert.equal(before.result.length, 0)",
+            "assert.deepEqual(response, {\n        status: 'completed',\n        operationId: r.operationId,\n        replayed: false,\n        result: { success: false, error: 'Claim changed. Reload and try again.' },\n      })",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, response.result)",
+            "assert.deepEqual(replay, { ...response, replayed: true })",
+            "assert.deepEqual(await state(id), after)"
+          ],
+          "scope": "Actual ordinary OPS dispatch on a fresh claim with schema-permitted historical staffId empty-string reaches the zero-row CAS denial because the source snapshot guard tests truthiness. Exact durable denial, unchanged claim/audit and replay are asserted. This is a historical database-state witness; ordinary identity issuer provenance, other CAS cases and all schema/operator premises remain separate. No SQL trigger/policy/source mutation."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-ops-visibility.mjs",
+      "caseGroup": "private",
+      "caseId": "ops restrictive visibility fault reaches missing-claim denial after controller admission",
+      "program": "async () => {\n      const id = 'ops_visibility_claim_' + suffix,\n        gateId = 'ops_visibility_gate_' + suffix,\n        policyName = dataRole + '_visibility';\n      await seedClaim(id);\n      const before = await state(id),\n        r = request(id, staff),\n        owner = make();\n      const roleBefore = await posture(admin, dataRole);\n      let gateCreated = false,\n        policyCreated = false,\n        hold,\n        pending;\n      let release = () => {};\n      try {\n        assert.equal([actor, staff, secondStaff].includes(gateId), false);\n        assert.equal(before.claim.length, 1);\n        assert.equal(before.audit.length, 0);\n        assert.equal(before.result.length, 0);\n        await admin`insert into \"user\"(id,tenant_id,name,email,\"emailVerified\",role,\"createdAt\",\"updatedAt\")\n        values(${gateId},${home},'Owned visibility gate',${gateId + '@example.test'},false,'staff',now(),now())`;\n        gateCreated = true;\n        const [gateBefore] = await admin`select id,tenant_id,role from \"user\" where id=${gateId}`;\n        assert.deepEqual(gateBefore, { id: gateId, tenant_id: home, role: 'staff' });\n        await admin.unsafe(`CREATE POLICY ${quote(policyName)} ON public.claim AS RESTRICTIVE\n        FOR SELECT TO ${quote(dataRole)} USING (claim.id <> ${literal(id)} OR\n          (current_setting('transaction_isolation') = 'read committed' AND EXISTS (\n            SELECT 1 FROM public.\"user\" AS fault_gate WHERE fault_gate.id = ${literal(gateId)}\n              AND fault_gate.tenant_id = ${literal(home)} AND fault_gate.role = 'staff')))`);\n        policyCreated = true;\n        const policyRows = Array.from(\n          await admin`select schemaname,tablename,policyname,permissive,\n        roles,cmd,qual,with_check from pg_policies where schemaname='public'\n        and tablename='claim' and policyname=${policyName}`\n        );\n        assert.equal(policyRows.length, 1);\n        const { qual, ...policyMetadata } = policyRows[0];\n        assert.deepEqual(policyMetadata, {\n          schemaname: 'public',\n          tablename: 'claim',\n          policyname: policyName,\n          permissive: 'RESTRICTIVE',\n          roles: [dataRole],\n          cmd: 'SELECT',\n          with_check: null,\n        });\n        const [server] = await admin`select current_setting('server_version_num') as version`;\n        let ready;\n        const released = new Promise(resolve => (release = resolve)),\n          acquired = new Promise(resolve => (ready = resolve));\n        hold = blocker.begin(async tx => {\n          const [{ pid }] = await tx`select pg_backend_pid() as pid`;\n          await tx`select pg_advisory_xact_lock(hashtextextended(${r.operationId},0))`;\n          const locks = Array.from(\n            await tx`select locktype,mode,granted,database::text as database_id,\n          classid::text as classid,objid::text as objid,objsubid from pg_locks\n          where pid=${pid} and locktype='advisory'`\n          );\n          ready({ pid, locks });\n          await released;\n        });\n        const held = await Promise.race([acquired, hold]);\n        const blockerPid = held.pid;\n        assert.equal(Number.isInteger(blockerPid), true);\n        assert.equal(held.locks.length, 1);\n        const { database_id, classid, objid, objsubid } = held.locks[0];\n        const tag = { database_id, classid, objid, objsubid };\n        assert.deepEqual(held.locks[0], {\n          locktype: 'advisory',\n          mode: 'ExclusiveLock',\n          granted: true,\n          ...tag,\n        });\n        pending = invoke(r, cookie, owner);\n        await waitDataBlocked();\n        const waits = Array.from(\n          await admin`select a.pid,a.usename,a.wait_event_type,\n        w.locktype,w.mode,w.granted,w.database::text as database_id,\n        w.classid::text as classid,w.objid::text as objid,w.objsubid,\n        h.pid as holder_pid,h.granted as holder_granted\n        from pg_stat_activity a join pg_locks w on w.pid=a.pid\n        join pg_locks h on h.locktype=w.locktype\n          and h.database is not distinct from w.database and h.classid=w.classid\n          and h.objid=w.objid and h.objsubid=w.objsubid\n        where a.usename=${dataRole} and w.locktype='advisory' and not w.granted\n          and h.pid=${blockerPid} and h.granted\n          and ${blockerPid}=any(pg_blocking_pids(a.pid))`\n        );\n        assert.equal(waits.length, 1);\n        const backendPid = waits[0].pid;\n        assert.equal(Number.isInteger(backendPid), true);\n        assert.equal(backendPid === blockerPid, false);\n        assert.deepEqual(waits[0], {\n          pid: backendPid,\n          usename: dataRole,\n          wait_event_type: 'Lock',\n          locktype: 'advisory',\n          mode: 'ExclusiveLock',\n          granted: false,\n          ...tag,\n          holder_pid: blockerPid,\n          holder_granted: true,\n        });\n        const changedGate = Array.from(\n          await admin`update \"user\" set role='member'\n        where id=${gateId} and tenant_id=${home} returning id,tenant_id,role`\n        );\n        assert.deepEqual(changedGate, [{ id: gateId, tenant_id: home, role: 'member' }]);\n        const [committedGate] =\n          await admin`select id,tenant_id,role from \"user\" where id=${gateId}`;\n        assert.deepEqual(committedGate, { id: gateId, tenant_id: home, role: 'member' });\n        release();\n        await hold;\n        const response = await pending;\n        assert.deepEqual(response, {\n          status: 'completed',\n          operationId: r.operationId,\n          replayed: false,\n          result: { success: false, error: 'Claim not found or access denied' },\n        });\n        const after = await state(id);\n        assert.deepEqual(after.claim, before.claim);\n        assert.deepEqual(after.audit, before.audit);\n        assert.equal(after.result.length, 1);\n        assert.equal(after.result[0].operation_id, r.operationId);\n        assert.deepEqual(after.result[0].response, response.result);\n        const notices = Array.from(\n          await admin`select id from notifications where id=${'ntf_m4_assignment_' + r.operationId}`\n        );\n        assert.deepEqual(notices, []);\n        await noOwnedSessions();\n        assert.deepEqual(await state(id), after);\n        // Controller resource authorization precedes replay: restore visibility first.\n        const restoredGate = Array.from(\n          await admin`update \"user\" set role='staff'\n        where id=${gateId} and tenant_id=${home} returning id,tenant_id,role`\n        );\n        assert.deepEqual(restoredGate, [{ id: gateId, tenant_id: home, role: 'staff' }]);\n        const replay = await invoke(r, cookie, owner);\n        assert.deepEqual(replay, { ...response, replayed: true });\n        await noOwnedSessions();\n        const replayedState = await state(id);\n        assert.deepEqual(replayedState, after);\n        const replayNotices = Array.from(\n          await admin`select id from notifications where id=${'ntf_m4_assignment_' + r.operationId}`\n        );\n        assert.deepEqual(replayNotices, []);\n        const roleAfter = await posture(admin, dataRole);\n        assert.deepEqual(roleAfter, roleBefore);\n        record.opsVisibilityFault = {\n          context: 'database-visibility-fault',\n          ordinaryProductionPath: false,\n          serverVersionNum: server.version,\n          operationIsolationRequiredByPolicy: 'read committed',\n          policy: policyRows[0],\n          backendPid,\n          blockerPid,\n          lockTag: tag,\n          unchangedRoleAndGrants: true,\n        };\n      } finally {\n        release();\n        try {\n          if (hold) await hold;\n        } finally {\n          try {\n            await owner.close();\n          } finally {\n            try {\n              if (pending) await pending;\n            } finally {\n              try {\n                await noOwnedSessions();\n              } finally {\n                try {\n                  if (policyCreated)\n                    await admin.unsafe(`DROP POLICY ${quote(policyName)} ON public.claim`);\n                } finally {\n                  if (gateCreated)\n                    await admin`delete from \"user\" where id=${gateId} and tenant_id=${home}`;\n                }\n              }\n            }\n          }\n        }\n      }\n      const remainingPolicy = Array.from(\n        await admin`select policyname from pg_policies\n      where schemaname='public' and tablename='claim' and policyname=${policyName}`\n      );\n      assert.deepEqual(remainingPolicy, []);\n      const remainingGate = Array.from(await admin`select id from \"user\" where id=${gateId}`);\n      assert.deepEqual(remainingGate, []);\n    }",
+      "links": [
+        {
+          "id": "ops-restrictive-visibility-fault-missing-claim-denial",
+          "factPath": "/derivations/kernel/facts/effects/1",
+          "factSha256": "d654e932363ebe1129bda4a23cc65c4687d04b9bdd5d19e17e5fb15eff96b944",
+          "sourceFiles": [
+            "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+            "apps/web/src/server/operations/m4-ops-controller.ts"
+          ],
+          "assertions": [
+            "assert.equal([actor, staff, secondStaff].includes(gateId), false)",
+            "assert.equal(before.claim.length, 1)",
+            "assert.equal(before.audit.length, 0)",
+            "assert.equal(before.result.length, 0)",
+            "assert.deepEqual(gateBefore, { id: gateId, tenant_id: home, role: 'staff' })",
+            "assert.equal(policyRows.length, 1)",
+            "assert.deepEqual(policyMetadata, {\n          schemaname: 'public',\n          tablename: 'claim',\n          policyname: policyName,\n          permissive: 'RESTRICTIVE',\n          roles: [dataRole],\n          cmd: 'SELECT',\n          with_check: null,\n        })",
+            "assert.equal(Number.isInteger(blockerPid), true)",
+            "assert.equal(held.locks.length, 1)",
+            "assert.deepEqual(held.locks[0], {\n          locktype: 'advisory',\n          mode: 'ExclusiveLock',\n          granted: true,\n          ...tag,\n        })",
+            "assert.equal(waits.length, 1)",
+            "assert.equal(Number.isInteger(backendPid), true)",
+            "assert.equal(backendPid === blockerPid, false)",
+            "assert.deepEqual(waits[0], {\n          pid: backendPid,\n          usename: dataRole,\n          wait_event_type: 'Lock',\n          locktype: 'advisory',\n          mode: 'ExclusiveLock',\n          granted: false,\n          ...tag,\n          holder_pid: blockerPid,\n          holder_granted: true,\n        })",
+            "assert.deepEqual(changedGate, [{ id: gateId, tenant_id: home, role: 'member' }])",
+            "assert.deepEqual(committedGate, { id: gateId, tenant_id: home, role: 'member' })",
+            "assert.deepEqual(response, {\n          status: 'completed',\n          operationId: r.operationId,\n          replayed: false,\n          result: { success: false, error: 'Claim not found or access denied' },\n        })",
+            "assert.deepEqual(after.claim, before.claim)",
+            "assert.deepEqual(after.audit, before.audit)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, r.operationId)",
+            "assert.deepEqual(after.result[0].response, response.result)",
+            "assert.deepEqual(notices, [])",
+            "assert.deepEqual(await state(id), after)",
+            "assert.deepEqual(restoredGate, [{ id: gateId, tenant_id: home, role: 'staff' }])",
+            "assert.deepEqual(replay, { ...response, replayed: true })",
+            "assert.deepEqual(replayedState, after)",
+            "assert.deepEqual(replayNotices, [])",
+            "assert.deepEqual(roleAfter, roleBefore)",
+            "assert.deepEqual(remainingPolicy, [])",
+            "assert.deepEqual(remainingGate, [])"
+          ],
+          "executionContext": "database-visibility-fault",
+          "scope": "Altered restrictive RLS visibility fault only; ordinary production reachability and M4-03 premises are not qualified. This is an explicitly altered restrictive database visibility premise under the actual ordinary OPS facade, not ordinary production policy reachability or M4-03 qualification."
+        }
+      ]
+    }
+  ]
+}

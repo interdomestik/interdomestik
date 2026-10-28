@@ -17,7 +17,7 @@ const hoisted = vi.hoisted(() => ({
   ledgerValues: vi.fn(),
   sql: vi.fn(() => ({ mockedSql: true })),
   subscriptionFindFirst: vi.fn(),
-  transaction: vi.fn(),
+  withTenantContext: vi.fn(),
   txInsert: vi.fn(),
 }));
 
@@ -26,9 +26,9 @@ vi.mock('@interdomestik/database', () => ({
   billingLedgerEntries: hoisted.billingLedgerEntries,
   db: {
     query: { subscriptions: { findFirst: hoisted.subscriptionFindFirst } },
-    transaction: hoisted.transaction,
   },
   sql: hoisted.sql,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 import { persistInvoiceAndLedgerInvariants } from './invariants';
@@ -55,7 +55,7 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const tx = { insert: hoisted.txInsert };
-    hoisted.transaction.mockImplementation(async callback => callback(tx));
+    hoisted.withTenantContext.mockImplementation(async (_context, callback) => callback(tx));
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) return { values: hoisted.invoiceValues };
       if (table === hoisted.billingLedgerEntries) return { values: hoisted.ledgerValues };
@@ -93,6 +93,10 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     expect(hoisted.ledgerValues).toHaveBeenCalledWith(
       expect.objectContaining({ billingEntity: 'mk', tenantId: 'tenant_mk' })
     );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_mk', role: 'system' },
+      expect.any(Function)
+    );
   });
 
   it('does not link an invoice to an out-of-order provider subscription id', async () => {
@@ -129,6 +133,10 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     expect(hoisted.invoiceValues).toHaveBeenCalledWith(
       expect.objectContaining({ billingEntity: 'mk', tenantId: 'tenant_mk' })
     );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_mk', role: 'system' },
+      expect.any(Function)
+    );
   });
 
   it('rejects route entity conflicts when subscription lookup misses', async () => {
@@ -142,6 +150,7 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
       )
     ).rejects.toThrow('conflicts with legal tenant');
     expect(hoisted.subscriptionFindFirst).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.invoiceValues).not.toHaveBeenCalled();
   });
 
@@ -149,6 +158,7 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     await expect(
       persistInvoiceAndLedgerInvariants(transactionInput({ billingEntity: 'zz' }))
     ).rejects.toThrow('Unsupported webhook billing entity metadata');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.invoiceValues).not.toHaveBeenCalled();
   });
 });

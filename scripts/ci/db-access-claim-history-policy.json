@@ -1,0 +1,62 @@
+{
+  "id": "fixed-claim-history-scalar-nonexpansion-v1",
+  "file": "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+  "adoptionCommit": "278e33ab0dd448547fa81d4b0ff122b4d69c901e",
+  "adoptionTree": "4f9330417466b4f7bee68349e7183db22a5260ff",
+  "baselineSha256": "438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9",
+  "adoptionSourceSha256": "4273e709c9d590cbf89f755ce78c15637c1f70c810a65850ae3e2fbc0af24d72",
+  "currentSourceSha256": "375499dfccf6d0cfaed6e1ab0f8e88c56aa9cc9b1cc183cd603a408d3c9a3697",
+  "currentSourceSnapshotSha256": "22a71bcac7c6bb842afbf488dfc8df0eff6f2b49f00aa65ebae45ff5d70d198d",
+  "priorRow": {
+    "file": "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+    "line": 22,
+    "callee": "tx.insert",
+    "method": "insert",
+    "tenantPosture": "tenant-context",
+    "tenantPostureReason": "tenant-context: proven-symbol-invocations",
+    "isDirectDbAlias": false,
+    "claimsUpdateTarget": false,
+    "risk": "domain-wrapper",
+    "source": "tx.insert",
+    "identity": "d1573a9421f7867412aff92cc686814f3654f3566435be1830e3d46a20dda763",
+    "historicalDebt": true,
+    "dispatchAlternatives": [
+      { "kind": "canonical-tx", "unknown": true, "reasons": ["parameter-binding"], "targets": [] }
+    ]
+  },
+  "currentRow": {
+    "file": "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+    "line": 28,
+    "callee": "tx.insert",
+    "method": "insert",
+    "tenantPosture": "tenant-context",
+    "tenantPostureReason": "tenant-context: proven-symbol-invocations",
+    "isDirectDbAlias": false,
+    "claimsUpdateTarget": false,
+    "risk": "domain-wrapper",
+    "source": "tx.insert",
+    "identity": "e9305732c95af9171703748806598112d0d8079859c19511bdbbf0ece6b4bae5",
+    "historicalDebt": false,
+    "dispatchAlternatives": [
+      { "kind": "canonical-tx", "unknown": true, "reasons": ["parameter-binding"], "targets": [] }
+    ]
+  },
+  "fixedFiles": {
+    "pnpm-lock.yaml": {
+      "bytes": 711992,
+      "sha256": "42f995ad77406c993e1a80b26f36306afbde4df7bf0a395b01ef80ddd5f3a7dc"
+    },
+    "pnpm-workspace.yaml": {
+      "bytes": 1989,
+      "sha256": "692d5d04bb918d25cc1093e425970dcb7879af7da8d1f869d3388328e625815a"
+    },
+    "package.json": {
+      "bytes": 23317,
+      "sha256": "0057c44db890f19718c545a3b235e9a46bf15e744a8ecf2af5d2b1006337cc33"
+    },
+    "packages/domain-claims/package.json": {
+      "bytes": 3513,
+      "sha256": "d16d1ae87530e61bf60bcaeac884a582256fa3edeb396241d7bb49737abe4fd1"
+    }
+  }
+}

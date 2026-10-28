@@ -42,6 +42,12 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: hoisted.ensureTenantIdMock,
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, action) =>
+    action({ query: { branches: { findFirst: hoisted.branchFindFirstMock } } })
+  ),
+}));
+
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     query: {

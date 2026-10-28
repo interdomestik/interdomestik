@@ -8,6 +8,20 @@ const hoisted = vi.hoisted(() => ({
   getCrmForecastSnapshotBackfillStatus: vi.fn(),
   logCrmForecastSnapshotBackfillResult: vi.fn(),
   runCrmForecastSnapshotBackfillCore: vi.fn(),
+  createTenantReaders: vi.fn(),
+  withTenantContext: vi.fn(),
+  createSnapshotRepository: vi.fn(),
+  insertSnapshots: vi.fn(),
+}));
+
+vi.mock('@/app/[locale]/admin/crm/_reporting-tenant', () => ({
+  createAdminCrmReportingTenantRepositories: hoisted.createTenantReaders,
+}));
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
+}));
+vi.mock('@/adapters/crm/reporting-repository', () => ({
+  createCrmForecastSnapshotRepository: hoisted.createSnapshotRepository,
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -49,6 +63,19 @@ function request(body: unknown): NextRequest {
 describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.createTenantReaders.mockImplementation((tenantId: string) => ({
+      forecastSnapshotWorkItemRepository: { tenantId, listWorkItems: vi.fn() },
+      reportingRepository: { tenantId, listWeightedPipelineRows: vi.fn() },
+      forecastSnapshotRepository: { listLatestPipelineSnapshots: vi.fn().mockResolvedValue([]) },
+    }));
+    hoisted.withTenantContext.mockImplementation(
+      (context: { tenantId: string }, action: (tx: object) => Promise<unknown>) =>
+        action({ kind: 'test-transaction', tenantId: context.tenantId })
+    );
+    hoisted.createSnapshotRepository.mockReturnValue({
+      insertPipelineSnapshots: hoisted.insertSnapshots,
+    });
+    hoisted.insertSnapshots.mockResolvedValue({ inserted: 1 });
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.authorizeCronRequest.mockReturnValue(true);
     hoisted.getCrmForecastSnapshotBackfillStatus.mockReturnValue(200);
@@ -73,6 +100,9 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
     });
     expect(hoisted.authorizeCronRequest).not.toHaveBeenCalled();
     expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
+    expect(hoisted.createTenantReaders).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.createSnapshotRepository).not.toHaveBeenCalled();
   });
 
   it('returns 401 and performs no backfill work when unauthorized', async () => {
@@ -89,6 +119,9 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
       success: false,
     });
     expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
+    expect(hoisted.createTenantReaders).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.createSnapshotRepository).not.toHaveBeenCalled();
   });
 
   it('returns invalid_json before invoking the core', async () => {
@@ -101,6 +134,9 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
       success: false,
     });
     expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
+    expect(hoisted.createTenantReaders).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.createSnapshotRepository).not.toHaveBeenCalled();
   });
 
   it('rejects unknown fields and branchless tenant IDs with machine-readable validation codes', async () => {
@@ -129,6 +165,9 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
       success: false,
     });
     expect(hoisted.runCrmForecastSnapshotBackfillCore).not.toHaveBeenCalled();
+    expect(hoisted.createTenantReaders).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.createSnapshotRepository).not.toHaveBeenCalled();
   });
 
   it('returns the aggregate result when authorized and valid', async () => {
@@ -149,6 +188,12 @@ describe('POST /api/cron/crm/forecast-snapshots/backfill', () => {
       fromDate: '2026-05-14',
       maxWorkItemsPerDate: 10,
       now: expect.any(Date),
+      workItemRepository: expect.any(Object),
+      reportingRepository: expect.any(Object),
+      snapshotRepository: {
+        listLatestPipelineSnapshots: expect.any(Function),
+        insertPipelineSnapshots: expect.any(Function),
+      },
       tenantId: 'tenant-1',
       toDate: '2026-05-14',
     });

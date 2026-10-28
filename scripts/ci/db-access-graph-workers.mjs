@@ -1,0 +1,240 @@
+import { outputShape, sameOutputShape } from './db-access-output-binding.mjs';
+import { mergeM4ContextBatches } from './db-access-m4-context-wire.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  runOwnedGraphWorkerPool,
+  claimOwnedM4GraphTransport,
+} from './db-access-graph-worker-pool.mjs';
+import { bindM4WorkerRequest } from './db-access-m4-native-prerequisite.mjs';
+export { encodeInventory } from './db-access-inventory-wire.mjs';
+import { createHash } from 'node:crypto';
+import { PROVIDER_UNIT_POLICY } from './db-access-provider-unit-policy.mjs';
+import { candidateSources } from './db-access-trust.mjs';
+import { createIncompleteCollector } from './db-access-incomplete.mjs';
+const fail = reason => {
+  throw new Error('incomplete: graph worker ' + reason);
+};
+const ownedGraphOutputs = new WeakMap();
+const ordinaryGraphOutputs = new WeakMap();
+export const isOwnedM4ObservationGraph = graph => ordinaryGraphOutputs.has(graph);
+export function assertOwnedM4ObservationGraph(graph) {
+  const bound = ordinaryGraphOutputs.get(graph);
+  if (!bound || !sameOutputShape(bound, graph)) fail('unowned/changed ordinary observation graph');
+  return bound.digest;
+}
+export function assertOwnedGraphOutput(graph) {
+  const bound = ownedGraphOutputs.get(graph);
+  if (!bound || !sameOutputShape(bound, graph)) fail('unowned/changed/replaced merged output');
+  return bound.digest;
+}
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const codeFiles = [
+  'db-access-graph-workers.mjs',
+  'db-access-graph-worker.mjs',
+  'db-access-evaluator.mjs',
+  'db-access-finalize.mjs',
+  'db-access-m4-native-session.mjs',
+  'db-access-m4-session-authority.mjs',
+  'db-access-trust.mjs',
+  'db-access-resolver-snapshot.mjs',
+  'db-access-provider-unit-source.mjs',
+  'db-access-output-binding.mjs',
+  'db-access-graph.mjs',
+  'db-access-prepare.mjs',
+  'db-access-cli.mjs',
+  'db-access-graph-roots.mjs',
+  'db-access-graph-core.mjs',
+  'db-access-graph-worker-pool.mjs',
+  'db-access-graph-session-driver.mjs',
+  'db-access-prior-controls.mjs',
+  'db-access-m4-prior-source.mjs',
+  'db-access-m4-prior-worker.mjs',
+  'db-access-m4-prior-preparation.mjs',
+  'db-access-m4-worker-evidence.mjs',
+  'db-access-m4-worker-loader-authority.mjs',
+  'db-access-m4-worker-loader-launch.mjs',
+  'db-access-m4-worker-loader-image.mjs',
+  'db-access-m4-worker-loader-preload.mjs',
+  'db-access-m4-worker-loader-contract.json',
+];
+export function assertWorkerCode(repoRoot) {
+  for (const name of codeFiles) {
+    const file = 'scripts/ci/' + name,
+      expected = PROVIDER_UNIT_POLICY.producerFiles[file];
+    if (!expected) fail('missing authenticated producer descriptor ' + file);
+    const absolute = path.join(repoRoot, file),
+      bytes = fs.readFileSync(absolute);
+    if (
+      fs.realpathSync(absolute) !== absolute ||
+      bytes.length !== expected.bytes ||
+      hash(bytes) !== expected.sha256
+    )
+      fail('producer code drift ' + file);
+  }
+}
+export function graphSnapshot(prepared) {
+  const current = candidateSources(prepared.repoRoot);
+  for (const [file, content] of prepared.resolutionSources)
+    if (file.endsWith('/package.json')) current.set(file, content);
+  if (hash(JSON.stringify([...current])) !== hash(JSON.stringify([...prepared.sources])))
+    fail('prepared model source drift');
+  return hash(
+    JSON.stringify({
+      sources: [...current],
+      trusted: [...prepared.trusted],
+      adoption: prepared.adoption,
+      policy: PROVIDER_UNIT_POLICY,
+    })
+  );
+}
+export function hydrateInventory(model, input) {
+  const locators = new Map(),
+    requested = new Set(),
+    positions = new Map();
+  for (const item of input.entries) {
+    for (const value of [item.owner, item.operation]) {
+      if (
+        !Array.isArray(value) ||
+        value.length !== 4 ||
+        typeof value[0] !== 'string' ||
+        !value.slice(1).every(Number.isSafeInteger) ||
+        value[1] < 0 ||
+        value[2] <= value[1] ||
+        value[3] < 0
+      )
+        fail('exact owner/operation locator');
+      requested.add(JSON.stringify(value));
+      const [file, pos] = value;
+      const selected = positions.get(file) ?? new Set();
+      selected.add(pos);
+      positions.set(file, selected);
+    }
+  }
+  for (const sf of model.parsed.values()) {
+    const selected = positions.get(model.fileOf(sf));
+    if (!selected) continue;
+    if (sf.text !== model.sources.get(model.fileOf(sf))) fail('locator source/model drift');
+    model.walk(sf, node => {
+      if (!selected.has(node.pos)) return;
+      const key = JSON.stringify([model.fileOf(node), node.pos, node.end, node.kind]);
+      if (requested.has(key)) locators.set(key, locators.has(key) ? null : node);
+    });
+  }
+  if (!Array.isArray(input.changed) || new Set(input.changed).size !== input.changed.length)
+    fail('changed set');
+  return {
+    changed: new Set(input.changed),
+    entries: input.entries.map(item => {
+      const owner = locators.get(JSON.stringify(item.owner));
+      if (!owner) fail('missing or ambiguous owner');
+      const operation = locators.get(JSON.stringify(item.operation));
+      if (!operation) fail('missing or ambiguous operation');
+      let ancestor = operation;
+      while (ancestor && ancestor !== owner) ancestor = ancestor.parent;
+      const sf = model.parsed.get(item.row.file);
+      if (
+        !sf ||
+        operation.getSourceFile() !== sf ||
+        !ancestor ||
+        operation.getText(sf) !== item.row.source ||
+        operation.getText(sf) !== item.row.callee ||
+        sf.getLineAndCharacterOfPosition(operation.getStart(sf)).line + 1 !== item.row.line
+      )
+        fail('foreign operation/source/owner');
+      return {
+        ...item.row,
+        _owner: owner,
+        _node: operation,
+        _indirect: item.indirect,
+        _incomplete: item.incomplete,
+      };
+    }),
+  };
+}
+export function mergeOwnedGraphs(prepared, partitions, results) {
+  const roots = [...prepared.inventory.changed],
+    covered = partitions.flat();
+  if (
+    JSON.stringify(covered) !== JSON.stringify(roots) ||
+    new Set(covered).size !== roots.length ||
+    results.length !== partitions.length
+  )
+    fail('incomplete root partition');
+  const m4Contexts = mergeM4ContextBatches(prepared, partitions, results);
+  const incomplete = createIncompleteCollector(),
+    failures = [],
+    reachedTestSources = new Set(),
+    late = new Set();
+  for (const file of prepared.provenance.environmentChanges)
+    incomplete.push({
+      file,
+      reason: 'unsupported mutable global environment root',
+    });
+  const initial = new Set(prepared.provenance.analysisUnknown);
+  for (const reason of initial) incomplete.push({ file: '<analysis>', reason });
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (JSON.stringify(result.origins) !== JSON.stringify(partitions[i]))
+      fail('origin response mismatch');
+    const allowed = new Set(partitions[i]);
+    if (result.failures.some(row => !allowed.has(row.mountedFrom))) fail('foreign failure origin');
+    const count = result.incomplete.reduce((sum, row) => sum + row.occurrences, 0);
+    if (count !== result.incompleteRawCount) fail('diagnostic count mismatch');
+    for (const failure of result.failures) failures.push(failure);
+    for (const row of result.incomplete) {
+      if (!Number.isSafeInteger(row.occurrences) || row.occurrences < 1)
+        fail('invalid multiplicity');
+      if (row.file === '<analysis>') {
+        if (row.reason !== 'provenance-work-bound' || row.occurrences !== 1)
+          fail('unexpected late reason');
+        if (!initial.has(row.reason)) late.add(row.reason);
+      } else {
+        if (!allowed.has(row.file)) fail('foreign diagnostic origin');
+        incomplete.push(row);
+      }
+    }
+    for (const file of result.reachedTestSources) reachedTestSources.add(file);
+  }
+  for (const reason of late) incomplete.push({ file: '<analysis>', reason });
+  return {
+    failures,
+    incomplete: incomplete.entries,
+    incompleteRawCount: incomplete.rawCount,
+    reachedTestSources,
+    ...(m4Contexts ? { m4Contexts: { ...m4Contexts, unresolved: incomplete.entries } } : {}),
+  };
+}
+export async function runParallelGraph(prepared, input, pool) {
+  assertWorkerCode(prepared.repoRoot);
+  const roots = [...prepared.inventory.changed];
+  const m4Request = prepared.m4NativeInventory
+    ? bindM4WorkerRequest(prepared.m4NativeInventory, input)
+    : undefined;
+  if (!roots.length && !m4Request) return mergeOwnedGraphs(prepared, [], []);
+  const partitions = [];
+  for (let i = 0; i < roots.length; i += 64) partitions.push(roots.slice(i, i + 64));
+  const results = await runOwnedGraphWorkerPool(
+    pool,
+    partitions,
+    {
+      ...input,
+      initialUnknown: [...prepared.provenance.analysisUnknown],
+    },
+    m4Request
+  );
+  assertWorkerCode(prepared.repoRoot);
+  if (graphSnapshot(prepared) !== input.snapshot) fail('parent source drift');
+  const merged = mergeOwnedGraphs(prepared, partitions, results);
+  if (m4Request) {
+    const transport = claimOwnedM4GraphTransport(results);
+    if (transport.kind === 'qualified-loader') {
+      merged.m4WorkerTransport = transport.proof;
+      ownedGraphOutputs.set(merged, outputShape(merged));
+    } else if (transport.kind === 'ordinary-observation') {
+      merged.m4ObservationTransport = transport.proof;
+      ordinaryGraphOutputs.set(merged, outputShape(merged));
+    } else fail('foreign M4 transport mode');
+  }
+  return merged;
+}

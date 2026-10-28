@@ -16,10 +16,10 @@ export function createActiveAnnualMembershipState(now: Date): {
   };
 }
 
-export async function resolveCanonicalMembershipPlanState(params: {
-  tenantId: string;
-  planId: string;
-}): Promise<{
+export async function resolveCanonicalMembershipPlanState(
+  params: { tenantId: string; planId: string },
+  client: Pick<typeof db, 'select'> = db
+): Promise<{
   planId: string;
   planKey: string | null;
 }> {
@@ -34,7 +34,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
     rawPlanId === 'standard' || rawPlanId === 'family' || rawPlanId === 'business'
       ? rawPlanId
       : null;
-  const [planById] = await db
+  const [planById] = await client
     .select({
       id: membershipPlans.id,
       tier: membershipPlans.tier,
@@ -50,7 +50,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByProviderId] = await db
+  const [planByProviderId] = await client
     .select({
       id: membershipPlans.id,
       tier: membershipPlans.tier,
@@ -78,7 +78,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByTier] = await db
+  const [planByTier] = await client
     .select({
       id: membershipPlans.id,
       tier: membershipPlans.tier,

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { and, count, eq, inArray } from 'drizzle-orm';
 
@@ -24,26 +24,30 @@ function getBranchCashTruthFilter(scope: BranchCashScope) {
 
 export async function getBranchCashPendingCount(scope: BranchCashScope): Promise<number> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const [result] = await db
-    .select({ count: count() })
-    .from(leadPaymentAttempts)
-    .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-    .where(getBranchCashTruthFilter(scope));
+  const [result] = await withTenantContext({ tenantId: scope.tenantId }, tx =>
+    tx
+      .select({ count: count() })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .where(getBranchCashTruthFilter(scope))
+  );
 
   return result?.count ?? 0;
 }
 
 export async function getBranchCashPendingByBranch(tenantId: string): Promise<Map<string, number>> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const rows = await db
-    .select({
-      branchId: memberLeads.branchId,
-      count: count(),
-    })
-    .from(leadPaymentAttempts)
-    .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-    .where(getTenantCashTruthFilter(tenantId))
-    .groupBy(memberLeads.branchId);
+  const rows = await withTenantContext({ tenantId: tenantId }, tx =>
+    tx
+      .select({
+        branchId: memberLeads.branchId,
+        count: count(),
+      })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .where(getTenantCashTruthFilter(tenantId))
+      .groupBy(memberLeads.branchId)
+  );
 
   return new Map(rows.map(row => [row.branchId, row.count]));
 }
@@ -52,15 +56,17 @@ export async function getBranchCashPendingByAgent(
   scope: BranchCashScope
 ): Promise<Map<string, number>> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const rows = await db
-    .select({
-      agentId: memberLeads.agentId,
-      count: count(),
-    })
-    .from(leadPaymentAttempts)
-    .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-    .where(getBranchCashTruthFilter(scope))
-    .groupBy(memberLeads.agentId);
+  const rows = await withTenantContext({ tenantId: scope.tenantId }, tx =>
+    tx
+      .select({
+        agentId: memberLeads.agentId,
+        count: count(),
+      })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .where(getBranchCashTruthFilter(scope))
+      .groupBy(memberLeads.agentId)
+  );
 
   return new Map(rows.map(row => [row.agentId, row.count]));
 }

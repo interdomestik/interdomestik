@@ -2,7 +2,7 @@ import { DocumentList } from '@/components/documents/document-list';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
 import { Link } from '@/i18n/routing';
-import { claimDocuments, claims, db, desc, eq } from '@interdomestik/database';
+import { claimDocuments, claims, withTenantContext, desc, eq } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
@@ -26,33 +26,37 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
 
   const tDocs = await getTranslations('documents');
 
-  const userClaims = await db
-    .select({
-      id: claims.id,
-      title: claims.title,
-    })
-    .from(claims)
-    .where(and(eq(claims.userId, sessionNonNull.user.id), eq(claims.tenantId, tenantId)))
-    .orderBy(desc(claims.createdAt));
+  const { userClaims, documents } = await withTenantContext({ tenantId }, async tx => {
+    const userClaims = await tx
+      .select({
+        id: claims.id,
+        title: claims.title,
+      })
+      .from(claims)
+      .where(and(eq(claims.userId, sessionNonNull.user.id), eq(claims.tenantId, tenantId)))
+      .orderBy(desc(claims.createdAt));
 
-  const documents = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      claimId: claimDocuments.claimId,
-    })
-    .from(claimDocuments)
-    .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(
-      and(
-        eq(claims.userId, sessionNonNull.user.id),
-        eq(claims.tenantId, tenantId),
-        eq(claimDocuments.tenantId, tenantId)
+    const documents = await tx
+      .select({
+        id: claimDocuments.id,
+        name: claimDocuments.name,
+        fileSize: claimDocuments.fileSize,
+        fileType: claimDocuments.fileType,
+        claimId: claimDocuments.claimId,
+      })
+      .from(claimDocuments)
+      .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
+      .where(
+        and(
+          eq(claims.userId, sessionNonNull.user.id),
+          eq(claims.tenantId, tenantId),
+          eq(claimDocuments.tenantId, tenantId)
+        )
       )
-    )
-    .orderBy(desc(claimDocuments.createdAt));
+      .orderBy(desc(claimDocuments.createdAt));
+
+    return { userClaims, documents };
+  });
 
   const documentsByClaim = documents.reduce<Record<string, DocumentRow[]>>((acc, doc) => {
     if (!acc[doc.claimId]) acc[doc.claimId] = [];

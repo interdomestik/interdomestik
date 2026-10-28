@@ -139,6 +139,19 @@ jobs:
               || fail "approved resolver-transition guard unreachable"
             protected="$transition_guard"
           fi
+          # Exact restricted-LOGIN successor: the separately reviewed G2 source is fixed.
+          # Native required W independently binds the candidate/event and executes all runtime proofs.
+          if [[ "$EVENT_NAME" == pull_request && "$DEFAULT_BRANCH" == main && "$PR_BASE_REF" == main \
+            && "$protected" == 18cd1a73b12f589c69934cba862092d857434013 ]]; then
+            transition_guard='34d9afbd690510c13c0148464125407498be624b'
+            transition_tree='f5212a7503af124f07b66f90984d2211ea6ebaad'
+            [[ "$("${gd[@]}" cat-file -t "$transition_guard" 2>/dev/null || true)" == commit \
+              && "$("${gd[@]}" rev-parse -q --verify "$transition_guard^{tree}" || true)" == "$transition_tree" ]] \
+              || fail "approved provider-transition guard identity"
+            [[ -n "$("${gd[@]}" for-each-ref --count=1 --contains "$transition_guard" --format='%(refname)' refs/protected/ 2>/dev/null || true)" ]] \
+              || fail "approved provider-transition guard unreachable"
+            protected="$transition_guard"
+          fi
           tgz="$work/typescript.tgz"
           if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
             # Local test seam only; the tarball is still bound to the protected lock integrity.
@@ -240,6 +253,22 @@ jobs:
               visit(sf);
             }
             if (generation === 'legacy') files.set('scripts/ci/db-access-baseline.json', blob('scripts/ci/db-access-baseline.json'));
+            if (tree.has('scripts/ci/db-access-provider-unit-policy.json')) {
+              // Fixed provider policy data is a blob from the same G2 tree, before any policy import.
+              const policyData = 'scripts/ci/db-access-provider-unit-policy.json';
+              const policyBytes = blob(policyData);
+              if (tree.get(policyData).mode !== '100644' || policyBytes.length === 0 || policyBytes.length > 128 * 1024)
+                fail('fixed provider policy data mode/size');
+              files.set(policyData, policyBytes);
+              const messageData = 'scripts/ci/db-access-message-proof-policy.json';
+              const messageExpected = JSON.parse(policyBytes).producerFiles[messageData];
+              const messageBytes = blob(messageData);
+              if (!messageExpected || tree.get(messageData).mode !== messageExpected.mode
+                || messageBytes.length !== messageExpected.bytes || messageBytes.length > 128 * 1024
+                || createHash('sha256').update(messageBytes).digest('hex') !== messageExpected.sha256)
+                fail('fixed message policy data authentication');
+              files.set(messageData, messageBytes);
+            }
             for (const [file, bytes] of files) {
               fs.mkdirSync(path.dirname(path.join(out, file)), { recursive: true });
               fs.writeFileSync(path.join(out, file), bytes, { flag: 'wx', mode: 0o444 });
@@ -362,7 +391,7 @@ jobs:
         env: { EXPECTED_IDENTITY: '${{ steps.main_coverage_reuse.outputs.identity }}' }
         run: node scripts/ci/main-coverage-reuse.mjs assert-identity
       - name: Release Gate Unit Tests
-        run: pnpm test:release-gate
+        uses: ./.github/actions/ordinary-pr-coverage
   ai-eval:
     needs: [validation-surface]
     if: needs.validation-surface.outputs.run_broad == 'true' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
@@ -399,7 +428,9 @@ jobs:
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}
       - name: Generate ephemeral E2E credentials
-        run: bash scripts/ci/export-e2e-credentials.sh
+        run: |
+          bash scripts/ci/export-e2e-credentials.sh
+          bash scripts/ci/export-e2e-rls.sh
       - name: Enforce E2E Best Practices
         if: github.event_name != 'pull_request'
         run: pnpm --filter @interdomestik/web run e2e:guards
@@ -407,8 +438,8 @@ jobs:
         run: |
           pnpm db:migrate
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            pnpm seed:e2e
-            pnpm seed:assert-e2e
+            node scripts/ci/run-e2e-seed-admin.mjs seed
+            node scripts/ci/run-e2e-seed-admin.mjs assert
           fi
       - name: RLS Integration Test
         env:
@@ -419,5 +450,5 @@ jobs:
         if: github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'
         env:
           E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
-          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL_RLS }}
         run: pnpm e2e:gate

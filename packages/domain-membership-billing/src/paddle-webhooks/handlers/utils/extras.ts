@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { referrals } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
@@ -34,10 +34,10 @@ async function processCommissions(args: {
 
   if (!agentId || transactionTotal <= 0) return;
 
-  const agentSettings = await db.query.agentSettings?.findFirst({
+  const agentSettings = await withTenantContext({ tenantId, role: 'system' }, tx => tx.query.agentSettings?.findFirst({
     where: (settings, { and, eq }) =>
       and(eq(settings.agentId, agentId), eq(settings.tenantId, tenantId)),
-  });
+  }));
   const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
 
   const commissionAmount = calculateCommission('new_membership', transactionTotal, customRates);
@@ -102,12 +102,12 @@ async function processMemberReferralRewards(args: {
 
   if (resolveNewMembershipOwnership({ userRecord, customData }).agentId) return;
 
-  const referralRow = await db.query.referrals.findFirst({
+  const referralRow = await withTenantContext({ tenantId, role: 'system' }, tx => tx.query.referrals.findFirst({
     where: and(eq(referrals.tenantId, tenantId), eq(referrals.referredId, userId)),
     columns: {
       id: true,
     },
-  });
+  }));
 
   const rewardResult = await createMemberReferralRewardCore({
     tenantId,

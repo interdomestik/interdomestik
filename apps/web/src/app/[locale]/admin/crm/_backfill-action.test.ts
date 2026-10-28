@@ -19,7 +19,7 @@ vi.mock('next/cache', () => ({
   revalidatePath: hoisted.revalidatePath,
 }));
 
-vi.mock('./_backfill-core', () => ({
+vi.mock('./_backfill-tenant', () => ({
   runAdminCrmForecastBackfillOperatorCore: hoisted.runCore,
 }));
 

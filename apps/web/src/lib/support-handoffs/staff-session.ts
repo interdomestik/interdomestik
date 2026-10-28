@@ -1,4 +1,4 @@
-import { and, db, eq, user } from '@interdomestik/database';
+import { and, withTenantContext, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 type StaffSupportSession = {
@@ -37,10 +37,12 @@ export async function resolveStaffSupportSessionBranch<T extends StaffSupportSes
     return currentSession as StaffSupportSessionWithBranch<T>;
   }
 
-  const staffUser = await db.query.user.findFirst({
-    where: withTenant(tenantId, user.tenantId, and(eq(user.id, userId), eq(user.role, role))),
-    columns: { branchId: true },
-  });
+  const staffUser = await withTenantContext({ tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: withTenant(tenantId, user.tenantId, and(eq(user.id, userId), eq(user.role, role))),
+      columns: { branchId: true },
+    })
+  );
 
   if (!staffUser?.branchId) {
     return null;

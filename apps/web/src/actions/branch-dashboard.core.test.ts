@@ -23,6 +23,12 @@ vi.mock('@interdomestik/database/db', () => ({
   db: mockDb,
 }));
 
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  withTenantContext: async (_context: unknown, callback: (tx: typeof mockDb) => unknown) =>
+    callback(mockDb),
+}));
+
 vi.mock('@interdomestik/database/schema', () => ({
   branches: { id: 'branches.id', tenantId: 'branches.tenantId' },
   user: {

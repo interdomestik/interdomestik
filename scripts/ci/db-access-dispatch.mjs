@@ -276,6 +276,7 @@ export function createDispatch(model, legacy, { maxRounds = 16, maxEntries = 200
     },
     callsFor: fn => build().callers.get(fn) ?? [],
     bindingsFor: context => build().resolver.bindingsFor(context),
+    peekBindingsFor: context => current?.resolver.peekBindingsFor(context),
     contextsFor: fn => [...(build().contexts.get(fn)?.values() ?? [])],
   };
 }

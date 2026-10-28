@@ -86,6 +86,12 @@ export type TargetLockRead = Readonly<{
   where: unknown;
   strength: string;
 }>;
+export type ClaimRead = Readonly<{
+  fields: Record<string, unknown>;
+  table: unknown;
+  where: unknown;
+  limit: number;
+}>;
 
 export type FakeTxOptions = Readonly<{
   /** Pass `claim: undefined` explicitly for a missing claim; omit for UNASSIGNED_CLAIM. */
@@ -114,6 +120,10 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     if (options.targetLockError) return Promise.reject(options.targetLockError);
     return Promise.resolve(target ? [target] : []);
   });
+  const claimRead = vi.fn((_read: ClaimRead): Promise<Row[]> => {
+    if (options.claimReadError) return Promise.reject(options.claimReadError);
+    return Promise.resolve(claim ? [claim] : []);
+  });
   const tx = {
     query: {
       claims: {
@@ -126,6 +136,7 @@ export function createFakeTx(options: FakeTxOptions = {}) {
       from: (table: unknown) => ({
         where: (where: unknown) => ({
           for: (strength: string) => targetLock({ fields, table, where, strength }),
+          limit: (limit: number) => claimRead({ fields, table, where, limit }),
         }),
       }),
     })),
@@ -157,7 +168,7 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     })),
     insert: vi.fn((_table: unknown) => ({ values: auditValues })),
   };
-  return { tx, updateSet, updateWhere, auditValues, targetLock };
+  return { tx, updateSet, updateWhere, auditValues, targetLock, claimRead };
 }
 
 /** Routes withTenantContext to the fake tx and records whether the callback returned or threw. */

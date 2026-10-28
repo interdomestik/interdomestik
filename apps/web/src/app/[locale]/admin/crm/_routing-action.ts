@@ -9,7 +9,7 @@ import {
   resolveAdminCrmRoutingActor,
   runAdminCrmRoutingRuleAction,
   type AdminCrmRoutingActionKind,
-} from './_routing-core';
+} from './_routing-tenant';
 import type { AdminCrmRoutingActionResult } from './_routing-types';
 
 export type AdminCrmRoutingActionState = AdminCrmRoutingActionResult | { status: 'idle' };

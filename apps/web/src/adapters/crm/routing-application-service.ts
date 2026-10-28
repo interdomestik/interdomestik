@@ -1,5 +1,6 @@
 import {
   applyCrmLeadRoutingDecision,
+  preflightCrmLeadRoutingDecision,
   CrmRoutingApplicationRollback,
   type ApplyCrmLeadRoutingDecisionInput,
   type ApplyCrmLeadRoutingDecisionResult,
@@ -16,7 +17,8 @@ import type { CrmOutboxPort } from '@interdomestik/domain-crm/outbox';
 import { randomUUID } from 'node:crypto';
 import { and, count, eq, gte, inArray, isNull } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import type { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import {
   crmActivities,
   crmLeadOwnershipHistory,
@@ -32,7 +34,6 @@ type CrmLeadRow = typeof crmLeads.$inferSelect;
 type AgentCountRow = { agentId: string; count: number };
 
 export type ApplyCrmLeadRoutingDecisionCoordinatorOptions = {
-  database?: CrmRoutingApplicationDb;
   createOutboxPort(database: CrmRoutingApplicationDb): Pick<CrmOutboxPort, 'appendEvent'>;
   services?: {
     outboxEventId(): string;
@@ -226,17 +227,20 @@ function createRoutingApplicationPorts(
   };
 }
 
+// Internal application boundary: the caller must supply an already trusted actor.
+// This coordinator is not a session authenticator or a mounted request entry.
 export function createApplyCrmLeadRoutingDecisionCoordinator(
   options: ApplyCrmLeadRoutingDecisionCoordinatorOptions
 ) {
-  const database = options.database ?? db;
   const services = options.services ?? { outboxEventId: randomUUID };
 
   return async function applyCrmLeadRoutingDecisionInTransaction(
     input: ApplyCrmLeadRoutingDecisionInput
   ): Promise<ApplyCrmLeadRoutingDecisionResult> {
     try {
-      return await database.transaction(async tx => {
+      const denied = preflightCrmLeadRoutingDecision(input);
+      if (denied) return denied;
+      return await withTenantContext({ tenantId: input.actor.tenantId }, async tx => {
         const transaction = tx as never as CrmRoutingApplicationDb;
         return applyCrmLeadRoutingDecision(
           input,

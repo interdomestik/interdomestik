@@ -101,5 +101,10 @@ export function createLocalInvocations(
     };
     return { ...result, targets: [target] };
   }
-  return Object.freeze({ resolveCallable, resolveCall, bindingsFor: frames.bindingsFor });
+  return Object.freeze({
+    resolveCallable,
+    resolveCall,
+    bindingsFor: frames.bindingsFor,
+    peekBindingsFor: frames.peekBindingsFor,
+  });
 }

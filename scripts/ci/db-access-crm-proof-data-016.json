@@ -1,0 +1,11 @@
+{
+  "kind": "diagnostics.v1.caseSets",
+  "value": {
+    "offset": 0,
+    "items": [
+      ["crm-source-authority-eight-string-sites-v1"],
+      ["crm-source-native-set-has-exact-134-v1"],
+      ["crm-v20-source-diagnostic-81c1d7c98f1770bbe302644429c5bfa6e553d5f0bf128436777fe60cf3887b69"]
+    ]
+  }
+}

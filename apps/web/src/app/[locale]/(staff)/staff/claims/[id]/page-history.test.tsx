@@ -36,6 +36,7 @@ it('keeps the uncertain save visible in ordered history after a newer public upd
   expect(screen.getByTestId('staff-status-history')).toHaveAttribute('id', 'staff-status-history');
   expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
     claimId: 'claim-1',
+    role: 'staff',
     tenantId: 'tenant-ks',
   });
 });
@@ -65,4 +66,15 @@ it('does not read public history when claim authorization fails', async () => {
   hoisted.getStaffClaimDetailMock.mockResolvedValueOnce(null as never);
   await expect(renderPage()).rejects.toThrow('notFound');
   expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledTimes(previousReads);
+});
+
+it('denies a member before the parent claim or public history reads', async () => {
+  hoisted.getSessionMock.mockResolvedValueOnce({
+    user: { id: 'member-1', tenantId: 'tenant-ks', role: 'member', branchId: 'branch-a' },
+  });
+  const parentReads = hoisted.getStaffClaimDetailMock.mock.calls.length;
+  const historyReads = hoisted.getPublicStatusHistoryCoreMock.mock.calls.length;
+  await expect(renderPage()).rejects.toThrow('notFound');
+  expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledTimes(parentReads);
+  expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledTimes(historyReads);
 });

@@ -1,6 +1,6 @@
 import { acknowledgeSupportHandoffPublicResponseCore as acknowledgeDomainPublicResponse } from '@interdomestik/domain-claims/support-handoffs/acknowledgement';
 
-import { logAuditEvent } from '@/lib/audit';
+import { logSupportHandoffAuditEvent as logAuditEvent } from './audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -26,7 +26,9 @@ export async function acknowledgeSupportHandoffPublicResponseCore(params: {
   requestHeaders?: Headers;
   session: NonNullable<Session> | null;
 }) {
-  const result = await acknowledgeDomainPublicResponse(params, { logAuditEvent });
+  const result = await acknowledgeDomainPublicResponse(params, {
+    logAuditEvent,
+  });
 
   if (shouldRevalidateAcknowledgementResult(result)) {
     revalidateSupportHandoffAcknowledgementPaths(

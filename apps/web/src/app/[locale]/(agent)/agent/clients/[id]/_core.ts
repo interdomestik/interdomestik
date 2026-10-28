@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import {
   agentClients,
   memberActivities,
@@ -6,11 +6,12 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
-import { getAgentMemberDetail } from '@interdomestik/domain-agent';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { getAgentClientClaimSummary, type AgentClientClaimCounts } from './_claim-summary';
 export type { AgentClientClaimCounts } from './_claim-summary';
+
+const AGENT_CLIENT_PROFILE_ROLE = 'agent';
 
 const membershipStatusStyles: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -37,77 +38,84 @@ export type AgentClientProfileOk = {
 };
 
 export type AgentClientProfileResult =
-  | { kind: 'not_found' }
-  | { kind: 'forbidden' }
-  | AgentClientProfileOk;
+  { kind: 'not_found' } | { kind: 'forbidden' } | AgentClientProfileOk;
 
+type AgentClientProfileReadParams = {
+  memberId: string;
+  agentId: string;
+  tenantId: string;
+};
+
+/**
+ * Agent client profile read model.
+ * Validates the exercised session role and effective access tenant before any read, then performs
+ * the whole read closure inside one tenant-context transaction. Admission is the active canonical
+ * agent_clients relationship; no member or private child data is read before it is established.
+ * Database failures propagate to the route error boundary.
+ */
 export async function getAgentClientProfileCore(args: {
   memberId: string;
   viewer: { id: string; role?: string | null; tenantId?: string | null };
 }): Promise<AgentClientProfileResult> {
   const { memberId, viewer } = args;
-  const tenantId = viewer.tenantId ?? null;
+  const role = viewer.role;
 
+  if (role !== AGENT_CLIENT_PROFILE_ROLE) {
+    return { kind: 'forbidden' };
+  }
+
+  const tenantId = viewer.tenantId?.trim();
   if (!tenantId) {
     return { kind: 'forbidden' };
   }
 
-  const member = await fetchMember(memberId, tenantId);
+  return withTenantContext({ tenantId, role }, tx =>
+    readAgentClientProfile(tx, { memberId, agentId: viewer.id, tenantId })
+  );
+}
+
+async function readAgentClientProfile(
+  tx: TenantTransaction,
+  params: AgentClientProfileReadParams
+): Promise<AgentClientProfileResult> {
+  const { memberId, agentId, tenantId } = params;
+
+  const assignments = await tx
+    .select({ id: agentClients.id })
+    .from(agentClients)
+    .where(
+      and(
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.agentId, agentId),
+        eq(agentClients.memberId, memberId),
+        eq(agentClients.status, 'active')
+      )
+    )
+    .limit(1);
+
+  if (assignments.length === 0) {
+    return { kind: 'forbidden' };
+  }
+
+  const member = await fetchMember(tx, memberId, tenantId);
 
   if (!member) {
     return { kind: 'not_found' };
   }
 
-  if (viewer.role === 'agent') {
-    const assignments = await db
-      .select()
-      .from(agentClients)
-      .where(
-        and(
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.agentId, viewer.id),
-          eq(agentClients.memberId, member.id),
-          eq(agentClients.status, 'active')
-        )
-      )
-      .limit(1);
-
-    if (assignments.length === 0) {
-      // Auth widening (Phase C pilot):
-      // Allow if the member is assigned to the agent via domain-agent assignment rules.
-      // Do not re-implement assignment logic in web.
-      let assignment: unknown = null;
-      try {
-        assignment = await getAgentMemberDetail({
-          agentId: viewer.id,
-          tenantId,
-          memberId: member.id,
-        });
-      } catch {
-        // Defensive: domain-agent should return null for non-assigned, but never let a throw
-        // turn into a 500 from the shared loader.
-        assignment = null;
-      }
-
-      if (!assignment) {
-        return { kind: 'forbidden' };
-      }
-    }
-  }
-
   const [subscription, preferences, claimSummary, activities] = await Promise.all([
-    db.query.subscriptions.findFirst({
+    tx.query.subscriptions.findFirst({
       where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
     }),
-    db.query.userNotificationPreferences.findFirst({
+    tx.query.userNotificationPreferences.findFirst({
       where: and(
         eq(userNotificationPreferences.userId, member.id),
         eq(userNotificationPreferences.tenantId, tenantId)
       ),
     }),
-    getAgentClientClaimSummary(member.id, tenantId),
-    db.query.memberActivities.findMany({
+    getAgentClientClaimSummary(tx, member.id, tenantId),
+    tx.query.memberActivities.findMany({
       where: and(eq(memberActivities.memberId, member.id), eq(memberActivities.tenantId, tenantId)),
       orderBy: [desc(memberActivities.occurredAt)],
       with: {
@@ -140,8 +148,8 @@ export async function getAgentClientProfileCore(args: {
   };
 }
 
-async function fetchMember(memberId: string, tenantId: string) {
-  return db.query.user.findFirst({
+async function fetchMember(tx: TenantTransaction, memberId: string, tenantId: string) {
+  return tx.query.user.findFirst({
     where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
     with: {
       agent: {
@@ -156,9 +164,11 @@ async function fetchMember(memberId: string, tenantId: string) {
   });
 }
 
+type TenantQuery = TenantTransaction['query'];
+
 export type MemberRecord = NonNullable<Awaited<ReturnType<typeof fetchMember>>>;
-export type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>;
+export type SubscriptionRecord = Awaited<ReturnType<TenantQuery['subscriptions']['findFirst']>>;
 export type PreferencesRecord = Awaited<
-  ReturnType<typeof db.query.userNotificationPreferences.findFirst>
+  ReturnType<TenantQuery['userNotificationPreferences']['findFirst']>
 >;
-export type MemberActivities = Awaited<ReturnType<typeof db.query.memberActivities.findMany>>;
+export type MemberActivities = Awaited<ReturnType<TenantQuery['memberActivities']['findMany']>>;

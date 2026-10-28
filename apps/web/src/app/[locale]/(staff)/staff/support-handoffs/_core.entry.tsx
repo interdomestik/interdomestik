@@ -1,3 +1,4 @@
+import { getAssignableStaff } from './_assignable-staff';
 import {
   acceptSupportHandoff,
   closeSupportHandoff,
@@ -6,8 +7,6 @@ import {
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { resolveStaffSupportSessionBranch } from '@/lib/support-handoffs/staff-session';
-import { and, db, eq, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   getStaffSupportHandoffQueue,
   type SupportHandoffClaimLinkFilter,
@@ -109,24 +108,6 @@ function buildSupportHandoffsHref(args: {
   if (args.search) params.set('search', args.search);
   const query = params.toString();
   return query ? `/staff/support-handoffs?${query}` : '/staff/support-handoffs';
-}
-
-async function getAssignableStaff(args: { branchId: string | null; tenantId: string }) {
-  return db.query.user.findMany({
-    where: withTenant(
-      args.tenantId,
-      user.tenantId,
-      args.branchId
-        ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
-        : eq(user.role, 'staff')
-    ),
-    columns: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-    },
-  });
 }
 
 function getFilterOptions<T extends string>(args: {

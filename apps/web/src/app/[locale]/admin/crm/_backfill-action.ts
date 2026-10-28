@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { getSessionSafe } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
 
-import { runAdminCrmForecastBackfillOperatorCore } from './_backfill-core';
+import { runAdminCrmForecastBackfillOperatorCore } from './_backfill-tenant';
 import type {
   AdminCrmForecastBackfillOperatorActionInput,
   AdminCrmForecastBackfillOperatorActionResult,

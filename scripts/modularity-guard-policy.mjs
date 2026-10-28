@@ -43,8 +43,16 @@ const PRODUCTION_EXTENSIONS = new Set('.cjs .css .js .jsx .mjs .sh .ts .tsx'.spl
 const STRUCTURED_EXTENSIONS = new Set(['.json', '.jsonl', '.toml', '.yaml', '.yml']);
 /** @type {ReadonlyArray<readonly [RegExp, string]>} */
 const STRUCTURED_OWNERS = [
+  [/^scripts\/ci\/m4-compiled-fixture\/project\/jsconfig\.json$/u, 'm4-compiled-fixture-jsconfig'],
+  [/^scripts\/ci\/p2\/(?:policy|capsule-layout)\.json$/u, 'p2-fixed-producer-contract'],
+  [
+    /^scripts\/ci\/p2\/legacy-bank\/(?:policy|capsule-layout)\.json$/u,
+    'p2-original-fixed-producer-contract',
+  ],
+  [/^docs\/delivery-contract\.yml$/u, 'track-audit-delivery-contract'],
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
+  [/^\.github\/actions\/ordinary-pr-coverage\/action\.yml$/u, 'm4-ordinary-pr-coverage-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
   [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],

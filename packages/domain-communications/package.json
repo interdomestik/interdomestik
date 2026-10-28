@@ -27,7 +27,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
-    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run src/messages/tenant-context.integration.test.ts",
+    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run src/messages/tenant-context.integration.test.ts src/messages/agent-context.integration.test.ts src/messages/public-reply-notification.integration.test.ts",
     "test": "vitest run"
   },
   "dependencies": {

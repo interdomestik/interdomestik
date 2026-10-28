@@ -157,7 +157,6 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
-      DATABASE_URL_RLS: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       TURBO_TOKEN: ${{ github.event_name == 'workflow_dispatch' && secrets.TURBO_TOKEN || '' }}
       TURBO_TEAM: ${{ github.event_name == 'workflow_dispatch' && (vars.TURBO_TEAM || secrets.TURBO_TEAM) || '' }}
       TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ github.event_name == 'workflow_dispatch' && secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY || '' }}
@@ -203,7 +202,9 @@ jobs:
           install-playwright: true
 
       - name: Generate ephemeral E2E credentials
-        run: bash scripts/ci/export-e2e-credentials.sh
+        run: |
+          bash scripts/ci/export-e2e-credentials.sh
+          bash scripts/ci/export-e2e-rls.sh
 
       - name: Run Sonar quality gate (manual fallback)
         if: env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')
@@ -233,8 +234,8 @@ jobs:
             sleep 2
           done
           pnpm db:migrate
-          pnpm seed:e2e
-          pnpm seed:assert-e2e
+          node scripts/ci/run-e2e-seed-admin.mjs seed
+          node scripts/ci/run-e2e-seed-admin.mjs assert
 
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci

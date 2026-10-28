@@ -10,8 +10,8 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/acknowledgement', () => (
   acknowledgeSupportHandoffPublicResponseCore: mocks.acknowledgeDomainPublicResponse,
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: mocks.logAuditEvent,
+vi.mock('./audit', () => ({
+  logSupportHandoffAuditEvent: mocks.logAuditEvent,
 }));
 
 vi.mock('next/cache', () => ({

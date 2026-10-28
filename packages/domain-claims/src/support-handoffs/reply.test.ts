@@ -54,7 +54,7 @@ const mocks = vi.hoisted(() => {
 function databaseExports() {
   return {
     and: mocks.and,
-    db: mocks.db,
+    withTenantContext: vi.fn(async (_context, action) => action(mocks.db)),
     eq: mocks.eq,
     sql: mocks.sql,
     supportHandoffs: mocks.supportHandoffs,
@@ -91,20 +91,6 @@ function submitReply(session: SupportHandoffSession | null = memberSession()) {
     replyText: '  This resolves my request.  ',
     session,
   });
-}
-
-function fallbackRow(overrides = {}) {
-  return {
-    acknowledgedAt: new Date('2026-05-05T08:30:00.000Z'),
-    acknowledgedById: 'member-1',
-    acknowledgedVersion: 2,
-    memberReplyAt: null,
-    memberReplyResponseVersion: null,
-    publicResponse: 'Staff update',
-    publicResponseVersion: 2,
-    status: 'accepted',
-    ...overrides,
-  };
 }
 
 function findSqlCallWithValue(value: unknown) {
@@ -239,106 +225,5 @@ describe('support handoff member reply', () => {
       success: false,
     });
     expect(mocks.db.update).not.toHaveBeenCalled();
-  });
-
-  it('returns already-replied when the update fallback finds a same-cycle reply', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([
-      fallbackRow({
-        memberReplyAt: new Date('2026-05-05T08:45:00.000Z'),
-        memberReplyResponseVersion: 2,
-      }),
-    ]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'ALREADY_REPLIED',
-      error: 'You already replied to this response.',
-      success: false,
-    });
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('keeps the bounded reply model terminal after staff follow-up', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([
-      fallbackRow({
-        memberReplyAt: new Date('2026-05-05T08:45:00.000Z'),
-        memberReplyResponseVersion: 1,
-        publicResponseVersion: 2,
-      }),
-    ]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'ALREADY_REPLIED',
-      error: 'You already replied to this response.',
-      success: false,
-    });
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('returns stale-version when staff updated the response before the reply persisted', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([fallbackRow({ publicResponseVersion: 3 })]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'STALE_VERSION',
-      error: 'The support team updated this response. Please review the latest update.',
-      success: false,
-    });
-  });
-
-  it('requires an acknowledged current response before accepting a reply', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([fallbackRow({ acknowledgedAt: null })]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'NOT_ACKNOWLEDGED',
-      error: 'Please acknowledge this response before replying.',
-      success: false,
-    });
-  });
-
-  it('does not accept replies when no current public response exists', async () => {
-    await expect(
-      submitSupportHandoffMemberReplyCore({
-        expectedPublicResponseVersion: 0,
-        handoffId: 'handoff-1',
-        replyText: 'Trying to reply without a response.',
-        session: memberSession(),
-      })
-    ).resolves.toEqual({
-      code: 'NO_RESPONSE',
-      error: 'Unable to reply to this response.',
-      success: false,
-    });
-    expect(mocks.db.update).not.toHaveBeenCalled();
-
-    mocks.updateReturning.mockResolvedValue([]);
-    mocks.selectLimit.mockResolvedValueOnce([]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'UNAUTHORIZED',
-      error: 'Unable to reply to this response.',
-      success: false,
-    });
-
-    mocks.selectLimit.mockResolvedValueOnce([fallbackRow({ publicResponse: null })]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'NO_RESPONSE',
-      error: 'Unable to reply to this response.',
-      success: false,
-    });
-  });
-
-  it('does not accept replies for closed handoffs', async () => {
-    mocks.updateReturning.mockResolvedValueOnce([]);
-    mocks.selectLimit.mockResolvedValueOnce([fallbackRow({ status: 'closed' })]);
-
-    await expect(submitReply()).resolves.toEqual({
-      code: 'CLOSED',
-      error: 'This support request is closed.',
-      success: false,
-    });
   });
 });

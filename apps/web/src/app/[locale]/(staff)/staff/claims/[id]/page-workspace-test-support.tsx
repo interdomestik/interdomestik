@@ -67,6 +67,7 @@ const hoisted = vi.hoisted(() => ({
   getPublicStatusHistoryCoreMock: vi.fn(
     (_input: {
       claimId: string;
+      role: 'staff' | 'branch_manager';
       tenantId: string;
     }): Promise<
       Array<{ id: string; note: string | null; toStatus: string | null; createdAt: Date | null }>

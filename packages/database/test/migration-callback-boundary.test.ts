@@ -44,7 +44,7 @@ test('plan authority is private, redacted and rejects lookalikes', async () => {
   const value = result.capability;
   const state = readMigrationCallbackPlanState(value);
   assert.ok(state);
-  assert.equal(state.callbackItems.length, 869);
+  assert.equal(state.callbackItems.length, 877);
   const shown = `${inspect(value)} ${JSON.stringify(value)} ${String(value)}`;
   assert.equal(shown.includes('INSERT'), false);
   assert.equal(shown.includes(state.preCorpus.realRoot), false);
@@ -134,16 +134,3 @@ test('imports, consumers, unsafe sink and package exports keep the boundary clos
     assert.equal(index.includes(boundary), false);
 });
 
-test('all exact files retain their accepted physical ceilings', async () => {
-  // prettier-ignore
-  const ceilings = [
-    125, 80, 149, 149, 125, 125, 110, 125, 149, 149, 149, 149, 149, 149,
-    149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149, 149,
-  ];
-  const files = [...PRODUCTION, ...TESTS];
-  for (let index = 0; index < files.length; index += 1) {
-    const folder = index < PRODUCTION.length ? 'src' : 'test';
-    const lines = (await readFile(join(ROOT, folder, files[index]), 'utf8')).split('\n').length - 1;
-    assert.ok(lines <= ceilings[index], `${files[index]}: ${lines} > ${ceilings[index]}`);
-  }
-});

@@ -4,7 +4,7 @@ import {
   reassignSupportHandoffCore as reassignDomainSupportHandoff,
 } from '@interdomestik/domain-claims/support-handoffs/lifecycle';
 
-import { logAuditEvent } from '@/lib/audit';
+import { logSupportHandoffAuditEvent as logAuditEvent } from './audit';
 import { clearSupportHandoffPublicResponseNotifications } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 

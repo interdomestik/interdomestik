@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "reviewedConstruction": "local-qualification-assignment-three-profile-v1",
+  "files": [
+    {
+      "file": "apps/web/src/actions/admin-claims.ts",
+      "sha256": "b67d4bb79dd61feedf36f54272aabdb0259053405ecc435b039dab48dd125ee6",
+      "astSha256": "cb39547f5fba1d1bb31b91d53658223e5b54e68b0a17ee0ed157f489d5f3b0ef",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims.core.ts",
+      "sha256": "0f47493c8c00e152799a97c83a2c0af76d07118c10a04b6c2e27c041b544e230",
+      "astSha256": "b109e194a426bd8678babede3290c8fcf995f1c10ba0d164f6dec4b6ea436b4d",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.ts",
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+      "astSha256": "c6265043ca6a026abb186881d3e0d09479d3a6fadffb399e417f4422f8c0a99e",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/admin-claims/assign.core.ts",
+      "sha256": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64",
+      "astSha256": "027fab5e08b0bddeff6ba04ac514e48db2aac62bf75573b8730b31aef111e878",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/agent-claims.ts",
+      "sha256": "b38d0e01cfd2d5b62a6b1c604aaab18c0209f012063111173d2a7c008bdb3b25",
+      "astSha256": "53c9a453b8d4b289b9db3e74f5c3d11a6c08af75e24de9093a70cde834ce05da",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/agent-claims.core.ts",
+      "sha256": "e3c270412dda4d2055ed39e61db9d8b349df07680bc4d1a909022a523d2234a5",
+      "astSha256": "6e306e53b22bc7a2ddbd544931532198e4f57a615b54d1d39c2a8445be6f9723",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/agent-claims/assign.ts",
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+      "astSha256": "c6265043ca6a026abb186881d3e0d09479d3a6fadffb399e417f4422f8c0a99e",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/agent-claims/assign.core.ts",
+      "sha256": "d67e01f35e8b6612e66dcab9ec37d00129cfcec82e2d7c7c2fa4d233eaf79e2e",
+      "astSha256": "3af25c5a3e5d856be3d447b85d16d82383bc3522597602d244ae23e78a592c13",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/staff-claims.core.ts",
+      "sha256": "5b32a6580e09631ce4028020182865e88edb3e6bfded08f7d72bd59df7185eb4",
+      "astSha256": "d22c0d0046ae612cee2600a8f36894dabe63e3fbb2e9e85437b04b2aa55faf6b",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/staff-claims/assign.ts",
+      "sha256": "aa4c4d51448f7aef749bd891557a8a29c855b3a3d6a7ec9fc718929237309682",
+      "astSha256": "c6265043ca6a026abb186881d3e0d09479d3a6fadffb399e417f4422f8c0a99e",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/actions/staff-claims/assign.core.ts",
+      "sha256": "26669a05e45fc4cf292120146f86efbdca82f7c63b827671bf7ab0c9eeb8b0f4",
+      "astSha256": "1ec70a323e80fb1dcdcb025589aca065ce3ca1b4538c0c29bbb0864749037edb",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73",
+      "astSha256": "02d52059181ad84a72b2b73fa89ec6f483e44c10a85c1a3f7709389f8a15f1bc",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+      "sha256": "562098cd73a890e0a7cbc08a917b17d41de2c01eb93400be152c502c073a237a",
+      "astSha256": "8309bdcb1994c2d610602e72f18de99e3e03b464f8c6c87b65945300dc576894",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+      "sha256": "a266de0d9e16e03fd4031b0429d8904d6e6cebee4496714f038da20ff0b08a68",
+      "astSha256": "5cda5c59634f03902726c74327987aad4de61b75a32ef04d7225b3dcf014bcab",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner.ts",
+      "sha256": "429d0762c84600c794373abc83060efa39b43e6294d401658c1717336b85df0e",
+      "astSha256": "08d3228edbedd2a37a4be3ea1c7c8f99d8ea2ff542c27b96c2918d173d52fe5d",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+      "sha256": "f8e8e1a09d49a5c4a8a46ab6c2d1c9d42903014cc1c55c3a626a56b2bc3fb0bd",
+      "astSha256": "8853aec4e17d555d4c01a30e1e443c917cd6d8f2605d29e1736507ccd2944afc",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner-config.ts",
+      "sha256": "18c29fb1b2b0842abb1c9c9166f8bc57ad6eb5cc65b4eb90816761c4d923be1c",
+      "astSha256": "9565d3392457fe47bf1994f94f02b887b58d77038bf964f50e7be84bde65652f",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner-entry.ts",
+      "sha256": "81254bf9b8a7a06c7ec7c5a971563ace1d66fe4d7c03be33823bbf862c61cfa7",
+      "astSha256": "307cb3d54878d7b4835e04fb635b89708f9dde1bde130ceffc57e5528dccfe05",
+      "executionRequired": false
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "sha256": "2180777067111ff073b52f225dbba7817f920a439a25c67fb8bb23b5662d8223",
+      "astSha256": "f8a379050cf9420ca425c0e63227de3680a93170e0c252063484af3dd1caf3a7",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-private-runtime-context.ts",
+      "sha256": "b58f542e5d819c21dc531e970d9e15880c1776d7eabe7bc3607b4fb35c9e01c1",
+      "astSha256": "9653b874f6578f8e570f93ebf743968caf64fa0b7d026cd5cc572dc28f78706f",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
+      "astSha256": "13b81ddbcc24cfc0fec5fd0ffa0ec9366daec269bcfaeb6ca39718a988adec75",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+      "sha256": "5192429ff0354cdc4c35636039d1783aca996c982492aed1c4a9397c993023fe",
+      "astSha256": "2f051ae08fdde9805078839e4fd70fbba4705205bd809e42b9a2cdbfcc870f70",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+      "sha256": "5de3a8ff3a2ee76d06271acbeae0155dcdea5a59e3ac51a3d8b0b64b4945ed32",
+      "astSha256": "9bb0be2d575de9370fccc8f3256100c00f9792aea5aaf8a8b64942dfb573055f",
+      "executionRequired": true
+    },
+    {
+      "file": "apps/web/src/server/operations/m4-assignment-owner-capture.ts",
+      "executionRequired": true,
+      "sha256": "c3ceebd107fc52e82559bc410338b37eed3667545b2c709c824eb47abeab977e",
+      "astSha256": "37112d128111ef3693138646858527e622499ae739ec03d1b80a5ccce7eef2cf"
+    }
+  ],
+  "routes": [
+    {
+      "profile": "legacy-admin",
+      "path": "/m4/assignment/legacy-admin",
+      "witnessId": "mounted-admin-assignment-source-route",
+      "calls": [
+        {
+          "file": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
+          "astSha256": "23b816b2c2e993043c23e59dde69729d168e07361fffb57d59d5b838ee117d4b"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "literal profile selection",
+          "astSha256": "b5f840c01a3a7b33de2b6f223341fabf660a935aafeff8227ec70f668410fc1a"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "owned endpoint/CA and raw session cookie to shared HTTPS SDK",
+          "astSha256": "59756a408bfb3c60b72d10b3542fb6414222cb047b416b2eaa2fe0c357bb563e"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+          "relation": "actual HTTPS request",
+          "astSha256": "136b10733ea1fccc9a74f8965757c9967ae9dbb07e70a1673cca3eecfedcfd06"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+          "relation": "literal HTTPS handler to profile runtime",
+          "astSha256": "28eaa9b3a221e494647a221b84dfadda7e8943a8d589298032e4068291f80511"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner.ts",
+          "relation": "local fixed owner creates actual private runtime",
+          "astSha256": "f318813caf4987432456e843fb0b454179763b2a5b304014a19bce3474efb60d"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-private-runtime.ts",
+          "relation": "actual parsed request and owned receiver/verifier bind before profile invocation",
+          "astSha256": "4e6abbcaea5a301a29b2d9b3f989a0289dc7446776c804b3ea403dab15583808"
+        }
+      ]
+    },
+    {
+      "profile": "legacy-agent",
+      "path": "/m4/assignment/legacy-agent",
+      "witnessId": "mounted-agent-assignment-source-route",
+      "calls": [
+        {
+          "file": "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
+          "astSha256": "b06b943401134b04253afc6189abd2f87e5441a12d7ace59f7f1d80faf3d2acf"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "literal profile selection",
+          "astSha256": "74619d54937449823583522acb9e323271c6e82a2525bccfd04a13bbfc4afe44"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "owned endpoint/CA and raw session cookie to shared HTTPS SDK",
+          "astSha256": "59756a408bfb3c60b72d10b3542fb6414222cb047b416b2eaa2fe0c357bb563e"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+          "relation": "actual HTTPS request",
+          "astSha256": "136b10733ea1fccc9a74f8965757c9967ae9dbb07e70a1673cca3eecfedcfd06"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+          "relation": "literal HTTPS handler to profile runtime",
+          "astSha256": "e834397baea2d2ac69032916d5780081e41f8b839a71071cc131641cf00572d5"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner.ts",
+          "relation": "local fixed owner creates actual private runtime",
+          "astSha256": "f318813caf4987432456e843fb0b454179763b2a5b304014a19bce3474efb60d"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-private-runtime.ts",
+          "relation": "actual parsed request and owned receiver/verifier bind before profile invocation",
+          "astSha256": "4e6abbcaea5a301a29b2d9b3f989a0289dc7446776c804b3ea403dab15583808"
+        }
+      ]
+    },
+    {
+      "profile": "staff",
+      "path": "/m4/assignment/staff",
+      "witnessId": "mounted-staff-assignment-source-route",
+      "calls": [
+        {
+          "file": "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+          "relation": "local qualification adapter to fixed profile relay",
+          "astSha256": "543eedc98b3de03332811af61a96cb92a53eadc386bd28d2e1f2b476e5825429"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "literal profile selection",
+          "astSha256": "9f97bcf93bbd6fa3db465e3e4ad190c9d280d7213cf07d3b873e8c27e6a069b3"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay.ts",
+          "relation": "owned endpoint/CA and raw session cookie to shared HTTPS SDK",
+          "astSha256": "59756a408bfb3c60b72d10b3542fb6414222cb047b416b2eaa2fe0c357bb563e"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+          "relation": "actual HTTPS request",
+          "astSha256": "136b10733ea1fccc9a74f8965757c9967ae9dbb07e70a1673cca3eecfedcfd06"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+          "relation": "literal HTTPS handler to profile runtime",
+          "astSha256": "4cd413019c92b3d3596a4b5bbd7dd4a3538910c9d59a7fe592d47823b94b1e46"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-assignment-owner.ts",
+          "relation": "local fixed owner creates actual private runtime",
+          "astSha256": "f318813caf4987432456e843fb0b454179763b2a5b304014a19bce3474efb60d"
+        },
+        {
+          "file": "apps/web/src/server/operations/m4-private-runtime.ts",
+          "relation": "actual parsed request and owned receiver/verifier bind before profile invocation",
+          "astSha256": "4e6abbcaea5a301a29b2d9b3f989a0289dc7446776c804b3ea403dab15583808"
+        }
+      ]
+    }
+  ],
+  "replacements": [],
+  "qualificationScope": "local-adapters-only-no-next-ingress"
+}

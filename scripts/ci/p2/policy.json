@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "scope": "exact-dual-fixed-ten-plus-nine",
+  "repository": "interdomestik/interdomestik",
+  "officialImage": "node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940",
+  "nodeVersion": "24.15.0",
+  "architectures": ["linux/arm64"],
+  "qualification": "QUALIFIED_LINUX_ARM64_COVERAGE",
+  "sourceFiles": {
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.test.ts": "b48386858936c01fc16fc6a64bacaf9ecddcc4e64f8e20808d98fb1d1247aca4",
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89",
+    "apps/web/src/server/operations/m4-assignment-relay.ts": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73",
+    "apps/web/src/actions/admin-claims/assign.wrapper.test.ts": "8f9a7940732123d60ea3ec2dea4057aafed14e9a8b7e35a74186ecbdb0bd1925",
+    "apps/web/src/actions/admin-claims/assign.core.ts": "99735a54470dd1883d7befcd53ed63456292c5706b3321ad435da90262676f64"
+  },
+  "rawIdentities": [],
+  "baseline": 604,
+  "rootfs": {
+    "bootstrap": {
+      "type": "directory",
+      "mode": 493
+    },
+    "bootstrap/build-info.json": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 70,
+      "sha256": "82134727d2d3bef6e4ba08183712abae6a00d676ba6348b842894ec6855dc883"
+    },
+    "bootstrap/entry.mjs": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 2245,
+      "sha256": "8a0e0782d67b0544cbba0094a2a9a6dc4b04ebd539e92016e787b2c740829944"
+    },
+    "bootstrap/p2-seccomp.node": {
+      "type": "file",
+      "mode": 493,
+      "bytes": 70064,
+      "sha256": "587243549d022fb4fd1ba6731ad6e152083036664635f1e096435627b43ab83d"
+    },
+    "dev": {
+      "type": "directory",
+      "mode": 493
+    },
+    "etc": {
+      "type": "directory",
+      "mode": 493
+    },
+    "lib": {
+      "type": "directory",
+      "mode": 493
+    },
+    "lib/aarch64-linux-gnu": {
+      "type": "directory",
+      "mode": 493
+    },
+    "lib/aarch64-linux-gnu/libc.so.6": {
+      "type": "file",
+      "mode": 493,
+      "bytes": 1651408,
+      "sha256": "e4ac8ae1d81e4865e3aadedb962879cf9415903b3f2ba81ec75e9962b86ab8b0"
+    },
+    "lib/aarch64-linux-gnu/libdl.so.2": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 67528,
+      "sha256": "e5e9474a683596d59cc9e13246bc83878433e53c3befbabd73e3da9ccb5fe174"
+    },
+    "lib/aarch64-linux-gnu/libgcc_s.so.1": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 133448,
+      "sha256": "046856f95f4636f1fc7c3a12bf4f3cd5634c2fc5145c3fdf7395d4f349fa69c7"
+    },
+    "lib/aarch64-linux-gnu/libm.so.6": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 591960,
+      "sha256": "3c4cb3be0b974edf05f023f85ab15107fb5afc2687163593d0d4cf8e80c17b39"
+    },
+    "lib/aarch64-linux-gnu/libpthread.so.0": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 67528,
+      "sha256": "434dcd27f22fc8bf236c0c00541a1e503d302aa796c333729a2cd15a4cfe4814"
+    },
+    "lib/aarch64-linux-gnu/libstdc++.so.6": {
+      "type": "file",
+      "mode": 420,
+      "bytes": 2174296,
+      "sha256": "532f3a12d7b8fef6cc7a064ea106b6c4ab2365674b73e743e4a385d4ffb6c8ab"
+    },
+    "lib/ld-linux-aarch64.so.1": {
+      "type": "file",
+      "mode": 493,
+      "bytes": 202912,
+      "sha256": "17538b8f9889a470c061f69a8fea8124da89627311cd16546c133a89f09056df"
+    },
+    "proc": {
+      "type": "directory",
+      "mode": 493
+    },
+    "runtime": {
+      "type": "directory",
+      "mode": 493
+    },
+    "runtime/node": {
+      "type": "file",
+      "mode": 493,
+      "bytes": 120702160,
+      "sha256": "d0b9f94a9771bba3c30a54f0aee622fa0bee37be684cc1df6da2d3448606d98d"
+    },
+    "scratch": {
+      "type": "directory",
+      "mode": 493
+    }
+  },
+  "maxBytes": 65536,
+  "timeoutSeconds": 12,
+  "dispatchFiles": {
+    "apps/web/vitest.config.ts": "f243f0bcfc23c246530a53d600f08f3a7c1a66f1b7166f8d9eb5c155734c3725",
+    "scripts/ci/clean-coverage-artifacts.mjs": "4c0319931f8a16b20fcef5f84d6427252d1061a667d6145e69f0b78d4a14e676",
+    "scripts/ci/coverage-gate.mjs": "8118b7da1f4956165e18492f441408a20953ca02b023420242b023b909d89c12",
+    ".github/workflows/ci.yml": "1b6c3a0cb26a66ad4a5ae6370a2071434f431f76f78072a0a2a8ede33a27179a",
+    ".github/actions/ordinary-pr-coverage/action.yml": "47b9cbaf8fc9ffdad9a64c7720b490beaf61a3de29877233ad22ba1dc75c6c9a"
+  },
+  "historicalRawIdentities": [
+    "3abe201e80665b5f1d95dd025e8694e386fd4eedab84512fa06b501c27ad7353",
+    "23045f68d4b176bb5a96c7ce1100eb6639006081e00ffbb87a42f31871abbab0"
+  ]
+}

@@ -118,6 +118,7 @@ vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   appendEvent: hoisted.appendEvent,
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_context, callback) => hoisted.db.transaction(callback)),
   domainEvents: hoisted.domainEvents,
   eq: hoisted.eq,
   inArray: hoisted.inArray,

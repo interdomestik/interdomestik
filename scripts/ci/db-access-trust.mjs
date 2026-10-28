@@ -200,4 +200,5 @@ export function verifyResolverBoundary(repoRoot, trusted, currentResolver = new 
       }
     } else if (before !== after) throw new Error('incomplete: resolver boundary changed ' + file);
   }
+  return candidates;
 }

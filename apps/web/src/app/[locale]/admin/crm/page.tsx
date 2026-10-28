@@ -14,9 +14,9 @@ import { getSessionSafe } from '@/components/shell/session';
 import { BranchManagerCrmDashboard } from './_branch-manager-dashboard';
 import {
   BranchManagerCrmReportingAccessDeniedError,
-  getBranchManagerCrmReportingCore,
   type BranchManagerCrmReportingDashboard,
 } from './_branch-manager-core';
+import { getBranchManagerCrmReportingCore } from './_branch-manager-tenant';
 import {
   ADMIN_CRM_FORECAST_ALERT_BAND_MARKER,
   ADMIN_CRM_FORECAST_ALERT_METRICS_MARKER,
@@ -26,7 +26,6 @@ import {
   ADMIN_CRM_FORECAST_OBSERVABILITY_SUMMARY_MARKER,
   ADMIN_CRM_REPORTING_MARKER_PREFIX,
   AdminCrmReportingAccessDeniedError,
-  getAdminCrmReportingCore,
   type AdminCrmBranchPipelineRow,
   type AdminCrmForecastAlertResult,
   type AdminCrmForecastAlertSeverity,
@@ -40,6 +39,7 @@ import {
   type AdminCrmSourceBreakdownRow,
   type AdminCrmWidget,
 } from './_core';
+import { getAdminCrmReportingCore } from './_reporting-tenant';
 import {
   ExcludedRowsNote,
   PipelineRowsList,
@@ -66,7 +66,7 @@ import {
   AdminCrmRoutingAccessDeniedError,
   getAdminCrmRoutingErrorMessageKey,
   getAdminCrmRoutingRulesCore,
-} from './_routing-core';
+} from './_routing-tenant';
 import {
   AdminCrmRoutingRulesPanel,
   type AdminCrmRoutingRulesPanelCopy,

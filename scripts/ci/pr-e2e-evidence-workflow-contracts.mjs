@@ -19,7 +19,7 @@ test('PR E2E runner keeps gate and smoke evidence lanes separate', () => {
   assert.equal(smoke.run, 'pnpm --filter @interdomestik/web run e2e:smoke');
   assert.deepEqual(gate.env, {
     E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
-    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
+    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL_RLS }}',
     E2E_MAILPIT_API: 'http://127.0.0.1:8025',
     E2E_OTP_PROOF_REQUIRED: '1',
     E2E_SMTP_HOST: '127.0.0.1',

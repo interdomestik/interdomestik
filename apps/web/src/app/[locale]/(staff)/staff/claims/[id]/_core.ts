@@ -1,9 +1,17 @@
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
-import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  db,
+  eq,
+  user,
+  withTenantContext,
+} from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { and, desc, isNotNull } from 'drizzle-orm';
+import { and, desc } from 'drizzle-orm';
 
 export type StaffClaimDocument = {
   id: string;
@@ -42,111 +50,101 @@ export type LatestPublicStatusNote = {
 export async function getStaffClaimDetailsCore(args: {
   branchId?: string | null;
   claimId: string;
+  role: 'staff';
   staffId: string;
   tenantId: string;
 }): Promise<StaffClaimDetailsResult> {
-  const claim = await db.query.claims.findFirst({
-    where: and(
-      eq(claims.tenantId, args.tenantId),
-      buildStaffClaimReadScope({
-        branchId: args.branchId ?? null,
-        claimId: args.claimId,
-        userId: args.staffId,
-      })
-    ),
-    with: {
-      user: true,
-    },
-  });
+  if (args.role !== 'staff') return { kind: 'not_found' };
 
-  if (!claim) return { kind: 'not_found' };
-
-  const status = claimStatusFromLifecycleFields(claim);
-
-  const [documents, stageHistory] = await Promise.all([
-    db
-      .select({
-        id: claimDocuments.id,
-        name: claimDocuments.name,
-        fileSize: claimDocuments.fileSize,
-        fileType: claimDocuments.fileType,
-        createdAt: claimDocuments.createdAt,
-      })
-      .from(claimDocuments)
-      .where(
-        and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, args.tenantId))
+  return withTenantContext({ tenantId: args.tenantId, role: args.role }, async tx => {
+    const claim = await tx.query.claims.findFirst({
+      where: and(
+        eq(claims.tenantId, args.tenantId),
+        buildStaffClaimReadScope({
+          branchId: args.branchId ?? null,
+          claimId: args.claimId,
+          userId: args.staffId,
+        })
       ),
-    db
-      .select({
-        id: claimStageHistory.id,
-        fromStatus: claimStageHistory.fromStatus,
-        toStatus: claimStageHistory.toStatus,
-        note: claimStageHistory.note,
-        isPublic: claimStageHistory.isPublic,
-        createdAt: claimStageHistory.createdAt,
-        changedByName: user.name,
-        changedByEmail: user.email,
-      })
-      .from(claimStageHistory)
-      .leftJoin(user, eq(claimStageHistory.changedById, user.id))
-      .where(
-        and(
-          eq(claimStageHistory.claimId, args.claimId),
-          eq(claimStageHistory.tenantId, args.tenantId)
-        )
-      )
-      .orderBy(desc(claimStageHistory.createdAt)),
-  ]);
+      with: {
+        user: true,
+      },
+    });
 
-  return {
-    kind: 'ok',
-    claim: { ...claim, status },
-    slaPhase: deriveClaimSlaPhase(status),
-    documents: documents.map(doc => ({
-      id: doc.id,
-      fileName: doc.name,
-      fileSize: doc.fileSize,
-      fileType: doc.fileType,
-      createdAt: doc.createdAt,
-    })),
-    stageHistory,
-  };
+    if (!claim) return { kind: 'not_found' };
+
+    const status = claimStatusFromLifecycleFields(claim);
+
+    const [documents, stageHistory] = await Promise.all([
+      tx
+        .select({
+          id: claimDocuments.id,
+          name: claimDocuments.name,
+          fileSize: claimDocuments.fileSize,
+          fileType: claimDocuments.fileType,
+          createdAt: claimDocuments.createdAt,
+        })
+        .from(claimDocuments)
+        .where(
+          and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, args.tenantId))
+        ),
+      tx
+        .select({
+          id: claimStageHistory.id,
+          fromStatus: claimStageHistory.fromStatus,
+          toStatus: claimStageHistory.toStatus,
+          note: claimStageHistory.note,
+          isPublic: claimStageHistory.isPublic,
+          createdAt: claimStageHistory.createdAt,
+          changedByName: user.name,
+          changedByEmail: user.email,
+        })
+        .from(claimStageHistory)
+        .leftJoin(user, eq(claimStageHistory.changedById, user.id))
+        .where(
+          and(
+            eq(claimStageHistory.claimId, args.claimId),
+            eq(claimStageHistory.tenantId, args.tenantId)
+          )
+        )
+        .orderBy(desc(claimStageHistory.createdAt)),
+    ]);
+
+    return {
+      kind: 'ok',
+      claim: { ...claim, status },
+      slaPhase: deriveClaimSlaPhase(status),
+      documents: documents.map(doc => ({
+        id: doc.id,
+        fileName: doc.name,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        createdAt: doc.createdAt,
+      })),
+      stageHistory,
+    };
+  });
 }
 
 // Called only after the page's staff/branch and claim-scope authorization succeeds.
 export function getPublicStatusHistoryCore(args: {
   claimId: string;
+  role: 'staff' | 'branch_manager';
   tenantId: string;
 }): Promise<Array<LatestPublicStatusNote & { id: string; toStatus: string | null }>> {
-  return db.query.claimStageHistory.findMany({
-    where: and(
-      eq(claimStageHistory.claimId, args.claimId),
-      eq(claimStageHistory.tenantId, args.tenantId),
-      eq(claimStageHistory.isPublic, true)
-    ),
-    columns: { id: true, note: true, toStatus: true, createdAt: true },
-    orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
-  });
-}
+  if (args.role !== 'staff' && args.role !== 'branch_manager') return Promise.resolve([]);
 
-export async function getLatestPublicStatusNoteCore(args: {
-  claimId: string;
-  tenantId: string;
-}): Promise<LatestPublicStatusNote | null> {
-  const row = await db.query.claimStageHistory.findFirst({
-    where: and(
-      eq(claimStageHistory.claimId, args.claimId),
-      eq(claimStageHistory.tenantId, args.tenantId),
-      eq(claimStageHistory.isPublic, true),
-      isNotNull(claimStageHistory.note)
-    ),
-    columns: {
-      note: true,
-      createdAt: true,
-    },
-    orderBy: [desc(claimStageHistory.createdAt)],
-  });
-  return row ?? null;
+  return withTenantContext({ tenantId: args.tenantId, role: args.role }, tx =>
+    tx.query.claimStageHistory.findMany({
+      where: and(
+        eq(claimStageHistory.claimId, args.claimId),
+        eq(claimStageHistory.tenantId, args.tenantId),
+        eq(claimStageHistory.isPublic, true)
+      ),
+      columns: { id: true, note: true, toStatus: true, createdAt: true },
+      orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
+    })
+  );
 }
 
 type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>> & {

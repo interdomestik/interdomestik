@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import type { TenantTransaction } from '@interdomestik/database';
 import { claims } from '@interdomestik/database/schema';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
@@ -13,15 +13,23 @@ export type AgentClientClaimCounts = {
   rejected: number;
 };
 
-export async function getAgentClientClaimSummary(memberId: string, tenantId: string) {
+/**
+ * Reads the member claim summary through the caller's tenant-context transaction.
+ * Must be called inside an already-admitted profile read closure; it performs no admission itself.
+ */
+export async function getAgentClientClaimSummary(
+  tx: TenantTransaction,
+  memberId: string,
+  tenantId: string
+) {
   const lifecycleStatus = claimLifecycleStatusSql();
   const [claimCounts, recentClaimsRaw] = await Promise.all([
-    db
+    tx
       .select({ status: lifecycleStatus, total: count() })
       .from(claims)
       .where(and(eq(claims.userId, memberId), eq(claims.tenantId, tenantId)))
       .groupBy(lifecycleStatus),
-    db
+    tx
       .select({
         id: claims.id,
         caseLifecycleState: claims.caseLifecycleState,

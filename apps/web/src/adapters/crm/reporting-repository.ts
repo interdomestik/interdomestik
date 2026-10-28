@@ -30,7 +30,7 @@ const defaultForecastSnapshotIds = {
   pipelineSnapshotId: () => randomUUID(),
 };
 
-type CrmReportingDb = typeof db;
+type CrmReportingDb = typeof db | import('@interdomestik/database').TenantTransaction;
 type SnapshotRow = typeof crmPipelineSnapshots.$inferSelect;
 
 type WeightedRow = {
@@ -376,32 +376,28 @@ export function createCrmReportingRepository(
   return {
     async listAgentLeaderboardRows(input) {
       const rows = await listWeightedRows(database, input);
-      return rows.map(
-        (row): CrmAgentLeaderboardRow => ({
-          ...row,
-          activityCount: 1,
-          outcome: outcomeFor(row),
-        })
-      );
+      return rows.map((row): CrmAgentLeaderboardRow => ({
+        ...row,
+        activityCount: 1,
+        outcome: outcomeFor(row),
+      }));
     },
 
     async listFunnelConversionRows(input) {
       const rows = await listStageIntervalRows(database, input);
-      return rows.map(
-        (row): CrmFunnelConversionRow => ({
-          branchId: row.branchId,
-          dealId: row.dealId,
-          enteredAt: row.enteredAt.toISOString(),
-          exitedAt: row.exitedAt,
-          kind: row.kind,
-          lossReasonId: row.lossReasonId,
-          pipelineId: row.pipelineId,
-          stageId: row.stageId,
-          stageIsLost: row.stageIsLost,
-          stageIsWon: row.stageIsWon,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmFunnelConversionRow => ({
+        branchId: row.branchId,
+        dealId: row.dealId,
+        enteredAt: row.enteredAt.toISOString(),
+        exitedAt: row.exitedAt,
+        kind: row.kind,
+        lossReasonId: row.lossReasonId,
+        pipelineId: row.pipelineId,
+        stageId: row.stageId,
+        stageIsLost: row.stageIsLost,
+        stageIsWon: row.stageIsWon,
+        tenantId: row.tenantId,
+      }));
     },
 
     async listSourceBreakdownRows(input) {
@@ -411,18 +407,16 @@ export function createCrmReportingRepository(
 
     async listStageVelocityRows(input) {
       const rows = await listStageIntervalRows(database, input);
-      return rows.map(
-        (row): CrmStageVelocityRow => ({
-          branchId: row.branchId,
-          dealId: row.dealId,
-          enteredAt: row.enteredAt.toISOString(),
-          exitedAt: row.exitedAt,
-          kind: row.kind,
-          pipelineId: row.pipelineId,
-          stageId: row.stageId,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmStageVelocityRow => ({
+        branchId: row.branchId,
+        dealId: row.dealId,
+        enteredAt: row.enteredAt.toISOString(),
+        exitedAt: row.exitedAt,
+        kind: row.kind,
+        pipelineId: row.pipelineId,
+        stageId: row.stageId,
+        tenantId: row.tenantId,
+      }));
     },
 
     async listWeightedPipelineRows(input) {
@@ -431,18 +425,16 @@ export function createCrmReportingRepository(
 
     async listWinRateRows(input) {
       const rows = await listWeightedRows(database, input);
-      return rows.map(
-        (row): CrmWinRateRow => ({
-          agentId: row.agentId,
-          branchId: row.branchId,
-          outcome: outcomeFor(row),
-          pipelineId: row.pipelineId,
-          source: row.source,
-          stageId: row.currentStageId,
-          lossReasonId: row.lossReasonId,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmWinRateRow => ({
+        agentId: row.agentId,
+        branchId: row.branchId,
+        outcome: outcomeFor(row),
+        pipelineId: row.pipelineId,
+        source: row.source,
+        stageId: row.currentStageId,
+        lossReasonId: row.lossReasonId,
+        tenantId: row.tenantId,
+      }));
     },
   };
 }

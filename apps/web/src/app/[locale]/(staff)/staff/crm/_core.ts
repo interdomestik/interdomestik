@@ -12,7 +12,7 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
-import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
+import { createStaffReportingReader } from './_tenant-repository';
 
 export const STAFF_CRM_REPORTING_WINDOW_DAYS = 90;
 export const STAFF_CRM_PIPELINE_MAX_ROWS = 10;
@@ -467,7 +467,7 @@ export async function getStaffCrmReportingCore(
     throw new StaffCrmReportingAccessDeniedError(denied);
   }
 
-  const repository = options.reportingRepository ?? crmReportingRepository;
+  const repository = options.reportingRepository ?? createStaffReportingReader(args.actor.tenantId);
   const labels = {
     noBranch: options.labels?.noBranch ?? 'No branch',
   };

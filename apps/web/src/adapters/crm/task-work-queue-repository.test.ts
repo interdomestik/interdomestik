@@ -4,6 +4,12 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context: unknown, action: (tx: unknown) => unknown) =>
+    action({ select: hoisted.dbSelect })
+  ),
+}));
+
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     select: hoisted.dbSelect,

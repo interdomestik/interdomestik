@@ -1,0 +1,1772 @@
+[
+  {
+    "index": 0,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 1,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 2,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 3,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 4,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 5,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-access.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 18
+    }
+  },
+  {
+    "index": 6,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 7,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 8,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 9,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 10,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 11,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-target-lock.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 16
+    }
+  },
+  {
+    "index": 12,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 13,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 14,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 15,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 16,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 17,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 18,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 134,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 135,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 136,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 137,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 138,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 139,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-errors.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 12
+    }
+  },
+  {
+    "index": 140,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 141,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 142,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 143,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 144,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 145,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.assign-owner-write.test.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 33
+    }
+  },
+  {
+    "index": 146,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 147,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 148,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 149,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 150,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 151,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/actions/ops-actions.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 152,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 153,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 154,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 155,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 156,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 157,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 158,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 159,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 160,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 161,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 162,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 163,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 164,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 165,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 166,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 167,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 168,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 169,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 170,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 171,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 172,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 173,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 174,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 175,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/app/[locale]/admin/claims/[id]/page.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 176,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 177,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 178,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 179,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 180,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 181,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/AdminClaimDetailV2Page.staff-assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 182,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 183,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 184,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 185,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 186,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 187,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.assignment.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 188,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 189,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 190,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 191,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 192,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 193,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.committed-outcome.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 194,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 195,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 196,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 197,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 198,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/features/admin/claims/actions/ops-actions.ts", 2186, 2354, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  },
+  {
+    "index": 199,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/features/admin/claims/components/ops/NextActionsCard.readonly.test.tsx",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 10
+    }
+  }
+]

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { memberReferralSettings } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -55,9 +55,9 @@ export async function getMemberReferralProgramSettingsCore(params: {
   tenantId: string;
 }): Promise<ActionResult<MemberReferralProgramSettings>> {
   try {
-    const row = await db.query.memberReferralSettings.findFirst({
+    const row = await withTenantContext({ tenantId: params.tenantId, role: 'system' }, tx => tx.query.memberReferralSettings.findFirst({
       where: eq(memberReferralSettings.tenantId, params.tenantId),
-    });
+    }));
 
     return {
       success: true,

@@ -58,6 +58,7 @@ interface PaddleDatabaseMockModule {
   appendEvent: MockFunction;
   asc: MockFunction;
   db: PaddleHandlerMocks['db'];
+  withTenantContext: MockFunction;
   eq: MockFunction;
   inArray: MockFunction;
   membershipPlans: PaddleHandlerMocks['membershipPlans'];
@@ -133,6 +134,7 @@ export function createPaddleDatabaseMockModule(
     appendEvent: hoisted.appendEvent,
     asc: hoisted.asc,
     db: hoisted.db,
+    withTenantContext: vi.fn(async (_context, callback) => (hoisted.db.transaction as (...args: any[]) => any)((tx: typeof hoisted.tx) => callback(Object.assign(tx, { query: hoisted.db.query })))),
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
     inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
     membershipPlans: hoisted.membershipPlans,
@@ -276,9 +278,9 @@ export function resetPaddleHandlerMocks(
     values: hoisted.insertedUserValues,
   }));
   hoisted.tx.select.mockImplementation(() => ({
-    from: () => ({
-      where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]),
-    }),
+    from: (table: unknown) => table === hoisted.membershipPlans
+      ? (hoisted.db.select as () => { from: (table: unknown) => unknown })().from(table)
+      : { where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]) },
   }));
   hoisted.insertedUserValues.mockReturnValue({
     onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),

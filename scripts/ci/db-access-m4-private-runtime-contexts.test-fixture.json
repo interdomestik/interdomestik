@@ -1,0 +1,2407 @@
+[
+  {
+    "index": 19,
+    "observation": {
+      "identity": "61de01ecfc4f239d0382736a596946f5ad95a0091b7b1ea43e7973cfa4fe672e",
+      "origin": "apps/web/src/lib/auth/current-store-session.ts",
+      "owner": ["apps/web/src/lib/auth/current-store-session.ts", 2264, 3640, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 20,
+    "observation": {
+      "identity": "dd1b4679dc2d7d5d61ddc793d28c89f0a03e4a662e37a6506e41bb35398f31ba",
+      "origin": "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 1529, 2030, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 21,
+    "observation": {
+      "identity": "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258",
+      "origin": "apps/web/src/server/operations/m4-assignment-kernel-shared.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 2030, 3053, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 22,
+    "observation": {
+      "identity": "58c8491cf77d2d74c7bb4afd7dc8a5497558ea1085f0802d416e092004b0beee",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 1126, 2927, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 23,
+    "observation": {
+      "identity": "f9170a8645b2509c29474de52e49197d435501c659c5b11609ec88464b7911d1",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 1126, 2927, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 24,
+    "observation": {
+      "identity": "2c2bb13ffb2b1503dd4166630bc1e85a02050d2e744fda2a0c589d6acd351b59",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 25,
+    "observation": {
+      "identity": "441c5669bfc332f7a168c074794f9632c9cd47bf7ae9de32fdc1eb0932793b62",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 26,
+    "observation": {
+      "identity": "feaa2f01f3bf53a4d30b387c128b876fda065853edb74de86d9cc0f13c0db115",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 27,
+    "observation": {
+      "identity": "e1b4b2485222111c5f9d3e260c5d6900d474b679e0bcf5f3385408f2e43d5c7b",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 28,
+    "observation": {
+      "identity": "52fad0afb62c1cc5b08c3de2b29caffefafa4fed59ae3243188e86d7515158f5",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 29,
+    "observation": {
+      "identity": "01d421db64300627abd6c60b1417df819230279c2c19c33fd8767b8bd5b65758",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 30,
+    "observation": {
+      "identity": "585aafee34387f0e8316c5901c8d45f1f01a218a2ef6772966b65018bbeaab04",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 2257, 2294, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 31,
+    "observation": {
+      "identity": "2c2bb13ffb2b1503dd4166630bc1e85a02050d2e744fda2a0c589d6acd351b59",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 32,
+    "observation": {
+      "identity": "441c5669bfc332f7a168c074794f9632c9cd47bf7ae9de32fdc1eb0932793b62",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 33,
+    "observation": {
+      "identity": "feaa2f01f3bf53a4d30b387c128b876fda065853edb74de86d9cc0f13c0db115",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 34,
+    "observation": {
+      "identity": "e1b4b2485222111c5f9d3e260c5d6900d474b679e0bcf5f3385408f2e43d5c7b",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 35,
+    "observation": {
+      "identity": "52fad0afb62c1cc5b08c3de2b29caffefafa4fed59ae3243188e86d7515158f5",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 36,
+    "observation": {
+      "identity": "01d421db64300627abd6c60b1417df819230279c2c19c33fd8767b8bd5b65758",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 37,
+    "observation": {
+      "identity": "585aafee34387f0e8316c5901c8d45f1f01a218a2ef6772966b65018bbeaab04",
+      "origin": "apps/web/src/server/operations/m4-assignment-postcommit.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-postcommit.ts", 3104, 6433, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 38,
+    "observation": {
+      "identity": "cd10913b4eb9d33f2a52c1157e81285609c9aaf6786b1435186f6c519458565a",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 1800, 2635, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 39,
+    "observation": {
+      "identity": "e6a590bd206988a3c9bcb021fcc3de207c8d93bc4102be30bfa11e6a1a8f2ba9",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 2635, 3072, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 40,
+    "observation": {
+      "identity": "cd10913b4eb9d33f2a52c1157e81285609c9aaf6786b1435186f6c519458565a",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 1800, 2635, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3033, 3069, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 41,
+    "observation": {
+      "identity": "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3072, 3945, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 42,
+    "observation": {
+      "identity": "71acd5feda4357ec203c82440fab3c48af7ba5588bf94eee26c84d3c3af45fa9",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3945, 4573, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 43,
+    "observation": {
+      "identity": "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+      "origin": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3072, 3945, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-wire.ts", 4409, 4443, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 44,
+    "observation": {
+      "identity": "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 45,
+    "observation": {
+      "identity": "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 46,
+    "observation": {
+      "identity": "1ce5b4e2f79372daab65ca2deebb973fb8c4eaea468bee36a80df8322acab003",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 47,
+    "observation": {
+      "identity": "dd1b4679dc2d7d5d61ddc793d28c89f0a03e4a662e37a6506e41bb35398f31ba",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 1529, 2030, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        3025,
+        3078,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 48,
+    "observation": {
+      "identity": "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 2030, 3053, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        3746,
+        3825,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 3
+    }
+  },
+  {
+    "index": 49,
+    "observation": {
+      "identity": "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 50,
+    "observation": {
+      "identity": "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 51,
+    "observation": {
+      "identity": "1ce5b4e2f79372daab65ca2deebb973fb8c4eaea468bee36a80df8322acab003",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 52,
+    "observation": {
+      "identity": "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 53,
+    "observation": {
+      "identity": "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 54,
+    "observation": {
+      "identity": "1ce5b4e2f79372daab65ca2deebb973fb8c4eaea468bee36a80df8322acab003",
+      "origin": "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 55,
+    "observation": {
+      "identity": "30ff7f06312eca271f4fd97fc5740f0a9c614aa6725781afe9f58041e5b83358",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1111, 3662, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 7
+    }
+  },
+  {
+    "index": 56,
+    "observation": {
+      "identity": "8803900b6e04ff3b376a38f32941e7f4269c2d25841c22868a5206e136e1a0d4",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1738, 1994, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2098, 2113, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 45
+    }
+  },
+  {
+    "index": 57,
+    "observation": {
+      "identity": "0073fc1c9d20bdf757db9ffd7e9abbf48d953866f81733a17459332c1584aea5",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2234, 2623, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 3588, 3609, 214],
+      "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "definingContext": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 15
+    }
+  },
+  {
+    "index": 58,
+    "observation": {
+      "identity": "8803900b6e04ff3b376a38f32941e7f4269c2d25841c22868a5206e136e1a0d4",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1738, 1994, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2302, 2317, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 15
+    }
+  },
+  {
+    "index": 59,
+    "observation": {
+      "identity": "80a959c0a9e9227561eb69c5650ee55845973eda3b826dc25fd4a9f1790e7f21",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 3662, 4090, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 60,
+    "observation": {
+      "identity": "8803900b6e04ff3b376a38f32941e7f4269c2d25841c22868a5206e136e1a0d4",
+      "origin": "apps/web/src/server/operations/m4-notification-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1738, 1994, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 61,
+    "observation": {
+      "identity": "00e43e337a430608880a450d86fbd0b45c717d0ec113a608b40ff34ec415029f",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 2860, 11972, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 62,
+    "observation": {
+      "identity": "47a8f20af1751e5cf1a8b2ae32b2f0d5ccf0f738d8319780375194f6b995ae4f",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 2860, 11972, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 63,
+    "observation": {
+      "identity": "422242a244be29932341da192d6fdd36b004e454aa3d1b0f63689f3acb814daa",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 2860, 11972, 219],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 64,
+    "observation": {
+      "identity": "1343df96174b26e30119f8d0dbbaca81c3de7fde6620995fd0d545c71a93a4c6",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 65,
+    "observation": {
+      "identity": "ab1657a0ae7477157e3f79ee3d01bf7f9bab6953bac02de529fc80806194458f",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 66,
+    "observation": {
+      "identity": "b1a25ed9ad861d404f66073328408f8a9cae6fedb002666430a48ae5d4bcf747",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 67,
+    "observation": {
+      "identity": "34a0dd4812c42b09d5ac20957d76405b6a85434354bf62e1fed9651253510abc",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 68,
+    "observation": {
+      "identity": "2578daa951cd9584d8b06d442117ffb7a31ca7def1b57f6ea5ebd6c49f5863b1",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 69,
+    "observation": {
+      "identity": "e7e071daba250aaa206b39ba3476b44719c9925c281d41b1ad4c20ae49f76222",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 70,
+    "observation": {
+      "identity": "e7b105d5e6e46f95c58d97d9bc145dae65b0f4202546c961e5bcda7150a3afdc",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 71,
+    "observation": {
+      "identity": "f86ef1f0d622de8c9537c39b78e43409c0b486db9000730d10fd09397c56b2f7",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 72,
+    "observation": {
+      "identity": "b686cc81bf70b63a1fee5177dfbc9a829912d864515817be64aa26abff5dcb17",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 73,
+    "observation": {
+      "identity": "053810ec58740591b2f1c3617e81f6c7bc5df27f2435acbe532d890f65150c81",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 74,
+    "observation": {
+      "identity": "34cdf14bd5b960083579ef55af72693f61648b3f71dab1e7d544c59f4cf1b3cc",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 75,
+    "observation": {
+      "identity": "80fc86559ab829b6fa17f99a17befc6fa2a64bfe5f09fa2afc4d0cae72c3c351",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 76,
+    "observation": {
+      "identity": "8dc17c0b58bf5abc46b40104eb250e14c44e26f40892c02e836d57581b3d239a",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-ops-controller.ts", 3734, 11280, 220],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 77,
+    "observation": {
+      "identity": "e6a590bd206988a3c9bcb021fcc3de207c8d93bc4102be30bfa11e6a1a8f2ba9",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 2635, 3072, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8205, 8276, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 78,
+    "observation": {
+      "identity": "cd10913b4eb9d33f2a52c1157e81285609c9aaf6786b1435186f6c519458565a",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 1800, 2635, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3033, 3069, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 79,
+    "observation": {
+      "identity": "71acd5feda4357ec203c82440fab3c48af7ba5588bf94eee26c84d3c3af45fa9",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3945, 4573, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8317, 8378, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 80,
+    "observation": {
+      "identity": "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3072, 3945, 263],
+      "invocation": ["apps/web/src/server/operations/m4-assignment-wire.ts", 4409, 4443, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 81,
+    "observation": {
+      "identity": "93183acbc804474000e784d7e1fbd9c2196565c39e7b14052f228cb119b7e0fb",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8923, 9193, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 82,
+    "observation": {
+      "identity": "0218f337d28c7475a9b85cd7746e15fcab6a62875d237f4f470360134461ad13",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8923, 9193, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 83,
+    "observation": {
+      "identity": "dc73516c5c6182e401e15585f58e5625a92db6113f6b112423888b59d3e92e9f",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8923, 9193, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 84,
+    "observation": {
+      "identity": "0a3a81c8e575cf3c596cec171900016e1e11dc47ffa57bf92edfdb117aabcb54",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8923, 9193, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 85,
+    "observation": {
+      "identity": "6b210675b60401cd9c72b00b040ab9df58a772a26536092097ea968c32729589",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 2531, 4655, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 8923, 9193, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 86,
+    "observation": {
+      "identity": "692c294021604bc160773e97dd8422ad2687bb298bfbe20a3aa9f4d21c3dac18",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/features/admin/claims/actions/ops-assignment.ts", 1650, 2531, 263],
+      "invocation": [
+        "apps/web/src/features/admin/claims/actions/ops-assignment.ts",
+        3483,
+        3526,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 87,
+    "observation": {
+      "identity": "cd10913b4eb9d33f2a52c1157e81285609c9aaf6786b1435186f6c519458565a",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 1800, 2635, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 9251, 9311, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 88,
+    "observation": {
+      "identity": "a3e7726d865ddb9ed10517fb2a30193cc61fd88f26b6081f6eff16e1eafce70a",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-staff-assignment-kernel.ts", 676, 2892, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 9778, 9814, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 89,
+    "observation": {
+      "identity": "abae1add2ed6b4d114f70eb75f32ad4cabb2dc2652354be73bb343e112298912",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-staff-assignment-kernel.ts", 676, 2892, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 9778, 9814, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 90,
+    "observation": {
+      "identity": "dd1b4679dc2d7d5d61ddc793d28c89f0a03e4a662e37a6506e41bb35398f31ba",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 1529, 2030, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+        2033,
+        2096,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 91,
+    "observation": {
+      "identity": "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 2030, 3053, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+        2755,
+        2834,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 92,
+    "observation": {
+      "identity": "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3072, 3945, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 9836, 9879, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 93,
+    "observation": {
+      "identity": "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 94,
+    "observation": {
+      "identity": "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 95,
+    "observation": {
+      "identity": "1ce5b4e2f79372daab65ca2deebb973fb8c4eaea468bee36a80df8322acab003",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1499,
+        1542,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 96,
+    "observation": {
+      "identity": "dd1b4679dc2d7d5d61ddc793d28c89f0a03e4a662e37a6506e41bb35398f31ba",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 1529, 2030, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        3025,
+        3078,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 97,
+    "observation": {
+      "identity": "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 2030, 3053, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        3746,
+        3825,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 4
+    }
+  },
+  {
+    "index": 98,
+    "observation": {
+      "identity": "9736166907f57da2c9824ab7965c6e9bd6e3fc255b656adee8853ee1fc5acd45",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 99,
+    "observation": {
+      "identity": "9ea40fa3fcc93ff84a24ce36282aebf9cf936fb1f7ed0c8870b0bfacfaccef21",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 100,
+    "observation": {
+      "identity": "1ce5b4e2f79372daab65ca2deebb973fb8c4eaea468bee36a80df8322acab003",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-legacy-assignment-kernel.ts", 1693, 4164, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-legacy-assignment-kernel.ts",
+        1646,
+        1690,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 101,
+    "observation": {
+      "identity": "602ee4a2eee5776732c4f5d8d7bbed72ec1664244f639efb0e87b6c9c89a9664",
+      "origin": "apps/web/src/server/operations/m4-ops-controller.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-wire.ts", 3072, 3945, 263],
+      "invocation": ["apps/web/src/server/operations/m4-ops-controller.ts", 10174, 10217, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 2
+    }
+  },
+  {
+    "index": 102,
+    "observation": {
+      "identity": "30ff7f06312eca271f4fd97fc5740f0a9c614aa6725781afe9f58041e5b83358",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1111, 3662, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 22
+    }
+  },
+  {
+    "index": 103,
+    "observation": {
+      "identity": "8803900b6e04ff3b376a38f32941e7f4269c2d25841c22868a5206e136e1a0d4",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1738, 1994, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2098, 2113, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 132
+    }
+  },
+  {
+    "index": 104,
+    "observation": {
+      "identity": "0073fc1c9d20bdf757db9ffd7e9abbf48d953866f81733a17459332c1584aea5",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2234, 2623, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 3588, 3609, 214],
+      "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "definingContext": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 44
+    }
+  },
+  {
+    "index": 105,
+    "observation": {
+      "identity": "8803900b6e04ff3b376a38f32941e7f4269c2d25841c22868a5206e136e1a0d4",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 1738, 1994, 263],
+      "invocation": ["apps/web/src/server/operations/m4-notification-runtime.ts", 2302, 2317, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 44
+    }
+  },
+  {
+    "index": 106,
+    "observation": {
+      "identity": "80a959c0a9e9227561eb69c5650ee55845973eda3b826dc25fd4a9f1790e7f21",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-notification-runtime.ts", 3662, 4090, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 11
+    }
+  },
+  {
+    "index": 107,
+    "observation": {
+      "identity": "7b3659d935d6bf597b971d512aef17d845f82f06134808aad8c3ff99fa450e99",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 9942, 9988, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 11
+    }
+  },
+  {
+    "index": 108,
+    "observation": {
+      "identity": "dd10acabcd8731a0ce62db9517532ef8817ad638df98f9bc40612b0687b4d485",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 9942, 9988, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 11
+    }
+  },
+  {
+    "index": 109,
+    "observation": {
+      "identity": "d60c5700d0b82119ba2efa9f748d6e916f6be6983dccda81b12c654cfcba42df",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 9942, 9988, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 11
+    }
+  },
+  {
+    "index": 110,
+    "observation": {
+      "identity": "b031b84fcc29d5214b3c8d8c63ad10f9d21b7ed60fe781dbe5cc182dac46cddb",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 5558, 5948, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 6170, 6186, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 121
+    }
+  },
+  {
+    "index": 111,
+    "observation": {
+      "identity": "34fc9afeca013bbc6cab65e200a71d8610e220cbcdd0954b63ff194e5e45516a",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 6460, 8999, 220],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 6458, 9002, 214],
+      "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "definingContext": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 31
+    }
+  },
+  {
+    "index": 112,
+    "observation": {
+      "identity": "1a0b37d47a6d7923e69960dce8e1c1300d30cb637c55ead269a7334ec8b35c4a",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 6460, 8999, 220],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 6458, 9002, 214],
+      "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "definingContext": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 31
+    }
+  },
+  {
+    "index": 113,
+    "observation": {
+      "identity": "e5344940c316ebad924a97368e5f204684bd7e60b266c445730c3fcd28538a4a",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 6460, 8999, 220],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 6458, 9002, 214],
+      "context": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "definingContext": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 31
+    }
+  },
+  {
+    "index": 114,
+    "observation": {
+      "identity": "b031b84fcc29d5214b3c8d8c63ad10f9d21b7ed60fe781dbe5cc182dac46cddb",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 5558, 5948, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 9127, 9143, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 30
+    }
+  },
+  {
+    "index": 115,
+    "observation": {
+      "identity": "b031b84fcc29d5214b3c8d8c63ad10f9d21b7ed60fe781dbe5cc182dac46cddb",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 5558, 5948, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 9457, 9473, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 30
+    }
+  },
+  {
+    "index": 116,
+    "observation": {
+      "identity": "09576081e42ccc9108ac02631e1ccb43764fb9223acf3946f279374056d15b58",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 9532, 9882, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": false,
+      "open": false,
+      "dispatchUnknown": [],
+      "occurrences": 11
+    }
+  },
+  {
+    "index": 117,
+    "observation": {
+      "identity": "7b3659d935d6bf597b971d512aef17d845f82f06134808aad8c3ff99fa450e99",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10221, 10291, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 118,
+    "observation": {
+      "identity": "dd10acabcd8731a0ce62db9517532ef8817ad638df98f9bc40612b0687b4d485",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10221, 10291, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 119,
+    "observation": {
+      "identity": "d60c5700d0b82119ba2efa9f748d6e916f6be6983dccda81b12c654cfcba42df",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10221, 10291, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 120,
+    "observation": {
+      "identity": "7b3659d935d6bf597b971d512aef17d845f82f06134808aad8c3ff99fa450e99",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10433, 10503, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 121,
+    "observation": {
+      "identity": "dd10acabcd8731a0ce62db9517532ef8817ad638df98f9bc40612b0687b4d485",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10433, 10503, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 122,
+    "observation": {
+      "identity": "d60c5700d0b82119ba2efa9f748d6e916f6be6983dccda81b12c654cfcba42df",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10433, 10503, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 123,
+    "observation": {
+      "identity": "7b3659d935d6bf597b971d512aef17d845f82f06134808aad8c3ff99fa450e99",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10639, 10702, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 124,
+    "observation": {
+      "identity": "dd10acabcd8731a0ce62db9517532ef8817ad638df98f9bc40612b0687b4d485",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10639, 10702, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 125,
+    "observation": {
+      "identity": "d60c5700d0b82119ba2efa9f748d6e916f6be6983dccda81b12c654cfcba42df",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": ["apps/web/src/server/operations/m4-private-runtime.ts", 10639, 10702, 214],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 6
+    }
+  },
+  {
+    "index": 126,
+    "observation": {
+      "identity": "7b3659d935d6bf597b971d512aef17d845f82f06134808aad8c3ff99fa450e99",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 127,
+    "observation": {
+      "identity": "dd10acabcd8731a0ce62db9517532ef8817ad638df98f9bc40612b0687b4d485",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 128,
+    "observation": {
+      "identity": "d60c5700d0b82119ba2efa9f748d6e916f6be6983dccda81b12c654cfcba42df",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 4330, 9532, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 129,
+    "observation": {
+      "identity": "b031b84fcc29d5214b3c8d8c63ad10f9d21b7ed60fe781dbe5cc182dac46cddb",
+      "origin": "apps/web/src/server/operations/m4-private-runtime.ts",
+      "owner": ["apps/web/src/server/operations/m4-private-runtime.ts", 5558, 5948, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": true,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 130,
+    "observation": {
+      "identity": "a3e7726d865ddb9ed10517fb2a30193cc61fd88f26b6081f6eff16e1eafce70a",
+      "origin": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-staff-assignment-kernel.ts", 676, 2892, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 131,
+    "observation": {
+      "identity": "abae1add2ed6b4d114f70eb75f32ad4cabb2dc2652354be73bb343e112298912",
+      "origin": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-staff-assignment-kernel.ts", 676, 2892, 263],
+      "invocation": null,
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 132,
+    "observation": {
+      "identity": "dd1b4679dc2d7d5d61ddc793d28c89f0a03e4a662e37a6506e41bb35398f31ba",
+      "origin": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 1529, 2030, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+        2033,
+        2096,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  },
+  {
+    "index": 133,
+    "observation": {
+      "identity": "22f46443c5fb9e7760ffc1573fc5be5f8899739fc08c49ceb62cc34de4338258",
+      "origin": "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+      "owner": ["apps/web/src/server/operations/m4-assignment-kernel-shared.ts", 2030, 3053, 263],
+      "invocation": [
+        "apps/web/src/server/operations/m4-staff-assignment-kernel.ts",
+        2755,
+        2834,
+        214
+      ],
+      "context": null,
+      "definingContext": null,
+      "outcome": "visited",
+      "receiver": "unclassified",
+      "unsafe": true,
+      "incomplete": false,
+      "indirect": false,
+      "escaped": true,
+      "open": true,
+      "dispatchUnknown": [],
+      "occurrences": 1
+    }
+  }
+]

@@ -1,9 +1,9 @@
+import { withTenantContext } from '@interdomestik/database';
 import type {
   AgentCrmLeadActivity,
   AgentCrmLeadActivityRepository,
 } from '@interdomestik/domain-crm/lead-activities';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { db } from '@interdomestik/database/db';
 import { crmActivities, crmLeads } from '@interdomestik/database/schema';
 import { and, desc, eq } from 'drizzle-orm';
 
@@ -53,14 +53,16 @@ export const crmLeadActivityRepository: AgentCrmLeadActivityRepository<
     const branchId = requireBranchScope(params.actor);
 
     // db-access-guard: tenant-predicate -- reason: domain CRM lead activity adapter constrains the parent lead by actor tenant, agent, and durable branch scope before activity reads
-    const lead = await db.query.crmLeads.findFirst({
-      where: and(
-        eq(crmLeads.id, params.leadId),
-        eq(crmLeads.tenantId, params.actor.tenantId),
-        eq(crmLeads.agentId, params.actor.actorId),
-        eq(crmLeads.branchId, branchId)
-      ),
-    });
+    const lead = await withTenantContext({ tenantId: params.actor.tenantId }, tx =>
+      tx.query.crmLeads.findFirst({
+        where: and(
+          eq(crmLeads.id, params.leadId),
+          eq(crmLeads.tenantId, params.actor.tenantId),
+          eq(crmLeads.agentId, params.actor.actorId),
+          eq(crmLeads.branchId, branchId)
+        ),
+      })
+    );
     return lead ?? null;
   },
 
@@ -68,34 +70,36 @@ export const crmLeadActivityRepository: AgentCrmLeadActivityRepository<
     const branchId = requireBranchScope(params.actor);
 
     // db-access-guard: tenant-predicate -- reason: domain CRM lead activity adapter constrains activity feed reads by actor tenant, agent, lead, and activity branch snapshot
-    const activities = await db.query.crmActivities.findMany({
-      where: and(
-        eq(crmActivities.leadId, params.lead.id),
-        eq(crmActivities.tenantId, params.actor.tenantId),
-        eq(crmActivities.agentId, params.actor.actorId),
-        eq(crmActivities.branchId, branchId)
-      ),
-      columns: {
-        agentId: true,
-        branchId: true,
-        completedAt: true,
-        createdAt: true,
-        id: true,
-        leadId: true,
-        occurredAt: true,
-        scheduledAt: true,
-        summary: true,
-        tenantId: true,
-        type: true,
-      },
-      limit: params.limit,
-      orderBy: [desc(crmActivities.createdAt)],
-      with: {
-        agent: {
-          columns: { name: true },
+    const activities = await withTenantContext({ tenantId: params.actor.tenantId }, tx =>
+      tx.query.crmActivities.findMany({
+        where: and(
+          eq(crmActivities.leadId, params.lead.id),
+          eq(crmActivities.tenantId, params.actor.tenantId),
+          eq(crmActivities.agentId, params.actor.actorId),
+          eq(crmActivities.branchId, branchId)
+        ),
+        columns: {
+          agentId: true,
+          branchId: true,
+          completedAt: true,
+          createdAt: true,
+          id: true,
+          leadId: true,
+          occurredAt: true,
+          scheduledAt: true,
+          summary: true,
+          tenantId: true,
+          type: true,
         },
-      },
-    });
+        limit: params.limit,
+        orderBy: [desc(crmActivities.createdAt)],
+        with: {
+          agent: {
+            columns: { name: true },
+          },
+        },
+      })
+    );
 
     return activities.map(activity => mapActivity(activity as AgentCrmLeadActivityRow));
   },

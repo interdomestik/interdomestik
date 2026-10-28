@@ -1,0 +1,325 @@
+{
+  "version": 1,
+  "kind": "fixed-compiled-fixture-source-inputs",
+  "projectFiles": {
+    "scripts/ci/m4-compiled-fixture/project/action-map-plugin.mjs": {
+      "mode": "100644",
+      "bytes": 2465,
+      "sha256": "c82e7c3be462535cbd8755b2c7bcb18d5fad1b6395d5ffd6943bf65727e99ebf"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/[locale]/admin/claims/[claimId]/page.jsx": {
+      "mode": "100644",
+      "bytes": 186,
+      "sha256": "eb7b4afe70c1a7301bf95facb21f82f1a43879efd3b1652add087ea940fea856"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/[locale]/staff/claims/[claimId]/page.jsx": {
+      "mode": "100644",
+      "bytes": 186,
+      "sha256": "f263aa702770dc9964596fa7fa000cdc57746366da0b056e6fdafc7e447a3b52"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/action-input.js": {
+      "mode": "100644",
+      "bytes": 1626,
+      "sha256": "2736f4f78858910b8ddf69a12addad8bf63fd2a5edf44079909edc70c07da869"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/actions.js": {
+      "mode": "100644",
+      "bytes": 1604,
+      "sha256": "def49cb20b05e260f1eb7a8e8d3d2accdaed69f49bf88d736adfff79fd240d11"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/cache-probe.js": {
+      "mode": "100644",
+      "bytes": 431,
+      "sha256": "04eade18da045da0ae82b7d9e12ca7cca633448cce4a1fbb4a098933e1300168"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/command.jsx": {
+      "mode": "100644",
+      "bytes": 1829,
+      "sha256": "bb10392209027f54658006fabb29e7c73f1071ef1aae0350e4fad3e997cfea83"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/error.jsx": {
+      "mode": "100644",
+      "bytes": 268,
+      "sha256": "0027a6f3ad8f5bdcf3ff6c7c5ebc1f3cfeac24f5529ae41bdbd33379a6d4959d"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/fixture-plan.js": {
+      "mode": "100644",
+      "bytes": 2205,
+      "sha256": "02d50e6a0ea3d4c0964506b8e7f045aecc551e309d595e8ac3cae9464db60602"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/fixture-scope.js": {
+      "mode": "100644",
+      "bytes": 1385,
+      "sha256": "167d0d9d8aecd8400cc6ee73e088019326fa6759fbff13975c9532b37bc304af"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/layout.jsx": {
+      "mode": "100644",
+      "bytes": 157,
+      "sha256": "7b8c0ca9ac60c618035979dff266e17d640ba1f9a824287e6410d57deada8716"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/operation-identity.js": {
+      "mode": "100644",
+      "bytes": 798,
+      "sha256": "5c6d3737e67b6a3cf17f4efb32586108af336c14666d7e91cc18fc45b4046fc4"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/page.jsx": {
+      "mode": "100644",
+      "bytes": 132,
+      "sha256": "3a716cdeda308cce1212399a0113bef2c9e008f517068308510a4a1d4366398a"
+    },
+    "scripts/ci/m4-compiled-fixture/project/app/scenario-page.jsx": {
+      "mode": "100644",
+      "bytes": 1357,
+      "sha256": "ec80ecda976e812b8dc9030b79bb10c01c3bd67bf01104268f62eeeddb74d518"
+    },
+    "scripts/ci/m4-compiled-fixture/project/browser-output.mjs": {
+      "mode": "100644",
+      "bytes": 1744,
+      "sha256": "3e57639d429439778dd09f1243b6d360760db984c2191d042ac5b279da6cb23c"
+    },
+    "scripts/ci/m4-compiled-fixture/project/image-custody.mjs": {
+      "mode": "100644",
+      "bytes": 4202,
+      "sha256": "fda8e4565841e166b7eec6393840a8c0be0998199f5277b8046ed2e2fe143002"
+    },
+    "scripts/ci/m4-compiled-fixture/project/jsconfig.json": {
+      "mode": "100644",
+      "bytes": 111,
+      "sha256": "c857d11b1254e85bcd7d089bb476fd44b67db712af1e686a394466b5a0db2c90"
+    },
+    "scripts/ci/m4-compiled-fixture/project/next.config.mjs": {
+      "mode": "100644",
+      "bytes": 350,
+      "sha256": "7fc40fc0af599f13cb2273fa6716d20dd9306348d1f7c5731758622d60d446b7"
+    },
+    "scripts/ci/m4-compiled-fixture/project/package.json": {
+      "mode": "100644",
+      "bytes": 355,
+      "sha256": "9ed224bf4d55910a0fc3f0893416f44c623eb519c1d6732596ad8578f5763378"
+    },
+    "scripts/ci/m4-compiled-fixture/project/playwright.config.mjs": {
+      "mode": "100644",
+      "bytes": 1273,
+      "sha256": "1d1401bb9d8cf80aa3dea4ca6db86d91db050f93a67e3ff3cf0e1cdddf026073"
+    },
+    "scripts/ci/m4-compiled-fixture/project/serve.mjs": {
+      "mode": "100644",
+      "bytes": 3374,
+      "sha256": "8dfb05d43dab984d8ff8902fd003f426e6686ad6b769a6e852c75a73aa22be24"
+    },
+    "scripts/ci/m4-compiled-fixture/project/tests/browser-trust.spec.mjs": {
+      "mode": "100644",
+      "bytes": 3288,
+      "sha256": "142b235bffad4c761bc9be6bf49454d82ba7928a6fcb29e73633809f007ff35d"
+    },
+    "scripts/ci/m4-compiled-fixture/project/tests/compiled-entry.spec.mjs": {
+      "mode": "100644",
+      "bytes": 6748,
+      "sha256": "54c5bbb53bbae78e3daa8ed2631d0cee6bdba6e5701f14293e19f7e776b21ebe"
+    },
+    "scripts/ci/m4-compiled-fixture/project/tests/strict-firefox.fixture.mjs": {
+      "mode": "100644",
+      "bytes": 4601,
+      "sha256": "2f99dabdc55db2d27773d10087c0ab0d97d7cdb48c9f23a1980b1d92d64d9937"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-protocol.ts": {
+      "mode": "100644",
+      "bytes": 2171,
+      "sha256": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay-client.ts": {
+      "mode": "100644",
+      "bytes": 5577,
+      "sha256": "562098cd73a890e0a7cbc08a917b17d41de2c01eb93400be152c502c073a237a"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay-wire.ts": {
+      "mode": "100644",
+      "bytes": 5355,
+      "sha256": "a266de0d9e16e03fd4031b0429d8904d6e6cebee4496714f038da20ff0b08a68"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay.ts": {
+      "mode": "100644",
+      "bytes": 4887,
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-wire.ts": {
+      "mode": "100644",
+      "bytes": 4574,
+      "sha256": "b8f90e3f2b3d76aa1425aaac464783b74cdb215845b739ce79a810f9808210bd"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-admin-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1211,
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-agent-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1191,
+      "sha256": "5192429ff0354cdc4c35636039d1783aca996c982492aed1c4a9397c993023fe"
+    },
+    "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-staff-assignment.ts": {
+      "mode": "100644",
+      "bytes": 935,
+      "sha256": "5de3a8ff3a2ee76d06271acbeae0155dcdea5a59e3ac51a3d8b0b64b4945ed32"
+    }
+  },
+  "candidateFiles": {
+    "pnpm-lock.yaml": {
+      "mode": "100644",
+      "bytes": 711992,
+      "sha256": "42f995ad77406c993e1a80b26f36306afbde4df7bf0a395b01ef80ddd5f3a7dc"
+    },
+    "pnpm-workspace.yaml": {
+      "mode": "100644",
+      "bytes": 1989,
+      "sha256": "692d5d04bb918d25cc1093e425970dcb7879af7da8d1f869d3388328e625815a"
+    },
+    "apps/web/package.json": {
+      "mode": "100644",
+      "bytes": 6443,
+      "sha256": "056f67f3406064f25200beb36393607edb90aaad748ad109334c78476662f9a3"
+    },
+    "patches/next@16.4.3.patch": {
+      "mode": "100644",
+      "bytes": 950694,
+      "sha256": "94bc368b0f57bf43510ca1164dad7f9426d9a0aa177fa738435ae066edbd9bd4"
+    },
+    "apps/web/src/proxy.ts": {
+      "mode": "100644",
+      "bytes": 299,
+      "sha256": "224577793b968dc39bf2ac67da6790ab1fd97f846e0320e6f0dba60f6f8e10e7"
+    },
+    "apps/web/src/server/operations/m4-qualification-admin-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1211,
+      "sha256": "0c9e358013342d47e44237a3f514d62426af36318fd6373e2a9049b7c4b65d89"
+    },
+    "apps/web/src/server/operations/m4-qualification-agent-assignment.ts": {
+      "mode": "100644",
+      "bytes": 1191,
+      "sha256": "5192429ff0354cdc4c35636039d1783aca996c982492aed1c4a9397c993023fe"
+    },
+    "apps/web/src/server/operations/m4-qualification-staff-assignment.ts": {
+      "mode": "100644",
+      "bytes": 935,
+      "sha256": "5de3a8ff3a2ee76d06271acbeae0155dcdea5a59e3ac51a3d8b0b64b4945ed32"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay.ts": {
+      "mode": "100644",
+      "bytes": 4887,
+      "sha256": "9635388eaed0aea02165dccfba16c864f5e262d2a68add1f7f5d30f8d5d50d73"
+    },
+    "apps/web/src/server/operations/m4-assignment-protocol.ts": {
+      "mode": "100644",
+      "bytes": 2171,
+      "sha256": "a45629d8d4210f517e126426caee992408e57355f94faf805ed358184c3b1e04"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay-client.ts": {
+      "mode": "100644",
+      "bytes": 5577,
+      "sha256": "562098cd73a890e0a7cbc08a917b17d41de2c01eb93400be152c502c073a237a"
+    },
+    "apps/web/src/server/operations/m4-assignment-relay-wire.ts": {
+      "mode": "100644",
+      "bytes": 5355,
+      "sha256": "a266de0d9e16e03fd4031b0429d8904d6e6cebee4496714f038da20ff0b08a68"
+    },
+    "apps/web/src/server/operations/m4-assignment-wire.ts": {
+      "mode": "100644",
+      "bytes": 4574,
+      "sha256": "b8f90e3f2b3d76aa1425aaac464783b74cdb215845b739ce79a810f9808210bd"
+    }
+  },
+  "vendorCorrespondence": [
+    {
+      "candidate": "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-admin-assignment.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-agent-assignment.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-qualification-staff-assignment.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-assignment-relay.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-assignment-protocol.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-protocol.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay-client.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-relay-wire.ts"
+    },
+    {
+      "candidate": "apps/web/src/server/operations/m4-assignment-wire.ts",
+      "producer": "scripts/ci/m4-compiled-fixture/project/vendor/apps/web/src/server/operations/m4-assignment-wire.ts"
+    }
+  ],
+  "actions": [
+    {
+      "name": "runAdminAssignment",
+      "profile": "legacy-admin",
+      "adapter": "executeM4QualificationAdminAssignment"
+    },
+    {
+      "name": "runAgentAssignment",
+      "profile": "legacy-agent",
+      "adapter": "executeM4QualificationAgentAssignment"
+    },
+    {
+      "name": "runStaffAssignment",
+      "profile": "staff",
+      "adapter": "executeM4QualificationStaffAssignment"
+    }
+  ],
+  "installedClosure": {
+    "sha256": "5b19205ee51d236a4b58edabd4a5f07d675956ca1179867d6821fc52bbb56806",
+    "records": 12408,
+    "packageCount": 66,
+    "packageIdentity": "sha256-installed-root-relative-path-first20",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "playwright": "1.63.0",
+    "nodeVersion": "v24.15.0",
+    "nodeExecutableSha256": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32"
+  },
+  "browserBinaryBound": false,
+  "runtimeAdmission": false,
+  "productionCCredit": 0,
+  "producerHelpers": {
+    "scripts/ci/m4-compiled-fixture/package-graph.mjs": {
+      "mode": "100644",
+      "bytes": 7366,
+      "sha256": "1b591e53b6329779e6d9f43ea73e6dee3b6122e76486d2fdb919469515b149cd"
+    },
+    "scripts/ci/m4-compiled-fixture/preparation-custody.mjs": {
+      "mode": "100644",
+      "bytes": 2276,
+      "sha256": "b1a530c0db4d8ad7aec090beabecac6c6ef7d5e849b95de75af060d989c54379"
+    },
+    "scripts/ci/m4-compiled-fixture/prepare-build.mjs": {
+      "mode": "100644",
+      "bytes": 3510,
+      "sha256": "0d2968202546728411262921a48967b767c4cee3df8140dea680589df54875a3"
+    },
+    "scripts/ci/m4-compiled-fixture/seal-build.mjs": {
+      "mode": "100644",
+      "bytes": 3169,
+      "sha256": "61a30cbd5a220471e756ac4ded597084220b08f0eee4df20c6692ef7aadde738"
+    },
+    "scripts/ci/m4-compiled-fixture/source-bookends.mjs": {
+      "mode": "100644",
+      "bytes": 939,
+      "sha256": "cc8887d9258dc7323dd41c00fc49635e95ae1fb5cd7f0375e1440054af588c24"
+    }
+  }
+}

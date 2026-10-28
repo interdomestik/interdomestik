@@ -78,6 +78,27 @@ Use this file for repository-wide instructions. For reviews also follow `code_re
 - Use Context7 for framework behavior that may have changed. Use OpenAI documentation only when an
   OpenAI product or API is directly relevant.
 
+## Next.js Framework Context
+
+- Before Next.js work, read the relevant version-matched guide bundled in
+  `apps/web/node_modules/next/dist/docs/`. Resolve the package from `apps/web` in this
+  monorepo; the repository root may not expose `next` directly. Check the installed
+  package version against the manifest and lockfile before making version-specific claims.
+- Use Context7 and official documentation to supplement the installed guides. If dependencies
+  are absent, use official documentation matching the declared version and report that the
+  installed version could not be checked; do not silently upgrade packages.
+- Reuse the running development server. Inspect `.next/dev/lock` under `apps/web` (or the
+  configured output directory) before starting another server. This framework lock does not
+  coordinate independent worktrees, database jobs or other resource-intensive verification.
+- Use Playwright MCP for browser behavior and the existing deterministic E2E lanes for delivery.
+  Check relevant browser/server errors, loading states and interactions; a successful build
+  alone does not verify a user journey. Optional tools such as `next-dev-loop` are not gates.
+- Preserve the current Server Component/Suspense and caching contracts. Server Actions remain
+  callable endpoints and require authentication, authorization and tenant/resource checks.
+  Rendering on the server or adding `use cache` does not establish those guarantees.
+- Framework, bundler, caching and AI SDK migrations require their own authorized scope; a
+  framework trend does not expand the active program or change its acceptance criteria.
+
 ## Core Commands
 
 ```bash
@@ -159,3 +180,13 @@ NEVER use grep for project-wide searches (slow, ignores .gitignore). ALWAYS use 
 <!-- END FAST-TOOLS PROMPT v1 | codex-mastery -->
 
 The fast-tools rule applies to shell repository searches; Playwright's `--grep` flag is unaffected.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

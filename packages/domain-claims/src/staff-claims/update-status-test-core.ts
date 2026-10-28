@@ -105,8 +105,17 @@ function createMocks(): TestMocks {
   const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const notificationUser = {
+    findFirst: vi.fn().mockResolvedValue({ email: 'member@example.com' }),
+  };
   const withTenantContext = vi.fn(async (_context, cb) =>
-    cb({ execute: txExecute, insert: txInsert, select: txSelect, update: txUpdate })
+    cb({
+      query: { user: notificationUser },
+      execute: txExecute,
+      insert: txInsert,
+      select: txSelect,
+      update: txUpdate,
+    })
   );
   const transaction = vi.fn(async cb =>
     cb({ execute: txExecute, insert: txInsert, select: txSelect, update: txUpdate })
@@ -114,9 +123,7 @@ function createMocks(): TestMocks {
   return {
     db: {
       query: {
-        user: {
-          findFirst: vi.fn().mockResolvedValue({ email: 'member@example.com' }),
-        },
+        user: notificationUser,
       },
       select: vi.fn(() => {
         throw new Error('Global select forbidden');

@@ -11,8 +11,8 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/response', () => ({
   updateSupportHandoffPublicResponseCore: mocks.updateDomainPublicResponse,
 }));
 
-vi.mock('@/lib/audit', () => ({
-  logAuditEvent: mocks.logAuditEvent,
+vi.mock('./audit', () => ({
+  logSupportHandoffAuditEvent: mocks.logAuditEvent,
 }));
 
 vi.mock('@/lib/notifications', () => ({

@@ -1,6 +1,6 @@
 import { updateSupportHandoffPublicResponseCore as updateDomainPublicResponse } from '@interdomestik/domain-claims/support-handoffs/response';
 
-import { logAuditEvent } from '@/lib/audit';
+import { logSupportHandoffAuditEvent as logAuditEvent } from './audit';
 import { notifySupportHandoffPublicResponse } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 

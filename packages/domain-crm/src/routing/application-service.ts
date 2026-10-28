@@ -1,3 +1,4 @@
+import { preflightCrmLeadRoutingDecision } from './application-preflight';
 import type { CrmActorContext } from '../context';
 import type { CrmOutboxPort } from '../outbox/repository';
 import { createCrmOutboxEventData } from '../outbox/mutations';
@@ -104,11 +105,6 @@ export interface CrmLeadRoutingApplicationPorts {
   }): Promise<boolean>;
 }
 
-function normalizeIdempotencyKey(value: string): string | null {
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
 function isTerminalLead(lead: CrmRoutingLeadSnapshot): boolean {
   return (
     lead.lifecycleState === 'archived' ||
@@ -163,16 +159,6 @@ function auditMatches(params: {
     params.actual.strategy === params.expected.strategy &&
     params.actual.tenantId === params.expected.tenantId
   );
-}
-
-function authorizeApplicationActor(
-  actor: CrmActorContext
-): Extract<ApplyCrmLeadRoutingDecisionResult, { outcome: 'rejected' }> | null {
-  if (!actor.tenantId.trim()) return { outcome: 'rejected', reason: 'tenant_scope' };
-  if (actor.role === 'admin') return null;
-  if (actor.role !== 'branch_manager') return { outcome: 'rejected', reason: 'role_scope' };
-  if (!actor.scope.branchId?.trim()) return { outcome: 'rejected', reason: 'branch_scope' };
-  return null;
 }
 
 function scopeRulesForActor(
@@ -365,12 +351,10 @@ export async function applyCrmLeadRoutingDecision(
   input: ApplyCrmLeadRoutingDecisionInput,
   ports: CrmLeadRoutingApplicationPorts
 ): Promise<ApplyCrmLeadRoutingDecisionResult> {
-  const idempotencyKey = normalizeIdempotencyKey(input.idempotencyKey);
-  if (!idempotencyKey) return { outcome: 'rejected', reason: 'invalid_override' };
-
+  const denied = preflightCrmLeadRoutingDecision(input);
+  if (denied) return denied;
+  const idempotencyKey = input.idempotencyKey.trim();
   const normalizedInput = { ...input, idempotencyKey };
-  const actorDenied = authorizeApplicationActor(normalizedInput.actor);
-  if (actorDenied) return actorDenied;
 
   const replay = await ports.findRoutingAssignmentAuditByIdempotency({
     idempotencyKey,

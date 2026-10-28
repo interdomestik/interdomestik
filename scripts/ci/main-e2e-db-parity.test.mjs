@@ -36,5 +36,15 @@ test('main E2E uses the Postgres 16 database prepared by its CI job', () => {
 
   assert.ok(suite);
   assert.equal(suite.env?.E2E_DATABASE_URL, '${{ env.DATABASE_URL }}');
-  assert.equal(suite.env?.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL }}');
+  assert.equal(suite.env?.E2E_DATABASE_URL_RLS, '${{ env.DATABASE_URL_RLS }}');
+  assert.equal(
+    e2eJob.env.DATABASE_URL,
+    'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test'
+  );
+  const restricted = e2eJob.steps.find(step => step?.name === 'Generate ephemeral E2E credentials');
+  assert.match(
+    restricted?.run,
+    /bash scripts\/ci\/export-e2e-credentials\.sh\s+bash scripts\/ci\/export-e2e-rls\.sh/u
+  );
+  assert.ok(e2eJob.steps.indexOf(restricted) < e2eJob.steps.indexOf(prepare));
 });

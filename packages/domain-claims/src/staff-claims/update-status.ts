@@ -1,3 +1,4 @@
+import { scheduleStatusChangeNotification } from './status-notification';
 import {
   claimEscalationAgreements,
   claims,
@@ -284,50 +285,6 @@ async function assignClaimToActingStaffIfUnassigned(params: {
       updatedAt: now,
     })
     .where(params.staffScopeWhere);
-}
-
-function scheduleStatusChangeNotification(params: {
-  claimId: string;
-  claimTitle: string;
-  deps: ClaimsDeps;
-  newStatus: ClaimStatus;
-  oldStatus: ClaimStatus | null;
-  tenantId: string;
-  userId: string;
-}) {
-  const { claimId, claimTitle, deps, newStatus, oldStatus, tenantId, userId } = params;
-  const notifyStatusChanged = deps.notifyStatusChanged;
-
-  if (!notifyStatusChanged || !oldStatus || oldStatus === newStatus) {
-    return;
-  }
-
-  void (async () => {
-    try {
-      const member = await db.query.user.findFirst({
-        where: (userTable, { eq }) =>
-          withTenant(tenantId, userTable.tenantId, eq(userTable.id, userId)),
-        columns: {
-          email: true,
-        },
-      });
-
-      if (!member?.email) {
-        return;
-      }
-
-      await notifyStatusChanged(
-        userId,
-        member.email,
-        { id: claimId, title: claimTitle },
-        oldStatus,
-        newStatus,
-        { tenantId }
-      );
-    } catch (error) {
-      console.error('Failed to send status change notification:', error);
-    }
-  })();
 }
 
 async function finalizeClaimStatusChange(

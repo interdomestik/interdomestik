@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-mounted.mjs",
+      "caseGroup": "profiles",
+      "caseId": "mounted-admin-assignment-source-route",
+      "program": "async () => {\n    await admin`update \"user\" set role='admin',branch_id=null where id=${actor}`;\n    await admin`update \"user\" set role='staff',branch_id=null where id=${staff}`;\n    const claimId = 'mounted_admin_' + suffix,\n      operationId = randomUUID();\n    await seedClaim(claimId);\n    const owner = f.make();\n    const response = await f.client.invokeMounted(owner, 'legacy-admin', {\n      claimId,\n      staffId: staff,\n      operationId,\n      cookie,\n    });\n    assert.equal(response.result.success, true);\n    assert.deepEqual(response.cachePaths, expectedPaths(claimId));\n    await owner.close();\n    await f.noOwnedSessions();\n    const after = await state(claimId);\n    assert.equal(after.claim[0].staffId, staff);\n    assert.equal(after.audit.length, 1);\n    assert.equal(after.audit[0].actor_id, actor);\n    assert.equal(after.audit[0].tenant_id, home);\n    assert.equal(after.result.length, 1);\n    assert.equal(after.result[0].operation_id, operationId);\n    const notices =\n      await admin`select id from notifications where id=${'ntf_m4_assignment_' + operationId}`;\n    assert.equal(notices.length, 1);\n  }",
+      "links": [
+        {
+          "id": "mounted-admin-assignment-source-route",
+          "factPath": "/derivations/mountedAssignment/routes/0",
+          "factSha256": "b9115c0ae3881481747b9c95bde06d105a84b0641f8322e139ff014b3a117285",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-qualification-admin-assignment.ts",
+            "apps/web/src/server/operations/m4-assignment-relay.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-owner.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
+          ],
+          "assertions": [
+            "assert.equal(response.result.success, true)",
+            "assert.deepEqual(response.cachePaths, expectedPaths(claimId))",
+            "assert.equal(after.claim[0].staffId, staff)",
+            "assert.equal(after.audit.length, 1)",
+            "assert.equal(after.audit[0].actor_id, actor)",
+            "assert.equal(after.audit[0].tenant_id, home)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, operationId)",
+            "assert.equal(notices.length, 1)"
+          ],
+          "scope": "Actual local adapter through fixed HTTPS owner and restricted purpose runtime; same current actor/tenant, committed assignment/audit/operation ledger and finite notifications, with exact cache-call observation. Outer Next ingress and deployed cache/owner/TLS semantics remain source-only or residual; no original native aggregate allocation."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-mounted.mjs",
+      "caseGroup": "profiles",
+      "caseId": "mounted-agent-assignment-source-route",
+      "program": "async () => {\n    await admin`update \"user\" set role='admin',branch_id=null where id=${actor}`;\n    const claimId = 'mounted_agent_' + suffix,\n      operationId = randomUUID();\n    await seedClaim(claimId);\n    const owner = f.make();\n    const response = await f.client.invokeMounted(owner, 'legacy-agent', {\n      claimId,\n      staffId: staff,\n      operationId,\n      cookie,\n    });\n    assert.equal(response.result.success, true);\n    assert.deepEqual(response.cachePaths, expectedPaths(claimId));\n    await owner.close();\n    await f.noOwnedSessions();\n    const after = await state(claimId);\n    assert.equal(after.claim[0].staffId, staff);\n    assert.equal(after.audit.length, 1);\n    assert.equal(after.audit[0].actor_id, actor);\n    assert.equal(after.audit[0].tenant_id, home);\n    assert.equal(after.result.length, 1);\n    assert.equal(after.result[0].operation_id, operationId);\n    const notices =\n      await admin`select id from notifications where id=${'ntf_m4_assignment_' + operationId}`;\n    assert.equal(notices.length, 1);\n  }",
+      "links": [
+        {
+          "id": "mounted-agent-assignment-source-route",
+          "factPath": "/derivations/mountedAssignment/routes/1",
+          "factSha256": "79d548ba03dca2bef7f4b4b3ac1cf0a09ca72ffd8eaddac21dff3400e8eeb361",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-qualification-agent-assignment.ts",
+            "apps/web/src/server/operations/m4-assignment-relay.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-owner.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
+          ],
+          "assertions": [
+            "assert.equal(response.result.success, true)",
+            "assert.deepEqual(response.cachePaths, expectedPaths(claimId))",
+            "assert.equal(after.claim[0].staffId, staff)",
+            "assert.equal(after.audit.length, 1)",
+            "assert.equal(after.audit[0].actor_id, actor)",
+            "assert.equal(after.audit[0].tenant_id, home)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, operationId)",
+            "assert.equal(notices.length, 1)"
+          ],
+          "scope": "Actual local adapter through fixed HTTPS owner and restricted purpose runtime; same current actor/tenant, committed assignment/audit/operation ledger and finite notifications, with exact cache-call observation. Outer Next ingress and deployed cache/owner/TLS semantics remain source-only or residual; no original native aggregate allocation."
+        }
+      ]
+    },
+    {
+      "fixtureFile": "db-access-m4-runtime-fixture-mounted.mjs",
+      "caseGroup": "profiles",
+      "caseId": "mounted-staff-assignment-source-route",
+      "program": "async () => {\n    try {\n      await admin`update \"user\" set role='staff',branch_id=${branchA} where id=${actor}`;\n      const claimId = 'mounted_staff_' + suffix,\n        operationId = randomUUID();\n      await seedClaim(claimId);\n      await admin`update claim set branch_id=${branchA} where id=${claimId}`;\n      const owner = f.make();\n      const response = await f.client.invokeMounted(owner, 'staff', {\n        claimId,\n        operationId,\n        cookie,\n      });\n      assert.equal(response.result.success, true);\n      assert.deepEqual(response.cachePaths, expectedPaths(claimId, true));\n      await owner.close();\n      await f.noOwnedSessions();\n      const after = await state(claimId);\n      assert.equal(after.claim[0].staffId, actor);\n      assert.equal(after.audit.length, 1);\n      assert.equal(after.audit[0].actor_id, actor);\n      assert.equal(after.audit[0].tenant_id, home);\n      assert.equal(after.result.length, 1);\n      assert.equal(after.result[0].operation_id, operationId);\n      const notices =\n        await admin`select id from notifications where id=${'ntf_m4_assignment_' + operationId}`;\n      assert.equal(notices.length, 0);\n    } finally {\n      await admin`update \"user\" set role='admin',branch_id=null where id=${actor}`;\n    }\n  }",
+      "links": [
+        {
+          "id": "mounted-staff-assignment-source-route",
+          "factPath": "/derivations/mountedAssignment/routes/2",
+          "factSha256": "78760df76a983dad4b50823f1eeec4b69eb77a75b5d407e037fc93f415a0d761",
+          "sourceFiles": [
+            "apps/web/src/server/operations/m4-qualification-staff-assignment.ts",
+            "apps/web/src/server/operations/m4-assignment-relay.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-client.ts",
+            "apps/web/src/server/operations/m4-assignment-relay-wire.ts",
+            "apps/web/src/server/operations/m4-assignment-owner.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-http.ts",
+            "apps/web/src/server/operations/m4-private-runtime.ts",
+            "apps/web/src/server/operations/m4-private-runtime-context.ts",
+            "apps/web/src/server/operations/m4-runtime-command.ts",
+            "apps/web/src/server/operations/m4-runtime-retirement.ts",
+            "apps/web/src/server/operations/m4-assignment-owner-capture.ts"
+          ],
+          "assertions": [
+            "assert.equal(response.result.success, true)",
+            "assert.deepEqual(response.cachePaths, expectedPaths(claimId, true))",
+            "assert.equal(after.claim[0].staffId, actor)",
+            "assert.equal(after.audit.length, 1)",
+            "assert.equal(after.audit[0].actor_id, actor)",
+            "assert.equal(after.audit[0].tenant_id, home)",
+            "assert.equal(after.result.length, 1)",
+            "assert.equal(after.result[0].operation_id, operationId)",
+            "assert.equal(notices.length, 0)"
+          ],
+          "scope": "Actual local adapter through fixed HTTPS owner and restricted purpose runtime; same current actor/tenant, committed assignment/audit/operation ledger and finite notifications, with exact cache-call observation. Outer Next ingress and deployed cache/owner/TLS semantics remain source-only or residual; no original native aggregate allocation."
+        }
+      ]
+    }
+  ]
+}

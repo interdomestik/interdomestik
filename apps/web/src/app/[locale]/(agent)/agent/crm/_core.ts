@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { getAgentCrmDashboard, type AgentCrmDashboard } from '@interdomestik/domain-crm/dashboards';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type {
@@ -15,7 +16,7 @@ import {
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
 import { crmDashboardRepository } from '@/adapters/crm/dashboard-repository';
-import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
+import { createCrmReportingRepository } from '@/adapters/crm/reporting-repository';
 import {
   agentCrmTaskWorkQueueRepository,
   type AgentCrmTaskWorkQueueRepository,
@@ -216,7 +217,6 @@ export async function getAgentCrmReportingCore(args: {
   now?: () => string;
   repository?: CrmReportingRepository;
 }): Promise<AgentCrmReportingDashboard> {
-  const repository = args.repository ?? crmReportingRepository;
   const window = createAgentCrmReportingWindow((args.now ?? (() => new Date().toISOString()))());
   const denied = authorizeCrmReportingRead({
     actor: args.actor,
@@ -227,11 +227,17 @@ export async function getAgentCrmReportingCore(args: {
     throw new AgentCrmReportingAccessDeniedError(denied);
   }
 
+  const read = <T>(action: (repository: CrmReportingRepository) => Promise<T>) =>
+    args.repository
+      ? action(args.repository)
+      : withTenantContext({ tenantId: args.actor.tenantId }, tx =>
+          action(createCrmReportingRepository(tx))
+        );
   const input = { actor: args.actor, window };
   const [weightedRows, sourceRows, winRateRows] = await Promise.all([
-    repository.listWeightedPipelineRows(input),
-    repository.listSourceBreakdownRows(input),
-    repository.listWinRateRows(input),
+    read(repository => repository.listWeightedPipelineRows(input)),
+    read(repository => repository.listSourceBreakdownRows(input)),
+    read(repository => repository.listWinRateRows(input)),
   ]);
 
   const weightedPipeline = deriveCrmWeightedPipeline(weightedRows, {

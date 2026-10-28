@@ -5,6 +5,12 @@ import { createCommissionWithDispositionCore } from '../../../commissions/create
 import { handleNewSubscriptionExtras } from './extras';
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, callback) => {
+    const { db } = await vi.importMock<any>('@interdomestik/database');
+    return db.transaction
+      ? db.transaction((tx: any) => callback(Object.assign(tx, { query: db.query })))
+      : callback(db);
+  }),
   agentClients: { tenantId: 'tenantId', memberId: 'memberId', agentId: 'agentId' },
   db: {
     transaction: vi.fn(),

@@ -1,11 +1,18 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
 import { Link } from '@/i18n/routing';
-import { db } from '@/lib/db.server';
-import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  Avatar,
+  AvatarFallback,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@interdomestik/ui';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
 
 // Helper for initials
@@ -33,7 +40,27 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function AgentClaimsPage({ params, searchParams }: Props) {
+// Request-specific auth is read behind this boundary so the page shell can prerender.
+export default function AgentClaimsPage(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <output
+          aria-busy="true"
+          className="container block py-8"
+          data-testid="agent-claims-loading"
+        >
+          <div aria-hidden="true" className="h-9 w-64 animate-pulse rounded bg-muted" />
+          <div aria-hidden="true" className="mt-8 h-40 animate-pulse rounded bg-muted" />
+        </output>
+      }
+    >
+      <AgentClaimsContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AgentClaimsContent({ params, searchParams }: Props) {
   const { locale } = await params;
   await searchParams;
   const t = await getTranslations('agent');
@@ -41,11 +68,10 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   if (!session) redirect(`/${locale}/login`);
 
   const result = await getAgentClaimsCore({
-    tenantId: session.user.tenantId,
+    tenantId: ensureTenantId(session),
     userId: session.user.id,
     role: session.user.role,
     branchId: session.user.branchId,
-    db,
   });
 
   if (!result.ok) {

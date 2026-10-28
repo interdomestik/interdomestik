@@ -24,6 +24,17 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => 
 });
 
 vi.mock('@interdomestik/database', () => ({
+  dbAdmin: {
+    query: {
+      user: { findFirst: hoisted.dbUserFindFirst },
+      subscriptions: {
+        findMany: async (...args: unknown[]) => {
+          const row = await hoisted.dbSubscriptionFindFirst(...args);
+          return row ? [row] : [];
+        },
+      },
+    },
+  },
   db: {
     query: {
       user: {
@@ -244,10 +255,10 @@ describe('handlePaddleWebhookEntityCore', () => {
     expect(hoisted.handlePaddleWebhookCore).not.toHaveBeenCalled();
   });
 
-  it('delegates to shared core when tenant lookup throws during mismatch check', async () => {
+  it('fails closed when canonical tenant lookup throws during mismatch check', async () => {
     hoisted.dbUserFindFirst.mockRejectedValue(new Error('db unavailable'));
 
-    const result = await handlePaddleWebhookEntityCore({
+    const pending = handlePaddleWebhookEntityCore({
       expectedEntity: 'ks',
       paddle: { mocked: true } as never,
       headers: new Headers({ 'paddle-signature': 'sig_ks' }),
@@ -256,13 +267,9 @@ describe('handlePaddleWebhookEntityCore', () => {
       bodyText: '{"event_type":"transaction.completed"}',
     });
 
-    expect(result).toEqual({ status: 200, body: { success: true } });
-    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
-    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
-      expect.objectContaining({
-        billingEntity: 'ks',
-      })
-    );
+    await expect(pending).rejects.toThrow('db unavailable');
+    expect(hoisted.dbUserFindFirst).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).not.toHaveBeenCalled();
   });
 
   it('falls back to shared core handling when preflight signature verification fails', async () => {

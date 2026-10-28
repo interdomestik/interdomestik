@@ -60,6 +60,8 @@ vi.mock('@interdomestik/database', async () => {
     membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
     subscriptions: { id: 'id' },
     db: dbMock,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof dbMock) => unknown) =>
+      callback(dbMock),
   };
 });
 

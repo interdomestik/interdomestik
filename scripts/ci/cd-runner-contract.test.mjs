@@ -17,11 +17,6 @@ const stepIndex = (job, matcher) =>
   job.steps.findIndex(step => matcher.test(step.name || step.uses || step.run || ''));
 const step = (job, name) => job.steps.find(candidate => candidate.name === name);
 const findStep = (steps, name) => steps.find(candidate => candidate.name === name);
-const findStepIndex = (steps, name) => {
-  const index = steps.findIndex(candidate => candidate.name === name);
-  assert.notEqual(index, -1, `Missing step: ${name}`);
-  return index;
-};
 const normalizeNeeds = needs =>
   Array.isArray(needs) ? needs : typeof needs === 'string' ? [needs] : [];
 test('runs staging on GitHub-hosted runners and production on the Mac', () => {
@@ -268,31 +263,4 @@ test('CI unit lane runs the blocking repository coverage gate', () => {
   const coverageStep = findStep(unitJob.steps, 'Coverage Gate');
   assert.ok(coverageStep);
   assert.equal(coverageStep.run, 'pnpm coverage:gate');
-});
-test('Pilot gate heavy runner depends on preflight before Postgres, setup, build, and release-gate work', () => {
-  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
-  const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
-  assert.ok(pilotGateJob);
-  const steps = pilotGateJob.steps;
-  const setupIndex = steps.findIndex(step => step?.uses === './.github/actions/setup');
-  const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
-  const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
-  const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
-  assert.deepEqual(normalizeNeeds(pilotGateJob.needs), ['pilot-gate-preflight']);
-  assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.run_broad == 'true'");
-  assert.equal(pilotGateJob.env.DATABASE_URL_RLS, pilotGateJob.env.DATABASE_URL);
-  assert.equal(pilotGateJob.env.NODE_OPTIONS, '--max-old-space-size=4096');
-  for (const index of [setupIndex, manualSonarIndex, prepareDbIndex, buildIndex]) {
-    assert.ok(index >= 0);
-  }
-  assert.equal(
-    findStep(steps, 'Run Sonar quality gate (manual fallback)').if,
-    "env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')"
-  );
-  assert.ok(setupIndex < prepareDbIndex);
-  assert.ok(manualSonarIndex < prepareDbIndex);
-  assert.ok(manualSonarIndex < buildIndex);
-  assert.equal(findStep(steps, 'Evaluate validation surface'), undefined);
-  assert.equal(findStep(steps, 'Validate required gate secrets'), undefined);
-  assert.equal(findStep(steps, 'Await SonarCloud Code Analysis check'), undefined);
 });

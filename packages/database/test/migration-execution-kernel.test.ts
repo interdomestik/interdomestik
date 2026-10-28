@@ -35,8 +35,8 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
       contract_version: 'canonical_migration_execution_v1',
       callback_plan_sha256: harness.state.callbackPlanSha256,
       applied_before: 0,
-      applied_now: 96,
-      applied_total: 96,
+      applied_now: 97,
+      applied_total: 97,
       session_reserved: true,
       transaction_committed: true,
       session_lock_released: true,
@@ -46,7 +46,7 @@ test('schema_absent commits the exact plan once or rolls every mutation back', a
   assert.deepEqual(await harness.snapshot(), {
     schemaExists: true,
     tableExists: true,
-    ledgerRows: 96,
+    ledgerRows: 97,
   });
 
   await harness.reset('schema_absent');
@@ -73,6 +73,7 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
     { setup: 'table' as const, applied: 94 },
     { setup: 'table' as const, applied: 95 },
     { setup: 'table' as const, applied: 96 },
+    { setup: 'table' as const, applied: 97 },
   ];
   for (const item of cases) {
     await harness.reset(item.setup);
@@ -80,23 +81,23 @@ test('executes only the exact pending suffix and is idempotent at all_applied', 
     const taggedQueries: string[] = [];
     const result = await harness.run({ taggedQueries });
     const expectedPaths =
-      item.applied === 96
+      item.applied === 97
         ? [ENTRY_PATH, POSTCHECK_PATH]
         : [ENTRY_PATH, CALLBACK_PATH, POSTCHECK_PATH];
     assert.deepEqual(searchPaths(taggedQueries), expectedPaths);
     assert.equal(result.outer.ok, true);
     assert(result.execution?.ok);
     assert.equal(result.execution.summary.applied_before, item.applied);
-    assert.equal(result.execution.summary.applied_now, 96 - item.applied);
-    assert.equal(result.execution.summary.applied_total, 96);
+    assert.equal(result.execution.summary.applied_now, 97 - item.applied);
+    assert.equal(result.execution.summary.applied_total, 97);
     assert.deepEqual(await harness.snapshot(), {
       schemaExists: true,
       tableExists: true,
-      ledgerRows: 96,
+      ledgerRows: 97,
     });
     const again = await harness.run();
     assert(again.execution?.ok);
-    assert.equal(again.execution.summary.applied_before, 96);
+    assert.equal(again.execution.summary.applied_before, 97);
     assert.equal(again.execution.summary.applied_now, 0);
   }
 });

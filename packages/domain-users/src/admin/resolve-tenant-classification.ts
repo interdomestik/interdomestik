@@ -24,6 +24,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
+import { confirmCurrentTenantClassification } from './confirm-current-tenant-classification';
 import { resolveTenantId } from './utils';
 
 export type TenantClassificationResolutionMode = 'confirm_current' | 'reassign';
@@ -152,7 +153,7 @@ async function hasTenantBoundRecords(params: {
   );
 }
 
-async function validateResolutionInput(params: {
+export async function validateResolutionInput(params: {
   session: UserSession | null;
   userId: string;
   currentTenantId: string;
@@ -248,6 +249,9 @@ export async function resolveTenantClassificationCore(params: {
   const { currentTenantId, nextTenantId, resolutionMode } = validation.data;
 
   try {
+    if (resolutionMode === 'confirm_current') {
+      return await confirmCurrentTenantClassification(params.userId, currentTenantId);
+    }
     const currentUser = await getPendingUser(params.userId, currentTenantId);
     if (!currentUser) {
       return { error: 'User not found' };

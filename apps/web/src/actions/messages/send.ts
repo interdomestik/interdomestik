@@ -1,6 +1,6 @@
-import { notifyNewMessage } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 import type { Session } from './context';
+import { notifyPublicReplyCore } from './public-reply-notification.core';
 import { sendMessageDbCore } from './send.core';
 import type { MessageWithSender } from './types';
 
@@ -21,18 +21,26 @@ export async function sendMessageCore(params: {
     return result;
   }
 
-  revalidatePath(`/member/claims/${params.claimId}`);
-  revalidatePath(`/staff/claims/${params.claimId}`);
-  revalidatePath('/agent/workspace/claims');
+  for (const path of [
+    `/member/claims/${params.claimId}`,
+    `/staff/claims/${params.claimId}`,
+    '/agent/workspace/claims',
+  ]) {
+    try {
+      revalidatePath(path);
+    } catch {
+      console.error('Message cache refresh failed after commit');
+    }
+  }
 
-  if (result.claimOwnerEmail && !result.isInternal && result.isStaff) {
-    notifyNewMessage(
-      result.claim.userId,
-      result.claimOwnerEmail,
-      { id: result.claim.id, title: result.claim.title },
-      params.session?.user?.name || 'Agent',
-      params.content
-    ).catch((err: Error) => console.error('Failed to send message notification:', err));
+  if (params.session && result.claimOwnerEmail && !result.isInternal && result.isStaff) {
+    // Optional: never fails the persisted message response.
+    await notifyPublicReplyCore({
+      session: params.session,
+      claimId: result.claim.id,
+      messageId: result.message.id,
+      expectedRecipientId: result.claim.userId,
+    });
   }
 
   return { success: true, message: result.message };

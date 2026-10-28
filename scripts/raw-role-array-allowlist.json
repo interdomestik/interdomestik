@@ -35,8 +35,6 @@
     "apps/web/src/lib/rbac-portals.ts:1:36:admin,super_admin,tenant_admin,branch_manager",
     "apps/web/src/server/domains/claims/queries.ts:57:14:admin,tenant_admin,super_admin",
     "packages/domain-activities/src/log-lead.ts:11:31:admin,staff,agent",
-    "packages/domain-communications/src/messages/access.ts:10:35:admin,tenant_admin,super_admin",
-    "packages/domain-communications/src/messages/access.ts:11:42:staff,branch_manager",
     "packages/domain-crm/src/context.ts:1:32:member,agent,staff,branch_manager,admin",
     "packages/domain-crm/src/tasks/types.ts:24:40:agent,staff,branch_manager,admin",
     "packages/domain-crm/src/tasks/types.ts:27:42:agent,staff,branch_manager,admin",

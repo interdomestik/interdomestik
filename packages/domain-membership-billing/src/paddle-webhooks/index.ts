@@ -26,3 +26,6 @@ export type {
   SendPaymentFailedEmail,
   SendThankYouLetter,
 } from './types';
+
+export type { PaddleWebhookReceiptStore, PaddleReceiptInsert } from './receipt-store';
+export type { PaddleWebhookIdentityReader } from './identity-reader';

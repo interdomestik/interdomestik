@@ -9,9 +9,6 @@ import { rootDir, tmp, git } from './db-access-required-git.mjs';
 const base = '67358772ce0cb056f78be082362fb297bfab7b9d';
 const guard = '3863df0354f2ba7e9051605ef753870515db5092';
 const tree = '3161a77b393235ecd1c8311561503d614b31c380';
-const successorBase = 'f696ec742ffbb108502f5c930aee907e6cea4402';
-const successorGuard = '1219d276f1ab74451ec9fa1537125131a935f846';
-const successorTree = '951ab3a44912e9927d55b8cd9c5cadb0e65587a0';
 const workflow = yaml.load(fs.readFileSync(path.join(rootDir, '.github/workflows/ci.yml'), 'utf8'));
 const script = workflow.jobs.audit.steps.find(step => step.id === 'protected_db_access').run;
 const start = '# Exact first resolver transition:';
@@ -136,46 +133,60 @@ test('push, other default/base branch and other validated epoch preserve origina
   }
 });
 
-// Keep the historical transition contracts above; this successor is a separate fixed pairing.
-test('the exact dependency successor base selects only its immutable reviewed G/tree', () => {
-  const root = repository({ baseCommit: successorBase, sourceCommit: successorGuard });
-  assert.equal(git(rootDir, 'rev-parse', `${successorGuard}^{tree}`), successorTree);
-  const result = select(root, { anchor: successorBase });
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, successorGuard);
-});
-
-test('the successor refuses missing, unreachable or wrong-tree source before execution', () => {
-  for (const [options, reason] of [
-    [{ source: false }, /guard identity/u],
-    [{ reachable: false }, /guard unreachable/u],
-  ]) {
-    const result = select(
-      repository({ baseCommit: successorBase, sourceCommit: successorGuard, ...options }),
-      { anchor: successorBase }
-    );
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, reason);
-    assert.equal(result.stdout, '');
-  }
-  const result = select(repository({ baseCommit: successorBase, sourceCommit: successorGuard }), {
-    anchor: successorBase,
-    body: branch.replace(successorTree, '0'.repeat(40)),
-  });
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /guard identity/u);
-});
-
-test('the successor preserves push, other-branch and unrelated-epoch selection', () => {
-  const root = repository({ source: false, baseCommit: successorBase });
-  for (const options of [
-    { event: 'push' },
-    { defaultBranch: 'master' },
-    { baseRef: 'feature' },
-    { anchor: '278e33ab0dd448547fa81d4b0ff122b4d69c901e' },
-  ]) {
-    const result = select(root, { anchor: successorBase, ...options });
+for (const [label, successorBase, successorGuard, successorTree] of [
+  [
+    'dependency',
+    'f696ec742ffbb108502f5c930aee907e6cea4402',
+    '1219d276f1ab74451ec9fa1537125131a935f846',
+    '951ab3a44912e9927d55b8cd9c5cadb0e65587a0',
+  ],
+  [
+    'provider',
+    '18cd1a73b12f589c69934cba862092d857434013',
+    '34d9afbd690510c13c0148464125407498be624b',
+    'f5212a7503af124f07b66f90984d2211ea6ebaad',
+  ],
+]) {
+  test(`${label}: exact base selects immutable reviewed source/tree`, () => {
+    const root = repository({ baseCommit: successorBase, sourceCommit: successorGuard });
+    assert.equal(git(rootDir, 'rev-parse', `${successorGuard}^{tree}`), successorTree);
+    const result = select(root, { anchor: successorBase });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, options.anchor ?? successorBase);
-  }
-});
+    assert.equal(result.stdout, successorGuard);
+  });
+
+  test(`${label}: missing, unreachable and wrong-tree source refuse`, () => {
+    for (const [options, reason] of [
+      [{ source: false }, /guard identity/u],
+      [{ reachable: false }, /guard unreachable/u],
+    ]) {
+      const result = select(
+        repository({ baseCommit: successorBase, sourceCommit: successorGuard, ...options }),
+        { anchor: successorBase }
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, reason);
+      assert.equal(result.stdout, '');
+    }
+    const result = select(repository({ baseCommit: successorBase, sourceCommit: successorGuard }), {
+      anchor: successorBase,
+      body: branch.replace(successorTree, '0'.repeat(40)),
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /guard identity/u);
+  });
+
+  test(`${label}: push, other branch and unrelated epoch preserve selection`, () => {
+    const root = repository({ source: false, baseCommit: successorBase });
+    for (const options of [
+      { event: 'push' },
+      { defaultBranch: 'master' },
+      { baseRef: 'feature' },
+      { anchor: '278e33ab0dd448547fa81d4b0ff122b4d69c901e' },
+    ]) {
+      const result = select(root, { anchor: successorBase, ...options });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, options.anchor ?? successorBase);
+    }
+  });
+}

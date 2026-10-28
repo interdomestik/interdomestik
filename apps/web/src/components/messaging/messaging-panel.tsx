@@ -196,6 +196,15 @@ function ScopedMessagingPanel({
         </Button>
       </CardHeader>
 
+      {isAgent ? (
+        <p
+          className="shrink-0 border-b px-4 py-2 text-xs text-muted-foreground"
+          data-testid="messaging-public-audience"
+        >
+          {t('publicAudience')}
+        </p>
+      ) : null}
+
       {/* The column scrolls instead of clipping: when enlarged text or long localized copy needs
           more than the panel offers, the error, the retry control and the draft stay reachable. */}
       <CardContent

@@ -1,6 +1,6 @@
-import { and, db, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
+import { withTenantContext, and, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { requireStaffSession, buildBranchScope } from './staff-scope';
 import { inArray, isNotNull, type SQL } from 'drizzle-orm';
 
 import type {
@@ -13,8 +13,6 @@ import type {
 } from './types';
 import { ACTIVE_HANDOFF_STATUSES, MAX_PUBLIC_RESPONSE_LENGTH } from './types';
 
-type StaffUser = SupportHandoffSession['user'] & { branchId?: string | null };
-
 function normalizePublicResponse(value: string | null | undefined) {
   return value?.trim().slice(0, MAX_PUBLIC_RESPONSE_LENGTH) ?? '';
 }
@@ -23,30 +21,6 @@ function normalizeNullableDate(value: Date | string | null | undefined) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function requireStaffSession(session: SupportHandoffSession | null) {
-  if (session?.user?.role !== 'staff') {
-    return null;
-  }
-
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return null;
-  }
-
-  const user = session.user as StaffUser;
-  if (!user.branchId) {
-    return null;
-  }
-
-  return { tenantId, user };
-}
-
-function buildBranchScope(branchId: string | null | undefined) {
-  return branchId ? eq(supportHandoffs.branchId, branchId) : undefined;
 }
 
 export async function updateSupportHandoffPublicResponseCore(
@@ -68,38 +42,43 @@ export async function updateSupportHandoffPublicResponseCore(
 
   const now = new Date();
   const expectedVersion = params.expectedVersion ?? 0;
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      publicResponse,
-      publicResponseAt: now,
-      publicResponseById: staffSession.user.id,
-      publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
-      updatedAt: now,
-    })
-    .where(
-      withTenant(
-        staffSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.status, 'accepted'),
-          eq(supportHandoffs.staffId, staffSession.user.id),
-          eq(supportHandoffs.publicResponseVersion, expectedVersion),
-          buildBranchScope(staffSession.user.branchId ?? null)
+  const updated = await withTenantContext({ tenantId: staffSession.tenantId }, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        publicResponse,
+        publicResponseAt: now,
+        publicResponseById: staffSession.user.id,
+        publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
+        updatedAt: now,
+      })
+      .where(
+        withTenant(
+          staffSession.tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.status, 'accepted'),
+            eq(supportHandoffs.staffId, staffSession.user.id),
+            eq(supportHandoffs.publicResponseVersion, expectedVersion),
+            buildBranchScope(staffSession.user.branchId ?? null)
+          )
         )
       )
-    )
-    .returning({
-      handoffId: supportHandoffs.id,
-      memberId: supportHandoffs.memberId,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      tenantId: supportHandoffs.tenantId,
-    });
+      .returning({
+        handoffId: supportHandoffs.id,
+        memberId: supportHandoffs.memberId,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        tenantId: supportHandoffs.tenantId,
+      })
+  );
 
   const row = updated[0];
   if (!row) {
-    return { success: false, error: 'Handoff changed before response could be updated' };
+    return {
+      success: false,
+      error: 'Handoff changed before response could be updated',
+    };
   }
 
   if (deps.logAuditEvent) {
@@ -149,23 +128,25 @@ async function getLatestPublicResponseForScope(args: {
     conditions.push(eq(supportHandoffs.claimId, args.claimId));
   }
 
-  const rows = await db
-    .select({
-      handoffId: supportHandoffs.id,
-      publicResponse: supportHandoffs.publicResponse,
-      publicResponseAt: supportHandoffs.publicResponseAt,
-      publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
-      publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
-      publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
-      publicResponseVersion: supportHandoffs.publicResponseVersion,
-      memberReply: supportHandoffs.memberReply,
-      memberReplyAt: supportHandoffs.memberReplyAt,
-      memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
-    })
-    .from(supportHandoffs)
-    .where(withTenant(args.tenantId, supportHandoffs.tenantId, and(...conditions)))
-    .orderBy(desc(supportHandoffs.publicResponseAt), desc(supportHandoffs.id))
-    .limit(1);
+  const rows = await withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx
+      .select({
+        handoffId: supportHandoffs.id,
+        publicResponse: supportHandoffs.publicResponse,
+        publicResponseAt: supportHandoffs.publicResponseAt,
+        publicResponseAcknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
+        publicResponseAcknowledgedById: supportHandoffs.publicResponseAcknowledgedById,
+        publicResponseAcknowledgedVersion: supportHandoffs.publicResponseAcknowledgedVersion,
+        publicResponseVersion: supportHandoffs.publicResponseVersion,
+        memberReply: supportHandoffs.memberReply,
+        memberReplyAt: supportHandoffs.memberReplyAt,
+        memberReplyResponseVersion: supportHandoffs.memberReplyResponseVersion,
+      })
+      .from(supportHandoffs)
+      .where(withTenant(args.tenantId, supportHandoffs.tenantId, and(...conditions)))
+      .orderBy(desc(supportHandoffs.publicResponseAt), desc(supportHandoffs.id))
+      .limit(1)
+  );
 
   const row = rows[0];
   if (!row?.publicResponse) {

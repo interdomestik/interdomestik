@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -40,13 +39,7 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: mocks.requireSessionOrRedirect,
 }));
 
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href?.toString()} {...props}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock('@/i18n/routing', async () => (await import('./_core.entry.fixture')).routingMock);
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
@@ -64,39 +57,25 @@ vi.mock('@interdomestik/database', () => ({
   },
   desc: mocks.desc,
   eq: mocks.eq,
+  withTenantContext: async (
+    _context: unknown,
+    callback: (tx: { select: typeof mocks.select }) => unknown
+  ) => callback({ select: mocks.select }),
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
-vi.mock('@interdomestik/ui/components/button', () => ({
-  Button: ({
-    asChild,
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    asChild?: boolean;
-  }) => (asChild ? <>{children}</> : <button {...props}>{children}</button>),
-}));
+vi.mock(
+  '@interdomestik/ui/components/button',
+  async () => (await import('./_core.entry.fixture')).buttonMock
+);
 
-vi.mock('@interdomestik/ui/components/card', () => ({
-  Card: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <section {...props}>{children}</section>
-  ),
-  CardContent: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div {...props}>{children}</div>
-  ),
-  CardDescription: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p {...props}>{children}</p>
-  ),
-  CardHeader: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <header {...props}>{children}</header>
-  ),
-  CardTitle: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h2 {...props}>{children}</h2>
-  ),
-}));
+vi.mock(
+  '@interdomestik/ui/components/card',
+  async () => (await import('./_core.entry.fixture')).cardMock
+);
 
 vi.mock('./_advisory-banner', () => ({
   AdvisoryBanner: (props: {
@@ -133,11 +112,7 @@ vi.mock('./_public-response-banner', () => ({
   },
 }));
 
-vi.mock('lucide-react', () => ({
-  Mail: () => <span aria-hidden="true" />,
-  MessageSquare: () => <span aria-hidden="true" />,
-  Phone: () => <span aria-hidden="true" />,
-}));
+vi.mock('lucide-react', async () => (await import('./_core.entry.fixture')).iconMock);
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),

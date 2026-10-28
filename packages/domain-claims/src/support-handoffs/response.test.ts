@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportHandoffSession } from './types';
-import { ACTIVE_HANDOFF_STATUSES, MAX_PUBLIC_RESPONSE_LENGTH } from './types';
-import { getMemberLatestPublicResponse, updateSupportHandoffPublicResponseCore } from './response';
+import { MAX_PUBLIC_RESPONSE_LENGTH } from './types';
+import { updateSupportHandoffPublicResponseCore } from './response';
 
 const mocks = vi.hoisted(() => {
   const updateReturning = vi.fn();
@@ -63,7 +63,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
-  db: mocks.db,
+  withTenantContext: vi.fn(async (_context, action) => action(mocks.db)),
   desc: mocks.desc,
   eq: mocks.eq,
   sql: mocks.sql,
@@ -258,134 +258,5 @@ describe('support handoff public response', () => {
     );
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.branch_id', 'branch-2');
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.staff_id', 'staff-2');
-  });
-
-  it('returns a same-claim member-safe public response when available', async () => {
-    mocks.selectLimit.mockResolvedValueOnce([
-      {
-        publicResponse: 'Claim-specific staff update',
-        publicResponseAt: new Date('2026-05-04T09:00:00.000Z'),
-        handoffId: 'handoff-1',
-        publicResponseAcknowledgedAt: null,
-        publicResponseAcknowledgedById: null,
-        publicResponseAcknowledgedVersion: null,
-        publicResponseVersion: 2,
-        memberReply: null,
-        memberReplyAt: null,
-        memberReplyResponseVersion: null,
-      },
-    ]);
-
-    const result = await getMemberLatestPublicResponse({
-      claimId: 'claim-1',
-      memberId: 'member-1',
-      tenantId: 'tenant-1',
-    });
-
-    expect(result).toEqual({
-      publicResponse: 'Claim-specific staff update',
-      publicResponseAt: '2026-05-04T09:00:00.000Z',
-      handoffId: 'handoff-1',
-      publicResponseAcknowledged: false,
-      publicResponseAcknowledgedAt: null,
-      publicResponseAcknowledgedVersion: null,
-      publicResponseVersion: 2,
-      memberReply: null,
-      memberReplyAt: null,
-      memberReplyResponseVersion: null,
-    });
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.member_id', 'member-1');
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
-    expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
-    expect(mocks.isNotNull).toHaveBeenCalledWith('support_handoffs.public_response');
-    expect(Object.keys(result ?? {})).toEqual([
-      'handoffId',
-      'publicResponse',
-      'publicResponseAt',
-      'publicResponseVersion',
-      'publicResponseAcknowledged',
-      'publicResponseAcknowledgedAt',
-      'publicResponseAcknowledgedVersion',
-      'memberReply',
-      'memberReplyAt',
-      'memberReplyResponseVersion',
-    ]);
-  });
-
-  it('returns the targeted active handoff response without falling back to another handoff', async () => {
-    mocks.selectLimit.mockResolvedValueOnce([
-      {
-        publicResponse: 'Targeted staff update',
-        publicResponseAt: new Date('2026-05-04T11:00:00.000Z'),
-        handoffId: 'handoff-1',
-        publicResponseAcknowledgedAt: new Date('2026-05-04T11:05:00.000Z'),
-        publicResponseAcknowledgedById: 'member-1',
-        publicResponseAcknowledgedVersion: 3,
-        publicResponseVersion: 3,
-        memberReply: 'Thanks, that resolves it.',
-        memberReplyAt: new Date('2026-05-04T11:07:00.000Z'),
-        memberReplyResponseVersion: 3,
-      },
-    ]);
-
-    const result = await getMemberLatestPublicResponse({
-      claimId: 'claim-1',
-      handoffId: 'handoff-1',
-      memberId: 'member-1',
-      tenantId: 'tenant-1',
-    });
-
-    expect(result).toEqual({
-      publicResponse: 'Targeted staff update',
-      publicResponseAt: '2026-05-04T11:00:00.000Z',
-      handoffId: 'handoff-1',
-      publicResponseAcknowledged: true,
-      publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
-      publicResponseAcknowledgedVersion: 3,
-      publicResponseVersion: 3,
-      memberReply: 'Thanks, that resolves it.',
-      memberReplyAt: '2026-05-04T11:07:00.000Z',
-      memberReplyResponseVersion: 3,
-    });
-    expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.id', 'handoff-1');
-    expect(mocks.eq).not.toHaveBeenCalledWith('support_handoffs.claim_id', 'claim-1');
-    expect(mocks.selectLimit).toHaveBeenCalledTimes(1);
-  });
-
-  it('falls back to the latest active member response when no same-claim response exists', async () => {
-    mocks.selectLimit.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        publicResponse: 'Latest generic staff update',
-        publicResponseAt: '2026-05-04T10:00:00.000Z',
-        handoffId: 'handoff-3',
-        publicResponseAcknowledgedAt: new Date('2026-05-04T10:05:00.000Z'),
-        publicResponseAcknowledgedById: 'member-1',
-        publicResponseAcknowledgedVersion: 2,
-        publicResponseVersion: 3,
-        memberReply: 'Earlier-cycle reply',
-        memberReplyAt: new Date('2026-05-04T10:06:00.000Z'),
-        memberReplyResponseVersion: 2,
-      },
-    ]);
-
-    const result = await getMemberLatestPublicResponse({
-      claimId: 'claim-2',
-      memberId: 'member-1',
-      tenantId: 'tenant-1',
-    });
-
-    expect(result).toEqual({
-      publicResponse: 'Latest generic staff update',
-      publicResponseAt: '2026-05-04T10:00:00.000Z',
-      handoffId: 'handoff-3',
-      publicResponseAcknowledged: false,
-      publicResponseAcknowledgedAt: null,
-      publicResponseAcknowledgedVersion: 2,
-      publicResponseVersion: 3,
-      memberReply: 'Earlier-cycle reply',
-      memberReplyAt: '2026-05-04T10:06:00.000Z',
-      memberReplyResponseVersion: 2,
-    });
-    expect(mocks.selectLimit).toHaveBeenCalledTimes(2);
   });
 });

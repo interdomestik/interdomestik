@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -22,7 +23,14 @@ vi.mock('@/adapters/crm/dashboard-repository', () => ({
   crmDashboardRepository: hoisted.crmDashboardRepository,
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context: unknown, action: (tx: unknown) => unknown) =>
+    action({})
+  ),
+}));
+
 vi.mock('@/adapters/crm/reporting-repository', () => ({
+  createCrmReportingRepository: vi.fn(() => hoisted.crmReportingRepository),
   crmReportingRepository: hoisted.crmReportingRepository,
 }));
 
@@ -160,6 +168,7 @@ describe('getAgentCrmStatsCore', () => {
       actor,
       window: expectedWindow,
     });
+    expect(withTenantContext).toHaveBeenCalledTimes(3);
     expect(reporting).toMatchObject({
       sourceBreakdown: {
         groups: [
@@ -280,6 +289,7 @@ describe('getAgentCrmStatsCore', () => {
       reason: 'agent_scope',
     } satisfies Partial<AgentCrmReportingAccessDeniedError>);
 
+    expect(withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.crmReportingRepository.listWeightedPipelineRows).not.toHaveBeenCalled();
     expect(hoisted.crmReportingRepository.listSourceBreakdownRows).not.toHaveBeenCalled();
     expect(hoisted.crmReportingRepository.listWinRateRows).not.toHaveBeenCalled();

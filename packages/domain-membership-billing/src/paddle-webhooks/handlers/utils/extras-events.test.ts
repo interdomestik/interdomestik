@@ -11,6 +11,12 @@ const databaseMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: vi.fn(async (_context, callback) => {
+    const { db } = await vi.importMock<any>('@interdomestik/database');
+    return db.transaction
+      ? db.transaction((tx: any) => callback(Object.assign(tx, { query: db.query })))
+      : callback(db);
+  }),
   agentClients: {
     agentId: 'agentClients.agentId',
     memberId: 'agentClients.memberId',

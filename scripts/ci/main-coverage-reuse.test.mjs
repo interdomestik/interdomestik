@@ -206,7 +206,7 @@ test('workflow keeps fallback coverage, merge-ref checkout and separate release 
   assert.equal(resolver.if, undefined);
   assert.equal(resolver['continue-on-error'], true);
   const release = unit.steps.find(step => step.name === 'Release Gate Unit Tests');
-  assert.equal(release.run, 'pnpm test:release-gate');
+  assert.equal(release.uses, './.github/actions/ordinary-pr-coverage');
   assert.equal(release.if, undefined);
   assert.equal(unit.env.TURBO_TOKEN, '');
   assert.equal(unit.env.INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY, '1');

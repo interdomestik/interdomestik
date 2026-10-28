@@ -8,6 +8,19 @@ import { hasAgentClaimAccess, hasScopedStaffClaimAccess, isFullTenantClaimsRole 
 import { normalizeSelectedMessages } from './normalize';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
+export {
+  preparePublicReplyNotification,
+  loadPublicReplyPushSubscriptions,
+  removeExpiredPublicReplySubscriptions,
+  type PreparePublicReplyNotificationResult,
+  type PublicReplyNotificationPlan,
+} from './public-reply-notification';
+export {
+  deliverPublicReplyNotification,
+  describePublicReplyFailure,
+  type PublicReplyDeliveryDeps,
+} from './public-reply-delivery';
+
 export type SendMessageDbCoreResult =
   | {
       success: true;
@@ -94,6 +107,8 @@ export async function sendMessageDbCore(params: {
         if (isAgent) {
           const canAccess = await hasAgentClaimAccess({
             agentId: userId,
+            agentBranchId: actor.branchId ?? null,
+            claimBranchId: claim.branchId ?? null,
             memberId: claim.userId,
             tenantId,
             tx,
@@ -169,16 +184,20 @@ export async function sendMessageDbCore(params: {
       }
     );
     if (result.success && params.deps?.logAuditEvent) {
-      await params.deps.logAuditEvent({
-        tenantId,
-        actorId: userId,
-        actorRole: actor.role,
-        action: 'claim.message_sent',
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: { internal: isInternal, length: trimmed.length },
-        headers: requestHeaders,
-      });
+      try {
+        await params.deps.logAuditEvent({
+          tenantId,
+          actorId: userId,
+          actorRole: actor.role,
+          action: 'claim.message_sent',
+          entityType: 'claim',
+          entityId: claimId,
+          metadata: { internal: isInternal, length: trimmed.length },
+          headers: requestHeaders,
+        });
+      } catch {
+        console.error('Message audit failed after commit');
+      }
     }
     return result;
   } catch (error) {

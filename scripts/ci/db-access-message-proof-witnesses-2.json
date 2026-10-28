@@ -1,0 +1,1086 @@
+{
+  "version": 1,
+  "contractId": "s8-message-integration-proof-v2",
+  "unknownWitnesses": [
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "mutated or unsupported executable reference",
+      "occurrences": 21
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(row).toEqual",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported callback container",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported constructor executable edge",
+      "occurrences": 100
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.success).toBe",
+      "occurrences": 16
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge session.user.accessTenantId?.trim",
+      "occurrences": 27
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge session.user.tenantId?.trim",
+      "occurrences": 27
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unknown executable edge eq",
+      "occurrences": 60
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.status).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.plan).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(Object.isFrozen(result.plan)).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(Object.isFrozen(result.plan.actor)).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(Object.isFrozen(result.plan.claim)).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(Object.isFrozen(result.plan.pushSubscriptions)).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(await notificationRows(params.messageId)).toEqual",
+      "occurrences": 9
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.query.notifications.findMany",
+      "occurrences": 19
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.notifications.findMany",
+      "occurrences": 19
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(await reply.preparePublicReplyNotification(params)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(await notificationRows(params.messageId)).toHaveLength",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received executable callback",
+      "occurrences": 24
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge value.startsWith",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge stdout.split('\\n').find",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge stdout.split",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge line.slice",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge child.stdin?.end",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported forwarded callback/value",
+      "occurrences": 9
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge outcomes.find",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge outcomes.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge target.toString",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(results.map(value => value.status).sort()).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge results.map(value => value.status).sort",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge results.map",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(results.find(value => value.status === 'skipped')?.reason).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge results.find",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(new Set(results.map(value => value.pid)).size).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await reply.preparePublicReplyNotification({\n        ...params,\n        expectedRecipientId: ids.otherMember,\n      })\n    ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await reply.preparePublicReplyNotification({ ...params, messageId: ids.internal })\n    ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await reply.preparePublicReplyNotification({ ...params, messageId: member.message.id })\n    ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await reply.preparePublicReplyNotification({\n        ...params,\n        session: session(ids.staff, 'staff', otherTenantId),\n      })\n    ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n        await reply.preparePublicReplyNotification({ ...params, session: session(ids.staff, role) })\n      ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(await notificationRows(member.message.id)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(acl).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge reply.preparePublicReplyNotification(params).then",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(denied?.cause?.code ?? denied?.code).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, params.messageId),\n        })\n      ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.query.claimMessages.findFirst",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.claimMessages.findFirst",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.insert(fixture.database.pushSubscriptions).values",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.insert(fixture.database.pushSubscriptions).values",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.insert",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.insert",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge subscriptions.map",
+      "occurrences": 9
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(subscriptions.map(value => value.endpoint).sort()).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge subscriptions.map(value => value.endpoint).sort",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge plan.pushSubscriptions.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge planned.has",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.query.pushSubscriptions.findMany",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.pushSubscriptions.findMany",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge rows.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(persisted.map(value => value.endpoint).sort()).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge persisted.map(value => value.endpoint).sort",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge persisted.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.insert(fixture.database.userNotificationPreferences).values",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.insert(fixture.database.userNotificationPreferences).values",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/public-reply-notification.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(await reply.loadPublicReplyPushSubscriptions(prepared.plan)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported mutable global environment root",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unresolved module initialization postgres",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge suffix.replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge randomUUID().replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/interdomestik_test')\n    ).not.toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported mutated or bounded handle argument to unresolved callee",
+      "occurrences": 80
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge key.toLowerCase",
+      "occurrences": 40
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "mutated executable callee",
+      "occurrences": 40
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge endpoint.searchParams.keys",
+      "occurrences": 40
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@localhost:55435/interdomestik_test')\n    ).not.toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://postgres:postgres@127.0.0.1:54322/postgres')\n    ).not.toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@db.example.test:5432/interdomestik_test'\n      )\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@db.example.test:5432/interdomestik_s8'\n      )\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/production')\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@127.0.0.1:5432/postgres')\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl('postgresql://test:test@db.example.test:54322/postgres')\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?host=db.example.test'\n      )\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context-safety.test.ts",
+      "reason": "unsupported received property executable edge expect(() =>\n      assertSyntheticMessageDatabaseUrl(\n        'postgresql://test:test@127.0.0.1:5432/interdomestik_test?options=unsafe'\n      )\n    ).toThrow",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unresolved module initialization postgres",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge suffix.replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge randomUUID().replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
+      "occurrences": 11
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "mutated executable callee",
+      "occurrences": 70
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge adminClient.unsafe",
+      "occurrences": 17
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received executable callback",
+      "occurrences": 8
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge value.startsWith",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge stdout.split('\\n').find",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge stdout.split",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge line.slice",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported mutated or bounded handle argument to unresolved callee",
+      "occurrences": 89
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge child.stdin?.end",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported forwarded callback/value",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge outcomes.find",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge outcomes.map",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge target.toString",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge key.toLowerCase",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge endpoint.searchParams.keys",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unknown executable edge postgres",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported tagged executable edge",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge expect(tables).toHaveLength",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge expect(tables.every(table => table.relrowsecurity === true)).toBe",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge tables.every",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge restrictedUrl.toString",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge env.E2E_PASSWORD?.trim",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge TENANT_ADMIN_PERMISSIONS.filter",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge expect(posture).toEqual",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.tenants).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert",
+      "occurrences": 12
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.branches).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.user).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claims).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.agentClients).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claimMessages).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.auditLog)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete",
+      "occurrences": 18
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.notifications)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.pushSubscriptions)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.userNotificationPreferences)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.claimMessages)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.agentClients)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.delete(database.claims).where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.delete",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.user)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.branches)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.tenants)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge rlsClient?.end",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration-fixture.ts",
+      "reason": "unsupported received property executable edge adminClient?.end",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported mutable global environment root",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unresolved module initialization postgres",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge suffix.replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge randomUUID().replaceAll",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unknown executable edge suite",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported mutated or bounded handle argument to unresolved callee",
+      "occurrences": 149
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge key.toLowerCase",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "mutated executable callee",
+      "occurrences": 135
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge endpoint.searchParams.keys",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unknown executable edge postgres",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported tagged executable edge",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(tables).toHaveLength",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(tables.every(table => table.relrowsecurity === true)).toBe",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge tables.every",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge adminClient.unsafe",
+      "occurrences": 16
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge restrictedUrl.toString",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge env.E2E_PASSWORD?.trim",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge TENANT_ADMIN_PERMISSIONS.filter",
+      "occurrences": 1
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported returned handle analysis bound, cycle or mutated value",
+      "occurrences": 87
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(posture).toEqual",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.tenants).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert",
+      "occurrences": 12
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.branches).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.user).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claims).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.agentClients).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.insert(database.claimMessages).values",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.auditLog)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete",
+      "occurrences": 18
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.notifications)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.pushSubscriptions)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.userNotificationPreferences)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.claimMessages)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.agentClients)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.delete(database.claims).where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin.delete",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.user)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.branches)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge database.dbAdmin\n          .delete(database.tenants)\n          .where",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge rlsClient?.end",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge adminClient?.end",
+      "occurrences": 2
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbRls.execute",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbRls.execute",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(unscoped.count).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.success).toBe",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.messages?.map(message => message.id)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge result.messages?.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.messages?.[0].sender).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(context.tenant || null).toBeNull",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await fixture.get({ session: session(ids.otherMember, 'member'), claimId: ids.claim })\n    ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await fixture.get({\n        session: session(ids.member, 'member', otherTenantId),\n        claimId: ids.claim,\n      })\n    ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await fixture.get({ session: session(ids.otherMember, 'staff'), claimId: ids.claim })\n    ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(staff.messages?.map(message => message.id)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge staff.messages?.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(agent.messages?.map(message => message.id)).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge agent.messages?.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.public),\n        })\n      )?.readAt\n    ).toBeNull",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.query.claimMessages.findFirst",
+      "occurrences": 12
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.claimMessages.findFirst",
+      "occurrences": 12
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await fixture.markRead({\n        session: session(ids.member, 'member'),\n        messageIds: [ids.public, ids.internal],\n      })\n    ).toEqual",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.public),\n        })\n      )?.readAt\n    ).toBeInstanceOf",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, ids.internal),\n        })\n      )?.readAt\n    ).toBeNull",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported constructor executable edge",
+      "occurrences": 12
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.message).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(reread.messages?.map(message => message.id)).toContain",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge reread.messages?.map",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      (\n        await fixture.database.dbAdmin.query.claimMessages.findFirst({\n          where: eq(fixture.database.claimMessages.id, result.message.id),\n        })\n      )?.readAt\n    ).toBeNull",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      await fixture.send({\n        session: session(ids.member, 'member'),\n        requestHeaders: new Headers(),\n        claimId: ids.claim,\n        content: 'Forbidden private note',\n        isInternal: true,\n      })\n    ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge vi.spyOn(normalize, 'normalizeSelectedMessages').mockReturnValueOnce",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n        await fixture.send({\n          session: session(ids.member, 'member'),\n          requestHeaders: new Headers(),\n          claimId: ids.claim,\n          content: 'Projection failure rollback',\n        })\n      ).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(projection).toHaveBeenCalledOnce",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unresolved local edge fixture.database.dbAdmin.query.claimMessages.findMany",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge fixture.database.dbAdmin.query.claimMessages.findMany",
+      "occurrences": 6
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(persisted.some(message => message.content === 'Projection failure rollback')).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge persisted.some",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge projection.mockRestore",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(rows.some(message => message.content === 'Committed before audit failure')).toBe",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge rows.some",
+      "occurrences": 4
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result).toMatchObject",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(\n      persisted.filter(message => message.content === 'Committed before audit failure')\n    ).toHaveLength",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge persisted.filter",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge expect(result.message.id).toBe",
+      "occurrences": 3
+    },
+    {
+      "file": "packages/domain-communications/src/messages/tenant-context.integration.test.ts",
+      "reason": "unsupported received property executable edge persisted.find",
+      "occurrences": 3
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 for (const scenario of [
+  'global-refusal',
   'recovery',
   'concurrent',
   'unsettled',
@@ -24,6 +25,7 @@ for (const scenario of [
     const result = spawnSync(
       process.execPath,
       [
+        '--experimental-test-module-mocks',
         '--import',
         'tsx',
         fileURLToPath(new URL('./fixtures/rls-readiness-scenario.ts', import.meta.url)),
@@ -32,13 +34,7 @@ for (const scenario of [
       { encoding: 'utf8', timeout: 20_000, env: { ...process.env, NODE_ENV: 'production' } }
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    if (['recovery', 'concurrent', 'unsettled', 'configured', 'repeated'].includes(scenario)) {
-      assert.match(result.stdout, /database\.rls\.role_assertion\.passed/);
-      assert.equal((result.stderr.match(/database\.rls\.role_assertion\.failed/g) ?? []).length, 1);
-    }
-    if (scenario.startsWith('recovery-')) {
-      assert.equal((result.stderr.match(/database\.rls\.role_assertion\.failed/g) ?? []).length, 2);
-    }
+    assert.doesNotMatch(result.stdout + result.stderr, /database\.rls\.role_assertion\./);
     assert.match(
       result.stdout,
       /RLS readiness scenario completed/,

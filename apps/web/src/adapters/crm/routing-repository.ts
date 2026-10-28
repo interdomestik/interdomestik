@@ -9,7 +9,7 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import type { db } from '@interdomestik/database/db';
 import {
   branches,
   crmRoutingAssignmentsAudit,
@@ -213,7 +213,7 @@ function auditValues(params: {
   };
 }
 
-export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRoutingRepository {
+export function createCrmRoutingRepository(database: CrmRoutingDb): CrmRoutingRepository {
   return {
     async findRoutingAssignmentAuditByIdempotency(params) {
       // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key
@@ -352,10 +352,8 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
   };
 }
 
-export const crmRoutingRepository = createCrmRoutingRepository();
-
 export function createAdminCrmRoutingRuleRepository(
-  database: CrmRoutingDb = db
+  database: CrmRoutingDb | import('@interdomestik/database').TenantTransaction
 ): AdminCrmRoutingRuleAdminRepository {
   async function getRoutingRule(params: {
     actor: CrmActorContext;
@@ -505,5 +503,3 @@ export function createAdminCrmRoutingRuleRepository(
     },
   };
 }
-
-export const adminCrmRoutingRuleRepository = createAdminCrmRoutingRuleRepository();

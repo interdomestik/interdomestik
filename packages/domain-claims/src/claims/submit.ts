@@ -12,6 +12,7 @@ import {
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadClaimAssignmentContext, type ClaimAssignmentContext } from './submit-assignment';
+import { notifyClaimSubmitted } from './submitted-claim-notification';
 import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -51,7 +52,7 @@ async function persistSubmittedClaim(args: {
 
   // One tenant-context transaction keeps the claim number, lifecycle, events and
   // documents atomic under installed tenant RLS settings.
-  await withTenantContext({ tenantId: args.tenantId }, async tx => {
+  await withTenantContext({ tenantId: args.tenantId }, async (tx) => {
     await tx.insert(claims).values({
       id: args.claimId,
       tenantId: args.tenantId,
@@ -173,25 +174,6 @@ async function dispatchQueuedClaimAiRuns(
   }
 }
 
-function notifyClaimSubmitted(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  claimId: string;
-  data: CreateClaimValues;
-}) {
-  if (!args.deps.notifyClaimSubmitted) {
-    return;
-  }
-
-  Promise.resolve(
-    args.deps.notifyClaimSubmitted(args.session.user.id, args.session.user.email || '', {
-      id: args.claimId,
-      title: args.data.title,
-      category: args.data.category,
-    })
-  ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
-}
-
 export async function submitClaimCore(
   params: {
     session: ClaimsSession | null;
@@ -267,7 +249,7 @@ export async function submitClaimCore(
 
   await dispatchQueuedClaimAiRuns(queuedRuns, deps);
 
-  notifyClaimSubmitted({ deps, session, claimId, data: result.data });
+  notifyClaimSubmitted({ deps, session, claimId, tenantId, data: result.data });
 
   if (deps.revalidatePath) {
     await deps.revalidatePath('/member/claims');

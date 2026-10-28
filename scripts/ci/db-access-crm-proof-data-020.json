@@ -1,0 +1,301 @@
+{
+  "kind": "mount-roots",
+  "value": {
+    "offset": 1169,
+    "items": [
+      {
+        "id": 1169,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning-recovery.postgres.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1207
+      },
+      {
+        "id": 1170,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning-recovery.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1172
+      },
+      {
+        "id": 1171,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1188
+      },
+      {
+        "id": 1172,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/dunning.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1161
+      },
+      {
+        "id": 1173,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-insert-order.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1174,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-snapshot.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1175,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-upsert-order.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1176,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-upsert.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1177,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-upsert.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1178,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-values.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1179,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscription-values.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1180,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-confirmation-returning.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1187
+      },
+      {
+        "id": 1181,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-confirmation.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1187
+      },
+      {
+        "id": 1182,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-event-order.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1165
+      },
+      {
+        "id": 1183,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-locale.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1187
+      },
+      {
+        "id": 1184,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-order-integrity.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1187
+      },
+      {
+        "id": 1185,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions-retry.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1187
+      },
+      {
+        "id": 1186,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1187,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/subscriptions.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1188,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/test-support.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1189,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/transaction.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1188
+      },
+      {
+        "id": 1190,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/context.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1191
+      },
+      {
+        "id": 1191,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/context.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1192,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras-events.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1193,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras-idempotency.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1194,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras-renewal.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1163
+      },
+      {
+        "id": 1195,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras.referral-stacking.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1196,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1197,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/extras.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1198,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/membership-attribution.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1199,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1200
+      },
+      {
+        "id": 1200,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/handlers/utils/reconcile-checkout-user.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1191
+      },
+      {
+        "id": 1201,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/identity-reader.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1202,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/index.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1167
+      },
+      {
+        "id": 1203,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/invariants-snapshot-scope.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1204,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/invariants.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1205,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/invariants.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1206,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1207
+      },
+      {
+        "id": 1207,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/persist.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1208,
+        "file": "packages/domain-membership-billing/src/paddle-webhooks/receipt-store.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1209,
+        "file": "packages/domain-referrals/src/index.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1211
+      },
+      {
+        "id": 1210,
+        "file": "packages/domain-referrals/src/member-referrals/rewards.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1211,
+        "file": "packages/domain-referrals/src/member-referrals/rewards.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1212,
+        "file": "packages/domain-referrals/src/member-referrals/settings.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1213,
+        "file": "packages/domain-referrals/src/member-referrals/settings.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1214,
+        "file": "packages/domain-referrals/src/member-referrals/stats.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1213
+      },
+      {
+        "id": 1215,
+        "file": "packages/domain-referrals/src/member-referrals/stats.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1213
+      },
+      {
+        "id": 1216,
+        "file": "packages/domain-users/src/admin/confirm-current-tenant-classification.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1217,
+        "file": "packages/domain-users/src/admin/resolve-tenant-classification.test-fixtures.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1218,
+        "file": "packages/domain-users/src/admin/resolve-tenant-classification.test.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1219,
+        "file": "packages/domain-users/src/admin/resolve-tenant-classification.ts",
+        "changeKind": "runtime-source"
+      },
+      {
+        "id": 1220,
+        "file": "packages/domain-users/src/admin/update-user-agent.test.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1221
+      },
+      {
+        "id": 1221,
+        "file": "packages/domain-users/src/admin/update-user-agent.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1166
+      },
+      {
+        "id": 1222,
+        "file": "packages/domain-users/src/index.ts",
+        "changeKind": "runtime-consumer",
+        "firstInvalidatingDependencyId": 1219
+      }
+    ]
+  }
+}

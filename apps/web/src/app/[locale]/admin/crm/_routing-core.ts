@@ -3,7 +3,6 @@ import type { CrmRoutingStrategy } from '@interdomestik/domain-crm/routing';
 import { z } from 'zod';
 
 import {
-  adminCrmRoutingRuleRepository,
   type AdminCrmRoutingRuleAdminRepository,
   type AdminCrmRoutingRuleRow,
   type AdminCrmRoutingRuleWriteInput,
@@ -25,6 +24,7 @@ export const ADMIN_CRM_ROUTING_ACTION_STRATEGIES = [
   'manual_only',
 ] as const satisfies readonly CrmRoutingStrategy[];
 
+// Preserve the established admin-role policy at this internal boundary.
 const ADMIN_CRM_ROUTING_ADMIN_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
 
 const nullableTextSchema = z
@@ -120,7 +120,7 @@ export type AdminCrmRoutingActionKind = 'archive' | 'create' | 'reorder' | 'set_
 
 export type RunAdminCrmRoutingRuleActionDeps = {
   logger?: Pick<Console, 'error'>;
-  repository?: AdminCrmRoutingRuleAdminRepository;
+  repository: AdminCrmRoutingRuleAdminRepository;
 };
 
 export function resolveAdminCrmRoutingActor(
@@ -141,10 +141,10 @@ export function resolveAdminCrmRoutingActor(
 
 export async function getAdminCrmRoutingRulesCore(
   args: { actor: CrmActorContext },
-  deps: { repository?: AdminCrmRoutingRuleAdminRepository } = {}
+  deps: { repository: AdminCrmRoutingRuleAdminRepository }
 ): Promise<AdminCrmRoutingRulesPayload> {
   if (args.actor.role !== 'admin') throw new AdminCrmRoutingAccessDeniedError();
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository;
   const [rules, branches] = await Promise.all([
     repository.listRoutingRulesForAdmin({ actor: args.actor }),
     repository.listBranches({ tenantId: args.actor.tenantId }),
@@ -166,12 +166,12 @@ export async function runAdminCrmRoutingRuleAction(
     kind: AdminCrmRoutingActionKind;
     session: AdminCrmRoutingSession | null;
   },
-  deps: RunAdminCrmRoutingRuleActionDeps = {}
+  deps: RunAdminCrmRoutingRuleActionDeps
 ): Promise<AdminCrmRoutingActionResult> {
   const actor = resolveAdminCrmRoutingActor(args.session);
   if (!actor) return { reason: 'forbidden', status: 'error' };
 
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository;
   try {
     if (args.kind === 'create') return await createRule(actor, args.input, repository);
     if (args.kind === 'update') return await updateRule(actor, args.input, repository);

@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database';
+import type { PaddleWebhookIdentityReader } from '../../identity-reader';
+import { db, withTenantContext } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../../subscription';
 
 export class PaddleSubscriptionContextConflictError extends Error {
@@ -11,7 +12,7 @@ export class PaddleSubscriptionContextConflictError extends Error {
 export async function resolveBranchId(args: {
   customData: { agentId?: string } | undefined;
   tenantId: string;
-  db: typeof db;
+  db: Pick<typeof db, 'query'>;
 }): Promise<string | undefined> {
   const { customData, tenantId, db: database } = args;
 
@@ -47,7 +48,10 @@ export async function resolveBranchId(args: {
   return undefined;
 }
 
-export async function resolveSubscriptionContext(sub: any) {
+export async function resolveSubscriptionContext(
+  sub: any,
+  identityReader?: PaddleWebhookIdentityReader
+) {
   const customData = (sub.customData || sub.custom_data) as
     | {
         userId?: string;
@@ -61,7 +65,9 @@ export async function resolveSubscriptionContext(sub: any) {
       }
     | undefined;
 
-  const existingSub = await findSubscriptionByProviderReference(sub.id);
+  const existingSub = identityReader
+    ? await identityReader.subscription(sub.id)
+    : await findSubscriptionByProviderReference(sub.id);
   const customDataUserId = normalizeText(customData?.userId);
   const customDataTenantId = normalizeText(customData?.tenantId);
   const existingUserId = normalizeText(existingSub?.userId);
@@ -80,10 +86,12 @@ export async function resolveSubscriptionContext(sub: any) {
   }
 
   // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
-  });
+  const userRecord = identityReader
+    ? await identityReader.user(userId)
+    : await db.query.user.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+        columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
+      });
 
   if (!userRecord) {
     console.warn(
@@ -113,11 +121,9 @@ export async function resolveSubscriptionContext(sub: any) {
     return null;
   }
 
-  const branchId = await resolveBranchId({
-    customData,
-    tenantId,
-    db: db,
-  });
+  const branchId = identityReader
+    ? await withTenantContext({ tenantId }, tx => resolveBranchId({ customData, tenantId, db: tx }))
+    : await resolveBranchId({ customData, tenantId, db });
 
   return { userId, tenantId, branchId, customData, userRecord, existingSub };
 }

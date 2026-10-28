@@ -29,6 +29,7 @@ type SubscriptionChangedParams = {
 
 type SubscriptionChangedDeps = Pick<
   PaddleWebhookDeps,
+  | 'identityReader'
   | 'membershipConfirmationDelivery'
   | 'prepareThankYouLetter'
   | 'sendThankYouLetter'
@@ -154,7 +155,7 @@ async function resolveAuthoritativeSubscriptionContext(
   sub: SubscriptionEventData,
   deps: SubscriptionChangedDeps
 ) {
-  let context = await resolveSubscriptionContext(sub);
+  let context = await resolveSubscriptionContext(sub, deps.identityReader);
   let checkoutAuthorityVerified = false;
 
   if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {

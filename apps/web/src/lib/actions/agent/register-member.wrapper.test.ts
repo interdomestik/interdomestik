@@ -7,13 +7,12 @@ const mocks = vi.hoisted(() => ({
     isNew: true,
   }),
   selectResults: [] as unknown[][],
-  withTransactionRetry: vi.fn(),
+  transaction: vi.fn(),
   emailExecute: vi.fn(),
 }));
 
-vi.mock('@interdomestik/shared-utils/resilience', () => ({
-  withTransactionRetry: mocks.withTransactionRetry,
-}));
+vi.mock('@interdomestik/shared-utils/resilience', () => ({ withRetry: (operation: () => unknown) => operation() }));
+vi.mock('@interdomestik/database/db', () => ({ dbAdmin: { transaction: mocks.transaction } }));
 
 vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
   circuitBreakers: {
@@ -44,6 +43,7 @@ vi.mock('@interdomestik/database', async () => {
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: {},
+  branches: {},
   account: {},
   agentClients: {},
   subscriptions: {},
@@ -73,8 +73,13 @@ describe('registerMemberCore', () => {
     insertValues.length = 0;
     mocks.selectResults.length = 0;
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
-    mocks.withTransactionRetry.mockImplementation(async callback => {
+    mocks.transaction.mockImplementation(async callback => {
+      let authSelect = 0;
       const tx = {
+        select: vi.fn(() => {
+          if (authSelect++ < 2) return { from: () => ({ where: () => ({ for: async () => authSelect === 1 ? [{id: mockAgent.id, role: "agent", tenantId: mockTenantId, branchId: mockBranchId}] : [{id: mockBranchId}] }) }) };
+          return { from: () => ({ where: () => ({ limit: async () => mocks.selectResults.shift(), orderBy: () => ({limit: async () => mocks.selectResults.shift()}) }) }) };
+        }),
         insert: vi.fn().mockImplementation(() => ({
           values: vi.fn().mockImplementation((value: unknown) => {
             insertValues.push(value);
@@ -105,7 +110,7 @@ describe('registerMemberCore', () => {
     const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result).toEqual({ ok: true });
-    expect(mocks.withTransactionRetry).toHaveBeenCalled();
+    expect(mocks.transaction).toHaveBeenCalled();
     expect(mocks.generateMemberNumber).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -147,7 +152,7 @@ describe('registerMemberCore', () => {
   });
 
   it('should handle transaction errors (e.g., email duplicate)', async () => {
-    mocks.withTransactionRetry.mockRejectedValue(new Error('Duplicate'));
+    mocks.transaction.mockRejectedValue(new Error('Duplicate'));
 
     const formData = new FormData();
     formData.append('fullName', 'John Doe');

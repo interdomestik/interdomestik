@@ -1,4 +1,4 @@
-import { agentClients, claims, db, type TenantTransaction } from '@interdomestik/database';
+import { agentClients, claims, user, type TenantTransaction } from '@interdomestik/database';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
@@ -7,15 +7,12 @@ type ClaimAccessRecord = {
   userId: string;
 };
 
-const FULL_TENANT_ROLES = new Set(['admin', 'tenant_admin', 'super_admin']);
-const SCOPED_CLAIMS_READ_ROLES = new Set(['staff', 'branch_manager']);
-
 export function isFullTenantClaimsRole(role: string | null | undefined): boolean {
-  return role ? FULL_TENANT_ROLES.has(role) : false;
+  return role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
 }
 
 export function isScopedClaimsReadRole(role: string | null | undefined): boolean {
-  return role ? SCOPED_CLAIMS_READ_ROLES.has(role) : false;
+  return role === 'staff' || role === 'branch_manager';
 }
 
 export function hasScopedStaffClaimAccess(args: {
@@ -80,13 +77,40 @@ function buildStaffScopedClaimFilter(args: {
   return or(eq(claims.staffId, args.userId), isNull(claims.staffId));
 }
 
+export async function readAgentScope(
+  tx: TenantTransaction,
+  args: { tenantId: string; userId: string }
+): Promise<{ branchId: string | null } | null> {
+  const actor = await tx.query.user.findFirst({
+    where: and(eq(user.id, args.userId), eq(user.tenantId, args.tenantId)),
+    columns: { branchId: true },
+  });
+  return actor ? { branchId: actor.branchId ?? null } : null;
+}
+
 export async function hasAgentClaimAccess(args: {
   agentId: string;
+  agentBranchId: string | null;
+  claimBranchId: string | null;
   memberId: string;
   tenantId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }): Promise<boolean> {
-  const linkedClient = await (args.tx ?? db).query.agentClients.findFirst({
+  // Read the same current tenant identity used by the workspace, not a cached session branch.
+  const scope = await readAgentScope(args.tx, {
+    tenantId: args.tenantId,
+    userId: args.agentId,
+  });
+  if (!scope) return false;
+  if (
+    scope.branchId !== null &&
+    args.claimBranchId !== null &&
+    args.claimBranchId !== scope.branchId
+  ) {
+    return false;
+  }
+
+  const linkedClient = await args.tx.query.agentClients.findFirst({
     where: (table, { and, eq }) =>
       and(
         eq(table.tenantId, args.tenantId),
@@ -104,9 +128,9 @@ export function buildAccessibleClaimIdsSubquery(args: {
   role: string | null | undefined;
   tenantId: string;
   userId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }) {
-  const database = args.tx ?? db;
+  const database = args.tx;
   const branchId = args.branchId ?? null;
 
   if (args.role === 'staff' || args.role === 'branch_manager') {
@@ -138,10 +162,23 @@ export function buildAccessibleClaimIdsSubquery(args: {
         )
       );
 
+    if (branchId !== null && typeof branchId !== 'string') {
+      throw new Error('Invalid agent branch context');
+    }
+
+    const branchScope =
+      branchId === null ? undefined : or(eq(claims.branchId, branchId), isNull(claims.branchId));
+
     return database
       .select({ id: claims.id })
       .from(claims)
-      .where(and(eq(claims.tenantId, args.tenantId), inArray(claims.userId, activeMemberIds)));
+      .where(
+        and(
+          eq(claims.tenantId, args.tenantId),
+          inArray(claims.userId, activeMemberIds),
+          branchScope
+        )
+      );
   }
 
   return database

@@ -1,0 +1,1998 @@
+diff --git a/cjs/src/connection.js b/cjs/src/connection.js
+--- a/cjs/src/connection.js
++++ b/cjs/src/connection.js
+@@ -49,7 +49,7 @@
+   82  : 'routine'            // R
+ }
+ 
+-function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose = noop } = {}) {
++function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose = noop, beforeExecute = noop, onTransactionEnd = noop, onQuarantine = noop } = {}) {
+   const {
+     sslnegotiation,
+     ssl,
+@@ -71,10 +71,16 @@
+ 
+   const sent = Queue()
+       , id = uid++
+-      , backend = { pid: null, secret: null }
+       , idleTimer = timer(end, options.idle_timeout)
+       , lifeTimer = timer(end, options.max_lifetime)
+       , connectTimer = timer(connectTimedOut, options.connect_timeout)
++
++  // Every physical attempt owns one epoch; callbacks and async work from older epochs are inert.
++  let epoch = 0
++    , live = false
++    , quarantined = false
++    , terminalError = null
++    , backend = { pid: null, secret: null }
+ 
+   let socket = null
+     , cancelMessage
+@@ -116,6 +122,7 @@
+     },
+     terminate,
+     execute,
++    releaseIdle,
+     cancel,
+     end,
+     count: 0,
+@@ -126,20 +133,15 @@
+ 
+   return connection
+ 
+-  async function createSocket() {
+-    let x
+-    try {
+-      x = options.socket
+-        ? (await Promise.resolve(options.socket(options)))
+-        : new net.Socket()
+-    } catch (e) {
+-      error(e)
+-      return
+-    }
+-    x.on('error', error)
+-    x.on('close', closed)
+-    x.on('drain', drain)
+-    return x
++  function releaseIdle() {
++    if (live && !quarantined && !initial && !query && !stream && sent.length === 0 && connection.reserved)
++      connection.reserved()
++  }
++
++  function on(x, e, event, fn) {
++    x.on(event, function() {
++      return e === epoch && x === socket ? fn.apply(this, arguments) : undefined
++    })
+   }
+ 
+   async function cancel({ pid, secret }, resolve, reject) {
+@@ -154,6 +156,14 @@
+   }
+ 
+   function execute(q) {
++    if (quarantined) {
++      queryError(q, terminalError || Errors.connection('CONNECTION_CLOSED', options))
++      return true
++    }
++
++    // The gate runs for initial execution and driver retry before queue/write.
++    const leaseError = beforeExecute(connection, q)
++    if (leaseError) { queryError(q, leaseError); return true }
+     if (terminated)
+       return queryError(q, Errors.connection('CONNECTION_DESTROYED', options))
+ 
+@@ -163,6 +173,7 @@
+     if (q.cancelled)
+       return
+ 
++    let dispatched = false
+     try {
+       q.state = backend
+       query
+@@ -170,12 +181,30 @@
+         : (query = q, query.active = true)
+ 
+       build(q)
+-      return write(toBuffer(q))
++      const buffer = toBuffer(q)
++      // Marked before the write: from here the query is treated as possibly dispatched.
++      dispatched = true
++      const executionEpoch = epoch
++      const written = write(buffer)
++      // An immediate physical write failure may already have revoked this generation.
++      if (executionEpoch !== epoch || !live || quarantined)
++        return false
++      // Reservation is required after an accepted write, including backpressure
++      // and a full pipeline. The hook's existing return value still controls reuse.
++      return (!q.options.onexecute || q.options.onexecute(connection))
++        && written
+         && !q.describeFirst
+         && !q.cursorFn
+         && sent.length < max_pipeline
+-        && (!q.options.onexecute || q.options.onexecute(connection))
+     } catch (error) {
++      if (query !== q) {
++        // An unwritten pipelined query must not wait behind the active one;
++        // a possibly-written one would desynchronize the pipeline, so end the generation.
++        dispatched
++          ? terminal(error)
++          : (sent.remove(q), queryError(q, error))
++        return true
++      }
+       sent.length === 0 && write(Sync)
+       errored(error)
+       return true
+@@ -244,29 +273,46 @@
+   }
+ 
+   function write(x, fn) {
++    if (quarantined || !socket)
++      return false
++
+     chunk = chunk ? Buffer.concat([chunk, x]) : Buffer.from(x)
+     if (fn || chunk.length >= 1024)
+       return nextWrite(fn)
+-    nextWriteTimer === null && (nextWriteTimer = setImmediate(nextWrite))
++    if (nextWriteTimer === null) {
++      // A delayed flush belongs to the socket that produced the chunk.
++      const e = epoch, s = socket
++      nextWriteTimer = setImmediate(() => e === epoch && s === socket && !quarantined && nextWrite())
++    }
+     return true
+   }
+ 
+   function nextWrite(fn) {
+-    const x = socket.write(chunk, fn)
++    const e = epoch, s = socket, buffer = chunk
+     nextWriteTimer !== null && clearImmediate(nextWriteTimer)
+     chunk = nextWriteTimer = null
+-    return x
++    if (quarantined || !s || !buffer)
++      return false
++    try {
++      return s.write(buffer, fn)
++    } catch (err) {
++      if (e === epoch && s === socket)
++        terminal(err)
++      return false
++    }
+   }
+ 
+   function connectTimedOut() {
+-    errored(Errors.connection('CONNECT_TIMEOUT', options, socket))
+-    socket.destroy()
++    terminal(Errors.connection('CONNECT_TIMEOUT', options, socket))
+   }
+ 
+   async function secure() {
+     if (sslnegotiation !== 'direct') {
++      const e = epoch, s = socket
+       write(SSLRequest)
+-      const canSSL = await new Promise(r => socket.once('data', x => r(x[0] === 83))) // S
++      const canSSL = await new Promise(r => s.once('data', x => r(x[0] === 83))) // S
++      if (e !== epoch || s !== socket || quarantined)
++        return
+ 
+       if (!canSSL && ssl === 'prefer')
+         return connected()
+@@ -287,18 +333,21 @@
+ 
+     socket.removeAllListeners()
+     socket = tls.connect(options)
+-    socket.on('secureConnect', connected)
+-    socket.on('error', error)
+-    socket.on('close', closed)
+-    socket.on('drain', drain)
++    on(socket, epoch, 'secureConnect', connected)
++    on(socket, epoch, 'error', error)
++    on(socket, epoch, 'close', closed)
++    on(socket, epoch, 'drain', drain)
+   }
+ 
+   /* c8 ignore next 3 */
+   function drain() {
+-    !query && onopen(connection)
++    !query && !quarantined && onopen(connection)
+   }
+ 
+   function data(x) {
++    if (quarantined)
++      return
++
+     if (incomings) {
+       incomings.push(x)
+       remaining -= x.length
+@@ -332,34 +381,69 @@
+     }
+   }
+ 
+-  async function connect() {
++  function beginEpoch() {
++    live = true
++    quarantined = false
++    terminalError = null
++    backend = { pid: null, secret: null }
++    return ++epoch
++  }
++
++  async function connect(e = beginEpoch()) {
++    if (e !== epoch || quarantined)
++      return
++
+     terminated = false
+     backendParameters = {}
+-    socket || (socket = await createSocket())
+-
+-    if (!socket)
+-      return
+-
++    let x
+     connectTimer.start()
+-
+-    if (options.socket)
+-      return ssl ? secure() : connected()
+-
+-    socket.on('connect', ssl ? secure : connected)
+-
+-    if (options.path)
+-      return socket.connect(options.path)
+-
+-    socket.ssl = ssl
+-    socket.connect(port[hostIndex], host[hostIndex])
+-    socket.host = host[hostIndex]
+-    socket.port = port[hostIndex]
+-
+-    hostIndex = (hostIndex + 1) % port.length
++    try {
++      x = options.socket
++        ? (await Promise.resolve(options.socket(options)))
++        : new net.Socket()
++    } catch (err) {
++      return e === epoch && terminal(err)
++    }
++
++    // A late socket factory result must never replace a newer or terminal generation.
++    if (e !== epoch || quarantined)
++      return x && typeof x.destroy === 'function' && x.destroy()
++
++    if (!x)
++      return terminal(Errors.connection('CONNECTION_CLOSED', options))
++
++    socket = x
++    const start = ssl
++      ? () => secure().catch(err => e === epoch && terminal(err))
++      : connected
++
++    try {
++      on(x, e, 'error', error)
++      on(x, e, 'close', closed)
++      on(x, e, 'drain', drain)
++
++      if (options.socket)
++        return start()
++
++      on(x, e, 'connect', start)
++
++      if (options.path)
++        return x.connect(options.path)
++
++      x.ssl = ssl
++      x.connect(port[hostIndex], host[hostIndex])
++      x.host = host[hostIndex]
++      x.port = port[hostIndex]
++
++      hostIndex = (hostIndex + 1) % port.length
++    } catch (err) {
++      terminal(err)
++    }
+   }
+ 
+   function reconnect() {
+-    setTimeout(connect, closedTime ? Math.max(0, closedTime + delay - performance.now()) : 0)
++    const e = beginEpoch()
++    setTimeout(connect, closedTime ? Math.max(0, closedTime + delay - performance.now()) : 0, e)
+   }
+ 
+   function connected() {
+@@ -369,7 +453,7 @@
+       statementId = Math.random().toString(36).slice(2)
+       statementCount = 1
+       lifeTimer.start()
+-      socket.on('data', data)
++      on(socket, epoch, 'data', data)
+       keep_alive && socket.setKeepAlive && socket.setKeepAlive(true, 1000 * keep_alive)
+       const s = StartupMessage()
+       write(s)
+@@ -379,12 +463,8 @@
+   }
+ 
+   function error(err) {
+-    if (connection.queue === queues.connecting && options.host[retries + 1])
+-      return
+-
+-    errored(err)
+-    while (sent.length)
+-      queryError(sent.shift(), err)
++    // Socket, startup and handshake failures are physical: one terminal path settles everything.
++    terminal(err)
+   }
+ 
+   function errored(err) {
+@@ -421,40 +501,80 @@
+ 
+   function terminate() {
+     terminated = true
+-    if (stream || query || initial || sent.length)
+-      error(Errors.connection('CONNECTION_DESTROYED', options))
+-
++    if (!live)
++      return ended && (ended(), ending = ended = null)
++
++    const pending = !!(stream || query || initial || sent.length)
++    terminal(pending ? Errors.connection('CONNECTION_DESTROYED', options) : null, !pending)
++  }
++
++  function terminal(err, graceful) {
++    if (quarantined || !live)
++      return
++
++    quarantined = true
++    terminalError = err
++    // Revoke the owner and leave every pool queue before any admission is settled.
++    onQuarantine(connection, err)
++
++    const admissions = new Set()
++    query && admissions.add(query)
++    while (sent.length)
++      admissions.add(sent.shift())
++    initial && admissions.add(initial)
++
++    const copy = stream
++    query = initial = stream = final = null
++    results = errorResponse = null
++    result = new Result()
++    incoming = Buffer.alloc(0)
++    incomings = null
++    remaining = length = rows = 0
+     clearImmediate(nextWriteTimer)
+-    if (socket) {
+-      socket.removeListener('data', data)
+-      socket.removeListener('connect', connected)
+-      socket.readyState === 'open' && socket.end(b().X().end())
+-    }
+-    ended && (ended(), ending = ended = null)
+-  }
+-
+-  async function closed(hadError) {
+-    incoming = Buffer.alloc(0)
+-    remaining = 0
+-    incomings = null
+-    clearImmediate(nextWriteTimer)
+-    socket.removeListener('data', data)
+-    socket.removeListener('connect', connected)
++    chunk = nextWriteTimer = null
+     idleTimer.cancel()
+     lifeTimer.cancel()
+     connectTimer.cancel()
+ 
+-    socket.removeAllListeners()
++    const reason = err || Errors.connection('CONNECTION_CLOSED', options)
++    copy && copy.destroy(reason)
++    admissions.forEach(x => {
++      x.cancelled && typeof x.cancelled === 'object' && (x.cancelled.resolve(), x.cancelled = null)
++      queryError(x, reason)
++    })
++
++    if (!socket)
++      return finish(true)
++
++    graceful && socket.readyState === 'open'
++      ? socket.end(b().X().end())
++      : socket.destroy()
++  }
++
++  function finish(hadError) {
++    if (!live)
++      return
++
++    live = false
++    const x = socket
+     socket = null
+-
+-    if (initial)
+-      return reconnect()
+-
+-    !hadError && (query || sent.length) && error(Errors.connection('CONNECTION_CLOSED', options, socket))
++    if (x) {
++      x.removeAllListeners()
++      x.on('error', noop)
++    }
++    idleTimer.cancel()
++    lifeTimer.cancel()
++    connectTimer.cancel()
+     closedTime = performance.now()
+     hadError && options.shared.retries++
+     delay = (typeof backoff === 'function' ? backoff(options.shared.retries) : backoff) * 1000
+-    onclose(connection, Errors.connection('CONNECTION_CLOSED', options, socket))
++    ended && (ended(), ending = ended = null)
++    onclose(connection, terminalError || Errors.connection('CONNECTION_CLOSED', options))
++  }
++
++  function closed(hadError) {
++    terminal(Errors.connection('CONNECTION_CLOSED', options, socket))
++    finish(hadError)
+   }
+ 
+   /* Handlers */
+@@ -560,14 +680,15 @@
+       }
+ 
+       if (needsTypes) {
+-        initial.reserve && (initial = null)
+         return fetchArrayTypes()
+       }
+ 
+-      initial && !initial.reserve && execute(initial)
++      // Settle the startup admission once; a reserve is handed over by onopen below.
++      const admission = initial
+       options.shared.retries = retries = 0
+       initial = null
+-      return
++      if (!admission.reserve)
++        return execute(admission)
+     }
+ 
+     while (sent.length && (query = sent.shift()) && (query.active = true, query.cancelled))
+@@ -580,7 +701,7 @@
+       ? !connection.reserved.release && x[5] === 73 // I
+         ? ending
+           ? terminate()
+-          : (connection.reserved = null, onopen(connection))
++          : (onTransactionEnd(connection), connection.reserved = null, onopen(connection))
+         : connection.reserved()
+       : ending
+         ? terminate()
+@@ -603,7 +724,7 @@
+     final && (final(), final = null)
+ 
+     if (result.command === 'BEGIN' && max !== 1 && !connection.reserved)
+-      return errored(Errors.generic('UNSAFE_TRANSACTION', 'Only use sql.begin, sql.reserved or max: 1'))
++      return terminal(Errors.generic('UNSAFE_TRANSACTION', 'Only use sql.begin, sql.reserved or max: 1'))
+ 
+     if (query.options.simple)
+       return BindComplete()
+@@ -671,86 +792,65 @@
+   }
+ 
+   async function Authentication(x, type = x.readUInt32BE(5)) {
+-    (
+-      type === 3 ? AuthenticationCleartextPassword :
+-      type === 5 ? AuthenticationMD5Password :
+-      type === 10 ? SASL :
+-      type === 11 ? SASLContinue :
+-      type === 12 ? SASLFinal :
+-      type !== 0 ? UnknownAuth :
+-      noop
+-    )(x, type)
+-  }
+-
+-  /* c8 ignore next 5 */
++    const e = epoch
++    try {
++      await (
++        type === 3 ? AuthenticationCleartextPassword :
++        type === 5 ? AuthenticationMD5Password :
++        type === 10 ? SASL :
++        type === 11 ? SASLContinue :
++        type === 12 ? SASLFinal :
++        type !== 0 ? UnknownAuth :
++        noop
++      )(x, type)
++    } catch (err) {
++      if (e === epoch && !quarantined)
++        terminal(err)
++    }
++  }
++
+   async function AuthenticationCleartextPassword() {
+-    const payload = await Pass()
+-    write(
+-      b().p().str(payload).z(1).end()
+-    )
++    const e = epoch, payload = await Pass()
++    if (e !== epoch || quarantined) return
++    write(b().p().str(payload).z(1).end())
+   }
+ 
+   async function AuthenticationMD5Password(x) {
+-    const payload = 'md5' + (
+-      await md5(
+-        Buffer.concat([
+-          Buffer.from(await md5((await Pass()) + user)),
+-          x.subarray(9)
+-        ])
+-      )
+-    )
+-    write(
+-      b().p().str(payload).z(1).end()
+-    )
+-  }
+-
+-  async function SASL() {
+-    nonce = (await crypto.randomBytes(18)).toString('base64')
++    const e = epoch, password = await Pass()
++    if (e !== epoch || quarantined) return
++    const payload = 'md5' + md5(Buffer.concat([Buffer.from(md5(password + user)), x.subarray(9)]))
++    write(b().p().str(payload).z(1).end())
++  }
++
++  function SASL() {
++    nonce = crypto.randomBytes(18).toString('base64')
+     b().p().str('SCRAM-SHA-256' + b.N)
+     const i = b.i
+     write(b.inc(4).str('n,,n=*,r=' + nonce).i32(b.i - i - 4, i).end())
+   }
+ 
+   async function SASLContinue(x) {
++    const e = epoch, password = await Pass()
++    if (e !== epoch || quarantined) return
+     const res = x.toString('utf8', 9).split(',').reduce((acc, x) => (acc[x[0]] = x.slice(2), acc), {})
+-
+-    const saltedPassword = await crypto.pbkdf2Sync(
+-      await Pass(),
+-      Buffer.from(res.s, 'base64'),
+-      parseInt(res.i), 32,
+-      'sha256'
+-    )
+-
+-    const clientKey = await hmac(saltedPassword, 'Client Key')
+-
++    const saltedPassword = crypto.pbkdf2Sync(password, Buffer.from(res.s, 'base64'), parseInt(res.i), 32, 'sha256')
++    const clientKey = hmac(saltedPassword, 'Client Key')
+     const auth = 'n=*,r=' + nonce + ','
+                + 'r=' + res.r + ',s=' + res.s + ',i=' + res.i
+                + ',c=biws,r=' + res.r
+-
+-    serverSignature = (await hmac(await hmac(saltedPassword, 'Server Key'), auth)).toString('base64')
+-
+-    const payload = 'c=biws,r=' + res.r + ',p=' + xor(
+-      clientKey, Buffer.from(await hmac(await sha256(clientKey), auth))
+-    ).toString('base64')
+-
+-    write(
+-      b().p().str(payload).end()
+-    )
++    serverSignature = hmac(hmac(saltedPassword, 'Server Key'), auth).toString('base64')
++    const payload = 'c=biws,r=' + res.r + ',p=' + xor(clientKey, Buffer.from(hmac(sha256(clientKey), auth))).toString('base64')
++    write(b().p().str(payload).end())
+   }
+ 
+   function SASLFinal(x) {
+     if (x.toString('utf8', 9).split(b.N, 1)[0].slice(2) === serverSignature)
+       return
+-    /* c8 ignore next 5 */
+-    errored(Errors.generic('SASL_SIGNATURE_MISMATCH', 'The server did not return the correct signature'))
+-    socket.destroy()
++    terminal(Errors.generic('SASL_SIGNATURE_MISMATCH', 'The server did not return the correct signature'))
+   }
+ 
+   function Pass() {
+-    return Promise.resolve(typeof options.pass === 'function'
+-      ? options.pass()
+-      : options.pass
+-    )
++    return typeof options.pass === 'function' ? options.pass() : options.pass
+   }
+ 
+   function NoData() {
+@@ -766,6 +866,7 @@
+   }
+ 
+   async function fetchArrayTypes() {
++    const e = epoch
+     needsTypes = false
+     const types = await new Query([`
+       select b.oid, b.typarray
+@@ -774,8 +875,9 @@
+       where a.typcategory = 'A'
+       group by b.oid, b.typarray
+       order by b.oid
+-    `], [], execute)
+-    types.forEach(({ oid, typarray }) => addArrayType(oid, typarray))
++    `], [], execute).catch(() => null)
++    // A failed or stale fetch is settled by terminalization and must not touch parsers.
++    e === epoch && !quarantined && types && types.forEach(({ oid, typarray }) => addArrayType(oid, typarray))
+   }
+ 
+   function addArrayType(oid, typarray) {
+@@ -806,15 +908,21 @@
+       backendParameters.default_transaction_read_only = a.transaction_read_only
+       backendParameters.in_hot_standby = b.pg_is_in_recovery ? 'on' : 'off'
+     }
+-    query.execute()
++    query.execute().catch(noop)
+   }
+ 
+   function ErrorResponse(x) {
++    const err = Errors.postgres(parseError(x))
++        , severity = err.severity || err.severity_local
++    // FATAL/PANIC ends the backend session; it is never a recoverable statement error.
++    if (severity === 'FATAL' || severity === 'PANIC')
++      return terminal(err)
++
+     if (query) {
+       (query.cursorFn || query.describeFirst) && write(Sync)
+-      errorResponse = Errors.postgres(parseError(x))
++      errorResponse = err
+     } else {
+-      errored(Errors.postgres(parseError(x)))
++      errored(err)
+     }
+   }
+ 
+@@ -837,15 +945,20 @@
+   }
+ 
+   async function PortalSuspended() {
++    const e = epoch, q = query
+     try {
+-      const x = await Promise.resolve(query.cursorFn(result))
++      const x = await Promise.resolve(q.cursorFn(result))
++      if (e !== epoch || quarantined || q !== query)
++        return
+       rows = 0
+       x === CLOSE
+-        ? write(Close(query.portal))
+-        : (result = new Result(), write(Execute('', query.cursorRows)))
++        ? write(Close(q.portal))
++        : (result = new Result(), write(Execute('', q.cursorRows)))
+     } catch (err) {
++      if (e !== epoch || quarantined || q !== query)
++        return
+       write(Sync)
+-      query.reject(err)
++      q.reject(err)
+     }
+   }
+ 
+diff --git a/cjs/src/index.js b/cjs/src/index.js
+--- a/cjs/src/index.js
++++ b/cjs/src/index.js
+@@ -60,9 +60,48 @@
+       , open = Queue()
+       , busy = Queue()
+       , full = Queue()
++      , quarantinedQueue = Queue()
+       , queues = { connecting, reserved, closed, ended, open, busy, full }
+ 
+-  const connections = [...Array(options.max)].map(() => Connection(options, queues, { onopen, onend, onclose }))
++  // Private query ownership survives lazy execution, binding and driver queues.
++  const queryLeases = new WeakMap(), connectionLeases = new WeakMap(), generations = new WeakMap()
++  const connections = [...Array(options.max)].map(() => Connection(options, queues, {
++    onopen, onend, onclose, beforeExecute, onTransactionEnd: revokeConnection, onQuarantine: quarantine
++  }))
++
++  function leaseError(c, q) {
++    const tag = queryLeases.get(q), current = connectionLeases.get(c)
++    if (!tag) return current ? expired() : null
++    const { lease, scope, control } = tag
++    return current === lease && lease.owner.connection === c
++      && lease.owner.generation === generations.get(c) && lease.phase !== 'terminal'
++      && (control ? scope.phase === 'closing' && (scope.root || lease.phase === 'active')
++                  : scope.phase === 'active' && lease.phase === 'active')
++      ? null : expired()
++  }
++  function expired() {
++    return Object.assign(new Error('Transaction lease has expired or belongs to another connection generation'), {code:'TX_LEASE_EXPIRED'})
++  }
++  function beforeExecute(c, q) { return leaseError(c, q) }
++  const reservations = new WeakMap()
++  function quarantine(c, error) {
++    // Private terminal state: revoke ownership first, then make the generation unreachable.
++    const e = error || Errors.connection('CONNECTION_CLOSED', options)
++        , hook = c.reserved
++    revokeConnection(c)
++    reservations.delete(c)
++    c.reserved = null
++    move(c, quarantinedQueue)
++    hook && hook.abort && hook.abort(e)
++    c.onclose && (c.onclose(e), c.onclose = null)
++  }
++  function revokeConnection(c) {
++    const lease = connectionLeases.get(c)
++    if (!lease) return
++    lease.phase = 'terminal'
++    connectionLeases.delete(c)
++    while (lease.queries.length) lease.queries.shift().reject(expired())
++  }
+ 
+   const sql = Sql(handler)
+ 
+@@ -83,7 +122,7 @@
+ 
+   return sql
+ 
+-  function Sql(handler) {
++  function Sql(handler, binding) {
+     handler.debug = options.debug
+ 
+     Object.entries(options.types).reduce((acc, [name, type]) => {
+@@ -103,6 +142,11 @@
+ 
+     return sql
+ 
++    function remember(query) {
++      binding && query instanceof Query && queryLeases.set(query, Object.freeze(binding))
++      return (query)
++    }
++
+     function typed(value, type) {
+       return new Parameter(value, type)
+     }
+@@ -113,7 +157,7 @@
+         : typeof strings === 'string' && !args.length
+           ? new Identifier(options.transform.column.to ? options.transform.column.to(strings) : strings)
+           : new Builder(strings, args)
+-      return query
++      return remember(query)
+     }
+ 
+     function unsafe(string, args = [], options = {}) {
+@@ -123,7 +167,12 @@
+         ...options,
+         simple: 'simple' in options ? options.simple : args.length === 0
+       })
+-      return query
++      return remember(query)
++    }
++
++    async function notify(channel, payload) {
++      // Notify must inherit this Sql instance's lease or reservation handler.
++      return await sql`select pg_notify(${ channel }, ${ '' + payload })`
+     }
+ 
+     function file(path, args = [], options = {}) {
+@@ -140,7 +189,7 @@
+         ...options,
+         simple: 'simple' in options ? options.simple : args.length === 0
+       })
+-      return query
++      return remember(query)
+     }
+   }
+ 
+@@ -196,35 +245,55 @@
+     }
+   }
+ 
+-  async function notify(channel, payload) {
+-    return await sql`select pg_notify(${ channel }, ${ '' + payload })`
+-  }
+-
+   async function reserve() {
++    if (ending)
++      throw Errors.connection('CONNECTION_ENDED', options)
+     const queue = Queue()
+     const c = open.length
+       ? open.shift()
+       : await new Promise((resolve, reject) => {
+-        const query = { reserve: resolve, reject }
++        // The admission settles once; a rejected admission is never handed a connection later.
++        const query = {
++          settled: false,
++          reserve: c => (query.settled = true, resolve(c)),
++          reject: e => query.settled || (query.settled = true, queries.remove(query), reject(e))
++        }
+         queries.push(query)
+         closed.length && connect(closed.shift(), query)
+       })
+ 
++    const token = {}
++    reservations.set(c, token)
+     move(c, reserved)
+-    c.reserved = () => queue.length
+-      ? c.execute(queue.shift())
+-      : move(c, reserved)
+-    c.reserved.release = true
++    let released = false
++    const reservedHook = c.reserved = () => {
++      if (released) {
++        // Already-dispatched work has drained before the connection invokes this hook.
++        if (c.reserved !== reservedHook) return
++        c.reserved = null
++        return onopen(c)
++      }
++      return queue.length ? c.execute(queue.shift()) : move(c, reserved)
++    }
++    reservedHook.release = true
++    reservedHook.abort = e => { while (queue.length) queue.shift().reject(e) }
+ 
+     const sql = Sql(handler)
+     sql.release = () => {
+-      c.reserved = null
+-      onopen(c)
++      if (reservations.get(c) !== token)
++        return
++      reservations.delete(c)
++      released = true
++      // Unsent private work loses its capability immediately; admitted work keeps its socket.
++      reservedHook.abort(Errors.connection('CONNECTION_CLOSED', options))
++      c.releaseIdle()
+     }
+ 
+     return sql
+ 
+     function handler(q) {
++      if (reservations.get(c) !== token)
++        return q.reject(Errors.connection('CONNECTION_CLOSED', options))
+       c.queue === full
+         ? queue.push(q)
+         : c.execute(q) || move(c, full)
+@@ -233,79 +302,98 @@
+ 
+   async function begin(options, fn) {
+     !fn && (fn = options, options = '')
+-    const queries = Queue()
+-    let savepoints = 0
+-      , connection
+-      , prepare = null
+-
++    const queries = Queue(), lease = {phase:'active', owner:null, queries}
++    let savepoints = 0, connection, prepare = null, closeHandler, reservedHook
+     try {
+       await sql.unsafe('begin ' + options.replace(/[^a-z ]/ig, ''), [], { onexecute }).execute()
+       return await Promise.race([
+         scope(connection, fn),
+-        new Promise((_, reject) => connection.onclose = reject)
++        new Promise((_, reject) => connection.onclose = closeHandler = reject)
+       ])
+-    } catch (error) {
+-      throw error
++    } finally {
++      // An old continuation must never revoke a newer owner or its close handler.
++      if (connection && connectionLeases.get(connection) === lease) revokeConnection(connection)
++      if (connection && connection.onclose === closeHandler) connection.onclose = null
++      // A transaction that ended without returning to idle has unknown session state.
++      if (connection && reservedHook && connection.reserved === reservedHook) connection.terminate()
+     }
+ 
+     async function scope(c, fn, name) {
+-      const sql = Sql(handler)
++      const state = {phase:'active', root:!name}
++      const sql = Sql(handler, {lease, scope:state, control:false})
++      const control = Sql(handler, {lease, scope:state, control:true})
+       sql.savepoint = savepoint
+       sql.prepare = x => prepare = x.replace(/[^a-z0-9$-_. ]/gi)
+-      let uncaughtError
+-        , result
+-
+-      name && await sql`savepoint ${ sql(name) }`
++      let uncaughtError, result
++      if (name) {
++        state.phase = 'closing'
++        await control`savepoint ${ control(name) }`
++        state.phase = 'active'
++      }
+       try {
+         result = await new Promise((resolve, reject) => {
+           const x = fn(sql)
+           Promise.resolve(Array.isArray(x) ? Promise.all(x) : x).then(resolve, reject)
+         })
+-
+-        if (uncaughtError)
+-          throw uncaughtError
++        if (uncaughtError) throw uncaughtError
+       } catch (e) {
+-        await (name
+-          ? sql`rollback to ${ sql(name) }`
+-          : sql`rollback`
+-        )
++        state.phase = 'closing'
++        !name && lease.phase !== 'terminal' && (lease.phase = 'closing')
++        try {
++          if (connectionLeases.get(c) === lease && lease.phase !== 'terminal')
++            await (name ? control`rollback to ${ control(name) }` : control`rollback`)
++        } catch (rollbackError) {
++          if (connectionLeases.get(c) === lease) { revokeConnection(c); c.terminate() }
++          throw rollbackError
++        } finally { state.phase = 'terminal' }
+         throw e instanceof PostgresError && e.code === '25P02' && uncaughtError || e
+       }
+-
++      state.phase = 'closing'
+       if (!name) {
+-        prepare
+-          ? await sql`prepare transaction '${ sql.unsafe(prepare) }'`
+-          : await sql`commit`
+-      }
+-
++        lease.phase !== 'terminal' && (lease.phase = 'closing')
++        try {
++          prepare ? await control`prepare transaction '${ control.unsafe(prepare) }'` : await control`commit`
++        } finally { state.phase = 'terminal' }
++      } else state.phase = 'terminal'
+       return result
+ 
+       function savepoint(name, fn) {
+-        if (name && Array.isArray(name.raw))
+-          return savepoint(sql => sql.apply(sql, arguments))
+-
++        if (name && Array.isArray(name.raw)) return savepoint(sql => sql.apply(sql, arguments))
+         arguments.length === 1 && (fn = name, name = null)
++        if (state.phase !== 'active' || lease.phase !== 'active' || connectionLeases.get(c) !== lease)
++          return Promise.reject(expired())
+         return scope(c, fn, 's' + savepoints++ + (name ? '_' + name : ''))
+       }
+-
+       function handler(q) {
+         q.catch(e => uncaughtError || (uncaughtError = e))
+-        c.queue === full
+-          ? queries.push(q)
+-          : c.execute(q) || move(c, full)
+-      }
+-    }
+-
++        const error = leaseError(c, q)
++        if (error) return q.reject(error)
++        c.queue === full ? queries.push(q) : c.execute(q) || move(c, full)
++      }
++    }
+     function onexecute(c) {
+       connection = c
++      const generation = (generations.get(c) || 0) + 1
++      generations.set(c, generation)
++      lease.owner = Object.freeze({connection:c, generation})
++      connectionLeases.set(c, lease)
+       move(c, reserved)
+-      c.reserved = () => queries.length
+-        ? c.execute(queries.shift())
+-        : move(c, reserved)
++      c.reserved = reservedHook = () => {
++        while (queries.length) {
++          const q = queries.shift(), error = leaseError(c, q)
++          if (error) { q.reject(error); continue }
++          c.execute(q)
++          return
++        }
++        move(c, reserved)
++      }
+     }
+   }
+ 
+   function move(c, queue) {
++    // A quarantined generation may leave only through physical close or end.
++    if (c.queue === quarantinedQueue && queue !== closed && queue !== ended)
++      return c
+     c.queue.remove(c)
+     queue.push(c)
+     c.queue = queue
+@@ -407,8 +495,11 @@
+ 
+     while (ready && queries.length && max-- > 0) {
+       const query = queries.shift()
+-      if (query.reserve)
++      if (query.reserve) {
++        if (query.settled)
++          continue
+         return query.reserve(c)
++      }
+ 
+       ready = c.execute(query)
+     }
+@@ -419,10 +510,17 @@
+   }
+ 
+   function onclose(c, e) {
++    revokeConnection(c)
+     move(c, closed)
+     c.reserved = null
+     c.onclose && (c.onclose(e), c.onclose = null)
+     options.onclose && options.onclose(c.id)
++    if (ending) {
++      move(c, ended)
++      while (queries.length)
++        queries.shift().reject(Errors.connection('CONNECTION_ENDED', options))
++      return
++    }
+     queries.length && connect(c, queries.shift())
+   }
+ }
+diff --git a/src/connection.js b/src/connection.js
+--- a/src/connection.js
++++ b/src/connection.js
+@@ -49,7 +49,7 @@
+   82  : 'routine'            // R
+ }
+ 
+-function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose = noop } = {}) {
++function Connection(options, queues = {}, { onopen = noop, onend = noop, onclose = noop, beforeExecute = noop, onTransactionEnd = noop, onQuarantine = noop } = {}) {
+   const {
+     sslnegotiation,
+     ssl,
+@@ -71,10 +71,16 @@
+ 
+   const sent = Queue()
+       , id = uid++
+-      , backend = { pid: null, secret: null }
+       , idleTimer = timer(end, options.idle_timeout)
+       , lifeTimer = timer(end, options.max_lifetime)
+       , connectTimer = timer(connectTimedOut, options.connect_timeout)
++
++  // Every physical attempt owns one epoch; callbacks and async work from older epochs are inert.
++  let epoch = 0
++    , live = false
++    , quarantined = false
++    , terminalError = null
++    , backend = { pid: null, secret: null }
+ 
+   let socket = null
+     , cancelMessage
+@@ -116,6 +122,7 @@
+     },
+     terminate,
+     execute,
++    releaseIdle,
+     cancel,
+     end,
+     count: 0,
+@@ -126,20 +133,15 @@
+ 
+   return connection
+ 
+-  async function createSocket() {
+-    let x
+-    try {
+-      x = options.socket
+-        ? (await Promise.resolve(options.socket(options)))
+-        : new net.Socket()
+-    } catch (e) {
+-      error(e)
+-      return
+-    }
+-    x.on('error', error)
+-    x.on('close', closed)
+-    x.on('drain', drain)
+-    return x
++  function releaseIdle() {
++    if (live && !quarantined && !initial && !query && !stream && sent.length === 0 && connection.reserved)
++      connection.reserved()
++  }
++
++  function on(x, e, event, fn) {
++    x.on(event, function() {
++      return e === epoch && x === socket ? fn.apply(this, arguments) : undefined
++    })
+   }
+ 
+   async function cancel({ pid, secret }, resolve, reject) {
+@@ -154,6 +156,14 @@
+   }
+ 
+   function execute(q) {
++    if (quarantined) {
++      queryError(q, terminalError || Errors.connection('CONNECTION_CLOSED', options))
++      return true
++    }
++
++    // The gate runs for initial execution and driver retry before queue/write.
++    const leaseError = beforeExecute(connection, q)
++    if (leaseError) { queryError(q, leaseError); return true }
+     if (terminated)
+       return queryError(q, Errors.connection('CONNECTION_DESTROYED', options))
+ 
+@@ -163,6 +173,7 @@
+     if (q.cancelled)
+       return
+ 
++    let dispatched = false
+     try {
+       q.state = backend
+       query
+@@ -170,12 +181,30 @@
+         : (query = q, query.active = true)
+ 
+       build(q)
+-      return write(toBuffer(q))
++      const buffer = toBuffer(q)
++      // Marked before the write: from here the query is treated as possibly dispatched.
++      dispatched = true
++      const executionEpoch = epoch
++      const written = write(buffer)
++      // An immediate physical write failure may already have revoked this generation.
++      if (executionEpoch !== epoch || !live || quarantined)
++        return false
++      // Reservation is required after an accepted write, including backpressure
++      // and a full pipeline. The hook's existing return value still controls reuse.
++      return (!q.options.onexecute || q.options.onexecute(connection))
++        && written
+         && !q.describeFirst
+         && !q.cursorFn
+         && sent.length < max_pipeline
+-        && (!q.options.onexecute || q.options.onexecute(connection))
+     } catch (error) {
++      if (query !== q) {
++        // An unwritten pipelined query must not wait behind the active one;
++        // a possibly-written one would desynchronize the pipeline, so end the generation.
++        dispatched
++          ? terminal(error)
++          : (sent.remove(q), queryError(q, error))
++        return true
++      }
+       sent.length === 0 && write(Sync)
+       errored(error)
+       return true
+@@ -244,29 +273,46 @@
+   }
+ 
+   function write(x, fn) {
++    if (quarantined || !socket)
++      return false
++
+     chunk = chunk ? Buffer.concat([chunk, x]) : Buffer.from(x)
+     if (fn || chunk.length >= 1024)
+       return nextWrite(fn)
+-    nextWriteTimer === null && (nextWriteTimer = setImmediate(nextWrite))
++    if (nextWriteTimer === null) {
++      // A delayed flush belongs to the socket that produced the chunk.
++      const e = epoch, s = socket
++      nextWriteTimer = setImmediate(() => e === epoch && s === socket && !quarantined && nextWrite())
++    }
+     return true
+   }
+ 
+   function nextWrite(fn) {
+-    const x = socket.write(chunk, fn)
++    const e = epoch, s = socket, buffer = chunk
+     nextWriteTimer !== null && clearImmediate(nextWriteTimer)
+     chunk = nextWriteTimer = null
+-    return x
++    if (quarantined || !s || !buffer)
++      return false
++    try {
++      return s.write(buffer, fn)
++    } catch (err) {
++      if (e === epoch && s === socket)
++        terminal(err)
++      return false
++    }
+   }
+ 
+   function connectTimedOut() {
+-    errored(Errors.connection('CONNECT_TIMEOUT', options, socket))
+-    socket.destroy()
++    terminal(Errors.connection('CONNECT_TIMEOUT', options, socket))
+   }
+ 
+   async function secure() {
+     if (sslnegotiation !== 'direct') {
++      const e = epoch, s = socket
+       write(SSLRequest)
+-      const canSSL = await new Promise(r => socket.once('data', x => r(x[0] === 83))) // S
++      const canSSL = await new Promise(r => s.once('data', x => r(x[0] === 83))) // S
++      if (e !== epoch || s !== socket || quarantined)
++        return
+ 
+       if (!canSSL && ssl === 'prefer')
+         return connected()
+@@ -287,18 +333,21 @@
+ 
+     socket.removeAllListeners()
+     socket = tls.connect(options)
+-    socket.on('secureConnect', connected)
+-    socket.on('error', error)
+-    socket.on('close', closed)
+-    socket.on('drain', drain)
++    on(socket, epoch, 'secureConnect', connected)
++    on(socket, epoch, 'error', error)
++    on(socket, epoch, 'close', closed)
++    on(socket, epoch, 'drain', drain)
+   }
+ 
+   /* c8 ignore next 3 */
+   function drain() {
+-    !query && onopen(connection)
++    !query && !quarantined && onopen(connection)
+   }
+ 
+   function data(x) {
++    if (quarantined)
++      return
++
+     if (incomings) {
+       incomings.push(x)
+       remaining -= x.length
+@@ -332,34 +381,69 @@
+     }
+   }
+ 
+-  async function connect() {
++  function beginEpoch() {
++    live = true
++    quarantined = false
++    terminalError = null
++    backend = { pid: null, secret: null }
++    return ++epoch
++  }
++
++  async function connect(e = beginEpoch()) {
++    if (e !== epoch || quarantined)
++      return
++
+     terminated = false
+     backendParameters = {}
+-    socket || (socket = await createSocket())
+-
+-    if (!socket)
+-      return
+-
++    let x
+     connectTimer.start()
+-
+-    if (options.socket)
+-      return ssl ? secure() : connected()
+-
+-    socket.on('connect', ssl ? secure : connected)
+-
+-    if (options.path)
+-      return socket.connect(options.path)
+-
+-    socket.ssl = ssl
+-    socket.connect(port[hostIndex], host[hostIndex])
+-    socket.host = host[hostIndex]
+-    socket.port = port[hostIndex]
+-
+-    hostIndex = (hostIndex + 1) % port.length
++    try {
++      x = options.socket
++        ? (await Promise.resolve(options.socket(options)))
++        : new net.Socket()
++    } catch (err) {
++      return e === epoch && terminal(err)
++    }
++
++    // A late socket factory result must never replace a newer or terminal generation.
++    if (e !== epoch || quarantined)
++      return x && typeof x.destroy === 'function' && x.destroy()
++
++    if (!x)
++      return terminal(Errors.connection('CONNECTION_CLOSED', options))
++
++    socket = x
++    const start = ssl
++      ? () => secure().catch(err => e === epoch && terminal(err))
++      : connected
++
++    try {
++      on(x, e, 'error', error)
++      on(x, e, 'close', closed)
++      on(x, e, 'drain', drain)
++
++      if (options.socket)
++        return start()
++
++      on(x, e, 'connect', start)
++
++      if (options.path)
++        return x.connect(options.path)
++
++      x.ssl = ssl
++      x.connect(port[hostIndex], host[hostIndex])
++      x.host = host[hostIndex]
++      x.port = port[hostIndex]
++
++      hostIndex = (hostIndex + 1) % port.length
++    } catch (err) {
++      terminal(err)
++    }
+   }
+ 
+   function reconnect() {
+-    setTimeout(connect, closedTime ? Math.max(0, closedTime + delay - performance.now()) : 0)
++    const e = beginEpoch()
++    setTimeout(connect, closedTime ? Math.max(0, closedTime + delay - performance.now()) : 0, e)
+   }
+ 
+   function connected() {
+@@ -369,7 +453,7 @@
+       statementId = Math.random().toString(36).slice(2)
+       statementCount = 1
+       lifeTimer.start()
+-      socket.on('data', data)
++      on(socket, epoch, 'data', data)
+       keep_alive && socket.setKeepAlive && socket.setKeepAlive(true, 1000 * keep_alive)
+       const s = StartupMessage()
+       write(s)
+@@ -379,12 +463,8 @@
+   }
+ 
+   function error(err) {
+-    if (connection.queue === queues.connecting && options.host[retries + 1])
+-      return
+-
+-    errored(err)
+-    while (sent.length)
+-      queryError(sent.shift(), err)
++    // Socket, startup and handshake failures are physical: one terminal path settles everything.
++    terminal(err)
+   }
+ 
+   function errored(err) {
+@@ -421,40 +501,80 @@
+ 
+   function terminate() {
+     terminated = true
+-    if (stream || query || initial || sent.length)
+-      error(Errors.connection('CONNECTION_DESTROYED', options))
+-
++    if (!live)
++      return ended && (ended(), ending = ended = null)
++
++    const pending = !!(stream || query || initial || sent.length)
++    terminal(pending ? Errors.connection('CONNECTION_DESTROYED', options) : null, !pending)
++  }
++
++  function terminal(err, graceful) {
++    if (quarantined || !live)
++      return
++
++    quarantined = true
++    terminalError = err
++    // Revoke the owner and leave every pool queue before any admission is settled.
++    onQuarantine(connection, err)
++
++    const admissions = new Set()
++    query && admissions.add(query)
++    while (sent.length)
++      admissions.add(sent.shift())
++    initial && admissions.add(initial)
++
++    const copy = stream
++    query = initial = stream = final = null
++    results = errorResponse = null
++    result = new Result()
++    incoming = Buffer.alloc(0)
++    incomings = null
++    remaining = length = rows = 0
+     clearImmediate(nextWriteTimer)
+-    if (socket) {
+-      socket.removeListener('data', data)
+-      socket.removeListener('connect', connected)
+-      socket.readyState === 'open' && socket.end(b().X().end())
+-    }
+-    ended && (ended(), ending = ended = null)
+-  }
+-
+-  async function closed(hadError) {
+-    incoming = Buffer.alloc(0)
+-    remaining = 0
+-    incomings = null
+-    clearImmediate(nextWriteTimer)
+-    socket.removeListener('data', data)
+-    socket.removeListener('connect', connected)
++    chunk = nextWriteTimer = null
+     idleTimer.cancel()
+     lifeTimer.cancel()
+     connectTimer.cancel()
+ 
+-    socket.removeAllListeners()
++    const reason = err || Errors.connection('CONNECTION_CLOSED', options)
++    copy && copy.destroy(reason)
++    admissions.forEach(x => {
++      x.cancelled && typeof x.cancelled === 'object' && (x.cancelled.resolve(), x.cancelled = null)
++      queryError(x, reason)
++    })
++
++    if (!socket)
++      return finish(true)
++
++    graceful && socket.readyState === 'open'
++      ? socket.end(b().X().end())
++      : socket.destroy()
++  }
++
++  function finish(hadError) {
++    if (!live)
++      return
++
++    live = false
++    const x = socket
+     socket = null
+-
+-    if (initial)
+-      return reconnect()
+-
+-    !hadError && (query || sent.length) && error(Errors.connection('CONNECTION_CLOSED', options, socket))
++    if (x) {
++      x.removeAllListeners()
++      x.on('error', noop)
++    }
++    idleTimer.cancel()
++    lifeTimer.cancel()
++    connectTimer.cancel()
+     closedTime = performance.now()
+     hadError && options.shared.retries++
+     delay = (typeof backoff === 'function' ? backoff(options.shared.retries) : backoff) * 1000
+-    onclose(connection, Errors.connection('CONNECTION_CLOSED', options, socket))
++    ended && (ended(), ending = ended = null)
++    onclose(connection, terminalError || Errors.connection('CONNECTION_CLOSED', options))
++  }
++
++  function closed(hadError) {
++    terminal(Errors.connection('CONNECTION_CLOSED', options, socket))
++    finish(hadError)
+   }
+ 
+   /* Handlers */
+@@ -560,14 +680,15 @@
+       }
+ 
+       if (needsTypes) {
+-        initial.reserve && (initial = null)
+         return fetchArrayTypes()
+       }
+ 
+-      initial && !initial.reserve && execute(initial)
++      // Settle the startup admission once; a reserve is handed over by onopen below.
++      const admission = initial
+       options.shared.retries = retries = 0
+       initial = null
+-      return
++      if (!admission.reserve)
++        return execute(admission)
+     }
+ 
+     while (sent.length && (query = sent.shift()) && (query.active = true, query.cancelled))
+@@ -580,7 +701,7 @@
+       ? !connection.reserved.release && x[5] === 73 // I
+         ? ending
+           ? terminate()
+-          : (connection.reserved = null, onopen(connection))
++          : (onTransactionEnd(connection), connection.reserved = null, onopen(connection))
+         : connection.reserved()
+       : ending
+         ? terminate()
+@@ -603,7 +724,7 @@
+     final && (final(), final = null)
+ 
+     if (result.command === 'BEGIN' && max !== 1 && !connection.reserved)
+-      return errored(Errors.generic('UNSAFE_TRANSACTION', 'Only use sql.begin, sql.reserved or max: 1'))
++      return terminal(Errors.generic('UNSAFE_TRANSACTION', 'Only use sql.begin, sql.reserved or max: 1'))
+ 
+     if (query.options.simple)
+       return BindComplete()
+@@ -671,86 +792,65 @@
+   }
+ 
+   async function Authentication(x, type = x.readUInt32BE(5)) {
+-    (
+-      type === 3 ? AuthenticationCleartextPassword :
+-      type === 5 ? AuthenticationMD5Password :
+-      type === 10 ? SASL :
+-      type === 11 ? SASLContinue :
+-      type === 12 ? SASLFinal :
+-      type !== 0 ? UnknownAuth :
+-      noop
+-    )(x, type)
+-  }
+-
+-  /* c8 ignore next 5 */
++    const e = epoch
++    try {
++      await (
++        type === 3 ? AuthenticationCleartextPassword :
++        type === 5 ? AuthenticationMD5Password :
++        type === 10 ? SASL :
++        type === 11 ? SASLContinue :
++        type === 12 ? SASLFinal :
++        type !== 0 ? UnknownAuth :
++        noop
++      )(x, type)
++    } catch (err) {
++      if (e === epoch && !quarantined)
++        terminal(err)
++    }
++  }
++
+   async function AuthenticationCleartextPassword() {
+-    const payload = await Pass()
+-    write(
+-      b().p().str(payload).z(1).end()
+-    )
++    const e = epoch, payload = await Pass()
++    if (e !== epoch || quarantined) return
++    write(b().p().str(payload).z(1).end())
+   }
+ 
+   async function AuthenticationMD5Password(x) {
+-    const payload = 'md5' + (
+-      await md5(
+-        Buffer.concat([
+-          Buffer.from(await md5((await Pass()) + user)),
+-          x.subarray(9)
+-        ])
+-      )
+-    )
+-    write(
+-      b().p().str(payload).z(1).end()
+-    )
+-  }
+-
+-  async function SASL() {
+-    nonce = (await crypto.randomBytes(18)).toString('base64')
++    const e = epoch, password = await Pass()
++    if (e !== epoch || quarantined) return
++    const payload = 'md5' + md5(Buffer.concat([Buffer.from(md5(password + user)), x.subarray(9)]))
++    write(b().p().str(payload).z(1).end())
++  }
++
++  function SASL() {
++    nonce = crypto.randomBytes(18).toString('base64')
+     b().p().str('SCRAM-SHA-256' + b.N)
+     const i = b.i
+     write(b.inc(4).str('n,,n=*,r=' + nonce).i32(b.i - i - 4, i).end())
+   }
+ 
+   async function SASLContinue(x) {
++    const e = epoch, password = await Pass()
++    if (e !== epoch || quarantined) return
+     const res = x.toString('utf8', 9).split(',').reduce((acc, x) => (acc[x[0]] = x.slice(2), acc), {})
+-
+-    const saltedPassword = await crypto.pbkdf2Sync(
+-      await Pass(),
+-      Buffer.from(res.s, 'base64'),
+-      parseInt(res.i), 32,
+-      'sha256'
+-    )
+-
+-    const clientKey = await hmac(saltedPassword, 'Client Key')
+-
++    const saltedPassword = crypto.pbkdf2Sync(password, Buffer.from(res.s, 'base64'), parseInt(res.i), 32, 'sha256')
++    const clientKey = hmac(saltedPassword, 'Client Key')
+     const auth = 'n=*,r=' + nonce + ','
+                + 'r=' + res.r + ',s=' + res.s + ',i=' + res.i
+                + ',c=biws,r=' + res.r
+-
+-    serverSignature = (await hmac(await hmac(saltedPassword, 'Server Key'), auth)).toString('base64')
+-
+-    const payload = 'c=biws,r=' + res.r + ',p=' + xor(
+-      clientKey, Buffer.from(await hmac(await sha256(clientKey), auth))
+-    ).toString('base64')
+-
+-    write(
+-      b().p().str(payload).end()
+-    )
++    serverSignature = hmac(hmac(saltedPassword, 'Server Key'), auth).toString('base64')
++    const payload = 'c=biws,r=' + res.r + ',p=' + xor(clientKey, Buffer.from(hmac(sha256(clientKey), auth))).toString('base64')
++    write(b().p().str(payload).end())
+   }
+ 
+   function SASLFinal(x) {
+     if (x.toString('utf8', 9).split(b.N, 1)[0].slice(2) === serverSignature)
+       return
+-    /* c8 ignore next 5 */
+-    errored(Errors.generic('SASL_SIGNATURE_MISMATCH', 'The server did not return the correct signature'))
+-    socket.destroy()
++    terminal(Errors.generic('SASL_SIGNATURE_MISMATCH', 'The server did not return the correct signature'))
+   }
+ 
+   function Pass() {
+-    return Promise.resolve(typeof options.pass === 'function'
+-      ? options.pass()
+-      : options.pass
+-    )
++    return typeof options.pass === 'function' ? options.pass() : options.pass
+   }
+ 
+   function NoData() {
+@@ -766,6 +866,7 @@
+   }
+ 
+   async function fetchArrayTypes() {
++    const e = epoch
+     needsTypes = false
+     const types = await new Query([`
+       select b.oid, b.typarray
+@@ -774,8 +875,9 @@
+       where a.typcategory = 'A'
+       group by b.oid, b.typarray
+       order by b.oid
+-    `], [], execute)
+-    types.forEach(({ oid, typarray }) => addArrayType(oid, typarray))
++    `], [], execute).catch(() => null)
++    // A failed or stale fetch is settled by terminalization and must not touch parsers.
++    e === epoch && !quarantined && types && types.forEach(({ oid, typarray }) => addArrayType(oid, typarray))
+   }
+ 
+   function addArrayType(oid, typarray) {
+@@ -806,15 +908,21 @@
+       backendParameters.default_transaction_read_only = a.transaction_read_only
+       backendParameters.in_hot_standby = b.pg_is_in_recovery ? 'on' : 'off'
+     }
+-    query.execute()
++    query.execute().catch(noop)
+   }
+ 
+   function ErrorResponse(x) {
++    const err = Errors.postgres(parseError(x))
++        , severity = err.severity || err.severity_local
++    // FATAL/PANIC ends the backend session; it is never a recoverable statement error.
++    if (severity === 'FATAL' || severity === 'PANIC')
++      return terminal(err)
++
+     if (query) {
+       (query.cursorFn || query.describeFirst) && write(Sync)
+-      errorResponse = Errors.postgres(parseError(x))
++      errorResponse = err
+     } else {
+-      errored(Errors.postgres(parseError(x)))
++      errored(err)
+     }
+   }
+ 
+@@ -837,15 +945,20 @@
+   }
+ 
+   async function PortalSuspended() {
++    const e = epoch, q = query
+     try {
+-      const x = await Promise.resolve(query.cursorFn(result))
++      const x = await Promise.resolve(q.cursorFn(result))
++      if (e !== epoch || quarantined || q !== query)
++        return
+       rows = 0
+       x === CLOSE
+-        ? write(Close(query.portal))
+-        : (result = new Result(), write(Execute('', query.cursorRows)))
++        ? write(Close(q.portal))
++        : (result = new Result(), write(Execute('', q.cursorRows)))
+     } catch (err) {
++      if (e !== epoch || quarantined || q !== query)
++        return
+       write(Sync)
+-      query.reject(err)
++      q.reject(err)
+     }
+   }
+ 
+diff --git a/src/index.js b/src/index.js
+--- a/src/index.js
++++ b/src/index.js
+@@ -60,9 +60,48 @@
+       , open = Queue()
+       , busy = Queue()
+       , full = Queue()
++      , quarantinedQueue = Queue()
+       , queues = { connecting, reserved, closed, ended, open, busy, full }
+ 
+-  const connections = [...Array(options.max)].map(() => Connection(options, queues, { onopen, onend, onclose }))
++  // Private query ownership survives lazy execution, binding and driver queues.
++  const queryLeases = new WeakMap(), connectionLeases = new WeakMap(), generations = new WeakMap()
++  const connections = [...Array(options.max)].map(() => Connection(options, queues, {
++    onopen, onend, onclose, beforeExecute, onTransactionEnd: revokeConnection, onQuarantine: quarantine
++  }))
++
++  function leaseError(c, q) {
++    const tag = queryLeases.get(q), current = connectionLeases.get(c)
++    if (!tag) return current ? expired() : null
++    const { lease, scope, control } = tag
++    return current === lease && lease.owner.connection === c
++      && lease.owner.generation === generations.get(c) && lease.phase !== 'terminal'
++      && (control ? scope.phase === 'closing' && (scope.root || lease.phase === 'active')
++                  : scope.phase === 'active' && lease.phase === 'active')
++      ? null : expired()
++  }
++  function expired() {
++    return Object.assign(new Error('Transaction lease has expired or belongs to another connection generation'), {code:'TX_LEASE_EXPIRED'})
++  }
++  function beforeExecute(c, q) { return leaseError(c, q) }
++  const reservations = new WeakMap()
++  function quarantine(c, error) {
++    // Private terminal state: revoke ownership first, then make the generation unreachable.
++    const e = error || Errors.connection('CONNECTION_CLOSED', options)
++        , hook = c.reserved
++    revokeConnection(c)
++    reservations.delete(c)
++    c.reserved = null
++    move(c, quarantinedQueue)
++    hook && hook.abort && hook.abort(e)
++    c.onclose && (c.onclose(e), c.onclose = null)
++  }
++  function revokeConnection(c) {
++    const lease = connectionLeases.get(c)
++    if (!lease) return
++    lease.phase = 'terminal'
++    connectionLeases.delete(c)
++    while (lease.queries.length) lease.queries.shift().reject(expired())
++  }
+ 
+   const sql = Sql(handler)
+ 
+@@ -83,7 +122,7 @@
+ 
+   return sql
+ 
+-  function Sql(handler) {
++  function Sql(handler, binding) {
+     handler.debug = options.debug
+ 
+     Object.entries(options.types).reduce((acc, [name, type]) => {
+@@ -103,6 +142,11 @@
+ 
+     return sql
+ 
++    function remember(query) {
++      binding && query instanceof Query && queryLeases.set(query, Object.freeze(binding))
++      return (query)
++    }
++
+     function typed(value, type) {
+       return new Parameter(value, type)
+     }
+@@ -113,7 +157,7 @@
+         : typeof strings === 'string' && !args.length
+           ? new Identifier(options.transform.column.to ? options.transform.column.to(strings) : strings)
+           : new Builder(strings, args)
+-      return query
++      return remember(query)
+     }
+ 
+     function unsafe(string, args = [], options = {}) {
+@@ -123,7 +167,12 @@
+         ...options,
+         simple: 'simple' in options ? options.simple : args.length === 0
+       })
+-      return query
++      return remember(query)
++    }
++
++    async function notify(channel, payload) {
++      // Notify must inherit this Sql instance's lease or reservation handler.
++      return await sql`select pg_notify(${ channel }, ${ '' + payload })`
+     }
+ 
+     function file(path, args = [], options = {}) {
+@@ -140,7 +189,7 @@
+         ...options,
+         simple: 'simple' in options ? options.simple : args.length === 0
+       })
+-      return query
++      return remember(query)
+     }
+   }
+ 
+@@ -196,35 +245,55 @@
+     }
+   }
+ 
+-  async function notify(channel, payload) {
+-    return await sql`select pg_notify(${ channel }, ${ '' + payload })`
+-  }
+-
+   async function reserve() {
++    if (ending)
++      throw Errors.connection('CONNECTION_ENDED', options)
+     const queue = Queue()
+     const c = open.length
+       ? open.shift()
+       : await new Promise((resolve, reject) => {
+-        const query = { reserve: resolve, reject }
++        // The admission settles once; a rejected admission is never handed a connection later.
++        const query = {
++          settled: false,
++          reserve: c => (query.settled = true, resolve(c)),
++          reject: e => query.settled || (query.settled = true, queries.remove(query), reject(e))
++        }
+         queries.push(query)
+         closed.length && connect(closed.shift(), query)
+       })
+ 
++    const token = {}
++    reservations.set(c, token)
+     move(c, reserved)
+-    c.reserved = () => queue.length
+-      ? c.execute(queue.shift())
+-      : move(c, reserved)
+-    c.reserved.release = true
++    let released = false
++    const reservedHook = c.reserved = () => {
++      if (released) {
++        // Already-dispatched work has drained before the connection invokes this hook.
++        if (c.reserved !== reservedHook) return
++        c.reserved = null
++        return onopen(c)
++      }
++      return queue.length ? c.execute(queue.shift()) : move(c, reserved)
++    }
++    reservedHook.release = true
++    reservedHook.abort = e => { while (queue.length) queue.shift().reject(e) }
+ 
+     const sql = Sql(handler)
+     sql.release = () => {
+-      c.reserved = null
+-      onopen(c)
++      if (reservations.get(c) !== token)
++        return
++      reservations.delete(c)
++      released = true
++      // Unsent private work loses its capability immediately; admitted work keeps its socket.
++      reservedHook.abort(Errors.connection('CONNECTION_CLOSED', options))
++      c.releaseIdle()
+     }
+ 
+     return sql
+ 
+     function handler(q) {
++      if (reservations.get(c) !== token)
++        return q.reject(Errors.connection('CONNECTION_CLOSED', options))
+       c.queue === full
+         ? queue.push(q)
+         : c.execute(q) || move(c, full)
+@@ -233,79 +302,98 @@
+ 
+   async function begin(options, fn) {
+     !fn && (fn = options, options = '')
+-    const queries = Queue()
+-    let savepoints = 0
+-      , connection
+-      , prepare = null
+-
++    const queries = Queue(), lease = {phase:'active', owner:null, queries}
++    let savepoints = 0, connection, prepare = null, closeHandler, reservedHook
+     try {
+       await sql.unsafe('begin ' + options.replace(/[^a-z ]/ig, ''), [], { onexecute }).execute()
+       return await Promise.race([
+         scope(connection, fn),
+-        new Promise((_, reject) => connection.onclose = reject)
++        new Promise((_, reject) => connection.onclose = closeHandler = reject)
+       ])
+-    } catch (error) {
+-      throw error
++    } finally {
++      // An old continuation must never revoke a newer owner or its close handler.
++      if (connection && connectionLeases.get(connection) === lease) revokeConnection(connection)
++      if (connection && connection.onclose === closeHandler) connection.onclose = null
++      // A transaction that ended without returning to idle has unknown session state.
++      if (connection && reservedHook && connection.reserved === reservedHook) connection.terminate()
+     }
+ 
+     async function scope(c, fn, name) {
+-      const sql = Sql(handler)
++      const state = {phase:'active', root:!name}
++      const sql = Sql(handler, {lease, scope:state, control:false})
++      const control = Sql(handler, {lease, scope:state, control:true})
+       sql.savepoint = savepoint
+       sql.prepare = x => prepare = x.replace(/[^a-z0-9$-_. ]/gi)
+-      let uncaughtError
+-        , result
+-
+-      name && await sql`savepoint ${ sql(name) }`
++      let uncaughtError, result
++      if (name) {
++        state.phase = 'closing'
++        await control`savepoint ${ control(name) }`
++        state.phase = 'active'
++      }
+       try {
+         result = await new Promise((resolve, reject) => {
+           const x = fn(sql)
+           Promise.resolve(Array.isArray(x) ? Promise.all(x) : x).then(resolve, reject)
+         })
+-
+-        if (uncaughtError)
+-          throw uncaughtError
++        if (uncaughtError) throw uncaughtError
+       } catch (e) {
+-        await (name
+-          ? sql`rollback to ${ sql(name) }`
+-          : sql`rollback`
+-        )
++        state.phase = 'closing'
++        !name && lease.phase !== 'terminal' && (lease.phase = 'closing')
++        try {
++          if (connectionLeases.get(c) === lease && lease.phase !== 'terminal')
++            await (name ? control`rollback to ${ control(name) }` : control`rollback`)
++        } catch (rollbackError) {
++          if (connectionLeases.get(c) === lease) { revokeConnection(c); c.terminate() }
++          throw rollbackError
++        } finally { state.phase = 'terminal' }
+         throw e instanceof PostgresError && e.code === '25P02' && uncaughtError || e
+       }
+-
++      state.phase = 'closing'
+       if (!name) {
+-        prepare
+-          ? await sql`prepare transaction '${ sql.unsafe(prepare) }'`
+-          : await sql`commit`
+-      }
+-
++        lease.phase !== 'terminal' && (lease.phase = 'closing')
++        try {
++          prepare ? await control`prepare transaction '${ control.unsafe(prepare) }'` : await control`commit`
++        } finally { state.phase = 'terminal' }
++      } else state.phase = 'terminal'
+       return result
+ 
+       function savepoint(name, fn) {
+-        if (name && Array.isArray(name.raw))
+-          return savepoint(sql => sql.apply(sql, arguments))
+-
++        if (name && Array.isArray(name.raw)) return savepoint(sql => sql.apply(sql, arguments))
+         arguments.length === 1 && (fn = name, name = null)
++        if (state.phase !== 'active' || lease.phase !== 'active' || connectionLeases.get(c) !== lease)
++          return Promise.reject(expired())
+         return scope(c, fn, 's' + savepoints++ + (name ? '_' + name : ''))
+       }
+-
+       function handler(q) {
+         q.catch(e => uncaughtError || (uncaughtError = e))
+-        c.queue === full
+-          ? queries.push(q)
+-          : c.execute(q) || move(c, full)
+-      }
+-    }
+-
++        const error = leaseError(c, q)
++        if (error) return q.reject(error)
++        c.queue === full ? queries.push(q) : c.execute(q) || move(c, full)
++      }
++    }
+     function onexecute(c) {
+       connection = c
++      const generation = (generations.get(c) || 0) + 1
++      generations.set(c, generation)
++      lease.owner = Object.freeze({connection:c, generation})
++      connectionLeases.set(c, lease)
+       move(c, reserved)
+-      c.reserved = () => queries.length
+-        ? c.execute(queries.shift())
+-        : move(c, reserved)
++      c.reserved = reservedHook = () => {
++        while (queries.length) {
++          const q = queries.shift(), error = leaseError(c, q)
++          if (error) { q.reject(error); continue }
++          c.execute(q)
++          return
++        }
++        move(c, reserved)
++      }
+     }
+   }
+ 
+   function move(c, queue) {
++    // A quarantined generation may leave only through physical close or end.
++    if (c.queue === quarantinedQueue && queue !== closed && queue !== ended)
++      return c
+     c.queue.remove(c)
+     queue.push(c)
+     c.queue = queue
+@@ -407,8 +495,11 @@
+ 
+     while (ready && queries.length && max-- > 0) {
+       const query = queries.shift()
+-      if (query.reserve)
++      if (query.reserve) {
++        if (query.settled)
++          continue
+         return query.reserve(c)
++      }
+ 
+       ready = c.execute(query)
+     }
+@@ -419,10 +510,17 @@
+   }
+ 
+   function onclose(c, e) {
++    revokeConnection(c)
+     move(c, closed)
+     c.reserved = null
+     c.onclose && (c.onclose(e), c.onclose = null)
+     options.onclose && options.onclose(c.id)
++    if (ending) {
++      move(c, ended)
++      while (queries.length)
++        queries.shift().reject(Errors.connection('CONNECTION_ENDED', options))
++      return
++    }
+     queries.length && connect(c, queries.shift())
+   }
+ }

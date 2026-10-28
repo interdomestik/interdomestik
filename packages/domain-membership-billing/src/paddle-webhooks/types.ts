@@ -1,3 +1,5 @@
+import type { PaddleWebhookIdentityReader } from './identity-reader';
+
 export type AuditEvent = {
   actorId?: string | null;
   actorRole?: string | null;
@@ -200,6 +202,7 @@ export type ResolvePaddleCustomer = (
 ) => Promise<PaddleCustomerLookupResult> | PaddleCustomerLookupResult;
 
 export type PaddleWebhookDeps = PastDueEmailDeps & {
+  identityReader?: PaddleWebhookIdentityReader;
   sendPaymentFailedEmail?: SendPaymentFailedEmail;
   prepareThankYouLetter?: PrepareThankYouLetter;
   sendThankYouLetter?: SendThankYouLetter;

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -51,17 +51,18 @@ export async function createCommissionWithDispositionCore(
 
     // IDEMPOTENCY CHECK: If subscriptionId is provided, check for existing commission
     if (data.subscriptionId) {
-      const [existing] = await db
+      const subscriptionId = data.subscriptionId;
+      const [existing] = await withTenantContext({ tenantId, role: 'system' }, tx => tx
         .select({ id: agentCommissions.id })
         .from(agentCommissions)
         .where(
           and(
             eq(agentCommissions.tenantId, tenantId),
-            eq(agentCommissions.subscriptionId, data.subscriptionId),
+            eq(agentCommissions.subscriptionId, subscriptionId),
             eq(agentCommissions.type, data.type)
           )
         )
-        .limit(1);
+        .limit(1));
 
       if (existing) {
         console.log(
@@ -73,7 +74,7 @@ export async function createCommissionWithDispositionCore(
 
     const id = nanoid();
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await db.insert(agentCommissions).values({
+    await withTenantContext({ tenantId, role: 'system' }, tx => tx.insert(agentCommissions).values({
       id,
       tenantId,
       agentId: data.agentId,
@@ -85,7 +86,7 @@ export async function createCommissionWithDispositionCore(
       currency,
       earnedAt: new Date(),
       metadata: data.metadata ?? {},
-    });
+    }));
 
     console.log(`[Commission] Created commission ${id} for agent ${data.agentId}`);
     return { success: true, data: { id, created: true } };

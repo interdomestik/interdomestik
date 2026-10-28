@@ -1,0 +1,1080 @@
+{
+  "kind": "edges",
+  "value": {
+    "apps/web/src/actions/admin-users/classification-audit.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "nanoid": null
+    },
+    "apps/web/src/actions/admin-users/resolve-tenant-classification.core.ts": {
+      "./classification-audit": "apps/web/src/actions/admin-users/classification-audit.ts",
+      "@/server/auth/reassign-tenant-classification": "apps/web/src/server/auth/reassign-tenant-classification.ts",
+      "@interdomestik/domain-users/admin/resolve-tenant-classification": "packages/domain-users/src/admin/resolve-tenant-classification.ts",
+      "next/cache": null
+    },
+    "apps/web/src/actions/agent-crm-follow-up.core.ts": {
+      "./crm-tasks.core": "apps/web/src/actions/crm-tasks.core.ts",
+      "@/adapters/crm/lead-follow-up-repository": "apps/web/src/adapters/crm/lead-follow-up-repository.ts",
+      "@/i18n/locales": "apps/web/src/i18n/locales.ts",
+      "@interdomestik/domain-crm/leads/follow-up": "packages/domain-crm/src/leads/follow-up.ts",
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+      "next/cache": null,
+      "node:crypto": null
+    },
+    "apps/web/src/actions/crm-tasks.core.ts": {
+      "@/adapters/crm/task-repository": "apps/web/src/adapters/crm/task-repository.ts",
+      "@/i18n/locales": "apps/web/src/i18n/locales.ts",
+      "@/lib/audit": "apps/web/src/lib/audit.ts",
+      "@/lib/rate-limit": "apps/web/src/lib/rate-limit.ts",
+      "@interdomestik/domain-crm/context": "packages/domain-crm/src/context.ts",
+      "@interdomestik/domain-crm/tasks": "packages/domain-crm/src/tasks/index.ts",
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+      "nanoid": null,
+      "next/cache": null
+    },
+    "apps/web/src/adapters/crm/dashboard-repository.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/domain-crm/dashboards": "packages/domain-crm/src/dashboards/index.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/forecast-snapshot-observability.ts": {
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/forecast-snapshot-work-items.ts": {
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/lead-activity-repository.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/lead-detail-repository.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/lead-follow-up-repository.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "@interdomestik/domain-crm/leads/follow-up": "packages/domain-crm/src/leads/follow-up.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/lead-mutation-repository.ts": {
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "apps/web/src/adapters/crm/reporting-repository.ts": {
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "apps/web/src/adapters/crm/routing-application-service.ts": {
+      "./lead-mutation-repository": "apps/web/src/adapters/crm/lead-mutation-repository.ts",
+      "./routing-repository": "apps/web/src/adapters/crm/routing-repository.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/domain-crm/routing": "packages/domain-crm/src/routing/index.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "apps/web/src/adapters/crm/routing-repository.ts": {
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "apps/web/src/adapters/crm/task-repository-save.ts": {
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/domain-crm/tasks": "packages/domain-crm/src/tasks/index.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/adapters/crm/task-repository.ts": {
+      "./task-repository-save": "apps/web/src/adapters/crm/task-repository-save.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/domain-crm/tasks": "packages/domain-crm/src/tasks/index.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "apps/web/src/adapters/crm/task-work-queue-repository.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/domain-crm/tasks": "packages/domain-crm/src/tasks/index.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/app/[locale]/(agent)/agent/crm/_core.ts": {
+      "@/adapters/crm/dashboard-repository": "apps/web/src/adapters/crm/dashboard-repository.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@/adapters/crm/task-work-queue-repository": "apps/web/src/adapters/crm/task-work-queue-repository.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/domain-crm/dashboards": "packages/domain-crm/src/dashboards/index.ts",
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/[locale]/(staff)/staff/crm/_core.ts": {
+      "./_tenant-repository": "apps/web/src/app/[locale]/(staff)/staff/crm/_tenant-repository.ts",
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/[locale]/(staff)/staff/crm/_tenant-repository.ts": {
+      "@/app/[locale]/admin/crm/_reporting-tenant": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_backfill-confirmation.ts": {
+      "./_backfill-types": "apps/web/src/app/[locale]/admin/crm/_backfill-types.ts",
+      "node:crypto": null
+    },
+    "apps/web/src/app/[locale]/admin/crm/_backfill-core.ts": {
+      "../../../api/cron/crm/forecast-snapshots/backfill/_core": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_core.ts",
+      "./_backfill-confirmation": "apps/web/src/app/[locale]/admin/crm/_backfill-confirmation.ts",
+      "./_backfill-types": "apps/web/src/app/[locale]/admin/crm/_backfill-types.ts",
+      "@/lib/rate-limit": "apps/web/src/lib/rate-limit.ts",
+      "zod": null
+    },
+    "apps/web/src/app/[locale]/admin/crm/_backfill-tenant.ts": {
+      "../../../api/cron/crm/forecast-snapshots/backfill/_core": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_core.ts",
+      "./_backfill-core": "apps/web/src/app/[locale]/admin/crm/_backfill-core.ts",
+      "./_reporting-tenant": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_backfill-types.ts": {},
+    "apps/web/src/app/[locale]/admin/crm/_branch-manager-core.ts": {
+      "./_core": "apps/web/src/app/[locale]/admin/crm/_core.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_branch-manager-tenant.ts": {
+      "./_branch-manager-core": "apps/web/src/app/[locale]/admin/crm/_branch-manager-core.ts",
+      "./_reporting-tenant": "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_core.ts": {
+      "@/adapters/crm/forecast-snapshot-observability": "apps/web/src/adapters/crm/forecast-snapshot-observability.ts",
+      "@/adapters/crm/forecast-snapshot-work-items": "apps/web/src/adapters/crm/forecast-snapshot-work-items.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_reporting-tenant.ts": {
+      "./_core": "apps/web/src/app/[locale]/admin/crm/_core.ts",
+      "@/adapters/crm/forecast-snapshot-observability": "apps/web/src/adapters/crm/forecast-snapshot-observability.ts",
+      "@/adapters/crm/forecast-snapshot-work-items": "apps/web/src/adapters/crm/forecast-snapshot-work-items.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_routing-core.ts": {
+      "./_core": "apps/web/src/app/[locale]/admin/crm/_core.ts",
+      "./_routing-types": "apps/web/src/app/[locale]/admin/crm/_routing-types.ts",
+      "zod": null
+    },
+    "apps/web/src/app/[locale]/admin/crm/_routing-tenant.ts": {
+      "./_routing-core": "apps/web/src/app/[locale]/admin/crm/_routing-core.ts",
+      "@/adapters/crm/routing-repository": "apps/web/src/adapters/crm/routing-repository.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "apps/web/src/app/[locale]/admin/crm/_routing-types.ts": {},
+    "apps/web/src/app/api/cron/crm/forecast-snapshots/_shared.ts": {
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_bounded-work-item-pool.ts": {},
+    "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_core.ts": {
+      "../_shared": "apps/web/src/app/api/cron/crm/forecast-snapshots/_shared.ts",
+      "./_bounded-work-item-pool": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_bounded-work-item-pool.ts",
+      "./_date-status": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_date-status.ts",
+      "./_work-item-rollup": "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_work-item-rollup.ts",
+      "@/adapters/crm/forecast-snapshot-work-items": "apps/web/src/adapters/crm/forecast-snapshot-work-items.ts",
+      "@/adapters/crm/reporting-repository": "apps/web/src/adapters/crm/reporting-repository.ts",
+      "@interdomestik/domain-crm/reporting": "packages/domain-crm/src/reporting/index.ts"
+    },
+    "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_date-status.ts": {},
+    "apps/web/src/app/api/cron/crm/forecast-snapshots/backfill/_work-item-rollup.ts": {
+      "../_shared": "apps/web/src/app/api/cron/crm/forecast-snapshots/_shared.ts"
+    },
+    "apps/web/src/i18n/locales.ts": {},
+    "apps/web/src/lib/audit.core.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "nanoid": null
+    },
+    "apps/web/src/lib/audit.ts": {
+      "./audit.core": "apps/web/src/lib/audit.core.ts"
+    },
+    "apps/web/src/lib/auth/auth-request-authority.ts": {
+      "./authority-fields": "apps/web/src/lib/auth/authority-fields.ts",
+      "./onboarding-authority": "apps/web/src/lib/auth/onboarding-authority.ts",
+      "better-auth/api": null
+    },
+    "apps/web/src/lib/auth/authority-fields.ts": {
+      "better-auth/api": null
+    },
+    "apps/web/src/lib/auth/config.ts": {
+      "./utils": "apps/web/src/lib/auth/utils.ts",
+      "better-auth": null
+    },
+    "apps/web/src/lib/auth/hooks.ts": {
+      "./member-number-session-hook": "apps/web/src/lib/auth/member-number-session-hook.ts",
+      "./member-number-user-create-hook": "apps/web/src/lib/auth/member-number-user-create-hook.ts",
+      "./user-authority-assignment": "apps/web/src/lib/auth/user-authority-assignment.ts"
+    },
+    "apps/web/src/lib/auth/index.ts": {
+      "./auth-request-authority": "apps/web/src/lib/auth/auth-request-authority.ts",
+      "./config": "apps/web/src/lib/auth/config.ts",
+      "./hooks": "apps/web/src/lib/auth/hooks.ts",
+      "./providers": "apps/web/src/lib/auth/providers.ts",
+      "./schema": "apps/web/src/lib/auth/schema.ts",
+      "better-auth": null
+    },
+    "apps/web/src/lib/auth/member-number-observability.ts": {
+      "@sentry/nextjs": null
+    },
+    "apps/web/src/lib/auth/member-number-session-hook.ts": {
+      "./member-number-observability": "apps/web/src/lib/auth/member-number-observability.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/member-number": "packages/database/src/member-number.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "apps/web/src/lib/auth/member-number-user-create-hook.ts": {
+      "./member-number-observability": "apps/web/src/lib/auth/member-number-observability.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/member-number": "packages/database/src/member-number.ts"
+    },
+    "apps/web/src/lib/auth/onboarding-authority.ts": {
+      "./authority-fields": "apps/web/src/lib/auth/authority-fields.ts",
+      "@/lib/tenant/tenant-front-door": "apps/web/src/lib/tenant/tenant-front-door.ts",
+      "@/lib/tenant/tenant-hosts": "apps/web/src/lib/tenant/tenant-hosts.ts"
+    },
+    "apps/web/src/lib/auth/providers.ts": {
+      "../email": "apps/web/src/lib/email.ts",
+      "./social-providers": "apps/web/src/lib/auth/social-providers.ts",
+      "bcryptjs": null,
+      "better-auth/plugins/email-otp": null,
+      "next/server": null
+    },
+    "apps/web/src/lib/auth/schema.ts": {
+      "./user-schema": "apps/web/src/lib/auth/user-schema.ts",
+      "@interdomestik/database/db": "packages/database/src/db.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "better-auth/adapters/drizzle": null
+    },
+    "apps/web/src/lib/auth/social-providers.ts": {},
+    "apps/web/src/lib/auth/user-authority-assignment.ts": {
+      "./authority-fields": "apps/web/src/lib/auth/authority-fields.ts",
+      "./onboarding-authority": "apps/web/src/lib/auth/onboarding-authority.ts",
+      "better-auth/api": null
+    },
+    "apps/web/src/lib/auth/utils.ts": {},
+    "apps/web/src/lib/email.core.ts": {
+      "@interdomestik/domain-communications/email": "packages/domain-communications/src/email.ts"
+    },
+    "apps/web/src/lib/email.ts": {
+      "./email.core": "apps/web/src/lib/email.core.ts"
+    },
+    "apps/web/src/lib/rate-limit-upstash.ts": {
+      "@upstash/ratelimit": null,
+      "@upstash/redis": null
+    },
+    "apps/web/src/lib/rate-limit.core.ts": {
+      "./rate-limit-upstash": "apps/web/src/lib/rate-limit-upstash.ts",
+      "next/server": null
+    },
+    "apps/web/src/lib/rate-limit.ts": {
+      "./rate-limit.core": "apps/web/src/lib/rate-limit.core.ts"
+    },
+    "apps/web/src/lib/tenant/tenant-front-door.ts": {
+      "./tenant-host-aliases": "apps/web/src/lib/tenant/tenant-host-aliases.ts"
+    },
+    "apps/web/src/lib/tenant/tenant-host-aliases.ts": {},
+    "apps/web/src/lib/tenant/tenant-hosts.ts": {
+      "./tenant-front-door": "apps/web/src/lib/tenant/tenant-front-door.ts",
+      "./tenant-host-aliases": "apps/web/src/lib/tenant/tenant-host-aliases.ts",
+      "./tenant-local-hosts": "apps/web/src/lib/tenant/tenant-local-hosts.ts"
+    },
+    "apps/web/src/lib/tenant/tenant-local-hosts.ts": {},
+    "apps/web/src/server/auth/reassign-tenant-classification.ts": {
+      "./tenant-classification-bound-records": "apps/web/src/server/auth/tenant-classification-bound-records.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "@interdomestik/domain-users/admin/resolve-tenant-classification": "packages/domain-users/src/admin/resolve-tenant-classification.ts"
+    },
+    "apps/web/src/server/auth/tenant-classification-bound-records.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
+    },
+    "packages/database/src/claim-lifecycle.ts": {},
+    "packages/database/src/client.ts": {
+      "@supabase/ssr": null
+    },
+    "packages/database/src/constants.ts": {},
+    "packages/database/src/database-configuration.ts": {},
+    "packages/database/src/database-connection.ts": {
+      "./database-configuration": "packages/database/src/database-configuration.ts",
+      "postgres": null
+    },
+    "packages/database/src/db.ts": {
+      "./database-configuration": "packages/database/src/database-configuration.ts",
+      "./database-connection": "packages/database/src/database-connection.ts",
+      "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts",
+      "./rls-role-readiness": "packages/database/src/rls-role-readiness.ts",
+      "./schema": "packages/database/src/schema.ts",
+      "drizzle-orm/postgres-js": null,
+      "node:crypto": null
+    },
+    "packages/database/src/domain-event-audit-projection.ts": {
+      "./constants": "packages/database/src/constants.ts",
+      "./domain-event-relay": "packages/database/src/domain-event-relay.ts",
+      "./schema/notes": "packages/database/src/schema/notes.ts"
+    },
+    "packages/database/src/domain-event-delivery-keys.ts": {},
+    "packages/database/src/domain-event-delivery-recording.ts": {
+      "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
+      "./schema/domain-event-deliveries": "packages/database/src/schema/domain-event-deliveries.ts"
+    },
+    "packages/database/src/domain-event-erasure-render.ts": {},
+    "packages/database/src/domain-event-erasure.ts": {
+      "./db": "packages/database/src/db.ts",
+      "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/domain-event-handoff-payloads.ts": {
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+    },
+    "packages/database/src/domain-event-member-payloads.ts": {
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+    },
+    "packages/database/src/domain-event-membership-migration-payloads.ts": {
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+    },
+    "packages/database/src/domain-event-membership-payloads.ts": {
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+    },
+    "packages/database/src/domain-event-payload-helpers.ts": {},
+    "packages/database/src/domain-event-payloads.ts": {
+      "./constants": "packages/database/src/constants.ts",
+      "./domain-event-handoff-payloads": "packages/database/src/domain-event-handoff-payloads.ts",
+      "./domain-event-member-payloads": "packages/database/src/domain-event-member-payloads.ts",
+      "./domain-event-membership-migration-payloads": "packages/database/src/domain-event-membership-migration-payloads.ts",
+      "./domain-event-membership-payloads": "packages/database/src/domain-event-membership-payloads.ts",
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts",
+      "./domain-event-recovery-payloads": "packages/database/src/domain-event-recovery-payloads.ts"
+    },
+    "packages/database/src/domain-event-pii-key-cache.ts": {},
+    "packages/database/src/domain-event-pii.ts": {
+      "./db": "packages/database/src/db.ts",
+      "./domain-event-pii-key-cache": "packages/database/src/domain-event-pii-key-cache.ts",
+      "./schema/domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
+      "./schema/event-pii-references": "packages/database/src/schema/event-pii-references.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/domain-event-recovery-payloads.ts": {
+      "./domain-event-payload-helpers": "packages/database/src/domain-event-payload-helpers.ts"
+    },
+    "packages/database/src/domain-event-relay.ts": {
+      "./domain-event-delivery-keys": "packages/database/src/domain-event-delivery-keys.ts",
+      "./domain-event-delivery-recording": "packages/database/src/domain-event-delivery-recording.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/domain-events.ts": {
+      "./db": "packages/database/src/db.ts",
+      "./domain-event-payloads": "packages/database/src/domain-event-payloads.ts",
+      "./schema/domain-events": "packages/database/src/schema/domain-events.ts"
+    },
+    "packages/database/src/e2e-users.ts": {},
+    "packages/database/src/index.ts": {
+      "./claim-lifecycle": "packages/database/src/claim-lifecycle.ts",
+      "./client": "packages/database/src/client.ts",
+      "./db": "packages/database/src/db.ts",
+      "./domain-event-audit-projection": "packages/database/src/domain-event-audit-projection.ts",
+      "./domain-event-erasure": "packages/database/src/domain-event-erasure.ts",
+      "./domain-event-erasure-render": "packages/database/src/domain-event-erasure-render.ts",
+      "./domain-event-pii": "packages/database/src/domain-event-pii.ts",
+      "./domain-event-relay": "packages/database/src/domain-event-relay.ts",
+      "./domain-events": "packages/database/src/domain-events.ts",
+      "./e2e-users": "packages/database/src/e2e-users.ts",
+      "./schema": "packages/database/src/schema.ts",
+      "./server": "packages/database/src/server.ts",
+      "./tenant": "packages/database/src/tenant.ts",
+      "./types": "packages/database/src/types.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/member-number.ts": {
+      "./schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null,
+      "node:crypto": null
+    },
+    "packages/database/src/rls-role-assertion.ts": {
+      "./rls-role-posture-query": "packages/database/src/rls-role-posture-query.ts"
+    },
+    "packages/database/src/rls-role-posture-query.ts": {},
+    "packages/database/src/rls-role-readiness.ts": {
+      "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts"
+    },
+    "packages/database/src/schema.ts": {
+      "./schema/index": "packages/database/src/schema/index.ts"
+    },
+    "packages/database/src/schema/agents.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/ai.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./documents": "packages/database/src/schema/documents.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/auth.ts": {
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/automation.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/billing.ts": {
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "./webhooks": "packages/database/src/schema/webhooks.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/case-scoped-access-grants.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-commercial.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-core.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-document-ai-consents.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-information-requests.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claim-core": "packages/database/src/schema/claim-core.ts",
+      "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-recovery-no-fee.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-support-tables.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claim-core": "packages/database/src/schema/claim-core.ts",
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-threads.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claim-transition-evidence.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/claims.ts": {
+      "./claim-core": "packages/database/src/schema/claim-core.ts",
+      "./claim-support-tables": "packages/database/src/schema/claim-support-tables.ts"
+    },
+    "packages/database/src/schema/commercial-action-idempotency.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/counters.ts": {
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/crm.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/documents.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/domain-event-deliveries.ts": {
+      "./domain-events": "packages/database/src/schema/domain-events.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/domain-event-keys.ts": {
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/domain-events.ts": {
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/enums.ts": {
+      "../constants": "packages/database/src/constants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/event-pii-references.ts": {
+      "./domain-events": "packages/database/src/schema/domain-events.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/free-start-drafts.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/index.ts": {
+      "./agents": "packages/database/src/schema/agents.ts",
+      "./ai": "packages/database/src/schema/ai.ts",
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./automation": "packages/database/src/schema/automation.ts",
+      "./billing": "packages/database/src/schema/billing.ts",
+      "./case-scoped-access-grants": "packages/database/src/schema/case-scoped-access-grants.ts",
+      "./claim-commercial": "packages/database/src/schema/claim-commercial.ts",
+      "./claim-document-ai-consents": "packages/database/src/schema/claim-document-ai-consents.ts",
+      "./claim-information-requests": "packages/database/src/schema/claim-information-requests.ts",
+      "./claim-recovery-no-fee": "packages/database/src/schema/claim-recovery-no-fee.ts",
+      "./claim-threads": "packages/database/src/schema/claim-threads.ts",
+      "./claim-transition-evidence": "packages/database/src/schema/claim-transition-evidence.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./commercial-action-idempotency": "packages/database/src/schema/commercial-action-idempotency.ts",
+      "./counters": "packages/database/src/schema/counters.ts",
+      "./crm": "packages/database/src/schema/crm.ts",
+      "./documents": "packages/database/src/schema/documents.ts",
+      "./domain-event-deliveries": "packages/database/src/schema/domain-event-deliveries.ts",
+      "./domain-event-keys": "packages/database/src/schema/domain-event-keys.ts",
+      "./domain-events": "packages/database/src/schema/domain-events.ts",
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./event-pii-references": "packages/database/src/schema/event-pii-references.ts",
+      "./free-start-drafts": "packages/database/src/schema/free-start-drafts.ts",
+      "./leads": "packages/database/src/schema/leads.ts",
+      "./member-counters": "packages/database/src/schema/member-counters.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./notes": "packages/database/src/schema/notes.ts",
+      "./notifications": "packages/database/src/schema/notifications.ts",
+      "./operation-results": "packages/database/src/schema/operation-results.ts",
+      "./policies": "packages/database/src/schema/policies.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./relations": "packages/database/src/schema/relations.ts",
+      "./seed-meta": "packages/database/src/schema/seed-meta.ts",
+      "./services": "packages/database/src/schema/services.ts",
+      "./tenant-entity-decomposition": "packages/database/src/schema/tenant-entity-decomposition.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "./tracking": "packages/database/src/schema/tracking.ts",
+      "./webhooks": "packages/database/src/schema/webhooks.ts"
+    },
+    "packages/database/src/schema/leads.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/member-counters.ts": {
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/membership-plans.ts": {
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/memberships.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./membership-plans": "packages/database/src/schema/membership-plans.ts",
+      "./subscriptions": "packages/database/src/schema/subscriptions.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/notes.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/notifications.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/policies.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/rbac.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/relations.ts": {
+      "./agents": "packages/database/src/schema/agents.ts",
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./crm": "packages/database/src/schema/crm.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./notes": "packages/database/src/schema/notes.ts",
+      "./notifications": "packages/database/src/schema/notifications.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./services": "packages/database/src/schema/services.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/schema/seed-meta.ts": {
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/services.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./memberships": "packages/database/src/schema/memberships.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/subscriptions.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./enums": "packages/database/src/schema/enums.ts",
+      "./membership-plans": "packages/database/src/schema/membership-plans.ts",
+      "./rbac": "packages/database/src/schema/rbac.ts",
+      "./tenant-entity-decomposition": "packages/database/src/schema/tenant-entity-decomposition.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/tenant-entity-decomposition.ts": {
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/tenants.ts": {
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/tracking.ts": {
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/schema/webhooks.ts": {
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    },
+    "packages/database/src/server.ts": {
+      "@supabase/ssr": null,
+      "@supabase/supabase-js": null,
+      "next/headers": null
+    },
+    "packages/database/src/tenant-security.ts": {
+      "drizzle-orm": null
+    },
+    "packages/database/src/tenant-transaction.ts": {
+      "./rls-role-assertion": "packages/database/src/rls-role-assertion.ts",
+      "drizzle-orm": null
+    },
+    "packages/database/src/tenant.ts": {
+      "./database-configuration": "packages/database/src/database-configuration.ts",
+      "./db": "packages/database/src/db.ts",
+      "./tenant-transaction": "packages/database/src/tenant-transaction.ts"
+    },
+    "packages/database/src/types.ts": {},
+    "packages/domain-case/src/index.ts": {
+      "./types": "packages/domain-case/src/types.ts"
+    },
+    "packages/domain-case/src/types.ts": {},
+    "packages/domain-claims/src/claims/audit-projection.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/case-created-event.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/commercial-launch-scope.ts": {},
+    "packages/domain-claims/src/claims/lifecycle-read-model.ts": {
+      "./lifecycle-state": "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "./transition-guard": "packages/domain-claims/src/claims/transition-guard.ts",
+      "@interdomestik/database/constants": "packages/database/src/constants.ts"
+    },
+    "packages/domain-claims/src/claims/lifecycle-state.ts": {
+      "@interdomestik/domain-case": "packages/domain-case/src/index.ts",
+      "@interdomestik/domain-recovery": "packages/domain-recovery/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/recovery-invariant-evidence.ts": {
+      "./transition-current-state": "packages/domain-claims/src/claims/transition-current-state.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/recovery-invariants.ts": {
+      "@interdomestik/domain-recovery": "packages/domain-recovery/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts": {
+      "./case-created-event": "packages/domain-claims/src/claims/case-created-event.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "zod": null
+    },
+    "packages/domain-claims/src/claims/transition-current-state-cas.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/transition-current-state.ts": {
+      "./lifecycle-read-model": "packages/domain-claims/src/claims/lifecycle-read-model.ts"
+    },
+    "packages/domain-claims/src/claims/transition-domain-events.ts": {
+      "./lifecycle-state": "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/transition-evidence-read.ts": {
+      "./transition-evidence": "packages/domain-claims/src/claims/transition-evidence.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/transition-evidence.ts": {},
+    "packages/domain-claims/src/claims/transition-guard.ts": {
+      "./recovery-invariants": "packages/domain-claims/src/claims/recovery-invariants.ts",
+      "@interdomestik/database/constants": "packages/database/src/constants.ts"
+    },
+    "packages/domain-claims/src/claims/transition-read-context.ts": {
+      "./recovery-invariant-evidence": "packages/domain-claims/src/claims/recovery-invariant-evidence.ts",
+      "./recovery-invariants": "packages/domain-claims/src/claims/recovery-invariants.ts",
+      "./transition-current-state": "packages/domain-claims/src/claims/transition-current-state.ts",
+      "./transition-evidence": "packages/domain-claims/src/claims/transition-evidence.ts",
+      "./transition-evidence-read": "packages/domain-claims/src/claims/transition-evidence-read.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/transition-side-effects.ts": {
+      "./submitted-claim-lifecycle": "packages/domain-claims/src/claims/submitted-claim-lifecycle.ts",
+      "./transition-domain-events": "packages/domain-claims/src/claims/transition-domain-events.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/claims/transition.ts": {
+      "./lifecycle-state": "packages/domain-claims/src/claims/lifecycle-state.ts",
+      "./transition-current-state": "packages/domain-claims/src/claims/transition-current-state.ts",
+      "./transition-current-state-cas": "packages/domain-claims/src/claims/transition-current-state-cas.ts",
+      "./transition-guard": "packages/domain-claims/src/claims/transition-guard.ts",
+      "./transition-read-context": "packages/domain-claims/src/claims/transition-read-context.ts",
+      "./transition-side-effects": "packages/domain-claims/src/claims/transition-side-effects.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts": {
+      "@interdomestik/domain-recovery": "packages/domain-recovery/src/index.ts"
+    },
+    "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts": {
+      "../claims/commercial-launch-scope": "packages/domain-claims/src/claims/commercial-launch-scope.ts",
+      "./recovery-decision": "packages/domain-claims/src/staff-claims/recovery-decision.ts"
+    },
+    "packages/domain-claims/src/staff-claims/current-claim-record.ts": {
+      "../claims/lifecycle-read-model": "packages/domain-claims/src/claims/lifecycle-read-model.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/staff-claims/matter-allowance.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
+    },
+    "packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts": {},
+    "packages/domain-claims/src/staff-claims/recovery-decision-record.ts": {
+      "./recovery-decision": "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/staff-claims/recovery-decision.ts": {
+      "./recovery-decision-public-copy": "packages/domain-claims/src/staff-claims/recovery-decision-public-copy.ts"
+    },
+    "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts": {
+      "./recovery-decision": "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-claims/src/staff-claims/scope.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+      "drizzle-orm": null
+    },
+    "packages/domain-claims/src/staff-claims/status-notification.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
+    },
+    "packages/domain-claims/src/staff-claims/update-status.ts": {
+      "../claims/audit-projection": "packages/domain-claims/src/claims/audit-projection.ts",
+      "../claims/transition": "packages/domain-claims/src/claims/transition.ts",
+      "../validators/claims": "packages/domain-claims/src/validators/claims.ts",
+      "./accepted-recovery-prerequisites": "packages/domain-claims/src/staff-claims/accepted-recovery-prerequisites.ts",
+      "./commercial-handling-scope": "packages/domain-claims/src/staff-claims/commercial-handling-scope.ts",
+      "./current-claim-record": "packages/domain-claims/src/staff-claims/current-claim-record.ts",
+      "./matter-allowance": "packages/domain-claims/src/staff-claims/matter-allowance.ts",
+      "./recovery-decision": "packages/domain-claims/src/staff-claims/recovery-decision.ts",
+      "./recovery-decision-record": "packages/domain-claims/src/staff-claims/recovery-decision-record.ts",
+      "./rejected-claim-public-note": "packages/domain-claims/src/staff-claims/rejected-claim-public-note.ts",
+      "./scope": "packages/domain-claims/src/staff-claims/scope.ts",
+      "./status-notification": "packages/domain-claims/src/staff-claims/status-notification.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
+    },
+    "packages/domain-claims/src/validators/claims.ts": {
+      "@interdomestik/database/constants": "packages/database/src/constants.ts",
+      "zod": null
+    },
+    "packages/domain-communications/src/dunning-email.ts": {
+      "./email": "packages/domain-communications/src/email.ts",
+      "./email-templates": "packages/domain-communications/src/email-templates.ts",
+      "./sign-in-otp-email": "packages/domain-communications/src/sign-in-otp-email.ts"
+    },
+    "packages/domain-communications/src/email-templates.ts": {
+      "./email/templates": "packages/domain-communications/src/email/templates/index.ts"
+    },
+    "packages/domain-communications/src/email.ts": {
+      "./dunning-email": "packages/domain-communications/src/dunning-email.ts",
+      "./email-templates": "packages/domain-communications/src/email-templates.ts",
+      "./sign-in-otp-email": "packages/domain-communications/src/sign-in-otp-email.ts",
+      "nodemailer": null,
+      "resend": null
+    },
+    "packages/domain-communications/src/email/templates/auth.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/email/templates/base.ts": {},
+    "packages/domain-communications/src/email/templates/claims.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/email/templates/dunning.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/email/templates/engagement.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/email/templates/index.ts": {
+      "./auth": "packages/domain-communications/src/email/templates/auth.ts",
+      "./base": "packages/domain-communications/src/email/templates/base.ts",
+      "./claims": "packages/domain-communications/src/email/templates/claims.ts",
+      "./dunning": "packages/domain-communications/src/email/templates/dunning.ts",
+      "./engagement": "packages/domain-communications/src/email/templates/engagement.ts",
+      "./membership": "packages/domain-communications/src/email/templates/membership.ts",
+      "./messages": "packages/domain-communications/src/email/templates/messages.ts"
+    },
+    "packages/domain-communications/src/email/templates/membership.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/email/templates/messages.ts": {
+      "./base": "packages/domain-communications/src/email/templates/base.ts"
+    },
+    "packages/domain-communications/src/notifications/claim-status-store.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "packages/domain-communications/src/notifications/claim-submitted-store.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "drizzle-orm": null
+    },
+    "packages/domain-communications/src/notifications/notify.ts": {
+      "../email": "packages/domain-communications/src/email.ts",
+      "../email/templates": "packages/domain-communications/src/email/templates/index.ts",
+      "../push": "packages/domain-communications/src/push.ts",
+      "./claim-status-store": "packages/domain-communications/src/notifications/claim-status-store.ts",
+      "./claim-submitted-store": "packages/domain-communications/src/notifications/claim-submitted-store.ts",
+      "./support-handoff-store": "packages/domain-communications/src/notifications/support-handoff-store.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "drizzle-orm": null,
+      "nanoid": null
+    },
+    "packages/domain-communications/src/notifications/support-handoff-store.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "drizzle-orm": null
+    },
+    "packages/domain-communications/src/push.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/schema": "packages/database/src/schema.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "drizzle-orm": null,
+      "web-push": null
+    },
+    "packages/domain-communications/src/sign-in-otp-email.ts": {
+      "nodemailer": null
+    },
+    "packages/domain-crm/src/context.ts": {},
+    "packages/domain-crm/src/dashboards/index.ts": {
+      "../leads/follow-up": "packages/domain-crm/src/leads/follow-up.ts"
+    },
+    "packages/domain-crm/src/lead-details/index.ts": {},
+    "packages/domain-crm/src/leads/follow-up.ts": {},
+    "packages/domain-crm/src/outbox/mutations.ts": {
+      "./types": "packages/domain-crm/src/outbox/types.ts"
+    },
+    "packages/domain-crm/src/outbox/types.ts": {},
+    "packages/domain-crm/src/reporting/index.ts": {
+      "../context": "packages/domain-crm/src/context.ts",
+      "./repository": "packages/domain-crm/src/reporting/repository.ts",
+      "./types": "packages/domain-crm/src/reporting/types.ts"
+    },
+    "packages/domain-crm/src/reporting/repository.ts": {},
+    "packages/domain-crm/src/reporting/types.ts": {},
+    "packages/domain-crm/src/routing/application-preflight.ts": {},
+    "packages/domain-crm/src/routing/application-service.ts": {
+      "../outbox/mutations": "packages/domain-crm/src/outbox/mutations.ts",
+      "./application-preflight": "packages/domain-crm/src/routing/application-preflight.ts",
+      "./mutations": "packages/domain-crm/src/routing/mutations.ts"
+    },
+    "packages/domain-crm/src/routing/index.ts": {
+      "./application-preflight": "packages/domain-crm/src/routing/application-preflight.ts",
+      "./application-service": "packages/domain-crm/src/routing/application-service.ts",
+      "./mutations": "packages/domain-crm/src/routing/mutations.ts",
+      "./repository": "packages/domain-crm/src/routing/repository.ts",
+      "./types": "packages/domain-crm/src/routing/types.ts"
+    },
+    "packages/domain-crm/src/routing/mutations.ts": {
+      "../context": "packages/domain-crm/src/context.ts",
+      "./types": "packages/domain-crm/src/routing/types.ts"
+    },
+    "packages/domain-crm/src/routing/repository.ts": {
+      "./types": "packages/domain-crm/src/routing/types.ts"
+    },
+    "packages/domain-crm/src/routing/types.ts": {},
+    "packages/domain-crm/src/tasks/index.ts": {
+      "./mutations": "packages/domain-crm/src/tasks/mutations.ts",
+      "./repository": "packages/domain-crm/src/tasks/repository.ts",
+      "./state": "packages/domain-crm/src/tasks/state.ts",
+      "./types": "packages/domain-crm/src/tasks/types.ts",
+      "./work-queue": "packages/domain-crm/src/tasks/work-queue.ts"
+    },
+    "packages/domain-crm/src/tasks/mutations.ts": {
+      "./state": "packages/domain-crm/src/tasks/state.ts"
+    },
+    "packages/domain-crm/src/tasks/repository.ts": {},
+    "packages/domain-crm/src/tasks/state.ts": {
+      "../context": "packages/domain-crm/src/context.ts",
+      "./types": "packages/domain-crm/src/tasks/types.ts"
+    },
+    "packages/domain-crm/src/tasks/types.ts": {},
+    "packages/domain-crm/src/tasks/work-queue.ts": {},
+    "packages/domain-recovery/src/index.ts": {
+      "./law-pack-registry": "packages/domain-recovery/src/law-pack-registry.ts",
+      "./law-pack-resolution": "packages/domain-recovery/src/law-pack-resolution.ts",
+      "./law-pack-schema": "packages/domain-recovery/src/law-pack-schema.ts",
+      "./recovery-law": "packages/domain-recovery/src/recovery-law.ts",
+      "./success-fee-collection": "packages/domain-recovery/src/success-fee-collection.ts",
+      "./success-fee-collection-event": "packages/domain-recovery/src/success-fee-collection-event.ts",
+      "./success-fee-collection-event-payload": "packages/domain-recovery/src/success-fee-collection-event-payload.ts",
+      "./success-fee-collection-resolution": "packages/domain-recovery/src/success-fee-collection-resolution.ts",
+      "./types": "packages/domain-recovery/src/types.ts"
+    },
+    "packages/domain-recovery/src/law-pack-registry.ts": {
+      "./law-pack-schema": "packages/domain-recovery/src/law-pack-schema.ts",
+      "./law-packs/mk": "packages/domain-recovery/src/law-packs/mk.ts",
+      "./law-packs/xk": "packages/domain-recovery/src/law-packs/xk.ts"
+    },
+    "packages/domain-recovery/src/law-pack-resolution.ts": {
+      "./law-pack-registry": "packages/domain-recovery/src/law-pack-registry.ts",
+      "./recovery-law": "packages/domain-recovery/src/recovery-law.ts"
+    },
+    "packages/domain-recovery/src/law-pack-schema.ts": {
+      "zod": null
+    },
+    "packages/domain-recovery/src/law-packs/mk.ts": {},
+    "packages/domain-recovery/src/law-packs/xk.ts": {},
+    "packages/domain-recovery/src/recovery-law.ts": {},
+    "packages/domain-recovery/src/success-fee-collection-event-payload.ts": {},
+    "packages/domain-recovery/src/success-fee-collection-event.ts": {
+      "./success-fee-collection-event-payload": "packages/domain-recovery/src/success-fee-collection-event-payload.ts",
+      "@interdomestik/database": "packages/database/src/index.ts"
+    },
+    "packages/domain-recovery/src/success-fee-collection-resolution.ts": {
+      "./success-fee-collection": "packages/domain-recovery/src/success-fee-collection.ts"
+    },
+    "packages/domain-recovery/src/success-fee-collection.ts": {},
+    "packages/domain-recovery/src/types.ts": {},
+    "packages/domain-users/src/admin/access.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts",
+      "drizzle-orm": null
+    },
+    "packages/domain-users/src/admin/confirm-current-tenant-classification.ts": {
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts"
+    },
+    "packages/domain-users/src/admin/resolve-tenant-classification.ts": {
+      "./access": "packages/domain-users/src/admin/access.ts",
+      "./confirm-current-tenant-classification": "packages/domain-users/src/admin/confirm-current-tenant-classification.ts",
+      "./utils": "packages/domain-users/src/admin/utils.ts",
+      "@interdomestik/database": "packages/database/src/index.ts",
+      "@interdomestik/database/tenant-security": "packages/database/src/tenant-security.ts",
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts"
+    },
+    "packages/domain-users/src/admin/utils.ts": {
+      "@interdomestik/shared-auth": "packages/shared-auth/src/index.ts"
+    },
+    "packages/shared-auth/src/access-grants.ts": {},
+    "packages/shared-auth/src/errors.ts": {},
+    "packages/shared-auth/src/governance.ts": {
+      "./permissions": "packages/shared-auth/src/permissions.ts"
+    },
+    "packages/shared-auth/src/index.ts": {
+      "./access-grants": "packages/shared-auth/src/access-grants.ts",
+      "./errors": "packages/shared-auth/src/errors.ts",
+      "./governance": "packages/shared-auth/src/governance.ts",
+      "./permissions": "packages/shared-auth/src/permissions.ts",
+      "./scope": "packages/shared-auth/src/scope.ts",
+      "./session": "packages/shared-auth/src/session.ts"
+    },
+    "packages/shared-auth/src/permissions.ts": {},
+    "packages/shared-auth/src/scope.ts": {
+      "./errors": "packages/shared-auth/src/errors.ts",
+      "./permissions": "packages/shared-auth/src/permissions.ts",
+      "./session": "packages/shared-auth/src/session.ts"
+    },
+    "packages/shared-auth/src/session.ts": {
+      "./errors": "packages/shared-auth/src/errors.ts"
+    },
+    "apps/web/src/lib/auth/user-schema.ts": {},
+    "packages/database/src/schema/operation-results.ts": {
+      "./auth": "packages/database/src/schema/auth.ts",
+      "./claims": "packages/database/src/schema/claims.ts",
+      "./tenants": "packages/database/src/schema/tenants.ts",
+      "drizzle-orm": null,
+      "drizzle-orm/pg-core": null
+    }
+  }
+}

@@ -1,6 +1,13 @@
-import { and, db, eq, sql, supportHandoffs, user as userTable } from '@interdomestik/database';
+import {
+  withTenantContext,
+  and,
+  eq,
+  sql,
+  supportHandoffs,
+  user as userTable,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { requireStaffSession, buildBranchScope } from './staff-scope';
 
 import type {
   CloseSupportHandoffResult,
@@ -10,34 +17,8 @@ import type {
   SupportHandoffSession,
 } from './types';
 
-type StaffUser = SupportHandoffSession['user'] & { branchId?: string | null };
-
 function normalizeReason(value: string | null | undefined) {
   return value?.trim().slice(0, 500) ?? '';
-}
-
-function requireStaffSession(session: SupportHandoffSession | null) {
-  if (session?.user?.role !== 'staff') {
-    return null;
-  }
-
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return null;
-  }
-
-  const user = session.user as StaffUser;
-  if (!user.branchId) {
-    return null;
-  }
-
-  return { tenantId, user };
-}
-
-function buildBranchScope(branchId: string | null | undefined) {
-  return branchId ? eq(supportHandoffs.branchId, branchId) : undefined;
 }
 
 async function assertScopedStaff(args: {
@@ -47,10 +28,12 @@ async function assertScopedStaff(args: {
 }) {
   const base = and(eq(userTable.id, args.staffId), eq(userTable.role, 'staff'));
   const scoped = args.branchId ? and(base, eq(userTable.branchId, args.branchId)) : base;
-  const row = await db.query.user.findFirst({
-    where: withTenant(args.tenantId, userTable.tenantId, scoped),
-    columns: { id: true },
-  });
+  const row = await withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: withTenant(args.tenantId, userTable.tenantId, scoped),
+      columns: { id: true },
+    })
+  );
 
   return row != null;
 }
@@ -70,33 +53,38 @@ export async function acceptSupportHandoffCore(
   const expectedVersion = params.expectedVersion ?? 0;
   const now = new Date();
   const branchScope = buildBranchScope(staffSession.user.branchId ?? null);
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      status: 'accepted',
-      staffId: staffSession.user.id,
-      acceptedAt: now,
-      acceptedById: staffSession.user.id,
-      updatedAt: now,
-      lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
-    })
-    .where(
-      withTenant(
-        staffSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.status, 'open'),
-          eq(supportHandoffs.lifecycleVersion, expectedVersion),
-          branchScope
+  const updated = await withTenantContext({ tenantId: staffSession.tenantId }, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        status: 'accepted',
+        staffId: staffSession.user.id,
+        acceptedAt: now,
+        acceptedById: staffSession.user.id,
+        updatedAt: now,
+        lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
+      })
+      .where(
+        withTenant(
+          staffSession.tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.status, 'open'),
+            eq(supportHandoffs.lifecycleVersion, expectedVersion),
+            branchScope
+          )
         )
       )
-    )
-    .returning({ lifecycleVersion: supportHandoffs.lifecycleVersion });
+      .returning({ lifecycleVersion: supportHandoffs.lifecycleVersion })
+  );
 
   const row = updated[0];
   if (!row) {
-    return { success: false, error: 'Handoff changed before it could be accepted' };
+    return {
+      success: false,
+      error: 'Handoff changed before it could be accepted',
+    };
   }
 
   if (deps.logAuditEvent) {
@@ -145,34 +133,39 @@ export async function reassignSupportHandoffCore(
   }
 
   const now = new Date();
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      staffId: params.nextStaffId,
-      reassignedAt: now,
-      reassignedById: staffSession.user.id,
-      reassignReason: reason,
-      updatedAt: now,
-      lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
-    })
-    .where(
-      withTenant(
-        staffSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.status, 'accepted'),
-          eq(supportHandoffs.lifecycleVersion, params.expectedVersion ?? 0),
-          eq(supportHandoffs.staffId, staffSession.user.id),
-          buildBranchScope(branchId)
+  const updated = await withTenantContext({ tenantId: staffSession.tenantId }, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        staffId: params.nextStaffId,
+        reassignedAt: now,
+        reassignedById: staffSession.user.id,
+        reassignReason: reason,
+        updatedAt: now,
+        lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
+      })
+      .where(
+        withTenant(
+          staffSession.tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.status, 'accepted'),
+            eq(supportHandoffs.lifecycleVersion, params.expectedVersion ?? 0),
+            eq(supportHandoffs.staffId, staffSession.user.id),
+            buildBranchScope(branchId)
+          )
         )
       )
-    )
-    .returning({ lifecycleVersion: supportHandoffs.lifecycleVersion });
+      .returning({ lifecycleVersion: supportHandoffs.lifecycleVersion })
+  );
 
   const row = updated[0];
   if (!row) {
-    return { success: false, error: 'Handoff changed before it could be reassigned' };
+    return {
+      success: false,
+      error: 'Handoff changed before it could be reassigned',
+    };
   }
 
   if (deps.logAuditEvent) {
@@ -213,39 +206,44 @@ export async function closeSupportHandoffCore(
   }
 
   const now = new Date();
-  const updated = await db
-    .update(supportHandoffs)
-    .set({
-      status: 'closed',
-      closedAt: now,
-      closedById: staffSession.user.id,
-      closeReason: reason,
-      updatedAt: now,
-      lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
-    })
-    .where(
-      withTenant(
-        staffSession.tenantId,
-        supportHandoffs.tenantId,
-        and(
-          eq(supportHandoffs.id, params.handoffId),
-          eq(supportHandoffs.status, 'accepted'),
-          eq(supportHandoffs.lifecycleVersion, params.expectedVersion ?? 0),
-          eq(supportHandoffs.staffId, staffSession.user.id),
-          buildBranchScope(staffSession.user.branchId ?? null)
+  const updated = await withTenantContext({ tenantId: staffSession.tenantId }, tx =>
+    tx
+      .update(supportHandoffs)
+      .set({
+        status: 'closed',
+        closedAt: now,
+        closedById: staffSession.user.id,
+        closeReason: reason,
+        updatedAt: now,
+        lifecycleVersion: sql`${supportHandoffs.lifecycleVersion} + 1`,
+      })
+      .where(
+        withTenant(
+          staffSession.tenantId,
+          supportHandoffs.tenantId,
+          and(
+            eq(supportHandoffs.id, params.handoffId),
+            eq(supportHandoffs.status, 'accepted'),
+            eq(supportHandoffs.lifecycleVersion, params.expectedVersion ?? 0),
+            eq(supportHandoffs.staffId, staffSession.user.id),
+            buildBranchScope(staffSession.user.branchId ?? null)
+          )
         )
       )
-    )
-    .returning({
-      handoffId: supportHandoffs.id,
-      lifecycleVersion: supportHandoffs.lifecycleVersion,
-      memberId: supportHandoffs.memberId,
-      tenantId: supportHandoffs.tenantId,
-    });
+      .returning({
+        handoffId: supportHandoffs.id,
+        lifecycleVersion: supportHandoffs.lifecycleVersion,
+        memberId: supportHandoffs.memberId,
+        tenantId: supportHandoffs.tenantId,
+      })
+  );
 
   const row = updated[0];
   if (!row) {
-    return { success: false, error: 'Handoff changed before it could be closed' };
+    return {
+      success: false,
+      error: 'Handoff changed before it could be closed',
+    };
   }
 
   if (deps.logAuditEvent) {
