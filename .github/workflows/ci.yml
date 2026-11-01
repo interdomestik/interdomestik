@@ -87,11 +87,11 @@ jobs:
           [[ "$CANDIDATE_SHA" =~ $hex ]] || fail "candidate identity"
           ws="$(cd "${GITHUB_WORKSPACE:?}" && pwd -P)"
           temp_root="$(cd "${RUNNER_TEMP:?}" && pwd -P)"
-          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; esac
+          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; *) ;; esac
           [[ -d "$ws/.git" && ! -L "$ws/.git" && ! -e "$ws/.git/shallow" ]] || fail "workspace history is not a full local repository"
           node_bin="$(command -v node)" || fail "runner node missing"
           node_bin="$(cd "$(dirname "$node_bin")" && pwd -P)/$(basename "$node_bin")"
-          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; esac
+          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; *) ;; esac
           work="$(cd "$(mktemp -d "$temp_root/db-guard-protected.XXXXXXXX")" && pwd -P)"
           mkdir -m 0700 "$work/home" "$work/out"
           git_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 /usr/bin/git)
