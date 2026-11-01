@@ -26,7 +26,7 @@ export function listContractTestFiles(root = REPO_ROOT) {
     .readdirSync(path.join(root, CONTRACT_DIR), { withFileTypes: true })
     .filter(entry => !entry.name.startsWith('.') && entry.name.endsWith('.test.mjs'))
     .map(entry => `${CONTRACT_DIR}/${entry.name}`);
-  return [...files, ...EXTRA_CONTRACT_FILES].sort();
+  return [...files, ...EXTRA_CONTRACT_FILES].sort((a, b) => a.localeCompare(b));
 }
 
 export function contractTestPlan(root = REPO_ROOT) {
@@ -50,7 +50,8 @@ export function contractTestPlan(root = REPO_ROOT) {
 function runShard(root, name, files, { capture }) {
   const started = Date.now();
   // A shard is always its own top-level test runner, even when launched from inside one.
-  const { NODE_TEST_CONTEXT: _nested, ...env } = process.env;
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
   const child = spawn(process.execPath, [...NODE_TEST_ARGS, ...files], {
     cwd: root,
     env,
