@@ -109,4 +109,10 @@ test('root package script serializes CI contracts without dropping files', () =>
     packageJson.scripts['test:ci:contracts'],
     'node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs'
   );
+  for (const mode of ['core', 'guard-trust', 'parallel']) {
+    assert.equal(
+      packageJson.scripts[`test:ci:contracts:${mode}`],
+      `node scripts/ci/contract-test-shards.mjs ${mode}`
+    );
+  }
 });

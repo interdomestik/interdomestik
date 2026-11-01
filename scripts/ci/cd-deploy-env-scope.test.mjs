@@ -255,7 +255,7 @@ test('CI audit job runs the scripts/ci contract suite', () => {
     step => step?.run?.trim() === 'pnpm check:e2e-quarantine-budget'
   );
   assert.ok(auditRunStep);
-  assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
+  assert.match(auditRunStep.run, /^\s*pnpm test:ci:contracts:parallel$/mu);
   assert.doesNotMatch(auditRunStep.run, /playbook-contracts\.mjs/);
   assert.match(auditRunStep.run, /\bpnpm check:e2e-contracts\b/);
   assert.match(auditRunStep.run, /\bpnpm lint:production-warnings\b/);
