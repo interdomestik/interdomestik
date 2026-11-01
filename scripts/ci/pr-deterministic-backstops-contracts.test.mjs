@@ -38,6 +38,8 @@ test('PR deterministic backstops run free scanner gates without AI review depend
     /^google\/osv-scanner-action\/\.github\/workflows\/osv-scanner-reusable-pr\.yml@[a-f0-9]{40}$/u
   );
   assert.equal(osv.with['fail-on-vuln'], true);
+  assert.equal(osv.with['export-results'], false);
+  assert.equal(osv['continue-on-error'], undefined);
   assert.match(osv.with['scan-args'], /--recursive/u);
 
   const semgrep = workflow.jobs['semgrep-ce'];
@@ -46,6 +48,12 @@ test('PR deterministic backstops run free scanner gates without AI review depend
     step => step?.name === 'Run Semgrep against new PR findings'
   );
   assert.equal(semgrep.permissions['security-events'], 'write');
+  assert.equal(
+    semgrep.steps.find(step => /^actions\/setup-python@/u.test(step?.uses ?? '')).with[
+      'python-version'
+    ],
+    '3.14'
+  );
   assert.equal(installSemgrep.run, 'python -m pip install semgrep==1.171.0');
   assert.doesNotMatch(installSemgrep.run, /--upgrade\s+semgrep/u);
   assert.doesNotMatch(installSemgrep.run, /pip install semgrep(?:\s|$)/u);
