@@ -29,6 +29,7 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      // BLOCKED(rc31-u2): cross-tenant by design -- unauthenticated public aggregate over all tenants; needs a privileged manifest entry or per-tenant loop.
       // db-access-guard: system-exempt -- reason: public aggregate stats intentionally read cross-tenant counts only
       const [statsRow] = await db
         .select({

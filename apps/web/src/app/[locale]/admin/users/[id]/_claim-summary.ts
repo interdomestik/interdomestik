@@ -1,4 +1,5 @@
-import { db as defaultDb } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
+import type { db as defaultDb } from '@interdomestik/database/db';
 import { claims } from '@interdomestik/database/schema';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
@@ -28,14 +29,25 @@ function computeClaimCounts(rows: Array<{ status: string | null; total: unknown 
   return counts;
 }
 
-export async function getAdminUserClaimSummary(args: {
+type AdminUserClaimSummaryArgs = {
   db?: DbClient;
   recentClaimsLimit: number;
   scope: AdminUserClaimSummaryScope;
   tenantId: string;
   userId: string;
-}) {
-  const db = args.db ?? defaultDb;
+};
+
+export async function getAdminUserClaimSummary(args: AdminUserClaimSummaryArgs) {
+  const { db: executor } = args;
+  if (executor) return summarizeAdminUserClaims(executor, args);
+
+  // No caller-supplied executor: the ambient client has no tenant context, so open one.
+  return withTenantContext({ tenantId: args.tenantId, role: args.scope.role }, tx =>
+    summarizeAdminUserClaims(tx, args)
+  );
+}
+
+async function summarizeAdminUserClaims(db: DbClient, args: AdminUserClaimSummaryArgs) {
   const where = and(
     eq(claims.userId, args.userId),
     eq(claims.tenantId, args.tenantId),

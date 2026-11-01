@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computeSuccessRate, getAdminAnalyticsDataCore, normalizeTotalsRow } from './_core';
 
@@ -24,6 +24,9 @@ vi.mock('@interdomestik/database', () => {
 
   return {
     db: mockDb,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof mockDb) => unknown) =>
+      callback(mockDb)
+    ),
     claims: {
       claimAmount: 'claimAmount',
       status: 'status',
@@ -72,6 +75,10 @@ describe('admin analytics _core', () => {
         .mockImplementationOnce((cb: (rows: { count: number }[]) => unknown) => cb([{ count: 1 }]));
 
       const result = await getAdminAnalyticsDataCore({ user: { tenantId: 'tenant-1' } });
+      expect(withTenantContext).toHaveBeenCalledWith(
+        { tenantId: 'tenant-1' },
+        expect.any(Function)
+      );
       expect(result.totals.count).toBe(2);
       expect(result.successRate).toBe(50);
     });

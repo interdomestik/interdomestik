@@ -1,4 +1,4 @@
-import { claimEscalationAgreements, db, eq } from '@interdomestik/database';
+import { claimEscalationAgreements, eq, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import type { PaymentAuthorizationState } from '../staff-claims/types';
@@ -14,19 +14,21 @@ export async function getPaymentAuthorizationState(params: {
     return undefined;
   }
 
-  const [agreement] = await db
-    .select({
-      paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
-    })
-    .from(claimEscalationAgreements)
-    .where(
-      withTenant(
-        params.tenantId,
-        claimEscalationAgreements.tenantId,
-        eq(claimEscalationAgreements.claimId, params.claimId)
+  const [agreement] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx
+      .select({
+        paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+      })
+      .from(claimEscalationAgreements)
+      .where(
+        withTenant(
+          params.tenantId,
+          claimEscalationAgreements.tenantId,
+          eq(claimEscalationAgreements.claimId, params.claimId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   return agreement?.paymentAuthorizationState ?? null;
 }

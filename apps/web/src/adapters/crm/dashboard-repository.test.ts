@@ -1,13 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  dbSelect: vi.fn(),
+const hoisted = vi.hoisted(() => {
+  const dbSelect = vi.fn();
+  const db = { select: dbSelect };
+  return {
+    db,
+    dbSelect,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
+
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    select: hoisted.dbSelect,
-  },
+  db: hoisted.db,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -237,6 +247,11 @@ describe('crmDashboardRepository', () => {
       limit: 5,
       now: '2026-05-12T08:00:00.000Z',
     });
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(5);
+    for (const call of hoisted.withTenantContext.mock.calls) {
+      expect(call[0]).toEqual({ tenantId: 'tenant-1' });
+    }
 
     expect(leadChain.where).toHaveBeenCalledWith({
       and: [

@@ -1,4 +1,4 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, withTenantContext } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
@@ -51,15 +51,17 @@ export async function createClaimCore(
     ? undefined
     : extractBranchIdFromSetting(
         (
-          await db.query.tenantSettings.findFirst({
-            where: (ts, { and, eq }) =>
-              withTenant(
-                tenantId,
-                ts.tenantId,
-                and(eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id'))
-              ),
-            columns: { value: true },
-          })
+          await withTenantContext({ tenantId }, tx =>
+            tx.query.tenantSettings.findFirst({
+              where: (ts, { and, eq }) =>
+                withTenant(
+                  tenantId,
+                  ts.tenantId,
+                  and(eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id'))
+                ),
+              columns: { value: true },
+            })
+          )
         )?.value
       );
 
@@ -80,7 +82,7 @@ export async function createClaimCore(
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.transaction(async tx => {
+    await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx.insert(claims).values({
         id: claimId,

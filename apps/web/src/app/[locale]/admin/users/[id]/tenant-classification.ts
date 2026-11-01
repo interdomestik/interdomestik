@@ -18,6 +18,7 @@ export async function getTenantClassificationOptions(params: {
     return [];
   }
 
+  // BLOCKED(rc31-u2): cross-tenant by design -- super_admin lists all active tenants; needs a privileged manifest entry, no single session tenant applies.
   // db-access-guard: system-exempt -- reason: super-admin tenant classification selector lists active tenant metadata only
   const activeTenants = await db.query.tenants.findMany({
     where: eq(tenants.isActive, true),

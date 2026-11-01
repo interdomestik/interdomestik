@@ -1,5 +1,4 @@
-import { db } from '@/lib/db.server';
-import { and, eq } from '@interdomestik/database';
+import { and, eq, withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import { aiRuns, documentExtractions, policies } from '@interdomestik/database/schema';
 import {
   claimIntakeExtractSchema,
@@ -18,9 +17,7 @@ type CorrectedReviewPayloadResult =
   | { kind: 'ok'; correctedExtraction?: Record<string, unknown>; correctedWarnings?: string[] }
   | { kind: 'unprocessable'; message: string };
 
-type ReviewTx = {
-  update: typeof db.update;
-};
+type ReviewTx = Pick<TenantTransaction, 'update'>;
 
 function getReviewStatus(action: ReviewAction): 'approved' | 'rejected' | 'corrected' {
   if (action === 'approve') return 'approved';
@@ -136,20 +133,22 @@ export async function submitAiReview(args: {
   action: ReviewAction;
   correctedExtraction?: Record<string, unknown>;
 }): Promise<SubmitAiReviewResult> {
-  const [existingRun] = await db
-    .select({
-      id: aiRuns.id,
-      workflow: aiRuns.workflow,
-      entityType: aiRuns.entityType,
-      entityId: aiRuns.entityId,
-      extractionReviewStatus: documentExtractions.reviewStatus,
-      extractionJson: documentExtractions.extractedJson,
-      extractionWarnings: documentExtractions.warnings,
-    })
-    .from(aiRuns)
-    .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, args.tenantId)))
-    .limit(1);
+  const [existingRun] = await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    tx
+      .select({
+        id: aiRuns.id,
+        workflow: aiRuns.workflow,
+        entityType: aiRuns.entityType,
+        entityId: aiRuns.entityId,
+        extractionReviewStatus: documentExtractions.reviewStatus,
+        extractionJson: documentExtractions.extractedJson,
+        extractionWarnings: documentExtractions.warnings,
+      })
+      .from(aiRuns)
+      .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, args.tenantId)))
+      .limit(1)
+  );
 
   if (!existingRun) {
     return { kind: 'notFound' };
@@ -165,7 +164,7 @@ export async function submitAiReview(args: {
     return correctedPayload;
   }
 
-  await db.transaction(async tx => {
+  await withTenantContext({ tenantId: args.tenantId }, async tx => {
     await tx
       .update(aiRuns)
       .set({

@@ -46,18 +46,21 @@ export async function findSubscriptionByProviderReference(
 
   if (tenantId) {
     // db-access-guard: tenant-scoped -- reason: tenantId constrains race-recovery provider reference lookup.
-    return db.query.subscriptions.findFirst({
-      where: (subs, { and: andFn, eq: eqFn, or: orFn }) =>
-        andFn(
-          eqFn(subs.tenantId, tenantId),
-          orFn(
-            eqFn(subs.id, normalizedReference),
-            eqFn(subs.providerSubscriptionId, normalizedReference)
-          )
-        ),
-    });
+    return withTenantContext({ tenantId }, tx =>
+      tx.query.subscriptions.findFirst({
+        where: (subs, { and: andFn, eq: eqFn, or: orFn }) =>
+          andFn(
+            eqFn(subs.tenantId, tenantId),
+            orFn(
+              eqFn(subs.id, normalizedReference),
+              eqFn(subs.providerSubscriptionId, normalizedReference)
+            )
+          ),
+      })
+    );
   }
 
+  // BLOCKED(rc31-u2): webhook tenant resolution by provider subscription reference (cross-tenant lookup by design); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event
   return db.query.subscriptions.findFirst({
     where: (subs, { eq: eqFn, or: orFn }) =>

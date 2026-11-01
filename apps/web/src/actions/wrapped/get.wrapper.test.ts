@@ -3,17 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getWrappedStatsCore } from './get.core';
 
 vi.mock('@interdomestik/database', () => {
-  return {
-    db: {
-      query: {
-        subscriptions: {
-          findFirst: vi.fn(),
-        },
-        claims: {
-          findMany: vi.fn(),
-        },
+  const db = {
+    query: {
+      subscriptions: {
+        findFirst: vi.fn(),
+      },
+      claims: {
+        findMany: vi.fn(),
       },
     },
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
     subscriptions: { userId: 's_userId', tenantId: 's_tenantId' },
     claims: { userId: 'c_userId', tenantId: 'c_tenantId' },
   };

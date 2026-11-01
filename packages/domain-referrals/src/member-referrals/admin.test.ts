@@ -1,10 +1,10 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listMemberReferralRewardsCore, updateMemberReferralRewardStatusCore } from './admin';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       memberReferralRewards: {
         findMany: vi.fn(),
@@ -18,8 +18,12 @@ vi.mock('@interdomestik/database', () => ({
         })),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberReferralRewards: {
@@ -79,6 +83,7 @@ describe('member referral admin', () => {
       expect(result.data[0].id).toBe('reward-1');
       expect(result.data[0].tenantId).toBe('tenant-1');
     }
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(db.query.memberReferralRewards.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: [['tenantId', 'tenant-1']],

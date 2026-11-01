@@ -25,6 +25,9 @@ export async function processSeasonalCampaigns() {
     campaignId,
     sendToUser: async u => {
       await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }));
+      const tenantId = u.tenantId;
+      // In-app rows are tenant-owned; a user without a tenant only receives the email.
+      if (!tenantId) return;
       await withRetries(() =>
         sendNotification(
           u.id,
@@ -33,6 +36,7 @@ export async function processSeasonalCampaigns() {
           {
             title: season === 'winter' ? 'Winter Safety Check ❄️' : 'Summer Readiness ☀️',
             actionUrl: '/dashboard',
+            tenantId,
           }
         )
       );

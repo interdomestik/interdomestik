@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberLeads } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -27,18 +27,20 @@ export async function createLead(
   const leadId = `lead_${nanoid()}`;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db.insert(memberLeads).values({
-    id: leadId,
-    tenantId: ctx.tenantId,
-    branchId: ctx.branchId,
-    agentId: ctx.agentId,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phone: data.phone,
-    notes: data.notes,
-    status: 'new',
-  });
+  await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    tx.insert(memberLeads).values({
+      id: leadId,
+      tenantId: ctx.tenantId,
+      branchId: ctx.branchId,
+      agentId: ctx.agentId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      notes: data.notes,
+      status: 'new',
+    })
+  );
 
   return { leadId };
 }

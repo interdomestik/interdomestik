@@ -1,10 +1,10 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemberReferralRewardCore } from './rewards';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       referrals: {
         findFirst: vi.fn(),
@@ -26,8 +26,12 @@ vi.mock('@interdomestik/database', () => ({
         returning: vi.fn(),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   referrals: {
@@ -94,6 +98,7 @@ describe('createMemberReferralRewardCore', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     if (result.success && result.data.kind === 'no-op') {
       expect(result.data.kind).toBe('no-op');
       expect(result.data.reason).toBe('no_referral');

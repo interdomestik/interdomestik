@@ -26,8 +26,8 @@ vi.mock('@interdomestik/database', () => ({
   billingLedgerEntries: hoisted.billingLedgerEntries,
   db: {
     query: { subscriptions: { findFirst: hoisted.subscriptionFindFirst } },
-    transaction: hoisted.transaction,
   },
+  withTenantContext: hoisted.transaction,
   sql: hoisted.sql,
 }));
 
@@ -55,7 +55,7 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const tx = { insert: hoisted.txInsert };
-    hoisted.transaction.mockImplementation(async callback => callback(tx));
+    hoisted.transaction.mockImplementation(async (_context, callback) => callback(tx));
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) return { values: hoisted.invoiceValues };
       if (table === hoisted.billingLedgerEntries) return { values: hoisted.ledgerValues };

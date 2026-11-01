@@ -95,6 +95,7 @@ async function resolveTransactionTenantContext(args: {
   }
 
   if (userId) {
+    // BLOCKED(rc31-u2): tenant resolution from provider-supplied userId (identity/tenant lookup by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes
     const user = await db.query.user.findFirst({
       where: (t, { eq }) => eq(t.id, userId),

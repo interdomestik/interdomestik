@@ -1,5 +1,5 @@
 import { isStaffOrAdmin } from '@/lib/roles';
-import { claims, db, eq } from '@interdomestik/database';
+import { claims, eq, withTenantContext } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import {
   claimLifecycleStatusIn,
@@ -41,33 +41,40 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
     status => status !== 'draft' && status !== newStatus && !completedStatuses.includes(status)
   );
 
-  const [totalRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId));
-  const [newRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs(newStatus)));
+  const [totalRes] = await withTenantContext({ tenantId }, async tx =>
+    tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
+  );
+  const [newRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs(newStatus)))
+  );
 
   const inProgressCondition =
     inProgressStatuses.length > 0 ? claimLifecycleStatusIn(inProgressStatuses) : sql`false`;
 
-  const [inProgressRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), inProgressCondition));
-  const [completedRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)));
+  const [inProgressRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(and(eq(claims.tenantId, tenantId), inProgressCondition))
+  );
+  const [completedRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)))
+  );
 
-  const recentClaims = await db.query.claims.findMany({
-    where: eq(claims.tenantId, tenantId),
-    orderBy: [desc(claims.updatedAt)],
-    limit: 5,
-    with: { user: true },
-  });
+  const recentClaims = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findMany({
+      where: eq(claims.tenantId, tenantId),
+      orderBy: [desc(claims.updatedAt)],
+      limit: 5,
+      with: { user: true },
+    })
+  );
 
   return {
     stats: {

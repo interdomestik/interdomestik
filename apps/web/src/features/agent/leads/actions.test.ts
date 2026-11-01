@@ -5,11 +5,25 @@ const mocks = vi.hoisted(() => {
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
 
+  const db = {
+    query: {
+      memberLeads: {
+        findFirst: vi.fn(),
+      },
+    },
+    update,
+  };
+  const withTenantContext = vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+    callback(db)
+  );
+
   return {
+    db,
+    withTenantContext,
     authGetSession: vi.fn(),
     headers: vi.fn(),
     ensureTenantId: vi.fn(),
-    findLead: vi.fn(),
+    findLead: db.query.memberLeads.findFirst,
     update,
     set,
     where,
@@ -48,14 +62,8 @@ vi.mock('next/cache', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      memberLeads: {
-        findFirst: mocks.findLead,
-      },
-    },
-    update: mocks.update,
-  },
+  db: mocks.db,
+  withTenantContext: mocks.withTenantContext,
   memberLeads: {
     id: 'member_leads.id',
     tenantId: 'member_leads.tenant_id',
@@ -74,6 +82,7 @@ function resetActionMocks() {
   mocks.ensureTenantId.mockReset();
   mocks.findLead.mockReset();
   mocks.update.mockClear();
+  mocks.withTenantContext.mockClear();
   mocks.set.mockClear();
   mocks.where.mockClear();
   mocks.startPayment.mockReset();
@@ -150,6 +159,10 @@ describe('convertLeadToClient', () => {
     await expect(convertLeadToClient('lead-2')).resolves.toEqual({ success: true });
 
     const scopedWhere = scopedWhereForLead('lead-2');
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
     expect(mocks.startPayment).not.toHaveBeenCalled();

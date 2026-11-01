@@ -19,9 +19,8 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  and: hoisted.and,
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       documentExtractions: {
         findMany: hoisted.findDocumentExtractionsMany,
@@ -33,10 +32,17 @@ vi.mock('@interdomestik/database', () => ({
         findMany: hoisted.findPoliciesMany,
       },
     },
-  },
-  eq: hoisted.eq,
-  inArray: hoisted.inArray,
-}));
+  };
+  return {
+    and: hoisted.and,
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: hoisted.eq,
+    inArray: hoisted.inArray,
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   documentExtractions: {

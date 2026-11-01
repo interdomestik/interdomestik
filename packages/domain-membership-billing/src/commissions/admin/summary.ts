@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq, sql } from 'drizzle-orm';
@@ -16,15 +16,17 @@ export async function getGlobalCommissionSummaryCore(params: {
   try {
     const tenantId = ensureTenantId(params.session);
 
-    const rows = await db
-      .select({
-        status: agentCommissions.status,
-        total: sql<string>`SUM(${agentCommissions.amount})`,
-        count: sql<number>`COUNT(*)`,
-      })
-      .from(agentCommissions)
-      .where(eq(agentCommissions.tenantId, tenantId))
-      .groupBy(agentCommissions.status);
+    const rows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          status: agentCommissions.status,
+          total: sql<string>`SUM(${agentCommissions.amount})`,
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(agentCommissions)
+        .where(eq(agentCommissions.tenantId, tenantId))
+        .groupBy(agentCommissions.status)
+    );
 
     const summary: CommissionSummary = {
       totalPending: 0,

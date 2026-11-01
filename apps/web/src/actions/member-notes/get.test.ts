@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberNotesCore } from './get.core';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         leftJoin: vi.fn(() => ({
@@ -14,8 +14,13 @@ vi.mock('@interdomestik/database', () => ({
         })),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberNotes: {

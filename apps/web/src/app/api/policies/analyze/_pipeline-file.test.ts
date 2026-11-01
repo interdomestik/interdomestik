@@ -6,13 +6,19 @@ const mocks = vi.hoisted(() => {
   const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin }));
   const select = vi.fn(() => ({ from: selectFrom }));
 
+  const db = { select };
+
   return {
-    db: { select },
+    db,
     selectWhere,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
   };
 });
 
 vi.mock('@/lib/db.server', () => ({ db: mocks.db }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: {
     documentId: 'ai_runs.document_id',

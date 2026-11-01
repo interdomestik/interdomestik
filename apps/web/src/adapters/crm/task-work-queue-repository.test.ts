@@ -2,7 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db } = await import('@interdomestik/database/db');
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+  );
+  return { withTenantContext: hoisted.withTenantContext };
+});
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {
@@ -125,6 +134,10 @@ describe('createAgentCrmTaskWorkQueueRepository', () => {
       now: '2026-05-22T08:00:00.000Z',
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(chain.innerJoin).toHaveBeenCalledWith(expect.objectContaining({ id: 'crmLeads.id' }), {
       and: [
         { eq: ['crmLeads.id', 'crmTasks.subjectId'] },

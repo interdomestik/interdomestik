@@ -1,7 +1,6 @@
 import {
   claimEscalationAgreements,
   claims,
-  db,
   eq,
   serviceUsage,
   sql,
@@ -304,13 +303,15 @@ function scheduleStatusChangeNotification(params: {
 
   void (async () => {
     try {
-      const member = await db.query.user.findFirst({
-        where: (userTable, { eq }) =>
-          withTenant(tenantId, userTable.tenantId, eq(userTable.id, userId)),
-        columns: {
-          email: true,
-        },
-      });
+      const member = await withTenantContext({ tenantId }, tx =>
+        tx.query.user.findFirst({
+          where: (userTable, { eq }) =>
+            withTenant(tenantId, userTable.tenantId, eq(userTable.id, userId)),
+          columns: {
+            email: true,
+          },
+        })
+      );
 
       if (!member?.email) {
         return;

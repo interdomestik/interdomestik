@@ -1,4 +1,13 @@
-import { agentClients, and, db, desc, eq, memberActivities, user } from '@interdomestik/database';
+import {
+  agentClients,
+  and,
+  db,
+  desc,
+  eq,
+  memberActivities,
+  user,
+  withTenantContext,
+} from '@interdomestik/database';
 import { sql } from 'drizzle-orm';
 
 import type { ActivitySession } from './types';
@@ -45,14 +54,16 @@ function assertReadableSession(
 }
 
 async function findTenantMember(memberId: string, tenantId: string) {
-  return db.query.user.findFirst({
-    where: and(eq(user.id, memberId), eq(user.tenantId, tenantId)),
-    columns: {
-      id: true,
-      tenantId: true,
-      agentId: true,
-    },
-  });
+  return withTenantContext({ tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(user.id, memberId), eq(user.tenantId, tenantId)),
+      columns: {
+        id: true,
+        tenantId: true,
+        agentId: true,
+      },
+    })
+  );
 }
 
 async function findActiveAgentAssignment(params: {
@@ -60,17 +71,19 @@ async function findActiveAgentAssignment(params: {
   memberId: string;
   tenantId: string;
 }) {
-  return db.query.agentClients.findFirst({
-    where: and(
-      eq(agentClients.tenantId, params.tenantId),
-      eq(agentClients.agentId, params.agentId),
-      eq(agentClients.memberId, params.memberId),
-      eq(agentClients.status, 'active')
-    ),
-    columns: {
-      id: true,
-    },
-  });
+  return withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx.query.agentClients.findFirst({
+      where: and(
+        eq(agentClients.tenantId, params.tenantId),
+        eq(agentClients.agentId, params.agentId),
+        eq(agentClients.memberId, params.memberId),
+        eq(agentClients.status, 'active')
+      ),
+      columns: {
+        id: true,
+      },
+    })
+  );
 }
 
 async function assertNonMemberReadAccess(session: TenantActivitySession, memberId: string) {
@@ -99,19 +112,21 @@ async function assertNonMemberReadAccess(session: TenantActivitySession, memberI
 }
 
 async function findMemberActivities(memberId: string, tenantId: string) {
-  return db.query.memberActivities.findMany({
-    where: and(eq(memberActivities.memberId, memberId), eq(memberActivities.tenantId, tenantId)),
-    orderBy: [desc(memberActivities.occurredAt)],
-    with: {
-      agent: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
+  return withTenantContext({ tenantId }, tx =>
+    tx.query.memberActivities.findMany({
+      where: and(eq(memberActivities.memberId, memberId), eq(memberActivities.tenantId, tenantId)),
+      orderBy: [desc(memberActivities.occurredAt)],
+      with: {
+        agent: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
 }
 
 export async function getMemberActivitiesCore(params: {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  withTenantContext: vi.fn(),
   locale: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
@@ -37,6 +38,7 @@ const schema = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
+  withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantLocaleMetadata: hoisted.locale,
@@ -52,7 +54,13 @@ vi.mock('drizzle-orm', () => ({
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 describe('getMemberVaultConsentDisplay predicates', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ select: hoisted.select })
+    );
+  });
 
   it('uses administrative metadata but the supplied RLS transaction for documents and consents', async () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
@@ -78,6 +86,10 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       kind: 'ready',
       items: [],
     });
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: baseParams.tenantId },
+      expect.any(Function)
+    );
     expect(documents.where).toHaveBeenCalledWith({
       op: 'and',
       args: [

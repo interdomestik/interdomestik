@@ -1,4 +1,4 @@
-import { and, claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, eq, user, withTenantContext } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -22,6 +22,7 @@ function claimTenantWhere(tenantId: string, claimId: string) {
 
 function notifyClaimOwner(
   deps: ClaimsDeps,
+  tenantId: string,
   claim: ClaimOwnerNotificationRow,
   oldStatus: ClaimStatus,
   newStatus: ClaimStatus
@@ -37,7 +38,8 @@ function notifyClaimOwner(
       claim.userEmail,
       { id: claim.id, title: claim.title },
       oldStatus,
-      newStatus
+      newStatus,
+      { tenantId }
     )
   ).catch((err: Error) => console.error('Failed to send status notification:', err));
 }
@@ -79,18 +81,20 @@ export async function updateClaimStatusCore(
 
   const tenantId = ensureTenantId(session);
 
-  const [claimWithUser] = await db
-    .select({
-      caseLifecycleState: claims.caseLifecycleState,
-      id: claims.id,
-      recoveryLifecycleState: claims.recoveryLifecycleState,
-      title: claims.title,
-      userId: claims.userId,
-      userEmail: user.email,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .where(claimTenantWhere(tenantId, claimId));
+  const [claimWithUser] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        caseLifecycleState: claims.caseLifecycleState,
+        id: claims.id,
+        recoveryLifecycleState: claims.recoveryLifecycleState,
+        title: claims.title,
+        userId: claims.userId,
+        userEmail: user.email,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id))
+      .where(claimTenantWhere(tenantId, claimId))
+  );
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -115,5 +119,5 @@ export async function updateClaimStatusCore(
 
   await activateClaimStatusAuditProjection({ deps, tenantId });
 
-  notifyClaimOwner(deps, claimWithUser, result.fromStatus, result.status);
+  notifyClaimOwner(deps, tenantId, claimWithUser, result.fromStatus, result.status);
 }

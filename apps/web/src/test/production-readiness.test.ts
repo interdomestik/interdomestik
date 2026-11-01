@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockTransaction } = vi.hoisted(() => {
-  return { mockTransaction: vi.fn() };
+const { mockTenantTransaction } = vi.hoisted(() => {
+  return { mockTenantTransaction: vi.fn() };
 });
 
-// Mock the database module before importing withTransactionRetry
+// Mock the database module before importing withTransactionRetry: every attempt is a tenant transaction.
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    transaction: mockTransaction,
-  },
+  withTenantContext: mockTenantTransaction,
 }));
 
 // Import after mocking
@@ -17,42 +15,56 @@ import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 describe('Production Readiness Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockTransaction.mockReset();
+    mockTenantTransaction.mockReset();
   });
 
   describe('Transaction Retry Logic', () => {
     it('should retry on deadlock errors', async () => {
       let attemptCount = 0;
 
-      mockTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
-        attemptCount++;
-        if (attemptCount === 1) {
-          throw new Error('deadlock detected');
+      mockTenantTransaction.mockImplementation(
+        async (_context: unknown, callback: (tx: unknown) => Promise<unknown>) => {
+          attemptCount++;
+          if (attemptCount === 1) {
+            throw new Error('deadlock detected');
+          }
+          // On second attempt, call the callback and return its result
+          return callback({});
         }
-        // On second attempt, call the callback and return its result
-        return callback({});
-      });
+      );
 
-      const result = await withTransactionRetry(async () => {
-        return { success: true, data: 'test-result' };
-      });
+      const result = await withTransactionRetry(
+        async () => {
+          return { success: true, data: 'test-result' };
+        },
+        {},
+        { tenantId: 'tenant_mk' }
+      );
 
-      // Assert: db.transaction was called twice (first failed with deadlock, second succeeded)
-      expect(mockTransaction).toHaveBeenCalledTimes(2);
+      // Assert: the tenant transaction ran twice (first failed with deadlock, second succeeded)
+      expect(mockTenantTransaction).toHaveBeenCalledTimes(2);
+      expect(mockTenantTransaction).toHaveBeenCalledWith(
+        { tenantId: 'tenant_mk' },
+        expect.any(Function)
+      );
       expect(result).toEqual({ success: true, data: 'test-result' });
     });
 
     it('should not retry on non-retryable errors', async () => {
-      mockTransaction.mockRejectedValue(new Error('permission denied'));
+      mockTenantTransaction.mockRejectedValue(new Error('permission denied'));
 
       await expect(
-        withTransactionRetry(async () => {
-          return { success: true };
-        })
+        withTransactionRetry(
+          async () => {
+            return { success: true };
+          },
+          {},
+          { tenantId: 'tenant_mk' }
+        )
       ).rejects.toThrow('permission denied');
 
-      // Assert: db.transaction was only called once (no retry for non-retryable error)
-      expect(mockTransaction).toHaveBeenCalledTimes(1);
+      // Assert: the tenant transaction was only called once (no retry for non-retryable error)
+      expect(mockTenantTransaction).toHaveBeenCalledTimes(1);
     });
   });
 });

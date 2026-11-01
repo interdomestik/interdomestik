@@ -46,6 +46,11 @@ const hoisted = vi.hoisted(() => {
     return result;
   }
 
+  const db = {
+    query: { subscriptions: { findFirst: vi.fn().mockResolvedValue(null) } },
+    transaction: vi.fn(transaction),
+  };
+
   return {
     ...tables,
     store,
@@ -54,10 +59,11 @@ const hoisted = vi.hoisted(() => {
       store.events.push(params.id);
       return { id: params.id };
     }),
-    db: {
-      query: { subscriptions: { findFirst: vi.fn().mockResolvedValue(null) } },
-      transaction: vi.fn(transaction),
-    },
+    db,
+    withTenantContext: vi.fn(
+      (_context: { tenantId: string }, callback: (tx: unknown) => Promise<unknown>) =>
+        transaction(tx => callback({ ...(tx as object), query: db.query }))
+    ),
     eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
     inArray: (left: unknown, right: unknown) => ({ op: 'inArray', left, right }),
     sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
@@ -73,6 +79,7 @@ vi.mock('@interdomestik/database', () => ({
   inArray: hoisted.inArray,
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
   webhookEvents: hoisted.webhookEvents,
 }));
 vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));

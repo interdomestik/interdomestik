@@ -1,4 +1,4 @@
-import { db, eq, subscriptions, user } from '@interdomestik/database';
+import { eq, subscriptions, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { revokeAgentClientReadScope } from '@interdomestik/domain-membership-billing';
 import { and } from 'drizzle-orm';
@@ -18,7 +18,7 @@ export async function updateUserAgentCore(params: {
   const tenantId = ensureTenantId(session);
 
   try {
-    await db.transaction(async tx => {
+    await withTenantContext({ tenantId }, async tx => {
       await tx
         .update(user)
         .set({ agentId })

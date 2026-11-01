@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberNotes } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
@@ -49,7 +49,7 @@ export async function createMemberNoteCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session before member note insert
-    await db.insert(memberNotes).values(newNote);
+    await withTenantContext({ tenantId }, async tx => tx.insert(memberNotes).values(newNote));
 
     await logAuditEvent({
       actorId: session.user.id,

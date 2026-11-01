@@ -1,5 +1,5 @@
 import { getSessionSafe } from '@/components/shell/session';
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
@@ -21,9 +21,14 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
   const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
 
   const subscription = tenantId
-    ? await db.query.subscriptions.findFirst({
-        where: and(eq(subscriptions.userId, session.user.id), eq(subscriptions.tenantId, tenantId)),
-      })
+    ? await withTenantContext({ tenantId }, tx =>
+        tx.query.subscriptions.findFirst({
+          where: and(
+            eq(subscriptions.userId, session.user.id),
+            eq(subscriptions.tenantId, tenantId)
+          ),
+        })
+      )
     : null;
 
   const cardSubscription = toMemberCardSubscription(subscription);

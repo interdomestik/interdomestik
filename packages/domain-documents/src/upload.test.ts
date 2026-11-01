@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => {
   return {
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
     captureAudit: vi.fn(),
-    db: { insert, select },
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback({ insert, select })
+    ),
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
     insert,
     insertValues,
@@ -24,8 +26,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: mocks.db,
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -129,6 +131,10 @@ describe('document upload helpers', () => {
       })
     ).resolves.toEqual(docs);
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.select).toHaveBeenCalled();
     expect(mocks.selectFrom).toHaveBeenCalledWith({
       deletedAt: 'documents.deletedAt',

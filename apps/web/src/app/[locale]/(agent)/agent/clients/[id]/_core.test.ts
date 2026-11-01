@@ -6,9 +6,10 @@ const hoisted = vi.hoisted(() => ({
   memberActivitiesFindMany: vi.fn(),
   dbSelect: vi.fn(),
   getAgentMemberDetail: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
+const dbMock = vi.hoisted(() => {
+  const db = {
     query: {
       user: { findFirst: hoisted.userFindFirst },
       subscriptions: { findFirst: hoisted.subscriptionsFindFirst },
@@ -16,7 +17,17 @@ vi.mock('@interdomestik/database/db', () => ({
       memberActivities: { findMany: hoisted.memberActivitiesFindMany },
     },
     select: hoisted.dbSelect,
-  },
+  };
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: typeof db) => unknown) => callback(db)
+  );
+  return db;
+});
+vi.mock('@interdomestik/database/db', () => ({ db: dbMock }));
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  db: dbMock,
+  withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenantId' },
@@ -90,6 +101,10 @@ describe('getAgentClientProfileCore', () => {
     });
 
     expect(res).toEqual({ kind: 'not_found' });
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
   });
 
   it('returns forbidden when agent tries to access a member they do not own', async () => {

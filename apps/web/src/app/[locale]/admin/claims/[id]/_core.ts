@@ -1,5 +1,6 @@
 import { createTenantSignedDownloadUrl } from '@/lib/storage/service-role';
-import { and, claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { and, claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 
 export type AdminClaimDocument = {
   id: string;
@@ -34,27 +35,31 @@ export async function getAdminClaimDetailsCore(args: {
   const tenantId = args.tenantId ?? null;
   if (!tenantId) return { kind: 'not_found' };
 
-  const claim = (await db.query.claims.findFirst({
-    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
-    with: {
-      user: true,
-    },
-  })) as ClaimWithUser | null;
+  const claim = (await withTenantContext({ tenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
+      with: {
+        user: true,
+      },
+    })
+  )) as ClaimWithUser | null;
 
   if (!claim) return { kind: 'not_found' };
 
-  const rawDocs = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      createdAt: claimDocuments.createdAt,
-      filePath: claimDocuments.filePath,
-      bucket: claimDocuments.bucket,
-    })
-    .from(claimDocuments)
-    .where(and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, tenantId)));
+  const rawDocs = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        id: claimDocuments.id,
+        name: claimDocuments.name,
+        fileSize: claimDocuments.fileSize,
+        fileType: claimDocuments.fileType,
+        createdAt: claimDocuments.createdAt,
+        filePath: claimDocuments.filePath,
+        bucket: claimDocuments.bucket,
+      })
+      .from(claimDocuments)
+      .where(and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, tenantId)))
+  );
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {

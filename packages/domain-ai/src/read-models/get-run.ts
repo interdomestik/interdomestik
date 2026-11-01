@@ -1,4 +1,4 @@
-import { db, eq } from '@interdomestik/database';
+import { eq, withTenantContext } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
@@ -46,29 +46,31 @@ export async function getAiRun(params: {
   tenantId: string;
   runId: string;
 }): Promise<AiRunReadModel | null> {
-  const [row] = await db
-    .select({
-      id: aiRuns.id,
-      workflow: aiRuns.workflow,
-      status: aiRuns.status,
-      documentId: aiRuns.documentId,
-      entityType: aiRuns.entityType,
-      entityId: aiRuns.entityId,
-      requestedBy: aiRuns.requestedBy,
-      runReviewStatus: aiRuns.reviewStatus,
-      extractionReviewStatus: documentExtractions.reviewStatus,
-      errorCode: aiRuns.errorCode,
-      errorMessage: aiRuns.errorMessage,
-      warnings: documentExtractions.warnings,
-      extraction: documentExtractions.extractedJson,
-      createdAt: aiRuns.createdAt,
-      startedAt: aiRuns.startedAt,
-      completedAt: aiRuns.completedAt,
-    })
-    .from(aiRuns)
-    .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-    .where(withTenant(params.tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
-    .limit(1);
+  const [row] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx
+      .select({
+        id: aiRuns.id,
+        workflow: aiRuns.workflow,
+        status: aiRuns.status,
+        documentId: aiRuns.documentId,
+        entityType: aiRuns.entityType,
+        entityId: aiRuns.entityId,
+        requestedBy: aiRuns.requestedBy,
+        runReviewStatus: aiRuns.reviewStatus,
+        extractionReviewStatus: documentExtractions.reviewStatus,
+        errorCode: aiRuns.errorCode,
+        errorMessage: aiRuns.errorMessage,
+        warnings: documentExtractions.warnings,
+        extraction: documentExtractions.extractedJson,
+        createdAt: aiRuns.createdAt,
+        startedAt: aiRuns.startedAt,
+        completedAt: aiRuns.completedAt,
+      })
+      .from(aiRuns)
+      .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+      .where(withTenant(params.tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
+      .limit(1)
+  );
 
   if (!row) {
     return null;

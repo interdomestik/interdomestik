@@ -24,6 +24,9 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   appendEvent: hoisted.appendEvent,
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    hoisted.db.transaction(cb)
+  ),
   subscriptions: hoisted.subscriptions,
   claims: hoisted.claims,
   claimEscalationAgreements: hoisted.claimEscalationAgreements,

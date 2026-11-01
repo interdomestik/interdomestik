@@ -48,23 +48,29 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
-  claims: {
-    claimNumber: 'claims.claim_number',
-    createdAt: 'claims.created_at',
-    id: 'claims.id',
-    status: 'claims.status',
-    tenantId: 'claims.tenant_id',
-    title: 'claims.title',
-    userId: 'claims.user_id',
-  },
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: mocks.select,
-  },
-  desc: mocks.desc,
-  eq: mocks.eq,
-}));
+  };
+  return {
+    and: mocks.and,
+    claims: {
+      claimNumber: 'claims.claim_number',
+      createdAt: 'claims.created_at',
+      id: 'claims.id',
+      status: 'claims.status',
+      tenantId: 'claims.tenant_id',
+      title: 'claims.title',
+      userId: 'claims.user_id',
+    },
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    desc: mocks.desc,
+    eq: mocks.eq,
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,

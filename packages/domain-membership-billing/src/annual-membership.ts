@@ -1,4 +1,4 @@
-import { and, asc, db, eq, membershipPlans } from '@interdomestik/database';
+import { and, asc, eq, membershipPlans, withTenantContext } from '@interdomestik/database';
 
 export function createActiveAnnualMembershipState(now: Date): {
   status: 'active';
@@ -34,14 +34,16 @@ export async function resolveCanonicalMembershipPlanState(params: {
     rawPlanId === 'standard' || rawPlanId === 'family' || rawPlanId === 'business'
       ? rawPlanId
       : null;
-  const [planById] = await db
-    .select({
-      id: membershipPlans.id,
-      tier: membershipPlans.tier,
-    })
-    .from(membershipPlans)
-    .where(and(eq(membershipPlans.tenantId, params.tenantId), eq(membershipPlans.id, rawPlanId)))
-    .limit(1);
+  const [planById] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx
+      .select({
+        id: membershipPlans.id,
+        tier: membershipPlans.tier,
+      })
+      .from(membershipPlans)
+      .where(and(eq(membershipPlans.tenantId, params.tenantId), eq(membershipPlans.id, rawPlanId)))
+      .limit(1)
+  );
 
   if (planById) {
     return {
@@ -50,19 +52,21 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByProviderId] = await db
-    .select({
-      id: membershipPlans.id,
-      tier: membershipPlans.tier,
-    })
-    .from(membershipPlans)
-    .where(
-      and(
-        eq(membershipPlans.tenantId, params.tenantId),
-        eq(membershipPlans.paddlePriceId, rawPlanId)
+  const [planByProviderId] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx
+      .select({
+        id: membershipPlans.id,
+        tier: membershipPlans.tier,
+      })
+      .from(membershipPlans)
+      .where(
+        and(
+          eq(membershipPlans.tenantId, params.tenantId),
+          eq(membershipPlans.paddlePriceId, rawPlanId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   if (planByProviderId) {
     return {
@@ -78,22 +82,24 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByTier] = await db
-    .select({
-      id: membershipPlans.id,
-      tier: membershipPlans.tier,
-    })
-    .from(membershipPlans)
-    .where(
-      and(
-        eq(membershipPlans.tenantId, params.tenantId),
-        eq(membershipPlans.tier, canonicalTier),
-        eq(membershipPlans.interval, 'year'),
-        eq(membershipPlans.isActive, true)
+  const [planByTier] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    tx
+      .select({
+        id: membershipPlans.id,
+        tier: membershipPlans.tier,
+      })
+      .from(membershipPlans)
+      .where(
+        and(
+          eq(membershipPlans.tenantId, params.tenantId),
+          eq(membershipPlans.tier, canonicalTier),
+          eq(membershipPlans.interval, 'year'),
+          eq(membershipPlans.isActive, true)
+        )
       )
-    )
-    .orderBy(asc(membershipPlans.id))
-    .limit(1);
+      .orderBy(asc(membershipPlans.id))
+      .limit(1)
+  );
 
   return {
     planId: planByTier?.tier ?? rawPlanId,

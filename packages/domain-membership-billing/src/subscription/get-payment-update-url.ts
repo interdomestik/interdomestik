@@ -1,4 +1,4 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle, resolveBillingEntityForTenantId } from '../paddle-server';
 
@@ -179,9 +179,11 @@ export async function getPaymentUpdateUrlCore(params: {
 
   try {
     const tenantId = ensureTenantId(session);
-    const sub = await db.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
-    });
+    const sub = await withTenantContext({ tenantId }, tx =>
+      tx.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
+      })
+    );
 
     if (!sub) {
       return { error: 'Subscription not found or access denied', url: undefined };

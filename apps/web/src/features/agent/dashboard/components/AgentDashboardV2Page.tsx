@@ -8,7 +8,7 @@ import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -48,13 +48,17 @@ export async function AgentDashboardV2Page({
   const tenantId = ensureTenantId(session);
 
   const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
-    getAgentDashboardV2StatsCore({ agentId, tenantId }, { db }),
+    withTenantContext({ tenantId }, tx =>
+      getAgentDashboardV2StatsCore({ agentId, tenantId }, { db: tx })
+    ),
     session.user.branchId
-      ? db.query.branches.findFirst({
-          where: (fields, { and, eq }) =>
-            and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
-          columns: { name: true },
-        })
+      ? withTenantContext({ tenantId }, tx =>
+          tx.query.branches.findFirst({
+            where: (fields, { and, eq }) =>
+              and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
+            columns: { name: true },
+          })
+        )
       : null,
     getAgentReferralLinkCore({ session }),
     getAgentLeaderboardCore({ session, period: 'month' }),

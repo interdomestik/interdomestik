@@ -1,15 +1,22 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberNoteCore } from './create.core';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: vi.fn(() => ({
       values: vi.fn(),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(
+      async (_context: { tenantId: string }, action: (tx: typeof db) => Promise<unknown>) =>
+        action(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   memberNotes: {},
@@ -73,6 +80,7 @@ describe('createMemberNoteCore', () => {
       expect(result.data?.content).toBe('alert()Valid Content'); // sanitized (tags stripped)
       expect(result.data?.type).toBe('general');
     }
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(db.insert).toHaveBeenCalled();
   });
 });

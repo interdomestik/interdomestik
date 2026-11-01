@@ -19,6 +19,8 @@ interface PaddleHandlerMocks {
     insert: MockFunction;
     update: MockFunction;
   };
+  /** Tenant-context boundary; tests assert the tenant it received. */
+  withTenantContext: MockFunction;
   selectResults: unknown[][];
   and: MockFunction;
   appendEvent: MockFunction;
@@ -34,7 +36,12 @@ interface PaddleHandlerMocks {
     interval: string;
     isActive: string;
   };
-  tx: { insert: MockFunction; select: MockFunction; update: MockFunction };
+  tx: {
+    insert: MockFunction;
+    select: MockFunction;
+    update: MockFunction;
+    query: PaddleHandlerMocks['db']['query'];
+  };
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
@@ -65,6 +72,7 @@ interface PaddleDatabaseMockModule {
   subscriptions: PaddleHandlerMocks['subscriptions'];
   user: PaddleHandlerMocks['user'];
   webhookEvents: PaddleHandlerMocks['webhookEvents'];
+  withTenantContext: MockFunction;
 }
 
 interface CommissionMockModule {
@@ -79,22 +87,24 @@ interface MemberNumberMockModule {
 type RacedSubscriptionInsertMocks = { mockSet: MockFunction; mockWhere: MockFunction };
 
 export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
+  const query = {
+    user: { findFirst: vi.fn() },
+    account: { findFirst: vi.fn() },
+    agentClients: { findFirst: vi.fn() },
+    membershipPlans: { findFirst: vi.fn() },
+    subscriptions: { findFirst: vi.fn() },
+    tenantSettings: { findFirst: vi.fn() },
+    webhookEvents: { findFirst: vi.fn() },
+  };
   return {
     db: {
-      query: {
-        user: { findFirst: vi.fn() },
-        account: { findFirst: vi.fn() },
-        agentClients: { findFirst: vi.fn() },
-        membershipPlans: { findFirst: vi.fn() },
-        subscriptions: { findFirst: vi.fn() },
-        tenantSettings: { findFirst: vi.fn() },
-        webhookEvents: { findFirst: vi.fn() },
-      },
+      query,
       transaction: vi.fn(),
       select: vi.fn(),
       insert: vi.fn(() => ({ values: vi.fn(() => ({ onConflictDoUpdate: vi.fn() })) })),
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
     },
+    withTenantContext: vi.fn(),
     selectResults: [] as unknown[][],
     and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
@@ -110,10 +120,12 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
       interval: 'membership_plans.interval',
       isActive: 'membership_plans.is_active',
     },
+    // The tenant-context transaction also serves tenant-scoped reads through `tx.query`.
     tx: {
       insert: vi.fn(),
       select: vi.fn(),
       update: vi.fn(),
+      query,
     },
     insertedUserValues: vi.fn(),
     updatedUserValues: vi.fn(),
@@ -140,6 +152,7 @@ export function createPaddleDatabaseMockModule(
     subscriptions: hoisted.subscriptions,
     user: hoisted.user,
     webhookEvents: hoisted.webhookEvents,
+    withTenantContext: hoisted.withTenantContext,
   };
 }
 
@@ -262,6 +275,8 @@ export function resetPaddleHandlerMocks(
     from: createQueuedFromMock(vi.fn, hoisted.selectResults),
   }));
   hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+  // Default tenant context: writes/selects land on the transaction mock, reads on db.query.
+  hoisted.withTenantContext.mockImplementation(async (_context, callback) => callback(hoisted.tx));
   hoisted.db.insert.mockImplementation(() => ({
     values: vi.fn().mockResolvedValue(undefined),
   }));
@@ -275,10 +290,18 @@ export function resetPaddleHandlerMocks(
   hoisted.tx.insert.mockImplementation(() => ({
     values: hoisted.insertedUserValues,
   }));
+  // Plan lookups (annual membership) now run in a tenant context and still consume the queued
+  // `selectResults`; every other select keeps the provider-order check shape.
+  const queuedPlanFrom = createQueuedFromMock(vi.fn, hoisted.selectResults) as (
+    table: unknown
+  ) => unknown;
   hoisted.tx.select.mockImplementation(() => ({
-    from: () => ({
-      where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]),
-    }),
+    from: (table: unknown) =>
+      table === hoisted.membershipPlans
+        ? queuedPlanFrom(table)
+        : {
+            where: () => Promise.resolve([{ hasInvalid: null, hasNewer: null, hasEqual: null }]),
+          },
   }));
   hoisted.insertedUserValues.mockReturnValue({
     onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
@@ -289,4 +312,11 @@ export function resetPaddleHandlerMocks(
   hoisted.updatedUserValues.mockReturnValue({
     where: () => ({ returning: async () => [{ id: 'sub' }] }),
   });
+}
+
+/** Route tenant-context callbacks to the ambient db mock for handlers that never used a transaction. */
+export function routeTenantContextToDbMock(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
+) {
+  hoisted.withTenantContext.mockImplementation(async (_context, callback) => callback(hoisted.db));
 }

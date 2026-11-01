@@ -14,12 +14,14 @@ export async function getClaimLoadForecast(): Promise<ForecastResult> {
   // Current Period: Now to -14d
   // Previous Period: -14d to -28d
 
+  // BLOCKED(rc31-u2): cross-tenant analytics aggregate by design (no tenant parameter); needs privileged manifest or per-tenant loop
   // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [currentPeriod] = await db
     .select({ count: count() })
     .from(claims)
     .where(sql`created_at >= NOW() - INTERVAL '14 days'`);
 
+  // BLOCKED(rc31-u2): cross-tenant analytics aggregate by design (no tenant parameter); needs privileged manifest or per-tenant loop
   // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [previousPeriod] = await db
     .select({ count: count() })

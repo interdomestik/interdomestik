@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
 import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
 import { and, eq, gte, sql } from 'drizzle-orm';
@@ -41,22 +41,24 @@ export async function getAdminAnalyticsCore(params: {
     }
     const { daysBack, limit } = parsed.data;
 
-    const activeSubs = await db
-      .select({
-        subId: subscriptions.id,
-        price: membershipPlans.price,
-        interval: membershipPlans.interval,
-        createdAt: subscriptions.createdAt,
-      })
-      .from(subscriptions)
-      .leftJoin(
-        membershipPlans,
-        and(
-          eq(subscriptions.tenantId, membershipPlans.tenantId),
-          eq(subscriptions.planKey, membershipPlans.id)
+    const activeSubs = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select({
+          subId: subscriptions.id,
+          price: membershipPlans.price,
+          interval: membershipPlans.interval,
+          createdAt: subscriptions.createdAt,
+        })
+        .from(subscriptions)
+        .leftJoin(
+          membershipPlans,
+          and(
+            eq(subscriptions.tenantId, membershipPlans.tenantId),
+            eq(subscriptions.planKey, membershipPlans.id)
+          )
         )
-      )
-      .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
+        .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)))
+    );
 
     let mrr = 0;
     for (const sub of activeSubs) {
@@ -77,16 +79,20 @@ export async function getAdminAnalyticsCore(params: {
     const lookbackDate = new Date();
     lookbackDate.setDate(lookbackDate.getDate() - daysBack);
 
-    const recentGrowth = await db
-      .select({
-        date: sql<string>`DATE(${subscriptions.createdAt})`,
-        count: sql<number>`count(*)`,
-      })
-      .from(subscriptions)
-      .where(and(gte(subscriptions.createdAt, lookbackDate), eq(subscriptions.tenantId, tenantId)))
-      .groupBy(sql`DATE(${subscriptions.createdAt})`)
-      .orderBy(sql`DATE(${subscriptions.createdAt})`)
-      .limit(limit);
+    const recentGrowth = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select({
+          date: sql<string>`DATE(${subscriptions.createdAt})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(subscriptions)
+        .where(
+          and(gte(subscriptions.createdAt, lookbackDate), eq(subscriptions.tenantId, tenantId))
+        )
+        .groupBy(sql`DATE(${subscriptions.createdAt})`)
+        .orderBy(sql`DATE(${subscriptions.createdAt})`)
+        .limit(limit)
+    );
 
     const formattedGrowth = recentGrowth.map(item => ({
       date: String(item.date),

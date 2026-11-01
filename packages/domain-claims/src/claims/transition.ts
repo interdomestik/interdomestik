@@ -1,4 +1,4 @@
-import { and, claims, db, eq, sql } from '@interdomestik/database';
+import { and, claims, eq, sql, withTenantContext } from '@interdomestik/database';
 import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
@@ -156,5 +156,7 @@ export async function transitionClaimStatus(
   params: TransitionClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transition by values and where clause
-  return db.transaction(tx => transitionClaimStatusInTransaction(tx, params));
+  return withTenantContext({ tenantId: params.tenantId }, tx =>
+    transitionClaimStatusInTransaction(tx, params)
+  );
 }

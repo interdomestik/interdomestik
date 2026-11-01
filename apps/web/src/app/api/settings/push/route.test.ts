@@ -44,13 +44,22 @@ const mockDeleteChain = {
   where: vi.fn().mockResolvedValue(undefined),
 };
 
+const mockTenantTx = {
+  select: () => mockSelectChain,
+  insert: () => mockInsertChain,
+  update: () => mockUpdateChain,
+  delete: () => mockDeleteChain,
+};
+const mockWithTenantContext = vi.fn(
+  async (_context: { tenantId: string }, action: (tx: typeof mockTenantTx) => Promise<unknown>) =>
+    action(mockTenantTx)
+);
+
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    select: () => mockSelectChain,
-    insert: () => mockInsertChain,
-    update: () => mockUpdateChain,
-    delete: () => mockDeleteChain,
-  },
+  withTenantContext: (
+    context: { tenantId: string },
+    action: (tx: typeof mockTenantTx) => Promise<unknown>
+  ) => mockWithTenantContext(context, action),
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({

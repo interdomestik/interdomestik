@@ -16,6 +16,7 @@ export async function submitLead(data: z.infer<typeof createLeadSchema>) {
   try {
     const validated = createLeadSchema.parse(data);
 
+    // BLOCKED(rc31-u2): unauthenticated public action; tenantId comes from the client payload (URL ?tenantId= param via CallMeNowDialog) with no session or tenant-verified record. Needs a design decision (server-resolved host tenant or privileged manifest entry) before conversion.
     // db-access-guard: tenant-scoped -- reason: tenantId from validated lead payload before lead insert
     await db.insert(leads).values({
       id: randomUUID(),

@@ -3,15 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRenewalCommissionCore } from './create-renewal';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       agentSettings: {
         findFirst: vi.fn(),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('./ownership', () => ({
   resolveCommissionOwnership: vi.fn(),

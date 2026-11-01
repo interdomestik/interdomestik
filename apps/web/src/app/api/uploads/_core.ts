@@ -1,4 +1,4 @@
-import { and, claims, db, eq } from '@interdomestik/database';
+import { and, claims, eq, withTenantContext } from '@interdomestik/database';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -70,8 +70,7 @@ type UploadErr = {
 export type UploadResult = UploadOk | UploadErr;
 
 type InitialUploadIntentResult =
-  | { ok: true; intentToken: string }
-  | { ok: false; result: UploadErr };
+  { ok: true; intentToken: string } | { ok: false; result: UploadErr };
 
 type EvidenceUploadPathResult = { ok: true; path: string } | { ok: false; result: UploadErr };
 
@@ -93,15 +92,17 @@ export async function createSignedUploadCore(args: {
   const tenantId = ensureAccessTenantId(session);
   let storageTenantId = tenantId;
   if (claimId) {
-    const claim = await db.query.claims.findFirst({
-      where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
-      columns: {
-        id: true,
-        tenantId: true,
-        userId: true,
-        agentId: true,
-      },
-    });
+    const claim = await withTenantContext({ tenantId, role: session.user.role ?? null }, async tx =>
+      tx.query.claims.findFirst({
+        where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
+        columns: {
+          id: true,
+          tenantId: true,
+          userId: true,
+          agentId: true,
+        },
+      })
+    );
 
     if (!claim) return { ok: false, status: 404, error: 'Claim not found' };
 

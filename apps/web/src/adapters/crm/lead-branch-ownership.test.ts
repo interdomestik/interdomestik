@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
   userFindFirst: vi.fn(),
+  withTenantContext: vi.fn(),
   withTenant: vi.fn((tenantId: string, column: unknown, condition: unknown) => ({
     column,
     condition,
@@ -112,6 +113,14 @@ vi.mock('@interdomestik/database/schema', () => ({
     tenantId: { name: 'targetAgentTenantId' },
   },
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db } = await import('@interdomestik/database/db');
+  mocks.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+  );
+  return { withTenantContext: mocks.withTenantContext };
+});
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {

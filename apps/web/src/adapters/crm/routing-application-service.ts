@@ -26,6 +26,7 @@ import {
 
 import { createCrmLeadMutationRepository } from './lead-mutation-repository';
 import { createCrmRoutingRepository } from './routing-repository';
+import { runInCrmTenantContext } from './tenant-runner';
 
 type CrmRoutingApplicationDb = typeof db;
 type CrmLeadRow = typeof crmLeads.$inferSelect;
@@ -236,16 +237,21 @@ export function createApplyCrmLeadRoutingDecisionCoordinator(
     input: ApplyCrmLeadRoutingDecisionInput
   ): Promise<ApplyCrmLeadRoutingDecisionResult> {
     try {
-      return await database.transaction(async tx => {
-        const transaction = tx as never as CrmRoutingApplicationDb;
-        return applyCrmLeadRoutingDecision(
-          input,
-          createRoutingApplicationPorts(transaction, {
-            outbox: options.createOutboxPort(transaction),
-            services,
+      return await runInCrmTenantContext(
+        database,
+        { tenantId: input.actor.tenantId },
+        async scoped =>
+          scoped.transaction(async tx => {
+            const transaction = tx as never as CrmRoutingApplicationDb;
+            return applyCrmLeadRoutingDecision(
+              input,
+              createRoutingApplicationPorts(transaction, {
+                outbox: options.createOutboxPort(transaction),
+                services,
+              })
+            );
           })
-        );
-      });
+      );
     } catch (error) {
       if (error instanceof CrmRoutingApplicationRollback) return error.result;
       return { outcome: 'repository_failure' };

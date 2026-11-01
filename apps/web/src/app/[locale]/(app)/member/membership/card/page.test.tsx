@@ -37,18 +37,24 @@ vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: vi.fn(),
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       subscriptions: {
         findFirst: hoisted.findFirstMock,
       },
     },
-  },
-  eq: vi.fn(),
-  subscriptions: {},
-}));
+  };
+  return {
+    and: vi.fn(),
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: vi.fn(),
+    subscriptions: {},
+  };
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href = '#' }: { children: ReactNode; href?: string }) => (

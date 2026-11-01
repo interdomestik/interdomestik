@@ -16,6 +16,9 @@ export async function processAnnualReports() {
     campaignId,
     sendToUser: async u => {
       await withRetries(() => sendAnnualReportEmail(u.email!, u.name ?? '', year));
+      const tenantId = u.tenantId;
+      // In-app rows are tenant-owned; a user without a tenant only receives the email.
+      if (!tenantId) return;
       await withRetries(() =>
         sendNotification(
           u.id,
@@ -24,6 +27,7 @@ export async function processAnnualReports() {
           {
             title: `Your ${year} Protection Summary is Ready! 🏆`,
             actionUrl: '/dashboard/wrapped',
+            tenantId,
           }
         )
       );

@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 import {
   agentClients,
   memberActivities,
@@ -37,9 +38,7 @@ export type AgentClientProfileOk = {
 };
 
 export type AgentClientProfileResult =
-  | { kind: 'not_found' }
-  | { kind: 'forbidden' }
-  | AgentClientProfileOk;
+  { kind: 'not_found' } | { kind: 'forbidden' } | AgentClientProfileOk;
 
 export async function getAgentClientProfileCore(args: {
   memberId: string;
@@ -59,18 +58,20 @@ export async function getAgentClientProfileCore(args: {
   }
 
   if (viewer.role === 'agent') {
-    const assignments = await db
-      .select()
-      .from(agentClients)
-      .where(
-        and(
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.agentId, viewer.id),
-          eq(agentClients.memberId, member.id),
-          eq(agentClients.status, 'active')
+    const assignments = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select()
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, viewer.id),
+            eq(agentClients.memberId, member.id),
+            eq(agentClients.status, 'active')
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (assignments.length === 0) {
       // Auth widening (Phase C pilot):
@@ -96,30 +97,39 @@ export async function getAgentClientProfileCore(args: {
   }
 
   const [subscription, preferences, claimSummary, activities] = await Promise.all([
-    db.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
-      orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-    }),
-    db.query.userNotificationPreferences.findFirst({
-      where: and(
-        eq(userNotificationPreferences.userId, member.id),
-        eq(userNotificationPreferences.tenantId, tenantId)
-      ),
-    }),
+    withTenantContext({ tenantId }, tx =>
+      tx.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, tenantId)),
+        orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
+      })
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx.query.userNotificationPreferences.findFirst({
+        where: and(
+          eq(userNotificationPreferences.userId, member.id),
+          eq(userNotificationPreferences.tenantId, tenantId)
+        ),
+      })
+    ),
     getAgentClientClaimSummary(member.id, tenantId),
-    db.query.memberActivities.findMany({
-      where: and(eq(memberActivities.memberId, member.id), eq(memberActivities.tenantId, tenantId)),
-      orderBy: [desc(memberActivities.occurredAt)],
-      with: {
-        agent: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
+    withTenantContext({ tenantId }, tx =>
+      tx.query.memberActivities.findMany({
+        where: and(
+          eq(memberActivities.memberId, member.id),
+          eq(memberActivities.tenantId, tenantId)
+        ),
+        orderBy: [desc(memberActivities.occurredAt)],
+        with: {
+          agent: {
+            columns: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-    }),
+      })
+    ),
   ]);
 
   const rawStatus = (subscription as { status?: string | null } | null | undefined)?.status;
@@ -141,19 +151,21 @@ export async function getAgentClientProfileCore(args: {
 }
 
 async function fetchMember(memberId: string, tenantId: string) {
-  return db.query.user.findFirst({
-    where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
-    with: {
-      agent: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
+  return withTenantContext({ tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(userTable.id, memberId), eq(userTable.tenantId, tenantId)),
+      with: {
+        agent: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
         },
       },
-    },
-  });
+    })
+  );
 }
 
 export type MemberRecord = NonNullable<Awaited<ReturnType<typeof fetchMember>>>;

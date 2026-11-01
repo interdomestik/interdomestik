@@ -115,9 +115,14 @@ describe('member claim upload actions', () => {
     );
 
     expect(result).toEqual({ success: true });
-    expect(hoisted.transaction).toHaveBeenCalledTimes(1);
+    // The AI queue now runs on its own tenant context; no ambient transaction remains.
+    expect(hoisted.transaction).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', role: 'member' },
+      expect.any(Function)
+    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
       expect.any(Function)
     );
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');

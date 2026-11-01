@@ -1,4 +1,4 @@
-import { and, claims, db, eq } from '@interdomestik/database';
+import { and, claims, eq, withTenantContext } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -39,7 +39,7 @@ export async function updateClaimStatus(params: {
   const scopedWhere = withTenant(tenantId, claims.tenantId, scope);
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    return await db.transaction(async tx => {
+    return await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [existingClaim] = await tx
         .select({

@@ -68,6 +68,7 @@ async function resolveFallbackEntity(payload: PaddleWebhookData): Promise<Billin
   const userId = normalizeBillingText(customData.userId);
   if (!userId) return null;
 
+  // BLOCKED(rc31-u2): webhook resolves the tenant from a provider-supplied userId; no canonical tenant until this lookup (identity bootstrap).
   // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps route preflight
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),

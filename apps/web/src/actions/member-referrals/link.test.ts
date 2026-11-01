@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => {
   const update = vi.fn(() => ({ set: updateSet }));
 
   return {
+    withTenantContext: vi.fn(),
     userFindFirst: vi.fn(async () => ({ referralCode: null, name: 'Jane Doe' })),
     update,
     updateSet,
@@ -13,16 +14,23 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findFirst: mocks.userFindFirst,
       },
     },
     update: mocks.update,
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(db);
+    },
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id' },
@@ -59,6 +67,7 @@ describe('getMemberReferralLinkCore', () => {
       expect(result.data.whatsappShareUrl).toContain(encodeURIComponent(result.data.link));
     }
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({

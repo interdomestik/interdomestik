@@ -67,6 +67,7 @@ export async function reserveCommercialAction(params: {
   };
 
   if (scope.kind === 'public') {
+    // BLOCKED(rc31-u2): public-scope reservations are null-tenant rows with no canonical tenant; the ambient db is intentional here and needs a design decision (RLS policy for null-tenant rows or a privileged manifest entry) before it can run under the restricted role.
     // db-access-guard: tenant-scoped -- reason: allowlisted public intake reserves a null-tenant row and must not install tenant RLS context
     const [inserted] = await db
       .insert(commercialActionIdempotency)
@@ -106,6 +107,7 @@ export async function findExistingReservation(
   );
 
   if (scope.kind === 'public') {
+    // BLOCKED(rc31-u2): public-scope reservations are null-tenant rows with no canonical tenant; the ambient db is intentional here and needs a design decision (RLS policy for null-tenant rows or a privileged manifest entry) before it can run under the restricted role.
     // db-access-guard: tenant-scoped -- reason: allowlisted public intake lookup is pinned to null tenant and null actor before any cached response release
     const [existing] = await db
       .select(columns)
@@ -136,6 +138,7 @@ export async function completeCommercialActionReservation(params: {
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
   if (scope.kind === 'public') {
+    // BLOCKED(rc31-u2): public-scope reservations are null-tenant rows with no canonical tenant; the ambient db is intentional here and needs a design decision (RLS policy for null-tenant rows or a privileged manifest entry) before it can run under the restricted role.
     // db-access-guard: tenant-scoped -- reason: allowlisted public intake completes the null-tenant reservation it created
     await db.update(commercialActionIdempotency).set(values).where(where);
     return;
@@ -155,6 +158,7 @@ export async function releaseCommercialActionReservation(params: {
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
   if (scope.kind === 'public') {
+    // BLOCKED(rc31-u2): public-scope reservations are null-tenant rows with no canonical tenant; the ambient db is intentional here and needs a design decision (RLS policy for null-tenant rows or a privileged manifest entry) before it can run under the restricted role.
     // db-access-guard: tenant-scoped -- reason: allowlisted public intake releases the null-tenant reservation it created
     await db.delete(commercialActionIdempotency).where(where);
     return;

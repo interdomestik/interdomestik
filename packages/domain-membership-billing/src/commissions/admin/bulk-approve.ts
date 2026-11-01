@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -34,16 +34,18 @@ export async function bulkApproveCommissionsCore(params: {
       return { success: true, data: { count: 0 } };
     }
 
-    await db
-      .update(agentCommissions)
-      .set({ status: 'approved' })
-      .where(
-        and(
-          eq(agentCommissions.tenantId, tenantId),
-          inArray(agentCommissions.id, pendingIds),
-          eq(agentCommissions.status, 'pending')
+    await withTenantContext({ tenantId }, tx =>
+      tx
+        .update(agentCommissions)
+        .set({ status: 'approved' })
+        .where(
+          and(
+            eq(agentCommissions.tenantId, tenantId),
+            inArray(agentCommissions.id, pendingIds),
+            eq(agentCommissions.status, 'pending')
+          )
         )
-      );
+    );
 
     return { success: true, data: { count: pendingIds.length } };
   } catch (error) {

@@ -1,4 +1,4 @@
-import { and, db, eq, user } from '@interdomestik/database';
+import { and, eq, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 
@@ -17,10 +17,16 @@ export async function getAgentsCore(params: { session: UserSession | null }) {
     conditions.push(eq(user.branchId, scope.branchId));
   }
 
-  const agents = await db.query.user.findMany({
-    where: withTenant(tenantId, user.tenantId, conditions.length ? and(...conditions) : undefined),
-    orderBy: (users, { asc }) => [asc(users.name)],
-  });
+  const agents = await withTenantContext({ tenantId }, tx =>
+    tx.query.user.findMany({
+      where: withTenant(
+        tenantId,
+        user.tenantId,
+        conditions.length ? and(...conditions) : undefined
+      ),
+      orderBy: (users, { asc }) => [asc(users.name)],
+    })
+  );
 
   return agents;
 }

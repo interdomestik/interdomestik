@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 
 function readStringValue(value: unknown, preferredKeys: readonly string[]): string | null {
   if (typeof value === 'string' && value.trim().length > 0) {
@@ -22,15 +22,17 @@ function readStringValue(value: unknown, preferredKeys: readonly string[]): stri
 }
 
 async function resolveDefaultBranchId(tenantId: string): Promise<string | null> {
-  const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-    where: (settings, { and, eq }) =>
-      and(
-        eq(settings.tenantId, tenantId),
-        eq(settings.category, 'rbac'),
-        eq(settings.key, 'default_branch_id')
-      ),
-    columns: { value: true },
-  });
+  const defaultBranchSetting = await withTenantContext({ tenantId }, async tx =>
+    tx.query.tenantSettings.findFirst({
+      where: (settings, { and, eq }) =>
+        and(
+          eq(settings.tenantId, tenantId),
+          eq(settings.category, 'rbac'),
+          eq(settings.key, 'default_branch_id')
+        ),
+      columns: { value: true },
+    })
+  );
 
   return readStringValue(defaultBranchSetting?.value, [
     'branchId',
@@ -43,15 +45,17 @@ async function resolveDefaultBranchId(tenantId: string): Promise<string | null> 
 export async function resolveBusinessLeadOwner(
   tenantId: string
 ): Promise<{ agentId: string; branchId: string } | null> {
-  const ownerSetting = await db.query.tenantSettings.findFirst({
-    where: (settings, { and, eq }) =>
-      and(
-        eq(settings.tenantId, tenantId),
-        eq(settings.category, 'sales'),
-        eq(settings.key, 'business_lead_owner')
-      ),
-    columns: { value: true },
-  });
+  const ownerSetting = await withTenantContext({ tenantId }, async tx =>
+    tx.query.tenantSettings.findFirst({
+      where: (settings, { and, eq }) =>
+        and(
+          eq(settings.tenantId, tenantId),
+          eq(settings.category, 'sales'),
+          eq(settings.key, 'business_lead_owner')
+        ),
+      columns: { value: true },
+    })
+  );
 
   const agentId = readStringValue(ownerSetting?.value, ['agentId', 'ownerAgentId', 'id', 'value']);
 
@@ -59,10 +63,12 @@ export async function resolveBusinessLeadOwner(
     return null;
   }
 
-  const owner = await db.query.user.findFirst({
-    where: (users, { and, eq }) => and(eq(users.id, agentId), eq(users.tenantId, tenantId)),
-    columns: { id: true, branchId: true },
-  });
+  const owner = await withTenantContext({ tenantId }, async tx =>
+    tx.query.user.findFirst({
+      where: (users, { and, eq }) => and(eq(users.id, agentId), eq(users.tenantId, tenantId)),
+      columns: { id: true, branchId: true },
+    })
+  );
 
   if (!owner?.id) {
     return null;

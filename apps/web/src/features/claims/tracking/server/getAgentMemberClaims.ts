@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { agentClients, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
@@ -46,16 +46,18 @@ export async function getAgentMemberClaims(
         // allowing broader roles for flexibility if they visit the page.
       }
 
-      const activeAgentClientRows = await db
-        .select({ memberId: agentClients.memberId })
-        .from(agentClients)
-        .where(
-          and(
-            eq(agentClients.tenantId, tenantId),
-            eq(agentClients.agentId, userId),
-            eq(agentClients.status, 'active')
+      const activeAgentClientRows = await withTenantContext({ tenantId }, tx =>
+        tx
+          .select({ memberId: agentClients.memberId })
+          .from(agentClients)
+          .where(
+            and(
+              eq(agentClients.tenantId, tenantId),
+              eq(agentClients.agentId, userId),
+              eq(agentClients.status, 'active')
+            )
           )
-        );
+      );
 
       const memberIds: string[] = Array.from(
         new Set<string>(
@@ -69,14 +71,16 @@ export async function getAgentMemberClaims(
         return [];
       }
 
-      const members = await db.query.user.findMany({
-        where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIds)),
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      });
+      const members = await withTenantContext({ tenantId }, tx =>
+        tx.query.user.findMany({
+          where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIds)),
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        })
+      );
 
       if (members.length === 0) {
         return [];
@@ -96,23 +100,25 @@ export async function getAgentMemberClaims(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before agent member claims lookup
-      const memberClaims = await db.query.claims.findMany({
-        where: and(
-          visibilityCondition,
-          inArray(claims.userId, resolvedMemberIds), // Optimization redundant but safe
-          claimLifecycleStatusNotIn(['draft']) // PRD: Agents must not see draft claims
-        ),
-        orderBy: desc(claims.updatedAt),
-        columns: {
-          id: true,
-          title: true,
-          caseLifecycleState: true,
-          recoveryLifecycleState: true,
-          createdAt: true,
-          updatedAt: true,
-          userId: true,
-        },
-      });
+      const memberClaims = await withTenantContext({ tenantId }, tx =>
+        tx.query.claims.findMany({
+          where: and(
+            visibilityCondition,
+            inArray(claims.userId, resolvedMemberIds), // Optimization redundant but safe
+            claimLifecycleStatusNotIn(['draft']) // PRD: Agents must not see draft claims
+          ),
+          orderBy: desc(claims.updatedAt),
+          columns: {
+            id: true,
+            title: true,
+            caseLifecycleState: true,
+            recoveryLifecycleState: true,
+            createdAt: true,
+            updatedAt: true,
+            userId: true,
+          },
+        })
+      );
 
       return mapAgentMemberClaimGroups(members, memberClaims);
     }

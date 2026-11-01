@@ -8,6 +8,7 @@ const hoisted = vi.hoisted(() => ({
   createHash: vi.fn(),
   hashUpdate: vi.fn(),
   hashDigest: vi.fn(),
+  withTenantContext: vi.fn(),
   withServerActionInstrumentation: vi.fn(
     async (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback()
   ),
@@ -24,6 +25,7 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -55,6 +57,10 @@ import { getPublicClaimStatus } from './getPublicClaimStatus';
 describe('getPublicClaimStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ query: { claims: { findFirst: hoisted.claimFindFirst } } })
+    );
     hoisted.hashDigest.mockReturnValue('hashed-token');
     hoisted.hashUpdate.mockReturnValue({ digest: hoisted.hashDigest });
     hoisted.createHash.mockReturnValue({
@@ -104,6 +110,10 @@ describe('getPublicClaimStatus', () => {
     const result = await getPublicClaimStatus('public-token');
 
     expect(result).toBeNull();
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-ks' },
+      expect.any(Function)
+    );
     expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

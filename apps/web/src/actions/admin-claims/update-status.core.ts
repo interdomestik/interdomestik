@@ -1,5 +1,5 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
@@ -74,14 +74,16 @@ export async function updateClaimStatusCore(params: {
   const status = parsed.data.status;
   const tenantId = session.user.tenantId;
 
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-    columns: {
-      caseLifecycleState: true,
-      recoveryLifecycleState: true,
-    },
-  });
+  const claim = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+      columns: {
+        caseLifecycleState: true,
+        recoveryLifecycleState: true,
+      },
+    })
+  );
 
   if (!claim) {
     throw new Error('Claim not found');
@@ -106,14 +108,16 @@ export async function updateClaimStatusCore(params: {
     }
   );
 
-  const updatedClaim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-    columns: {
-      caseLifecycleState: true,
-      recoveryLifecycleState: true,
-    },
-  });
+  const updatedClaim = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+      columns: {
+        caseLifecycleState: true,
+        recoveryLifecycleState: true,
+      },
+    })
+  );
 
   if (!updatedClaim) {
     return;

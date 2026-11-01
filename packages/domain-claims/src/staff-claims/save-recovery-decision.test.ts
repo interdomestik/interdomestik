@@ -21,22 +21,22 @@ const mocks = vi.hoisted(() => {
   const txUpdateWhere = vi.fn();
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const transaction = vi.fn(async cb =>
+  const query = {
+    claims: { findFirst: vi.fn() },
+    user: { findFirst: vi.fn() },
+  };
+  const withTenantContext = vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) =>
     cb({
       insert: txInsert,
+      query,
       select: txSelect,
       update: txUpdate,
     })
   );
 
   return {
-    db: {
-      query: {
-        claims: { findFirst: vi.fn() },
-        user: { findFirst: vi.fn() },
-      },
-      transaction,
-    },
+    db: { query },
+    withTenantContext,
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
     claims: {
       id: 'claims.id',
@@ -73,8 +73,8 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: mocks.appendEvent,
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
-  db: mocks.db,
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -197,6 +197,10 @@ describe('saveRecoveryDecisionCore', () => {
         { tenantId: 'tenant-1' }
       )
     );
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(3);
+    for (const call of mocks.withTenantContext.mock.calls) {
+      expect(call[0]).toEqual({ tenantId: 'tenant-1' });
+    }
   });
 
   it('does not report failure when post-commit notification lookup fails', async () => {

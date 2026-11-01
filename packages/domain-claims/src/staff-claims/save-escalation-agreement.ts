@@ -1,9 +1,9 @@
 import {
   claimEscalationAgreements,
   claims,
-  db,
   eq,
   type DomainEventTx,
+  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
@@ -69,7 +69,7 @@ export async function saveClaimEscalationAgreementCore(
   const minimumFee = parsed.data.minimumFee.toFixed(2);
 
   try {
-    const result = await db.transaction(async tx => {
+    const result = await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberNotes, user as userTable } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq } from 'drizzle-orm';
@@ -24,29 +24,31 @@ export async function getMemberNotesCore(params: {
   }
 
   try {
-    const rows = await db
-      .select({
-        id: memberNotes.id,
-        memberId: memberNotes.memberId,
-        authorId: memberNotes.authorId,
-        authorName: userTable.name,
-        type: memberNotes.type,
-        content: memberNotes.content,
-        isPinned: memberNotes.isPinned,
-        isInternal: memberNotes.isInternal,
-        followUpDate: memberNotes.followUpDate,
-        createdAt: memberNotes.createdAt,
-        updatedAt: memberNotes.updatedAt,
-      })
-      .from(memberNotes)
-      .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-      .where(
-        and(
-          eq(memberNotes.tenantId, tenantId), // SECURITY: Tenant scoping
-          eq(memberNotes.memberId, memberId)
+    const rows = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select({
+          id: memberNotes.id,
+          memberId: memberNotes.memberId,
+          authorId: memberNotes.authorId,
+          authorName: userTable.name,
+          type: memberNotes.type,
+          content: memberNotes.content,
+          isPinned: memberNotes.isPinned,
+          isInternal: memberNotes.isInternal,
+          followUpDate: memberNotes.followUpDate,
+          createdAt: memberNotes.createdAt,
+          updatedAt: memberNotes.updatedAt,
+        })
+        .from(memberNotes)
+        .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
+        .where(
+          and(
+            eq(memberNotes.tenantId, tenantId), // SECURITY: Tenant scoping
+            eq(memberNotes.memberId, memberId)
+          )
         )
-      )
-      .orderBy(desc(memberNotes.isPinned), desc(memberNotes.createdAt));
+        .orderBy(desc(memberNotes.isPinned), desc(memberNotes.createdAt))
+    );
 
     return { success: true, data: rows.map(mapNoteRow) };
   } catch (error) {

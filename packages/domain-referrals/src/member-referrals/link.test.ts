@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberReferralLinkCore } from './link';
 
@@ -9,15 +10,19 @@ const mocks = vi.hoisted(() => ({
   nanoid: vi.fn(() => 'ABCDEF'),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: { findFirst: mocks.findFirst },
     },
     update: mocks.update,
-  },
-  withTenant: vi.fn(),
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    withTenant: vi.fn(),
+  };
+});
 
 vi.mock('drizzle-orm', async importOriginal => {
   const actual = await importOriginal<typeof import('drizzle-orm')>();
@@ -54,6 +59,7 @@ describe('getMemberReferralLinkCore', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
     if (result.success) {
       expect(result.data.code).toBe('EXISTING-123');
     }

@@ -7,7 +7,16 @@ const hoisted = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
 }));
 
+const txMock = vi.hoisted(() => ({
+  query: { claims: { findFirst: hoisted.claimsFindFirst } },
+  select: hoisted.dbSelect,
+}));
+const withTenantContextMock = vi.hoisted(() =>
+  vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) => callback(txMock))
+);
+
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: withTenantContextMock,
   db: {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },
@@ -75,6 +84,10 @@ describe('getAdminClaimDetailsCore', () => {
     const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
 
     expect(result).toEqual({ kind: 'not_found' });
+    expect(withTenantContextMock).toHaveBeenCalledWith(
+      { tenantId: 'tenant-a' },
+      expect.any(Function)
+    );
     expect(hoisted.and).toHaveBeenCalled();
     expect(hoisted.and).toHaveBeenCalledWith(
       { eq: ['claims.id', 'c1'] },

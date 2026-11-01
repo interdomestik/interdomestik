@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
@@ -33,13 +33,15 @@ export async function getMemberReferralLinkCore(params: {
 
   try {
     // SECURITY: Query scoped to tenant + user
-    const member = await db.query.user.findFirst({
-      where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
-      columns: {
-        referralCode: true,
-        name: true,
-      },
-    });
+    const member = await withTenantContext({ tenantId }, tx =>
+      tx.query.user.findFirst({
+        where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
+        columns: {
+          referralCode: true,
+          name: true,
+        },
+      })
+    );
 
     let code = member?.referralCode;
 
@@ -56,10 +58,12 @@ export async function getMemberReferralLinkCore(params: {
       code = `${namePart}-${randomPart}`;
 
       // SECURITY: Update scoped to tenant + user
-      await db
-        .update(user)
-        .set({ referralCode: code })
-        .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)));
+      await withTenantContext({ tenantId }, tx =>
+        tx
+          .update(user)
+          .set({ referralCode: code })
+          .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)))
+      );
     }
 
     const baseUrl = getPublicAppUrl();

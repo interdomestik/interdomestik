@@ -5,6 +5,7 @@ import {
   mockGetSession,
   mockTxSelectLimit,
   mockTxUpdateReturning,
+  mockWithTenantContext,
   submittedLifecycleCurrentClaim,
 } from './claims.test-support';
 
@@ -24,6 +25,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'verification');
 
+      expect(mockWithTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });
@@ -34,6 +36,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'verification');
 
+      expect(mockWithTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });

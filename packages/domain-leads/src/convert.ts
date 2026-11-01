@@ -1,4 +1,4 @@
-import { db, eq } from '@interdomestik/database';
+import { eq, withTenantContext } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   createActiveAnnualMembershipFulfillment,
@@ -40,10 +40,12 @@ export async function hasTenantLeadForConversion(
   args: { leadId: string }
 ): Promise<boolean> {
   // db-access-guard: tenant-scoped -- reason: lead ownership is constrained by caller tenantId in the query predicate
-  const lead = await db.query.memberLeads.findFirst({
-    where: (l, { eq, and }) => and(eq(l.id, args.leadId), eq(l.tenantId, ctx.tenantId)),
-    columns: { id: true },
-  });
+  const lead = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    tx.query.memberLeads.findFirst({
+      where: (l, { eq, and }) => and(eq(l.id, args.leadId), eq(l.tenantId, ctx.tenantId)),
+      columns: { id: true },
+    })
+  );
 
   return Boolean(lead);
 }
@@ -55,9 +57,11 @@ export async function convertLeadToMember(
   const { leadId } = args;
   const planId = resolveLeadConversionPlanId(args.planId);
 
-  const lead = await db.query.memberLeads.findFirst({
-    where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, ctx.tenantId)),
-  });
+  const lead = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    tx.query.memberLeads.findFirst({
+      where: (l, { eq, and }) => and(eq(l.id, leadId), eq(l.tenantId, ctx.tenantId)),
+    })
+  );
 
   if (!lead) throw new Error('Lead not found');
   if (isLeadAlreadyConverted(lead)) return null; // Already done (idempotency)
@@ -75,7 +79,7 @@ export async function convertLeadToMember(
   );
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  return await db.transaction(async tx => {
+  return await withTenantContext({ tenantId: ctx.tenantId }, async tx => {
     // A. Insert User with role='member'
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(userTable).values({

@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
       callback({
         insert: txInsert,
+        select,
         update: vi.fn(() => ({
           set: txUpdateSet,
         })),
@@ -63,6 +64,7 @@ describe('processPolicyAnalysisRunService critique gate', () => {
       async (_context: unknown, callback: (tx: unknown) => unknown) =>
         callback({
           insert: mocks.txInsert,
+          select: mocks.db.select,
           update: vi.fn(() => ({
             set: mocks.txUpdateSet,
           })),

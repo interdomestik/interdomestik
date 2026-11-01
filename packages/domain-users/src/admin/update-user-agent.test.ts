@@ -44,9 +44,7 @@ const mocks = vi.hoisted(() => {
       tenantId: 'user.tenantId',
       agentId: 'user.agentId',
     },
-    db: {
-      transaction: vi.fn(),
-    },
+    withTenantContext: vi.fn(),
     tx,
     userUpdateChain,
     subscriptionsUpdateChain,
@@ -68,10 +66,10 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   agentClients: mocks.agentClients,
-  db: mocks.db,
   eq: mocks.eq,
   subscriptions: mocks.subscriptions,
   user: mocks.user,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -116,7 +114,9 @@ describe('updateUserAgentCore', () => {
       throw new Error(`Unexpected update table: ${String(table)}`);
     });
     mocks.tx.insert.mockReturnValue(mocks.insertChain);
-    mocks.db.transaction.mockImplementation(async callback => callback(mocks.tx as never));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback(mocks.tx as never)
+    );
   });
 
   it('updates user and subscription attribution without creating read-scope rows', async () => {
@@ -133,6 +133,10 @@ describe('updateUserAgentCore', () => {
       throw new Error(`Expected success result, received error: ${result.error}`);
     }
     expect(result.success).toBe(true);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
     expect(mocks.tx.update).toHaveBeenCalledTimes(2);
     expect(mocks.tx.insert).not.toHaveBeenCalled();
 

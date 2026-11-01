@@ -4,8 +4,8 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 vi.stubEnv('NOVU_API_KEY', 'test-api-key');
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockReturnValue({
         onConflictDoNothing: vi.fn().mockResolvedValue({}),
@@ -20,8 +20,13 @@ vi.mock('@interdomestik/database', () => ({
         }),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(db),
+  };
+});
 
 vi.mock('@/lib/email', () => ({
   sendClaimAssignedEmail: vi.fn().mockResolvedValue({}),
@@ -60,13 +65,29 @@ describe('Notifications Service', () => {
 
   describe('sendNotification', () => {
     it('should send a notification successfully', async () => {
-      const result = await sendNotification('user-123', 'claim_submitted', {
-        claimId: 'claim-1',
-        claimTitle: 'Test Claim',
-        category: 'consumer',
-      });
+      const result = await sendNotification(
+        'user-123',
+        'claim_submitted',
+        {
+          claimId: 'claim-1',
+          claimTitle: 'Test Claim',
+          category: 'consumer',
+        },
+        { tenantId: 'tenant_mk' }
+      );
 
       expect(result.success).toBe(true);
+    });
+
+    it('rejects a recipient outside the requested tenant', async () => {
+      const result = await sendNotification(
+        'user-123',
+        'claim_submitted',
+        { claimId: 'claim-1' },
+        { tenantId: 'tenant_ks' }
+      );
+
+      expect(result).toEqual({ success: false, error: 'Tenant mismatch for notification' });
     });
 
     it('should handle errors gracefully', async () => {
@@ -76,7 +97,12 @@ describe('Notifications Service', () => {
         throw new Error('DB Error');
       });
 
-      const result = await sendNotification('user-123', 'claim_submitted', { claimId: 'claim-1' });
+      const result = await sendNotification(
+        'user-123',
+        'claim_submitted',
+        { claimId: 'claim-1' },
+        { tenantId: 'tenant_mk' }
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database error');
@@ -85,11 +111,16 @@ describe('Notifications Service', () => {
 
   describe('notifyClaimSubmitted', () => {
     it('should send claim submitted notification', async () => {
-      const result = await notifyClaimSubmitted('user-123', 'user@example.com', {
-        id: 'claim-1',
-        title: 'My Claim',
-        category: 'consumer',
-      });
+      const result = await notifyClaimSubmitted(
+        'user-123',
+        'user@example.com',
+        {
+          id: 'claim-1',
+          title: 'My Claim',
+          category: 'consumer',
+        },
+        { tenantId: 'tenant_mk' }
+      );
 
       expect(result.success).toBe(true);
     });
@@ -101,7 +132,8 @@ describe('Notifications Service', () => {
         'agent-1',
         'agent@example.com',
         { id: 'claim-1', title: 'Member Claim' },
-        'Agent Smith'
+        'Agent Smith',
+        { tenantId: 'tenant_mk' }
       );
 
       expect(result.success).toBe(true);
@@ -115,7 +147,8 @@ describe('Notifications Service', () => {
         'user@example.com',
         { id: 'claim-1', title: 'My Claim' },
         'submitted',
-        'verification'
+        'verification',
+        { tenantId: 'tenant_mk' }
       );
 
       expect(result.success).toBe(true);
@@ -129,7 +162,8 @@ describe('Notifications Service', () => {
         'user@example.com',
         { id: 'claim-1', title: 'My Claim' },
         'Agent Smith',
-        'Hello...'
+        'Hello...',
+        { tenantId: 'tenant_mk' }
       );
 
       expect(result.success).toBe(true);

@@ -1,4 +1,4 @@
-import { and, claimStageHistory, db, desc, eq } from '@interdomestik/database';
+import { and, claimStageHistory, desc, eq, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 export type ClaimTimelineEvent = {
@@ -29,19 +29,25 @@ export async function getClaimTimeline(params: {
 }): Promise<ClaimTimelineEvent[]> {
   const { tenantId, claimId } = params;
 
-  const rows = await db
-    .select({
-      id: claimStageHistory.id,
-      claimId: claimStageHistory.claimId,
-      fromStatus: claimStageHistory.fromStatus,
-      toStatus: claimStageHistory.toStatus,
-      createdAt: claimStageHistory.createdAt,
-    })
-    .from(claimStageHistory)
-    .where(
-      withTenant(tenantId, claimStageHistory.tenantId, and(eq(claimStageHistory.claimId, claimId)))
-    )
-    .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id));
+  const rows = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        id: claimStageHistory.id,
+        claimId: claimStageHistory.claimId,
+        fromStatus: claimStageHistory.fromStatus,
+        toStatus: claimStageHistory.toStatus,
+        createdAt: claimStageHistory.createdAt,
+      })
+      .from(claimStageHistory)
+      .where(
+        withTenant(
+          tenantId,
+          claimStageHistory.tenantId,
+          and(eq(claimStageHistory.claimId, claimId))
+        )
+      )
+      .orderBy(desc(claimStageHistory.createdAt), desc(claimStageHistory.id))
+  );
 
   return rows.map(row => ({
     id: row.id,

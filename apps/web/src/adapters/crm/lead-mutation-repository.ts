@@ -20,6 +20,8 @@ import {
 } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
+import { runInCrmTenantContext } from './tenant-runner';
+
 type CrmLeadMutationDb = typeof db;
 type CrmLeadRow = typeof crmLeads.$inferSelect;
 type CrmActivityRow = typeof crmActivities.$inferSelect;
@@ -192,52 +194,63 @@ export function createCrmLeadMutationRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: creates CRM lead and initial ownership history with explicit authorized CRM actor tenant
-      return database.transaction(async tx => {
-        // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context
-        const [created] = await tx
-          .insert(crmLeads)
-          .values({
+      return runInCrmTenantContext(database, { tenantId: params.actor.tenantId }, async scoped =>
+        scoped.transaction(async tx => {
+          // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context
+          const [created] = await tx
+            .insert(crmLeads)
+            .values({
+              agentId: params.actor.actorId,
+              branchId,
+              companyName: params.lead.companyName ?? undefined,
+              createdAt: now,
+              email: params.lead.email ?? undefined,
+              fullName: params.lead.fullName ?? undefined,
+              id: params.lead.leadId,
+              notes: params.lead.notes ?? undefined,
+              phone: params.lead.phone ?? undefined,
+              source: params.lead.source ?? undefined,
+              stage: params.lead.stage,
+              lostAt: params.lead.stage === 'lost' ? now : null,
+              tenantId: params.actor.tenantId,
+              type: params.lead.type,
+              updatedAt: now,
+              wonAt: params.lead.stage === 'won' ? now : null,
+            })
+            .returning();
+
+          // db-access-guard: tenant-scoped -- reason: ownership history copies explicit tenantId from authorized CRM actor after lead creation
+          await tx.insert(crmLeadOwnershipHistory).values({
             agentId: params.actor.actorId,
             branchId,
-            companyName: params.lead.companyName ?? undefined,
+            changedById: params.actor.actorId,
             createdAt: now,
-            email: params.lead.email ?? undefined,
-            fullName: params.lead.fullName ?? undefined,
-            id: params.lead.leadId,
-            notes: params.lead.notes ?? undefined,
-            phone: params.lead.phone ?? undefined,
-            source: params.lead.source ?? undefined,
-            stage: params.lead.stage,
-            lostAt: params.lead.stage === 'lost' ? now : null,
+            effectiveFrom: now,
+            id: randomUUID(),
+            leadId: created.id,
+            reason: 'created',
             tenantId: params.actor.tenantId,
-            type: params.lead.type,
-            updatedAt: now,
-            wonAt: params.lead.stage === 'won' ? now : null,
-          })
-          .returning();
+          });
 
-        // db-access-guard: tenant-scoped -- reason: ownership history copies explicit tenantId from authorized CRM actor after lead creation
-        await tx.insert(crmLeadOwnershipHistory).values({
-          agentId: params.actor.actorId,
-          branchId,
-          changedById: params.actor.actorId,
-          createdAt: now,
-          effectiveFrom: now,
-          id: randomUUID(),
-          leadId: created.id,
-          reason: 'created',
-          tenantId: params.actor.tenantId,
-        });
-
-        return mapLead(created);
-      });
+          return mapLead(created);
+        })
+      );
     },
 
     async findById(params: { actor: CrmActorContext; leadId: string }) {
       // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before domain authorization
-      const lead = await database.query.crmLeads.findFirst({
-        where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),
-      });
+      const lead = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped.query.crmLeads.findFirst({
+            where: withTenant(
+              params.actor.tenantId,
+              crmLeads.tenantId,
+              eq(crmLeads.id, params.leadId)
+            ),
+          })
+      );
       return lead ? mapLead(lead) : null;
     },
 
@@ -250,19 +263,24 @@ export function createCrmLeadMutationRepository(
       // `crm_activities` is the write-side event source that CRM11 timeline reads project from.
       // Domain writes do not write timeline rows directly.
       // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context
-      const [created] = await database
-        .insert(crmActivities)
-        .values({
-          agentId: params.actor.actorId,
-          branchId,
-          id: params.activity.activityId,
-          leadId: params.activity.leadId,
-          occurredAt: new Date(params.activity.occurredAt),
-          summary: params.activity.summary,
-          tenantId: params.actor.tenantId,
-          type: params.activity.type,
-        })
-        .returning();
+      const [created] = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped
+            .insert(crmActivities)
+            .values({
+              agentId: params.actor.actorId,
+              branchId,
+              id: params.activity.activityId,
+              leadId: params.activity.leadId,
+              occurredAt: new Date(params.activity.occurredAt),
+              summary: params.activity.summary,
+              tenantId: params.actor.tenantId,
+              type: params.activity.type,
+            })
+            .returning()
+      );
       return mapActivity(created);
     },
 
@@ -276,43 +294,45 @@ export function createCrmLeadMutationRepository(
       if (!branchId) return null;
 
       const now = new Date();
-      return database.transaction(async tx => {
-        // db-access-guard: tenant-scoped -- reason: tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update
-        const [updated] = await tx
-          .update(crmLeads)
-          .set({
-            lostAt: params.stage === 'lost' ? now : null,
-            stage: params.stage,
-            updatedAt: now,
-            wonAt: params.stage === 'won' ? now : null,
-          })
-          .where(
-            and(
-              eq(crmLeads.id, params.leadId),
-              eq(crmLeads.tenantId, params.actor.tenantId),
-              eq(crmLeads.agentId, params.actor.actorId),
-              eq(crmLeads.branchId, branchId),
-              eq(crmLeads.stage, params.fromStage)
+      return runInCrmTenantContext(database, { tenantId: params.actor.tenantId }, async scoped =>
+        scoped.transaction(async tx => {
+          // db-access-guard: tenant-scoped -- reason: tenantId, agentId, durable branchId, and current stage from authorized CRM actor constrain update
+          const [updated] = await tx
+            .update(crmLeads)
+            .set({
+              lostAt: params.stage === 'lost' ? now : null,
+              stage: params.stage,
+              updatedAt: now,
+              wonAt: params.stage === 'won' ? now : null,
+            })
+            .where(
+              and(
+                eq(crmLeads.id, params.leadId),
+                eq(crmLeads.tenantId, params.actor.tenantId),
+                eq(crmLeads.agentId, params.actor.actorId),
+                eq(crmLeads.branchId, branchId),
+                eq(crmLeads.stage, params.fromStage)
+              )
             )
-          )
-          .returning();
+            .returning();
 
-        if (!updated) return null;
+          if (!updated) return null;
 
-        // db-access-guard: tenant-scoped -- reason: history row copies explicit tenantId from authorized CRM actor after scoped stage update
-        await tx.insert(crmLeadStageHistory).values({
-          changedById: params.actor.actorId,
-          createdAt: now,
-          fromStage: params.fromStage,
-          id: randomUUID(),
-          leadId: params.leadId,
-          occurredAt: now,
-          tenantId: params.actor.tenantId,
-          toStage: params.stage,
-        });
+          // db-access-guard: tenant-scoped -- reason: history row copies explicit tenantId from authorized CRM actor after scoped stage update
+          await tx.insert(crmLeadStageHistory).values({
+            changedById: params.actor.actorId,
+            createdAt: now,
+            fromStage: params.fromStage,
+            id: randomUUID(),
+            leadId: params.leadId,
+            occurredAt: now,
+            tenantId: params.actor.tenantId,
+            toStage: params.stage,
+          });
 
-        return mapLead(updated);
-      });
+          return mapLead(updated);
+        })
+      );
     },
 
     async transferOwnership(params: {
@@ -326,16 +346,30 @@ export function createCrmLeadMutationRepository(
     }) {
       try {
         if (!useTransaction) {
-          return await transferOwnershipInDatabase(database, params);
+          return await runInCrmTenantContext(
+            database,
+            { tenantId: params.actor.tenantId },
+            async scoped => transferOwnershipInDatabase(scoped, params)
+          );
         }
-        const targetIsValid = await hasValidTransferTarget(database, {
-          targetAgentId: params.targetAgentId,
-          targetBranchId: params.targetBranchId,
-          tenantId: params.actor.tenantId,
-        });
+        const targetIsValid = await runInCrmTenantContext(
+          database,
+          { tenantId: params.actor.tenantId },
+          async scoped =>
+            hasValidTransferTarget(scoped, {
+              targetAgentId: params.targetAgentId,
+              targetBranchId: params.targetBranchId,
+              tenantId: params.actor.tenantId,
+            })
+        );
         if (!targetIsValid) return null;
-        return await database.transaction(async tx =>
-          transferOwnershipInDatabase(tx as never, params, { validateTarget: false })
+        return await runInCrmTenantContext(
+          database,
+          { tenantId: params.actor.tenantId },
+          async scoped =>
+            scoped.transaction(async tx =>
+              transferOwnershipInDatabase(tx as never, params, { validateTarget: false })
+            )
         );
       } catch (error) {
         if (error instanceof MissingOpenOwnershipHistoryError) return null;

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => {
   const onConflictDoUpdate = vi.fn();
   const returning = vi.fn();
   const select = vi.fn();
-  const transaction = vi.fn();
+  const withTenantContext = vi.fn();
   const values = vi.fn();
   const where = vi.fn();
   return {
@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     onConflictDoUpdate,
     returning,
     select,
-    transaction,
+    withTenantContext,
     values,
     where,
   };
@@ -40,9 +40,9 @@ vi.mock('@interdomestik/database', () => ({
     staffId: 'claim.staff_id',
     tenantId: 'claim.tenant_id',
   },
-  db: { transaction: mocks.transaction },
   eq: (left: unknown, right: unknown) => ({ left, right }),
   noFeeEvidenceReasonCodes: ['no_recovery', 'not_billable_under_recovery_scope'],
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -84,7 +84,7 @@ describe('saveNoFeeEvidenceCore', () => {
     mocks.where.mockReturnValue({ limit: mocks.claimLimit });
     mocks.from.mockReturnValue({ where: mocks.where });
     mocks.select.mockReturnValue({ from: mocks.from });
-    mocks.transaction.mockImplementation(async cb =>
+    mocks.withTenantContext.mockImplementation(async (_context, cb) =>
       cb({ insert: mocks.insert, select: mocks.select })
     );
   });
@@ -103,6 +103,10 @@ describe('saveNoFeeEvidenceCore', () => {
     );
 
     expect(result).toMatchObject({ success: true, data: { claimId: 'claim-1' } });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.select).toHaveBeenCalled();
     expect(mocks.insert).toHaveBeenCalled();
     const [insertValues, conflict] = mocks.returning.mock.calls[0];
@@ -133,6 +137,6 @@ describe('saveNoFeeEvidenceCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized', data: undefined });
-    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 });

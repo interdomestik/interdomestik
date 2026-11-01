@@ -1,11 +1,11 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCommissionCore, createCommissionWithDispositionCore } from './create';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -16,8 +16,15 @@ vi.mock('@interdomestik/database', () => ({
     insert: vi.fn(() => ({
       values: vi.fn(),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(
+      async (_context: { tenantId: string }, action: (tx: typeof db) => Promise<unknown>) =>
+        action(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -67,6 +74,7 @@ describe('createCommissionCore', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('Missing tenantId for commission');
+    expect(withTenantContext).not.toHaveBeenCalled();
     expect(db.select).not.toHaveBeenCalled();
     expect(db.insert).not.toHaveBeenCalled();
   });
@@ -90,6 +98,7 @@ describe('createCommissionCore', () => {
       expect(result.data?.id).toBe('new-comm-id');
       expect(result.data?.created).toBe(true);
     }
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(db.insert).toHaveBeenCalled();
   });
 

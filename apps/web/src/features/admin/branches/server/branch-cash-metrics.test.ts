@@ -27,6 +27,9 @@ const mocks = vi.hoisted(() => {
   return {
     queryPlans,
     db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
     and: vi.fn((...conditions: unknown[]) => ({ conditions, op: 'and' })),
     count: vi.fn(() => ({ op: 'count' })),
     eq: vi.fn((left: unknown, right: unknown) => ({ left, right, op: 'eq' })),
@@ -34,8 +37,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: mocks.db,
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -81,6 +84,10 @@ describe('branch cash metrics', () => {
       getBranchCashPendingCount({ tenantId: 'tenant-1', branchId: 'branch-1' })
     ).resolves.toBe(2);
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.eq).toHaveBeenCalledWith('lead_payment_attempts.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.branch_id', 'branch-1');
@@ -106,6 +113,10 @@ describe('branch cash metrics', () => {
         ['branch-1', 3],
         ['branch-2', 1],
       ])
+    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
     );
     expect(mocks.eq).toHaveBeenCalledWith('lead_payment_attempts.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.tenant_id', 'tenant-1');

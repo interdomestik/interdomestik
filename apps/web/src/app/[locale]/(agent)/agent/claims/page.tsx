@@ -1,6 +1,7 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
 import { Link } from '@/i18n/routing';
-import { db } from '@/lib/db.server';
+import { withTenantContext } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
 import { getTranslations } from 'next-intl/server';
@@ -40,13 +41,16 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   const session = await getAuth();
   if (!session) redirect(`/${locale}/login`);
 
-  const result = await getAgentClaimsCore({
-    tenantId: session.user.tenantId,
-    userId: session.user.id,
-    role: session.user.role,
-    branchId: session.user.branchId,
-    db,
-  });
+  const tenantId = ensureTenantId(session);
+  const result = await withTenantContext({ tenantId }, tx =>
+    getAgentClaimsCore({
+      tenantId,
+      userId: session.user.id,
+      role: session.user.role,
+      branchId: session.user.branchId,
+      db: tx,
+    })
+  );
 
   if (!result.ok) {
     if (result.code === 'FORBIDDEN') return notFound();

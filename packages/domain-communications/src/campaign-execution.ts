@@ -1,6 +1,6 @@
 import { db, inArray, withTenantContext } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const USER_BATCH_SIZE = 500;
@@ -84,16 +84,21 @@ export async function getAlreadySentUserIdSet(args: {
 
   if (tenantGroups.length === 0) return sent;
 
-  const rows = await db.query.emailCampaignLogs.findMany({
-    where: and(
-      eq(emailCampaignLogs.campaignId, args.campaignId),
-      or(
-        ...tenantGroups.map(([tenantId, userIds]) =>
-          and(eq(emailCampaignLogs.tenantId, tenantId), inArray(emailCampaignLogs.userId, userIds))
-        )
+  // One tenant-scoped query per tenant group: each user's tenantId is already known here.
+  const rowGroups = await Promise.all(
+    tenantGroups.map(([tenantId, userIds]) =>
+      withTenantContext({ tenantId, role: 'system' }, tx =>
+        tx.query.emailCampaignLogs.findMany({
+          where: and(
+            eq(emailCampaignLogs.campaignId, args.campaignId),
+            eq(emailCampaignLogs.tenantId, tenantId),
+            inArray(emailCampaignLogs.userId, userIds)
+          ),
+        })
       )
-    ),
-  });
+    )
+  );
+  const rows = rowGroups.flat();
 
   for (const row of rows) {
     sent.add(`${row.tenantId}:${row.userId}`);
@@ -109,6 +114,7 @@ export async function getUsersBatch(args: {
   const limit = args.limit ?? USER_BATCH_SIZE;
 
   // Cursor pagination by primary key keeps memory stable and avoids huge offsets.
+  // BLOCKED(rc31-u2): cross-tenant by design: campaign cursor enumerates users across all tenants; needs privileged manifest entry or per-tenant loop
   // db-access-guard: system-exempt -- reason: campaign job enumerates tenants before per-row checks
   const users = await db.query.user.findMany({
     where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
@@ -338,6 +344,7 @@ export async function processStandardUserCampaign(
   await executeCampaign(
     campaignId,
     async afterId => {
+      // BLOCKED(rc31-u2): cross-tenant by design: campaign cron enumerates users across all tenants; needs privileged manifest entry or per-tenant loop
       // db-access-guard: system-exempt -- reason: campaign lifecycle job enumerates tenants before per-row checks
       const users = await db.query.user.findMany({
         where: (user, { between, and, gt }) =>

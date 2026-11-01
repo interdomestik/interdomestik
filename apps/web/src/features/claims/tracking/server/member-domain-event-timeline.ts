@@ -1,5 +1,14 @@
-import type { TenantTransaction } from '@interdomestik/database';
-import { and, claimStageHistory, db, desc, domainEvents, eq, sql } from '@interdomestik/database';
+import {
+  and,
+  claimStageHistory,
+  desc,
+  domainEvents,
+  eq,
+  sql,
+  withTenantContext,
+  type TenantTransaction,
+} from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
 import {
@@ -77,8 +86,15 @@ export function buildMemberTimelineFromDomainEvents(
 
 export async function getMemberTimelineFromDomainEvents(
   context: AuthorizedClaimTimelineContext,
-  database: TenantTransaction | typeof db = db
+  database?: TenantTransaction | typeof db
 ): Promise<ClaimTimelineEvent[]> {
+  if (!database) {
+    // The ambient client carries no tenant context, so run the read inside one.
+    return withTenantContext({ tenantId: context.tenantId }, tx =>
+      getMemberTimelineFromDomainEvents(context, tx)
+    );
+  }
+
   const rows = await database
     .select({
       aggregateVersion: domainEvents.aggregateVersion,

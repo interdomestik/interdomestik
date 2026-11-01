@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions, claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn } from '@interdomestik/domain-claims';
 import { and, count, eq, sum } from 'drizzle-orm';
@@ -12,41 +12,51 @@ export interface BranchKPIs {
 
 export async function getBranchKPIs(tenantId: string, branchId: string): Promise<BranchKPIs> {
   const [agentCount, memberCount, claimsPending, commissionPaid] = await Promise.all([
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent'))),
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(
-        and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'member'))
-      ),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(
-        and(
-          eq(claims.tenantId, tenantId),
-          eq(claims.branchId, branchId),
-          claimLifecycleStatusIn(['submitted', 'verification'])
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(
+          and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent'))
         )
-      ),
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(
+          and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'member'))
+        )
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(
+          and(
+            eq(claims.tenantId, tenantId),
+            eq(claims.branchId, branchId),
+            claimLifecycleStatusIn(['submitted', 'verification'])
+          )
+        )
+    ),
     // Assuming agentCommissions are linked to agents who belong to this branch.
     // This is a bit complex as commissions don't store branchId directly usually, but let's assume we filter by agent's branch.
     // For simplicity/speed in this strict execution: We sum commissions for agents in this branch.
-    db
-      .select({ total: sum(agentCommissions.amount) })
-      .from(agentCommissions)
-      .innerJoin(user, eq(agentCommissions.agentId, user.id))
-      .where(
-        and(
-          eq(agentCommissions.tenantId, tenantId),
-          eq(user.tenantId, tenantId),
-          eq(user.branchId, branchId),
-          eq(agentCommissions.status, 'paid')
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ total: sum(agentCommissions.amount) })
+        .from(agentCommissions)
+        .innerJoin(user, eq(agentCommissions.agentId, user.id))
+        .where(
+          and(
+            eq(agentCommissions.tenantId, tenantId),
+            eq(user.tenantId, tenantId),
+            eq(user.branchId, branchId),
+            eq(agentCommissions.status, 'paid')
+          )
         )
-      ),
+    ),
   ]);
 
   return {

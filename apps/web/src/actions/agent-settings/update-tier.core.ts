@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -26,24 +26,30 @@ export async function updateAgentTierCore(params: {
   }
 
   try {
-    const existing = await db.query.agentSettings?.findFirst({
-      where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
-    });
+    const existing = await withTenantContext({ tenantId }, async tx =>
+      tx.query.agentSettings?.findFirst({
+        where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
+      })
+    );
 
     if (existing) {
-      await db
-        .update(agentSettings)
-        .set({ tier, updatedAt: new Date() })
-        .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)));
+      await withTenantContext({ tenantId }, async tx =>
+        tx
+          .update(agentSettings)
+          .set({ tier, updatedAt: new Date() })
+          .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)))
+      );
     } else {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-      await db.insert(agentSettings).values({
-        id: nanoid(),
-        tenantId,
-        agentId,
-        tier,
-        commissionRates: {},
-      });
+      await withTenantContext({ tenantId }, async tx =>
+        tx.insert(agentSettings).values({
+          id: nanoid(),
+          tenantId,
+          agentId,
+          tier,
+          commissionRates: {},
+        })
+      );
     }
 
     return { success: true };

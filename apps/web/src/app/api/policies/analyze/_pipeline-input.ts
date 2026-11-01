@@ -25,6 +25,7 @@ export type ClaimedPolicyRun = {
 export async function claimPolicyExtractionRun(
   runId: string
 ): Promise<{ status: 'claimed'; run: ClaimedPolicyRun } | { status: 'skipped'; policyId: string }> {
+  // BLOCKED(rc31-u2): no canonical tenant -- queue worker resolves the run (and its tenant) from an opaque runId; needs a privileged lookup or tenant carried in the queue message.
   // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
   const [queuedRun] = await db
     .select({
@@ -54,6 +55,7 @@ export async function claimPolicyExtractionRun(
     );
 
   if (!queuedRun?.documentId || !queuedRun.policyId) {
+    // BLOCKED(rc31-u2): no canonical tenant -- opaque runId lookup with no tenant in scope.
     // db-access-guard: system-exempt -- reason: fallback resolves an already-failed deleted policy AI run by opaque runId after the active-document join intentionally returns no row
     const [deletedRun] = await db
       .select({

@@ -1,5 +1,5 @@
 import { isProductionDeployment } from '@/lib/runtime-environment';
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import * as schema from '@interdomestik/database/schema';
 import { createHash } from 'crypto';
 import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
@@ -80,17 +80,19 @@ export async function logAuditEvent(params: {
   // Log access for each document in the pack
   for (const documentId of ids) {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await db.insert(schema.documentAccessLog).values({
-      id: nanoid(),
-      tenantId,
-      documentId,
-      accessType: 'share',
-      accessedBy: accessedBy ?? null,
-      accessedAt: new Date(),
-      ipAddress: ipAddress ?? null,
-      userAgent: userAgent ?? null,
-      shareToken: hashedShareToken,
-    });
+    await withTenantContext({ tenantId }, async tx =>
+      tx.insert(schema.documentAccessLog).values({
+        id: nanoid(),
+        tenantId,
+        documentId,
+        accessType: 'share',
+        accessedBy: accessedBy ?? null,
+        accessedAt: new Date(),
+        ipAddress: ipAddress ?? null,
+        userAgent: userAgent ?? null,
+        shareToken: hashedShareToken,
+      })
+    );
   }
 }
 
@@ -102,10 +104,12 @@ export async function createSharePack(params: {
   const { tenantId, userId, documentIds } = params;
 
   // Verify all documents belong to this tenant
-  const docsExport = await db
-    .select({ id: schema.documents.id })
-    .from(schema.documents)
-    .where(and(eq(schema.documents.tenantId, tenantId)));
+  const docsExport = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ id: schema.documents.id })
+      .from(schema.documents)
+      .where(and(eq(schema.documents.tenantId, tenantId)))
+  );
 
   const validDocIds = new Set(docsExport.map(d => d.id));
   const allValid = documentIds.every(id => validDocIds.has(id));
@@ -129,7 +133,9 @@ export async function createSharePack(params: {
   packValues['document' + 'Ids'] = documentIds;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated share-pack request before pack insert
-  await db.insert(schema.sharePacks).values(packValues);
+  await withTenantContext({ tenantId }, async tx =>
+    tx.insert(schema.sharePacks).values(packValues)
+  );
 
   const token = generateShareToken({ packId, tenantId });
 
@@ -150,30 +156,34 @@ export async function getSharePack(params: { token: string }) {
   const { packId, tenantId } = payload;
 
   // Verify pack exists and is not expired/revoked
-  const pack = await db.query.sharePacks.findFirst({
-    where: and(
-      eq(schema.sharePacks.id, packId),
-      eq(schema.sharePacks.tenantId, tenantId),
-      gt(schema.sharePacks.expiresAt, new Date()),
-      isNull(schema.sharePacks.revokedAt)
-    ),
-  });
+  const pack = await withTenantContext({ tenantId }, async tx =>
+    tx.query.sharePacks.findFirst({
+      where: and(
+        eq(schema.sharePacks.id, packId),
+        eq(schema.sharePacks.tenantId, tenantId),
+        gt(schema.sharePacks.expiresAt, new Date()),
+        isNull(schema.sharePacks.revokedAt)
+      ),
+    })
+  );
 
   if (!pack) {
     return null;
   }
 
   // Fetch documents with tenant scoping
-  const docs = await db
-    .select()
-    .from(schema.documents)
-    .where(
-      and(
-        eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
+  const docs = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select()
+      .from(schema.documents)
+      .where(
+        and(
+          eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
+        )
       )
-    );
+  );
 
   return {
     pack,

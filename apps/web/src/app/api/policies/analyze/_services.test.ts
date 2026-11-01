@@ -10,9 +10,14 @@ const mocks = vi.hoisted(() => {
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const txExecute = vi.fn();
-  type Tx = { execute: typeof txExecute; insert: typeof txInsert; update: typeof txUpdate };
+  type Tx = {
+    execute: typeof txExecute;
+    insert: typeof txInsert;
+    select: typeof select;
+    update: typeof txUpdate;
+  };
   const transaction = vi.fn(async (callback: (tx: Tx) => Promise<unknown>) =>
-    callback({ execute: txExecute, insert: txInsert, update: txUpdate })
+    callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
   );
 
   const selectWhere = vi.fn();
@@ -55,7 +60,7 @@ const mocks = vi.hoisted(() => {
       async (
         _context: { tenantId: string; role?: string },
         callback: (tx: Tx) => Promise<unknown>
-      ) => callback({ execute: txExecute, insert: txInsert, update: txUpdate })
+      ) => callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
     ),
   };
 });

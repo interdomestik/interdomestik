@@ -1,4 +1,4 @@
-import { crmActivities, db, desc, eq } from '@interdomestik/database';
+import { crmActivities, desc, eq, withTenantContext } from '@interdomestik/database';
 import { and } from 'drizzle-orm';
 
 import { mapLeadActivitiesToFeedRows } from './map-lead';
@@ -27,27 +27,29 @@ export async function getLeadActivitiesCore(params: {
   const effectiveLimit = Math.min(limit ?? MAX_ACTIVITIES, MAX_ACTIVITIES);
 
   try {
-    const activities = await db.query.crmActivities.findMany({
-      where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, tenantId)),
-      columns: {
-        agentId: true,
-        completedAt: true,
-        createdAt: true,
-        id: true,
-        leadId: true,
-        scheduledAt: true,
-        summary: true,
-        tenantId: true,
-        type: true,
-      },
-      orderBy: [desc(crmActivities.createdAt)],
-      limit: effectiveLimit,
-      with: {
-        agent: {
-          columns: { id: true, name: true, email: true },
+    const activities = await withTenantContext({ tenantId }, tx =>
+      tx.query.crmActivities.findMany({
+        where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, tenantId)),
+        columns: {
+          agentId: true,
+          completedAt: true,
+          createdAt: true,
+          id: true,
+          leadId: true,
+          scheduledAt: true,
+          summary: true,
+          tenantId: true,
+          type: true,
         },
-      },
-    });
+        orderBy: [desc(crmActivities.createdAt)],
+        limit: effectiveLimit,
+        with: {
+          agent: {
+            columns: { id: true, name: true, email: true },
+          },
+        },
+      })
+    );
 
     return mapLeadActivitiesToFeedRows(activities);
   } catch (error) {

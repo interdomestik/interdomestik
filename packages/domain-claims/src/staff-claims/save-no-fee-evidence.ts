@@ -1,4 +1,4 @@
-import { claimRecoveryNoFeeEvidence, claims, db } from '@interdomestik/database';
+import { claimRecoveryNoFeeEvidence, claims, withTenantContext } from '@interdomestik/database';
 import { z } from 'zod';
 import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
 import {
@@ -52,7 +52,7 @@ export async function saveNoFeeEvidenceCore(
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values and where clause.
-    const result = await db.transaction(async tx => {
+    const result = await withTenantContext({ tenantId: scopeArgs.tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: buildScopedStaffClaimWhere includes tenant, claim, branch, and staff scope.
       const [claim] = await tx
         .select({ id: claims.id })

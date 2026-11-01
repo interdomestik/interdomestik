@@ -20,23 +20,30 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  claims: {
-    id: 'claims.id',
-    staffId: 'claims.staff_id',
-    status: 'claims.status',
-    tenantId: 'claims.tenant_id',
-    title: 'claims.title',
-    userId: 'claims.user_id',
-  },
-  db: {
-    select: mocks.dbSelect,
-    update: mocks.dbUpdate,
-  },
-  relayClaimStatusAuditProjectionEvents: vi.fn(),
-  eq: vi.fn((left, right) => ({ left, right })),
-  user: { email: 'user.email', id: 'user.id' },
-}));
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    claims: {
+      id: 'claims.id',
+      staffId: 'claims.staff_id',
+      status: 'claims.status',
+      tenantId: 'claims.tenant_id',
+      title: 'claims.title',
+      userId: 'claims.user_id',
+    },
+    db: {
+      select: mocks.dbSelect,
+      update: mocks.dbUpdate,
+    },
+    relayClaimStatusAuditProjectionEvents: vi.fn(),
+    eq: vi.fn((left, right) => ({ left, right })),
+    user: { email: 'user.email', id: 'user.id' },
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(moduleMock.db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
@@ -123,7 +130,8 @@ describe('agent updateClaimStatusCore', () => {
         'member@example.com',
         { id: 'claim-1', title: 'Claim' },
         'submitted',
-        'negotiation'
+        'negotiation',
+        { tenantId: 'tenant-1' }
       )
     );
   });

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -36,42 +36,48 @@ export async function updateNotificationPreferencesCore(params: {
   }
 
   try {
-    const [existing] = await db
-      .select()
-      .from(userNotificationPreferences)
-      .where(
-        withTenant(
-          tenantId,
-          userNotificationPreferences.tenantId,
-          eq(userNotificationPreferences.userId, session.user.id)
-        )
-      )
-      .limit(1);
-
-    if (existing) {
-      await db
-        .update(userNotificationPreferences)
-        .set({
-          ...preferences,
-          updatedAt: new Date(),
-        })
+    const [existing] = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select()
+        .from(userNotificationPreferences)
         .where(
           withTenant(
             tenantId,
             userNotificationPreferences.tenantId,
             eq(userNotificationPreferences.userId, session.user.id)
           )
-        );
+        )
+        .limit(1)
+    );
+
+    if (existing) {
+      await withTenantContext({ tenantId }, async tx =>
+        tx
+          .update(userNotificationPreferences)
+          .set({
+            ...preferences,
+            updatedAt: new Date(),
+          })
+          .where(
+            withTenant(
+              tenantId,
+              userNotificationPreferences.tenantId,
+              eq(userNotificationPreferences.userId, session.user.id)
+            )
+          )
+      );
     } else {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session before preference insert
-      await db.insert(userNotificationPreferences).values({
-        id: nanoid(),
-        tenantId,
-        userId: session.user.id,
-        ...preferences,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      await withTenantContext({ tenantId }, async tx =>
+        tx.insert(userNotificationPreferences).values({
+          id: nanoid(),
+          tenantId,
+          userId: session.user.id,
+          ...preferences,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
     }
 
     return { success: true };

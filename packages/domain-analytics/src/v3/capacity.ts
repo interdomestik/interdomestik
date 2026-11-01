@@ -11,12 +11,14 @@ export interface AgentCapacityResult {
 export async function getAgentCapacitySignal(agentId: string): Promise<AgentCapacityResult> {
   // Signals: Total Active Clients + Claims touched in last 30d
 
+  // BLOCKED(rc31-u2): no tenant at call site (agentId only) and cross-tenant analytics aggregate; needs privileged manifest or tenantId parameter
   // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [clients] = await db
     .select({ count: count() })
     .from(agentClients)
     .where(and(eq(agentClients.agentId, agentId), eq(agentClients.status, 'active')));
 
+  // BLOCKED(rc31-u2): no tenant at call site (agentId only) and cross-tenant analytics aggregate; needs privileged manifest or tenantId parameter
   // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
   const [recentClaims] = await db
     .select({ count: count() })

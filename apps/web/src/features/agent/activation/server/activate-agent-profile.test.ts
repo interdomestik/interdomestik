@@ -7,12 +7,11 @@ const hoisted = vi.hoisted(() => ({
   set: vi.fn(),
   update: vi.fn(),
   where: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    update: hoisted.update,
-  },
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -32,6 +31,10 @@ import { activateAgentUserProfile } from './activate-agent-profile';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback({ update: hoisted.update })
+  );
   hoisted.update.mockReturnValue({ set: hoisted.set });
   hoisted.set.mockReturnValue({ where: hoisted.where });
   hoisted.where.mockReturnValue({ returning: hoisted.returning });
@@ -49,6 +52,10 @@ describe('activateAgentUserProfile', () => {
       })
     ).resolves.toBeUndefined();
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.set).toHaveBeenCalledWith(
       expect.objectContaining({
         role: 'agent',

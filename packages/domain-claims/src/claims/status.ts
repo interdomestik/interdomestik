@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -78,10 +78,12 @@ export async function updateClaimStatusCore(
   const tenantId = ensureTenantId(session);
 
   try {
-    const claim = await db.query.claims.findFirst({
-      where: (claimsTable, { eq }) =>
-        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-    });
+    const claim = await withTenantContext({ tenantId }, tx =>
+      tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+      })
+    );
 
     if (!claim) {
       return { success: false, error: 'Claim not found', data: undefined };
@@ -106,10 +108,13 @@ export async function updateClaimStatusCore(
     await activateClaimStatusAuditProjection({ deps, tenantId });
 
     if (claim.userId && oldStatus !== persistedStatus && deps.notifyStatusChanged) {
-      const member = await db.query.user.findFirst({
-        where: (userTable, { eq }) =>
-          withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
-      });
+      const claimOwnerId = claim.userId;
+      const member = await withTenantContext({ tenantId }, tx =>
+        tx.query.user.findFirst({
+          where: (userTable, { eq }) =>
+            withTenant(tenantId, userTable.tenantId, eq(userTable.id, claimOwnerId)),
+        })
+      );
 
       if (member?.email) {
         Promise.resolve(
@@ -118,7 +123,8 @@ export async function updateClaimStatusCore(
             member.email,
             { id: claimId, title: claim.title },
             oldStatus,
-            persistedStatus
+            persistedStatus,
+            { tenantId }
           )
         ).catch((err: Error) => console.error('Failed to send status change notification:', err));
       }

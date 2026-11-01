@@ -45,11 +45,19 @@ const hoisted = vi.hoisted(() => {
       })
   );
 
+  const withTenantContext = vi.fn(
+    async (
+      _context: { tenantId: string },
+      callback: (tx: { select: typeof select; update: typeof txUpdate }) => Promise<unknown>
+    ) => callback({ select, update: txUpdate })
+  );
+
   return {
     db: {
       select,
       transaction,
     },
+    withTenantContext,
     policyExtractSchema: {
       safeParse: vi.fn((value: unknown) => ({ success: true as const, data: value })),
     },
@@ -60,11 +68,8 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/lib/db.server', () => ({
-  db: hoisted.db,
-}));
-
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
   and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
 }));
@@ -120,6 +125,11 @@ describe('submitAiReview', () => {
         reviewStatus: 'corrected',
       },
     });
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.txUpdateWhere).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({

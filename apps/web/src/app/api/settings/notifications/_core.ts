@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -31,16 +31,18 @@ export async function getNotificationPreferencesCore(args: {
   }
   const resolvedTenantId = tenantId;
 
-  const [preferences] = await db
-    .select()
-    .from(userNotificationPreferences)
-    .where(
-      and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, resolvedTenantId)
+  const [preferences] = await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+    tx
+      .select()
+      .from(userNotificationPreferences)
+      .where(
+        and(
+          eq(userNotificationPreferences.userId, userId),
+          eq(userNotificationPreferences.tenantId, resolvedTenantId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   if (!preferences) return DEFAULT_NOTIFICATION_PREFERENCES;
 
@@ -65,41 +67,47 @@ export async function upsertNotificationPreferencesCore(args: {
   }
   const resolvedTenantId = tenantId;
 
-  const [existing] = await db
-    .select()
-    .from(userNotificationPreferences)
-    .where(
-      and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, resolvedTenantId)
-      )
-    )
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(userNotificationPreferences)
-      .set({
-        ...preferences,
-        updatedAt: new Date(),
-      })
+  const [existing] = await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+    tx
+      .select()
+      .from(userNotificationPreferences)
       .where(
         and(
           eq(userNotificationPreferences.userId, userId),
           eq(userNotificationPreferences.tenantId, resolvedTenantId)
         )
-      );
+      )
+      .limit(1)
+  );
+
+  if (existing) {
+    await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+      tx
+        .update(userNotificationPreferences)
+        .set({
+          ...preferences,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(userNotificationPreferences.userId, userId),
+            eq(userNotificationPreferences.tenantId, resolvedTenantId)
+          )
+        )
+    );
 
     return;
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before preference insert
-  await db.insert(userNotificationPreferences).values({
-    id: nanoid(),
-    tenantId: resolvedTenantId,
-    userId,
-    ...preferences,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+    tx.insert(userNotificationPreferences).values({
+      id: nanoid(),
+      tenantId: resolvedTenantId,
+      userId,
+      ...preferences,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+  );
 }

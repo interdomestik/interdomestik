@@ -1,4 +1,4 @@
-import { db, memberActivities, user } from '@interdomestik/database';
+import { db, memberActivities, user, withTenantContext } from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -36,6 +36,7 @@ export async function logActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
+  const tenantId = session.user.tenantId;
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
@@ -50,11 +51,13 @@ export async function logActivityCore(params: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const member = await db.query.user.findFirst({
-      where: eq(user.id, memberId),
-    });
+    const member = await withTenantContext({ tenantId }, tx =>
+      tx.query.user.findFirst({
+        where: eq(user.id, memberId),
+      })
+    );
 
-    if (!member || member.tenantId !== session.user.tenantId) {
+    if (!member || member.tenantId !== tenantId) {
       return { success: false, error: 'Member access denied' };
     }
 
@@ -64,7 +67,7 @@ export async function logActivityCore(params: {
 
     const newActivity = {
       id: nanoid(),
-      tenantId: session.user.tenantId,
+      tenantId,
       agentId: session.user.id,
       memberId,
       type,
@@ -76,7 +79,7 @@ export async function logActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(memberActivities).values(newActivity);
+    await withTenantContext({ tenantId }, tx => tx.insert(memberActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

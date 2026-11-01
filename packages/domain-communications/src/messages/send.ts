@@ -12,7 +12,7 @@ export type SendMessageDbCoreResult =
   | {
       success: true;
       message: MessageWithSender;
-      claim: { id: string; title: string; userId: string };
+      claim: { id: string; title: string; userId: string; tenantId: string };
       isInternal: boolean;
       isStaff: boolean;
       claimOwnerEmail: string | null;
@@ -161,7 +161,7 @@ export async function sendMessageDbCore(params: {
         return {
           success: true,
           message: createdMessage,
-          claim: { id: claimId, title: claim.title, userId: claim.userId },
+          claim: { id: claimId, title: claim.title, userId: claim.userId, tenantId },
           isInternal,
           isStaff,
           claimOwnerEmail,

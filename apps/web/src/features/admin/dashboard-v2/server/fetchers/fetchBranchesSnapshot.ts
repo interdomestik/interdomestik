@@ -1,29 +1,31 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { branches, user } from '@interdomestik/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 
 export async function fetchBranchesSnapshot(tenantId: string) {
-  const allBranches = await db
-    .select()
-    .from(branches)
-    .where(eq(branches.tenantId, tenantId))
-    .limit(5);
+  const allBranches = await withTenantContext({ tenantId }, tx =>
+    tx.select().from(branches).where(eq(branches.tenantId, tenantId)).limit(5)
+  );
 
   const branchesData = await Promise.all(
     allBranches.map(async b => {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [active] = await db
-        .select({ count: count() })
-        .from(user)
-        .where(
-          and(
-            eq(user.branchId, b.id),
-            eq(user.role, 'member') // Assuming 'active' implies role classification for now
+      const [active] = await withTenantContext({ tenantId }, tx =>
+        tx
+          .select({ count: count() })
+          .from(user)
+          .where(
+            and(
+              eq(user.branchId, b.id),
+              eq(user.role, 'member') // Assuming 'active' implies role classification for now
+            )
           )
-        );
+      );
 
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [total] = await db.select({ count: count() }).from(user).where(eq(user.branchId, b.id));
+      const [total] = await withTenantContext({ tenantId }, tx =>
+        tx.select({ count: count() }).from(user).where(eq(user.branchId, b.id))
+      );
 
       return {
         id: b.id,

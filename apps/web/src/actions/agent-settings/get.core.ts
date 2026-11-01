@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -26,9 +26,11 @@ export async function getAgentSettingsCore(params: {
   }
 
   try {
-    const settings = await db.query.agentSettings?.findFirst({
-      where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
-    });
+    const settings = await withTenantContext({ tenantId }, async tx =>
+      tx.query.agentSettings?.findFirst({
+        where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
+      })
+    );
 
     if (!settings) {
       return { success: true, data: null };

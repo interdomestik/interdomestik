@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  withTenantContext: vi.fn(),
   locale: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
@@ -13,6 +14,7 @@ import { baseParams } from './getMemberVaultConsentDisplay.test-support';
 
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
+  withTenantContext: hoisted.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantLocaleMetadata: hoisted.locale,
@@ -32,7 +34,13 @@ vi.mock('drizzle-orm', () => ({
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 
 describe('getMemberVaultConsentDisplay gates', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ select: hoisted.select })
+    );
+  });
 
   it.each([
     [[], { kind: 'hidden' }],
@@ -44,6 +52,7 @@ describe('getMemberVaultConsentDisplay gates', () => {
     await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual(expected);
     expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('stops an ineligible claim before document reads', async () => {

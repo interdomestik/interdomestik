@@ -1,4 +1,4 @@
-import { db, inArray, user } from '@interdomestik/database';
+import { inArray, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 
@@ -11,10 +11,12 @@ export async function getStaffCore(params: { session: UserSession | null }) {
   const scope = scopeFilter(session as unknown as SessionWithTenant);
   const tenantId = scope.tenantId;
 
-  const staff = await db.query.user.findMany({
-    where: withTenant(tenantId, user.tenantId, inArray(user.role, ['staff', 'admin'])),
-    orderBy: (users, { asc }) => [asc(users.name)],
-  });
+  const staff = await withTenantContext({ tenantId }, tx =>
+    tx.query.user.findMany({
+      where: withTenant(tenantId, user.tenantId, inArray(user.role, ['staff', 'admin'])),
+      orderBy: (users, { asc }) => [asc(users.name)],
+    })
+  );
 
   return staff;
 }

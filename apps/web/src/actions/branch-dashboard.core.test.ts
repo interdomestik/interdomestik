@@ -23,6 +23,16 @@ vi.mock('@interdomestik/database/db', () => ({
   db: mockDb,
 }));
 
+const mockWithTenantContext = vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+  callback(mockDb)
+);
+
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  withTenantContext: (context: unknown, callback: (tx: unknown) => unknown) =>
+    mockWithTenantContext(context, callback),
+}));
+
 vi.mock('@interdomestik/database/schema', () => ({
   branches: { id: 'branches.id', tenantId: 'branches.tenantId' },
   user: {
@@ -111,6 +121,10 @@ describe('Branch Dashboard Core', () => {
       await getBranchById('branch-1', 'wrong-tenant');
 
       expect(mockDb.query.branches.findFirst).toHaveBeenCalled();
+      expect(mockWithTenantContext).toHaveBeenCalledWith(
+        { tenantId: 'wrong-tenant' },
+        expect.any(Function)
+      );
     });
   });
 

@@ -8,18 +8,25 @@ const mocks = vi.hoisted(() => ({
   withTenant: vi.fn(() => ({ scoped: true })),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: { findFirst: mocks.findFirst },
-      user: { findFirst: mocks.userFindFirst },
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    db: {
+      query: {
+        claims: { findFirst: mocks.findFirst },
+        user: { findFirst: mocks.userFindFirst },
+      },
     },
-  },
-  relayClaimStatusAuditProjectionEvents: vi.fn(),
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-  user: { id: 'user.id', tenantId: 'user.tenant_id' },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+    relayClaimStatusAuditProjectionEvents: vi.fn(),
+    claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
+    user: { id: 'user.id', tenantId: 'user.tenant_id' },
+    eq: vi.fn((left, right) => ({ left, right })),
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(moduleMock.db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
 vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: vi.fn(() => 'tenant-1') }));
@@ -124,7 +131,8 @@ describe('updateClaimStatusCore', () => {
       'member@example.com',
       { id: 'claim-1', title: 'Test Claim' },
       'draft',
-      'negotiation'
+      'negotiation',
+      { tenantId: 'tenant-1' }
     );
     expect(deps.revalidatePath).toHaveBeenCalledWith('/admin/claims');
   });

@@ -36,6 +36,7 @@ export async function runDunningCronCore(args: {
       conditions.push(gt(subscriptions.id, afterId));
     }
 
+    // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
     // db-access-guard: system-exempt -- reason: dunning cron enumerates tenants before per-row scoped writes
     const pastDueSubscriptions = await db.query.subscriptions.findMany({
       where: and(...conditions),
@@ -93,9 +94,11 @@ async function processDunningSubscription(params: {
   const emailType = determineDunningEmailType(daysRemaining, daysSinceFailed);
   if (!emailType) return;
 
-  const userRecord = await db.query.user.findFirst({
-    where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
-  });
+  const userRecord = await withTenantContext({ tenantId: sub.tenantId, role: 'system' }, tx =>
+    tx.query.user.findFirst({
+      where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
+    })
+  );
 
   if (!userRecord?.email) return;
 

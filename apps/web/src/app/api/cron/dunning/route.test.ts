@@ -69,7 +69,7 @@ describe('GET /api/cron/dunning', () => {
     h.txUpdate.mockReturnValue({ set: h.txSet });
     h.txSet.mockReturnValue({ where: h.txWhere });
     h.txWhere.mockResolvedValue(undefined);
-    h.withTenantContext.mockImplementation(async (_context: { tenantId: string; role: string }, action: (tx: unknown) => Promise<void>) => await action({ update: h.txUpdate }));
+    h.withTenantContext.mockImplementation(async (_context: { tenantId: string; role: string }, action: (tx: unknown) => Promise<void>) => await action({ update: h.txUpdate, query: { user: { findFirst: h.findFirstUser } } }));
     const { runDunningCronCore } = await vi.importActual<typeof import('./_core')>('./_core');
     const now = new Date('2026-01-08T00:00:00.000Z');
     await runDunningCronCore({ headers: new Headers(), now });

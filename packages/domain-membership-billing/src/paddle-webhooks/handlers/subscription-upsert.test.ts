@@ -10,8 +10,8 @@ const hoisted = vi.hoisted(() => {
     appendEvent: vi.fn(),
     db: {
       query: { subscriptions: { findFirst: vi.fn() } },
-      transaction: vi.fn(async callback => callback(tx)),
     },
+    withTenantContext: vi.fn(async (_context, callback) => callback(tx)),
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
     returning,
     set,
@@ -27,6 +27,7 @@ vi.mock('@interdomestik/database', () => ({
   db: hoisted.db,
   eq: hoisted.eq,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));
@@ -55,6 +56,10 @@ describe('upsertSubscription tenant-scoped update guard', () => {
       })
     ).rejects.toThrow('update matched no tenant-scoped row');
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_abc' },
+      expect.any(Function)
+    );
     expect(hoisted.set).toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
   });

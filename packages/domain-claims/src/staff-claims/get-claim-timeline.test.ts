@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
   claimStageHistory: mocks.claimStageHistory,
   eq: mocks.eq,
   and: mocks.and,
@@ -37,6 +38,7 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
+import { withTenantContext } from '@interdomestik/database';
 import { getClaimTimeline } from './get-claim-timeline';
 
 describe('getClaimTimeline', () => {
@@ -54,6 +56,7 @@ describe('getClaimTimeline', () => {
     const result = await getClaimTimeline({ tenantId: 'tenant-ks', claimId: 'claim-1' });
 
     expect(result).toEqual([]);
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-ks' }, expect.any(Function));
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-ks',
       mocks.claimStageHistory.tenantId,

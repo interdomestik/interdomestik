@@ -43,7 +43,8 @@ export type ClaimsDeps = {
   notifyClaimSubmitted?: (
     userId: string,
     email: string,
-    claim: { id: string; title: string; category: string }
+    claim: { id: string; title: string; category: string },
+    options: { tenantId: string }
   ) => unknown;
   notifyStatusChanged?: (
     userId: string,
@@ -51,20 +52,21 @@ export type ClaimsDeps = {
     claim: { id: string; title: string },
     oldStatus: string,
     newStatus: string,
-    options?: { tenantId?: string | null }
+    options: { tenantId: string }
   ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
-    agentName: string
+    agentName: string,
+    options: { tenantId: string }
   ) => unknown;
   notifyRecoveryDecision?: (
     userId: string,
     email: string,
     claim: { id: string; title: string },
     decisionType: 'accepted' | 'declined',
-    options?: { tenantId?: string | null }
+    options: { tenantId: string }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;
   markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void> | void;

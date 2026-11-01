@@ -21,6 +21,9 @@ const dbMock = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: vi.fn((...conditions: unknown[]) => conditions),
   db: { select: dbMock.select },
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    cb({ select: dbMock.select })
+  ),
   eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
   userRoles: {
     id: 'id',

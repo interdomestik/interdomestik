@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import * as schema from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -74,20 +74,22 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
 
   // Insert document record
   // db-access-guard: tenant-scoped -- reason: tenantId validated before storage path and document insert
-  await db.insert(schema.documents).values({
-    id: documentId,
-    tenantId,
-    entityType,
-    entityId,
-    fileName,
-    mimeType,
-    fileSize,
-    storagePath,
-    category,
-    description: description ?? null,
-    uploadedBy,
-    uploadedAt: new Date(),
-  });
+  await withTenantContext({ tenantId }, tx =>
+    tx.insert(schema.documents).values({
+      id: documentId,
+      tenantId,
+      entityType,
+      entityId,
+      fileName,
+      mimeType,
+      fileSize,
+      storagePath,
+      category,
+      description: description ?? null,
+      uploadedBy,
+      uploadedAt: new Date(),
+    })
+  );
 
   // Log audit event for the upload
   await logAuditEvent({
@@ -127,20 +129,22 @@ export async function getDocumentsForEntity(params: {
   const { tenantId, entityType, entityId } = params;
 
   // Query MUST include tenantId in WHERE clause
-  const docs = await db
-    .select()
-    .from(schema.documents)
-    .where(
-      and(
-        eq(schema.documents.tenantId, tenantId),
-        eq(
-          schema.documents.entityType,
-          entityType as 'claim' | 'member' | 'policy' | 'thread' | 'share_pack'
-        ),
-        eq(schema.documents.entityId, entityId),
-        isNull(schema.documents.deletedAt)
+  const docs = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select()
+      .from(schema.documents)
+      .where(
+        and(
+          eq(schema.documents.tenantId, tenantId),
+          eq(
+            schema.documents.entityType,
+            entityType as 'claim' | 'member' | 'policy' | 'thread' | 'share_pack'
+          ),
+          eq(schema.documents.entityId, entityId),
+          isNull(schema.documents.deletedAt)
+        )
       )
-    );
+  );
 
   return docs;
 }

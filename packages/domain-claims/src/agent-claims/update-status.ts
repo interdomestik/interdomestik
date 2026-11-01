@@ -1,4 +1,4 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import { claims, eq, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -53,17 +53,19 @@ export async function updateClaimStatusCore(
   const tenantId = ensureTenantId(session);
 
   // Fetch claim with user info before update
-  const [claimWithUser] = await db
-    .select({
-      id: claims.id,
-      title: claims.title,
-      staffId: claims.staffId,
-      userId: claims.userId,
-      userEmail: user.email,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  const [claimWithUser] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        id: claims.id,
+        title: claims.title,
+        staffId: claims.staffId,
+        userId: claims.userId,
+        userEmail: user.email,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id))
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+  );
 
   if (!claimWithUser) {
     return { success: false, error: 'Claim not found', data: undefined };
@@ -107,7 +109,8 @@ export async function updateClaimStatusCore(
         claimWithUser.userEmail,
         { id: claimWithUser.id, title: claimWithUser.title },
         oldStatus,
-        persistedStatus
+        persistedStatus,
+        { tenantId }
       )
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }

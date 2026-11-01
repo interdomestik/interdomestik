@@ -12,14 +12,19 @@ const hoisted = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: hoisted.and,
-  db: { query: { subscriptions: { findFirst: hoisted.findSubscriptionFirst } } },
-  eq: hoisted.eq,
-  or: hoisted.or,
-  subscriptions: hoisted.subscriptions,
-}));
+vi.mock('@interdomestik/database', () => {
+  const db = { query: { subscriptions: { findFirst: hoisted.findSubscriptionFirst } } };
+  return {
+    and: hoisted.and,
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    eq: hoisted.eq,
+    or: hoisted.or,
+    subscriptions: hoisted.subscriptions,
+  };
+});
 
+import { withTenantContext } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from './subscription';
 
 type FindFirstArgs = {
@@ -57,6 +62,10 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
     await expect(
       findSubscriptionByProviderReference('sub_provider_123', { tenantId: 'tenant_abc' })
     ).resolves.toEqual({ id: 'sub_internal_1', tenantId: 'tenant_abc' });
+    expect(withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_abc' },
+      expect.any(Function)
+    );
   });
 
   it('keeps the payment-provider fallback lookup unscoped when tenant is unknown', async () => {

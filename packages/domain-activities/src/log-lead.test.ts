@@ -6,17 +6,11 @@ const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   values: vi.fn(),
   nanoid: vi.fn(() => 'ACT-123'),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      crmLeads: {
-        findFirst: mocks.findLead,
-      },
-    },
-    insert: mocks.insert,
-  },
+  withTenantContext: mocks.withTenantContext,
   crmActivities: {
     id: 'crmActivities.id',
     leadId: 'crmActivities.leadId',
@@ -33,6 +27,13 @@ vi.mock('nanoid', () => ({
 describe('logLeadActivityCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({
+          query: { crmLeads: { findFirst: mocks.findLead } },
+          insert: mocks.insert,
+        })
+    );
     mocks.findLead.mockResolvedValue({
       id: 'lead-1',
       tenantId: 't1',
@@ -120,6 +121,7 @@ describe('logLeadActivityCore', () => {
     });
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 't1' }, expect.any(Function));
     expect(mocks.insert).toHaveBeenCalled();
     const inserted = mocks.values.mock.calls[0][0];
     expect(inserted).toMatchObject({

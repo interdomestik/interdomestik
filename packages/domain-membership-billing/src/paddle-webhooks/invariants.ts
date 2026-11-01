@@ -1,4 +1,9 @@
-import { billingInvoices, billingLedgerEntries, db, sql } from '@interdomestik/database';
+import {
+  billingInvoices,
+  billingLedgerEntries,
+  sql,
+  withTenantContext,
+} from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
 import type { BillingEntity } from '../paddle-server';
@@ -107,7 +112,7 @@ export async function persistInvoiceAndLedgerInvariants(
   const subscriptionId = normalizeText(params.storedSubscriptionId);
 
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  const result = await db.transaction(async tx => {
+  const result = await withTenantContext({ tenantId }, async tx => {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const invoiceRows = await tx
       .insert(billingInvoices)

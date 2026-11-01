@@ -111,6 +111,10 @@ const hoisted = vi.hoisted(() => {
       return { id: params.id };
     }),
     db: { transaction: vi.fn(transaction) },
+    withTenantContext: vi.fn(
+      (_context: { tenantId: string }, callback: (tx: unknown) => Promise<unknown>) =>
+        transaction(callback)
+    ),
   };
 });
 
@@ -123,6 +127,7 @@ vi.mock('@interdomestik/database', () => ({
   inArray: hoisted.inArray,
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
+  withTenantContext: hoisted.withTenantContext,
   webhookEvents: hoisted.webhookEvents,
 }));
 vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));

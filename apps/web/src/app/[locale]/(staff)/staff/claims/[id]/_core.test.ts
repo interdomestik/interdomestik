@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,38 +8,44 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       claims: { findFirst: hoisted.claimsFindFirst },
       claimStageHistory: { findMany: hoisted.historyFindMany },
     },
     select: hoisted.dbSelect,
-  },
-  eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
-  claimDocuments: {
-    id: 'claimDocuments.id',
-    claimId: 'claimDocuments.claimId',
-    tenantId: 'claimDocuments.tenantId',
-    name: 'claimDocuments.name',
-    fileSize: 'claimDocuments.fileSize',
-    fileType: 'claimDocuments.fileType',
-    createdAt: 'claimDocuments.createdAt',
-  },
-  claimStageHistory: {
-    id: 'claimStageHistory.id',
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    fromStatus: 'claimStageHistory.fromStatus',
-    toStatus: 'claimStageHistory.toStatus',
-    note: 'claimStageHistory.note',
-    isPublic: 'claimStageHistory.isPublic',
-    createdAt: 'claimStageHistory.createdAt',
-    changedById: 'claimStageHistory.changedById',
-  },
-  user: { id: 'user.id', name: 'user.name', email: 'user.email' },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+    claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
+    claimDocuments: {
+      id: 'claimDocuments.id',
+      claimId: 'claimDocuments.claimId',
+      tenantId: 'claimDocuments.tenantId',
+      name: 'claimDocuments.name',
+      fileSize: 'claimDocuments.fileSize',
+      fileType: 'claimDocuments.fileType',
+      createdAt: 'claimDocuments.createdAt',
+    },
+    claimStageHistory: {
+      id: 'claimStageHistory.id',
+      claimId: 'claimStageHistory.claimId',
+      tenantId: 'claimStageHistory.tenantId',
+      fromStatus: 'claimStageHistory.fromStatus',
+      toStatus: 'claimStageHistory.toStatus',
+      note: 'claimStageHistory.note',
+      isPublic: 'claimStageHistory.isPublic',
+      createdAt: 'claimStageHistory.createdAt',
+      changedById: 'claimStageHistory.changedById',
+    },
+    user: { id: 'user.id', name: 'user.name', email: 'user.email' },
+  };
+});
 
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...args: unknown[]) => ({ and: args })),
@@ -121,6 +128,7 @@ describe('getStaffClaimDetailsCore', () => {
       tenantId: 'tenant_mk',
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' }, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 

@@ -2,7 +2,7 @@ import {
   emitClaimAiRunRequestedService,
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 
 import {
@@ -13,7 +13,7 @@ export { InformationRequestUploadConflictError, type UploadCategory } from './cl
 
 async function queueAiWorkflows(params: PersistClaimDocumentParams) {
   // db-access-guard: tenant-scoped -- reason: queue resolver filters exact tenant/user/claim/document scope
-  return db.transaction(async tx =>
+  return withTenantContext({ tenantId: params.tenantId }, async tx =>
     queueClaimDocumentAiWorkflows({
       tx,
       claimId: params.claimId,

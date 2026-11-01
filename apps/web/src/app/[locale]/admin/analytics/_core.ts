@@ -1,4 +1,4 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, withTenantContext } from '@interdomestik/database';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { eq, sql } from 'drizzle-orm';
 
@@ -52,42 +52,50 @@ export async function getAdminAnalyticsDataCore(session: {
 }): Promise<AdminAnalyticsModel> {
   const { tenantId } = session.user;
 
-  const [totalsResult] = await db
-    .select({
-      sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
-      avg: sql<number>`COALESCE(AVG(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId));
+  const [totalsResult] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
+        avg: sql<number>`COALESCE(AVG(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+  );
 
   const totals = normalizeTotalsRow(totalsResult);
   const lifecycleStatus = claimLifecycleStatusSql();
 
-  const statusDistributionRaw = await db
-    .select({
-      status: lifecycleStatus,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId))
-    .groupBy(lifecycleStatus);
+  const statusDistributionRaw = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        status: lifecycleStatus,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+      .groupBy(lifecycleStatus)
+  );
 
-  const categoryDistributionRaw = await db
-    .select({
-      category: claims.category,
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId))
-    .groupBy(claims.category);
+  const categoryDistributionRaw = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        category: claims.category,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+      .groupBy(claims.category)
+  );
 
-  const [activeClaimantsRow] = await db
-    .select({
-      count: sql<number>`COUNT(DISTINCT ${claims.userId})`,
-    })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId));
+  const [activeClaimantsRow] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        count: sql<number>`COUNT(DISTINCT ${claims.userId})`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+  );
 
   const statusDistribution: AdminAnalyticsStatusDistributionItem[] = (
     statusDistributionRaw ?? []

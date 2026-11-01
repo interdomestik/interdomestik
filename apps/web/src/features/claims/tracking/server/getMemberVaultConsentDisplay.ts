@@ -1,6 +1,6 @@
-import type { TenantTransaction } from '@interdomestik/database';
+import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
-import { db } from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
 import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
@@ -16,7 +16,7 @@ export interface GetMemberVaultConsentDisplayParams {
 
 export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
-  database: TenantTransaction | typeof db = db
+  database?: TenantTransaction | typeof db
 ): Promise<VaultConsentDisplay> {
   const tenant = await readTenantLocaleMetadata(params.tenantId);
   const gated = buildVaultConsentDisplay({
@@ -29,6 +29,23 @@ export async function getMemberVaultConsentDisplay(
   });
   if (gated.kind !== 'ready') return gated;
 
+  if (!database) {
+    // The ambient client carries no tenant context, so run the reads inside one.
+    return withTenantContext({ tenantId: params.tenantId }, tx =>
+      readVaultConsentDisplay(params, tx, tenant, gated)
+    );
+  }
+  return readVaultConsentDisplay(params, database, tenant, gated);
+}
+
+type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>;
+
+async function readVaultConsentDisplay(
+  params: GetMemberVaultConsentDisplayParams,
+  database: TenantTransaction | typeof db,
+  tenant: TenantLocaleMetadata,
+  gated: VaultConsentDisplay
+): Promise<VaultConsentDisplay> {
   // db-access-guard: tenant-scoped -- reason: exact MK tenant gate passed and the claim was already resolved through the member-scoped claim-detail query
   const documents = await database
     .select({

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateNotificationPreferencesCore } from './update';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -19,8 +19,15 @@ vi.mock('@interdomestik/database', () => ({
         where: vi.fn(),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: (
+      _context: { tenantId: string },
+      action: (tx: typeof db) => Promise<unknown>
+    ) => action(db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn((_tenantId, _col, condition) => condition),

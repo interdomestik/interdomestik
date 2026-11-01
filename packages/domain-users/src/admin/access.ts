@@ -1,4 +1,4 @@
-import { and, db, eq, userRoles } from '@interdomestik/database';
+import { and, eq, userRoles, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { isNull } from 'drizzle-orm';
 
@@ -15,23 +15,25 @@ async function hasTenantRole(params: {
 }): Promise<boolean> {
   const { tenantId, userId, role, branchId } = params;
 
-  const rows = await db
-    .select({ id: userRoles.id })
-    .from(userRoles)
-    .where(
-      withTenant(
-        tenantId,
-        userRoles.tenantId,
-        and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.role, role),
-          branchId === null || branchId === undefined
-            ? isNull(userRoles.branchId)
-            : eq(userRoles.branchId, branchId)
+  const rows = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({ id: userRoles.id })
+      .from(userRoles)
+      .where(
+        withTenant(
+          tenantId,
+          userRoles.tenantId,
+          and(
+            eq(userRoles.userId, userId),
+            eq(userRoles.role, role),
+            branchId === null || branchId === undefined
+              ? isNull(userRoles.branchId)
+              : eq(userRoles.branchId, branchId)
+          )
         )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   return rows.length > 0;
 }

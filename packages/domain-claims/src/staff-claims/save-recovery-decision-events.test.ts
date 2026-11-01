@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => {
   const txUpdateWhere = vi.fn();
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
-  const transaction = vi.fn(async cb =>
+  const withTenantContext = vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) =>
     cb({ insert: txInsert, select: txSelect, update: txUpdate })
   );
 
@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
       claimId: 'claim_escalation_agreements.claim_id',
     },
     claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-    db: { transaction },
+    withTenantContext,
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     claimSelect,
@@ -44,8 +44,8 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: mocks.appendEvent,
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
-  db: mocks.db,
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({

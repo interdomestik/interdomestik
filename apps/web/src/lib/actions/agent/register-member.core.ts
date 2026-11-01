@@ -54,73 +54,77 @@ export async function registerMemberCore(
   const attribution = createAgentAssistedOwnershipAttribution(agent.id);
 
   try {
-    await withTransactionRetry(async tx => {
-      const now = new Date();
+    await withTransactionRetry(
+      async tx => {
+        const now = new Date();
 
-      // 1. Create User (Role must be 'member' for the unique index to eventually apply)
-      // We insert with null memberNumber first.
-      await tx.insert(userTable).values({
-        id: userId,
-        tenantId,
-        branchId: agentBranchId,
-        name: data.fullName,
-        email: data.email,
-        emailVerified: false,
-        role: 'member', // Critical change: was 'user'
-        ...attribution,
-        createdAt: now,
-        updatedAt: now,
-      });
+        // 1. Create User (Role must be 'member' for the unique index to eventually apply)
+        // We insert with null memberNumber first.
+        await tx.insert(userTable).values({
+          id: userId,
+          tenantId,
+          branchId: agentBranchId,
+          name: data.fullName,
+          email: data.email,
+          emailVerified: false,
+          role: 'member', // Critical change: was 'user'
+          ...attribution,
+          createdAt: now,
+          updatedAt: now,
+        });
 
-      await tx.insert(account).values({
-        id: `${userId}-credential`,
-        accountId: data.email,
-        providerId: 'credential',
-        userId,
-        password: await hash(data.password, 10),
-        createdAt: now,
-        updatedAt: now,
-      });
+        await tx.insert(account).values({
+          id: `${userId}-credential`,
+          accountId: data.email,
+          providerId: 'credential',
+          userId,
+          password: await hash(data.password, 10),
+          createdAt: now,
+          updatedAt: now,
+        });
 
-      // 2. Generate and Assign Global Member Number
-      // This helper handles the atomic increment and updates the user record
-      await generateMemberNumber(tx, {
-        userId,
-        joinedAt: now,
-      });
+        // 2. Generate and Assign Global Member Number
+        // This helper handles the atomic increment and updates the user record
+        await generateMemberNumber(tx, {
+          userId,
+          joinedAt: now,
+        });
 
-      await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
+        await revokeAgentClientReadScope(tx, { tenantId, memberId: userId });
 
-      const subscriptionValues =
-        membershipMode === 'sponsored'
-          ? {
-              ...createCanonicalMembershipPlanState(
+        const subscriptionValues =
+          membershipMode === 'sponsored'
+            ? {
+                ...createCanonicalMembershipPlanState(
+                  canonicalPlanState.planId,
+                  canonicalPlanState.planKey
+                ),
+                status: 'paused' as const,
+                provider: 'group_sponsor',
+                acquisitionSource: 'group_roster_import',
+                currentPeriodStart: null,
+                currentPeriodEnd: null,
+              }
+            : createActiveAnnualMembershipFulfillment(
                 canonicalPlanState.planId,
+                now,
                 canonicalPlanState.planKey
-              ),
-              status: 'paused' as const,
-              provider: 'group_sponsor',
-              acquisitionSource: 'group_roster_import',
-              currentPeriodStart: null,
-              currentPeriodEnd: null,
-            }
-          : createActiveAnnualMembershipFulfillment(
-              canonicalPlanState.planId,
-              now,
-              canonicalPlanState.planKey
-            );
+              );
 
-      await tx.insert(subscriptions).values({
-        id: nanoid(),
-        tenantId,
-        branchId: agentBranchId,
-        agentId: agent.id,
-        userId,
-        ...subscriptionValues,
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
+        await tx.insert(subscriptions).values({
+          id: nanoid(),
+          tenantId,
+          branchId: agentBranchId,
+          agentId: agent.id,
+          userId,
+          ...subscriptionValues,
+          createdAt: now,
+          updatedAt: now,
+        });
+      },
+      {},
+      { tenantId }
+    );
 
     // Send email with circuit breaker protection
     try {

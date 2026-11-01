@@ -22,6 +22,8 @@ vi.mock('@interdomestik/database', () => {
 
   return {
     db: mockDb,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof mockDb) => unknown) =>
+      callback(mockDb),
     claims: {
       tenantId: { name: 'tenantId' },
       status: { name: 'status' },

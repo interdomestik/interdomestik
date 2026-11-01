@@ -2,12 +2,12 @@ import {
   and,
   appendEvent,
   claims,
-  db,
   desc,
   eq,
   inArray,
   subscriptions,
   user,
+  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -59,7 +59,7 @@ export async function updateResidenceCountryCore(
   }
 
   try {
-    const result = await db.transaction(async tx => {
+    const result = await withTenantContext({ tenantId }, async tx => {
       const [userRow] = await tx
         .select({ residenceCountry: user.residenceCountry })
         .from(user)

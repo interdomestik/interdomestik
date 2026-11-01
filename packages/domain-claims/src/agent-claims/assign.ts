@@ -1,4 +1,4 @@
-import { claims, db, eq } from '@interdomestik/database';
+import { claims, eq, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -41,10 +41,12 @@ export async function assignClaimCore(
   }
 
   // Get claim details
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
+  const claim = await withTenantContext({ tenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    })
+  );
 
   if (!claim) return { success: false, error: 'Claim not found', data: undefined };
 
@@ -58,18 +60,22 @@ export async function assignClaimCore(
     | undefined;
   if (staffId) {
     // Validate assignee before mutating the claim to ensure fail-closed behavior.
-    staffMember = await db.query.user.findFirst({
-      where: (userTable, { eq }) =>
-        withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
-    });
+    staffMember = await withTenantContext({ tenantId }, tx =>
+      tx.query.user.findFirst({
+        where: (userTable, { eq }) =>
+          withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
+      })
+    );
 
     if (!staffMember) return { success: false, error: 'Staff member not found', data: undefined };
   }
 
-  await db
-    .update(claims)
-    .set({ staffId })
-    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  await withTenantContext({ tenantId }, tx =>
+    tx
+      .update(claims)
+      .set({ staffId })
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+  );
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -95,7 +101,8 @@ export async function assignClaimCore(
           staffMember.id,
           staffMember.email,
           { id: claim.id, title: claim.title },
-          staffMember.name || 'Staff'
+          staffMember.name || 'Staff',
+          { tenantId }
         )
       ).catch(err => console.error('Failed to notify assignment:', err));
     }

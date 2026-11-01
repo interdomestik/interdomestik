@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberReferralRewards } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -81,11 +81,13 @@ export async function listMemberReferralRewardsCore(params: {
   try {
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS);
     const offset = params.offset ?? 0;
-    const rows = await db.query.memberReferralRewards.findMany({
-      where: and(eq(memberReferralRewards.tenantId, params.tenantId)),
-      limit,
-      offset,
-    });
+    const rows = await withTenantContext({ tenantId: params.tenantId }, tx =>
+      tx.query.memberReferralRewards.findMany({
+        where: and(eq(memberReferralRewards.tenantId, params.tenantId)),
+        limit,
+        offset,
+      })
+    );
 
     return {
       success: true,
@@ -103,12 +105,14 @@ export async function updateMemberReferralRewardStatusCore(params: {
   newStatus: MemberReferralRewardStatus;
 }): Promise<ActionResult<MemberReferralAdminRewardRow>> {
   try {
-    const current = await db.query.memberReferralRewards.findFirst({
-      where: and(
-        eq(memberReferralRewards.tenantId, params.tenantId),
-        eq(memberReferralRewards.id, params.rewardId)
-      ),
-    });
+    const current = await withTenantContext({ tenantId: params.tenantId }, tx =>
+      tx.query.memberReferralRewards.findFirst({
+        where: and(
+          eq(memberReferralRewards.tenantId, params.tenantId),
+          eq(memberReferralRewards.id, params.rewardId)
+        ),
+      })
+    );
 
     if (!current) {
       return { success: false, error: 'Referral reward not found' };
@@ -130,16 +134,18 @@ export async function updateMemberReferralRewardStatusCore(params: {
       newStatus: params.newStatus,
     });
 
-    const [updated] = await db
-      .update(memberReferralRewards)
-      .set(patch)
-      .where(
-        and(
-          eq(memberReferralRewards.tenantId, params.tenantId),
-          eq(memberReferralRewards.id, params.rewardId)
+    const [updated] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+      tx
+        .update(memberReferralRewards)
+        .set(patch)
+        .where(
+          and(
+            eq(memberReferralRewards.tenantId, params.tenantId),
+            eq(memberReferralRewards.id, params.rewardId)
+          )
         )
-      )
-      .returning();
+        .returning()
+    );
 
     if (!updated) {
       return { success: false, error: 'Failed to update referral reward status' };

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -18,42 +18,48 @@ export async function verifyCashPayment(
 ) {
   const { leadId, paymentAttemptId, decision } = input;
 
-  const attempt = await db.query.leadPaymentAttempts.findFirst({
-    where: (pa, { eq, and }) =>
-      and(
-        eq(pa.id, paymentAttemptId),
-        eq(pa.leadId, leadId),
-        eq(pa.tenantId, ctx.tenantId),
-        eq(pa.method, 'cash'),
-        eq(pa.status, 'pending')
-      ),
-  });
+  const attempt = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    tx.query.leadPaymentAttempts.findFirst({
+      where: (pa, { eq, and }) =>
+        and(
+          eq(pa.id, paymentAttemptId),
+          eq(pa.leadId, leadId),
+          eq(pa.tenantId, ctx.tenantId),
+          eq(pa.method, 'cash'),
+          eq(pa.status, 'pending')
+        ),
+    })
+  );
 
   if (!attempt) throw new Error('Pending cash payment attempt not found');
 
   if (decision === 'reject') {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db
-      .update(leadPaymentAttempts)
-      .set({
-        status: 'rejected',
-        verifiedBy: ctx.userId,
-        verifiedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(leadPaymentAttempts.id, paymentAttemptId));
+    await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+      tx
+        .update(leadPaymentAttempts)
+        .set({
+          status: 'rejected',
+          verifiedBy: ctx.userId,
+          verifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(leadPaymentAttempts.id, paymentAttemptId))
+    );
 
     // Move lead back to 'new' or keep 'payment_pending'? 'new' seems appropriate or 'disqualified' if hard reject.
     // Let's set back to 'new' to allow retry.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.update(memberLeads).set({ status: 'new' }).where(eq(memberLeads.id, leadId));
+    await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+      tx.update(memberLeads).set({ status: 'new' }).where(eq(memberLeads.id, leadId))
+    );
 
     return { success: true, outcome: 'rejected' };
   }
 
   // APPROVE
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await db.transaction(async tx => {
+  await withTenantContext({ tenantId: ctx.tenantId }, async tx => {
     // 1. Mark payment as succeeded
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx

@@ -1,5 +1,5 @@
 import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/agent-claims/assign';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -35,14 +35,16 @@ export async function assignClaimCore(params: {
   }
 
   const tenantId = params.session.user.tenantId;
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
-    columns: {
-      id: true,
-      staffId: true,
-    },
-  });
+  const claim = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
+      columns: {
+        id: true,
+        staffId: true,
+      },
+    })
+  );
 
   if (!claim) {
     return { success: false, error: 'Claim not found', data: undefined };
@@ -58,13 +60,15 @@ export async function assignClaimCore(params: {
   });
 
   if (result.success) {
-    const updatedClaim = await db.query.claims.findFirst({
-      where: (claimsTable, { eq }) =>
-        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
-      columns: {
-        staffId: true,
-      },
-    });
+    const updatedClaim = await withTenantContext({ tenantId }, async tx =>
+      tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
+        columns: {
+          staffId: true,
+        },
+      })
+    );
 
     if (!updatedClaim) {
       return result;

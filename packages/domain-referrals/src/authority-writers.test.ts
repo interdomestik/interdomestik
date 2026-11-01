@@ -9,9 +9,13 @@ const mocks = vi.hoisted(() => ({
   and: vi.fn((...values: unknown[]) => values),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: { query: { user: { findFirst: mocks.findFirst } }, update: mocks.update },
-}));
+vi.mock('@interdomestik/database', () => {
+  const db = { query: { user: { findFirst: mocks.findFirst } }, update: mocks.update };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenantId' },
 }));

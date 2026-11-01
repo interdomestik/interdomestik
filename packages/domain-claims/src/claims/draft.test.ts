@@ -5,21 +5,28 @@ const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
   transitionClaimStatus: vi.fn(),
   withTenant: vi.fn(() => ({ scoped: true })),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  claimDocuments: {},
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenant_id',
-  },
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     insert: vi.fn(),
     query: { claims: { findFirst: mocks.findFirst } },
     update: mocks.dbUpdate,
-  },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+  };
+  return {
+    claimDocuments: {},
+    claims: {
+      id: 'claims.id',
+      tenantId: 'claims.tenant_id',
+    },
+    db,
+    eq: vi.fn((left, right) => ({ left, right })),
+    withTenantContext: mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
@@ -87,6 +94,10 @@ describe('cancelClaimCore', () => {
     const result = await runCancel(deps);
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'member-1', role: 'member' },

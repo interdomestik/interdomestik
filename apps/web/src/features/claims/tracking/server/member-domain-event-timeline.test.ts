@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  withTenantContext: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ column, order: 'desc' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -34,6 +35,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   eq: hoisted.eq,
   sql: hoisted.sql,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 import {
@@ -50,9 +52,17 @@ import {
 describe('member domain-event timeline', () => {
   it('reads the authorized claim timeline with exactly one domain_events query', async () => {
     vi.clearAllMocks();
+    hoisted.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ select: hoisted.select })
+    );
     const chain = selectChain([eventRow()]);
     hoisted.select.mockReturnValueOnce(chain);
     const result = await getMemberTimelineFromDomainEvents(context);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: context.tenantId },
+      expect.any(Function)
+    );
     expect(hoisted.select).toHaveBeenCalledTimes(1);
     expect(result[0]?.id).toBe('event-1');
     const joinArgs = chain.innerJoin.mock.calls[0]?.[1].args;

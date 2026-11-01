@@ -1,25 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  delete: vi.fn(),
-  deleteWhere: vi.fn(),
-  findFirst: vi.fn(),
-  insertValues: vi.fn(),
-  insert: vi.fn(),
-  onConflictDoNothing: vi.fn(),
-  withTenant: vi.fn(() => ({ scoped: true })),
-}));
+const mocks = vi.hoisted(() => {
+  const findFirst = vi.fn();
+  const del = vi.fn();
+  const insert = vi.fn();
+  return {
+    delete: del,
+    deleteWhere: vi.fn(),
+    findFirst,
+    insertValues: vi.fn(),
+    insert,
+    onConflictDoNothing: vi.fn(),
+    dbMock: { query: { user: { findFirst } }, delete: del, insert },
+    withTenant: vi.fn(() => ({ scoped: true })),
+    withTenantContext: vi.fn(),
+  };
+});
 
 mocks.insert.mockReturnValue({ values: mocks.insertValues });
 
+mocks.withTenantContext.mockImplementation(
+  async (_context: unknown, callback: (tx: unknown) => unknown) => callback(mocks.dbMock)
+);
+
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      user: { findFirst: mocks.findFirst },
-    },
-    delete: mocks.delete,
-    insert: mocks.insert,
-  },
+  db: mocks.dbMock,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -99,9 +105,18 @@ describe('sendNotification', () => {
       tenantId: 'tenant-1',
     });
 
-    const result = await sendNotification('user-1', 'new_message', { claimId: 'claim-1' });
+    const result = await sendNotification(
+      'user-1',
+      'new_message',
+      { claimId: 'claim-1' },
+      { tenantId: 'tenant-1' }
+    );
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
@@ -134,7 +149,8 @@ describe('sendNotification', () => {
     expect(sendPushToUser).toHaveBeenCalledWith(
       'user-1',
       'claim_updates',
-      expect.objectContaining({ url: '/member/claims/claim-1' })
+      expect.objectContaining({ url: '/member/claims/claim-1' }),
+      expect.objectContaining({ tenantId: 'tenant-1' })
     );
   });
 
@@ -146,11 +162,16 @@ describe('sendNotification', () => {
     });
 
     expect(
-      await notifyClaimSubmitted('member-1', 'member@example.com', {
-        category: 'vehicle',
-        id: 'claim-1',
-        title: 'Vehicle claim',
-      })
+      await notifyClaimSubmitted(
+        'member-1',
+        'member@example.com',
+        {
+          category: 'vehicle',
+          id: 'claim-1',
+          title: 'Vehicle claim',
+        },
+        { tenantId: 'tenant-1' }
+      )
     ).toEqual({ success: true });
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -253,6 +274,10 @@ describe('sendNotification', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.delete).toHaveBeenCalledWith(expect.anything());
     expect(mocks.deleteWhere).toHaveBeenCalledWith(expect.objectContaining({ scoped: true }));
     expect(mocks.withTenant).toHaveBeenCalledWith(

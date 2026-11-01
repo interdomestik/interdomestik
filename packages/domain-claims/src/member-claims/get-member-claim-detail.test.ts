@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { withTenantContext } from '@interdomestik/database';
 import { getMemberClaimDetail } from './get-member-claim-detail';
 
 const mocks = vi.hoisted(() => {
@@ -33,6 +34,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
   claims: mocks.claims,
   eq: mocks.eq,
   and: mocks.and,
@@ -77,6 +79,7 @@ describe('getMemberClaimDetail', () => {
       claimId: 'claim-1',
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(result?.status).toBe('evaluation');
     expect(mocks.getClaimStatus).not.toHaveBeenCalled();
     expect(mocks.getClaimTimeline).not.toHaveBeenCalled();

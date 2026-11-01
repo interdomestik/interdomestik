@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Session } from './context';
 import { updateAgentCommissionRatesCore } from './update-rates';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       agentSettings: {
         findFirst: vi.fn(async () => null),
@@ -18,8 +18,15 @@ vi.mock('@interdomestik/database', () => ({
     insert: vi.fn(() => ({
       values: vi.fn(async () => undefined),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(
+      async (_context: { tenantId: string }, action: (tx: typeof db) => Promise<unknown>) =>
+        action(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentSettings: {},

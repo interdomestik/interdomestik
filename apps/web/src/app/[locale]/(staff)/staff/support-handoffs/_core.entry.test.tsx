@@ -47,26 +47,31 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findFirst: mocks.findStaffBranch,
         findMany: mocks.findManyStaff,
       },
     },
-  },
-  eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
-  user: {
-    branchId: 'user.branch_id',
-    email: 'user.email',
-    id: 'user.id',
-    name: 'user.name',
-    role: 'user.role',
-    tenantId: 'user.tenant_id',
-  },
-}));
+  };
+  return {
+    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
+    eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
+    user: {
+      branchId: 'user.branch_id',
+      email: 'user.email',
+      id: 'user.id',
+      name: 'user.name',
+      role: 'user.role',
+      tenantId: 'user.tenant_id',
+    },
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),

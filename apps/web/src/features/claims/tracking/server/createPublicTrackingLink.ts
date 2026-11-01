@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import crypto from 'crypto';
@@ -43,10 +43,12 @@ export async function createPublicTrackingLink(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before tracking link claim lookup
-      const claim = await db.query.claims.findFirst({
-        where: and(eq(claims.id, claimId), visibilityCondition),
-        columns: { id: true, tenantId: true },
-      });
+      const claim = await withTenantContext({ tenantId }, async tx =>
+        tx.query.claims.findFirst({
+          where: and(eq(claims.id, claimId), visibilityCondition),
+          columns: { id: true, tenantId: true },
+        })
+      );
 
       if (!claim) {
         throw new Error('Claim not found or access denied');
@@ -61,25 +63,29 @@ export async function createPublicTrackingLink(
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days TTL
 
       // 3. Revoke previous tokens (Optional but strictly safer as per plan)
-      await db
-        .update(claimTrackingTokens)
-        .set({ revokedAt: new Date() })
-        .where(
-          and(
-            eq(claimTrackingTokens.claimId, claimId),
-            or(eq(claimTrackingTokens.tenantId, tenantId), isNull(claimTrackingTokens.tenantId)),
-            isNull(claimTrackingTokens.revokedAt)
+      await withTenantContext({ tenantId }, async tx =>
+        tx
+          .update(claimTrackingTokens)
+          .set({ revokedAt: new Date() })
+          .where(
+            and(
+              eq(claimTrackingTokens.claimId, claimId),
+              or(eq(claimTrackingTokens.tenantId, tenantId), isNull(claimTrackingTokens.tenantId)),
+              isNull(claimTrackingTokens.revokedAt)
+            )
           )
-        );
+      );
 
       // 4. Store Hash
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      await db.insert(claimTrackingTokens).values({
-        tenantId: claim.tenantId,
-        claimId: claim.id,
-        tokenHash,
-        expiresAt,
-      });
+      await withTenantContext({ tenantId }, async tx =>
+        tx.insert(claimTrackingTokens).values({
+          tenantId: claim.tenantId,
+          claimId: claim.id,
+          tokenHash,
+          expiresAt,
+        })
+      );
 
       // 5. Return URL
       const baseUrl = getBaseUrl();

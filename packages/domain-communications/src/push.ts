@@ -1,6 +1,6 @@
 import webPush, { type PushSubscription } from 'web-push';
 
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { pushSubscriptions, userNotificationPreferences } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
@@ -46,9 +46,9 @@ export async function sendPushToUser(
   userId: string,
   channel: 'claim_updates' | 'messages',
   payload: PushPayload,
-  deps?: {
+  deps: {
     logAuditEvent?: AuditLogger;
-    tenantId?: string | null;
+    tenantId: string;
   }
 ) {
   const vapid = getVapidDetails();
@@ -56,35 +56,29 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'missing_vapid' as const };
   }
 
-  let resolvedTenantId = deps?.tenantId ?? null;
-  if (!resolvedTenantId) {
-    // db-access-guard: system-exempt -- reason: push delivery resolves tenant from target user before scoped preference lookup
-    const userTenant = await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { tenantId: true },
-    });
-    resolvedTenantId = userTenant?.tenantId ?? null;
-  }
-
+  // Push targets are tenant-owned: preferences and subscriptions are read inside the caller's tenant.
+  const resolvedTenantId = deps.tenantId;
   if (!resolvedTenantId) {
     return { success: false, skipped: true, reason: 'missing_tenant' as const };
   }
 
   // Respect stored preferences
-  const [prefs] = await db
-    .select({
-      pushClaimUpdates: userNotificationPreferences.pushClaimUpdates,
-      pushMessages: userNotificationPreferences.pushMessages,
-    })
-    .from(userNotificationPreferences)
-    .where(
-      withTenant(
-        resolvedTenantId,
-        userNotificationPreferences.tenantId,
-        eq(userNotificationPreferences.userId, userId)
+  const [prefs] = await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+    tx
+      .select({
+        pushClaimUpdates: userNotificationPreferences.pushClaimUpdates,
+        pushMessages: userNotificationPreferences.pushMessages,
+      })
+      .from(userNotificationPreferences)
+      .where(
+        withTenant(
+          resolvedTenantId,
+          userNotificationPreferences.tenantId,
+          eq(userNotificationPreferences.userId, userId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   const allowed =
     channel === 'claim_updates' ? (prefs?.pushClaimUpdates ?? true) : (prefs?.pushMessages ?? true);
@@ -93,16 +87,22 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'preferences_disabled' as const };
   }
 
-  const subscriptions = await db
-    .select({
-      endpoint: pushSubscriptions.endpoint,
-      p256dh: pushSubscriptions.p256dh,
-      auth: pushSubscriptions.auth,
-    })
-    .from(pushSubscriptions)
-    .where(
-      withTenant(resolvedTenantId, pushSubscriptions.tenantId, eq(pushSubscriptions.userId, userId))
-    );
+  const subscriptions = await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+    tx
+      .select({
+        endpoint: pushSubscriptions.endpoint,
+        p256dh: pushSubscriptions.p256dh,
+        auth: pushSubscriptions.auth,
+      })
+      .from(pushSubscriptions)
+      .where(
+        withTenant(
+          resolvedTenantId,
+          pushSubscriptions.tenantId,
+          eq(pushSubscriptions.userId, userId)
+        )
+      )
+  );
 
   if (subscriptions.length === 0) {
     return { success: false, skipped: true, reason: 'no_subscription' as const };
@@ -134,18 +134,20 @@ export async function sendPushToUser(
 
         // Cleanup invalid/expired subscriptions.
         if (statusCode === 404 || statusCode === 410) {
-          await db
-            .delete(pushSubscriptions)
-            .where(
-              withTenant(
-                resolvedTenantId,
-                pushSubscriptions.tenantId,
-                and(
-                  eq(pushSubscriptions.userId, userId),
-                  eq(pushSubscriptions.endpoint, sub.endpoint)
+          await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+            tx
+              .delete(pushSubscriptions)
+              .where(
+                withTenant(
+                  resolvedTenantId,
+                  pushSubscriptions.tenantId,
+                  and(
+                    eq(pushSubscriptions.userId, userId),
+                    eq(pushSubscriptions.endpoint, sub.endpoint)
+                  )
                 )
               )
-            );
+          );
         }
 
         return { ok: false, endpoint: sub.endpoint, statusCode };

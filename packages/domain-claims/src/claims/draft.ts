@@ -1,4 +1,4 @@
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claims, eq, withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -26,10 +26,12 @@ export async function updateDraftClaimCore(
   }
 
   const tenantId = ensureTenantId(session);
-  const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
+  const claim = await withTenantContext({ tenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    })
+  );
 
   if (!claim) {
     return { success: false, error: 'Claim not found' };
@@ -52,19 +54,21 @@ export async function updateDraftClaimCore(
   const incidentCountry = resolveClaimIncidentCountryUpdate(result.data);
 
   try {
-    await db
-      .update(claims)
-      .set({
-        title,
-        description: description || undefined,
-        category,
-        companyName,
-        claimAmount: claimAmount || undefined,
-        currency: currency || 'EUR',
-        ...incidentCountry,
-        updatedAt: new Date(),
-      })
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+    await withTenantContext({ tenantId }, tx =>
+      tx
+        .update(claims)
+        .set({
+          title,
+          description: description || undefined,
+          category,
+          companyName,
+          claimAmount: claimAmount || undefined,
+          currency: currency || 'EUR',
+          ...incidentCountry,
+          updatedAt: new Date(),
+        })
+        .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+    );
 
     if (files?.length) {
       const documentRows = buildClaimDocumentRows({
@@ -75,7 +79,7 @@ export async function updateDraftClaimCore(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session before draft document insert
-      await db.insert(claimDocuments).values(documentRows);
+      await withTenantContext({ tenantId }, tx => tx.insert(claimDocuments).values(documentRows));
     }
 
     if (deps.logAuditEvent) {

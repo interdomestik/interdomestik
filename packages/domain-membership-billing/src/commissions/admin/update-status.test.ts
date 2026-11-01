@@ -4,8 +4,8 @@ import { preflightCommissionPayability } from './payability';
 import { updateCommissionStatusCore } from './update-status';
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn(() => ({
@@ -18,8 +18,12 @@ vi.mock('@interdomestik/database', () => ({
         where: vi.fn(),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {

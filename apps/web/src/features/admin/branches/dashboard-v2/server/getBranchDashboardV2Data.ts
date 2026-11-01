@@ -5,6 +5,7 @@ import {
 } from '@/features/admin/branches/server/branch-cash-metrics';
 import { HealthProfile, computeHealthScore } from '@/features/admin/health/health-model';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
+import { withTenantContext } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
@@ -83,13 +84,21 @@ export async function getBranchDashboardV2Data(
 
         // Fetch Branch Metadata first to confirm existence and get tenantId if cross-tenant
         // Support lookup by either ID (UUID) or code (e.g., branch_mk_b)
-        // db-access-guard: system-exempt -- reason: branch id or code lookup resolves tenant before scoped dashboard reads
-        const branchResult = await db.query.branches.findFirst({
-          where: or(eq(branches.id, branchId), eq(branches.code, branchId)),
-          with: {
-            tenant: true,
-          },
-        });
+        const findBranch = (executor: Pick<typeof db, 'query'>) =>
+          executor.query.branches.findFirst({
+            where: or(eq(branches.id, branchId), eq(branches.code, branchId)),
+            with: {
+              tenant: true,
+            },
+          });
+        let branchResult: Awaited<ReturnType<typeof findBranch>>;
+        if (scope.isCrossTenantScope) {
+          // BLOCKED(rc31-u2): cross-tenant by design -- the super_admin arm has no tenant until this lookup resolves it; needs a privileged manifest entry.
+          // db-access-guard: system-exempt -- reason: branch id or code lookup resolves tenant before scoped dashboard reads
+          branchResult = await findBranch(db);
+        } else {
+          branchResult = await withTenantContext({ tenantId }, tx => findBranch(tx));
+        }
 
         if (!branchResult) {
           return null; // Return null if not found, allowing 404 handler to take over
@@ -117,57 +126,67 @@ export async function getBranchDashboardV2Data(
           agentsData,
           staffData,
         ] = await Promise.all([
-          db
-            .select({ count: count() })
-            .from(claims)
-            .where(
-              and(
-                eq(claims.branchId, resolvedBranchId),
-                eq(claims.tenantId, tenantId),
-                getOpenClaimsFilter()
+          withTenantContext({ tenantId }, tx =>
+            tx
+              .select({ count: count() })
+              .from(claims)
+              .where(
+                and(
+                  eq(claims.branchId, resolvedBranchId),
+                  eq(claims.tenantId, tenantId),
+                  getOpenClaimsFilter()
+                )
               )
-            ),
+          ),
 
           getBranchCashPendingCount({ tenantId, branchId: resolvedBranchId }),
 
-          db
-            .select({ count: count() })
-            .from(claims)
-            .where(
-              and(
-                eq(claims.branchId, resolvedBranchId),
-                eq(claims.tenantId, tenantId),
-                getSlaBreachesFilter()
+          withTenantContext({ tenantId }, tx =>
+            tx
+              .select({ count: count() })
+              .from(claims)
+              .where(
+                and(
+                  eq(claims.branchId, resolvedBranchId),
+                  eq(claims.tenantId, tenantId),
+                  getSlaBreachesFilter()
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ count: count() })
-            .from(user)
-            .where(
-              and(
-                eq(user.branchId, resolvedBranchId),
-                eq(user.tenantId, tenantId),
-                eq(user.role, 'agent')
+          withTenantContext({ tenantId }, tx =>
+            tx
+              .select({ count: count() })
+              .from(user)
+              .where(
+                and(
+                  eq(user.branchId, resolvedBranchId),
+                  eq(user.tenantId, tenantId),
+                  eq(user.role, 'agent')
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ count: count() })
-            .from(user)
-            .where(
-              and(
-                eq(user.branchId, resolvedBranchId),
-                eq(user.tenantId, tenantId),
-                inArray(user.role, ['user', 'member'])
+          withTenantContext({ tenantId }, tx =>
+            tx
+              .select({ count: count() })
+              .from(user)
+              .where(
+                and(
+                  eq(user.branchId, resolvedBranchId),
+                  eq(user.tenantId, tenantId),
+                  inArray(user.role, ['user', 'member'])
+                )
               )
-            ),
+          ),
 
-          db
-            .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
-            .from(claims)
-            .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
-            .groupBy(lifecycleSql.claimLifecycleStatusSql()),
+          withTenantContext({ tenantId }, tx =>
+            tx
+              .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
+              .from(claims)
+              .where(and(eq(claims.branchId, resolvedBranchId), eq(claims.tenantId, tenantId)))
+              .groupBy(lifecycleSql.claimLifecycleStatusSql())
+          ),
 
           getAgentMetrics(resolvedBranchId, tenantId),
 
@@ -233,10 +252,16 @@ export async function getBranchDashboardV2Data(
 async function getAgentMetrics(branchId: string, tenantId: string) {
   // 1. Get agents in branch
   const [agents, cashPendingByAgent] = await Promise.all([
-    db.query.user.findMany({
-      where: and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent')),
-      columns: { id: true, name: true },
-    }),
+    withTenantContext({ tenantId }, tx =>
+      tx.query.user.findMany({
+        where: and(
+          eq(user.branchId, branchId),
+          eq(user.tenantId, tenantId),
+          eq(user.role, 'agent')
+        ),
+        columns: { id: true, name: true },
+      })
+    ),
     getBranchCashPendingByAgent({ tenantId, branchId }),
   ]);
 
@@ -251,30 +276,34 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
     agents.map(async agent => {
       const [openClaims, slaBreaches] = await Promise.all([
         // Open Claims linked to agent (via claim.agentId)
-        db
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(
-              eq(claims.agentId, agent.id),
-              eq(claims.branchId, branchId),
-              eq(claims.tenantId, tenantId),
-              getOpenClaimsFilter()
+        withTenantContext({ tenantId }, tx =>
+          tx
+            .select({ count: count() })
+            .from(claims)
+            .where(
+              and(
+                eq(claims.agentId, agent.id),
+                eq(claims.branchId, branchId),
+                eq(claims.tenantId, tenantId),
+                getOpenClaimsFilter()
+              )
             )
-          ),
+        ),
 
         // SLA Breaches linked to agent
-        db
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(
-              eq(claims.agentId, agent.id),
-              eq(claims.branchId, branchId),
-              eq(claims.tenantId, tenantId),
-              getSlaBreachesFilter()
+        withTenantContext({ tenantId }, tx =>
+          tx
+            .select({ count: count() })
+            .from(claims)
+            .where(
+              and(
+                eq(claims.agentId, agent.id),
+                eq(claims.branchId, branchId),
+                eq(claims.tenantId, tenantId),
+                getSlaBreachesFilter()
+              )
             )
-          ),
+        ),
       ]);
 
       return {
@@ -292,16 +321,18 @@ async function getAgentMetrics(branchId: string, tenantId: string) {
 // "inProgressClaims = claims in statuses ['verification','evaluation','negotiation','court','in_review'] assigned/handled by staff"
 async function getStaffLoad(branchId: string, tenantId: string) {
   // 1. Get staff in tenant (staff are usually tenant-level, sometimes branch-scoped)
-  const staffMembers = await db.query.user.findMany({
-    where: and(
-      eq(user.tenantId, tenantId),
-      eq(user.role, 'staff')
-      // Optional: filter by branch if they have one set
-      // or just show all staff who have worked on branch claims?
-      // Prompt: "if staff has branchId, filter to branchId"
-    ),
-    columns: { id: true, name: true, branchId: true },
-  });
+  const staffMembers = await withTenantContext({ tenantId }, tx =>
+    tx.query.user.findMany({
+      where: and(
+        eq(user.tenantId, tenantId),
+        eq(user.role, 'staff')
+        // Optional: filter by branch if they have one set
+        // or just show all staff who have worked on branch claims?
+        // Prompt: "if staff has branchId, filter to branchId"
+      ),
+      columns: { id: true, name: true, branchId: true },
+    })
+  );
 
   const relevantStaff = staffMembers.filter(s => !s.branchId || s.branchId === branchId);
 
@@ -317,17 +348,19 @@ async function getStaffLoad(branchId: string, tenantId: string) {
 
   return Promise.all(
     relevantStaff.map(async staff => {
-      const workload = await db
-        .select({ count: count() })
-        .from(claims)
-        .where(
-          and(
-            eq(claims.staffId, staff.id),
-            eq(claims.branchId, branchId), // Workload IN THIS BRANCH
-            eq(claims.tenantId, tenantId),
-            lifecycleSql.claimLifecycleStatusIn(IN_PROGRESS_STATUSES)
+      const workload = await withTenantContext({ tenantId }, tx =>
+        tx
+          .select({ count: count() })
+          .from(claims)
+          .where(
+            and(
+              eq(claims.staffId, staff.id),
+              eq(claims.branchId, branchId), // Workload IN THIS BRANCH
+              eq(claims.tenantId, tenantId),
+              lifecycleSql.claimLifecycleStatusIn(IN_PROGRESS_STATUSES)
+            )
           )
-        );
+      );
 
       const countValue = workload[0]?.count ?? 0;
 

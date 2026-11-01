@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext, type TenantTransaction } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '../../../subscription';
 
 export class PaddleSubscriptionContextConflictError extends Error {
@@ -11,7 +11,7 @@ export class PaddleSubscriptionContextConflictError extends Error {
 export async function resolveBranchId(args: {
   customData: { agentId?: string } | undefined;
   tenantId: string;
-  db: typeof db;
+  db: typeof db | TenantTransaction;
 }): Promise<string | undefined> {
   const { customData, tenantId, db: database } = args;
 
@@ -79,6 +79,7 @@ export async function resolveSubscriptionContext(sub: any) {
     );
   }
 
+  // BLOCKED(rc31-u2): tenant resolution from provider-supplied userId (identity/tenant lookup by design); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, userId),
@@ -113,11 +114,13 @@ export async function resolveSubscriptionContext(sub: any) {
     return null;
   }
 
-  const branchId = await resolveBranchId({
-    customData,
-    tenantId,
-    db: db,
-  });
+  const branchId = await withTenantContext({ tenantId }, tx =>
+    resolveBranchId({
+      customData,
+      tenantId,
+      db: tx,
+    })
+  );
 
   return { userId, tenantId, branchId, customData, userRecord, existingSub };
 }

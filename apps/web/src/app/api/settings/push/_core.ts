@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { pushSubscriptions } from '@interdomestik/database/schema';
 import { pushSubscriptionSchema } from '@interdomestik/domain-communications/notifications/schemas';
 import { and, eq } from 'drizzle-orm';
@@ -53,13 +53,11 @@ function isOwnedSubscription(
   return subscription.tenantId === tenantId && subscription.userId === userId;
 }
 
-async function findPushSubscriptionByEndpoint(endpoint: string) {
-  // db-access-guard: system-exempt -- reason: global endpoint uniqueness check before scoped ownership validation
-  const [existing] = await db
-    .select()
-    .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.endpoint, endpoint))
-    .limit(1);
+async function findPushSubscriptionByEndpoint(endpoint: string, tenantId: string) {
+  // db-access-guard: tenant-scoped -- reason: RLS-scoped endpoint lookup; cross-tenant endpoint collisions surface via the unique-violation path
+  const [existing] = await withTenantContext({ tenantId }, async tx =>
+    tx.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)).limit(1)
+  );
 
   return existing;
 }
@@ -74,24 +72,26 @@ async function updatePushSubscription(args: {
 }) {
   const { endpoint, tenantId, userId, p256dh, authKey, userAgent } = args;
 
-  await db
-    .update(pushSubscriptions)
-    .set({
-      tenantId,
-      userId,
-      endpoint,
-      p256dh,
-      auth: authKey,
-      userAgent,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(pushSubscriptions.endpoint, endpoint),
-        eq(pushSubscriptions.tenantId, tenantId),
-        eq(pushSubscriptions.userId, userId)
+  await withTenantContext({ tenantId }, async tx =>
+    tx
+      .update(pushSubscriptions)
+      .set({
+        tenantId,
+        userId,
+        endpoint,
+        p256dh,
+        auth: authKey,
+        userAgent,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(pushSubscriptions.endpoint, endpoint),
+          eq(pushSubscriptions.tenantId, tenantId),
+          eq(pushSubscriptions.userId, userId)
+        )
       )
-    );
+  );
 }
 
 export async function upsertPushSubscriptionCore(args: {
@@ -122,7 +122,7 @@ export async function upsertPushSubscriptionCore(args: {
     userAgent,
   };
 
-  const existing = await findPushSubscriptionByEndpoint(endpoint);
+  const existing = await findPushSubscriptionByEndpoint(endpoint, resolvedTenantId);
 
   if (existing) {
     if (!isOwnedSubscription(existing, resolvedTenantId, userId)) {
@@ -133,23 +133,25 @@ export async function upsertPushSubscriptionCore(args: {
   } else {
     try {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before push subscription insert
-      await db.insert(pushSubscriptions).values({
-        id: nanoid(),
-        tenantId: resolvedTenantId,
-        userId,
-        endpoint,
-        p256dh,
-        auth: authKey,
-        userAgent,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+        tx.insert(pushSubscriptions).values({
+          id: nanoid(),
+          tenantId: resolvedTenantId,
+          userId,
+          endpoint,
+          p256dh,
+          auth: authKey,
+          userAgent,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
     } catch (error) {
       if (!isUniqueViolation(error)) {
         throw error;
       }
 
-      const racedExisting = await findPushSubscriptionByEndpoint(endpoint);
+      const racedExisting = await findPushSubscriptionByEndpoint(endpoint, resolvedTenantId);
       if (!racedExisting || !isOwnedSubscription(racedExisting, resolvedTenantId, userId)) {
         return pushEndpointConflict();
       }
@@ -187,15 +189,17 @@ export async function deletePushSubscriptionCore(args: {
     return { status: 400, body: { error: 'Invalid subscription' } };
   }
 
-  await db
-    .delete(pushSubscriptions)
-    .where(
-      and(
-        eq(pushSubscriptions.endpoint, endpoint),
-        eq(pushSubscriptions.tenantId, resolvedTenantId),
-        eq(pushSubscriptions.userId, userId)
+  await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+    tx
+      .delete(pushSubscriptions)
+      .where(
+        and(
+          eq(pushSubscriptions.endpoint, endpoint),
+          eq(pushSubscriptions.tenantId, resolvedTenantId),
+          eq(pushSubscriptions.userId, userId)
+        )
       )
-    );
+  );
 
   return {
     status: 200,

@@ -1,10 +1,10 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveBranchId, resolveSubscriptionContext } from './context';
 
 // Mock the database structure with basic spies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findFirst: vi.fn(),
@@ -16,8 +16,12 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn(),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 // Helper to mock response AND execute 'where' callback for coverage
 const mockDbResponse = (returnValue: any) => {
@@ -124,6 +128,7 @@ describe('context utils', () => {
 
       const result = await resolveSubscriptionContext(sub);
 
+      expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tn_ex' }, expect.any(Function));
       expect(result).toEqual(
         expect.objectContaining({
           userId: 'u_1',

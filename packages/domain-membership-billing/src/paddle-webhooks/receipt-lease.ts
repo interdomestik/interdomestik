@@ -19,6 +19,7 @@ function hasRecoverableLease(params: ReceiptEvidence): boolean {
 export async function reclaimRetryableWebhookEvent(params: ReceiptEvidence) {
   const leaseStartedAt = new Date();
   const staleBefore = new Date(leaseStartedAt.getTime() - 5 * 60 * 1000);
+  // BLOCKED(rc31-u2): webhook receipt lookup by dedupe key/payload hash without tenant (webhook_events RLS); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale recoverable subscription lease.
   const reclaimed = await db
     .update(webhookEvents)
@@ -54,6 +55,7 @@ export async function reclaimRetryableWebhookEvent(params: ReceiptEvidence) {
 export async function findNonTerminalRecoverableLease(params: ReceiptEvidence) {
   if (!hasRecoverableLease(params)) return null;
 
+  // BLOCKED(rc31-u2): webhook receipt lookup by dedupe key/payload hash without tenant (webhook_events RLS); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: exact verified receipt evidence distinguishes an active lease from a terminal duplicate before tenant processing resumes.
   return db.query.webhookEvents.findFirst({
     where: (events, { and, eq, isNull, or }) =>

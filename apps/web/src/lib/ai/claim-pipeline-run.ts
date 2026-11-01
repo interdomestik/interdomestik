@@ -38,6 +38,7 @@ export async function claimClaimAiRun(
   | { status: 'claimed'; run: ClaimedClaimAiRun }
   | { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow }
 > {
+  // BLOCKED(rc31-u2): tenant is discovered from the run record itself. The caller only supplies runId (the queued event's tenantId is not threaded through this signature), so there is no canonical tenant at this ambient-db lookup. Needs a signature change that passes the event tenantId or a privileged manifest entry.
   const [queuedRun] = await db
     .select({
       runId: aiRuns.id,

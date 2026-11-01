@@ -6,7 +6,7 @@
  * Uses claimStageHistory as the single source of truth.
  */
 
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claimStageHistory } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, asc, eq } from 'drizzle-orm';
@@ -43,19 +43,23 @@ export async function getClaimTimeline(
   const { claimId, tenantId, viewerRole } = params;
 
   try {
-    const rows = await db
-      .select({
-        id: claimStageHistory.id,
-        fromStatus: claimStageHistory.fromStatus,
-        toStatus: claimStageHistory.toStatus,
-        createdAt: claimStageHistory.createdAt,
-        changedByRole: claimStageHistory.changedByRole,
-        note: claimStageHistory.note,
-        isPublic: claimStageHistory.isPublic,
-      })
-      .from(claimStageHistory)
-      .where(and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.tenantId, tenantId)))
-      .orderBy(asc(claimStageHistory.createdAt));
+    const rows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          id: claimStageHistory.id,
+          fromStatus: claimStageHistory.fromStatus,
+          toStatus: claimStageHistory.toStatus,
+          createdAt: claimStageHistory.createdAt,
+          changedByRole: claimStageHistory.changedByRole,
+          note: claimStageHistory.note,
+          isPublic: claimStageHistory.isPublic,
+        })
+        .from(claimStageHistory)
+        .where(
+          and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.tenantId, tenantId))
+        )
+        .orderBy(asc(claimStageHistory.createdAt))
+    );
 
     // Map and filter based on viewer role
     const showInternalEntries = canSeeInternalEntries(viewerRole);

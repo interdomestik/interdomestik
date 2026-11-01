@@ -65,6 +65,13 @@ vi.mock('@interdomestik/database', () => ({
     select: mocks.select,
     update: mocks.update,
   },
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    cb({
+      query: { user: { findFirst: mocks.userFindFirst } },
+      select: mocks.select,
+      update: mocks.update,
+    })
+  ),
   claims: mocks.claims,
   eq: mocks.eq,
   and: mocks.and,

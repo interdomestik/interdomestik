@@ -1,4 +1,4 @@
-import { db, eq, user as userTable } from '@interdomestik/database';
+import { db, eq, user as userTable, withTenantContext } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
 import {
@@ -52,6 +52,7 @@ function isUniqueViolation(error: unknown): error is { code: string } {
 }
 
 async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null> {
+  // BLOCKED(rc31-u2): global email lookup across tenants to detect cross-tenant ownership (identity resolution by design); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: checkout reconciliation probes global email ownership before tenant-scoped user writes
   const userRecord = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.email, email),
@@ -103,7 +104,9 @@ export async function reconcileCheckoutUser(
     return null;
   }
 
-  const branchId = await resolveBranchId({ customData: mergedCustomData, tenantId, db });
+  const branchId = await withTenantContext({ tenantId }, tx =>
+    resolveBranchId({ customData: mergedCustomData, tenantId, db: tx })
+  );
   const now = new Date();
 
   let shouldRequestOnboarding = false;
@@ -114,7 +117,7 @@ export async function reconcileCheckoutUser(
     try {
       const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-      await db.transaction(async tx => {
+      await withTenantContext({ tenantId }, async tx => {
         // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
         await tx.insert(userTable).values({
           id: newUserId,
@@ -156,11 +159,13 @@ export async function reconcileCheckoutUser(
   let credentialAccount: { id: string; providerId: string } | null = null;
   if (userId) {
     // db-access-guard: tenant-scoped -- reason: userId belongs to same-tenant checkout user before credential lookup
-    const accountRecord = await db.query.account.findFirst({
-      where: (accounts, { and, eq }) =>
-        and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')),
-      columns: { id: true, providerId: true },
-    });
+    const accountRecord = await withTenantContext({ tenantId }, async tx =>
+      tx.query.account.findFirst({
+        where: (accounts, { and, eq }) =>
+          and(eq(accounts.userId, userId), eq(accounts.providerId, 'credential')),
+        columns: { id: true, providerId: true },
+      })
+    );
     credentialAccount = accountRecord ?? null;
   }
 
@@ -172,7 +177,7 @@ export async function reconcileCheckoutUser(
     const ownershipAttribution = createSelfServeOwnershipAttribution(mergedCustomData?.agentId);
     const nextAgentId = existingUser.agentId ?? ownershipAttribution.agentId;
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.transaction(async tx => {
+    await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx
         .update(userTable)
@@ -200,20 +205,22 @@ export async function reconcileCheckoutUser(
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from reconciled checkout context constrains final user reload
-  const finalUser = await db.query.user.findFirst({
-    where: (users, { and, eq }) =>
-      and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
-    columns: {
-      id: true,
-      tenantId: true,
-      branchId: true,
-      email: true,
-      name: true,
-      role: true,
-      memberNumber: true,
-      agentId: true,
-    },
-  });
+  const finalUser = await withTenantContext({ tenantId }, async tx =>
+    tx.query.user.findFirst({
+      where: (users, { and, eq }) =>
+        and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
+      columns: {
+        id: true,
+        tenantId: true,
+        branchId: true,
+        email: true,
+        name: true,
+        role: true,
+        memberNumber: true,
+        agentId: true,
+      },
+    })
+  );
 
   if (!finalUser) {
     console.warn(

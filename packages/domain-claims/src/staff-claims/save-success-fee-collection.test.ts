@@ -128,6 +128,9 @@ vi.mock('@interdomestik/database', () => ({
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
+    mocks.db.transaction(cb)
+  ),
   eq: mocks.eq,
   subscriptions: mocks.subscriptions,
 }));

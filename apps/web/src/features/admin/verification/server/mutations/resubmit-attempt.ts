@@ -1,5 +1,5 @@
 import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { auditLog } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq } from 'drizzle-orm';
@@ -15,7 +15,7 @@ export async function resubmitCashAttemptCore(
   const { tenantId, session } = ctx;
   const { attemptId, note } = input;
 
-  return await db.transaction(async tx => {
+  return await withTenantContext({ tenantId }, async tx => {
     // A. Fetch
     const [result] = await tx
       .select({

@@ -1,6 +1,14 @@
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildStaffClaimReadScope } from '@interdomestik/domain-claims/staff-claims/scope';
-import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  eq,
+  user,
+  withTenantContext,
+} from '@interdomestik/database';
+import type { db } from '@interdomestik/database/db';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc, isNotNull } from 'drizzle-orm';
@@ -45,57 +53,63 @@ export async function getStaffClaimDetailsCore(args: {
   staffId: string;
   tenantId: string;
 }): Promise<StaffClaimDetailsResult> {
-  const claim = await db.query.claims.findFirst({
-    where: and(
-      eq(claims.tenantId, args.tenantId),
-      buildStaffClaimReadScope({
-        branchId: args.branchId ?? null,
-        claimId: args.claimId,
-        userId: args.staffId,
-      })
-    ),
-    with: {
-      user: true,
-    },
-  });
+  const claim = await withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: and(
+        eq(claims.tenantId, args.tenantId),
+        buildStaffClaimReadScope({
+          branchId: args.branchId ?? null,
+          claimId: args.claimId,
+          userId: args.staffId,
+        })
+      ),
+      with: {
+        user: true,
+      },
+    })
+  );
 
   if (!claim) return { kind: 'not_found' };
 
   const status = claimStatusFromLifecycleFields(claim);
 
   const [documents, stageHistory] = await Promise.all([
-    db
-      .select({
-        id: claimDocuments.id,
-        name: claimDocuments.name,
-        fileSize: claimDocuments.fileSize,
-        fileType: claimDocuments.fileType,
-        createdAt: claimDocuments.createdAt,
-      })
-      .from(claimDocuments)
-      .where(
-        and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, args.tenantId))
-      ),
-    db
-      .select({
-        id: claimStageHistory.id,
-        fromStatus: claimStageHistory.fromStatus,
-        toStatus: claimStageHistory.toStatus,
-        note: claimStageHistory.note,
-        isPublic: claimStageHistory.isPublic,
-        createdAt: claimStageHistory.createdAt,
-        changedByName: user.name,
-        changedByEmail: user.email,
-      })
-      .from(claimStageHistory)
-      .leftJoin(user, eq(claimStageHistory.changedById, user.id))
-      .where(
-        and(
-          eq(claimStageHistory.claimId, args.claimId),
-          eq(claimStageHistory.tenantId, args.tenantId)
+    withTenantContext({ tenantId: args.tenantId }, tx =>
+      tx
+        .select({
+          id: claimDocuments.id,
+          name: claimDocuments.name,
+          fileSize: claimDocuments.fileSize,
+          fileType: claimDocuments.fileType,
+          createdAt: claimDocuments.createdAt,
+        })
+        .from(claimDocuments)
+        .where(
+          and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, args.tenantId))
         )
-      )
-      .orderBy(desc(claimStageHistory.createdAt)),
+    ),
+    withTenantContext({ tenantId: args.tenantId }, tx =>
+      tx
+        .select({
+          id: claimStageHistory.id,
+          fromStatus: claimStageHistory.fromStatus,
+          toStatus: claimStageHistory.toStatus,
+          note: claimStageHistory.note,
+          isPublic: claimStageHistory.isPublic,
+          createdAt: claimStageHistory.createdAt,
+          changedByName: user.name,
+          changedByEmail: user.email,
+        })
+        .from(claimStageHistory)
+        .leftJoin(user, eq(claimStageHistory.changedById, user.id))
+        .where(
+          and(
+            eq(claimStageHistory.claimId, args.claimId),
+            eq(claimStageHistory.tenantId, args.tenantId)
+          )
+        )
+        .orderBy(desc(claimStageHistory.createdAt))
+    ),
   ]);
 
   return {
@@ -118,34 +132,38 @@ export function getPublicStatusHistoryCore(args: {
   claimId: string;
   tenantId: string;
 }): Promise<Array<LatestPublicStatusNote & { id: string; toStatus: string | null }>> {
-  return db.query.claimStageHistory.findMany({
-    where: and(
-      eq(claimStageHistory.claimId, args.claimId),
-      eq(claimStageHistory.tenantId, args.tenantId),
-      eq(claimStageHistory.isPublic, true)
-    ),
-    columns: { id: true, note: true, toStatus: true, createdAt: true },
-    orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
-  });
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.claimStageHistory.findMany({
+      where: and(
+        eq(claimStageHistory.claimId, args.claimId),
+        eq(claimStageHistory.tenantId, args.tenantId),
+        eq(claimStageHistory.isPublic, true)
+      ),
+      columns: { id: true, note: true, toStatus: true, createdAt: true },
+      orderBy: [desc(claimStageHistory.createdAt), desc(claimStageHistory.id)],
+    })
+  );
 }
 
 export async function getLatestPublicStatusNoteCore(args: {
   claimId: string;
   tenantId: string;
 }): Promise<LatestPublicStatusNote | null> {
-  const row = await db.query.claimStageHistory.findFirst({
-    where: and(
-      eq(claimStageHistory.claimId, args.claimId),
-      eq(claimStageHistory.tenantId, args.tenantId),
-      eq(claimStageHistory.isPublic, true),
-      isNotNull(claimStageHistory.note)
-    ),
-    columns: {
-      note: true,
-      createdAt: true,
-    },
-    orderBy: [desc(claimStageHistory.createdAt)],
-  });
+  const row = await withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.claimStageHistory.findFirst({
+      where: and(
+        eq(claimStageHistory.claimId, args.claimId),
+        eq(claimStageHistory.tenantId, args.tenantId),
+        eq(claimStageHistory.isPublic, true),
+        isNotNull(claimStageHistory.note)
+      ),
+      columns: {
+        note: true,
+        createdAt: true,
+      },
+      orderBy: [desc(claimStageHistory.createdAt)],
+    })
+  );
   return row ?? null;
 }
 

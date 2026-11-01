@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -38,5 +38,10 @@ export async function getAgentTier(params: {
   agentId: string;
   tenantId?: string | null;
 }): Promise<string> {
-  return getAgentTierCore(params, { db });
+  const { tenantId } = params;
+  if (!tenantId) {
+    return 'standard';
+  }
+
+  return withTenantContext({ tenantId }, tx => getAgentTierCore(params, { db: tx }));
 }

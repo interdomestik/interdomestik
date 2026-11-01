@@ -235,7 +235,7 @@ describe('campaign execution tenant-context writes', () => {
   beforeEach(() => {
     vi.clearAllMocks(); m.findManyLogs.mockResolvedValue([]); m.nanoid.mockReturnValue('test-id-123');
     m.txInsert.mockReturnValue({ values: m.txValues }); m.txValues.mockResolvedValue(undefined);
-    m.withTenantContext.mockImplementation(async (_context: { tenantId: string; role: string }, action: (tx: unknown) => Promise<void>) => await action({ insert: m.txInsert }));
+    m.withTenantContext.mockImplementation(async (_context: { tenantId: string; role: string }, action: (tx: unknown) => Promise<void>) => await action({ insert: m.txInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }));
   });
   it('writes campaign logs through each item tenant context', async () => {
     const { executeCampaign, processCampaignUser } = await import('./campaign-execution');
@@ -243,6 +243,8 @@ describe('campaign execution tenant-context writes', () => {
     await executeCampaign('campaign-2', vi.fn().mockResolvedValueOnce([{ email: 'member@example.com', id: 'item-1', tenantId: 'tenant-2', userId: 'user-2' }]).mockResolvedValueOnce([]), vi.fn().mockResolvedValue(undefined), { errors: [], logs: [], stats: { attempted: 0, failed: 0, sent: 0, skipped: 0 } });
     expect(m.withTenantContext).toHaveBeenNthCalledWith(1, { tenantId: 'tenant-1', role: 'system' }, expect.any(Function));
     expect(m.withTenantContext).toHaveBeenNthCalledWith(2, { tenantId: 'tenant-2', role: 'system' }, expect.any(Function));
+    expect(m.withTenantContext).toHaveBeenNthCalledWith(3, { tenantId: 'tenant-2', role: 'system' }, expect.any(Function));
+    expect(m.findManyLogs).toHaveBeenCalledTimes(1);
     expect(m.txValues).toHaveBeenNthCalledWith(1, expect.objectContaining({ campaignId: 'campaign-1', tenantId: 'tenant-1', userId: 'user-1' }));
     expect(m.txValues).toHaveBeenNthCalledWith(2, expect.objectContaining({ campaignId: 'campaign-2', tenantId: 'tenant-2', userId: 'user-2' }));
     expect(m.dbInsert).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import * as schema from '@interdomestik/database/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 
@@ -20,7 +20,7 @@ export async function softDeleteDocument(params: {
   const { tenantId, documentId, deletedBy } = params;
   const deletedAt = new Date();
 
-  await db.transaction(async tx => {
+  await withTenantContext({ tenantId }, async tx => {
     // db-access-guard: tenant-scoped -- reason: document soft-delete is constrained by exact tenantId and documentId.
     const [deletedDocument] = await tx
       .update(schema.documents)

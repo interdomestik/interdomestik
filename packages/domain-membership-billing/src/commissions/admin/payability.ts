@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import {
   agentClients,
   agentCommissions,
@@ -112,35 +112,37 @@ async function fetchCommissionPayabilityRows(args: {
 }): Promise<CommissionPayabilityRow[]> {
   if (args.ids.length === 0) return [];
 
-  return db
-    .select({
-      id: agentCommissions.id,
-      status: agentCommissions.status,
-      memberId: agentCommissions.memberId,
-      subscriptionStatus: subscriptions.status,
-      subscriptionAgentId: subscriptions.agentId,
-      userAgentId: userTable.agentId,
-      cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
-      gracePeriodEndsAt: subscriptions.gracePeriodEndsAt,
-    })
-    .from(agentCommissions)
-    .leftJoin(
-      subscriptions,
-      and(
-        eq(agentCommissions.tenantId, subscriptions.tenantId),
-        eq(agentCommissions.subscriptionId, subscriptions.id)
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx
+      .select({
+        id: agentCommissions.id,
+        status: agentCommissions.status,
+        memberId: agentCommissions.memberId,
+        subscriptionStatus: subscriptions.status,
+        subscriptionAgentId: subscriptions.agentId,
+        userAgentId: userTable.agentId,
+        cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
+        gracePeriodEndsAt: subscriptions.gracePeriodEndsAt,
+      })
+      .from(agentCommissions)
+      .leftJoin(
+        subscriptions,
+        and(
+          eq(agentCommissions.tenantId, subscriptions.tenantId),
+          eq(agentCommissions.subscriptionId, subscriptions.id)
+        )
       )
-    )
-    .leftJoin(
-      userTable,
-      and(
-        eq(agentCommissions.tenantId, userTable.tenantId),
-        eq(agentCommissions.memberId, userTable.id)
+      .leftJoin(
+        userTable,
+        and(
+          eq(agentCommissions.tenantId, userTable.tenantId),
+          eq(agentCommissions.memberId, userTable.id)
+        )
       )
-    )
-    .where(
-      and(eq(agentCommissions.tenantId, args.tenantId), inArray(agentCommissions.id, args.ids))
-    );
+      .where(
+        and(eq(agentCommissions.tenantId, args.tenantId), inArray(agentCommissions.id, args.ids))
+      )
+  );
 }
 
 async function fetchActiveAgentClientBindings(args: {
@@ -150,19 +152,21 @@ async function fetchActiveAgentClientBindings(args: {
   const memberIds = [...new Set(args.memberIds)];
   if (memberIds.length === 0) return [];
 
-  return db
-    .select({
-      memberId: agentClients.memberId,
-      agentId: agentClients.agentId,
-    })
-    .from(agentClients)
-    .where(
-      and(
-        eq(agentClients.tenantId, args.tenantId),
-        eq(agentClients.status, 'active'),
-        inArray(agentClients.memberId, memberIds)
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx
+      .select({
+        memberId: agentClients.memberId,
+        agentId: agentClients.agentId,
+      })
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.tenantId, args.tenantId),
+          eq(agentClients.status, 'active'),
+          inArray(agentClients.memberId, memberIds)
+        )
       )
-    );
+  );
 }
 
 function groupAgentClientBindings(rows: AgentClientBindingRow[]): Map<string, string[]> {

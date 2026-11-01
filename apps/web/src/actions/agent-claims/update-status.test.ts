@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   dbSelect: vi.fn(),
   dbUpdate: vi.fn(),
   logAuditEvent: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@/lib/audit', () => ({
@@ -14,31 +15,40 @@ vi.mock('@/lib/notifications', () => ({
   notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  claims: {
-    id: { name: 'id' },
-    tenantId: { name: 'tenantId' },
-    status: { name: 'status' },
-    userId: { name: 'userId' },
-    title: { name: 'title' },
-    staffId: { name: 'staffId' },
-  },
-  user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
-  db: {
-    select: () => ({
-      from: () => ({
-        leftJoin: () => ({
-          where: () => mocks.dbSelect(),
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    claims: {
+      id: { name: 'id' },
+      tenantId: { name: 'tenantId' },
+      status: { name: 'status' },
+      userId: { name: 'userId' },
+      title: { name: 'title' },
+      staffId: { name: 'staffId' },
+    },
+    user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
+    db: {
+      select: () => ({
+        from: () => ({
+          leftJoin: () => ({
+            where: () => mocks.dbSelect(),
+          }),
         }),
       }),
-    }),
-    update: () => ({
-      set: () => ({ where: mocks.dbUpdate }),
-    }),
-  },
-  and: vi.fn(),
-  eq: vi.fn(),
-}));
+      update: () => ({
+        set: () => ({ where: mocks.dbUpdate }),
+      }),
+    },
+    and: vi.fn(),
+    eq: vi.fn(),
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(moduleMock.db);
+    },
+  };
+});
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -74,6 +84,7 @@ describe('updateClaimStatusCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
 
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();

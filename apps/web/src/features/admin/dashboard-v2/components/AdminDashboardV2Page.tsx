@@ -1,7 +1,7 @@
 import { TenantAdminDashboardV2 } from '@/features/admin/dashboard-v2/components/TenantAdminDashboardV2';
 import { getTenantAdminDashboardV2Data } from '@/features/admin/dashboard-v2/server/getTenantAdminDashboardV2Data';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { tenants } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
@@ -58,7 +58,9 @@ export async function AdminDashboardV2Page({ locale }: { locale: string }) {
 
   // Get Tenant Name for display
   // db-access-guard: system-exempt -- reason: tenant metadata lookup by authenticated admin-selected tenant id
-  const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+  const [tenant] = await withTenantContext({ tenantId }, tx =>
+    tx.select().from(tenants).where(eq(tenants.id, tenantId))
+  );
   const tenantName = tenant?.name || 'Unknown Tenant';
 
   return (

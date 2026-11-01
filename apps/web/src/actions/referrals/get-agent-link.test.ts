@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Session } from './context';
 import { getAgentReferralLinkCore } from './get-agent-link';
 
+const mocks = vi.hoisted(() => ({ withTenantContext: vi.fn() }));
+
 // Mock database
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findFirst: vi.fn().mockResolvedValue({ referralCode: 'EXISTING-CODE' }),
@@ -16,9 +18,16 @@ vi.mock('@interdomestik/database', () => ({
         where: vi.fn().mockResolvedValue(undefined),
       })),
     })),
-  },
-  withTenant: vi.fn(),
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(db);
+    },
+    withTenant: vi.fn(),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id', tenantId: 'user.tenant_id' },
@@ -73,6 +82,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
       } as unknown as NonNullable<Session>,
     });
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.code).toBe('EXISTING-CODE');

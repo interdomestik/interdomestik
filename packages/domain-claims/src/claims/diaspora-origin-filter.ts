@@ -1,4 +1,12 @@
-import { and, claimStageHistory, db, eq, inArray, or } from '@interdomestik/database';
+import {
+  and,
+  claimStageHistory,
+  db,
+  eq,
+  inArray,
+  or,
+  withTenantContext,
+} from '@interdomestik/database';
 import type { SQL } from 'drizzle-orm';
 
 export type DiasporaOriginFilter = 'all' | 'diaspora';
@@ -24,6 +32,7 @@ export const buildDiasporaOriginNoteCondition = (
 ): SQL<unknown> => or(...DIASPORA_ORIGIN_NOTES.map(note => eq(noteColumn, note)))!;
 
 export function buildDiasporaOriginClaimIdsSubquery(tenantId: string) {
+  // db-access-guard: tenant-scoped -- reason: query builder only; embedded as a subquery in a caller's tenant transaction and never executed on the ambient client
   return db
     .select({ claimId: claimStageHistory.claimId })
     .from(claimStageHistory)
@@ -50,10 +59,12 @@ export async function listDiasporaOriginClaimIds(params: {
   }
 
   // db-access-guard: tenant-scoped -- reason: validated tenant at boundary
-  const rows = await db
-    .select({ claimId: claimStageHistory.claimId })
-    .from(claimStageHistory)
-    .where(and(...conditions));
+  const rows = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({ claimId: claimStageHistory.claimId })
+      .from(claimStageHistory)
+      .where(and(...conditions))
+  );
 
   return [...new Set(rows.map(row => row.claimId))];
 }

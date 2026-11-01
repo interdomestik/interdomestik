@@ -7,18 +7,23 @@ const mocks = vi.hoisted(() => ({
   getSessionFromHeaders: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       crmLeads: {
         findFirst: mocks.findLead,
       },
     },
     insert: () => ({ values: mocks.dbInsertValues }),
-  },
-  crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
-  crmLeads: { id: { name: 'id' } },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(db),
+    crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+    crmLeads: { id: { name: 'id' } },
+  };
+});
 
 vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mocks.revalidatePath(...args),

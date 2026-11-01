@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberReferralSettings } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -55,9 +55,11 @@ export async function getMemberReferralProgramSettingsCore(params: {
   tenantId: string;
 }): Promise<ActionResult<MemberReferralProgramSettings>> {
   try {
-    const row = await db.query.memberReferralSettings.findFirst({
-      where: eq(memberReferralSettings.tenantId, params.tenantId),
-    });
+    const row = await withTenantContext({ tenantId: params.tenantId }, tx =>
+      tx.query.memberReferralSettings.findFirst({
+        where: eq(memberReferralSettings.tenantId, params.tenantId),
+      })
+    );
 
     return {
       success: true,
@@ -96,28 +98,12 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
     });
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    const rows = await db
-      .insert(memberReferralSettings)
-      .values({
-        id: nanoid(),
-        tenantId,
-        enabled: normalized.enabled,
-        rewardType: normalized.rewardType,
-        fixedRewardCents: normalized.rewardType === 'fixed' ? normalized.fixedRewardCents : null,
-        percentRewardBps: normalized.percentRewardBps,
-        referredMemberRewardType: 'fixed',
-        referredMemberFixedRewardCents: 0,
-        referredMemberPercentRewardBps: null,
-        settlementMode: normalized.settlementMode,
-        payoutThresholdCents: normalized.payoutThresholdCents,
-        fraudReviewEnabled: normalized.fraudReviewEnabled,
-        currencyCode: normalized.currencyCode,
-        qualifyingEventType: normalized.qualifyingEventType,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: memberReferralSettings.tenantId,
-        set: {
+    const rows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .insert(memberReferralSettings)
+        .values({
+          id: nanoid(),
+          tenantId,
           enabled: normalized.enabled,
           rewardType: normalized.rewardType,
           fixedRewardCents: normalized.rewardType === 'fixed' ? normalized.fixedRewardCents : null,
@@ -131,20 +117,39 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
           currencyCode: normalized.currencyCode,
           qualifyingEventType: normalized.qualifyingEventType,
           updatedAt: new Date(),
-        },
-      })
-      .returning({
-        tenantId: memberReferralSettings.tenantId,
-        enabled: memberReferralSettings.enabled,
-        rewardType: memberReferralSettings.rewardType,
-        fixedRewardCents: memberReferralSettings.fixedRewardCents,
-        percentRewardBps: memberReferralSettings.percentRewardBps,
-        settlementMode: memberReferralSettings.settlementMode,
-        payoutThresholdCents: memberReferralSettings.payoutThresholdCents,
-        fraudReviewEnabled: memberReferralSettings.fraudReviewEnabled,
-        currencyCode: memberReferralSettings.currencyCode,
-        qualifyingEventType: memberReferralSettings.qualifyingEventType,
-      });
+        })
+        .onConflictDoUpdate({
+          target: memberReferralSettings.tenantId,
+          set: {
+            enabled: normalized.enabled,
+            rewardType: normalized.rewardType,
+            fixedRewardCents:
+              normalized.rewardType === 'fixed' ? normalized.fixedRewardCents : null,
+            percentRewardBps: normalized.percentRewardBps,
+            referredMemberRewardType: 'fixed',
+            referredMemberFixedRewardCents: 0,
+            referredMemberPercentRewardBps: null,
+            settlementMode: normalized.settlementMode,
+            payoutThresholdCents: normalized.payoutThresholdCents,
+            fraudReviewEnabled: normalized.fraudReviewEnabled,
+            currencyCode: normalized.currencyCode,
+            qualifyingEventType: normalized.qualifyingEventType,
+            updatedAt: new Date(),
+          },
+        })
+        .returning({
+          tenantId: memberReferralSettings.tenantId,
+          enabled: memberReferralSettings.enabled,
+          rewardType: memberReferralSettings.rewardType,
+          fixedRewardCents: memberReferralSettings.fixedRewardCents,
+          percentRewardBps: memberReferralSettings.percentRewardBps,
+          settlementMode: memberReferralSettings.settlementMode,
+          payoutThresholdCents: memberReferralSettings.payoutThresholdCents,
+          fraudReviewEnabled: memberReferralSettings.fraudReviewEnabled,
+          currencyCode: memberReferralSettings.currencyCode,
+          qualifyingEventType: memberReferralSettings.qualifyingEventType,
+        })
+    );
 
     const row = rows[0];
     if (!row) {

@@ -1,4 +1,11 @@
-import { and, claimEscalationAgreements, claims, db, eq, sql } from '@interdomestik/database';
+import {
+  and,
+  claimEscalationAgreements,
+  claims,
+  eq,
+  sql,
+  withTenantContext,
+} from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
 
@@ -69,5 +76,7 @@ export async function transitionAdminClaimStatus(
   params: TransitionAdminClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
   // db-access-guard: tenant-scoped -- reason: transition helper applies tenant-scoped CAS.
-  return db.transaction(tx => transitionAdminClaimStatusInTransaction(tx, params));
+  return withTenantContext({ tenantId: params.tenantId }, tx =>
+    transitionAdminClaimStatusInTransaction(tx, params)
+  );
 }

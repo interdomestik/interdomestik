@@ -2,14 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   relayClaimStatusAuditProjectionEvents: vi.fn(),
-  transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    transaction: mocks.transaction,
-  },
   relayClaimStatusAuditProjectionEvents: mocks.relayClaimStatusAuditProjectionEvents,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 import {
@@ -20,7 +18,7 @@ import {
 describe('claim status audit projection activation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.transaction.mockImplementation(async callback => callback('tx'));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) => callback('tx'));
     mocks.relayClaimStatusAuditProjectionEvents.mockResolvedValue({
       consumerInvocations: 1,
       deliveryRecordsAlreadyExisted: 0,
@@ -37,7 +35,11 @@ describe('claim status audit projection activation', () => {
       selected: 1,
     });
 
-    expect(mocks.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.relayClaimStatusAuditProjectionEvents).toHaveBeenCalledWith('tx', {
       limit: 10,
       tenantId: 'tenant-1',
@@ -56,7 +58,7 @@ describe('claim status audit projection activation', () => {
       limit: 10,
       tenantId: 'tenant-1',
     });
-    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('reports projection failures without hiding retryability behind delivery records', async () => {

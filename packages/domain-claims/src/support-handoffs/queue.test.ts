@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   claims: {
     claimNumber: 'claims.claim_number',
     id: 'claims.id',
-    caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
     tenantId: 'claims.tenant_id',
     title: 'claims.title',
   },
@@ -86,6 +87,7 @@ vi.mock('@interdomestik/database', () => ({
   branches: mocks.branches,
   claims: mocks.claims,
   db: mocks.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
   desc: mocks.desc,
   eq: mocks.eq,
   ilike: mocks.ilike,
@@ -104,7 +106,8 @@ vi.mock('drizzle-orm', () => ({
   aliasedTable: vi.fn((table, alias) => ({ ...table, alias })),
   gt: mocks.gt,
   isNotNull: mocks.isNotNull,
-  isNull: mocks.isNull, sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
+  isNull: mocks.isNull,
+  sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
 }));
 
 import {

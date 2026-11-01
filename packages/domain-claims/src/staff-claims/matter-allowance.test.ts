@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
 
   return {
     db: { select: vi.fn() },
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
     subscriptions: columns,
     serviceUsage: columns,
     subscriptionQuery,

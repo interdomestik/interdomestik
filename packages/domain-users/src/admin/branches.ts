@@ -1,4 +1,4 @@
-import { branches, db, eq } from '@interdomestik/database';
+import { branches, eq, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { randomUUID } from 'node:crypto'; // NOSONAR
@@ -18,10 +18,12 @@ export async function listBranchesCore(params: {
 
   const baseConditions = params.includeInactive ? undefined : eq(branches.isActive, true);
 
-  return db.query.branches.findMany({
-    where: withTenant(tenantId, branches.tenantId, baseConditions),
-    orderBy: (b, { asc }) => [asc(b.name)],
-  });
+  return withTenantContext({ tenantId }, async tx =>
+    tx.query.branches.findMany({
+      where: withTenant(tenantId, branches.tenantId, baseConditions),
+      orderBy: (b, { asc }) => [asc(b.name)],
+    })
+  );
 }
 
 export async function createBranchCore(
@@ -50,17 +52,21 @@ export async function createBranchCore(
   }
 
   // Uniqueness Check
-  const existing = await db.query.branches.findFirst({
-    where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
-  });
+  const existing = await withTenantContext({ tenantId }, async tx =>
+    tx.query.branches.findFirst({
+      where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
+    })
+  );
   if (existing) {
     return { error: 'Branch with this name (slug) already exists' } satisfies ActionResult;
   }
 
   if (params.code) {
-    const existingCode = await db.query.branches.findFirst({
-      where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code)),
-    });
+    const existingCode = await withTenantContext({ tenantId }, async tx =>
+      tx.query.branches.findFirst({
+        where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code!)),
+      })
+    );
     if (existingCode) {
       return { error: 'Branch with this code already exists' } satisfies ActionResult;
     }
@@ -70,16 +76,18 @@ export async function createBranchCore(
   const code = params.code?.trim() || null;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated admin session before branch insert
-  await db.insert(branches).values({
-    id: branchId,
-    tenantId,
-    name,
-    code,
-    slug,
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  await withTenantContext({ tenantId }, async tx =>
+    tx.insert(branches).values({
+      id: branchId,
+      tenantId,
+      name,
+      code,
+      slug,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+  );
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -119,32 +127,38 @@ export async function updateBranchCore(
 
   const slug = branchSlugFromName(name);
 
-  const existing = await db.query.branches.findFirst({
-    where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
-  });
+  const existing = await withTenantContext({ tenantId }, async tx =>
+    tx.query.branches.findFirst({
+      where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
+    })
+  );
   if (existing && existing.id !== params.branchId) {
     return { error: 'Branch with this name (slug) already exists' } satisfies ActionResult;
   }
 
   if (params.code) {
-    const existingCode = await db.query.branches.findFirst({
-      where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code)),
-    });
+    const existingCode = await withTenantContext({ tenantId }, async tx =>
+      tx.query.branches.findFirst({
+        where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code!)),
+      })
+    );
     if (existingCode && existingCode.id !== params.branchId) {
       return { error: 'Branch with this code already exists' } satisfies ActionResult;
     }
   }
 
-  await db
-    .update(branches)
-    .set({
-      name,
-      slug,
-      code: params.code?.trim() || null,
-      isActive: params.isActive ?? true,
-      updatedAt: new Date(),
-    })
-    .where(withTenant(tenantId, branches.tenantId, eq(branches.id, params.branchId)));
+  await withTenantContext({ tenantId }, async tx =>
+    tx
+      .update(branches)
+      .set({
+        name,
+        slug,
+        code: params.code?.trim() || null,
+        isActive: params.isActive ?? true,
+        updatedAt: new Date(),
+      })
+      .where(withTenant(tenantId, branches.tenantId, eq(branches.id, params.branchId)))
+  );
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -174,13 +188,15 @@ export async function deleteBranchCore(
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
-  await db
-    .update(branches)
-    .set({
-      isActive: false,
-      updatedAt: new Date(),
-    })
-    .where(withTenant(tenantId, branches.tenantId, eq(branches.id, params.branchId)));
+  await withTenantContext({ tenantId }, async tx =>
+    tx
+      .update(branches)
+      .set({
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(withTenant(tenantId, branches.tenantId, eq(branches.id, params.branchId)))
+  );
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

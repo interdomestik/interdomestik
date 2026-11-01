@@ -1,6 +1,6 @@
 import { type ClaimStatus } from '@interdomestik/database/constants';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
@@ -17,32 +17,39 @@ export async function getAdminDashboardStats(tenantId: string): Promise<Dashboar
   const NEW_STATUS: ClaimStatus = 'submitted';
   const RESOLVED_STATUS: ClaimStatus = 'resolved';
 
-  const [totalClaimsRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId));
+  const [totalClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+    tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
+  );
 
-  const [newClaimsRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)));
+  const [newClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)))
+  );
 
-  const [resolvedClaimsRes] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)));
+  const [resolvedClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)))
+  );
 
-  const [totalUsersRes] = await db
-    .select({ count: count() })
-    .from(user)
-    .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)));
+  const [totalUsersRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({ count: count() })
+      .from(user)
+      .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)))
+  );
 
-  const [volumeRes] = await db
-    .select({
-      sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
-    })
-    .from(claims)
-    .where(eq(claims.tenantId, tenantId));
+  const [volumeRes] = await withTenantContext({ tenantId }, async tx =>
+    tx
+      .select({
+        sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
+      })
+      .from(claims)
+      .where(eq(claims.tenantId, tenantId))
+  );
 
   return {
     totalClaims: totalClaimsRes.count,
@@ -54,14 +61,16 @@ export async function getAdminDashboardStats(tenantId: string): Promise<Dashboar
 }
 
 export async function getRecentClaims(tenantId: string, limit = 5) {
-  const recentClaims = await db.query.claims.findMany({
-    where: (claims, { eq }) => eq(claims.tenantId, tenantId),
-    with: {
-      user: true,
-    },
-    limit,
-    orderBy: [desc(claims.createdAt)],
-  });
+  const recentClaims = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findMany({
+      where: (claims, { eq }) => eq(claims.tenantId, tenantId),
+      with: {
+        user: true,
+      },
+      limit,
+      orderBy: [desc(claims.createdAt)],
+    })
+  );
 
   return recentClaims.map(claim => ({
     ...claim,
@@ -70,13 +79,15 @@ export async function getRecentClaims(tenantId: string, limit = 5) {
 }
 
 export async function getUnassignedClaims(tenantId: string, limit = 5) {
-  return await db.query.claims.findMany({
-    with: {
-      user: true,
-    },
-    where: (claims, { and, eq, isNull }) =>
-      and(eq(claims.tenantId, tenantId), isNull(claims.staffId)),
-    limit,
-    orderBy: [desc(claims.createdAt)],
-  });
+  return await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findMany({
+      with: {
+        user: true,
+      },
+      where: (claims, { and, eq, isNull }) =>
+        and(eq(claims.tenantId, tenantId), isNull(claims.staffId)),
+      limit,
+      orderBy: [desc(claims.createdAt)],
+    })
+  );
 }

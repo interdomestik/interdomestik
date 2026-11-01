@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions, user as userTable } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -23,32 +23,36 @@ export async function getAllCommissionsCore(params: {
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS); // Cap at 100
     const offset = params.offset ?? 0;
 
-    const rows = await db
-      .select({
-        id: agentCommissions.id,
-        agentId: agentCommissions.agentId,
-        memberId: agentCommissions.memberId,
-        subscriptionId: agentCommissions.subscriptionId,
-        type: agentCommissions.type,
-        status: agentCommissions.status,
-        amount: agentCommissions.amount,
-        currency: agentCommissions.currency,
-        earnedAt: agentCommissions.earnedAt,
-        paidAt: agentCommissions.paidAt,
-        metadata: agentCommissions.metadata,
-      })
-      .from(agentCommissions)
-      .where(eq(agentCommissions.tenantId, tenantId)) // SECURITY: Tenant scoping
-      .orderBy(desc(agentCommissions.earnedAt))
-      .limit(limit)
-      .offset(offset);
+    const rows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          id: agentCommissions.id,
+          agentId: agentCommissions.agentId,
+          memberId: agentCommissions.memberId,
+          subscriptionId: agentCommissions.subscriptionId,
+          type: agentCommissions.type,
+          status: agentCommissions.status,
+          amount: agentCommissions.amount,
+          currency: agentCommissions.currency,
+          earnedAt: agentCommissions.earnedAt,
+          paidAt: agentCommissions.paidAt,
+          metadata: agentCommissions.metadata,
+        })
+        .from(agentCommissions)
+        .where(eq(agentCommissions.tenantId, tenantId)) // SECURITY: Tenant scoping
+        .orderBy(desc(agentCommissions.earnedAt))
+        .limit(limit)
+        .offset(offset)
+    );
 
     const userIds = [...new Set(rows.flatMap(r => [r.agentId, r.memberId].filter(Boolean)))];
     const users = userIds.length
-      ? await db
-          .select()
-          .from(userTable)
-          .where(and(eq(userTable.tenantId, tenantId), sql`${userTable.id} IN ${userIds}`))
+      ? await withTenantContext({ tenantId }, tx =>
+          tx
+            .select()
+            .from(userTable)
+            .where(and(eq(userTable.tenantId, tenantId), sql`${userTable.id} IN ${userIds}`))
+        )
       : [];
 
     const userMap = new Map(users.map(u => [u.id, u]));

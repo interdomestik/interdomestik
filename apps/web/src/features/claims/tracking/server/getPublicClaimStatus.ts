@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
@@ -41,6 +41,7 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
       // 2. Lookup Token
       const now = new Date();
 
+      // BLOCKED(rc31-u2): token-resolved public page -- the tenant is only known after this bearer-token lookup; needs a privileged manifest entry.
       // db-access-guard: system-exempt -- reason: bearer tracking token lookup resolves tenant before scoped claim status read
       const record = await db.query.claimTrackingTokens.findFirst({
         where: and(
@@ -59,15 +60,18 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
       }
 
       // 3. Fetch Claim Status (Minimal)
-      const claim = await db.query.claims.findFirst({
-        where: and(eq(claims.id, record.claimId), eq(claims.tenantId, record.tenantId)),
-        columns: {
-          id: true,
-          caseLifecycleState: true,
-          recoveryLifecycleState: true,
-          updatedAt: true,
-        },
-      });
+      const recordTenantId = record.tenantId;
+      const claim = await withTenantContext({ tenantId: recordTenantId }, tx =>
+        tx.query.claims.findFirst({
+          where: and(eq(claims.id, record.claimId), eq(claims.tenantId, recordTenantId)),
+          columns: {
+            id: true,
+            caseLifecycleState: true,
+            recoveryLifecycleState: true,
+            updatedAt: true,
+          },
+        })
+      );
 
       if (!claim) return null;
 

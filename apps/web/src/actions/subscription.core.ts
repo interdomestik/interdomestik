@@ -3,7 +3,7 @@
 import { logAuditEvent } from '@/lib/audit';
 import { getSponsoredMembershipState } from '@/components/ops/adapters/membership';
 import { revalidatePath } from 'next/cache';
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 import { createActiveAnnualMembershipFulfillment } from '@interdomestik/domain-membership-billing';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { cancelSubscriptionCore } from './subscription/cancel';
@@ -45,13 +45,15 @@ export async function activateSponsoredMembership(subscriptionId: string) {
     return { error: 'Missing tenantId' as const };
   }
 
-  const subscription = await db.query.subscriptions.findFirst({
-    where: and(
-      eq(subscriptions.id, subscriptionId),
-      eq(subscriptions.userId, session.user.id),
-      eq(subscriptions.tenantId, tenantId)
-    ),
-  });
+  const subscription = await withTenantContext({ tenantId }, async tx =>
+    tx.query.subscriptions.findFirst({
+      where: and(
+        eq(subscriptions.id, subscriptionId),
+        eq(subscriptions.userId, session.user.id),
+        eq(subscriptions.tenantId, tenantId)
+      ),
+    })
+  );
 
   if (!subscription) {
     return { error: 'Not found' as const };
@@ -68,13 +70,15 @@ export async function activateSponsoredMembership(subscriptionId: string) {
     subscription.planKey
   );
 
-  await db
-    .update(subscriptions)
-    .set({
-      ...activeAnnualMembershipState,
-      updatedAt: currentPeriodStart,
-    })
-    .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+  await withTenantContext({ tenantId }, async tx =>
+    tx
+      .update(subscriptions)
+      .set({
+        ...activeAnnualMembershipState,
+        updatedAt: currentPeriodStart,
+      })
+      .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)))
+  );
 
   revalidatePath(MEMBER_MEMBERSHIP_PATH);
   revalidatePath(MEMBER_CARD_PATH);

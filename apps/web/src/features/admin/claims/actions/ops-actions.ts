@@ -5,7 +5,6 @@ import {
   auditLog,
   claimMessages,
   claims,
-  db,
   desc,
   eq,
   withTenantContext,
@@ -101,30 +100,44 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
       return { success: false, error: 'Unauthorized' };
     }
 
-    const claim = await getClaimForMutation(claimId, ctx.tenantId);
-    assertCanMutateClaim(claim, ctx.session.user.role, 'assign');
+    const actorRole = ctx.session.user.role;
+    const claim = await withTenantContext({ tenantId: ctx.tenantId, role: actorRole }, tx =>
+      getClaimForMutation(claimId, ctx.tenantId, tx)
+    );
+    assertCanMutateClaim(claim, actorRole, 'assign');
 
-    const updated = await db
-      .update(claims)
-      .set({
-        staffId: null,
-        assignedAt: null,
-        assignedById: null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({
-        id: claims.id,
-        staffId: claims.staffId,
-        assignedAt: claims.assignedAt, // Should be null
-      });
+    const updated = await withTenantContext({ tenantId: ctx.tenantId, role: actorRole }, tx =>
+      tx
+        .update(claims)
+        .set({
+          staffId: null,
+          assignedAt: null,
+          assignedById: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
+        .returning({
+          id: claims.id,
+          staffId: claims.staffId,
+          assignedAt: claims.assignedAt, // Should be null
+        })
+    );
 
     assertRowsAffected(updated);
 
-    await logAudit(ctx.tenantId, ctx.session.user.id, 'unassign_owner', claimId, {
-      previousStaffId: claim.staffId,
-      claimNumber: claim.claimNumber,
-    });
+    await withTenantContext({ tenantId: ctx.tenantId, role: actorRole }, tx =>
+      logAudit(
+        ctx.tenantId,
+        ctx.session.user.id,
+        'unassign_owner',
+        claimId,
+        {
+          previousStaffId: claim.staffId,
+          claimNumber: claim.claimNumber,
+        },
+        tx
+      )
+    );
 
     // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
     revalidateClaim(locale, claimId);

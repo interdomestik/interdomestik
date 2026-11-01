@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claims, user } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
 
@@ -12,23 +12,27 @@ export async function getBranchStressIndex(
   tenantId: string,
   branchId: string
 ): Promise<BranchStressResult> {
-  const [activeAgents] = await db
-    .select({ count: count() })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent')));
+  const [activeAgents] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({ count: count() })
+      .from(user)
+      .where(and(eq(user.tenantId, tenantId), eq(user.branchId, branchId), eq(user.role, 'agent')))
+  );
 
   // Count open claims (submitted, in_review) older than 7 days
-  const [agingClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(
-      and(
-        eq(claims.tenantId, tenantId),
-        eq(claims.branchId, branchId),
-        sql`status IN ('submitted', 'in_review')`,
-        sql`created_at < NOW() - INTERVAL '7 days'`
+  const [agingClaims] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({ count: count() })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.tenantId, tenantId),
+          eq(claims.branchId, branchId),
+          sql`status IN ('submitted', 'in_review')`,
+          sql`created_at < NOW() - INTERVAL '7 days'`
+        )
       )
-    );
+  );
 
   const agentCount = activeAgents.count || 1; // avoid div/0
   const agingCount = agingClaims.count;

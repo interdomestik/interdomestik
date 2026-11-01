@@ -23,6 +23,17 @@ vi.mock('drizzle-orm', async () => {
   };
 });
 
+const withTenantContextMock = vi.hoisted(() => vi.fn());
+
+// Mock the tenant-context entrypoint so tenant transactions run against the mocked db
+vi.mock('@interdomestik/database', async () => {
+  const { db: mockedDb } = await import('@interdomestik/database/db');
+  withTenantContextMock.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(mockedDb)
+  );
+  return { withTenantContext: withTenantContextMock };
+});
+
 // Mock database
 vi.mock('@interdomestik/database/db', () => {
   const mockDb = {
@@ -188,6 +199,11 @@ describe('permissions', () => {
             scope: { actorAgentId: 'agent_Y' },
           } as unknown as ProtectedActionContext,
           'client_Z'
+        );
+
+        expect(withTenantContextMock).toHaveBeenCalledWith(
+          { tenantId: 'tenant_X' },
+          expect.any(Function)
         );
 
         // Capture the 'where' call arguments to verify strict filtering

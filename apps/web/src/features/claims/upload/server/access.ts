@@ -1,4 +1,4 @@
-import { claimInformationRequests, claims, db, withTenantContext } from '@interdomestik/database';
+import { claimInformationRequests, claims, withTenantContext } from '@interdomestik/database';
 import { and, eq } from 'drizzle-orm';
 
 type ClaimScopeRecord = {
@@ -51,13 +51,15 @@ export async function findAccessibleAdminUploadClaim(args: {
   tenantId: string;
   userId: string;
 }): Promise<ClaimScopeRecord | null> {
-  const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)),
-    columns: {
-      branchId: true,
-      staffId: true,
-    },
-  });
+  const claim = await withTenantContext({ tenantId: args.tenantId, role: args.role ?? null }, tx =>
+    tx.query.claims.findFirst({
+      where: and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)),
+      columns: {
+        branchId: true,
+        staffId: true,
+      },
+    })
+  );
 
   if (
     !claim ||

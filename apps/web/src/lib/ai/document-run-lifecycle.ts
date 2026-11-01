@@ -1,5 +1,5 @@
 import { ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
-import { db } from '@/lib/db.server';
+import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -35,22 +35,26 @@ export async function assertProcessingRunHasActiveDocument(
   failure: DeletedDocumentFailure
 ) {
   // db-access-guard: tenant-scoped -- reason: pre-download liveness check is constrained by exact runId, tenantId, and documentId before AI document processing
-  const [activeRun] = await db
-    .select({ id: aiRuns.id })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-    )
-    .where(
-      and(
-        eq(aiRuns.id, run.runId),
-        eq(aiRuns.status, 'processing'),
-        eq(documents.id, run.documentId),
-        eq(documents.tenantId, run.tenantId),
-        isNull(documents.deletedAt)
-      )
-    );
+  const [activeRun] = await withTenantContext(
+    { tenantId: run.tenantId, role: 'system' },
+    async tx =>
+      tx
+        .select({ id: aiRuns.id })
+        .from(aiRuns)
+        .innerJoin(
+          documents,
+          and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+        )
+        .where(
+          and(
+            eq(aiRuns.id, run.runId),
+            eq(aiRuns.status, 'processing'),
+            eq(documents.id, run.documentId),
+            eq(documents.tenantId, run.tenantId),
+            isNull(documents.deletedAt)
+          )
+        )
+  );
 
   if (!activeRun) throwDeletedDocumentError(failure);
 }

@@ -31,7 +31,8 @@ export async function sendMessageCore(params: {
       result.claimOwnerEmail,
       { id: result.claim.id, title: result.claim.title },
       params.session?.user?.name || 'Agent',
-      params.content
+      params.content,
+      { tenantId: result.claim.tenantId }
     ).catch((err: Error) => console.error('Failed to send message notification:', err));
   }
 

@@ -191,6 +191,7 @@ async function resolveWebhookTenantId(
 
   const userId = normalizeText(customData?.userId);
   if (userId) {
+    // BLOCKED(rc31-u2): webhook resolves the tenant from a provider-supplied userId; no canonical tenant until this lookup (identity bootstrap).
     // db-access-guard: system-exempt -- reason: Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant
     const userRecord = await db.query.user.findFirst({
       where: (users, { eq }) => eq(users.id, userId),

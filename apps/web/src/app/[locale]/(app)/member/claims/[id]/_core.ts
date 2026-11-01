@@ -1,4 +1,10 @@
-import { claimDocuments, claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  eq,
+  withTenantContext,
+} from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc } from 'drizzle-orm';
 
@@ -7,9 +13,7 @@ export function toClaimStatus(value: unknown): ClaimStatus {
 }
 
 export type MemberClaimRedirect =
-  | { kind: 'redirect'; href: string }
-  | { kind: 'not_found' }
-  | { kind: 'continue' };
+  { kind: 'redirect'; href: string } | { kind: 'not_found' } | { kind: 'continue' };
 
 export function getMemberClaimRedirect(args: {
   role: string | null | undefined;
@@ -58,41 +62,47 @@ export async function getMemberClaimDetailsCore(args: {
 }): Promise<MemberClaimDetailsResult> {
   const { claimId, viewerTenantId, viewerUserId } = args;
 
-  const claim = (await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, viewerTenantId)),
-    with: { user: true },
-  })) as ClaimWithUser | null | undefined;
+  const claim = (await withTenantContext({ tenantId: viewerTenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: and(eq(claims.id, claimId), eq(claims.tenantId, viewerTenantId)),
+      with: { user: true },
+    })
+  )) as ClaimWithUser | null | undefined;
 
   if (!claim) return { kind: 'not_found' };
   if (claim.userId !== viewerUserId) return { kind: 'not_found' };
   const tenantId = claim.tenantId;
   if (!tenantId) return { kind: 'not_found' };
 
-  const documents = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      createdAt: claimDocuments.createdAt,
-    })
-    .from(claimDocuments)
-    .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
+  const documents = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        id: claimDocuments.id,
+        name: claimDocuments.name,
+        fileSize: claimDocuments.fileSize,
+        fileType: claimDocuments.fileType,
+        createdAt: claimDocuments.createdAt,
+      })
+      .from(claimDocuments)
+      .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)))
+  );
 
-  const publicStageHistoryRows = await db
-    .select({
-      toStatus: claimStageHistory.toStatus,
-      createdAt: claimStageHistory.createdAt,
-    })
-    .from(claimStageHistory)
-    .where(
-      and(
-        eq(claimStageHistory.claimId, claimId),
-        eq(claimStageHistory.tenantId, tenantId),
-        eq(claimStageHistory.isPublic, true)
+  const publicStageHistoryRows = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        toStatus: claimStageHistory.toStatus,
+        createdAt: claimStageHistory.createdAt,
+      })
+      .from(claimStageHistory)
+      .where(
+        and(
+          eq(claimStageHistory.claimId, claimId),
+          eq(claimStageHistory.tenantId, tenantId),
+          eq(claimStageHistory.isPublic, true)
+        )
       )
-    )
-    .orderBy(desc(claimStageHistory.createdAt));
+      .orderBy(desc(claimStageHistory.createdAt))
+  );
 
   const normalizedDocuments: MemberClaimDocument[] = (
     documents as Array<{

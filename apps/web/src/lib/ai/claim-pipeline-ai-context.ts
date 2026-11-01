@@ -3,19 +3,21 @@ import {
   resolveClaimDocumentAiExtractionConsent,
 } from '@interdomestik/domain-claims';
 
-import { db } from '@/lib/db.server';
+import { withTenantContext } from '@interdomestik/database';
 
 import { ExtractionPipelineError } from './extraction-pipeline';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export async function readClaimPipelineAiCallContext(run: ClaimedClaimAiRun) {
-  const consent = await resolveClaimDocumentAiExtractionConsent({
-    tx: db,
-    tenantId: run.tenantId,
-    subjectId: run.subjectId,
-    claimId: run.claimId,
-    documentId: run.documentId,
-  });
+  const consent = await withTenantContext({ tenantId: run.tenantId, role: 'system' }, async tx =>
+    resolveClaimDocumentAiExtractionConsent({
+      tx,
+      tenantId: run.tenantId,
+      subjectId: run.subjectId,
+      claimId: run.claimId,
+      documentId: run.documentId,
+    })
+  );
 
   if (consent.kind !== 'granted') {
     throw new ExtractionPipelineError(

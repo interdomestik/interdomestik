@@ -28,28 +28,37 @@ export async function getSuperAdminKPIs(): Promise<SuperAdminKPIs> {
     claims7d,
     claims30d,
   ] = await Promise.all([
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(tenants),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(branches),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'staff')),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'agent')),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(user).where(eq(user.role, 'member')),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db.select({ count: count() }).from(claims),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })
       .from(claims)
       .where(sql`created_at >= NOW() - INTERVAL '1 day'`),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })
       .from(claims)
       .where(sql`created_at >= NOW() - INTERVAL '7 days'`),
+    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
     // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
     db
       .select({ count: count() })

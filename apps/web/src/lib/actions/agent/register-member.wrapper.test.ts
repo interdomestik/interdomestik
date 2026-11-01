@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   }),
   selectResults: [] as unknown[][],
   withTransactionRetry: vi.fn(),
+  withTenantContext: vi.fn(),
   emailExecute: vi.fn(),
 }));
 
@@ -26,6 +27,10 @@ vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
 vi.mock('@interdomestik/database', async () => {
   const helper = await import('@/test/canonical-membership-db-mock');
 
+  const db = {
+    select: helper.createQueuedSelectMock(mocks.selectResults),
+  };
+
   return {
     agentClients: {
       tenantId: 'agent_clients.tenant_id',
@@ -36,8 +41,10 @@ vi.mock('@interdomestik/database', async () => {
     asc: vi.fn((value: unknown) => ({ kind: 'asc', value })),
     eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
     membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
-    db: {
-      select: helper.createQueuedSelectMock(mocks.selectResults),
+    db,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(db);
     },
   };
 });
@@ -105,7 +112,14 @@ describe('registerMemberCore', () => {
     const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result).toEqual({ ok: true });
-    expect(mocks.withTransactionRetry).toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: mockTenantId });
+    expect(mocks.withTransactionRetry).toHaveBeenCalledWith(
+      expect.any(Function),
+      {},
+      {
+        tenantId: mockTenantId,
+      }
+    );
     expect(mocks.generateMemberNumber).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({

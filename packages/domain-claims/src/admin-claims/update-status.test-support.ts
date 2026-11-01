@@ -46,28 +46,35 @@ updateStatusMocks.dbSelect.mockImplementation((fields: { paymentAuthorizationSta
     : { from: updateStatusMocks.claimFrom }
 );
 
-vi.mock('@interdomestik/database', () => ({
-  and: updateStatusMocks.and,
-  db: {
-    select: updateStatusMocks.dbSelect,
-    update: updateStatusMocks.dbUpdate,
-  },
-  relayClaimStatusAuditProjectionEvents: vi.fn(),
-  claimEscalationAgreements: {
-    claimId: 'claim_escalation_agreements.claim_id',
-    paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
-    tenantId: 'claim_escalation_agreements.tenant_id',
-  },
-  claims: {
-    caseLifecycleState: 'claims.case_lifecycle_state',
-    id: 'claims.id',
-    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
-    tenantId: 'claims.tenant_id',
-    userId: 'claims.user_id',
-  },
-  user: { id: 'user.id', email: 'user.email' },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    and: updateStatusMocks.and,
+    db: {
+      select: updateStatusMocks.dbSelect,
+      update: updateStatusMocks.dbUpdate,
+    },
+    relayClaimStatusAuditProjectionEvents: vi.fn(),
+    claimEscalationAgreements: {
+      claimId: 'claim_escalation_agreements.claim_id',
+      paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
+      tenantId: 'claim_escalation_agreements.tenant_id',
+    },
+    claims: {
+      caseLifecycleState: 'claims.case_lifecycle_state',
+      id: 'claims.id',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+      tenantId: 'claims.tenant_id',
+      userId: 'claims.user_id',
+    },
+    user: { id: 'user.id', email: 'user.email' },
+    eq: vi.fn((left, right) => ({ left, right })),
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(moduleMock.db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: updateStatusMocks.withTenant,

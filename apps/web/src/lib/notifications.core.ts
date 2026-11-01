@@ -20,16 +20,16 @@ import { sendPushToUser } from '@/lib/push';
 
 export type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
 
-type TenantNotificationOptions = { tenantId?: string | null };
+type TenantNotificationOptions = { tenantId: string };
 
 export function sendNotification(
   userId: string,
   event: NotificationEvent,
   payload: Record<string, string | number | boolean>,
-  options?: {
+  options: {
     actionUrl?: string;
     title?: string;
-    tenantId?: string | null;
+    tenantId: string;
   }
 ) {
   return sendNotificationDomain(userId, event, payload, options);
@@ -38,18 +38,20 @@ export function sendNotification(
 export function notifyClaimSubmitted(
   userId: string,
   userEmail: string,
-  claim: { id: string; title: string; category: string }
+  claim: { id: string; title: string; category: string },
+  options: TenantNotificationOptions
 ) {
-  return notifyClaimSubmittedDomain(userId, userEmail, claim);
+  return notifyClaimSubmittedDomain(userId, userEmail, claim, options);
 }
 
 export function notifyClaimAssigned(
   agentId: string,
   agentEmail: string,
   claim: { id: string; title: string },
-  agentName: string
+  agentName: string,
+  options: TenantNotificationOptions
 ) {
-  return notifyClaimAssignedDomain(agentId, agentEmail, claim, agentName);
+  return notifyClaimAssignedDomain(agentId, agentEmail, claim, agentName, options);
 }
 
 export function notifyStatusChanged(
@@ -58,11 +60,11 @@ export function notifyStatusChanged(
   claim: { id: string; title: string },
   oldStatus: string,
   newStatus: string,
-  options?: { tenantId?: string | null }
+  options: TenantNotificationOptions
 ) {
   return notifyStatusChangedDomain(userId, userEmail, claim, oldStatus, newStatus, {
     sendPushToUser,
-    tenantId: options?.tenantId,
+    tenantId: options.tenantId,
   });
 }
 
@@ -72,11 +74,11 @@ export function notifyNewMessage(
   claim: { id: string; title: string },
   senderName: string,
   messagePreview: string,
-  options?: TenantNotificationOptions
+  options: TenantNotificationOptions
 ) {
   return notifyNewMessageDomain(recipientId, recipientEmail, claim, senderName, messagePreview, {
     sendPushToUser,
-    tenantId: options?.tenantId,
+    tenantId: options.tenantId,
   });
 }
 
@@ -90,17 +92,19 @@ export function notifyPaymentVerificationUpdate(
     status: 'needs_info' | 'rejected';
     note?: string;
     link: string;
-  }
+  },
+  options: TenantNotificationOptions
 ) {
-  return notifyPaymentVerificationUpdateDomain(agentId, agentEmail, props);
+  return notifyPaymentVerificationUpdateDomain(agentId, agentEmail, props, options);
 }
 
 export function notifyClaimPackGenerated(
   userId: string,
   claimCategory: string,
-  confidenceLevel: string
+  confidenceLevel: string,
+  options: TenantNotificationOptions
 ) {
-  return notifyClaimPackGeneratedDomain(userId, claimCategory, confidenceLevel);
+  return notifyClaimPackGeneratedDomain(userId, claimCategory, confidenceLevel, options);
 }
 
 export function notifySupportHandoffPublicResponse(
@@ -129,7 +133,7 @@ export function notifyRecoveryDecision(
   userEmail: string,
   claim: { id: string; title: string },
   decisionType: 'accepted' | 'declined',
-  options?: { tenantId?: string | null }
+  options: TenantNotificationOptions
 ) {
   return notifyRecoveryDecisionDomain(userId, userEmail, claim, decisionType, options);
 }
@@ -139,7 +143,7 @@ export function notifyDocumentRequested(
   userEmail: string,
   claim: { id: string; title: string },
   requestSummary: string,
-  options?: TenantNotificationOptions
+  options: TenantNotificationOptions
 ) {
   return notifyDocumentRequestedDomain(userId, userEmail, claim, requestSummary, options);
 }
@@ -148,7 +152,7 @@ export function notifyTriageComplete(
   userId: string,
   userEmail: string,
   claim: { id: string; title: string },
-  options?: TenantNotificationOptions
+  options: TenantNotificationOptions
 ) {
   return notifyTriageCompleteDomain(userId, userEmail, claim, options);
 }
@@ -156,16 +160,17 @@ export function notifyTriageComplete(
 export function notifySlaWarning(
   staffUserId: string,
   claim: { id: string; title: string },
-  warning: string
+  warning: string,
+  options: TenantNotificationOptions
 ) {
-  return notifySlaWarningDomain(staffUserId, claim, warning);
+  return notifySlaWarningDomain(staffUserId, claim, warning, options);
 }
 
 export function notifyMembershipRenewal(
   userId: string,
   userEmail: string,
   renewalDate: string,
-  options?: TenantNotificationOptions
+  options: TenantNotificationOptions
 ) {
   return notifyMembershipRenewalDomain(userId, userEmail, renewalDate, options);
 }

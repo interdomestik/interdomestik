@@ -18,6 +18,7 @@ export async function submitNpsCore(args: {
 }): Promise<SubmitNpsResult> {
   const { token, score, comment, now, userAgent } = args;
 
+  // BLOCKED(rc31-u2): token-resolved public endpoint -- tenant is only known after this lookup by bearer token.
   // db-access-guard: system-exempt -- reason: public NPS token resolves tenant for scoped write
   const [tokenRow] = await db
     .select({
@@ -106,6 +107,7 @@ export async function getNpsTokenStatusCore(args: {
     return { status: 400, body: { error: 'Missing token' } };
   }
 
+  // BLOCKED(rc31-u2): token-resolved public endpoint -- tenant is only known after this lookup by bearer token.
   // db-access-guard: system-exempt -- reason: public NPS token validity lookup
   const [row] = await db
     .select({

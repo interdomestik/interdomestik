@@ -1,6 +1,6 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
 import { ProtectedActionContext } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { auditLog, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, eq, sql } from 'drizzle-orm';
@@ -20,7 +20,7 @@ export async function verifyCashAttemptCore(
     throw new Error('A note is required for this decision.');
   }
 
-  const txResult = await db.transaction(async tx => {
+  const txResult = await withTenantContext({ tenantId }, async tx => {
     // A. Fetch
     const [result] = await tx
       .select({
@@ -94,14 +94,19 @@ export async function verifyCashAttemptCore(
 
     // G. Notify
     if (newStatus === 'needs_info' || newStatus === 'rejected') {
-      await notifyPaymentVerificationUpdate(lead.agentId, agentEmail, {
-        leadName: `${lead.firstName} ${lead.lastName}`,
-        amount: attempt.amount,
-        currency: attempt.currency,
-        status: newStatus,
-        note: note || undefined,
-        link: `/agent/leads`,
-      });
+      await notifyPaymentVerificationUpdate(
+        lead.agentId,
+        agentEmail,
+        {
+          leadName: `${lead.firstName} ${lead.lastName}`,
+          amount: attempt.amount,
+          currency: attempt.currency,
+          status: newStatus,
+          note: note || undefined,
+          link: `/agent/leads`,
+        },
+        { tenantId }
+      );
     }
 
     // H. Lead Status Update on Approval

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, eq, like } from 'drizzle-orm';
@@ -36,24 +36,27 @@ export type NotificationEvent =
 type NotificationDeps = {
   sendPushToUser?: typeof sendPushToUser;
   logAuditEvent?: AuditLogger;
-  tenantId?: string | null;
+  tenantId: string;
 };
 
+// Every notification names the tenant that owns it; the recipient lookup and the in-app row both
+// run inside that tenant's context.
 type NotificationChannelOptions = {
-  tenantId?: string | null;
+  tenantId: string;
 };
 
-function queryUserById(userId: string, tenantId?: string | null) {
-  return db.query.user.findFirst({
-    where: (users, { eq }) =>
-      tenantId ? withTenant(tenantId, users.tenantId, eq(users.id, userId)) : eq(users.id, userId),
-    columns: { email: true, emailVerified: true, tenantId: true },
-  });
+function queryUserById(userId: string, tenantId: string) {
+  return withTenantContext({ tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: (users, { eq }) => withTenant(tenantId, users.tenantId, eq(users.id, userId)),
+      columns: { email: true, emailVerified: true, tenantId: true },
+    })
+  );
 }
 
 function sendVerifiedEmail(
   userId: string,
-  tenantId: string | null | undefined,
+  tenantId: string,
   label: string,
   dispatch: (verifiedEmail: string) => Promise<unknown>
 ) {
@@ -111,46 +114,51 @@ export async function sendNotification(
   userId: string,
   event: NotificationEvent,
   payload: Record<string, string | number | boolean>,
-  options?: {
+  options: {
     actionUrl?: string;
     content?: string;
     notificationId?: string;
     title?: string;
-    tenantId?: string | null;
+    tenantId: string;
   }
 ) {
   try {
-    const requestedTenantId = options?.tenantId ?? null;
+    const requestedTenantId = options.tenantId;
+    if (!requestedTenantId) {
+      return { success: false, error: 'Missing tenantId for notification' };
+    }
     const userRecord = await queryUserById(userId, requestedTenantId);
     const resolvedTenantId = userRecord?.tenantId;
 
     if (!resolvedTenantId) {
-      return { success: false, error: 'Missing tenantId for notification' };
+      return { success: false, error: 'Recipient not found in tenant' };
     }
-    if (requestedTenantId && resolvedTenantId !== requestedTenantId) {
+    if (resolvedTenantId !== requestedTenantId) {
       return { success: false, error: 'Tenant mismatch for notification' };
     }
 
-    const title = options?.title ?? event.replaceAll('_', ' ').toUpperCase();
-    const content = resolveNotificationContent(event, payload, options?.content);
+    const title = options.title ?? event.replaceAll('_', ' ').toUpperCase();
+    const content = resolveNotificationContent(event, payload, options.content);
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const insertNotification = db.insert(notifications).values({
-      id: options?.notificationId ?? `ntf_${nanoid()}`,
-      tenantId: resolvedTenantId,
-      userId,
-      type: event,
-      title,
-      content,
-      actionUrl: options?.actionUrl || null,
-      isRead: false,
-    });
+    await withTenantContext({ tenantId: resolvedTenantId }, async tx => {
+      const insertNotification = tx.insert(notifications).values({
+        id: options.notificationId ?? `ntf_${nanoid()}`,
+        tenantId: resolvedTenantId,
+        userId,
+        type: event,
+        title,
+        content,
+        actionUrl: options.actionUrl || null,
+        isRead: false,
+      });
 
-    if (options?.notificationId) {
-      await insertNotification.onConflictDoNothing({ target: notifications.id });
-    } else {
-      await insertNotification;
-    }
+      if (options.notificationId) {
+        await insertNotification.onConflictDoNothing({ target: notifications.id });
+      } else {
+        await insertNotification;
+      }
+    });
 
     return { success: true };
   } catch (error) {
@@ -198,19 +206,21 @@ export async function clearSupportHandoffPublicResponseNotifications(
   options: { tenantId: string }
 ) {
   try {
-    await db
-      .delete(notifications)
-      .where(
-        withTenant(
-          options.tenantId,
-          notifications.tenantId,
-          and(
-            eq(notifications.userId, memberId),
-            eq(notifications.type, 'support_handoff_public_response'),
-            like(notifications.id, `ntf_support_handoff_${options.tenantId}_${handoff.id}_%`)
+    await withTenantContext({ tenantId: options.tenantId }, tx =>
+      tx
+        .delete(notifications)
+        .where(
+          withTenant(
+            options.tenantId,
+            notifications.tenantId,
+            and(
+              eq(notifications.userId, memberId),
+              eq(notifications.type, 'support_handoff_public_response'),
+              like(notifications.id, `ntf_support_handoff_${options.tenantId}_${handoff.id}_%`)
+            )
           )
         )
-      );
+    );
 
     return { success: true };
   } catch (error) {
@@ -225,7 +235,8 @@ export async function clearSupportHandoffPublicResponseNotifications(
 export async function notifyClaimSubmitted(
   userId: string,
   _userEmail: string,
-  claim: { id: string; title: string; category: string }
+  claim: { id: string; title: string; category: string },
+  options: NotificationChannelOptions
 ) {
   const result = await sendNotification(
     userId,
@@ -238,11 +249,12 @@ export async function notifyClaimSubmitted(
     {
       title: 'Claim Submitted',
       actionUrl: `/member/claims/${claim.id}`,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, null, 'claim submitted', verifiedEmail =>
+    sendVerifiedEmail(userId, options.tenantId, 'claim submitted', verifiedEmail =>
       sendClaimSubmittedEmail(verifiedEmail, claim)
     );
   }
@@ -257,7 +269,8 @@ export async function notifyClaimAssigned(
   agentId: string,
   _agentEmail: string,
   claim: { id: string; title: string },
-  agentName: string
+  agentName: string,
+  options: NotificationChannelOptions
 ) {
   const result = await sendNotification(
     agentId,
@@ -270,11 +283,12 @@ export async function notifyClaimAssigned(
     {
       title: 'New Claim Assigned',
       actionUrl: `/staff/claims/${claim.id}`,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, null, 'claim assigned', verifiedEmail =>
+    sendVerifiedEmail(agentId, options.tenantId, 'claim assigned', verifiedEmail =>
       sendClaimAssignedEmail(verifiedEmail, claim, agentName)
     );
   }
@@ -291,15 +305,17 @@ export async function notifyStatusChanged(
   claim: { id: string; title: string },
   oldStatus: string,
   newStatus: string,
-  deps?: NotificationDeps
+  deps: NotificationDeps
 ) {
-  const push = deps?.sendPushToUser
-    ? deps.sendPushToUser
-    : (
-        userId: string,
-        channel: 'claim_updates' | 'messages',
-        payload: Parameters<typeof sendPushToUser>[2]
-      ) => sendPushToUser(userId, channel, payload, { logAuditEvent: deps?.logAuditEvent });
+  const push = (
+    userId: string,
+    channel: 'claim_updates' | 'messages',
+    payload: Parameters<typeof sendPushToUser>[2]
+  ) =>
+    (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
+      logAuditEvent: deps.logAuditEvent,
+      tenantId: deps.tenantId,
+    });
 
   const result = await sendNotification(
     userId,
@@ -313,12 +329,12 @@ export async function notifyStatusChanged(
     {
       title: 'Claim Status Updated',
       actionUrl: `/member/claims/${claim.id}`,
-      tenantId: deps?.tenantId,
+      tenantId: deps.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, deps?.tenantId, 'status change', verifiedEmail =>
+    sendVerifiedEmail(userId, deps.tenantId, 'status change', verifiedEmail =>
       sendStatusChangedEmail(verifiedEmail, claim, oldStatus, newStatus)
     );
 
@@ -341,15 +357,17 @@ export async function notifyNewMessage(
   claim: { id: string; title: string },
   senderName: string,
   messagePreview: string,
-  deps?: NotificationDeps
+  deps: NotificationDeps
 ) {
-  const push = deps?.sendPushToUser
-    ? deps.sendPushToUser
-    : (
-        userId: string,
-        channel: 'claim_updates' | 'messages',
-        payload: Parameters<typeof sendPushToUser>[2]
-      ) => sendPushToUser(userId, channel, payload, { logAuditEvent: deps?.logAuditEvent });
+  const push = (
+    userId: string,
+    channel: 'claim_updates' | 'messages',
+    payload: Parameters<typeof sendPushToUser>[2]
+  ) =>
+    (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
+      logAuditEvent: deps.logAuditEvent,
+      tenantId: deps.tenantId,
+    });
 
   const result = await sendNotification(
     recipientId,
@@ -363,12 +381,12 @@ export async function notifyNewMessage(
     {
       title: 'New Message',
       actionUrl: `/dashboard/claims/${claim.id}`,
-      tenantId: deps?.tenantId,
+      tenantId: deps.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(recipientId, deps?.tenantId, 'new message', verifiedEmail =>
+    sendVerifiedEmail(recipientId, deps.tenantId, 'new message', verifiedEmail =>
       sendNewMessageEmail(verifiedEmail, claim, senderName, messagePreview)
     );
 
@@ -395,7 +413,8 @@ export async function notifyPaymentVerificationUpdate(
     status: 'needs_info' | 'rejected';
     note?: string;
     link: string;
-  }
+  },
+  options: NotificationChannelOptions
 ) {
   const result = await sendNotification(
     agentId,
@@ -408,11 +427,12 @@ export async function notifyPaymentVerificationUpdate(
     {
       title: `Payment ${props.status === 'needs_info' ? 'Needs Info' : 'Rejected'}`,
       actionUrl: props.link,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, null, 'payment verification', verifiedEmail =>
+    sendVerifiedEmail(agentId, options.tenantId, 'payment verification', verifiedEmail =>
       sendPaymentVerificationEmail(verifiedEmail, props)
     );
   }
@@ -429,7 +449,8 @@ export async function notifyPaymentVerificationUpdate(
 export async function notifyClaimPackGenerated(
   userId: string,
   claimCategory: string,
-  confidenceLevel: string
+  confidenceLevel: string,
+  options: NotificationChannelOptions
 ) {
   return sendNotification(
     userId,
@@ -441,6 +462,7 @@ export async function notifyClaimPackGenerated(
     {
       title: 'Your Claim Pack is ready',
       actionUrl: '/member/claims',
+      tenantId: options.tenantId,
     }
   );
 }
@@ -450,7 +472,7 @@ export async function notifyRecoveryDecision(
   _userEmail: string,
   claim: { id: string; title: string },
   decisionType: 'accepted' | 'declined',
-  options?: NotificationChannelOptions
+  options: NotificationChannelOptions
 ) {
   const accepted = decisionType === 'accepted';
   const event: NotificationEvent = accepted ? 'escalation_accepted' : 'escalation_declined';
@@ -471,12 +493,12 @@ export async function notifyRecoveryDecision(
     {
       title,
       actionUrl,
-      tenantId: options?.tenantId,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'recovery decision', verifiedEmail =>
+    sendVerifiedEmail(userId, options.tenantId, 'recovery decision', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title,
         intro,
@@ -494,7 +516,7 @@ export async function notifyDocumentRequested(
   _userEmail: string,
   claim: { id: string; title: string },
   requestSummary: string,
-  options?: NotificationChannelOptions
+  options: NotificationChannelOptions
 ) {
   const actionUrl = `/member/claims/${claim.id}`;
   const result = await sendNotification(
@@ -508,12 +530,12 @@ export async function notifyDocumentRequested(
     {
       title: 'Documents requested',
       actionUrl,
-      tenantId: options?.tenantId,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'document request', verifiedEmail =>
+    sendVerifiedEmail(userId, options.tenantId, 'document request', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Documents requested',
         intro: `Staff requested more documents for ${claim.title}.`,
@@ -531,7 +553,7 @@ export async function notifyTriageComplete(
   userId: string,
   _userEmail: string,
   claim: { id: string; title: string },
-  options?: NotificationChannelOptions
+  options: NotificationChannelOptions
 ) {
   const actionUrl = `/member/claims/${claim.id}`;
   const result = await sendNotification(
@@ -544,12 +566,12 @@ export async function notifyTriageComplete(
     {
       title: 'Triage complete',
       actionUrl,
-      tenantId: options?.tenantId,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'triage complete', verifiedEmail =>
+    sendVerifiedEmail(userId, options.tenantId, 'triage complete', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Triage complete',
         intro: `Staff triage is complete for ${claim.title}.`,
@@ -565,7 +587,8 @@ export async function notifyTriageComplete(
 export async function notifySlaWarning(
   staffUserId: string,
   claim: { id: string; title: string },
-  warning: string
+  warning: string,
+  options: NotificationChannelOptions
 ) {
   return sendNotification(
     staffUserId,
@@ -578,6 +601,7 @@ export async function notifySlaWarning(
     {
       title: 'SLA warning',
       actionUrl: `/staff/claims/${claim.id}`,
+      tenantId: options.tenantId,
     }
   );
 }
@@ -586,7 +610,7 @@ export async function notifyMembershipRenewal(
   userId: string,
   _userEmail: string,
   renewalDate: string,
-  options?: NotificationChannelOptions
+  options: NotificationChannelOptions
 ) {
   const actionUrl = '/member/membership';
   const result = await sendNotification(
@@ -598,12 +622,12 @@ export async function notifyMembershipRenewal(
     {
       title: 'Membership renewal reminder',
       actionUrl,
-      tenantId: options?.tenantId,
+      tenantId: options.tenantId,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options?.tenantId, 'membership renewal', verifiedEmail =>
+    sendVerifiedEmail(userId, options.tenantId, 'membership renewal', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Membership renewal reminder',
         intro: `Your Asistenca membership is scheduled to renew on ${renewalDate}.`,

@@ -2,10 +2,10 @@ import {
   and,
   claimEscalationAgreements,
   claims,
-  db,
   eq,
   subscriptions,
   type DomainEventTx,
+  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
@@ -69,7 +69,7 @@ export async function saveSuccessFeeCollectionCore(
   const now = params.now ?? new Date();
 
   try {
-    const result = await db.transaction(async tx => {
+    const result = await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({

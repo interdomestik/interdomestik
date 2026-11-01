@@ -21,23 +21,26 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-const dbMocks = vi.hoisted(() => ({
-  claimFindFirst: vi.fn(),
-  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
-    tenantId,
-    tenantColumn,
-    condition,
-  })),
-}));
+const dbMocks = vi.hoisted(() => {
+  const claimFindFirst = vi.fn();
+  const db = { query: { claims: { findFirst: claimFindFirst } } };
+  return {
+    claimFindFirst,
+    db,
+    withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
+      tenantId,
+      tenantColumn,
+      condition,
+    })),
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: dbMocks.claimFindFirst,
-      },
-    },
-  },
+  db: dbMocks.db,
+  withTenantContext: dbMocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -86,6 +89,10 @@ describe('assignClaimCore (Wrapper Means)', () => {
         logAuditEvent: audit.logAuditEvent,
         notifyClaimAssigned: notifications.notifyClaimAssigned,
       })
+    );
+    expect(dbMocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant1' },
+      expect.any(Function)
     );
   });
 

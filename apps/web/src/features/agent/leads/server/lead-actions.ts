@@ -1,4 +1,4 @@
-import { and, db, eq, memberLeads } from '@interdomestik/database';
+import { and, eq, memberLeads, withTenantContext } from '@interdomestik/database';
 import { startPayment } from '@interdomestik/domain-leads';
 import type { SQL } from 'drizzle-orm';
 
@@ -35,9 +35,11 @@ export async function updateScopedAgentLeadStatus(params: {
   const { notes, scope, status } = params;
   const scopedWhere = buildAgentLeadWhere(scope);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const lead = await db.query.memberLeads.findFirst({
-    where: scopedWhere,
-  });
+  const lead = await withTenantContext({ tenantId: scope.tenantId }, tx =>
+    tx.query.memberLeads.findFirst({
+      where: scopedWhere,
+    })
+  );
 
   if (!lead) {
     throw new Error('Lead not found or access denied');
@@ -63,14 +65,16 @@ export async function updateScopedAgentLeadStatus(params: {
   const updatedNotes = notes ? [lead.notes, notes].filter(Boolean).join('\n') : lead.notes;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await db
-    .update(memberLeads)
-    .set({
-      notes: updatedNotes,
-      status,
-      updatedAt: new Date(),
-    })
-    .where(scopedWhere);
+  await withTenantContext({ tenantId: scope.tenantId }, tx =>
+    tx
+      .update(memberLeads)
+      .set({
+        notes: updatedNotes,
+        status,
+        updatedAt: new Date(),
+      })
+      .where(scopedWhere)
+  );
 
   return { success: true };
 }

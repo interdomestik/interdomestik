@@ -155,7 +155,12 @@ describe('sendMessageDbCore', () => {
       );
       expect(result.isStaff).toBe(true);
       expect(result.isInternal).toBe(false);
-      expect(result.claim).toEqual({ id: 'claim_1', title: 'My Claim', userId: 'member_1' });
+      expect(result.claim).toEqual({
+        id: 'claim_1',
+        title: 'My Claim',
+        tenantId: 'tenant_mk',
+        userId: 'member_1',
+      });
       expect(result.claimOwnerEmail).toBe('member@example.com');
     }
 

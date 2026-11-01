@@ -16,6 +16,12 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   and: vi.fn(),
   eq: vi.fn(),
+  withTenantContext: vi.fn(async (_context: unknown, callback: unknown) => {
+    const { db } = await import('@interdomestik/database');
+    return (db.transaction as any)((trx: object) =>
+      (callback as (executor: unknown) => unknown)({ ...trx, query: db.query })
+    );
+  }),
 }));
 vi.mock('../../../../../domain-referrals/src', () => ({
   createMemberReferralRewardCore: vi.fn(),

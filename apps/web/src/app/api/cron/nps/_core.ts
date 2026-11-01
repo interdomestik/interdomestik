@@ -32,6 +32,7 @@ export async function runNpsCronCore(args: {
 
   const { start, end } = getDayWindow(now, NPS_DAYS_SINCE_SUB_CREATED);
 
+  // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
   // db-access-guard: system-exempt -- reason: NPS cron enumerates tenants before per-row scoped writes
   const members = await db
     .select({

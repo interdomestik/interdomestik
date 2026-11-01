@@ -12,6 +12,7 @@ const hoisted = vi.hoisted(() => ({
   ensureTenantIdMock: vi.fn(),
   findAgentSettingsMock: vi.fn(),
   getAgentLeadsCoreMock: vi.fn(),
+  withTenantContextMock: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -35,14 +36,8 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: hoisted.ensureTenantIdMock,
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      agentSettings: {
-        findFirst: hoisted.findAgentSettingsMock,
-      },
-    },
-  },
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContextMock,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -90,6 +85,11 @@ describe('AgentLeadsEntry auth redirect', () => {
     hoisted.ensureTenantIdMock.mockReset();
     hoisted.findAgentSettingsMock.mockReset();
     hoisted.getAgentLeadsCoreMock.mockReset();
+    hoisted.withTenantContextMock.mockReset();
+    hoisted.withTenantContextMock.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ query: { agentSettings: { findFirst: hoisted.findAgentSettingsMock } } })
+    );
   });
 
   it('redirects unauthenticated users to the locale login path', async () => {
@@ -157,6 +157,10 @@ describe('AgentLeadsEntry auth redirect', () => {
       })
     ).resolves.toBeDefined();
 
+    expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.getAgentLeadsCoreMock).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', agentId: 'agent-1', branchId: 'branch-1' },
       expect.any(Object)

@@ -11,18 +11,25 @@ const mocks = vi.hoisted(() => ({
 mocks.updateSet.mockReturnValue({ where: mocks.updateWhere });
 mocks.update.mockReturnValue({ set: mocks.updateSet });
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: { findFirst: mocks.findFirst },
-      user: { findFirst: vi.fn() },
+vi.mock('@interdomestik/database', () => {
+  const moduleMock = {
+    db: {
+      query: {
+        claims: { findFirst: mocks.findFirst },
+        user: { findFirst: vi.fn() },
+      },
+      update: mocks.update,
     },
-    update: mocks.update,
-  },
-  claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
-  user: { id: 'user.id', tenantId: 'user.tenant_id' },
-  eq: vi.fn((left, right) => ({ left, right })),
-}));
+    claims: { id: 'claims.id', tenantId: 'claims.tenant_id' },
+    user: { id: 'user.id', tenantId: 'user.tenant_id' },
+    eq: vi.fn((left, right) => ({ left, right })),
+  };
+  return {
+    ...moduleMock,
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(moduleMock.db),
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,

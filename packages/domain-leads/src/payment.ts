@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { and, eq, ne } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -16,8 +16,7 @@ export const startPaymentSchema = z.object({
 export type StartPaymentInput = z.infer<typeof startPaymentSchema>;
 
 type StartPaymentContext =
-  | { tenantId: string }
-  | { tenantId: string; agentId: string; branchId: string };
+  { tenantId: string } | { tenantId: string; agentId: string; branchId: string };
 
 function buildLeadPaymentScope(ctx: StartPaymentContext, leadId: string) {
   const agentScopeConditions =
@@ -45,7 +44,7 @@ async function markLeadPaymentPending(
   scopedWhere: NonNullable<ReturnType<typeof buildLeadPaymentScope>>
 ) {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await db.transaction(async tx => {
+  await withTenantContext({ tenantId: ctx.tenantId }, async tx => {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const updatedRows = await tx
       .update(memberLeads)
@@ -76,9 +75,11 @@ export async function startPayment(ctx: StartPaymentContext, input: StartPayment
 
   // 1. Validate Lead
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const lead = await db.query.memberLeads.findFirst({
-    where: scopedWhere,
-  });
+  const lead = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    tx.query.memberLeads.findFirst({
+      where: scopedWhere,
+    })
+  );
 
   if (!lead) throw new Error('Lead not found');
   if (lead.status === 'converted') throw new Error('Lead already converted');

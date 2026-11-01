@@ -49,6 +49,7 @@ async function checkDatabaseHealth(): Promise<ServiceHealth> {
   try {
     const dbStartTime = Date.now();
     await assertRlsConnectionRoleReady();
+    // BLOCKED(rc31-u2): no tenant by design -- unauthenticated liveness probe; under the restricted role it succeeds with 0 rows, so liveness is unaffected.
     // db-access-guard: system-exempt -- reason: health-check endpoint performs DB liveness probe only
     await db.select({ id: user.id }).from(user).limit(1);
     const dbResponseTime = Date.now() - dbStartTime;

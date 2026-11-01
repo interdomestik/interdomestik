@@ -3,7 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   findLeadFirst: vi.fn(),
   dbSelect: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db } = await import('@interdomestik/database/db');
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+  );
+  return { withTenantContext: hoisted.withTenantContext };
+});
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {
@@ -64,6 +73,10 @@ describe('crmLeadDetailRepository', () => {
 
     await crmLeadDetailRepository.findAgentLead({ actor, leadId: 'lead-1' });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
       where: {
         and: [

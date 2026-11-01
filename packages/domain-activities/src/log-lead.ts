@@ -1,4 +1,4 @@
-import { crmActivities, crmLeads, db } from '@interdomestik/database';
+import { crmActivities, crmLeads, withTenantContext } from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -27,6 +27,7 @@ export async function logLeadActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
+  const tenantId = session.user.tenantId;
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
@@ -39,11 +40,13 @@ export async function logLeadActivityCore(params: {
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const lead = await db.query.crmLeads.findFirst({
-      where: eq(crmLeads.id, leadId),
-    });
+    const lead = await withTenantContext({ tenantId }, tx =>
+      tx.query.crmLeads.findFirst({
+        where: eq(crmLeads.id, leadId),
+      })
+    );
 
-    if (!lead || lead.tenantId !== session.user.tenantId) {
+    if (!lead || lead.tenantId !== tenantId) {
       return { success: false, error: 'Lead access denied' };
     }
 
@@ -53,7 +56,7 @@ export async function logLeadActivityCore(params: {
 
     const newActivity = {
       id: nanoid(),
-      tenantId: session.user.tenantId,
+      tenantId,
       agentId: session.user.id,
       leadId,
       type: type === 'other' ? 'note' : type,
@@ -64,7 +67,7 @@ export async function logLeadActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(crmActivities).values(newActivity);
+    await withTenantContext({ tenantId }, tx => tx.insert(crmActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -39,20 +39,22 @@ export async function updateCommissionStatusCore(params: {
     const tenantId = ensureTenantId(session);
 
     // Fetch current commission with tenant scoping
-    const [commission] = await db
-      .select({
-        id: agentCommissions.id,
-        status: agentCommissions.status,
-        agentId: agentCommissions.agentId,
-      })
-      .from(agentCommissions)
-      .where(
-        and(
-          eq(agentCommissions.id, commissionId),
-          eq(agentCommissions.tenantId, tenantId) // SECURITY: Tenant scoping
+    const [commission] = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          id: agentCommissions.id,
+          status: agentCommissions.status,
+          agentId: agentCommissions.agentId,
+        })
+        .from(agentCommissions)
+        .where(
+          and(
+            eq(agentCommissions.id, commissionId),
+            eq(agentCommissions.tenantId, tenantId) // SECURITY: Tenant scoping
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (!commission) {
       return { success: false, error: 'Commission not found' };
@@ -95,10 +97,12 @@ export async function updateCommissionStatusCore(params: {
       updateData.paidAt = new Date();
     }
 
-    await db
-      .update(agentCommissions)
-      .set(updateData)
-      .where(and(eq(agentCommissions.id, commissionId), eq(agentCommissions.tenantId, tenantId)));
+    await withTenantContext({ tenantId }, tx =>
+      tx
+        .update(agentCommissions)
+        .set(updateData)
+        .where(and(eq(agentCommissions.id, commissionId), eq(agentCommissions.tenantId, tenantId)))
+    );
 
     console.log(`[Commission] Updated ${commissionId} from ${currentStatus} to ${newStatus}`);
     return { success: true };

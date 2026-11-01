@@ -22,6 +22,7 @@ export async function persistInvalidSignatureAttempt(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // BLOCKED(rc31-u2): webhook receipt written before tenant resolution with tenantId null (cross-tenant/webhook_events RLS); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: Paddle invalid-signature audit must persist before safe tenant resolution and allows tenantId null
   await db
     .insert(webhookEvents)
@@ -73,6 +74,7 @@ export async function insertWebhookEvent(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // BLOCKED(rc31-u2): webhook receipt written before tenant resolution with tenantId null (cross-tenant/webhook_events RLS); needs privileged manifest entry
   // db-access-guard: system-exempt -- reason: Paddle webhook receipt audit preserves duplicate detection before handler-level tenant writes
   const inserted = await db
     .insert(webhookEvents)
@@ -198,6 +200,7 @@ export async function markWebhookProcessed(
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
+  // BLOCKED(rc31-u2): tenantId is optional/nullable on the receipt row (webhook_events RLS); no canonical tenant at call site, needs privileged manifest entry
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(webhookEvents)
@@ -240,6 +243,7 @@ export async function markWebhookFailed(
 ) {
   const message = params.error instanceof Error ? params.error.message : String(params.error);
 
+  // BLOCKED(rc31-u2): tenantId is optional/nullable on the receipt row (webhook_events RLS); no canonical tenant at call site, needs privileged manifest entry
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   await db
     .update(webhookEvents)

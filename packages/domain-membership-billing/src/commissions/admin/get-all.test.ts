@@ -13,11 +13,15 @@ const mockQueryBuilder = {
 };
 
 // Mock dependencies
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => mockQueryBuilder),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {

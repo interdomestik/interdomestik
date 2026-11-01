@@ -13,6 +13,7 @@ export const mockDbInsert = vi.fn().mockReturnValue({
   returning: vi.fn().mockResolvedValue([{ id: 'claim-1' }]),
 });
 export const mockDbUpdate = vi.fn();
+export const mockWithTenantContext = vi.fn();
 // prettier-ignore
 export const submittedLifecycleCurrentClaim = { id: 'claim-1', lifecycleVersion: 1, caseLifecycleState: 'submitted', recoveryLifecycleState: 'not_started', status: 'submitted' };
 export const mockTxSelectLimit = vi.fn().mockResolvedValue([submittedLifecycleCurrentClaim]);
@@ -43,11 +44,14 @@ export function databaseModuleMock() {
           }),
           update: () => ({ set: () => ({ where: () => ({ returning: mockTxUpdateReturning }) }) }),
           query: {
+            // Tenant-context reads (claims, user, ...) share the module-level query mocks.
+            ...moduleMock.db.query,
             tenants: {
               findFirst: vi.fn().mockResolvedValue({ id: 'tenant_mk', countryCode: 'MK' }),
             },
             agentClients: { findFirst: vi.fn().mockResolvedValue(null) },
-            tenantSettings: { findFirst: vi.fn().mockResolvedValue(null) },
+            // Tenant-context reads share the module-level mock so tests can seed one place.
+            tenantSettings: moduleMock.db.query.tenantSettings,
           },
         }),
       query: {
@@ -77,8 +81,10 @@ export function databaseModuleMock() {
         },
       },
     },
-    withTenantContext: async (_context: unknown, action: (tx: unknown) => Promise<unknown>) =>
-      moduleMock.db.transaction(action),
+    withTenantContext: async (context: unknown, action: (tx: unknown) => Promise<unknown>) => {
+      mockWithTenantContext(context);
+      return moduleMock.db.transaction(action);
+    },
     subscriptions: {
       id: { name: 'id' },
       userId: { name: 'userId' },

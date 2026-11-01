@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { db } from '@interdomestik/database/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateAgentCommissionRatesCore } from './update-rates.core';
@@ -19,6 +20,16 @@ vi.mock('@interdomestik/database/db', () => ({
     })),
   },
 }));
+
+vi.mock('@interdomestik/database', async () => {
+  const { db: mockedDb } = await import('@interdomestik/database/db');
+  return {
+    withTenantContext: vi.fn(
+      async (_context: { tenantId: string }, action: (tx: typeof mockedDb) => Promise<unknown>) =>
+        action(mockedDb)
+    ),
+  };
+});
 
 // Mock DB schema
 vi.mock('@interdomestik/database/schema', () => ({
@@ -113,6 +124,7 @@ describe('updateAgentCommissionRatesCore', () => {
     });
 
     expect(result).toEqual({ success: true });
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(db.update).toHaveBeenCalled();
   });
 

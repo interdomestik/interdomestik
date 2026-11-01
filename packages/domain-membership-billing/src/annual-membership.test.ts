@@ -21,6 +21,7 @@ vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   asc: hoisted.asc,
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(hoisted.db)),
   eq: hoisted.eq,
   membershipPlans: hoisted.membershipPlans,
 }));

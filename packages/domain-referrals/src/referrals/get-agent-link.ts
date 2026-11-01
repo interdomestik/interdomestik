@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -40,10 +40,12 @@ export async function getAgentReferralLinkCore(params: {
 
   try {
     // SECURITY: Query scoped to tenant + user
-    const existingUser = await db.query.user.findFirst({
-      where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
-      columns: { referralCode: true },
-    });
+    const existingUser = await withTenantContext({ tenantId }, tx =>
+      tx.query.user.findFirst({
+        where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
+        columns: { referralCode: true },
+      })
+    );
 
     let code = existingUser?.referralCode;
 
@@ -59,10 +61,12 @@ export async function getAgentReferralLinkCore(params: {
       code = `${namePart}-${randomPart}`;
 
       // SECURITY: Update scoped to tenant + user
-      await db
-        .update(user)
-        .set({ referralCode: code })
-        .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)));
+      await withTenantContext({ tenantId }, tx =>
+        tx
+          .update(user)
+          .set({ referralCode: code })
+          .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)))
+      );
     }
 
     return {

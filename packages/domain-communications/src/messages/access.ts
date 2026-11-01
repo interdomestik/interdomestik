@@ -1,4 +1,10 @@
-import { agentClients, claims, db, type TenantTransaction } from '@interdomestik/database';
+import {
+  agentClients,
+  claims,
+  db,
+  withTenantContext,
+  type TenantTransaction,
+} from '@interdomestik/database';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 type ClaimAccessRecord = {
@@ -86,15 +92,19 @@ export async function hasAgentClaimAccess(args: {
   tenantId: string;
   tx?: TenantTransaction;
 }): Promise<boolean> {
-  const linkedClient = await (args.tx ?? db).query.agentClients.findFirst({
-    where: (table, { and, eq }) =>
-      and(
-        eq(table.tenantId, args.tenantId),
-        eq(table.agentId, args.agentId),
-        eq(table.memberId, args.memberId),
-        eq(table.status, 'active')
-      ),
-  });
+  const findLinkedClient = (executor: TenantTransaction) =>
+    executor.query.agentClients.findFirst({
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.tenantId, args.tenantId),
+          eq(table.agentId, args.agentId),
+          eq(table.memberId, args.memberId),
+          eq(table.status, 'active')
+        ),
+    });
+  const linkedClient = args.tx
+    ? await findLinkedClient(args.tx)
+    : await withTenantContext({ tenantId: args.tenantId }, findLinkedClient);
 
   return linkedClient != null;
 }
@@ -106,6 +116,7 @@ export function buildAccessibleClaimIdsSubquery(args: {
   userId: string;
   tx?: TenantTransaction;
 }) {
+  // db-access-guard: tenant-scoped -- reason: query-builder only; the subquery is embedded in a caller's tenant transaction and never executed on the ambient client
   const database = args.tx ?? db;
   const branchId = args.branchId ?? null;
 

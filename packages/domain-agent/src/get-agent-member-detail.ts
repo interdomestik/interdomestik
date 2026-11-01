@@ -1,4 +1,4 @@
-import { agentClients, and, claims, db, desc, eq } from '@interdomestik/database';
+import { agentClients, and, claims, desc, eq, withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 
@@ -34,38 +34,42 @@ export async function getAgentMemberDetail(params: {
 }): Promise<AgentMemberDetail | null> {
   const { agentId, tenantId, memberId } = params;
 
-  const assignment = await db.query.agentClients.findFirst({
-    where: and(
-      eq(agentClients.tenantId, tenantId),
-      eq(agentClients.agentId, agentId),
-      eq(agentClients.memberId, memberId),
-      eq(agentClients.status, 'active')
-    ),
-    columns: { id: true },
-    with: {
-      member: {
-        columns: { id: true, name: true, memberNumber: true },
+  const assignment = await withTenantContext({ tenantId }, tx =>
+    tx.query.agentClients.findFirst({
+      where: and(
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.agentId, agentId),
+        eq(agentClients.memberId, memberId),
+        eq(agentClients.status, 'active')
+      ),
+      columns: { id: true },
+      with: {
+        member: {
+          columns: { id: true, name: true, memberNumber: true },
+        },
       },
-    },
-  });
+    })
+  );
 
   if (!assignment?.member) {
     return null;
   }
 
-  const rawClaims = await db.query.claims.findMany({
-    where: and(eq(claims.tenantId, tenantId), eq(claims.userId, memberId)),
-    orderBy: [desc(claims.updatedAt)],
-    limit: 5,
-    columns: {
-      id: true,
-      claimNumber: true,
-      caseLifecycleState: true,
-      recoveryLifecycleState: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const rawClaims = await withTenantContext({ tenantId }, tx =>
+    tx.query.claims.findMany({
+      where: and(eq(claims.tenantId, tenantId), eq(claims.userId, memberId)),
+      orderBy: [desc(claims.updatedAt)],
+      limit: 5,
+      columns: {
+        id: true,
+        claimNumber: true,
+        caseLifecycleState: true,
+        recoveryLifecycleState: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+  );
 
   const recentClaims = rawClaims.map(claim => {
     const status = claimStatusFromLifecycleFields(claim);

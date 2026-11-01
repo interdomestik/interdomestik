@@ -1,4 +1,4 @@
-import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 import {
   createCanonicalMembershipPlanState,
   resolveCanonicalMembershipPlanState,
@@ -213,22 +213,25 @@ async function persistPastDueSubscription(args: {
   values: PastDueValues;
 }) {
   if (args.existingSub) {
+    const existingSubId = args.existingSub.id;
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user/subscription context constrains dunning update
-    await db
-      .update(subscriptions)
-      .set(args.values)
-      .where(
-        and(eq(subscriptions.id, args.existingSub.id), eq(subscriptions.tenantId, args.tenantId))
-      );
+    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+      tx
+        .update(subscriptions)
+        .set(args.values)
+        .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, args.tenantId)))
+    );
     return;
   }
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user context is included in dunning insert values
-    await db.insert(subscriptions).values({
-      id: args.subscriptionId,
-      ...args.values,
-    });
+    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+      tx.insert(subscriptions).values({
+        id: args.subscriptionId,
+        ...args.values,
+      })
+    );
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error;
@@ -243,12 +246,14 @@ async function persistPastDueSubscription(args: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await db
-      .update(subscriptions)
-      .set(args.values)
-      .where(
-        and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, args.tenantId))
-      );
+    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+      tx
+        .update(subscriptions)
+        .set(args.values)
+        .where(
+          and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, args.tenantId))
+        )
+    );
   }
 }
 

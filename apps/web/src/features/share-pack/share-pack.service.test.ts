@@ -3,17 +3,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   insert: vi.fn(),
   values: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    insert: hoisted.insert,
-    query: {
-      sharePacks: {
-        findFirst: vi.fn(),
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: (
+    context: { tenantId: string },
+    action: (tx: Record<string, unknown>) => Promise<unknown>
+  ) => {
+    hoisted.withTenantContext(context);
+    return action({
+      insert: hoisted.insert,
+      query: {
+        sharePacks: {
+          findFirst: vi.fn(),
+        },
       },
-    },
-    select: vi.fn(),
+      select: vi.fn(),
+    });
   },
 }));
 
@@ -104,6 +111,7 @@ describe('share-pack.service token security', () => {
       shareToken: token,
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
     expect(hashShareTokenForAudit(token)).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(hoisted.values).toHaveBeenCalledWith(
       expect.objectContaining({

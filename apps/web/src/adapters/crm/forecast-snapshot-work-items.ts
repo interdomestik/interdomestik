@@ -3,6 +3,8 @@ import { and, asc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm';
 import { db } from '@interdomestik/database/db';
 import { crmDeals, crmPipelines, crmPipelineStages } from '@interdomestik/database/schema';
 
+import { runInCrmTenantContext } from './tenant-runner';
+
 export const CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN = 1000;
 const CRM_FORECAST_SNAPSHOT_DEFERRED_COUNT_LIMIT = 2_147_483_647;
 
@@ -43,12 +45,14 @@ export function createCrmForecastSnapshotWorkItemRepository(
     async listWorkItems(params) {
       const limit = params.limit ?? CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN;
 
-      const rows = await buildWorkItemQuery(database, params).limit(limit + 1);
+      const rows = await runWorkItemQuery(database, params, limit + 1);
       if (rows.length <= limit) {
         return mapWorkItemRows(rows, limit, rows.length);
       }
 
-      const allRows = await buildWorkItemQuery(database, params).limit(
+      const allRows = await runWorkItemQuery(
+        database,
+        params,
         CRM_FORECAST_SNAPSHOT_DEFERRED_COUNT_LIMIT
       );
       return mapWorkItemRows(rows, limit, allRows.length);
@@ -78,6 +82,28 @@ export function mapWorkItemRows(
     }),
     workItemsDeferred: Math.max(0, totalRows - limit),
   };
+}
+
+type WorkItemQueryParams = {
+  snapshotDateStartInclusive: Date;
+  snapshotDateEndExclusive: Date;
+  tenantId?: string;
+};
+
+async function runWorkItemQuery(
+  database: CrmForecastSnapshotWorkItemDb,
+  params: WorkItemQueryParams,
+  limit: number
+): Promise<WorkItemRow[]> {
+  if (!params.tenantId) {
+    // BLOCKED(rc31-u2): cross-tenant by design. The protected scheduler enumerates work items across
+    // all tenants, so there is no single canonical tenant to scope. Needs a privileged manifest entry
+    // or a per-tenant loop before this ambient-db read can run under the restricted role.
+    return buildWorkItemQuery(database, params).limit(limit);
+  }
+  return runInCrmTenantContext(database, { tenantId: params.tenantId }, async scoped =>
+    buildWorkItemQuery(scoped, params).limit(limit)
+  );
 }
 
 function buildWorkItemQuery(

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   and: vi.fn((...conditions) => ({ op: 'and', conditions })),
-  dbTransaction: vi.fn(async callback => callback({ tx: true })),
+  withTenantContext: vi.fn(async (_context, callback) => callback({ tx: true })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
   isNull: vi.fn(value => ({ op: 'isNull', value })),
   transition: vi.fn(),
@@ -20,10 +20,10 @@ vi.mock('@interdomestik/database', () => ({
     recoveryLifecycleState: 'claims.recovery_lifecycle_state',
     status: 'claims.status',
   },
-  db: { transaction: mocks.dbTransaction },
   eq: mocks.eq,
   isNull: mocks.isNull,
   sql: vi.fn(() => ({ op: 'sql' })),
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('../claims/transition', () => ({
@@ -145,7 +145,7 @@ describe('transitionAdminClaimStatus', () => {
       toStatus: 'court',
     });
 
-    expect(mocks.dbTransaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
     expect(mocks.transition).toHaveBeenCalledTimes(1);
     expect(mocks.transition).toHaveBeenCalledWith(suppliedTx, {
       actor: { id: 'admin-1', role: 'tenant_admin' },

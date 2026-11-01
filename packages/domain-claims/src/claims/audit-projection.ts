@@ -1,4 +1,4 @@
-import { db, relayClaimStatusAuditProjectionEvents } from '@interdomestik/database';
+import { relayClaimStatusAuditProjectionEvents, withTenantContext } from '@interdomestik/database';
 
 import type { ClaimsDeps } from './types';
 
@@ -13,7 +13,7 @@ export async function projectClaimStatusAuditProjection(params: ClaimStatusAudit
   const limit = params.limit ?? CLAIM_STATUS_AUDIT_PROJECTION_LIMIT;
 
   // db-access-guard: tenant-scoped -- reason: tenantId scopes relay selection and delivery recording.
-  return db.transaction(tx =>
+  return withTenantContext({ tenantId: params.tenantId }, tx =>
     relayClaimStatusAuditProjectionEvents(tx as never, {
       limit,
       tenantId: params.tenantId,

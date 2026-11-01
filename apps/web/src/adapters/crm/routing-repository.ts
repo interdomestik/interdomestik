@@ -18,6 +18,8 @@ import {
   user,
 } from '@interdomestik/database/schema';
 
+import { runInCrmTenantContext } from './tenant-runner';
+
 type CrmRoutingDb = typeof db;
 type CrmRoutingRuleRow = typeof crmRoutingRules.$inferSelect;
 type CrmRoutingAssignmentAuditRow = typeof crmRoutingAssignmentsAudit.$inferSelect;
@@ -217,12 +219,17 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
   return {
     async findRoutingAssignmentAuditByIdempotency(params) {
       // db-access-guard: tenant-scoped -- reason: routing application idempotency replay constrains by explicit tenantId and opaque idempotency key
-      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({
-        where: and(
-          eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),
-          eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)
-        ),
-      });
+      const existing = await runInCrmTenantContext(
+        database,
+        { tenantId: params.tenantId },
+        async scoped =>
+          scoped.query.crmRoutingAssignmentsAudit.findFirst({
+            where: and(
+              eq(crmRoutingAssignmentsAudit.tenantId, params.tenantId),
+              eq(crmRoutingAssignmentsAudit.idempotencyKey, params.idempotencyKey)
+            ),
+          })
+      );
       return existing ? mapAudit(existing) : null;
     },
 
@@ -248,10 +255,15 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
       }
 
       // db-access-guard: tenant-scoped -- reason: CRM routing rule reads constrain by authorized actor tenant and branch scope when present
-      const rows = await database.query.crmRoutingRules.findMany({
-        orderBy: [asc(crmRoutingRules.priority), asc(crmRoutingRules.id)],
-        where: and(...predicates),
-      });
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: actor.tenantId },
+        async scoped =>
+          scoped.query.crmRoutingRules.findMany({
+            orderBy: [asc(crmRoutingRules.priority), asc(crmRoutingRules.id)],
+            where: and(...predicates),
+          })
+      );
 
       return rows.map(mapRule);
     },
@@ -266,30 +278,41 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
       };
 
       // db-access-guard: tenant-scoped -- reason: routing cursor compare-and-swap constrains by explicit tenantId, ruleId, and prior cursor from the routing decision
+      const priorCursor = params.advancement.priorCursor;
       const rows =
-        params.advancement.priorCursor === null
-          ? await database
-              .insert(crmRoutingCursors)
-              .values({
-                ...setValues,
-                ruleId: params.advancement.ruleId,
-                tenantId: params.advancement.tenantId,
-              })
-              .onConflictDoNothing({
-                target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
-              })
-              .returning()
-          : await database
-              .update(crmRoutingCursors)
-              .set(setValues)
-              .where(
-                and(
-                  eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
-                  eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
-                  eq(crmRoutingCursors.cursorValue, params.advancement.priorCursor)
-                )
-              )
-              .returning();
+        priorCursor === null
+          ? await runInCrmTenantContext(
+              database,
+              { tenantId: params.advancement.tenantId },
+              async scoped =>
+                scoped
+                  .insert(crmRoutingCursors)
+                  .values({
+                    ...setValues,
+                    ruleId: params.advancement.ruleId,
+                    tenantId: params.advancement.tenantId,
+                  })
+                  .onConflictDoNothing({
+                    target: [crmRoutingCursors.tenantId, crmRoutingCursors.ruleId],
+                  })
+                  .returning()
+            )
+          : await runInCrmTenantContext(
+              database,
+              { tenantId: params.advancement.tenantId },
+              async scoped =>
+                scoped
+                  .update(crmRoutingCursors)
+                  .set(setValues)
+                  .where(
+                    and(
+                      eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
+                      eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
+                      eq(crmRoutingCursors.cursorValue, priorCursor)
+                    )
+                  )
+                  .returning()
+            );
 
       if (rows[0]) {
         return { advancement: params.advancement, success: true };
@@ -297,14 +320,19 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
 
       if (idempotencyKey) {
         // db-access-guard: tenant-scoped -- reason: idempotent cursor retry lookup constrains by tenant, rule, expected cursor, and idempotency key
-        const existing = await database.query.crmRoutingCursors.findFirst({
-          where: and(
-            eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
-            eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
-            eq(crmRoutingCursors.cursorValue, params.advancement.nextCursor),
-            eq(crmRoutingCursors.lastIdempotencyKey, idempotencyKey)
-          ),
-        });
+        const existing = await runInCrmTenantContext(
+          database,
+          { tenantId: params.advancement.tenantId },
+          async scoped =>
+            scoped.query.crmRoutingCursors.findFirst({
+              where: and(
+                eq(crmRoutingCursors.tenantId, params.advancement.tenantId),
+                eq(crmRoutingCursors.ruleId, params.advancement.ruleId),
+                eq(crmRoutingCursors.cursorValue, params.advancement.nextCursor),
+                eq(crmRoutingCursors.lastIdempotencyKey, idempotencyKey)
+              ),
+            })
+        );
 
         if (existing) {
           return { advancement: params.advancement, success: true };
@@ -318,30 +346,44 @@ export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRout
       const values = auditValues(params);
 
       // db-access-guard: tenant-scoped -- reason: routing assignment audit copies explicit tenantId from the CRM07 audit record and uses tenant-scoped idempotency
-      const inserted = await database
-        .insert(crmRoutingAssignmentsAudit)
-        .values(values)
-        .onConflictDoNothing({
-          target: [crmRoutingAssignmentsAudit.tenantId, crmRoutingAssignmentsAudit.idempotencyKey],
-          where: sql`${crmRoutingAssignmentsAudit.idempotencyKey} is not null`,
-        })
-        .returning();
+      const inserted = await runInCrmTenantContext(
+        database,
+        { tenantId: values.tenantId },
+        async scoped =>
+          scoped
+            .insert(crmRoutingAssignmentsAudit)
+            .values(values)
+            .onConflictDoNothing({
+              target: [
+                crmRoutingAssignmentsAudit.tenantId,
+                crmRoutingAssignmentsAudit.idempotencyKey,
+              ],
+              where: sql`${crmRoutingAssignmentsAudit.idempotencyKey} is not null`,
+            })
+            .returning()
+      );
 
       if (inserted[0]) {
         return { auditRecord: mapAudit(inserted[0]), status: 'appended' };
       }
 
-      if (!values.idempotencyKey) {
+      const auditIdempotencyKey = values.idempotencyKey;
+      if (!auditIdempotencyKey) {
         throw new Error('CRM routing audit append conflicted without an idempotency key');
       }
 
       // db-access-guard: tenant-scoped -- reason: idempotent routing assignment audit lookup constrains by tenant plus non-null idempotency key
-      const existing = await database.query.crmRoutingAssignmentsAudit.findFirst({
-        where: and(
-          eq(crmRoutingAssignmentsAudit.tenantId, values.tenantId),
-          eq(crmRoutingAssignmentsAudit.idempotencyKey, values.idempotencyKey)
-        ),
-      });
+      const existing = await runInCrmTenantContext(
+        database,
+        { tenantId: values.tenantId },
+        async scoped =>
+          scoped.query.crmRoutingAssignmentsAudit.findFirst({
+            where: and(
+              eq(crmRoutingAssignmentsAudit.tenantId, values.tenantId),
+              eq(crmRoutingAssignmentsAudit.idempotencyKey, auditIdempotencyKey)
+            ),
+          })
+      );
 
       if (!existing) {
         throw new Error('CRM routing audit idempotency conflict did not return an existing row');
@@ -362,34 +404,49 @@ export function createAdminCrmRoutingRuleRepository(
     ruleId: string;
   }): Promise<AdminCrmRoutingRuleRow | null> {
     // db-access-guard: tenant-scoped -- reason: CRM routing rule lookup constrains by session-derived tenant and rule ID
-    const row = await database.query.crmRoutingRules.findFirst({
-      where: and(...adminRulePredicates(params.actor, params.ruleId)),
-    });
+    const row = await runInCrmTenantContext(
+      database,
+      { tenantId: params.actor.tenantId },
+      async scoped =>
+        scoped.query.crmRoutingRules.findFirst({
+          where: and(...adminRulePredicates(params.actor, params.ruleId)),
+        })
+    );
     return row ? mapAdminRule(row) : null;
   }
 
   return {
     async archiveRoutingRule(params) {
       // db-access-guard: tenant-scoped -- reason: CRM routing rule archive constrains by session-derived tenant and rule ID
-      const rows = await database
-        .update(crmRoutingRules)
-        .set({ archivedAt: new Date(), updatedAt: new Date() })
-        .where(and(...adminRulePredicates(params.actor, params.ruleId)))
-        .returning();
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped
+            .update(crmRoutingRules)
+            .set({ archivedAt: new Date(), updatedAt: new Date() })
+            .where(and(...adminRulePredicates(params.actor, params.ruleId)))
+            .returning()
+      );
       return rows[0] ? mapAdminRule(rows[0]) : null;
     },
 
     async createRoutingRule(params) {
       const values = ruleWriteValues(params.input);
       // db-access-guard: tenant-scoped -- reason: CRM routing rule create derives tenant from authorized admin actor
-      const rows = await database
-        .insert(crmRoutingRules)
-        .values({
-          ...values,
-          id: randomUUID(),
-          tenantId: params.actor.tenantId,
-        })
-        .returning();
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped
+            .insert(crmRoutingRules)
+            .values({
+              ...values,
+              id: randomUUID(),
+              tenantId: params.actor.tenantId,
+            })
+            .returning()
+      );
       if (!rows[0]) throw new Error('CRM routing rule create returned no row');
       return mapAdminRule(rows[0]);
     },
@@ -399,10 +456,15 @@ export function createAdminCrmRoutingRuleRepository(
     async listAgentScopes(params) {
       if (params.agentIds.length === 0) return [];
       // db-access-guard: tenant-scoped -- reason: routing admin validation constrains agent lookup by session tenant and submitted agent IDs
-      const rows = await database.query.user.findMany({
-        columns: { branchId: true, id: true, role: true, tenantId: true },
-        where: and(eq(user.tenantId, params.tenantId), inArray(user.id, [...params.agentIds])),
-      });
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.tenantId },
+        async scoped =>
+          scoped.query.user.findMany({
+            columns: { branchId: true, id: true, role: true, tenantId: true },
+            where: and(eq(user.tenantId, params.tenantId), inArray(user.id, [...params.agentIds])),
+          })
+      );
       return rows.map(row => ({
         branchId: row.branchId ?? null,
         id: row.id,
@@ -413,92 +475,114 @@ export function createAdminCrmRoutingRuleRepository(
 
     async listBranches(params) {
       // db-access-guard: tenant-scoped -- reason: routing admin branch labels constrain by session tenant only
-      const rows = await database.query.branches.findMany({
-        columns: { id: true, name: true, tenantId: true },
-        orderBy: [asc(branches.name), asc(branches.id)],
-        where: eq(branches.tenantId, params.tenantId),
-      });
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.tenantId },
+        async scoped =>
+          scoped.query.branches.findMany({
+            columns: { id: true, name: true, tenantId: true },
+            orderBy: [asc(branches.name), asc(branches.id)],
+            where: eq(branches.tenantId, params.tenantId),
+          })
+      );
       return rows.map(row => ({ id: row.id, label: row.name, tenantId: row.tenantId }));
     },
 
     async listRoutingRulesForAdmin(params) {
       // db-access-guard: tenant-scoped -- reason: admin routing rule reads constrain by session-derived tenant and expose aggregate rule metadata only
-      const rows = await database.query.crmRoutingRules.findMany({
-        orderBy: [
-          sql`case when ${crmRoutingRules.archivedAt} is null then 0 else 1 end`,
-          asc(crmRoutingRules.branchId),
-          asc(crmRoutingRules.priority),
-          asc(crmRoutingRules.id),
-        ],
-        where: eq(crmRoutingRules.tenantId, params.actor.tenantId),
-      });
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped.query.crmRoutingRules.findMany({
+            orderBy: [
+              sql`case when ${crmRoutingRules.archivedAt} is null then 0 else 1 end`,
+              asc(crmRoutingRules.branchId),
+              asc(crmRoutingRules.priority),
+              asc(crmRoutingRules.id),
+            ],
+            where: eq(crmRoutingRules.tenantId, params.actor.tenantId),
+          })
+      );
       return rows.map(mapAdminRule);
     },
 
     async reorderRoutingRules(params) {
-      return database.transaction(async tx => {
-        const scopedPredicates = [
-          eq(crmRoutingRules.tenantId, params.actor.tenantId),
-          isNull(crmRoutingRules.archivedAt),
-          params.branchId
-            ? eq(crmRoutingRules.branchId, params.branchId)
-            : isNull(crmRoutingRules.branchId),
-        ];
-        // db-access-guard: tenant-scoped -- reason: routing reorder source rows constrain by session tenant and requested tenant/branch scope
-        const existing = await tx.query.crmRoutingRules.findMany({
-          where: and(...scopedPredicates),
-        });
-        const byId = new Map(existing.map(row => [row.id, row]));
-        if (params.ruleIds.length !== existing.length) return [];
-        if (params.ruleIds.some(ruleId => !byId.has(ruleId))) return [];
-        const rows: CrmRoutingRuleRow[] = [];
-        for (const [priority, ruleId] of params.ruleIds.entries()) {
-          // db-access-guard: tenant-scoped -- reason: routing reorder update constrains by session tenant and validated rule ID
-          const updated = await tx
-            .update(crmRoutingRules)
-            .set({ priority, updatedAt: new Date() })
-            .where(
-              and(
-                eq(crmRoutingRules.tenantId, params.actor.tenantId),
-                eq(crmRoutingRules.id, ruleId),
-                isNull(crmRoutingRules.archivedAt),
-                params.branchId
-                  ? eq(crmRoutingRules.branchId, params.branchId)
-                  : isNull(crmRoutingRules.branchId)
+      return runInCrmTenantContext(database, { tenantId: params.actor.tenantId }, async scoped =>
+        scoped.transaction(async tx => {
+          const scopedPredicates = [
+            eq(crmRoutingRules.tenantId, params.actor.tenantId),
+            isNull(crmRoutingRules.archivedAt),
+            params.branchId
+              ? eq(crmRoutingRules.branchId, params.branchId)
+              : isNull(crmRoutingRules.branchId),
+          ];
+          // db-access-guard: tenant-scoped -- reason: routing reorder source rows constrain by session tenant and requested tenant/branch scope
+          const existing = await tx.query.crmRoutingRules.findMany({
+            where: and(...scopedPredicates),
+          });
+          const byId = new Map(existing.map(row => [row.id, row]));
+          if (params.ruleIds.length !== existing.length) return [];
+          if (params.ruleIds.some(ruleId => !byId.has(ruleId))) return [];
+          const rows: CrmRoutingRuleRow[] = [];
+          for (const [priority, ruleId] of params.ruleIds.entries()) {
+            // db-access-guard: tenant-scoped -- reason: routing reorder update constrains by session tenant and validated rule ID
+            const updated = await tx
+              .update(crmRoutingRules)
+              .set({ priority, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(crmRoutingRules.tenantId, params.actor.tenantId),
+                  eq(crmRoutingRules.id, ruleId),
+                  isNull(crmRoutingRules.archivedAt),
+                  params.branchId
+                    ? eq(crmRoutingRules.branchId, params.branchId)
+                    : isNull(crmRoutingRules.branchId)
+                )
               )
-            )
-            .returning();
-          if (!updated[0]) throw new Error('CRM routing reorder failed during priority update');
-          rows.push(updated[0]);
-        }
-        return rows.map(mapAdminRule);
-      });
+              .returning();
+            if (!updated[0]) throw new Error('CRM routing reorder failed during priority update');
+            rows.push(updated[0]);
+          }
+          return rows.map(mapAdminRule);
+        })
+      );
     },
 
     async setRoutingRuleEnabled(params) {
       // db-access-guard: tenant-scoped -- reason: CRM routing rule enable/disable constrains by session-derived tenant and rule ID
-      const rows = await database
-        .update(crmRoutingRules)
-        .set({ enabled: params.enabled, updatedAt: new Date() })
-        .where(and(...adminRulePredicates(params.actor, params.ruleId)))
-        .returning();
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped
+            .update(crmRoutingRules)
+            .set({ enabled: params.enabled, updatedAt: new Date() })
+            .where(and(...adminRulePredicates(params.actor, params.ruleId)))
+            .returning()
+      );
       return rows[0] ? mapAdminRule(rows[0]) : null;
     },
 
     async updateRoutingRule(params) {
       const values = ruleWriteValues(params.input);
       // db-access-guard: tenant-scoped -- reason: CRM routing rule update constrains by session-derived tenant, rule ID, and optimistic updatedAt checksum
-      const rows = await database
-        .update(crmRoutingRules)
-        .set(values)
-        .where(
-          and(
-            ...adminRulePredicates(params.actor, params.ruleId),
-            isNull(crmRoutingRules.archivedAt),
-            eq(crmRoutingRules.updatedAt, new Date(params.expectedUpdatedAt))
-          )
-        )
-        .returning();
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.actor.tenantId },
+        async scoped =>
+          scoped
+            .update(crmRoutingRules)
+            .set(values)
+            .where(
+              and(
+                ...adminRulePredicates(params.actor, params.ruleId),
+                isNull(crmRoutingRules.archivedAt),
+                eq(crmRoutingRules.updatedAt, new Date(params.expectedUpdatedAt))
+              )
+            )
+            .returning()
+      );
       if (rows[0]) return mapAdminRule(rows[0]);
       const existing = await getRoutingRule({ actor: params.actor, ruleId: params.ruleId });
       return existing ? 'cursor_conflict' : null;

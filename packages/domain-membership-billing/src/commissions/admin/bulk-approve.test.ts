@@ -4,15 +4,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { preflightCommissionPayability } from './payability';
 import { bulkApproveCommissionsCore } from './bulk-approve';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     update: vi.fn(() => ({
       set: vi.fn(() => ({
         where: vi.fn(),
       })),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {

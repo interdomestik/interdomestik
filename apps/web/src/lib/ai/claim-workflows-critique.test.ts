@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => {
     txInsert,
     txUpdateSet,
     withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
-      callback({ insert: txInsert, update: vi.fn(() => ({ set: txUpdateSet })) })
+      callback({ insert: txInsert, select, update: vi.fn(() => ({ set: txUpdateSet })) })
     ),
   };
 });

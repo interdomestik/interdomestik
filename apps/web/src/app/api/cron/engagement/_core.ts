@@ -81,6 +81,7 @@ async function processLifecycleEngagement(
   for (const cadence of ENGAGEMENT_CADENCE) {
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
+    // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
     // db-access-guard: system-exempt -- reason: engagement cron enumerates tenants before per-row scoped writes
     const members = await db
       .select({
@@ -176,6 +177,7 @@ async function processSeasonalEngagement(
   if (!season) return;
 
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
+  // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
   // db-access-guard: system-exempt -- reason: seasonal cron enumerates tenants before per-row scoped writes
   const seasonalMembers = await db
     .select({

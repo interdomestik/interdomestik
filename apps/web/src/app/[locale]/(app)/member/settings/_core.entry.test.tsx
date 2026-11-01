@@ -93,11 +93,17 @@ vi.mock('@/components/settings/notification-settings', mockNotificationSettingsM
 
 vi.mock('@/components/settings/residence-country-settings', mockResidenceCountrySettingsModule);
 
-vi.mock('@interdomestik/database', () => ({
-  db: { query: { user: { findFirst: hoisted.userFindFirstMock } } },
-  eq: vi.fn((field, value) => ({ field, value })),
-  user: { id: 'user.id', tenantId: 'user.tenantId' },
-}));
+vi.mock('@interdomestik/database', () => {
+  const db = { query: { user: { findFirst: hoisted.userFindFirstMock } } };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    eq: vi.fn((field, value) => ({ field, value })),
+    user: { id: 'user.id', tenantId: 'user.tenantId' },
+  };
+});
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn((tenantId, column, condition) => ({ column, condition, tenantId })),

@@ -6,6 +6,15 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn(),
   findClaimFirst: vi.fn(),
   matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
+  withTenantContext: vi.fn(
+    async (
+      _context: unknown,
+      callback: (tx: { query: { claims: { findFirst: () => unknown } } }) => unknown
+    ) =>
+      callback({
+        query: { claims: { findFirst: (...args: unknown[]) => hoisted.findClaimFirst(...args) } },
+      })
+  ),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -13,6 +22,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: { id: 'id', tenantId: 'tenant_id' },
   db: { query: { claims: { findFirst: hoisted.findClaimFirst } } },
   eq: hoisted.eq,
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@/lib/db/access-tenant-predicate', () => ({
@@ -62,6 +72,10 @@ describe('createSignedUploadCore access tenant isolation', () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_access', role: 'member' },
+      expect.any(Function)
+    );
     expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
     expect(hoisted.matchesAccessTenant).not.toHaveBeenCalledWith(
       expect.anything(),

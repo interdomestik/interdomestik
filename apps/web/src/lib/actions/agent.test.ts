@@ -145,6 +145,15 @@ vi.mock('@interdomestik/database/db', () => {
   return { db: mockedDb };
 });
 
+vi.mock('@interdomestik/database', async importOriginal => {
+  const { db: mockedDb } = await import('@interdomestik/database/db');
+  return {
+    ...(await importOriginal<typeof import('@interdomestik/database')>()),
+    withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback(mockedDb),
+  };
+});
+
 vi.mock('@interdomestik/database/schema', () => ({
   crmLeadOwnershipHistory: {
     agentId: { name: 'ownershipAgentId' },

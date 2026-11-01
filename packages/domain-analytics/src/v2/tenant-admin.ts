@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn, claimLifecycleStatusIs } from '@interdomestik/domain-claims';
 import { and, count, eq } from 'drizzle-orm';
@@ -27,40 +27,56 @@ export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminK
     approvedClaims,
     rejectedClaims,
   ] = await Promise.all([
-    db.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId)),
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent'))),
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(
-        and(
-          eq(claims.tenantId, tenantId),
-          claimLifecycleStatusIn(['verification', 'evaluation', 'negotiation', 'court'])
+    withTenantContext({ tenantId }, tx =>
+      tx.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(user)
+        .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member')))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft')))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted')))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(
+          and(
+            eq(claims.tenantId, tenantId),
+            claimLifecycleStatusIn(['verification', 'evaluation', 'negotiation', 'court'])
+          )
         )
-      ),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved'))),
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('rejected'))),
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved')))
+    ),
+    withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('rejected')))
+    ),
   ]);
 
   return {

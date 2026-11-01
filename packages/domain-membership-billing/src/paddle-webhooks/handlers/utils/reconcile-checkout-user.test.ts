@@ -13,7 +13,9 @@ const hoisted = vi.hoisted(() => ({
   tx: {
     insert: vi.fn(),
     update: vi.fn(),
+    query: {} as Record<string, unknown>,
   },
+  withTenantContext: vi.fn(),
   insertedUserValues: vi.fn(),
   updatedUserValues: vi.fn(),
   generateMemberNumber: vi.fn(),
@@ -30,6 +32,7 @@ vi.mock('@interdomestik/database', () => ({
   db: hoisted.db,
   eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/member-number', () => ({
@@ -75,6 +78,12 @@ describe('reconcileCheckoutUser', () => {
     });
 
     hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+    // Tenant-scoped statements (writes via tx.insert/update, reads via tx.query) share one context mock.
+    hoisted.tx.query = hoisted.db.query;
+    hoisted.withTenantContext.mockReset();
+    hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback(hoisted.tx)
+    );
 
     hoisted.tx.insert.mockImplementation(() => ({
       values: hoisted.insertedUserValues,
@@ -134,7 +143,11 @@ describe('reconcileCheckoutUser', () => {
       { requestPasswordResetOnboarding }
     );
 
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_mk' },
+      expect.any(Function)
+    );
+    expect(hoisted.tx.insert).toHaveBeenCalledTimes(1);
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(hoisted.insertedUserValues).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -212,7 +225,8 @@ describe('reconcileCheckoutUser', () => {
       { requestPasswordResetOnboarding }
     );
 
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.objectContaining({
@@ -257,7 +271,8 @@ describe('reconcileCheckoutUser', () => {
 
     expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('tenant mismatch'));
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();
@@ -290,7 +305,8 @@ describe('reconcileCheckoutUser', () => {
 
     expect(result).toBeNull();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('subscription customData conflicts with stored transaction')
     );
@@ -330,7 +346,8 @@ describe('reconcileCheckoutUser', () => {
     );
 
     expect(result).toBeNull();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -366,7 +383,8 @@ describe('reconcileCheckoutUser', () => {
     );
 
     expect(result).toBeNull();
-    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining(

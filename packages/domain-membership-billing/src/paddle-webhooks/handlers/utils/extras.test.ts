@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
@@ -24,6 +24,10 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   and: vi.fn((...parts) => ({ op: 'and', parts })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+  withTenantContext: vi.fn(async (_context: unknown, callback: unknown) => {
+    const { db } = await import('@interdomestik/database');
+    return (db.transaction as any)(callback);
+  }),
 }));
 
 vi.mock('../../../../../domain-referrals/src', () => ({
@@ -69,7 +73,8 @@ describe('handleNewSubscriptionExtras', () => {
     name: 'Test Member',
     memberNumber: 'M-123',
   };
-  const tx = { insert: vi.fn(), update: vi.fn() };
+  // The tenant-context transaction also serves tenant-scoped reads through `tx.query`.
+  const tx = { insert: vi.fn(), update: vi.fn(), query: db.query };
   const insertValues = vi.fn();
   const onConflictDoUpdate = vi.fn();
   const updateWhere = vi.fn();
@@ -201,7 +206,10 @@ describe('handleNewSubscriptionExtras', () => {
     });
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    expect(db.transaction).not.toHaveBeenCalled();
+    // The only tenant context left is the read-only referral lookup: no write statement ran.
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
     expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_1',
@@ -222,7 +230,10 @@ describe('handleNewSubscriptionExtras', () => {
     });
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    expect(db.transaction).not.toHaveBeenCalled();
+    // The only tenant context left is the read-only referral lookup: no write statement ran.
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
   });
 
   it('records read-only attribution without reactivating agent-client read-scope links', async () => {

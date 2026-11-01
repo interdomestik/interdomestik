@@ -109,12 +109,13 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
       expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', userId: 'member-1' })
     );
     expect(hoisted.emit).not.toHaveBeenCalled();
-    // Metadata runs on the member tenant context; the only ambient transaction is the AI queue.
+    // Metadata runs on the member tenant context; the AI queue runs on its own tenant context.
     expect(withTenantContext).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', role: 'member' },
       expect.any(Function)
     );
-    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('persists scoped consent row only for explicit member opt-in', async () => {

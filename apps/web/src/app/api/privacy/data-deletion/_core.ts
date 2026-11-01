@@ -1,4 +1,4 @@
-import { and, auditLog, db, desc, eq } from '@interdomestik/database';
+import { and, auditLog, desc, eq, withTenantContext } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
 export const REQUEST_DATA_DELETION_ACTION = 'privacy.data_deletion_requested';
@@ -87,19 +87,21 @@ async function findLatestRequestDefault(args: {
   tenantId: string;
   userId: string;
 }): Promise<LatestDeletionRequest | null> {
-  const latest = await db.query.auditLog.findFirst({
-    columns: {
-      id: true,
-      createdAt: true,
-    },
-    where: and(
-      eq(auditLog.tenantId, args.tenantId),
-      eq(auditLog.actorId, args.userId),
-      eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
-      eq(auditLog.entityType, 'user')
-    ),
-    orderBy: [desc(auditLog.createdAt)],
-  });
+  const latest = await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    tx.query.auditLog.findFirst({
+      columns: {
+        id: true,
+        createdAt: true,
+      },
+      where: and(
+        eq(auditLog.tenantId, args.tenantId),
+        eq(auditLog.actorId, args.userId),
+        eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
+        eq(auditLog.entityType, 'user')
+      ),
+      orderBy: [desc(auditLog.createdAt)],
+    })
+  );
 
   if (!latest) return null;
   return {
@@ -112,23 +114,25 @@ async function insertRequestDefault(args: DataDeletionRequestInsert): Promise<st
   const requestId = nanoid();
 
   // db-access-guard: system-exempt -- reason: privacy deletion endpoint writes system audit trail
-  await db.insert(auditLog).values({
-    id: requestId,
-    tenantId: args.tenantId,
-    actorId: args.userId,
-    actorRole: args.actorRole,
-    action: REQUEST_DATA_DELETION_ACTION,
-    entityType: 'user',
-    entityId: args.userId,
-    metadata: {
-      reason: args.reason,
-      source: 'self-service-api',
-      ipAddress: args.ipAddress,
-      userAgent: args.userAgent,
-      requestedAt: args.requestedAt.toISOString(),
-      status: 'pending',
-    },
-  });
+  await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    tx.insert(auditLog).values({
+      id: requestId,
+      tenantId: args.tenantId,
+      actorId: args.userId,
+      actorRole: args.actorRole,
+      action: REQUEST_DATA_DELETION_ACTION,
+      entityType: 'user',
+      entityId: args.userId,
+      metadata: {
+        reason: args.reason,
+        source: 'self-service-api',
+        ipAddress: args.ipAddress,
+        userAgent: args.userAgent,
+        requestedAt: args.requestedAt.toISOString(),
+        status: 'pending',
+      },
+    })
+  );
 
   return requestId;
 }

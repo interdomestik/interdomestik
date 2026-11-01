@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberNotes } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -25,18 +25,22 @@ export async function toggleNotePinCore(params: {
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await db
-      .select()
-      .from(memberNotes)
-      .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
-      .limit(1);
+    const [existing] = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select()
+        .from(memberNotes)
+        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+        .limit(1)
+    );
     if (!existing) return { success: false, error: 'Note not found' };
 
     const newPinned = !existing.isPinned;
-    await db
-      .update(memberNotes)
-      .set({ isPinned: newPinned, updatedAt: new Date() })
-      .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)));
+    await withTenantContext({ tenantId }, async tx =>
+      tx
+        .update(memberNotes)
+        .set({ isPinned: newPinned, updatedAt: new Date() })
+        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+    );
 
     await logAuditEvent({
       actorId: session.user.id,

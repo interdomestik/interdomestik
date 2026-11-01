@@ -9,7 +9,16 @@ const mocks = vi.hoisted(() => ({
   where: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  tenantTx: { query: undefined as unknown, update: undefined as unknown },
+  withTenantContext: vi.fn(),
 }));
+
+mocks.tenantTx.query = { subscriptions: { findFirst: mocks.findSubscriptionFirst } };
+mocks.tenantTx.update = mocks.update;
+mocks.withTenantContext.mockImplementation(
+  async (_context: unknown, callback: (tx: typeof mocks.tenantTx) => unknown) =>
+    callback(mocks.tenantTx)
+);
 
 vi.mock('./subscription/context', () => ({
   getActionContext: mocks.getActionContext,
@@ -30,6 +39,7 @@ vi.mock('@interdomestik/database', () => ({
     update: mocks.update,
   },
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
   subscriptions: {
     id: 'subscriptions.id',
     userId: 'subscriptions.user_id',
@@ -89,6 +99,10 @@ describe('subscription.core activateSponsoredMembership', () => {
         currentPeriodStart: expect.any(Date),
         currentPeriodEnd: expect.any(Date),
       })
+    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
     );
     expect(mocks.revalidatePath).toHaveBeenCalled();
   });

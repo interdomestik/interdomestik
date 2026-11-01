@@ -13,6 +13,7 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
   desc: vi.fn((value: unknown) => ({ op: 'desc', value })),
+  withTenantContext: vi.fn(),
 }));
 vi.mock('../../../../server/domains/claims/guards', () => ({
   ensureClaimsAccess: hoisted.ensureClaimsAccess,
@@ -24,8 +25,8 @@ vi.mock('@sentry/nextjs', () => ({
 vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: hoisted.buildClaimVisibilityWhere,
 }));
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       user: {
         findMany: hoisted.findManyUsers,
@@ -39,13 +40,20 @@ vi.mock('@interdomestik/database', () => ({
         where: hoisted.selectWhere,
       })),
     })),
-  },
-  claims: {
-    caseLifecycleState: 'claims.caseLifecycleState',
-    recoveryLifecycleState: 'claims.recoveryLifecycleState',
-    status: 'claims.status',
-  },
-}));
+  };
+  hoisted.withTenantContext.mockImplementation(
+    async (_context: unknown, callback: (tx: typeof db) => unknown) => callback(db)
+  );
+  return {
+    db,
+    withTenantContext: hoisted.withTenantContext,
+    claims: {
+      caseLifecycleState: 'claims.caseLifecycleState',
+      recoveryLifecycleState: 'claims.recoveryLifecycleState',
+      status: 'claims.status',
+    },
+  };
+});
 vi.mock('@interdomestik/database/schema', () => ({
   claims: {
     userId: 'claims.userId',
@@ -124,6 +132,10 @@ describe('getAgentMemberClaims', () => {
       statusLabelKey: 'claims-tracking.status.evaluation',
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       userId: 'agent-1',

@@ -1,12 +1,12 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMemberReferralStatsCore } from './stats';
 
 type ReferralCountRow = { count: number };
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(),
     query: {
       referrals: {
@@ -21,8 +21,12 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn(),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   referrals: {
@@ -103,6 +107,7 @@ describe('getMemberReferralStatsCore', () => {
       });
     }
 
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(db.query.referrals.findMany).not.toHaveBeenCalled();
     expect(db.select).toHaveBeenCalledWith({ count: 'count()' });
     expect(referralCountFrom).toHaveBeenCalledTimes(1);

@@ -36,6 +36,10 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  withTenantContext: async (
+    _context: unknown,
+    callback: (tx: { query: { claims: { findFirst: typeof hoisted.findClaimFirst } } }) => unknown
+  ) => callback({ query: { claims: { findFirst: hoisted.findClaimFirst } } }),
   createAdminClient: () => ({
     storage: {
       from: hoisted.storageFrom,

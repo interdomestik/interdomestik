@@ -19,13 +19,13 @@ const mocks = vi.hoisted(() => {
       staffId: 'claims.staff_id',
       tenantId: 'claims.tenant_id',
     },
-    db: { transaction: vi.fn(async cb => cb(tx)) },
     ensureTenantId: vi.fn(() => 'tenant-1'),
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
     MockClaimTransitionConflictError,
     selectChain,
     transition: vi.fn(),
     tx,
+    withTenantContext: vi.fn(async (_context: unknown, cb: (tx: unknown) => unknown) => cb(tx)),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
   };
 });
@@ -33,8 +33,8 @@ const mocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: mocks.and,
   claims: mocks.claims,
-  db: mocks.db,
   eq: mocks.eq,
+  withTenantContext: mocks.withTenantContext,
 }));
 vi.mock('@interdomestik/database/tenant-security', () => ({ withTenant: mocks.withTenant }));
 vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: mocks.ensureTenantId }));
@@ -85,11 +85,15 @@ describe('updateClaimStatus', () => {
       failure('Unauthorized')
     );
     await expect(call({ newStatus: 'not-a-status' })).resolves.toEqual(failure('Invalid status'));
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('keeps branch scope and delegates success to the transition command', async () => {
     await expect(call({ note: 'picked for review' })).resolves.toEqual(ok);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
     expect(mocks.transition).toHaveBeenCalledWith(
       mocks.tx,

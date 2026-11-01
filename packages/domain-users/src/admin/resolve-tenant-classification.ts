@@ -26,6 +26,7 @@ import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
 import { resolveTenantId } from './utils';
 
+// BLOCKED(rc31-u2): whole file is tenant-classification resolution/reassignment (identity/tenant resolution). It moves a user between tenants (UPDATE user.tenant_id from currentTenantId to nextTenantId, which a single-tenant RLS context cannot write), reads the global tenants table, and super_admin acts on a tenant that is not the session tenant. Needs a privileged manifest entry; left on the ambient client on purpose.
 export type TenantClassificationResolutionMode = 'confirm_current' | 'reassign';
 
 export type ResolveTenantClassificationResult = {

@@ -5,6 +5,7 @@ import {
   createPastDueSubscriptionEvent,
   mockRacedSubscriptionInsert,
   resetPaddleHandlerMocks,
+  routeTenantContextToDbMock,
 } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
@@ -30,6 +31,8 @@ vi.mock('@interdomestik/database/member-number', async function () {
 
 beforeEach(() => {
   resetPaddleHandlerMocks(hoisted);
+  // Dunning persists through standalone tenant-scoped statements (no multi-write transaction).
+  routeTenantContextToDbMock(hoisted);
 });
 
 describe('handleSubscriptionPastDue', () => {
@@ -227,6 +230,10 @@ describe('handleSubscriptionPastDue', () => {
       },
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_abc' },
+      expect.any(Function)
+    );
     expect(hoisted.db.insert).toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({

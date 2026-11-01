@@ -23,9 +23,7 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    transaction: hoisted.transaction,
-  },
+  withTenantContext: hoisted.transaction,
   billingInvoices: hoisted.billingInvoices,
   billingLedgerEntries: hoisted.billingLedgerEntries,
   sql: hoisted.sql,
@@ -41,7 +39,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       insert: hoisted.txInsert,
     };
 
-    hoisted.transaction.mockImplementation(async callback => callback(tx as never));
+    hoisted.transaction.mockImplementation(async (_context, callback) => callback(tx as never));
 
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) {
@@ -182,6 +180,10 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       },
     });
 
+    expect(hoisted.transaction).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
     expect(result).toEqual({
       applied: true,
       replayed: false,

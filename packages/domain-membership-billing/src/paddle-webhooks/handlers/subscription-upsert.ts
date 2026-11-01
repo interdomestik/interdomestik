@@ -1,4 +1,10 @@
-import { and, db, eq, subscriptions, type DomainEventTx } from '@interdomestik/database';
+import {
+  and,
+  eq,
+  subscriptions,
+  withTenantContext,
+  type DomainEventTx,
+} from '@interdomestik/database';
 
 import { findSubscriptionByProviderReference } from '../../subscription';
 import type { InternalSubscriptionStatus } from '../subscription-status';
@@ -133,7 +139,7 @@ export async function resolveSubscriptionForUpsert(args: {
 
 async function persistSubscriptionInsert(args: SubscriptionWriteArgs): Promise<'apply' | 'stale'> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values.
-  return db.transaction(async tx => {
+  return withTenantContext({ tenantId: args.tenantId }, async tx => {
     if (args.order) {
       const decision = await decideInitialSubscriptionEventOrder(tx as DomainEventTx, {
         order: args.order,
@@ -176,49 +182,54 @@ async function persistSubscriptionUpdate(
     tenantId: args.tenantId,
     userId: args.userId,
   });
-  return db.transaction(async (tx): Promise<SubscriptionEventOrderDecision['kind']> => {
-    let fromStatus = subscription.status;
-    if (args.order) {
-      // The ordering decision, snapshot, marker and domain event commit atomically
-      // under the row lock; an older concurrent event re-reads the newer marker.
-      const decision = await lockSubscriptionEventOrder(tx as DomainEventTx, {
-        domainEventId: subscriptionChangedEventId(args.tenantId, args.order.providerEventId),
-        order: args.order,
-        providerSubscriptionId: args.sub.id,
+  return withTenantContext(
+    { tenantId: args.tenantId },
+    async (tx): Promise<SubscriptionEventOrderDecision['kind']> => {
+      let fromStatus = subscription.status;
+      if (args.order) {
+        // The ordering decision, snapshot, marker and domain event commit atomically
+        // under the row lock; an older concurrent event re-reads the newer marker.
+        const decision = await lockSubscriptionEventOrder(tx as DomainEventTx, {
+          domainEventId: subscriptionChangedEventId(args.tenantId, args.order.providerEventId),
+          order: args.order,
+          providerSubscriptionId: args.sub.id,
+          subscriptionId: subscription.id,
+          tenantId: args.tenantId,
+        });
+        if (decision.kind !== 'apply') return decision.kind;
+        fromStatus = decision.fromStatus;
+      }
+      // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains update.
+      const updatedRows = await tx
+        .update(subscriptions)
+        .set({
+          tenantId: args.tenantId,
+          userId: args.userId,
+          agentId: args.agentId,
+          branchId: args.branchId,
+          providerSubscriptionId: args.sub.id,
+          ...args.values,
+          ...providerEventOrderValues(args.order),
+        })
+        .where(
+          and(eq(subscriptions.id, subscription.id), eq(subscriptions.tenantId, args.tenantId))
+        )
+        .returning({ id: subscriptions.id });
+      if (updatedRows.length !== 1)
+        throw new Error(`Paddle subscription ${args.sub.id} update matched no tenant-scoped row`);
+      await recordMembershipSubscriptionChangedEvent({
+        cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
+        fromStatus: normalizeExistingStatus(fromStatus),
+        id: args.eventId,
+        now: args.values.updatedAt,
         subscriptionId: subscription.id,
         tenantId: args.tenantId,
+        toStatus: args.values.status,
+        tx: tx as DomainEventTx,
       });
-      if (decision.kind !== 'apply') return decision.kind;
-      fromStatus = decision.fromStatus;
+      return 'apply';
     }
-    // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains update.
-    const updatedRows = await tx
-      .update(subscriptions)
-      .set({
-        tenantId: args.tenantId,
-        userId: args.userId,
-        agentId: args.agentId,
-        branchId: args.branchId,
-        providerSubscriptionId: args.sub.id,
-        ...args.values,
-        ...providerEventOrderValues(args.order),
-      })
-      .where(and(eq(subscriptions.id, subscription.id), eq(subscriptions.tenantId, args.tenantId)))
-      .returning({ id: subscriptions.id });
-    if (updatedRows.length !== 1)
-      throw new Error(`Paddle subscription ${args.sub.id} update matched no tenant-scoped row`);
-    await recordMembershipSubscriptionChangedEvent({
-      cancelAtPeriodEnd: args.values.cancelAtPeriodEnd,
-      fromStatus: normalizeExistingStatus(fromStatus),
-      id: args.eventId,
-      now: args.values.updatedAt,
-      subscriptionId: subscription.id,
-      tenantId: args.tenantId,
-      toStatus: args.values.status,
-      tx: tx as DomainEventTx,
-    });
-    return 'apply';
-  });
+  );
 }
 
 function providerEventOrderValues(order: PaddleSubscriptionEventOrder | undefined) {
@@ -236,11 +247,13 @@ async function findExistingSubscription(subId: string, userId: string, tenantId:
 
 async function findExistingSubscriptionForUser(userId: string, tenantId: string) {
   // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains fallback lookup.
-  return db.query.subscriptions.findFirst({
-    where: (subs, { and: andFn, eq: eqFn }) =>
-      andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
-    columns: { id: true, status: true, tenantId: true, userId: true },
-  });
+  return withTenantContext({ tenantId }, async tx =>
+    tx.query.subscriptions.findFirst({
+      where: (subs, { and: andFn, eq: eqFn }) =>
+        andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
+      columns: { id: true, status: true, tenantId: true, userId: true },
+    })
+  );
 }
 
 function deterministicSubscriptionEventId(

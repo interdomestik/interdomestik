@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,11 +13,15 @@ const hoisted = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: vi.fn(() => hoisted.queryChain),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   agentCommissions: {
@@ -53,6 +58,7 @@ describe('getMyCommissionSummaryCore', () => {
     });
 
     expect(ensureTenantId).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'and',
       clauses: [
@@ -79,6 +85,7 @@ describe('getGlobalCommissionSummaryCore', () => {
     });
 
     expect(ensureTenantId).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'eq',
       left: 'agentCommissions.tenantId',

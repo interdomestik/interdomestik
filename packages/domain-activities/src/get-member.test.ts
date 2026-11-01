@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   execute: vi.fn(),
+  withTenantContext: vi.fn(),
   findAssignment: vi.fn(),
   findMember: vi.fn(),
   findMany: vi.fn(),
@@ -11,6 +12,22 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   and: (...args: unknown[]) => mocks.and(...args),
+  withTenantContext: (ctx: unknown, cb: (tx: unknown) => unknown) => {
+    mocks.withTenantContext(ctx);
+    return cb({
+      query: {
+        agentClients: {
+          findFirst: (...args: unknown[]) => mocks.findAssignment(...args),
+        },
+        user: {
+          findFirst: (...args: unknown[]) => mocks.findMember(...args),
+        },
+        memberActivities: {
+          findMany: (...args: unknown[]) => mocks.findMany(...args),
+        },
+      },
+    });
+  },
   db: {
     execute: (...args: unknown[]) => mocks.execute(...args),
     query: {
@@ -84,6 +101,7 @@ describe('getMemberActivitiesCore', () => {
     });
 
     expect(mocks.findMany).toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' });
     expect(mocks.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({

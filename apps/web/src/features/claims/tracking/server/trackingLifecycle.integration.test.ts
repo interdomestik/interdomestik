@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createTrackingDrizzleMock, trackingSchemaMock } from './tracking-test-mocks';
 
-type ClaimRow = { caseLifecycleState: string; id: string; recoveryLifecycleState: string; tenantId: string; updatedAt: Date };
+type ClaimRow = {
+  caseLifecycleState: string;
+  id: string;
+  recoveryLifecycleState: string;
+  tenantId: string;
+  updatedAt: Date;
+};
 
 type TokenRow = {
   claimId: string;
@@ -138,8 +144,8 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       claims: {
         findFirst: vi.fn(async (args: { where?: WhereClause; columns?: ColumnMap }) =>
@@ -166,8 +172,15 @@ vi.mock('@interdomestik/database', () => ({
         });
       }),
     })),
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: (
+      _context: { tenantId: string },
+      action: (tx: typeof db) => Promise<unknown>
+    ) => action(db),
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => trackingSchemaMock);
 
@@ -209,7 +222,8 @@ describe('tracking link lifecycle', () => {
     hoisted.store.claims = [
       {
         id: 'claim-1',
-        caseLifecycleState: 'evaluation', recoveryLifecycleState: 'not_started',
+        caseLifecycleState: 'evaluation',
+        recoveryLifecycleState: 'not_started',
         tenantId: 'tenant-ks',
         updatedAt: new Date('2026-04-10T09:00:00.000Z'),
       },

@@ -27,15 +27,19 @@ vi.mock('@interdomestik/database', () => {
   const where = vi.fn().mockReturnValue({ groupBy });
   const from = vi.fn().mockReturnValue({ where });
 
-  return {
-    db: {
-      select: vi.fn().mockReturnValue({
-        from,
-      }),
-      query: {
-        user: mockQueryUser,
-      },
+  const db = {
+    select: vi.fn().mockReturnValue({
+      from,
+    }),
+    query: {
+      user: mockQueryUser,
     },
+  };
+
+  return {
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
     agentCommissions: {
       agentId: 'ac_agentId',
       earnedAt: 'ac_earnedAt',

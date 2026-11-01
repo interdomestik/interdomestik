@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions, user as userTable } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq } from 'drizzle-orm';
@@ -25,33 +25,40 @@ export async function getMyCommissionsCore(params: {
   try {
     const tenantId = ensureTenantId(session);
 
-    const rows = await db
-      .select({
-        id: agentCommissions.id,
-        agentId: agentCommissions.agentId,
-        memberId: agentCommissions.memberId,
-        subscriptionId: agentCommissions.subscriptionId,
-        type: agentCommissions.type,
-        status: agentCommissions.status,
-        amount: agentCommissions.amount,
-        currency: agentCommissions.currency,
-        earnedAt: agentCommissions.earnedAt,
-        paidAt: agentCommissions.paidAt,
-        metadata: agentCommissions.metadata,
-      })
-      .from(agentCommissions)
-      .where(
-        and(eq(agentCommissions.agentId, session.user.id), eq(agentCommissions.tenantId, tenantId))
-      )
-      .orderBy(desc(agentCommissions.earnedAt));
+    const rows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          id: agentCommissions.id,
+          agentId: agentCommissions.agentId,
+          memberId: agentCommissions.memberId,
+          subscriptionId: agentCommissions.subscriptionId,
+          type: agentCommissions.type,
+          status: agentCommissions.status,
+          amount: agentCommissions.amount,
+          currency: agentCommissions.currency,
+          earnedAt: agentCommissions.earnedAt,
+          paidAt: agentCommissions.paidAt,
+          metadata: agentCommissions.metadata,
+        })
+        .from(agentCommissions)
+        .where(
+          and(
+            eq(agentCommissions.agentId, session.user.id),
+            eq(agentCommissions.tenantId, tenantId)
+          )
+        )
+        .orderBy(desc(agentCommissions.earnedAt))
+    );
 
     // Enrich with names
     const commissions: Commission[] = await Promise.all(
       rows.map(async row => {
         const member = row.memberId
-          ? await db.query.user.findFirst({
-              where: and(eq(userTable.id, row.memberId), eq(userTable.tenantId, tenantId)),
-            })
+          ? await withTenantContext({ tenantId }, tx =>
+              tx.query.user.findFirst({
+                where: and(eq(userTable.id, row.memberId!), eq(userTable.tenantId, tenantId)),
+              })
+            )
           : null;
         return {
           ...row,

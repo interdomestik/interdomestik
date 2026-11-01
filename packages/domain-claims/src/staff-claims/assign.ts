@@ -1,4 +1,4 @@
-import { and, claims, db, eq, user as userTable } from '@interdomestik/database';
+import { and, claims, eq, user as userTable, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
@@ -26,11 +26,13 @@ async function getScopedClaim(args: {
   userId: string;
 }): Promise<StaffClaimRecord | undefined> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const [existingClaim] = await db
-    .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
-    .from(claims)
-    .where(buildScopedStaffClaimWhere(args))
-    .limit(1);
+  const [existingClaim] = await withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx
+      .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
+      .from(claims)
+      .where(buildScopedStaffClaimWhere(args))
+      .limit(1)
+  );
 
   return existingClaim;
 }
@@ -55,12 +57,14 @@ async function findScopedAssignee(args: {
   tenantId: string;
 }) {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  return db.query.user.findFirst({
-    where: buildAssigneeScope(args),
-    columns: {
-      id: true,
-    },
-  });
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: buildAssigneeScope(args),
+      columns: {
+        id: true,
+      },
+    })
+  );
 }
 
 /** Assign a claim to an in-scope staff member, defaulting to self-assignment */
@@ -127,16 +131,18 @@ export async function assignClaimCore(
       buildStaffClaimReadScope({ branchId, claimId, userId: user.id })
     );
     // db-access-guard: tenant-scoped -- reason: tenant predicate built by scopedWhere and consumed by this DB call
-    const updatedClaims = await db
-      .update(claims)
-      .set({
-        staffId: nextStaffId,
-        assignedAt: nextStaffId ? now : null,
-        assignedById: nextStaffId ? user.id : null,
-        updatedAt: now,
-      })
-      .where(and(scopedWhere, buildAssignmentGuard(previousStaffId ?? null)))
-      .returning({ id: claims.id });
+    const updatedClaims = await withTenantContext({ tenantId }, tx =>
+      tx
+        .update(claims)
+        .set({
+          staffId: nextStaffId,
+          assignedAt: nextStaffId ? now : null,
+          assignedById: nextStaffId ? user.id : null,
+          updatedAt: now,
+        })
+        .where(and(scopedWhere, buildAssignmentGuard(previousStaffId ?? null)))
+        .returning({ id: claims.id })
+    );
 
     if (updatedClaims.length === 0) {
       return { success: false, error: 'Claim not found or access denied' };

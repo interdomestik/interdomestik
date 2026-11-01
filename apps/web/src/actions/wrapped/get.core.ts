@@ -1,4 +1,4 @@
-import { claims, db, subscriptions } from '@interdomestik/database';
+import { claims, subscriptions, withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -17,9 +17,11 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
   const userId = session.user.id;
   const tenantId = ensureTenantId(session);
 
-  const subscription = await db.query.subscriptions.findFirst({
-    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-  });
+  const subscription = await withTenantContext({ tenantId }, async tx =>
+    tx.query.subscriptions.findFirst({
+      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+    })
+  );
 
   if (!subscription?.createdAt) {
     return null;
@@ -27,9 +29,11 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
 
   const daysProtected = differenceInDays(new Date(), subscription.createdAt);
 
-  const userClaims = await db.query.claims.findMany({
-    where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
-  });
+  const userClaims = await withTenantContext({ tenantId }, async tx =>
+    tx.query.claims.findMany({
+      where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
+    })
+  );
 
   const claimsWithStatus = userClaims.map(claim => ({
     ...claim,

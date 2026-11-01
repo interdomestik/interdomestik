@@ -135,7 +135,14 @@ describe('handleSubscriptionChanged', () => {
       email: 'buyer@example.com',
       tenantId: 'tenant_mk',
     });
-    expect(hoisted.db.transaction).toHaveBeenCalledTimes(3);
+    // Previously 3 ambient transactions (user insert, subscription insert, attribution); every
+    // tenant-scoped statement now runs through the canonical webhook tenant context. The four extra
+    // contexts beyond the original seven are the canonical plan lookups and the branch-default
+    // resolution, which previously ran on the ambient client.
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(11);
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toEqual({ tenantId: 'tenant_mk' });
+    }
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });

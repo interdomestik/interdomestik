@@ -24,8 +24,8 @@ const mocks = vi.hoisted(() => ({
       },
     },
     select: vi.fn(),
-    transaction: vi.fn(),
   },
+  withTenantContext: vi.fn(),
   membershipPlans: {
     id: 'membership_plans.id',
     tenantId: 'membership_plans.tenant_id',
@@ -45,6 +45,7 @@ vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
   eq: mocks.eq,
   membershipPlans: mocks.membershipPlans,
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/member-number', () => ({
@@ -108,7 +109,8 @@ function createTransactionHarness() {
 describe('hasTenantLeadForConversion', () => {
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
-    mocks.db.transaction.mockReset();
+    mocks.withTenantContext.mockReset();
+    mocks.withTenantContext.mockImplementation(async (_context, callback) => callback(mocks.db));
     mocks.eq.mockClear();
     mocks.and.mockClear();
   });
@@ -133,7 +135,11 @@ describe('hasTenantLeadForConversion', () => {
     query.where(tableRefs.memberLeads, { eq: mocks.eq, and: mocks.and });
     expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.id, 'lead-1');
     expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.tenantId, 'tenant-1');
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
   });
 
   it('returns false without writes when the lead is missing or belongs to another tenant', async () => {
@@ -145,7 +151,7 @@ describe('hasTenantLeadForConversion', () => {
     );
 
     expect(result).toBe(false);
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -157,7 +163,8 @@ describe('convertLeadToMember', () => {
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.db.query.membershipPlans.findFirst.mockReset();
-    mocks.db.transaction.mockReset();
+    mocks.withTenantContext.mockReset();
+    mocks.withTenantContext.mockImplementation(async (_context, callback) => callback(mocks.db));
     mocks.db.select.mockReset();
     mocks.generateMemberNumber.mockReset();
     mocks.nanoid.mockReset();
@@ -184,14 +191,11 @@ describe('convertLeadToMember', () => {
     });
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
 
-    mocks.db.transaction.mockImplementation(async () => {
-      throw new Error('transaction should not run');
-    });
-
     const result = await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
 
     expect(result).toBeNull();
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    // Only the tenant-scoped lead lookup ran; no conversion transaction was opened.
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it('defaults lead conversion to the standard annual plan without creating read-scope binding', async () => {
@@ -221,7 +225,9 @@ describe('convertLeadToMember', () => {
       .mockReturnValueOnce('card-qr');
 
     const { conflictRecords, insertRecords, tx, updateCalls } = createTransactionHarness();
-    mocks.db.transaction.mockImplementation(async callback => callback(tx));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
 
     const result = await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
 
@@ -306,7 +312,9 @@ describe('convertLeadToMember', () => {
       .mockReturnValueOnce('card-qr');
 
     const { insertRecords, tx } = createTransactionHarness();
-    mocks.db.transaction.mockImplementation(async callback => callback(tx));
+    mocks.withTenantContext.mockImplementation(async (_context, callback) =>
+      callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
+    );
 
     await convertLeadToMember({ tenantId: 'tenant-1' }, { leadId: 'lead-1', planId: 'family' });
 

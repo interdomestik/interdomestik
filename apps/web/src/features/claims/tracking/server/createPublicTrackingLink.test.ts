@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   claimFindFirst: vi.fn(),
+  withTenantContext: vi.fn(),
   update: vi.fn(),
   updateSet: vi.fn(),
   updateWhere: vi.fn(),
@@ -18,14 +19,20 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      claims: {
-        findFirst: hoisted.claimFindFirst,
+  withTenantContext: (
+    context: { tenantId: string },
+    action: (tx: Record<string, unknown>) => Promise<unknown>
+  ) => {
+    hoisted.withTenantContext(context);
+    return action({
+      query: {
+        claims: {
+          findFirst: hoisted.claimFindFirst,
+        },
       },
-    },
-    update: hoisted.update,
-    insert: hoisted.insert,
+      update: hoisted.update,
+      insert: hoisted.insert,
+    });
   },
 }));
 
@@ -125,6 +132,8 @@ describe('createPublicTrackingLink', () => {
       branchId: null,
     });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-ks' });
     expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

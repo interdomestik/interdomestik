@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberNotes, user as userTable } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -30,11 +30,13 @@ export async function updateMemberNoteCore(params: {
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await db
-      .select()
-      .from(memberNotes)
-      .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
-      .limit(1);
+    const [existing] = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select()
+        .from(memberNotes)
+        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+        .limit(1)
+    );
     if (!existing) return { success: false, error: 'Note not found' };
     if (existing.authorId !== session.user.id && session.user.role !== 'admin') {
       return { success: false, error: 'You can only edit your own notes' };
@@ -51,10 +53,12 @@ export async function updateMemberNoteCore(params: {
     if (validated.data.followUpDate !== undefined)
       updateData.followUpDate = validated.data.followUpDate;
 
-    await db
-      .update(memberNotes)
-      .set(updateData)
-      .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)));
+    await withTenantContext({ tenantId }, async tx =>
+      tx
+        .update(memberNotes)
+        .set(updateData)
+        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+    );
 
     const updatedFields = Object.keys(updateData).filter(key => key !== 'updatedAt');
     await logAuditEvent({
@@ -70,24 +74,26 @@ export async function updateMemberNoteCore(params: {
       },
     });
 
-    const [updated] = await db
-      .select({
-        id: memberNotes.id,
-        memberId: memberNotes.memberId,
-        authorId: memberNotes.authorId,
-        authorName: userTable.name,
-        type: memberNotes.type,
-        content: memberNotes.content,
-        isPinned: memberNotes.isPinned,
-        isInternal: memberNotes.isInternal,
-        followUpDate: memberNotes.followUpDate,
-        createdAt: memberNotes.createdAt,
-        updatedAt: memberNotes.updatedAt,
-      })
-      .from(memberNotes)
-      .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-      .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
-      .limit(1);
+    const [updated] = await withTenantContext({ tenantId }, async tx =>
+      tx
+        .select({
+          id: memberNotes.id,
+          memberId: memberNotes.memberId,
+          authorId: memberNotes.authorId,
+          authorName: userTable.name,
+          type: memberNotes.type,
+          content: memberNotes.content,
+          isPinned: memberNotes.isPinned,
+          isInternal: memberNotes.isInternal,
+          followUpDate: memberNotes.followUpDate,
+          createdAt: memberNotes.createdAt,
+          updatedAt: memberNotes.updatedAt,
+        })
+        .from(memberNotes)
+        .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
+        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+        .limit(1)
+    );
 
     return { success: true, data: mapNoteRow(updated) };
   } catch (error) {

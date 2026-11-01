@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -5,37 +6,43 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       claims: {
         findFirst: hoisted.findClaimFirst,
       },
     },
     select: hoisted.dbSelect,
-  },
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenantId',
-  },
-  claimDocuments: {
-    id: 'claimDocuments.id',
-    name: 'claimDocuments.name',
-    fileSize: 'claimDocuments.fileSize',
-    fileType: 'claimDocuments.fileType',
-    createdAt: 'claimDocuments.createdAt',
-    claimId: 'claimDocuments.claimId',
-    tenantId: 'claimDocuments.tenantId',
-  },
-  claimStageHistory: {
-    toStatus: 'claimStageHistory.toStatus',
-    createdAt: 'claimStageHistory.createdAt',
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    isPublic: 'claimStageHistory.isPublic',
-  },
-  eq: vi.fn(),
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+    claims: {
+      id: 'claims.id',
+      tenantId: 'claims.tenantId',
+    },
+    claimDocuments: {
+      id: 'claimDocuments.id',
+      name: 'claimDocuments.name',
+      fileSize: 'claimDocuments.fileSize',
+      fileType: 'claimDocuments.fileType',
+      createdAt: 'claimDocuments.createdAt',
+      claimId: 'claimDocuments.claimId',
+      tenantId: 'claimDocuments.tenantId',
+    },
+    claimStageHistory: {
+      toStatus: 'claimStageHistory.toStatus',
+      createdAt: 'claimStageHistory.createdAt',
+      claimId: 'claimStageHistory.claimId',
+      tenantId: 'claimStageHistory.tenantId',
+      isPublic: 'claimStageHistory.isPublic',
+    },
+    eq: vi.fn(),
+  };
+});
 
 vi.mock('@interdomestik/database/constants', () => ({
   CLAIM_STATUSES: ['draft', 'submitted', 'resolved'],
@@ -176,6 +183,7 @@ describe('getMemberClaimDetailsCore', () => {
       viewerTenantId: 'tenant_mk',
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' }, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 

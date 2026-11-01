@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 
@@ -93,10 +93,12 @@ export async function getMemberReferralStatsCore(params: {
 
 async function safeReferralCountQuery(userId: string, tenantId: string) {
   try {
-    return await db
-      .select({ count: count() })
-      .from(referrals)
-      .where(and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)));
+    return await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({ count: count() })
+        .from(referrals)
+        .where(and(eq(referrals.referrerId, userId), eq(referrals.tenantId, tenantId)))
+    );
   } catch (error) {
     if (isMissingRelationError(error)) {
       return [{ count: 0 }];
@@ -108,16 +110,18 @@ async function safeReferralCountQuery(userId: string, tenantId: string) {
 
 async function safeRewardRowsQuery(userId: string, tenantId: string) {
   try {
-    return await db.query.memberReferralRewards.findMany({
-      where: and(
-        eq(memberReferralRewards.referrerMemberId, userId),
-        eq(memberReferralRewards.tenantId, tenantId)
-      ),
-      columns: {
-        status: true,
-        rewardCents: true,
-      },
-    });
+    return await withTenantContext({ tenantId }, tx =>
+      tx.query.memberReferralRewards.findMany({
+        where: and(
+          eq(memberReferralRewards.referrerMemberId, userId),
+          eq(memberReferralRewards.tenantId, tenantId)
+        ),
+        columns: {
+          status: true,
+          rewardCents: true,
+        },
+      })
+    );
   } catch (error) {
     if (isMissingRelationError(error)) {
       return [];

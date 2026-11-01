@@ -6,9 +6,18 @@ const mocks = vi.hoisted(() => ({
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   desc: vi.fn(value => ({ value, op: 'desc' })),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: unknown) => unknown) =>
+    cb({
+      query: {
+        agentClients: { findFirst: (...args: unknown[]) => mocks.findAssignment(...args) },
+        claims: { findMany: (...args: unknown[]) => mocks.findClaims(...args) },
+      },
+    })
+  ),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
   db: {
     query: {
       agentClients: { findFirst: mocks.findAssignment },
@@ -30,6 +39,7 @@ vi.mock('@interdomestik/database', () => ({
   desc: mocks.desc,
 }));
 
+import { withTenantContext } from '@interdomestik/database';
 import { getAgentMemberDetail } from './get-agent-member-detail';
 
 describe('getAgentMemberDetail', () => {
@@ -85,6 +95,7 @@ describe('getAgentMemberDetail', () => {
       memberId: 'member-3',
     });
 
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-2' }, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('agent_clients.tenant_id', 'tenant-2');
   });
 });

@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
   }));
   const tenantTx = {
     insert: txInsert,
+    select,
     update: vi.fn(() => ({ set: txUpdateSet })),
   };
 

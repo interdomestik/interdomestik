@@ -7,6 +7,7 @@ const databaseMocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   findAgentSettings: vi.fn(),
   transaction: vi.fn(),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -22,13 +23,21 @@ vi.mock('@interdomestik/database', () => ({
     transaction: databaseMocks.transaction,
   },
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+  withTenantContext: (context: unknown, callback: unknown) => {
+    databaseMocks.withTenantContext(context);
+    return databaseMocks.transaction(callback);
+  },
 }));
 vi.mock('../../../commissions/create', () => ({ createCommissionWithDispositionCore: vi.fn() }));
 vi.mock('../../../commissions/create-renewal', () => ({ createRenewalCommissionCore: vi.fn() }));
 
 describe('new subscription extras idempotency', () => {
   const logAuditEvent = vi.fn();
-  const tx = { update: vi.fn() };
+  // The tenant-context transaction also serves tenant-scoped reads through `tx.query`.
+  const tx = {
+    update: vi.fn(),
+    query: { agentSettings: { findFirst: databaseMocks.findAgentSettings } },
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,9 +1,9 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveBusinessLeadOwner } from './resolve-business-lead-owner';
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     query: {
       tenantSettings: {
         findFirst: vi.fn(),
@@ -12,8 +12,14 @@ vi.mock('@interdomestik/database', () => ({
         findFirst: vi.fn(),
       },
     },
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
 
 const mockDbResponse = (returnValue: unknown) => {
   return (args: {
@@ -63,6 +69,7 @@ describe('resolveBusinessLeadOwner', () => {
       agentId: 'agent_system',
       branchId: 'branch_sales',
     });
+    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_ks' }, expect.any(Function));
   });
 
   it('falls back to the configured default branch when sales settings omit branchId', async () => {

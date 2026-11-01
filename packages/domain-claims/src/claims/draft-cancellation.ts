@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -19,10 +19,12 @@ function transitionFailureMessage(error: string): string {
 }
 
 async function loadTenantClaim(tenantId: string, claimId: string) {
-  return db.query.claims.findFirst({
-    where: (claimsTable, { eq }) =>
-      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-  });
+  return withTenantContext({ tenantId }, tx =>
+    tx.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    })
+  );
 }
 
 function cancellationAccessError(

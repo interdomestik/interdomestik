@@ -19,12 +19,15 @@ vi.mock('@interdomestik/database', () => {
       })),
     })),
   };
+  const db = {
+    select: vi.fn(() => ({
+      from: vi.fn(() => queryBuilder),
+    })),
+  };
   return {
-    db: {
-      select: vi.fn(() => ({
-        from: vi.fn(() => queryBuilder),
-      })),
-    },
+    db,
+    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db),
   };
 });
 

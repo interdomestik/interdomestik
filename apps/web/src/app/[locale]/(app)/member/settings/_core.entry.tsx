@@ -7,7 +7,7 @@ import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { ResidenceCountrySettings } from '@/components/settings/residence-country-settings';
 import { redirect } from '@/i18n/routing';
-import { db, eq, user } from '@interdomestik/database';
+import { eq, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
@@ -34,10 +34,12 @@ async function getResidenceCountry(session: MemberSettingsSession) {
 
   try {
     // db-access-guard: tenant-scoped -- reason: member settings reads the signed-in user by session tenant and user id
-    const row = await db.query.user.findFirst({
-      where: withTenant(tenantId, user.tenantId, eq(user.id, session.user.id)),
-      columns: { residenceCountry: true },
-    });
+    const row = await withTenantContext({ tenantId }, tx =>
+      tx.query.user.findFirst({
+        where: withTenant(tenantId, user.tenantId, eq(user.id, session.user.id)),
+        columns: { residenceCountry: true },
+      })
+    );
     return row?.residenceCountry ?? null;
   } catch (error) {
     console.error('Failed to load residence country:', error);

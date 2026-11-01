@@ -8,18 +8,14 @@ const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   values: vi.fn(),
   nanoid: vi.fn(() => 'MEM-ACT-1'),
+  withTenantContext: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
     execute: (...args: unknown[]) => mocks.execute(...args),
-    query: {
-      user: {
-        findFirst: mocks.findMember,
-      },
-    },
-    insert: mocks.insert,
   },
+  withTenantContext: mocks.withTenantContext,
   memberActivities: {
     id: 'memberActivities.id',
     memberId: 'memberActivities.memberId',
@@ -42,6 +38,13 @@ describe('logActivityCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({
+          query: { user: { findFirst: mocks.findMember } },
+          insert: mocks.insert,
+        })
+    );
     mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
     mocks.insert.mockReturnValue({ values: mocks.values });
     mocks.findMember.mockResolvedValue({
@@ -96,6 +99,10 @@ describe('logActivityCore', () => {
     });
 
     expect(result).toEqual({ success: true });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.insert).toHaveBeenCalled();
     expect(mocks.values).toHaveBeenCalledWith(
       expect.objectContaining({

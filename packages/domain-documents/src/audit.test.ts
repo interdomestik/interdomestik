@@ -6,15 +6,17 @@ const mocks = vi.hoisted(() => {
 
   return {
     addBreadcrumb: vi.fn(),
-    db: { insert },
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+      callback({ insert })
+    ),
     insert,
     insertValues,
     nanoid: vi.fn(() => 'audit-1'),
   };
 });
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: mocks.db,
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: mocks.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -43,6 +45,10 @@ describe('document audit', () => {
       accessType: 'upload',
     });
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(mocks.insert).toHaveBeenCalledWith('documentAccessLog');
     expect(mocks.insertValues).toHaveBeenCalledWith({
       id: 'audit-1',

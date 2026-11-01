@@ -1,21 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({
-  findActivitiesMany: vi.fn(),
-  findLeadFirst: vi.fn(),
+const hoisted = vi.hoisted(() => {
+  const findActivitiesMany = vi.fn();
+  const findLeadFirst = vi.fn();
+  const db = {
+    query: {
+      crmActivities: {
+        findMany: findActivitiesMany,
+      },
+      crmLeads: {
+        findFirst: findLeadFirst,
+      },
+    },
+  };
+  return {
+    db,
+    findActivitiesMany,
+    findLeadFirst,
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+      callback(db)
+    ),
+  };
+});
+
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      crmActivities: {
-        findMany: hoisted.findActivitiesMany,
-      },
-      crmLeads: {
-        findFirst: hoisted.findLeadFirst,
-      },
-    },
-  },
+  db: hoisted.db,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -68,6 +81,10 @@ describe('crmLeadActivityRepository', () => {
 
     await crmLeadActivityRepository.findAgentLead({ actor, leadId: 'lead-1' });
 
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1' },
+      expect.any(Function)
+    );
     expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
       where: {
         and: [

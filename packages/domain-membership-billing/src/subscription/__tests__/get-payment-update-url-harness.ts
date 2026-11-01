@@ -27,6 +27,7 @@ export const hoisted: PaymentUpdateTestMocks = {
 
 vi.doMock('@interdomestik/database', () => ({
   db: hoisted.db,
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(hoisted.db)),
   subscriptions: hoisted.subscriptions,
   and: vi.fn(),
   eq: vi.fn(),

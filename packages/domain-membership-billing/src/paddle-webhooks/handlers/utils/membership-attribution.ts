@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 
 import { revokeAgentClientReadScope } from '../../../ownership-attribution';
 import type { CheckoutCustomData } from '../../types';
@@ -23,7 +23,7 @@ export async function recordReadOnlyMembershipAttribution(args: {
   try {
     const now = new Date();
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await db.transaction(async tx => {
+    await withTenantContext({ tenantId: args.tenantId }, async tx => {
       await revokeAgentClientReadScope(tx, {
         tenantId: args.tenantId,
         memberId: args.userId,

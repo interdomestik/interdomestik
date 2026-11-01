@@ -5,9 +5,13 @@ const mocks = vi.hoisted(() => ({
   extractLegalDocument: vi.fn(),
   mintClaimDocumentAiCallContext: vi.fn(),
   resolveClaimDocumentAiExtractionConsent: vi.fn(),
+  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
+    callback({})
+  ),
 }));
 
 vi.mock('@/lib/db.server', () => ({ db: {} }));
+vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
 vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
   extractClaimIntake: mocks.extractClaimIntake,
 }));
@@ -105,6 +109,10 @@ describe('extractClaimAiCandidate', () => {
       })
     ).rejects.toThrow(/consent_missing/);
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'system' },
+      expect.any(Function)
+    );
     expect(mocks.mintClaimDocumentAiCallContext).not.toHaveBeenCalled();
     expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
   });

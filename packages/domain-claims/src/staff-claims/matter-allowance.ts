@@ -1,11 +1,11 @@
 import {
   and,
-  db,
   eq,
   serviceUsage,
   sql,
   subscriptions,
   type TenantTransaction,
+  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
@@ -34,6 +34,14 @@ export type MatterAllowanceSubscriptionContext = {
   planId: string | null | undefined;
   subscriptionId: string;
 };
+
+function withTenantExecutor<T>(
+  tx: TenantTransaction | undefined,
+  tenantId: string,
+  action: (executor: TenantTransaction) => Promise<T>
+): Promise<T> {
+  return tx ? action(tx) : withTenantContext({ tenantId }, action);
+}
 
 function normalizeDate(value: NormalizableDate) {
   if (!value) return null;
@@ -84,20 +92,22 @@ export async function hasRecoveryMatterUsageForClaim(params: {
   subscriptionId: string;
   tenantId: string;
 }) {
-  const [existingUsage] = await (params.tx ?? db)
-    .select({ id: serviceUsage.id })
-    .from(serviceUsage)
-    .where(
-      withTenant(
-        params.tenantId,
-        serviceUsage.tenantId,
-        and(
-          eq(serviceUsage.subscriptionId, params.subscriptionId),
-          eq(serviceUsage.serviceCode, getRecoveryMatterServiceCode(params.claimId))
+  const [existingUsage] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+    executor
+      .select({ id: serviceUsage.id })
+      .from(serviceUsage)
+      .where(
+        withTenant(
+          params.tenantId,
+          serviceUsage.tenantId,
+          and(
+            eq(serviceUsage.subscriptionId, params.subscriptionId),
+            eq(serviceUsage.serviceCode, getRecoveryMatterServiceCode(params.claimId))
+          )
         )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   return !!existingUsage;
 }
@@ -116,22 +126,24 @@ export async function countRecoveryMatterUsageInWindow(params: {
     );
   const endBoundary = params.end.toISOString();
   const startBoundary = params.start.toISOString();
-  const [usageCount] = await (params.tx ?? db)
-    .select({ count: sql<number>`count(*)` })
-    .from(serviceUsage)
-    .where(
-      withTenant(
-        params.tenantId,
-        serviceUsage.tenantId,
-        and(
-          eq(serviceUsage.subscriptionId, params.subscriptionId),
-          sql`${serviceUsage.serviceCode} like ${RECOVERY_MATTER_SERVICE_CODE_PATTERN}`,
-          sql`${serviceUsage.usedAt} >= CAST(${startBoundary} AS timestamp)`,
-          sql`${serviceUsage.usedAt} <= CAST(${endBoundary} AS timestamp)`
+  const [usageCount] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+    executor
+      .select({ count: sql<number>`count(*)` })
+      .from(serviceUsage)
+      .where(
+        withTenant(
+          params.tenantId,
+          serviceUsage.tenantId,
+          and(
+            eq(serviceUsage.subscriptionId, params.subscriptionId),
+            sql`${serviceUsage.serviceCode} like ${RECOVERY_MATTER_SERVICE_CODE_PATTERN}`,
+            sql`${serviceUsage.usedAt} >= CAST(${startBoundary} AS timestamp)`,
+            sql`${serviceUsage.usedAt} <= CAST(${endBoundary} AS timestamp)`
+          )
         )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   return Number(usageCount?.count ?? 0);
 }
@@ -141,18 +153,20 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
   tenantId: string;
   userId: string;
 }): Promise<MatterAllowanceSubscriptionContext | null> {
-  const [subscription] = await (params.tx ?? db)
-    .select({
-      id: subscriptions.id,
-      currentPeriodEnd: subscriptions.currentPeriodEnd,
-      currentPeriodStart: subscriptions.currentPeriodStart,
-      planId: subscriptions.planId,
-    })
-    .from(subscriptions)
-    .where(
-      withTenant(params.tenantId, subscriptions.tenantId, eq(subscriptions.userId, params.userId))
-    )
-    .limit(1);
+  const [subscription] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+    executor
+      .select({
+        id: subscriptions.id,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        currentPeriodStart: subscriptions.currentPeriodStart,
+        planId: subscriptions.planId,
+      })
+      .from(subscriptions)
+      .where(
+        withTenant(params.tenantId, subscriptions.tenantId, eq(subscriptions.userId, params.userId))
+      )
+      .limit(1)
+  );
 
   if (!subscription) return null;
 

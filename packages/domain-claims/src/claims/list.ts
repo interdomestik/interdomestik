@@ -3,12 +3,12 @@ import {
   and,
   claimMessages,
   claims,
-  db,
   eq,
   ilike,
   inArray,
   or,
   user,
+  withTenantContext,
 } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -93,7 +93,8 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     whereClause,
     agentClientsJoinOn,
     page,
-    perPage
+    perPage,
+    tenantId
   );
 
   // 4. Fetch Metadata & Map Response
@@ -247,9 +248,10 @@ async function executeClaimsQuery(
   whereClause: SQL | undefined,
   agentClientsJoinOn: any,
   page: number,
-  perPage: number
+  perPage: number,
+  tenantId: string
 ) {
-  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn);
+  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn, tenantId);
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
   const offset = (page - 1) * perPage;
 
@@ -258,23 +260,30 @@ async function executeClaimsQuery(
     agentClientsJoinOn,
     perPage,
     offset,
+    tenantId,
   });
 
   return { totalCount, totalPages, rows };
 }
 
-async function fetchTotalCount(whereClause: SQL | undefined, agentClientsJoinOn: any) {
+async function fetchTotalCount(
+  whereClause: SQL | undefined,
+  agentClientsJoinOn: any,
+  tenantId: string
+) {
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  let countQuery = db
-    .select({ total: count() })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id));
+  const [countRow] = await withTenantContext({ tenantId }, tx => {
+    let countQuery = tx
+      .select({ total: count() })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id));
 
-  if (agentClientsJoinOn) {
-    countQuery = countQuery.innerJoin(agentClients, agentClientsJoinOn);
-  }
+    if (agentClientsJoinOn) {
+      countQuery = countQuery.innerJoin(agentClients, agentClientsJoinOn);
+    }
 
-  const [countRow] = await countQuery.where(whereClause);
+    return countQuery.where(whereClause);
+  });
   return Number(countRow?.total || 0);
 }
 
@@ -283,38 +292,41 @@ async function fetchClaimRows(params: {
   agentClientsJoinOn: any;
   perPage: number;
   offset: number;
+  tenantId: string;
 }) {
-  const { whereClause, agentClientsJoinOn, perPage, offset } = params;
+  const { whereClause, agentClientsJoinOn, perPage, offset, tenantId } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  let rowsQuery = db
-    .select({
-      id: claims.id,
-      title: claims.title,
-      status: claimLifecycleStatusSql(),
-      caseLifecycleState: claims.caseLifecycleState,
-      recoveryLifecycleState: claims.recoveryLifecycleState,
-      createdAt: claims.createdAt,
-      companyName: claims.companyName,
-      claimAmount: claims.claimAmount,
-      currency: claims.currency,
-      category: claims.category,
-      claimantName: user.name,
-      claimantEmail: user.email,
-      claimNumber: claims.claimNumber,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id));
+  return withTenantContext({ tenantId }, async tx => {
+    let rowsQuery = tx
+      .select({
+        id: claims.id,
+        title: claims.title,
+        status: claimLifecycleStatusSql(),
+        caseLifecycleState: claims.caseLifecycleState,
+        recoveryLifecycleState: claims.recoveryLifecycleState,
+        createdAt: claims.createdAt,
+        companyName: claims.companyName,
+        claimAmount: claims.claimAmount,
+        currency: claims.currency,
+        category: claims.category,
+        claimantName: user.name,
+        claimantEmail: user.email,
+        claimNumber: claims.claimNumber,
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id));
 
-  if (agentClientsJoinOn) {
-    rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
-  }
+    if (agentClientsJoinOn) {
+      rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
+    }
 
-  return await rowsQuery
-    .where(whereClause)
-    .orderBy(desc(claims.createdAt))
-    .limit(perPage)
-    .offset(offset);
+    return await rowsQuery
+      .where(whereClause)
+      .orderBy(desc(claims.createdAt))
+      .limit(perPage)
+      .offset(offset);
+  });
 }
 
 async function fetchUnreadCounts(params: {
@@ -326,28 +338,30 @@ async function fetchUnreadCounts(params: {
   const unreadCounts = new Map<string, number>();
 
   if (scope !== 'member' && rows.length > 0) {
-    const unreadRows = await db
-      .select({
-        claimId: claimMessages.claimId,
-        total: count(),
-      })
-      .from(claimMessages)
-      .innerJoin(claims, eq(claimMessages.claimId, claims.id))
-      .where(
-        withTenant(
-          tenantId,
-          claims.tenantId,
-          and(
-            inArray(
-              claimMessages.claimId,
-              rows.map(row => row.id)
-            ),
-            isNull(claimMessages.readAt),
-            eq(claimMessages.senderId, claims.userId)
+    const unreadRows = await withTenantContext({ tenantId }, tx =>
+      tx
+        .select({
+          claimId: claimMessages.claimId,
+          total: count(),
+        })
+        .from(claimMessages)
+        .innerJoin(claims, eq(claimMessages.claimId, claims.id))
+        .where(
+          withTenant(
+            tenantId,
+            claims.tenantId,
+            and(
+              inArray(
+                claimMessages.claimId,
+                rows.map(row => row.id)
+              ),
+              isNull(claimMessages.readAt),
+              eq(claimMessages.senderId, claims.userId)
+            )
           )
         )
-      )
-      .groupBy(claimMessages.claimId);
+        .groupBy(claimMessages.claimId)
+    );
 
     for (const row of unreadRows) {
       unreadCounts.set(row.claimId, Number(row.total || 0));

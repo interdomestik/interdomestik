@@ -6,7 +6,7 @@ import {
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { resolveStaffSupportSessionBranch } from '@/lib/support-handoffs/staff-session';
-import { and, db, eq, user } from '@interdomestik/database';
+import { and, eq, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   getStaffSupportHandoffQueue,
@@ -112,21 +112,23 @@ function buildSupportHandoffsHref(args: {
 }
 
 async function getAssignableStaff(args: { branchId: string | null; tenantId: string }) {
-  return db.query.user.findMany({
-    where: withTenant(
-      args.tenantId,
-      user.tenantId,
-      args.branchId
-        ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
-        : eq(user.role, 'staff')
-    ),
-    columns: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-    },
-  });
+  return withTenantContext({ tenantId: args.tenantId }, tx =>
+    tx.query.user.findMany({
+      where: withTenant(
+        args.tenantId,
+        user.tenantId,
+        args.branchId
+          ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
+          : eq(user.role, 'staff')
+      ),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    })
+  );
 }
 
 function getFilterOptions<T extends string>(args: {

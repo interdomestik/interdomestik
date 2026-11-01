@@ -24,14 +24,18 @@ const hoisted = vi.hoisted(() => ({
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: hoisted.select,
-  },
-  eq: hoisted.eq,
-  sql: hoisted.sql,
-  subscriptions: hoisted.subscriptions,
-}));
+  };
+  return {
+    db,
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    eq: hoisted.eq,
+    sql: hoisted.sql,
+    subscriptions: hoisted.subscriptions,
+  };
+});
 
 import {
   deriveMembershipStatus,

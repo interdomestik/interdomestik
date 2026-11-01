@@ -26,6 +26,8 @@ import {
   crmPipelineStages,
 } from '@interdomestik/database/schema';
 
+import { runInCrmTenantContext } from './tenant-runner';
+
 const defaultForecastSnapshotIds = {
   pipelineSnapshotId: () => randomUUID(),
 };
@@ -183,25 +185,33 @@ async function listWeightedRows(
   }
 
   // db-access-guard: tenant-scoped -- reason: CRM reporting weighted rows constrain deals by authorized actor tenant plus agent or branch scope
-  const rows = await database
-    .select(weightedSelect())
-    .from(crmDeals)
-    .leftJoin(
-      crmPipelines,
-      and(eq(crmPipelines.tenantId, crmDeals.tenantId), eq(crmPipelines.id, crmDeals.pipelineId))
-    )
-    .leftJoin(
-      crmPipelineStages,
-      and(
-        eq(crmPipelineStages.tenantId, crmDeals.tenantId),
-        eq(crmPipelineStages.id, crmDeals.currentStageId)
-      )
-    )
-    .leftJoin(
-      crmLeads,
-      and(eq(crmLeads.tenantId, crmDeals.tenantId), eq(crmLeads.id, crmDeals.leadId))
-    )
-    .where(and(...predicates));
+  const rows = await runInCrmTenantContext(
+    database,
+    { tenantId: input.actor.tenantId },
+    async scoped =>
+      scoped
+        .select(weightedSelect())
+        .from(crmDeals)
+        .leftJoin(
+          crmPipelines,
+          and(
+            eq(crmPipelines.tenantId, crmDeals.tenantId),
+            eq(crmPipelines.id, crmDeals.pipelineId)
+          )
+        )
+        .leftJoin(
+          crmPipelineStages,
+          and(
+            eq(crmPipelineStages.tenantId, crmDeals.tenantId),
+            eq(crmPipelineStages.id, crmDeals.currentStageId)
+          )
+        )
+        .leftJoin(
+          crmLeads,
+          and(eq(crmLeads.tenantId, crmDeals.tenantId), eq(crmLeads.id, crmDeals.leadId))
+        )
+        .where(and(...predicates))
+  );
 
   return rows.map(mapWeighted);
 }
@@ -224,49 +234,54 @@ async function listStageIntervalRows(
   }
 
   // db-access-guard: tenant-scoped -- reason: CRM reporting stage-history rows join through tenant-scoped deals constrained by authorized actor scope
-  const rows = await database
-    .select({
-      branchId: crmDeals.branchId,
-      dealId: crmDealStageHistory.dealId,
-      enteredAt: crmDealStageHistory.occurredAt,
-      historyId: crmDealStageHistory.id,
-      kind: crmDealStageHistory.kind,
-      lossReasonId: crmDealStageHistory.lossReasonId,
-      pipelineId: crmDealStageHistory.pipelineId,
-      stageId: crmDealStageHistory.toStageId,
-      stageIsLost: crmPipelineStages.isLost,
-      stageIsWon: crmPipelineStages.isWon,
-      tenantId: crmDealStageHistory.tenantId,
-    })
-    .from(crmDealStageHistory)
-    .innerJoin(
-      crmDeals,
-      and(
-        eq(crmDeals.tenantId, crmDealStageHistory.tenantId),
-        eq(crmDeals.id, crmDealStageHistory.dealId)
-      )
-    )
-    .innerJoin(
-      crmPipelines,
-      and(
-        eq(crmPipelines.tenantId, crmDealStageHistory.tenantId),
-        eq(crmPipelines.id, crmDealStageHistory.pipelineId)
-      )
-    )
-    .innerJoin(
-      crmPipelineStages,
-      and(
-        eq(crmPipelineStages.tenantId, crmDealStageHistory.tenantId),
-        eq(crmPipelineStages.id, crmDealStageHistory.toStageId)
-      )
-    )
-    .where(and(...predicates))
-    .orderBy(
-      asc(crmDealStageHistory.dealId),
-      asc(crmDealStageHistory.occurredAt),
-      asc(crmDealStageHistory.createdAt),
-      asc(crmDealStageHistory.id)
-    );
+  const rows = await runInCrmTenantContext(
+    database,
+    { tenantId: input.actor.tenantId },
+    async scoped =>
+      scoped
+        .select({
+          branchId: crmDeals.branchId,
+          dealId: crmDealStageHistory.dealId,
+          enteredAt: crmDealStageHistory.occurredAt,
+          historyId: crmDealStageHistory.id,
+          kind: crmDealStageHistory.kind,
+          lossReasonId: crmDealStageHistory.lossReasonId,
+          pipelineId: crmDealStageHistory.pipelineId,
+          stageId: crmDealStageHistory.toStageId,
+          stageIsLost: crmPipelineStages.isLost,
+          stageIsWon: crmPipelineStages.isWon,
+          tenantId: crmDealStageHistory.tenantId,
+        })
+        .from(crmDealStageHistory)
+        .innerJoin(
+          crmDeals,
+          and(
+            eq(crmDeals.tenantId, crmDealStageHistory.tenantId),
+            eq(crmDeals.id, crmDealStageHistory.dealId)
+          )
+        )
+        .innerJoin(
+          crmPipelines,
+          and(
+            eq(crmPipelines.tenantId, crmDealStageHistory.tenantId),
+            eq(crmPipelines.id, crmDealStageHistory.pipelineId)
+          )
+        )
+        .innerJoin(
+          crmPipelineStages,
+          and(
+            eq(crmPipelineStages.tenantId, crmDealStageHistory.tenantId),
+            eq(crmPipelineStages.id, crmDealStageHistory.toStageId)
+          )
+        )
+        .where(and(...predicates))
+        .orderBy(
+          asc(crmDealStageHistory.dealId),
+          asc(crmDealStageHistory.occurredAt),
+          asc(crmDealStageHistory.createdAt),
+          asc(crmDealStageHistory.id)
+        )
+  );
 
   return rows.map((row, index) => {
     const next = rows[index + 1];
@@ -376,32 +391,28 @@ export function createCrmReportingRepository(
   return {
     async listAgentLeaderboardRows(input) {
       const rows = await listWeightedRows(database, input);
-      return rows.map(
-        (row): CrmAgentLeaderboardRow => ({
-          ...row,
-          activityCount: 1,
-          outcome: outcomeFor(row),
-        })
-      );
+      return rows.map((row): CrmAgentLeaderboardRow => ({
+        ...row,
+        activityCount: 1,
+        outcome: outcomeFor(row),
+      }));
     },
 
     async listFunnelConversionRows(input) {
       const rows = await listStageIntervalRows(database, input);
-      return rows.map(
-        (row): CrmFunnelConversionRow => ({
-          branchId: row.branchId,
-          dealId: row.dealId,
-          enteredAt: row.enteredAt.toISOString(),
-          exitedAt: row.exitedAt,
-          kind: row.kind,
-          lossReasonId: row.lossReasonId,
-          pipelineId: row.pipelineId,
-          stageId: row.stageId,
-          stageIsLost: row.stageIsLost,
-          stageIsWon: row.stageIsWon,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmFunnelConversionRow => ({
+        branchId: row.branchId,
+        dealId: row.dealId,
+        enteredAt: row.enteredAt.toISOString(),
+        exitedAt: row.exitedAt,
+        kind: row.kind,
+        lossReasonId: row.lossReasonId,
+        pipelineId: row.pipelineId,
+        stageId: row.stageId,
+        stageIsLost: row.stageIsLost,
+        stageIsWon: row.stageIsWon,
+        tenantId: row.tenantId,
+      }));
     },
 
     async listSourceBreakdownRows(input) {
@@ -411,18 +422,16 @@ export function createCrmReportingRepository(
 
     async listStageVelocityRows(input) {
       const rows = await listStageIntervalRows(database, input);
-      return rows.map(
-        (row): CrmStageVelocityRow => ({
-          branchId: row.branchId,
-          dealId: row.dealId,
-          enteredAt: row.enteredAt.toISOString(),
-          exitedAt: row.exitedAt,
-          kind: row.kind,
-          pipelineId: row.pipelineId,
-          stageId: row.stageId,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmStageVelocityRow => ({
+        branchId: row.branchId,
+        dealId: row.dealId,
+        enteredAt: row.enteredAt.toISOString(),
+        exitedAt: row.exitedAt,
+        kind: row.kind,
+        pipelineId: row.pipelineId,
+        stageId: row.stageId,
+        tenantId: row.tenantId,
+      }));
     },
 
     async listWeightedPipelineRows(input) {
@@ -431,18 +440,16 @@ export function createCrmReportingRepository(
 
     async listWinRateRows(input) {
       const rows = await listWeightedRows(database, input);
-      return rows.map(
-        (row): CrmWinRateRow => ({
-          agentId: row.agentId,
-          branchId: row.branchId,
-          outcome: outcomeFor(row),
-          pipelineId: row.pipelineId,
-          source: row.source,
-          stageId: row.currentStageId,
-          lossReasonId: row.lossReasonId,
-          tenantId: row.tenantId,
-        })
-      );
+      return rows.map((row): CrmWinRateRow => ({
+        agentId: row.agentId,
+        branchId: row.branchId,
+        outcome: outcomeFor(row),
+        pipelineId: row.pipelineId,
+        source: row.source,
+        stageId: row.currentStageId,
+        lossReasonId: row.lossReasonId,
+        tenantId: row.tenantId,
+      }));
     },
   };
 }
@@ -457,40 +464,54 @@ export function createCrmForecastSnapshotRepository(
         return { success: false, reason: 'version_conflict' };
       }
 
+      // Every snapshot write is RLS-scoped to the tenant carried by its work item; a batch must be
+      // single-tenant so one tenant context can cover the whole append-only version derivation.
+      const snapshotTenantIds = new Set(params.snapshots.map(snapshot => snapshot.tenantId));
+      if (snapshotTenantIds.size > 1) {
+        throw new Error('CRM forecast snapshot insert requires snapshots for a single tenant');
+      }
+      const [snapshotTenantId] = [...snapshotTenantIds];
+      if (!snapshotTenantId) return { success: true, snapshots: [] };
+
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
           // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot insert derives version numbers from explicit tenant/pipeline snapshot keys and writes those same tenant ids
-          const inserted = await database.transaction(async tx => {
-            const values = [];
-            for (const snapshot of params.snapshots) {
-              const [latest] = await tx
-                .select({
-                  version: sql<number>`coalesce(max(${crmPipelineSnapshots.snapshotVersion}), 0)`,
-                })
-                .from(crmPipelineSnapshots)
-                .where(
-                  and(
-                    eq(crmPipelineSnapshots.tenantId, snapshot.tenantId),
-                    eq(crmPipelineSnapshots.pipelineId, snapshot.pipelineId),
-                    snapshot.branchId
-                      ? eq(crmPipelineSnapshots.branchId, snapshot.branchId)
-                      : isNull(crmPipelineSnapshots.branchId),
-                    eq(crmPipelineSnapshots.currencyCode, snapshot.currencyCode),
-                    eq(crmPipelineSnapshots.snapshotDate, snapshot.snapshotDate)
-                  )
-                );
+          const inserted = await runInCrmTenantContext(
+            database,
+            { tenantId: snapshotTenantId },
+            async scoped =>
+              scoped.transaction(async tx => {
+                const values = [];
+                for (const snapshot of params.snapshots) {
+                  const [latest] = await tx
+                    .select({
+                      version: sql<number>`coalesce(max(${crmPipelineSnapshots.snapshotVersion}), 0)`,
+                    })
+                    .from(crmPipelineSnapshots)
+                    .where(
+                      and(
+                        eq(crmPipelineSnapshots.tenantId, snapshot.tenantId),
+                        eq(crmPipelineSnapshots.pipelineId, snapshot.pipelineId),
+                        snapshot.branchId
+                          ? eq(crmPipelineSnapshots.branchId, snapshot.branchId)
+                          : isNull(crmPipelineSnapshots.branchId),
+                        eq(crmPipelineSnapshots.currencyCode, snapshot.currencyCode),
+                        eq(crmPipelineSnapshots.snapshotDate, snapshot.snapshotDate)
+                      )
+                    );
 
-              values.push(
-                snapshotInsertValues(snapshot, {
-                  id: ids.pipelineSnapshotId(),
-                  snapshotVersion: (latest?.version ?? 0) + 1,
-                })
-              );
-            }
+                  values.push(
+                    snapshotInsertValues(snapshot, {
+                      id: ids.pipelineSnapshotId(),
+                      snapshotVersion: (latest?.version ?? 0) + 1,
+                    })
+                  );
+                }
 
-            if (values.length === 0) return [];
-            return tx.insert(crmPipelineSnapshots).values(values).returning();
-          });
+                if (values.length === 0) return [];
+                return tx.insert(crmPipelineSnapshots).values(values).returning();
+              })
+          );
 
           return { success: true, snapshots: inserted.map(mapSnapshotRecord) };
         } catch (error) {
@@ -503,16 +524,21 @@ export function createCrmForecastSnapshotRepository(
 
     async listLatestPipelineSnapshots(params) {
       // db-access-guard: tenant-scoped -- reason: CRM forecast snapshot reads constrain by explicit tenant id and optional branch/pipeline scope
-      const rows = await database
-        .select()
-        .from(crmPipelineSnapshots)
-        .where(snapshotScope(params))
-        .orderBy(
-          asc(crmPipelineSnapshots.pipelineId),
-          asc(crmPipelineSnapshots.branchId),
-          asc(crmPipelineSnapshots.currencyCode),
-          desc(crmPipelineSnapshots.snapshotVersion)
-        );
+      const rows = await runInCrmTenantContext(
+        database,
+        { tenantId: params.tenantId },
+        async scoped =>
+          scoped
+            .select()
+            .from(crmPipelineSnapshots)
+            .where(snapshotScope(params))
+            .orderBy(
+              asc(crmPipelineSnapshots.pipelineId),
+              asc(crmPipelineSnapshots.branchId),
+              asc(crmPipelineSnapshots.currencyCode),
+              desc(crmPipelineSnapshots.snapshotVersion)
+            )
+      );
 
       const latest = new Map<string, SnapshotRow>();
       for (const row of rows) {

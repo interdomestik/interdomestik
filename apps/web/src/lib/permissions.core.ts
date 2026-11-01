@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { withTenantContext } from '@interdomestik/database';
 import { agentClients } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
@@ -75,18 +75,20 @@ export async function assertAgentClientAccess(ctx: ProtectedActionContext, clien
   const { actorAgentId } = ctx.scope;
   if (!actorAgentId) return; // Not an agent (Admin/Staff), pass.
 
-  const [link] = await db
-    .select({ id: agentClients.id })
-    .from(agentClients)
-    .where(
-      and(
-        eq(agentClients.tenantId, ctx.tenantId),
-        eq(agentClients.agentId, actorAgentId),
-        eq(agentClients.memberId, clientUserId),
-        eq(agentClients.status, 'active')
+  const [link] = await withTenantContext({ tenantId: ctx.tenantId }, async tx =>
+    tx
+      .select({ id: agentClients.id })
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.tenantId, ctx.tenantId),
+          eq(agentClients.agentId, actorAgentId),
+          eq(agentClients.memberId, clientUserId),
+          eq(agentClients.status, 'active')
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   if (!link) {
     const error = new Error('Security Violation: Unauthorized client access.');

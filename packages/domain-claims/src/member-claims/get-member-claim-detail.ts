@@ -1,4 +1,4 @@
-import { and, claims, db, eq } from '@interdomestik/database';
+import { and, claims, eq, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
@@ -25,25 +25,27 @@ export async function getMemberClaimDetail(params: {
 }): Promise<MemberClaimDetail | null> {
   const { tenantId, memberId, claimId } = params;
 
-  const [row] = await db
-    .select({
-      id: claims.id,
-      claimNumber: claims.claimNumber,
-      status: claimLifecycleStatusSql(),
-      caseLifecycleState: claims.caseLifecycleState,
-      recoveryLifecycleState: claims.recoveryLifecycleState,
-      createdAt: claims.createdAt,
-      updatedAt: claims.updatedAt,
-    })
-    .from(claims)
-    .where(
-      withTenant(
-        tenantId,
-        claims.tenantId,
-        and(eq(claims.id, claimId), eq(claims.userId, memberId))
+  const [row] = await withTenantContext({ tenantId }, tx =>
+    tx
+      .select({
+        id: claims.id,
+        claimNumber: claims.claimNumber,
+        status: claimLifecycleStatusSql(),
+        caseLifecycleState: claims.caseLifecycleState,
+        recoveryLifecycleState: claims.recoveryLifecycleState,
+        createdAt: claims.createdAt,
+        updatedAt: claims.updatedAt,
+      })
+      .from(claims)
+      .where(
+        withTenant(
+          tenantId,
+          claims.tenantId,
+          and(eq(claims.id, claimId), eq(claims.userId, memberId))
+        )
       )
-    )
-    .limit(1);
+      .limit(1)
+  );
 
   if (!row) return null;
   const { status } = resolveClaimLifecycleReadProjection(row);

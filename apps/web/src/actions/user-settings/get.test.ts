@@ -5,17 +5,25 @@ const mocks = vi.hoisted(() => ({
   where: vi.fn(() => ({ limit: undefined as unknown })),
   from: vi.fn(() => ({ where: undefined as unknown })),
   select: vi.fn(() => ({ from: undefined as unknown })),
+  withTenantContext: vi.fn(),
 }));
 
 mocks.where.mockImplementation(() => ({ limit: mocks.limit }));
 mocks.from.mockImplementation(() => ({ where: mocks.where }));
 mocks.select.mockImplementation(() => ({ from: mocks.from }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
+vi.mock('@interdomestik/database', () => {
+  const db = {
     select: mocks.select,
-  },
-}));
+  };
+  return {
+    db,
+    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+      mocks.withTenantContext(context);
+      return cb(db);
+    },
+  };
+});
 
 vi.mock('@interdomestik/database/schema', () => ({
   userNotificationPreferences: {
@@ -44,6 +52,7 @@ describe('getNotificationPreferencesCore', () => {
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
       error: undefined,
     });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' });
     expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.limit).toHaveBeenCalledWith(1);
   });

@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
-import { db, subscriptions } from '@interdomestik/database';
+import { subscriptions, withTenantContext } from '@interdomestik/database';
 import {
   createActiveAnnualMembershipFulfillment,
   resolveCanonicalMembershipPlanState,
@@ -42,20 +42,22 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
 
   // Create or update mock subscription
   // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  await db
-    .insert(subscriptions)
-    .values({
-      id: `mock_sub_${Date.now()}`,
-      userId: session.user.id,
-      tenantId,
-      ...activeAnnualMembershipState,
-    })
-    .onConflictDoUpdate({
-      target: [subscriptions.userId],
-      set: {
+  await withTenantContext({ tenantId }, async tx =>
+    tx
+      .insert(subscriptions)
+      .values({
+        id: `mock_sub_${Date.now()}`,
+        userId: session.user.id,
+        tenantId,
         ...activeAnnualMembershipState,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [subscriptions.userId],
+        set: {
+          ...activeAnnualMembershipState,
+        },
+      })
+  );
 
   revalidatePath('/[locale]/(app)/member/membership', 'layout');
   return { success: true };

@@ -1,4 +1,4 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -40,7 +40,7 @@ export async function saveRecoveryDecisionCore(
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    const result = await db.transaction(async tx => {
+    const result = await withTenantContext({ tenantId }, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
@@ -94,27 +94,31 @@ export async function saveRecoveryDecisionCore(
     if (result.success && result.data && notifyRecoveryDecision) {
       void (async () => {
         try {
-          const claim = await db.query.claims.findFirst({
-            where: (claimsTable, { eq }) =>
-              withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, parsed.data.claimId)),
-            columns: {
-              id: true,
-              title: true,
-              userId: true,
-            },
-          });
+          const claim = await withTenantContext({ tenantId }, tx =>
+            tx.query.claims.findFirst({
+              where: (claimsTable, { eq }) =>
+                withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, parsed.data.claimId)),
+              columns: {
+                id: true,
+                title: true,
+                userId: true,
+              },
+            })
+          );
 
           if (!claim?.userId) {
             return;
           }
 
-          const member = await db.query.user.findFirst({
-            where: (userTable, { eq }) =>
-              withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
-            columns: {
-              email: true,
-            },
-          });
+          const member = await withTenantContext({ tenantId }, tx =>
+            tx.query.user.findFirst({
+              where: (userTable, { eq }) =>
+                withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
+              columns: {
+                email: true,
+              },
+            })
+          );
 
           if (member?.email) {
             await notifyRecoveryDecision(
