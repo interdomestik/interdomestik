@@ -2,7 +2,8 @@ import { agentClients, claimMessages, claims, user } from '@interdomestik/databa
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type * as DatabaseModule from '@interdomestik/database';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
-type DatabaseClient = typeof DatabaseModule.db;
+// Runtime callers pass the tenant transaction so RLS scopes every read to the session tenant.
+type DatabaseClient = typeof DatabaseModule.db | DatabaseModule.TenantTransaction;
 
 export interface AgentProClaimDTO {
   id: string;

@@ -1,6 +1,6 @@
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db.server';
+import { withTenantContext } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -42,12 +42,14 @@ export default async function AgentWorkspaceClaimsPage({ params, searchParams }:
   const resolvedSearchParams = await searchParams;
   const selectedClaimId = resolveRequestedClaimId(resolvedSearchParams);
 
-  const { claims } = await getAgentWorkspaceClaimsCore({
-    tenantId,
-    userId: session.user.id,
-    db,
-    selectedClaimId,
-  });
+  const { claims } = await withTenantContext({ tenantId }, tx =>
+    getAgentWorkspaceClaimsCore({
+      tenantId,
+      userId: session.user.id,
+      db: tx,
+      selectedClaimId,
+    })
+  );
 
   return (
     <AgentClaimsProPage

@@ -219,6 +219,17 @@ if (e2eDatabaseUrlRls) {
   process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
 }
 
+// Fixtures keep the setup credential; only the app server runs as the restricted runtime role
+// and must prove that role cannot bypass RLS before its first query.
+const e2eServerDatabaseUrlRls = process.env.E2E_SERVER_DATABASE_URL_RLS?.trim();
+const restrictedServerEnv: Record<string, string> = e2eServerDatabaseUrlRls
+  ? {
+      E2E_DATABASE_URL_RLS: e2eServerDatabaseUrlRls,
+      DATABASE_URL_RLS: e2eServerDatabaseUrlRls,
+      REQUIRE_RLS_INTEGRATION: '1',
+    }
+  : {};
+
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
 export default defineConfig({
@@ -479,6 +490,7 @@ export default defineConfig({
           ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
             ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
             : {}),
+          ...restrictedServerEnv,
         },
       },
 });

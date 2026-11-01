@@ -1,4 +1,4 @@
-import { auditLog, db } from '@interdomestik/database';
+import { auditLog, withTenantContext } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
 export type AuditEvent = {
@@ -54,18 +54,20 @@ export async function logAuditEvent({
       return;
     }
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await db.insert(auditLog).values({
-      id: nanoid(),
-      tenantId: resolvedTenantId,
-      actorId: actorId || null,
-      actorRole: actorRole || null,
-      action,
-      entityType,
-      entityId: entityId || null,
-      metadata: combinedMetadata,
-      createdAt: new Date(),
-    });
+    // The runtime role only accepts audit rows inside the tenant context that owns them.
+    await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+      tx.insert(auditLog).values({
+        id: nanoid(),
+        tenantId: resolvedTenantId,
+        actorId: actorId || null,
+        actorRole: actorRole || null,
+        action,
+        entityType,
+        entityId: entityId || null,
+        metadata: combinedMetadata,
+        createdAt: new Date(),
+      })
+    );
   } catch (error) {
     console.error('Failed to write audit log:', error);
   }
