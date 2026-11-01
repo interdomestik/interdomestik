@@ -20,7 +20,7 @@ assert.equal(git(rootDir, 'rev-parse', `${ADOPTION_COMMIT}^{tree}`), ADOPTION_TR
 assert.equal(git(rootDir, 'rev-parse', `${SOURCE_COMMIT}^{tree}`), SOURCE_TREE);
 
 // Actual protected history through alternates; nothing is re-anchored or repacked. With `authority`,
-// a branch mirrors the root-published artifact (parents 278e, e113) whose only role is to keep the
+// a branch mirrors the root-published artifact (parents ADOPTION and fixed G0) whose only role is to keep the
 // approved source reachable from origin, as on the real repository.
 export function actualOrigin(base = ADOPTION_COMMIT, { authority = true } = {}) {
   const origin = tmp('actual-origin');

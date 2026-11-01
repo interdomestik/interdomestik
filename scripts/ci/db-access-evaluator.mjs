@@ -15,6 +15,7 @@ import { collectInventory, isUnsafe } from './db-access-inventory.mjs';
 import { inspectChangedEdges } from './db-access-graph.mjs';
 import { writeGuardReport } from './db-access-report.mjs';
 import { analyzeModuleTargets, rootDiagnostics } from './db-access-root-diagnostics.mjs';
+import { qualifyClosedDataBoundary } from './db-access-closed-data-source.mjs';
 
 const BASELINE = 'scripts/ci/db-access-baseline.json';
 const publicEntry = entry =>
@@ -155,8 +156,13 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
   const counts = {};
   for (const entry of inventory.entries)
     counts[entry.tenantPosture] = (counts[entry.tenantPosture] ?? 0) + 1;
+  const boundary =
+    adoption === ADOPTION
+      ? qualifyClosedDataBoundary(repoRoot, model, inventory, graph)
+      : undefined;
+  const unresolvedIncomplete = boundary?.unresolvedIncomplete ?? graph.incomplete;
   let status = 'pass';
-  if (graph.incomplete.length) status = 'incomplete';
+  if (unresolvedIncomplete.length) status = 'incomplete';
   else if (failingNewEntries.length) status = 'fail';
   return {
     status,
@@ -173,11 +179,15 @@ export function evaluateGuard(repoRoot, adoption = ADOPTION) {
       directChanges,
       firstInvalidatingDependency,
       graph,
-      graph.incomplete.length > 0
+      unresolvedIncomplete.length > 0
     ),
     rootDiagnostics: rootDiagnostics(moduleTargets, directChanges, firstInvalidatingDependency),
-    incomplete: graph.incomplete,
-    incompleteRawCount: graph.incompleteRawCount,
+    incomplete: unresolvedIncomplete,
+    incompleteRawCount: unresolvedIncomplete.reduce((sum, row) => sum + row.occurrences, 0),
+    unresolvedIncomplete,
+    rawIncomplete: graph.incomplete,
+    rawIncompleteRawCount: graph.incompleteRawCount,
+    closedDataBoundary: boundary?.qualification,
     reviewedBoundaryChanges,
     counts: { byTenantPosture: counts },
     limits: [

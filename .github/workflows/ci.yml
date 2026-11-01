@@ -87,11 +87,11 @@ jobs:
           [[ "$CANDIDATE_SHA" =~ $hex ]] || fail "candidate identity"
           ws="$(cd "${GITHUB_WORKSPACE:?}" && pwd -P)"
           temp_root="$(cd "${RUNNER_TEMP:?}" && pwd -P)"
-          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; esac
+          case "$temp_root/" in "$ws/"*) fail "runner temp inside workspace" ;; *) ;; esac
           [[ -d "$ws/.git" && ! -L "$ws/.git" && ! -e "$ws/.git/shallow" ]] || fail "workspace history is not a full local repository"
           node_bin="$(command -v node)" || fail "runner node missing"
           node_bin="$(cd "$(dirname "$node_bin")" && pwd -P)/$(basename "$node_bin")"
-          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; esac
+          case "$node_bin" in "$ws"/*) fail "node inside workspace" ;; *) ;; esac
           work="$(cd "$(mktemp -d "$temp_root/db-guard-protected.XXXXXXXX")" && pwd -P)"
           mkdir -m 0700 "$work/home" "$work/out"
           git_=(env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 /usr/bin/git)
@@ -132,6 +132,19 @@ jobs:
             && "$protected" == f696ec742ffbb108502f5c930aee907e6cea4402 ]]; then
             transition_guard='1219d276f1ab74451ec9fa1537125131a935f846'
             transition_tree='951ab3a44912e9927d55b8cd9c5cadb0e65587a0'
+            [[ "$("${gd[@]}" cat-file -t "$transition_guard" 2>/dev/null || true)" == commit \
+              && "$("${gd[@]}" rev-parse -q --verify "$transition_guard^{tree}" || true)" == "$transition_tree" ]] \
+              || fail "approved resolver-transition guard identity"
+            [[ -n "$("${gd[@]}" for-each-ref --count=1 --contains "$transition_guard" --format='%(refname)' refs/protected/ 2>/dev/null || true)" ]] \
+              || fail "approved resolver-transition guard unreachable"
+            protected="$transition_guard"
+          fi
+          # Exact main-health security successor transition: use the independently reviewed fixed guard.
+          # Native required W separately binds the reviewed first head/merge; no candidate selector.
+          if [[ "$EVENT_NAME" == pull_request && "$DEFAULT_BRANCH" == main && "$PR_BASE_REF" == main \
+            && "$protected" == 18cd1a73b12f589c69934cba862092d857434013 ]]; then
+            transition_guard='6d332eb4fcfa0806d00c15d52d8cdd67d71e66dd'
+            transition_tree='0c2fc3084f8c4107e923a96ea4f97f3cd1a3ea63'
             [[ "$("${gd[@]}" cat-file -t "$transition_guard" 2>/dev/null || true)" == commit \
               && "$("${gd[@]}" rev-parse -q --verify "$transition_guard^{tree}" || true)" == "$transition_tree" ]] \
               || fail "approved resolver-transition guard identity"

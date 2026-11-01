@@ -109,6 +109,12 @@ export function openPullRequest(origin, mutate = () => {}, options = {}) {
   pulls += 1;
   git(origin, 'checkout', '-q', baseBranch);
   git(origin, 'checkout', '-q', '-b', `candidate-${pulls}`);
+  // Historical event bases still need the reviewed current resolver in their candidate.
+  // Install it before mutate(), so adversarial resolver edits remain observable.
+  // The reviewed pair is the one the approved guard authenticates and the checked-out tree carries;
+  // the guard source commit predates the dependency remediation and holds only the previous pair.
+  for (const file of ['pnpm-workspace.yaml', 'pnpm-lock.yaml'])
+    writeFile(origin, file, fs.readFileSync(path.join(rootDir, file)));
   mutate(origin);
   const head = commit(origin, `candidate change ${pulls}`);
   git(origin, 'checkout', '-q', baseBranch);
@@ -195,7 +201,7 @@ export function assertRejected(result, file) {
     );
 }
 
-// Oracle for the rejected head-only design: the approved e113 guard scanning the candidate head tree.
+// Oracle for the rejected head-only design: the approved fixed G0 guard scanning the candidate head tree.
 export function headOnlyScan(pr) {
   const tree = tmp('head-only');
   git(tree, 'clone', '-q', '--shared', pr.origin, '.');

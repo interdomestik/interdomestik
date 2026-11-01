@@ -179,3 +179,51 @@ test('the successor preserves push, other-branch and unrelated-epoch selection',
     assert.equal(result.stdout, options.anchor ?? successorBase);
   }
 });
+
+// The main-health security remediation is another separate fixed pairing.
+const healthBase = '18cd1a73b12f589c69934cba862092d857434013';
+const healthGuard = '6d332eb4fcfa0806d00c15d52d8cdd67d71e66dd';
+const healthTree = '0c2fc3084f8c4107e923a96ea4f97f3cd1a3ea63';
+
+test('the exact main-health base selects only its immutable reviewed G/tree', () => {
+  const root = repository({ baseCommit: healthBase, sourceCommit: healthGuard });
+  assert.equal(git(rootDir, 'rev-parse', `${healthGuard}^{tree}`), healthTree);
+  const result = select(root, { anchor: healthBase });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, healthGuard);
+});
+
+test('the main-health transition refuses missing, unreachable or wrong-tree source', () => {
+  for (const [options, reason] of [
+    [{ source: false }, /guard identity/u],
+    [{ reachable: false }, /guard unreachable/u],
+  ]) {
+    const result = select(
+      repository({ baseCommit: healthBase, sourceCommit: healthGuard, ...options }),
+      { anchor: healthBase }
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, reason);
+    assert.equal(result.stdout, '');
+  }
+  const result = select(repository({ baseCommit: healthBase, sourceCommit: healthGuard }), {
+    anchor: healthBase,
+    body: branch.replace(healthTree, '0'.repeat(40)),
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /guard identity/u);
+});
+
+test('the main-health transition preserves push, other-branch and unrelated-epoch selection', () => {
+  const root = repository({ source: false, baseCommit: healthBase });
+  for (const options of [
+    { event: 'push' },
+    { defaultBranch: 'master' },
+    { baseRef: 'feature' },
+    { anchor: '278e33ab0dd448547fa81d4b0ff122b4d69c901e' },
+  ]) {
+    const result = select(root, { anchor: healthBase, ...options });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, options.anchor ?? healthBase);
+  }
+});

@@ -31,7 +31,9 @@ process.on('exit', () => fs.rmSync(home, { recursive: true, force: true }));
 const cache = path.join(rootDir, 'tmp', 'db-access-protected', 'typescript-5.9.3.tgz');
 fs.mkdirSync(path.dirname(cache), { recursive: true });
 if (!fs.existsSync(cache)) {
-  const download = path.join(home, 'download.tgz');
+  // Stage next to the cache so the final rename never crosses devices (EXDEV on hosted runners).
+  const download = path.join(path.dirname(cache), `.typescript-5.9.3.${process.pid}.tgz.tmp`);
+  process.on('exit', () => fs.rmSync(download, { force: true }));
   const result = spawnSync(
     '/usr/bin/curl',
     [

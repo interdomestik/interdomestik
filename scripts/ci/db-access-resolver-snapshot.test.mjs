@@ -17,7 +17,7 @@ import {
   writeFixture,
 } from './db-access-guard-test-utils.mjs';
 
-const predecessor = 'f696ec742ffbb108502f5c930aee907e6cea4402';
+const predecessor = '18cd1a73b12f589c69934cba862092d857434013';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(

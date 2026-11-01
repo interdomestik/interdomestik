@@ -30,7 +30,7 @@ const identityFailure = (result, reason) => {
 };
 const origin = actualOrigin();
 
-test('exact merge, not head: head-only e113 scan passes while the landed merge has a new unsafe query', () => {
+test('exact merge, not head: head-only fixed G0 scan passes while the landed merge has a new unsafe query', () => {
   const pr = openPullRequest(
     origin,
     root => writeFile(root, 'apps/web/src/feature.ts', canonical),
