@@ -49,6 +49,7 @@ export async function persistClaimDocumentAndQueueWorkflows(
       } catch (error) {
         await markClaimAiRunDispatchFailedService({
           runId: queuedRun.runId,
+          tenantId: queuedRun.tenantId,
           message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
         });
       }

@@ -1,5 +1,4 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -23,54 +22,59 @@ export type ClaimedPolicyRun = {
 };
 
 export async function claimPolicyExtractionRun(
-  runId: string
+  runId: string,
+  tenantId: string
 ): Promise<{ status: 'claimed'; run: ClaimedPolicyRun } | { status: 'skipped'; policyId: string }> {
-  // BLOCKED(rc31-u2): no canonical tenant -- queue worker resolves the run (and its tenant) from an opaque runId; needs a privileged lookup or tenant carried in the queue message.
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from validated AI policy queue input or queued run row
-  const [queuedRun] = await db
-    .select({
-      runId: aiRuns.id,
-      tenantId: aiRuns.tenantId,
-      documentId: aiRuns.documentId,
-      policyId: aiRuns.entityId,
-      storagePath: documents.storagePath,
-      requestJson: aiRuns.requestJson,
-      status: aiRuns.status,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(
-        eq(documents.id, aiRuns.documentId),
-        eq(documents.tenantId, aiRuns.tenantId),
-        isNull(documents.deletedAt)
-      )
-    )
-    .where(
-      and(
-        eq(aiRuns.id, runId),
-        eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
-        eq(aiRuns.entityType, 'policy')
-      )
-    );
-
-  if (!queuedRun?.documentId || !queuedRun.policyId) {
-    // BLOCKED(rc31-u2): no canonical tenant -- opaque runId lookup with no tenant in scope.
-    // db-access-guard: system-exempt -- reason: fallback resolves an already-failed deleted policy AI run by opaque runId after the active-document join intentionally returns no row
-    const [deletedRun] = await db
+  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
+  const [queuedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    tx
       .select({
-        errorCode: aiRuns.errorCode,
+        runId: aiRuns.id,
+        tenantId: aiRuns.tenantId,
+        documentId: aiRuns.documentId,
         policyId: aiRuns.entityId,
+        storagePath: documents.storagePath,
+        requestJson: aiRuns.requestJson,
         status: aiRuns.status,
       })
       .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(
+          eq(documents.id, aiRuns.documentId),
+          eq(documents.tenantId, aiRuns.tenantId),
+          isNull(documents.deletedAt)
+        )
+      )
       .where(
         and(
           eq(aiRuns.id, runId),
+          eq(aiRuns.tenantId, tenantId),
           eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
           eq(aiRuns.entityType, 'policy')
         )
-      );
+      )
+  );
+
+  if (!queuedRun?.documentId || !queuedRun.policyId) {
+    // db-access-guard: tenant-scoped -- reason: fallback resolves an already-failed deleted policy AI run inside the producer tenant after the active-document join intentionally returns no row
+    const [deletedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+      tx
+        .select({
+          errorCode: aiRuns.errorCode,
+          policyId: aiRuns.entityId,
+          status: aiRuns.status,
+        })
+        .from(aiRuns)
+        .where(
+          and(
+            eq(aiRuns.id, runId),
+            eq(aiRuns.tenantId, tenantId),
+            eq(aiRuns.workflow, POLICY_EXTRACT_WORKFLOW),
+            eq(aiRuns.entityType, 'policy')
+          )
+        )
+    );
     if (
       deletedRun?.policyId &&
       deletedRun.status === 'failed' &&
@@ -85,14 +89,12 @@ export async function claimPolicyExtractionRun(
     return { status: 'skipped', policyId: queuedRun.policyId };
   }
 
-  const [claimedRun] = await withTenantContext(
-    { tenantId: queuedRun.tenantId, role: 'system' },
-    async tx =>
-      tx
-        .update(aiRuns)
-        .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
-        .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
-        .returning({ id: aiRuns.id })
+  const [claimedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+    tx
+      .update(aiRuns)
+      .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
+      .where(and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued')))
+      .returning({ id: aiRuns.id })
   );
 
   if (!claimedRun) return { status: 'skipped', policyId: queuedRun.policyId };

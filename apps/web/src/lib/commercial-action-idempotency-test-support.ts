@@ -97,7 +97,8 @@ export function tenantScope(actorUserId = 'user-1', tenantId = 'tenant-1') {
   return { kind: 'tenant' as const, actorUserId, tenantId };
 }
 
-export function publicFreeStartScope() {
+/** The removed null-tenant public scope shape; production must reject it. */
+export function legacyPublicScope() {
   return {
     kind: 'public' as const,
     reason: 'public-free-start-intake-no-tenant-mutation' as const,
@@ -122,7 +123,7 @@ export function freeStartParams(
 ): CommercialActionParams {
   return {
     action: 'free-start.submit',
-    scope: publicFreeStartScope(),
+    scope: { kind: 'tenant', tenantId: 'tenant_ks', actorUserId: null },
     idempotencyKey: 'free-start-1',
     requestFingerprint: { category: 'property' },
     execute: vi.fn().mockResolvedValue({ success: true }),

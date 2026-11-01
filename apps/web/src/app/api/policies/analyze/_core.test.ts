@@ -93,6 +93,7 @@ describe('analyzePolicyCore', () => {
 
     expect(mockDeps.markRunDispatchFailed).toHaveBeenCalledWith({
       runId: 'run-1',
+      tenantId: 't1',
       message: 'Inngest unavailable',
     });
     expect(result).toEqual({

@@ -78,6 +78,7 @@ describe('processPolicyAnalysisRunService critique gate', () => {
   it('marks the run failed and skips extraction persistence for failed critique', async () => {
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.alloc(0)),
         analyzeImage: vi.fn().mockResolvedValue({

@@ -23,7 +23,11 @@ export interface AnalyzePolicyDeps {
     policyId: string;
     userId: string;
   }) => Promise<void>;
-  markRunDispatchFailed: (args: { runId: string; message: string }) => Promise<void>;
+  markRunDispatchFailed: (args: {
+    runId: string;
+    tenantId: string;
+    message: string;
+  }) => Promise<void>;
 }
 
 export interface AnalyzePolicyParams {
@@ -135,6 +139,7 @@ export async function analyzePolicyCore(
       try {
         await deps.markRunDispatchFailed({
           runId: queuedAnalysis.runId,
+          tenantId: session.tenantId,
           message,
         });
       } catch (dispatchFailureError) {

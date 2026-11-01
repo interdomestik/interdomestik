@@ -32,7 +32,7 @@ vi.mock('@/actions/leads', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams('tenantId=tenant_mk'),
+  useSearchParams: () => new URLSearchParams(''),
 }));
 
 // Mock UI components

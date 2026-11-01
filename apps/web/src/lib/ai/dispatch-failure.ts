@@ -1,9 +1,10 @@
-import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 
 type MarkAiRunDispatchFailedArgs = {
+  /** Tenant of the tenant-scoped producer that queued the run. */
+  tenantId: string;
   entityType: string;
   errorCode: string;
   message: string;
@@ -22,18 +23,8 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
     predicates.splice(1, 0, eq(aiRuns.workflow, args.workflow));
   }
 
-  // BLOCKED(rc31-u2): tenant is discovered from the run record itself. The caller only supplies runId (the queued event's tenantId is not threaded through this signature), so there is no canonical tenant at this ambient-db lookup. Needs a signature change that passes the event tenantId or a privileged manifest entry.
-  // db-access-guard: tenant-scoped -- reason: runId is a queued AI run emitted by the caller workflow
-  const [queuedRun] = await db
-    .select({ tenantId: aiRuns.tenantId })
-    .from(aiRuns)
-    .where(and(...predicates));
-
-  if (!queuedRun?.tenantId) {
-    return;
-  }
-
-  await withTenantContext({ tenantId: queuedRun.tenantId, role: 'system' }, async tx => {
+  // db-access-guard: tenant-scoped -- reason: tenantId comes from the tenant-scoped producer that queued this run
+  await withTenantContext({ tenantId: args.tenantId, role: 'system' }, async tx => {
     await tx
       .update(aiRuns)
       .set({
@@ -42,6 +33,6 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
         errorCode: args.errorCode,
         errorMessage: args.message,
       })
-      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
+      .where(and(eq(aiRuns.tenantId, args.tenantId), ...predicates));
   });
 }

@@ -3,12 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock variables
 const mocks = vi.hoisted(() => ({
   dbInsert: vi.fn(),
+  withTenantContext: vi.fn(),
+  resolveTenantIdFromRequest: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    insert: () => ({ values: mocks.dbInsert }),
-  },
+  withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@/lib/tenant/tenant-request', () => ({
+  resolveTenantIdFromRequest: mocks.resolveTenantIdFromRequest,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -26,6 +30,11 @@ import { submitLead } from './leads';
 describe('Leads Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.resolveTenantIdFromRequest.mockResolvedValue('tenant_mk');
+    mocks.withTenantContext.mockImplementation(
+      async (_context: unknown, callback: (tx: unknown) => unknown) =>
+        callback({ insert: () => ({ values: mocks.dbInsert }) })
+    );
   });
 
   describe('submitLead', () => {
@@ -36,7 +45,6 @@ describe('Leads Actions', () => {
         name: 'A', // Too short - needs min 2 chars
         phone: '+383491234567',
         category: 'auto',
-        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();
@@ -52,7 +60,6 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '123', // Too short - needs min 6 chars
         category: 'auto',
-        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();
@@ -66,7 +73,6 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: '', // Empty string fails validation
-        tenantId: 'tenant_mk',
       });
 
       // Zod treats empty string as valid for z.string(), but our schema might pass
@@ -82,10 +88,13 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
-        tenantId: 'tenant_mk',
       });
 
       expect(result.success).toBe(true);
+      expect(mocks.withTenantContext).toHaveBeenCalledWith(
+        { tenantId: 'tenant_mk' },
+        expect.any(Function)
+      );
       expect(mocks.dbInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'John Doe',
@@ -94,6 +103,43 @@ describe('Leads Actions', () => {
           tenantId: 'tenant_mk',
         })
       );
+    });
+
+    it('takes the tenant from the request host, not the client payload', async () => {
+      mocks.resolveTenantIdFromRequest.mockResolvedValue('tenant_ks');
+      mocks.dbInsert.mockResolvedValue(undefined);
+
+      const result = await submitLead({
+        name: 'John Doe',
+        phone: '+383491234567',
+        category: 'auto',
+      });
+
+      expect(result.success).toBe(true);
+      expect(mocks.withTenantContext).toHaveBeenCalledWith(
+        { tenantId: 'tenant_ks' },
+        expect.any(Function)
+      );
+      expect(mocks.dbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant_ks' })
+      );
+    });
+
+    it('rejects a client-supplied tenantId without writing', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await submitLead({
+        name: 'John Doe',
+        phone: '+383491234567',
+        category: 'auto',
+        tenantId: 'tenant_ks',
+      } as never);
+
+      consoleErrorSpy.mockRestore();
+
+      expect(result).toEqual({ success: false, error: 'Failed to submit request' });
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.dbInsert).not.toHaveBeenCalled();
     });
 
     it('should handle database errors gracefully', async () => {
@@ -105,7 +151,6 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
-        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();

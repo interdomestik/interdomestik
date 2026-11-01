@@ -9,7 +9,7 @@ import {
   dbEntry,
   freeStartParams,
   insertValues,
-  publicFreeStartScope,
+  legacyPublicScope,
   resetCommercialActionMocks,
   returning,
   selectLimit,
@@ -160,69 +160,27 @@ describe('runCommercialActionWithIdempotency', () => {
     expectTenantLookup('user-2');
   });
 
-  it('allows explicit public idempotency only for allowlisted public actions', async () => {
-    const execute = vi
-      .fn()
-      .mockResolvedValue({ success: true, data: { claimCategory: 'property' } });
+  it.each([
+    ['free-start.submit', freeStartParams],
+    ['claims.submit', claimParams],
+  ] as const)(
+    'rejects a legacy public (null-tenant) scope for %s before any storage access',
+    async (_action, buildParams) => {
+      const execute = vi.fn().mockResolvedValue({ success: true });
 
-    const result = await runCommercialActionWithIdempotency(freeStartParams({ execute }));
+      const result = await runCommercialActionWithIdempotency(
+        buildParams({ scope: legacyPublicScope() as never, execute })
+      );
 
-    expect(result).toEqual({ success: true, data: { claimCategory: 'property' } });
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'free-start.submit',
-        actorUserId: null,
-        idempotencyKey: 'free-start-1',
-        tenantId: null,
-      })
-    );
-    expect(dbEntry.insert).toHaveBeenCalledTimes(1);
-    expect(dbEntry.update).toHaveBeenCalledTimes(1);
-    expect(withTenantContextMock).not.toHaveBeenCalled();
-  });
-
-  it('uses public null-tenant scope before releasing an allowlisted cached response', async () => {
-    returning.mockResolvedValueOnce([]);
-    selectLimit.mockResolvedValueOnce([
-      {
-        requestFingerprintHash: 'same-fingerprint',
-        responsePayload: { success: true, data: { claimCategory: 'property' } },
-        status: 'completed',
-      },
-    ]);
-
-    const result = await runCommercialActionWithIdempotency(
-      freeStartParams({ fingerprintHash: 'same-fingerprint', execute: vi.fn() })
-    );
-
-    expect(result).toEqual({ success: true, data: { claimCategory: 'property' } });
-    expect(selectWhere).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        ['isNull', 'tenant_id_col'],
-        ['isNull', 'actor_user_id_col'],
-      ])
-    );
-    expect(dbEntry.select).toHaveBeenCalledTimes(1);
-    expect(withTenantContextMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects public idempotency for non-allowlisted commercial actions', async () => {
-    const execute = vi.fn().mockResolvedValue({ success: true });
-
-    const result = await runCommercialActionWithIdempotency(
-      claimParams({
-        scope: publicFreeStartScope(),
-        requestFingerprint: { category: 'vehicle' },
-        execute,
-      })
-    );
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Public idempotency is not allowed for this commercial action.',
-      code: 'PUBLIC_IDEMPOTENCY_NOT_ALLOWED',
-    });
-    expect(execute).not.toHaveBeenCalled();
-    expect(dbEntry.insert).not.toHaveBeenCalled();
-  });
+      expect(result).toEqual({
+        success: false,
+        error: 'Commercial action idempotency requires a tenant scope.',
+        code: 'IDEMPOTENCY_TENANT_SCOPE_REQUIRED',
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(dbEntry.insert).not.toHaveBeenCalled();
+      expect(dbEntry.select).not.toHaveBeenCalled();
+      expect(withTenantContextMock).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -95,6 +95,7 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
   it('marks the run failed and skips extraction persistence for failed critique', async () => {
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.alloc(0)),
         analyzePdf: vi.fn().mockResolvedValue(''),
@@ -124,6 +125,7 @@ describe('processClaimDocumentWorkflowRunService critique gate', () => {
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('claim text')),
         analyzePdf: vi.fn().mockResolvedValue('Claim text with enough usable content.'),

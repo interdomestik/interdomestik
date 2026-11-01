@@ -69,7 +69,11 @@ export type ClaimsDeps = {
     options: { tenantId: string }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;
-  markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void> | void;
+  markClaimAiRunDispatchFailed?: (args: {
+    runId: string;
+    tenantId: string;
+    message: string;
+  }) => Promise<void> | void;
   revalidatePath?: (path: string) => Promise<void> | void;
 };
 

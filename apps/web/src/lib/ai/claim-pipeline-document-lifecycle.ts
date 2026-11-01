@@ -1,4 +1,3 @@
-import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
@@ -28,24 +27,29 @@ export function throwDeletedClaimDocumentError(): never {
 export async function failDeletedDocumentClaimAiRun(
   runId: string,
   isWorkflow: (workflow: unknown) => workflow is ClaimAiWorkflow,
-  options: { retryFailed?: boolean } = {}
+  options: { tenantId: string; retryFailed?: boolean }
 ): Promise<SkippedRun | null> {
-  // BLOCKED(rc31-u2): tenant is discovered from the run record itself. The caller only supplies runId (the queued event's tenantId is not threaded through this signature), so there is no canonical tenant at this ambient-db lookup. Needs a signature change that passes the event tenantId or a privileged manifest entry.
-  const [run] = await db
-    .select({
-      tenantId: aiRuns.tenantId,
-      workflow: aiRuns.workflow,
-      claimId: aiRuns.entityId,
-      status: aiRuns.status,
-      errorCode: aiRuns.errorCode,
-      deletedAt: documents.deletedAt,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-    )
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
+  const { tenantId } = options;
+  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
+  const [run] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    tx
+      .select({
+        tenantId: aiRuns.tenantId,
+        workflow: aiRuns.workflow,
+        claimId: aiRuns.entityId,
+        status: aiRuns.status,
+        errorCode: aiRuns.errorCode,
+        deletedAt: documents.deletedAt,
+      })
+      .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+      )
+      .where(
+        and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.entityType, 'claim'))
+      )
+  );
 
   if (!run?.deletedAt || !run.claimId || !isWorkflow(run.workflow)) {
     return null;
@@ -68,19 +72,18 @@ export async function failDeletedDocumentClaimAiRun(
   const failurePredicate = retryingFailedRun
     ? and(
         eq(aiRuns.id, runId),
+        eq(aiRuns.tenantId, tenantId),
         eq(aiRuns.status, 'failed'),
         eq(aiRuns.errorCode, 'claim_ai_processing_failed')
       )
-    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
+    : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [failedRun] = await withTenantContext(
-    { tenantId: run.tenantId, role: 'system' },
-    async tx =>
-      tx
-        .update(aiRuns)
-        .set(buildDeletedClaimRunFailure(new Date()))
-        .where(failurePredicate)
-        .returning({ id: aiRuns.id })
+  const [failedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+    tx
+      .update(aiRuns)
+      .set(buildDeletedClaimRunFailure(new Date()))
+      .where(failurePredicate)
+      .returning({ id: aiRuns.id })
   );
 
   if (!failedRun) return null;

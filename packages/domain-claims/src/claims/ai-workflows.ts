@@ -111,6 +111,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
 
   return queuedRuns.map(queuedRun => ({
     runId: queuedRun.runId,
+    tenantId: args.tenantId,
     workflow: queuedRun.workflow,
     claimId: queuedRun.claimId,
     documentId: queuedRun.documentId,

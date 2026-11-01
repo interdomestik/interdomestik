@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => {
   const txInsertReturning = vi.fn();
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateReturning = vi.fn();
-  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
+  const txUpdateWhere = vi.fn((..._predicate: unknown[]) => ({
+    returning: txUpdateReturning,
+  }));
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const txExecute = vi.fn();
@@ -55,6 +57,7 @@ const mocks = vi.hoisted(() => {
     txUpdate,
     txUpdateReturning,
     txUpdateSet,
+    txUpdateWhere,
     updateReturning,
     withTenantContext: vi.fn(
       async (
@@ -76,7 +79,13 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  aiRuns: { __name: 'ai_runs', errorCode: {}, id: {}, status: {} },
+  aiRuns: {
+    __name: 'ai_runs',
+    errorCode: {},
+    id: {},
+    status: {},
+    tenantId: { __name: 'ai_runs.tenant_id' },
+  },
   documentExtractions: {
     __name: 'document_extractions',
     sourceRunId: { __name: 'document_extractions.source_run_id' },
@@ -250,6 +259,7 @@ describe('processPolicyAnalysisRunService', () => {
 
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
         analyzeImage: vi.fn(),
@@ -332,6 +342,7 @@ describe('processPolicyAnalysisRunService', () => {
   it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
         analyzeImage: vi.fn(),
@@ -368,6 +379,7 @@ describe('processPolicyAnalysisRunService', () => {
 
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn(),
         analyzeImage: vi.fn(),
@@ -382,5 +394,76 @@ describe('processPolicyAnalysisRunService', () => {
       policyId: 'policy-1',
     });
     expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it('binds the run lookup and claim update to the event tenant', async () => {
+    await processPolicyAnalysisRunService({
+      runId: 'run-1',
+      tenantId: 'tenant-1',
+      deps: {
+        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+        analyzeImage: vi.fn(),
+        analyzePdf: vi
+          .fn()
+          .mockResolvedValue(
+            'Valid text content from PDF that is definitely longer than fifty characters.'
+          ),
+        analyzeText: vi.fn().mockResolvedValue({
+          provider: 'Acme Insurance',
+          policyNumber: 'POL-123',
+          coverageAmount: 100000,
+          currency: 'EUR',
+          deductible: 500,
+          confidence: 0.83,
+          warnings: [],
+          hiddenPerks: [],
+          summary: 'Extracted in background.',
+        }),
+      },
+    });
+
+    const tenantPredicate = {
+      __op: 'eq',
+      left: { __name: 'ai_runs.tenant_id' },
+      right: 'tenant-1',
+    };
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
+      tenantId: 'tenant-1',
+      role: 'system',
+    });
+    expect(mocks.selectWhere.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ args: expect.arrayContaining([tenantPredicate]) })
+    );
+    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toEqual({
+      tenantId: 'tenant-1',
+      role: 'system',
+    });
+    expect(mocks.txUpdateWhere.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ args: expect.arrayContaining([tenantPredicate]) })
+    );
+  });
+
+  it('does not update a run that is not visible in the event tenant', async () => {
+    // Both tenant-scoped lookups (active join and deleted-document fallback) find nothing.
+    mocks.selectWhere.mockResolvedValue([]);
+
+    await expect(
+      processPolicyAnalysisRunService({
+        runId: 'run-1',
+        tenantId: 'tenant-other',
+        deps: {
+          downloadFile: vi.fn(),
+          analyzeImage: vi.fn(),
+          analyzePdf: vi.fn(),
+          analyzeText: vi.fn(),
+        },
+      })
+    ).rejects.toThrow('Queued policy analysis run run-1 was not found.');
+
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
+    for (const call of mocks.withTenantContext.mock.calls) {
+      expect(call[0]).toEqual({ tenantId: 'tenant-other', role: 'system' });
+    }
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 });

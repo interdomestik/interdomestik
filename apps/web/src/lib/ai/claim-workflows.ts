@@ -17,6 +17,7 @@ import { claimClaimAiRun, type ClaimAiWorkflow } from './claim-pipeline-run';
 
 type QueuedClaimAiRun = {
   runId: string;
+  tenantId: string;
   workflow: ClaimAiWorkflow;
   claimId: string;
   documentId: string;
@@ -68,9 +69,11 @@ export async function emitClaimAiRunRequestedService(queuedRun: QueuedClaimAiRun
 
 export async function markClaimAiRunDispatchFailedService(args: {
   runId: string;
+  tenantId: string;
   message: string;
 }) {
   await markAiRunDispatchFailedWithTenantContext({
+    tenantId: args.tenantId,
     entityType: 'claim',
     errorCode: 'claim_ai_dispatch_failed',
     message: args.message,
@@ -80,6 +83,7 @@ export async function markClaimAiRunDispatchFailedService(args: {
 
 export async function processClaimDocumentWorkflowRunService(args: {
   runId: string;
+  tenantId: string;
   retryFailed?: boolean;
   deps?: ProcessClaimDocumentWorkflowDeps;
 }): Promise<{
@@ -93,7 +97,10 @@ export async function processClaimDocumentWorkflowRunService(args: {
   const analyzePdf = args.deps?.analyzePdf ?? analyzeClaimDocumentAsText;
   const deps = { downloadFile, analyzePdf };
 
-  const claimed = await claimClaimAiRun(args.runId, { retryFailed: args.retryFailed === true });
+  const claimed = await claimClaimAiRun(args.runId, {
+    tenantId: args.tenantId,
+    retryFailed: args.retryFailed === true,
+  });
   if (claimed.status === 'skipped') {
     return {
       status: 'skipped',

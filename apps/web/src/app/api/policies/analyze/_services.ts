@@ -183,9 +183,11 @@ export async function emitPolicyExtractionRequestedService(args: PolicyExtractRe
 
 export async function markPolicyAnalysisRunDispatchFailedService(args: {
   runId: string;
+  tenantId: string;
   message: string;
 }) {
   await markAiRunDispatchFailedWithTenantContext({
+    tenantId: args.tenantId,
     entityType: 'policy',
     errorCode: 'policy_extract_dispatch_failed',
     message: args.message,
@@ -204,6 +206,7 @@ async function downloadPolicyFileService(filePath: string, tenantId: string): Pr
 
 export async function processPolicyAnalysisRunService(args: {
   runId: string;
+  tenantId: string;
   deps?: ProcessPolicyAnalysisDeps;
 }): Promise<{
   status: 'completed' | 'failed' | 'skipped';
@@ -220,7 +223,7 @@ export async function processPolicyAnalysisRunService(args: {
     analyzeText: args.deps?.analyzeText ?? analyzePolicyText,
   };
 
-  const claimed = await claimPolicyExtractionRun(runId);
+  const claimed = await claimPolicyExtractionRun(runId, args.tenantId);
   if (claimed.status === 'skipped') return { status: 'skipped', runId, policyId: claimed.policyId };
 
   try {

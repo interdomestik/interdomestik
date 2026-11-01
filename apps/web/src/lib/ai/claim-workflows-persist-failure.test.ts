@@ -86,7 +86,7 @@ const run = {
 };
 
 type ClaimHandler = (args: {
-  event: { data: { runId: string } };
+  event: { data: { runId: string; tenantId?: string } };
   step: { run: (name: string, callback: () => unknown) => unknown };
   attempt: number;
 }) => Promise<unknown>;
@@ -123,13 +123,18 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
       new ExtractionPipelineError('claim_ai_document_deleted', 'Document was deleted.')
     );
 
-    await expect(processClaimDocumentWorkflowRunService({ runId: 'run-1' })).resolves.toEqual({
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', tenantId: 'tenant-1' })
+    ).resolves.toEqual({
       status: 'failed',
       runId: 'run-1',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: false });
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', {
+      tenantId: 'tenant-1',
+      retryFailed: false,
+    });
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({
       run,
       error: expect.objectContaining({ errorCode: 'claim_ai_document_deleted' }),
@@ -141,10 +146,17 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     mocks.persistClaimAiExtraction.mockRejectedValue(failure);
 
     await expect(
-      processClaimDocumentWorkflowRunService({ runId: 'run-1', retryFailed: true })
+      processClaimDocumentWorkflowRunService({
+        runId: 'run-1',
+        tenantId: 'tenant-1',
+        retryFailed: true,
+      })
     ).rejects.toThrow('Storage temporarily unavailable.');
 
-    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', { retryFailed: true });
+    expect(mocks.claimClaimAiRun).toHaveBeenCalledWith('run-1', {
+      tenantId: 'tenant-1',
+      retryFailed: true,
+    });
     expect(mocks.markClaimAiRunFailed).toHaveBeenCalledWith({ run, error: failure });
   });
 
@@ -155,7 +167,9 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     mocks.persistClaimAiExtraction.mockRejectedValue(failure);
     mocks.markClaimAiRunFailed.mockResolvedValue({ errorCode: failure.errorCode });
 
-    await expect(processClaimDocumentWorkflowRunService({ runId: 'run-1' })).resolves.toEqual({
+    await expect(
+      processClaimDocumentWorkflowRunService({ runId: 'run-1', tenantId: 'tenant-1' })
+    ).resolves.toEqual({
       status: 'failed',
       runId: 'run-1',
       claimId: 'claim-1',
@@ -169,7 +183,7 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
 
     for (const { handler } of claimHandlers) {
       const thrown = await handler({
-        event: { data: { runId: 'run-1' } },
+        event: { data: { runId: 'run-1', tenantId: 'tenant-1' } },
         step,
         attempt: 0,
       }).catch(error => error);
@@ -199,7 +213,7 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
 
     for (const { handler } of claimHandlers) {
       await expect(
-        handler({ event: { data: { runId: 'run-1' } }, step, attempt: 0 })
+        handler({ event: { data: { runId: 'run-1', tenantId: 'tenant-1' } }, step, attempt: 0 })
       ).rejects.toBeInstanceOf(NonRetriableError);
     }
   });
@@ -222,8 +236,9 @@ describe('processClaimDocumentWorkflowRunService persist failure', () => {
     ] as const) {
       for (const attempt of [0, 1, 2]) {
         mocks.claimClaimAiRun.mockClear();
-        await handler({ event: { data: { runId } }, step, attempt });
+        await handler({ event: { data: { runId, tenantId: 'tenant-1' } }, step, attempt });
         expect(mocks.claimClaimAiRun).toHaveBeenCalledWith(runId, {
+          tenantId: 'tenant-1',
           retryFailed: attempt === 1,
         });
       }

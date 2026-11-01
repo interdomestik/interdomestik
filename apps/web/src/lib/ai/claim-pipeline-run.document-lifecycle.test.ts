@@ -10,8 +10,10 @@ const mocks = vi.hoisted(() => {
   const firstJoin = { innerJoin: vi.fn(() => secondJoin), where };
   const fromResult = { innerJoin: vi.fn(() => firstJoin) };
   const select = vi.fn(() => ({ from: vi.fn(() => fromResult) }));
+  const ambientSelect = vi.fn();
   return {
-    db: { select },
+    db: { select: ambientSelect },
+    select,
     failDeletedDocumentClaimAiRun: vi.fn(),
     firstInnerJoin: fromResult.innerJoin,
     isNull: vi.fn((field: unknown) => ({ op: 'isNull', field })),
@@ -21,8 +23,10 @@ const mocks = vi.hoisted(() => {
     updateSet,
     updateWhere,
     withTenantContext: vi.fn(
-      async (_context: unknown, callback: (tx: { update: typeof update }) => unknown) =>
-        callback({ update })
+      async (
+        _context: unknown,
+        callback: (tx: { select: typeof select; update: typeof update }) => unknown
+      ) => callback({ select, update })
     ),
     where,
   };
@@ -85,7 +89,7 @@ const activeRun = (
   requestedBy: 'user-1',
   status,
   subjectId: 'member-1',
-  tenantId: 'tenant-1',
+  tenantId: 'tenant_mk',
   workflow: 'claim_intake_extract',
 });
 
@@ -98,7 +102,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   });
 
   it('requires an active document row before claiming queued AI work', async () => {
-    await expect(claimClaimAiRun('run-1')).rejects.toThrow(
+    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).rejects.toThrow(
       'Queued claim AI run run-1 was not found.'
     );
 
@@ -114,7 +118,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(Function),
-      {}
+      { tenantId: 'tenant_mk' }
     );
   });
 
@@ -130,10 +134,10 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       },
     ]);
 
-    await expect(claimClaimAiRun('run-1')).rejects.toThrow(
+    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).rejects.toThrow(
       'Queued claim AI run run-1 was not found.'
     );
-    expect(mocks.db.select).toHaveBeenCalledTimes(1);
+    expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.failDeletedDocumentClaimAiRun).not.toHaveBeenCalled();
   });
 
@@ -144,7 +148,9 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       workflow: 'claim_intake_extract',
     });
 
-    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+    await expect(
+      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+    ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
@@ -152,14 +158,16 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(Function),
-      { retryFailed: true }
+      { tenantId: 'tenant_mk', retryFailed: true }
     );
   });
 
   it('reclaims only an explicitly retried generic processing failure', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
 
-    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toMatchObject({
+    await expect(
+      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+    ).resolves.toMatchObject({
       status: 'claimed',
       run: { runId: 'run-1', claimId: 'claim-1' },
     });
@@ -180,23 +188,27 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('does not claim queued work when invoked in retry mode', async () => {
     mocks.where.mockResolvedValue([activeRun('queued')]);
 
-    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+    await expect(
+      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+    ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it('does not reclaim a generic failure without explicit retry intent', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
 
-    await expect(claimClaimAiRun('run-1')).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it.each(['claim_intake_extract_validation_failed', 'claim_ai_document_deleted'])(
@@ -204,34 +216,124 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     async errorCode => {
       mocks.where.mockResolvedValue([activeRun('failed', errorCode)]);
 
-      await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+      await expect(
+        claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+      ).resolves.toEqual({
         status: 'skipped',
         claimId: 'claim-1',
         workflow: 'claim_intake_extract',
       });
-      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+      expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
     }
   );
 
   it('does not reclaim completed work on a retry attempt', async () => {
     mocks.where.mockResolvedValue([activeRun('completed')]);
 
-    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+    await expect(
+      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+    ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
   });
 
   it('returns skipped when another worker wins the failed-run reclaim race', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
     mocks.updateReturning.mockResolvedValue([]);
 
-    await expect(claimClaimAiRun('run-1', { retryFailed: true })).resolves.toEqual({
+    await expect(
+      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
+    ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
+  });
+
+  it('runs the run lookup inside the event tenant context with a tenant predicate', async () => {
+    mocks.where.mockResolvedValue([activeRun('queued')]);
+
+    await claimClaimAiRun('run-1', { tenantId: 'tenant_mk' });
+
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
+      tenantId: 'tenant_mk',
+      role: 'system',
+    });
+    expect(mocks.select).toHaveBeenCalledTimes(1);
+    expect(mocks.db.select).not.toHaveBeenCalled();
+    expect(mocks.where).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.arrayContaining([
+          { op: 'eq', left: 'ai_runs.id', right: 'run-1' },
+          { op: 'eq', left: 'ai_runs.tenant_id', right: 'tenant_mk' },
+        ]),
+      })
+    );
+  });
+
+  it('claims the run in the event tenant context with a tenant-bound update predicate', async () => {
+    mocks.where.mockResolvedValue([activeRun('queued')]);
+
+    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).resolves.toMatchObject({
+      status: 'claimed',
+    });
+
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toEqual({
+      tenantId: 'tenant_mk',
+      role: 'system',
+    });
+    expect(mocks.updateWhere).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.arrayContaining([
+          { op: 'eq', left: 'ai_runs.id', right: 'run-1' },
+          { op: 'eq', left: 'ai_runs.tenant_id', right: 'tenant_mk' },
+          { op: 'eq', left: 'ai_runs.status', right: 'queued' },
+        ]),
+      })
+    );
+  });
+
+  it('does not update a run that belongs to another tenant', async () => {
+    // The tenant-scoped lookup finds no row for a run owned by a different tenant.
+    mocks.where.mockResolvedValue([]);
+    mocks.failDeletedDocumentClaimAiRun.mockResolvedValue({
+      status: 'skipped',
+      claimId: 'claim-1',
+      workflow: 'claim_intake_extract',
+    });
+
+    await claimClaimAiRun('run-1', { tenantId: 'tenant_other' });
+
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.updateSet).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
+      tenantId: 'tenant_other',
+      role: 'system',
+    });
+    expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
+      'run-1',
+      expect.any(Function),
+      { tenantId: 'tenant_other' }
+    );
+  });
+
+  it('throws not found without updating when no row exists in the tenant and the fallback finds none', async () => {
+    mocks.where.mockResolvedValue([]);
+    mocks.failDeletedDocumentClaimAiRun.mockResolvedValue(null);
+
+    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_other' })).rejects.toThrow(
+      'Queued claim AI run run-1 was not found.'
+    );
+
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.updateSet).not.toHaveBeenCalled();
+    expect(mocks.db.select).not.toHaveBeenCalled();
   });
 });

@@ -166,6 +166,7 @@ async function dispatchQueuedClaimAiRuns(
       if (deps.markClaimAiRunDispatchFailed) {
         await deps.markClaimAiRunDispatchFailed({
           runId: queuedRun.runId,
+          tenantId: queuedRun.tenantId,
           message,
         });
       }

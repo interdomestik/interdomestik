@@ -1,4 +1,3 @@
-import { db } from '@/lib/db.server';
 import { withTenantContext } from '@interdomestik/database';
 import { aiRuns, claims, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -33,45 +32,50 @@ function isClaimAiWorkflow(workflow: unknown): workflow is ClaimAiWorkflow {
 
 export async function claimClaimAiRun(
   runId: string,
-  options: { retryFailed?: boolean } = {}
+  options: { tenantId: string; retryFailed?: boolean }
 ): Promise<
   | { status: 'claimed'; run: ClaimedClaimAiRun }
   | { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow }
 > {
-  // BLOCKED(rc31-u2): tenant is discovered from the run record itself. The caller only supplies runId (the queued event's tenantId is not threaded through this signature), so there is no canonical tenant at this ambient-db lookup. Needs a signature change that passes the event tenantId or a privileged manifest entry.
-  const [queuedRun] = await db
-    .select({
-      runId: aiRuns.id,
-      tenantId: aiRuns.tenantId,
-      workflow: aiRuns.workflow,
-      documentId: aiRuns.documentId,
-      claimId: aiRuns.entityId,
-      requestedBy: aiRuns.requestedBy,
-      subjectId: claims.userId,
-      storagePath: documents.storagePath,
-      fileName: documents.fileName,
-      mimeType: documents.mimeType,
-      uploadedAt: documents.uploadedAt,
-      status: aiRuns.status,
-      errorCode: aiRuns.errorCode,
-      requestJson: aiRuns.requestJson,
-      claimTitle: claims.title,
-      claimDescription: claims.description,
-      claimCategory: claims.category,
-      claimAmount: claims.claimAmount,
-      claimCurrency: claims.currency,
-    })
-    .from(aiRuns)
-    .innerJoin(
-      documents,
-      and(
-        eq(documents.id, aiRuns.documentId),
-        eq(documents.tenantId, aiRuns.tenantId),
-        isNull(documents.deletedAt)
+  const { tenantId } = options;
+  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
+  const [queuedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    tx
+      .select({
+        runId: aiRuns.id,
+        tenantId: aiRuns.tenantId,
+        workflow: aiRuns.workflow,
+        documentId: aiRuns.documentId,
+        claimId: aiRuns.entityId,
+        requestedBy: aiRuns.requestedBy,
+        subjectId: claims.userId,
+        storagePath: documents.storagePath,
+        fileName: documents.fileName,
+        mimeType: documents.mimeType,
+        uploadedAt: documents.uploadedAt,
+        status: aiRuns.status,
+        errorCode: aiRuns.errorCode,
+        requestJson: aiRuns.requestJson,
+        claimTitle: claims.title,
+        claimDescription: claims.description,
+        claimCategory: claims.category,
+        claimAmount: claims.claimAmount,
+        claimCurrency: claims.currency,
+      })
+      .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(
+          eq(documents.id, aiRuns.documentId),
+          eq(documents.tenantId, aiRuns.tenantId),
+          isNull(documents.deletedAt)
+        )
       )
-    )
-    .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
-    .where(and(eq(aiRuns.id, runId), eq(aiRuns.entityType, 'claim')));
+      .innerJoin(claims, and(eq(claims.id, aiRuns.entityId), eq(claims.tenantId, aiRuns.tenantId)))
+      .where(
+        and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.entityType, 'claim'))
+      )
+  );
 
   if (!queuedRun) {
     const deletedRun = await failDeletedDocumentClaimAiRun(runId, isClaimAiWorkflow, options);
@@ -104,25 +108,24 @@ export async function claimClaimAiRun(
   const claimPredicate = retryingFailedRun
     ? and(
         eq(aiRuns.id, runId),
+        eq(aiRuns.tenantId, tenantId),
         eq(aiRuns.status, 'failed'),
         eq(aiRuns.errorCode, 'claim_ai_processing_failed')
       )
-    : and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued'));
+    : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [claimedRun] = await withTenantContext(
-    { tenantId: queuedRun.tenantId, role: 'system' },
-    async tx =>
-      tx
-        .update(aiRuns)
-        .set({
-          status: 'processing',
-          startedAt: new Date(),
-          ...(retryingFailedRun ? { completedAt: null } : {}),
-          errorCode: null,
-          errorMessage: null,
-        })
-        .where(claimPredicate)
-        .returning({ id: aiRuns.id })
+  const [claimedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+    tx
+      .update(aiRuns)
+      .set({
+        status: 'processing',
+        startedAt: new Date(),
+        ...(retryingFailedRun ? { completedAt: null } : {}),
+        errorCode: null,
+        errorMessage: null,
+      })
+      .where(claimPredicate)
+      .returning({ id: aiRuns.id })
   );
 
   if (!claimedRun) {

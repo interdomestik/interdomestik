@@ -111,6 +111,7 @@ export function resetSubmitClaimMocks(): void {
   queueClaimDocumentAiWorkflowsMock.mockResolvedValue([
     {
       runId: 'run-1',
+      tenantId: 'tenant-1',
       workflow: 'claim_intake_extract',
       claimId: 'claim-1',
       documentId: 'legacy-doc-1',

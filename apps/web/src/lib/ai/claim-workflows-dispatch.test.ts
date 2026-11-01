@@ -47,6 +47,7 @@ describe('emitClaimAiRunRequestedService retry integration', () => {
       claimId: 'claim-1',
       documentId: 'doc-1',
       runId: 'run-1',
+      tenantId: 'tenant-1',
       workflow: 'claim_intake_extract',
     });
 
@@ -61,6 +62,7 @@ describe('emitClaimAiRunRequestedService retry integration', () => {
         claimId: 'claim-1',
         documentId: 'doc-1',
         runId: 'run-1',
+        tenantId: 'tenant-1',
         workflow: 'legal_doc_extract',
       })
     ).rejects.toThrow('forbidden');
