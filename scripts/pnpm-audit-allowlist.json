@@ -10,6 +10,21 @@
     {
       "id": "1116011",
       "path": "apps__web>better-auth>vitest>vite"
+    },
+    {
+      "id": "1243467",
+      "path": "apps__web>better-auth",
+      "reason": "GHSA-965c-763c-88jm: not applicable, requires the magicLink() plugin. The app registers only emailOTP (apps/web/src/lib/auth/providers.ts plugins array; providers.test.ts pins plugins length 1). No 1.6.x fix exists; better-auth is held at ~1.6 because credential accountId stores the email. Owner-approved 2026-11-01; see BETTER-AUTH-APPLICABILITY.md."
+    },
+    {
+      "id": "1243466",
+      "path": "apps__web>better-auth",
+      "reason": "GHSA-r4xp-prcw-77qf: not applicable, requires the oAuthProxy() plugin. The app registers only emailOTP (apps/web/src/lib/auth/providers.ts plugins array; providers.test.ts pins plugins length 1). No 1.6.x fix exists; better-auth is held at ~1.6 because credential accountId stores the email. Owner-approved 2026-11-01; see BETTER-AUTH-APPLICABILITY.md."
+    },
+    {
+      "id": "1243435",
+      "path": "apps__web>better-auth",
+      "reason": "GHSA-q84f-53jg-9ppm: not applicable, requires the deviceAuthorization() plugin. The app registers only emailOTP (apps/web/src/lib/auth/providers.ts plugins array; providers.test.ts pins plugins length 1). No 1.6.x fix exists; better-auth is held at ~1.6 because credential accountId stores the email. Owner-approved 2026-11-01; see BETTER-AUTH-APPLICABILITY.md."
     }
   ]
 }
