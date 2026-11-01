@@ -139,6 +139,19 @@ jobs:
               || fail "approved resolver-transition guard unreachable"
             protected="$transition_guard"
           fi
+          # Exact main-health security successor transition: use the independently reviewed fixed guard.
+          # Native required W separately binds the reviewed first head/merge; no candidate selector.
+          if [[ "$EVENT_NAME" == pull_request && "$DEFAULT_BRANCH" == main && "$PR_BASE_REF" == main \
+            && "$protected" == 18cd1a73b12f589c69934cba862092d857434013 ]]; then
+            transition_guard='6d332eb4fcfa0806d00c15d52d8cdd67d71e66dd'
+            transition_tree='0c2fc3084f8c4107e923a96ea4f97f3cd1a3ea63'
+            [[ "$("${gd[@]}" cat-file -t "$transition_guard" 2>/dev/null || true)" == commit \
+              && "$("${gd[@]}" rev-parse -q --verify "$transition_guard^{tree}" || true)" == "$transition_tree" ]] \
+              || fail "approved resolver-transition guard identity"
+            [[ -n "$("${gd[@]}" for-each-ref --count=1 --contains "$transition_guard" --format='%(refname)' refs/protected/ 2>/dev/null || true)" ]] \
+              || fail "approved resolver-transition guard unreachable"
+            protected="$transition_guard"
+          fi
           tgz="$work/typescript.tgz"
           if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
             # Local test seam only; the tarball is still bound to the protected lock integrity.

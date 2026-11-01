@@ -111,8 +111,10 @@ export function openPullRequest(origin, mutate = () => {}, options = {}) {
   git(origin, 'checkout', '-q', '-b', `candidate-${pulls}`);
   // Historical event bases still need the reviewed current resolver in their candidate.
   // Install it before mutate(), so adversarial resolver edits remain observable.
+  // The reviewed pair is the one the approved guard authenticates and the checked-out tree carries;
+  // the guard source commit predates the dependency remediation and holds only the previous pair.
   for (const file of ['pnpm-workspace.yaml', 'pnpm-lock.yaml'])
-    writeFile(origin, file, showAt(SOURCE_COMMIT, file));
+    writeFile(origin, file, fs.readFileSync(path.join(rootDir, file)));
   mutate(origin);
   const head = commit(origin, `candidate change ${pulls}`);
   git(origin, 'checkout', '-q', baseBranch);
