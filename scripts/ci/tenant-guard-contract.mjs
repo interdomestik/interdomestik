@@ -24,9 +24,9 @@ if (!file || !unit || kindArgs.length === 0 || !reason) {
   );
   process.exit(2);
 }
-// Only a file inside this repository can be pinned.
-const repoRoot = path.resolve(import.meta.dirname, '../..');
-const fullPath = path.resolve(repoRoot, file);
+// Only a file inside this repository can be pinned, after symlinks are followed.
+const repoRoot = fs.realpathSync(path.resolve(import.meta.dirname, '../..'));
+const fullPath = fs.realpathSync(path.resolve(repoRoot, file));
 if (!fullPath.startsWith(repoRoot + path.sep)) {
   console.error(`${file} is not inside the repository`);
   process.exit(2);

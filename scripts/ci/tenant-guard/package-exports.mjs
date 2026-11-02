@@ -22,7 +22,8 @@ export function packageCandidates(pkg, sub) {
       for (const target of exportTargets(map[key])) candidates.push(path.join(pkg.dir, target));
     } else {
       for (const [pattern, value] of Object.entries(map)) {
-        // As Node: a pattern key has exactly one `*`, and every `*` of a target takes the match.
+        // As Node: a pattern key has exactly one `*`, and every `*` of a target takes the match
+        // literally (a function replacement, so `$` sequences in the match are not patterns).
         if (pattern.split('*').length !== 2) continue;
         const [prefix, suffix] = pattern.split('*');
         if (
@@ -32,7 +33,12 @@ export function packageCandidates(pkg, sub) {
         ) {
           const match = key.slice(prefix.length, key.length - suffix.length);
           for (const target of exportTargets(value)) {
-            candidates.push(path.join(pkg.dir, target.replaceAll('*', match)));
+            candidates.push(
+              path.join(
+                pkg.dir,
+                target.replaceAll('*', () => match)
+              )
+            );
           }
         }
       }
