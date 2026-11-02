@@ -42,23 +42,49 @@ const mockSelectChain = {
   where: vi.fn().mockResolvedValue([]),
 };
 
-function mockAssignedClaimDocument(claimStaffId: string) {
-  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-    {
-      doc: {
-        id: 'doc-1',
-        claimId: 'claim-1',
-        bucket: 'claim-evidence',
-        filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-        uploadedBy: 'user-1',
-        name: 'file.pdf',
-        fileType: 'application/pdf',
-        fileSize: 123,
-      },
-      claimOwnerId: 'user-1',
-      claimStaffId,
+type ClaimDocumentRowInput = {
+  readonly uploadedBy: string;
+  readonly claimOwnerId: string;
+  readonly claimStaffId?: string;
+  readonly name?: string;
+};
+
+// A legacy claim document joined with its claim's owner (and assigned staff, when given).
+function claimDocumentRow({ uploadedBy, claimOwnerId, claimStaffId, name }: ClaimDocumentRowInput) {
+  return {
+    doc: {
+      id: 'doc-1',
+      claimId: 'claim-1',
+      bucket: 'claim-evidence',
+      filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
+      uploadedBy,
+      name: name ?? 'file.pdf',
+      fileType: 'application/pdf',
+      fileSize: 123,
     },
-  ]);
+    claimOwnerId,
+    ...(claimStaffId === undefined ? {} : { claimStaffId }),
+  };
+}
+
+// First query (Polymorphic Docs) returns empty; second query (Legacy ClaimDocs) returns the row.
+function mockLegacyClaimDocument(row: ReturnType<typeof claimDocumentRow>): void {
+  mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([row]);
+}
+
+function mockAssignedClaimDocument(claimStaffId: string) {
+  mockLegacyClaimDocument(
+    claimDocumentRow({ uploadedBy: 'user-1', claimOwnerId: 'user-1', claimStaffId })
+  );
+}
+
+function signIn(id: string, role: string): void {
+  hoisted.getSession.mockResolvedValue({ user: { id, role, tenantId: 'tenant_mk' } });
+}
+
+function download(id: string, query = ''): Promise<Response> {
+  const request = new Request(`http://localhost:3000/api/documents/${id}/download${query}`);
+  return GET(request, { params: Promise.resolve({ id }) });
 }
 
 vi.mock('@interdomestik/database', () => ({
@@ -112,8 +138,7 @@ describe('GET /api/documents/[id]/download', () => {
   it('returns 401 when unauthenticated', async () => {
     hoisted.getSession.mockResolvedValue(null);
 
-    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+    const response = await download('doc-1');
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -121,13 +146,10 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('returns 404 when document missing', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    signIn('user-1', 'user');
     mockSelectChain.where.mockResolvedValue([]);
 
-    const request = new Request('http://localhost:3000/api/documents/doc-404/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-404' }) });
+    const response = await download('doc-404');
     const data = await response.json();
 
     expect(response.status).toBe(404);
@@ -135,27 +157,12 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('returns 403 and logs audit when forbidden', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
+    signIn('user-1', 'user');
     mockSelectChain.where.mockResolvedValue([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'someone-else',
-          name: 'file.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
-        claimOwnerId: 'owner-other',
-      },
+      claimDocumentRow({ uploadedBy: 'someone-else', claimOwnerId: 'owner-other' }),
     ]);
 
-    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+    const response = await download('doc-1');
     const data = await response.json();
 
     expect(response.status).toBe(403);
@@ -171,55 +178,32 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('denies staff who are not assigned to the claim', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'staff-other', role: 'staff', tenantId: 'tenant_mk' },
-    });
+    signIn('staff-other', 'staff');
     mockAssignedClaimDocument('staff-assigned');
 
-    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+    const response = await download('doc-1');
 
     expect(response.status).toBe(403);
     expect(hoisted.storageDownload).not.toHaveBeenCalled();
   });
 
   it('allows the staff member assigned to the claim', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'staff-assigned', role: 'staff', tenantId: 'tenant_mk' },
-    });
+    signIn('staff-assigned', 'staff');
     mockAssignedClaimDocument('staff-assigned');
 
-    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+    const response = await download('doc-1');
 
     expect(response.status).toBe(200);
     expect(hoisted.storageDownload).toHaveBeenCalledTimes(1);
   });
 
   it('streams file and sets content-disposition (attachment by default)', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
-    // First query (Polymorphic Docs) returns empty
-    // Second query (Legacy ClaimDocs) returns found doc
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'someone-else',
-          name: 'file.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
-        claimOwnerId: 'user-1',
-      },
-    ]);
+    signIn('user-1', 'user');
+    mockLegacyClaimDocument(
+      claimDocumentRow({ uploadedBy: 'someone-else', claimOwnerId: 'user-1' })
+    );
 
-    const request = new Request('http://localhost:3000/api/documents/doc-1/download');
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+    const response = await download('doc-1');
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
@@ -245,31 +229,16 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('uses inline disposition when requested', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
-    });
-    // First query (Polymorphic Docs) returns empty
-    // Second query (Legacy ClaimDocs) returns found doc
-    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        doc: {
-          id: 'doc-1',
-          claimId: 'claim-1',
-          bucket: 'claim-evidence',
-          filePath: 'pii/tenants/tenant_mk/claims/claim-1/file.pdf',
-          uploadedBy: 'someone-else',
-          name: 'IHÇK SHKURT 2026.pdf',
-          fileType: 'application/pdf',
-          fileSize: 123,
-        },
+    signIn('user-1', 'user');
+    mockLegacyClaimDocument(
+      claimDocumentRow({
+        uploadedBy: 'someone-else',
         claimOwnerId: 'user-1',
-      },
-    ]);
-
-    const request = new Request(
-      'http://localhost:3000/api/documents/doc-1/download?disposition=inline'
+        name: 'IHÇK SHKURT 2026.pdf',
+      })
     );
-    const response = await GET(request, { params: Promise.resolve({ id: 'doc-1' }) });
+
+    const response = await download('doc-1', '?disposition=inline');
 
     expect(response.status).toBe(200);
     const contentDisposition = response.headers.get('Content-Disposition');

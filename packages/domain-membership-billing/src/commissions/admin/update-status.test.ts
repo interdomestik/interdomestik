@@ -84,65 +84,49 @@ describe('updateCommissionStatusCore', () => {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
   };
 
-  it('prevents self-approval if admin is also the agent', async () => {
-    // Mock commission owned by admin
+  // The commission row the status update reads, owned by `agentId`.
+  function loadCommission(agentId: string, status: string): void {
     (db.select as any).mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId: 'admin-1', status: 'pending' }]),
+          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId, status }]),
         }),
       }),
     });
+  }
 
-    const result = await updateCommissionStatusCore({
+  function updateAsAdmin(newStatus: 'approved' | 'pending') {
+    return updateCommissionStatusCore({
       session: mockAdminSession as any,
       authority,
       commissionId: 'c1',
-      newStatus: 'approved',
+      newStatus,
     });
+  }
+
+  it('prevents self-approval if admin is also the agent', async () => {
+    loadCommission('admin-1', 'pending');
+
+    const result = await updateAsAdmin('approved');
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('Cannot approve or pay your own commission');
   });
 
   it('prevents invalid status transitions', async () => {
-    // Mock commission
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId: 'agent-1', status: 'paid' }]),
-        }),
-      }),
-    });
+    loadCommission('agent-1', 'paid');
 
     // Try to move from 'paid' back to 'pending' (invalid)
-    const result = await updateCommissionStatusCore({
-      session: mockAdminSession as any,
-      authority,
-      commissionId: 'c1',
-      newStatus: 'pending',
-    });
+    const result = await updateAsAdmin('pending');
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('Invalid transition');
   });
 
   it('allows valid transition by admin', async () => {
-    // Mock commission
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId: 'agent-1', status: 'pending' }]),
-        }),
-      }),
-    });
+    loadCommission('agent-1', 'pending');
 
-    const result = await updateCommissionStatusCore({
-      session: mockAdminSession as any,
-      authority,
-      commissionId: 'c1',
-      newStatus: 'approved',
-    });
+    const result = await updateAsAdmin('approved');
 
     expect(result.success).toBe(true);
     expect(db.update).toHaveBeenCalled();
@@ -160,20 +144,9 @@ describe('updateCommissionStatusCore', () => {
       },
     });
 
-    (db.select as any).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue([{ id: 'c1', agentId: 'agent-1', status: 'pending' }]),
-        }),
-      }),
-    });
+    loadCommission('agent-1', 'pending');
 
-    const result = await updateCommissionStatusCore({
-      session: mockAdminSession as any,
-      authority,
-      commissionId: 'c1',
-      newStatus: 'approved',
-    });
+    const result = await updateAsAdmin('approved');
 
     expect(result.success).toBe(false);
     expect(result.violation?.entityIds).toEqual(['c1']);

@@ -15,6 +15,45 @@ import {
   updateCrmTaskPriorityCore,
 } from './crm-tasks.core';
 
+type QueueGuardOutcome = {
+  readonly deps: ReturnType<typeof deps>;
+  readonly guard: ReturnType<typeof vi.fn>;
+  readonly reason: string;
+  readonly repo: ReturnType<typeof repository>;
+  readonly result: unknown;
+};
+
+// The queue guard sees the agent actor and the expected version, and refuses before any task read.
+function expectGuardRefusedBeforeLoad({
+  deps: d,
+  guard,
+  reason,
+  repo,
+  result,
+}: QueueGuardOutcome): void {
+  expect(result).toEqual({
+    outcome: 'forbidden',
+    reason,
+  });
+  expect(guard).toHaveBeenCalledWith({
+    actor: expect.objectContaining({
+      actorId: 'agent-1',
+      role: 'agent',
+      tenantId: 'tenant-1',
+    }),
+    authority: expect.anything(),
+    deps: d,
+    input: expect.objectContaining({
+      expectedLifecycleVersion: 9,
+      taskId: 'task-1',
+    }),
+    requestHeaders: expect.any(Headers),
+  });
+  expect(guard.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
+  expect(repo.findTaskById).not.toHaveBeenCalled();
+  expect(repo.saveTask).not.toHaveBeenCalled();
+}
+
 describe('CRM task core boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,27 +87,7 @@ describe('CRM task core boundary', () => {
       session: session(),
     });
 
-    expect(result).toEqual({
-      outcome: 'forbidden',
-      reason: 'task_not_in_queue',
-    });
-    expect(guard).toHaveBeenCalledWith({
-      actor: expect.objectContaining({
-        actorId: 'agent-1',
-        role: 'agent',
-        tenantId: 'tenant-1',
-      }),
-      authority: expect.anything(),
-      deps: d,
-      input: expect.objectContaining({
-        expectedLifecycleVersion: 9,
-        taskId: 'task-1',
-      }),
-      requestHeaders: expect.any(Headers),
-    });
-    expect(guard.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
-    expect(repo.findTaskById).not.toHaveBeenCalled();
-    expect(repo.saveTask).not.toHaveBeenCalled();
+    expectGuardRefusedBeforeLoad({ deps: d, guard, reason: 'task_not_in_queue', repo, result });
   });
 
   it('runs the completed-queue guard before reopening a task', async () => {
@@ -100,27 +119,13 @@ describe('CRM task core boundary', () => {
       session: session(),
     });
 
-    expect(result).toEqual({
-      outcome: 'forbidden',
-      reason: 'task_not_in_completed_queue',
-    });
-    expect(guard).toHaveBeenCalledWith({
-      actor: expect.objectContaining({
-        actorId: 'agent-1',
-        role: 'agent',
-        tenantId: 'tenant-1',
-      }),
-      authority: expect.anything(),
+    expectGuardRefusedBeforeLoad({
       deps: d,
-      input: expect.objectContaining({
-        expectedLifecycleVersion: 9,
-        taskId: 'task-1',
-      }),
-      requestHeaders: expect.any(Headers),
+      guard,
+      reason: 'task_not_in_completed_queue',
+      repo,
+      result,
     });
-    expect(guard.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
-    expect(repo.findTaskById).not.toHaveBeenCalled();
-    expect(repo.saveTask).not.toHaveBeenCalled();
   });
 
   it.each([

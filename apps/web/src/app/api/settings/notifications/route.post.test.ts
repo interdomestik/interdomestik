@@ -8,8 +8,36 @@ import {
   mockUpdateChain,
   mockWithTenantContext,
   notificationPostRequest,
+  samplePreferences,
 } from './route.post.test-support';
 import { POST } from './route';
+
+const updatedPreferences = {
+  emailClaimUpdates: false,
+  emailMarketing: true,
+  emailNewsletter: false,
+  pushClaimUpdates: false,
+  pushMessages: false,
+  inAppAll: false,
+};
+
+function signInTenantMember(): void {
+  hoistedMocks.getSession.mockResolvedValue({
+    user: { id: 'user-123', tenantId: 'tenant_mk' },
+  });
+}
+
+async function postAndRead(request: Request): Promise<{ response: Response; data: unknown }> {
+  const response = await POST(request);
+  return { response, data: await response.json() };
+}
+
+async function postSilencingErrors(): Promise<{ response: Response; data: unknown }> {
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const result = await postAndRead(notificationPostRequest(samplePreferences));
+  consoleErrorSpy.mockRestore();
+  return result;
+}
 
 describe('POST /api/settings/notifications', () => {
   beforeEach(() => {
@@ -41,27 +69,11 @@ describe('POST /api/settings/notifications', () => {
   });
 
   it('should create new preferences if none exist', async () => {
-    hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
-    });
+    signInTenantMember();
     mockSelectChain.limit.mockReturnValue([]);
 
-    const preferences = {
-      emailClaimUpdates: false,
-      emailMarketing: true,
-      emailNewsletter: false,
-      pushClaimUpdates: false,
-      pushMessages: false,
-      inAppAll: false,
-    };
-
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: JSON.stringify(preferences),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
+    const preferences = updatedPreferences;
+    const { response, data } = await postAndRead(notificationPostRequest(preferences));
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ success: true });
@@ -76,38 +88,13 @@ describe('POST /api/settings/notifications', () => {
   });
 
   it('should update existing preferences', async () => {
-    hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
-    });
+    signInTenantMember();
     mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'pref-123',
-        userId: 'user-123',
-        emailClaimUpdates: true,
-        emailMarketing: false,
-        emailNewsletter: true,
-        pushClaimUpdates: true,
-        pushMessages: true,
-        inAppAll: true,
-      },
+      { id: 'pref-123', userId: 'user-123', ...samplePreferences },
     ]);
 
-    const preferences = {
-      emailClaimUpdates: false,
-      emailMarketing: true,
-      emailNewsletter: false,
-      pushClaimUpdates: false,
-      pushMessages: false,
-      inAppAll: false,
-    };
-
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: JSON.stringify(preferences),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
+    const preferences = updatedPreferences;
+    const { response, data } = await postAndRead(notificationPostRequest(preferences));
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ success: true });
@@ -120,77 +107,36 @@ describe('POST /api/settings/notifications', () => {
   });
 
   it('should handle database errors gracefully on create', async () => {
-    hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
-    });
+    signInTenantMember();
     mockSelectChain.limit.mockReturnValue([]);
     mockInsertChain.values.mockRejectedValue(new Error('DB Error'));
 
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        emailClaimUpdates: true,
-        emailMarketing: false,
-        emailNewsletter: true,
-        pushClaimUpdates: true,
-        pushMessages: true,
-        inAppAll: true,
-      }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    consoleErrorSpy.mockRestore();
+    const { response, data } = await postSilencingErrors();
 
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Failed to save preferences' });
   });
 
   it('should handle database errors gracefully on update', async () => {
-    hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
-    });
+    signInTenantMember();
     mockSelectChain.limit.mockReturnValue([{ id: 'pref-123' }]);
     mockUpdateChain.where.mockRejectedValue(new Error('DB Error'));
 
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: JSON.stringify({
-        emailClaimUpdates: true,
-        emailMarketing: false,
-        emailNewsletter: true,
-        pushClaimUpdates: true,
-        pushMessages: true,
-        inAppAll: true,
-      }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    consoleErrorSpy.mockRestore();
+    const { response, data } = await postSilencingErrors();
 
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Failed to save preferences' });
   });
 
   it('should handle invalid JSON gracefully', async () => {
-    hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
-    });
+    signInTenantMember();
 
-    const request = new Request('http://localhost:3000/api/settings/notifications', {
-      method: 'POST',
-      body: 'invalid json',
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
+    const { response, data } = await postAndRead(
+      new Request('http://localhost:3000/api/settings/notifications', {
+        method: 'POST',
+        body: 'invalid json',
+      })
+    );
 
     expect(response.status).toBe(400);
     expect(data).toEqual({ error: 'Invalid JSON' });

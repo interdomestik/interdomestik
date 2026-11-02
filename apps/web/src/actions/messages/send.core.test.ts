@@ -177,12 +177,23 @@ describe('sendMessageDbCore', () => {
     expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
   });
 
-  it('denies staff messages for claims outside their scoped branch', async () => {
+  it.each([
+    {
+      name: 'denies staff messages for claims outside their scoped branch',
+      claimBranchId: 'branch-b',
+      user: { id: 'staff-1', role: 'staff', name: 'Agent' },
+    },
+    {
+      name: 'denies branch manager messages even for in-branch claims',
+      claimBranchId: 'branch-a',
+      user: { id: 'manager-1', role: 'branch_manager', name: 'Branch manager' },
+    },
+  ])('$name', async ({ claimBranchId, user }) => {
     mocks.claimsFindFirst.mockResolvedValue({
       id: 'claim_1',
       userId: 'member_1',
       title: 'My Claim',
-      branchId: 'branch-b',
+      branchId: claimBranchId,
       staffId: 'staff-2',
     });
 
@@ -190,40 +201,7 @@ describe('sendMessageDbCore', () => {
       authority,
       session: {
         user: {
-          id: 'staff-1',
-          role: 'staff',
-          name: 'Agent',
-          tenantId: 'tenant_mk',
-          branchId: 'branch-a',
-        },
-      } as NonNullable<Session>,
-      requestHeaders: new Headers(),
-      claimId: 'claim_1',
-      content: 'Hello',
-      isInternal: false,
-    });
-
-    expect(result).toEqual({ success: false, error: 'Access denied' });
-    expect(mocks.insertValues).not.toHaveBeenCalled();
-    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('denies branch manager messages even for in-branch claims', async () => {
-    mocks.claimsFindFirst.mockResolvedValue({
-      id: 'claim_1',
-      userId: 'member_1',
-      title: 'My Claim',
-      branchId: 'branch-a',
-      staffId: 'staff-2',
-    });
-
-    const result = await sendMessageDbCore({
-      authority,
-      session: {
-        user: {
-          id: 'manager-1',
-          role: 'branch_manager',
-          name: 'Branch manager',
+          ...user,
           tenantId: 'tenant_mk',
           branchId: 'branch-a',
         },
