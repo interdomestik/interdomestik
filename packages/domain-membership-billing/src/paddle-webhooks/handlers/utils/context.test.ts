@@ -23,6 +23,13 @@ vi.mock('@interdomestik/database', () => {
   };
 });
 
+const resolution = vi.hoisted(() => ({
+  resolvePaddleSubscriptionOwner: vi.fn(),
+  resolvePaddleUserOwner: vi.fn(),
+}));
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => resolution);
+
 // Helper to mock response AND execute 'where' callback for coverage
 const mockDbResponse = (returnValue: any) => {
   return (args: any) => {
@@ -44,6 +51,8 @@ const mockDbResponse = (returnValue: any) => {
 describe('context utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolution.resolvePaddleSubscriptionOwner.mockReset().mockResolvedValue(null);
+    resolution.resolvePaddleUserOwner.mockReset().mockResolvedValue(null);
   });
 
   describe('resolveBranchId', () => {
@@ -116,6 +125,11 @@ describe('context utils', () => {
     it('should return context with tenant from existing subscription', async () => {
       const sub = { id: 's_1', customData: { userId: 'u_1' } };
 
+      resolution.resolvePaddleSubscriptionOwner.mockResolvedValue({
+        subscriptionId: 's_1',
+        tenantId: 'tn_ex',
+      });
+      resolution.resolvePaddleUserOwner.mockResolvedValue({ userId: 'u_1', tenantId: 'tn_ex' });
       (db.query.subscriptions.findFirst as any).mockImplementation(
         mockDbResponse({ tenantId: 'tn_ex', userId: 'u_1' })
       );
@@ -141,6 +155,7 @@ describe('context utils', () => {
     it('should return context with tenant from user if subscription is new', async () => {
       const sub = { id: 's_new', customData: { userId: 'u_1' } };
 
+      resolution.resolvePaddleUserOwner.mockResolvedValue({ userId: 'u_1', tenantId: 'tn_usr' });
       (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse({ tenantId: 'tn_usr' }));
       (db.query.tenantSettings.findFirst as any).mockImplementation(
@@ -154,6 +169,14 @@ describe('context utils', () => {
     it('should reuse existing subscription user when customData omits userId', async () => {
       const sub = { id: 's_existing', customData: { tenantId: 'tenant_mk', agentId: 'ag_1' } };
 
+      resolution.resolvePaddleSubscriptionOwner.mockResolvedValue({
+        subscriptionId: 's_existing',
+        tenantId: 'tenant_mk',
+      });
+      resolution.resolvePaddleUserOwner.mockResolvedValue({
+        userId: 'user_existing',
+        tenantId: 'tenant_mk',
+      });
       (db.query.subscriptions.findFirst as any).mockImplementation(
         mockDbResponse({ tenantId: 'tenant_mk', userId: 'user_existing' })
       );
@@ -178,6 +201,14 @@ describe('context utils', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const sub = { id: 's_existing', customData: { userId: 'u_1', tenantId: 'tenant_bad' } };
 
+      resolution.resolvePaddleSubscriptionOwner.mockResolvedValue({
+        subscriptionId: 's_existing',
+        tenantId: 'tenant_real',
+      });
+      resolution.resolvePaddleUserOwner.mockResolvedValue({
+        userId: 'u_1',
+        tenantId: 'tenant_real',
+      });
       (db.query.subscriptions.findFirst as any).mockImplementation(
         mockDbResponse({ tenantId: 'tenant_real', userId: 'u_1' })
       );
@@ -200,6 +231,10 @@ describe('context utils', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const sub = { id: 's_existing', customData: { userId: 'u_bad', tenantId: 'tenant_real' } };
 
+      resolution.resolvePaddleSubscriptionOwner.mockResolvedValue({
+        subscriptionId: 's_existing',
+        tenantId: 'tenant_real',
+      });
       (db.query.subscriptions.findFirst as any).mockImplementation(
         mockDbResponse({ tenantId: 'tenant_real', userId: 'u_real' })
       );
@@ -207,6 +242,7 @@ describe('context utils', () => {
       await expect(resolveSubscriptionContext(sub)).rejects.toThrow(
         'customData user=u_bad conflicts with existing subscription user=u_real'
       );
+      expect(resolution.resolvePaddleUserOwner).not.toHaveBeenCalled();
       expect(db.query.user.findFirst).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
 
@@ -215,12 +251,14 @@ describe('context utils', () => {
 
     it('should not use customData tenant when canonical user lookup fails', async () => {
       const sub = { id: 's_bad', customData: { userId: 'u_missing', tenantId: 'tenant_provider' } };
+      resolution.resolvePaddleUserOwner.mockResolvedValue(null);
       (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse(undefined));
 
       const result = await resolveSubscriptionContext(sub);
 
       expect(result).toBeNull();
+      expect(withTenantContext).not.toHaveBeenCalled();
     });
 
     it('should return null if tenant cannot be resolved', async () => {

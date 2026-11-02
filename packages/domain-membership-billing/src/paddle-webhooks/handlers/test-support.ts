@@ -3,6 +3,13 @@ import { createQueuedFrom as createQueuedFromMock } from '../../../../../scripts
 
 export { createQueuedFromMock as createQueuedFrom };
 type MockFunction = ReturnType<typeof vi.fn>;
+interface PaddleResolutionMocks {
+  resolvePaddleSubscriptionOwner: MockFunction;
+  resolvePaddleUserOwner: MockFunction;
+  resolvePaddleCustomerEmailOwner: MockFunction;
+  readVerifiedPaddleTransactionEvidence: MockFunction;
+}
+
 interface PaddleHandlerMocks {
   db: {
     query: {
@@ -21,6 +28,8 @@ interface PaddleHandlerMocks {
   };
   /** Tenant-context boundary; tests assert the tenant it received. */
   withTenantContext: MockFunction;
+  /** Privileged provider-reference resolution (`@interdomestik/database/paddle-provider-resolution`). */
+  resolution: PaddleResolutionMocks;
   selectResults: unknown[][];
   and: MockFunction;
   appendEvent: MockFunction;
@@ -45,16 +54,6 @@ interface PaddleHandlerMocks {
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
-interface ProviderSubscriptionLookupArgs {
-  where?: (
-    subs: Record<string, string>,
-    operators: {
-      eq: (left: unknown, right: unknown) => unknown;
-      or: (...clauses: unknown[]) => unknown;
-    }
-  ) => unknown;
-}
-
 interface PaddleDatabaseMockModule {
   agentClients: {
     tenantId: string;
@@ -105,6 +104,12 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
       update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
     },
     withTenantContext: vi.fn(),
+    resolution: {
+      resolvePaddleSubscriptionOwner: vi.fn(),
+      resolvePaddleUserOwner: vi.fn(),
+      resolvePaddleCustomerEmailOwner: vi.fn(),
+      readVerifiedPaddleTransactionEvidence: vi.fn(),
+    },
     selectResults: [] as unknown[][],
     and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
     appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
@@ -154,6 +159,32 @@ export function createPaddleDatabaseMockModule(
     webhookEvents: hoisted.webhookEvents,
     withTenantContext: hoisted.withTenantContext,
   };
+}
+
+/** Mock for the privileged provider-reference resolvers; per-test owners come from the mock* helpers. */
+export function createPaddleResolutionMockModule(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
+): PaddleResolutionMocks {
+  return hoisted.resolution;
+}
+
+/** The privileged resolver names this exact user's owning tenant. */
+export function mockUserOwner(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
+  tenantId: string
+) {
+  hoisted.resolution.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
+    userId,
+    tenantId,
+  }));
+}
+
+/** The privileged resolver names this exact subscription's owning tenant. */
+export function mockSubscriptionOwner(
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
+  owner: { subscriptionId: string; tenantId: string }
+) {
+  hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(owner);
 }
 
 export function createCommissionMockModule(): CommissionMockModule {
@@ -209,33 +240,14 @@ export function createActiveSubscriptionUpdatedEvent() {
   };
 }
 
+/** An unscoped provider reference is resolved by the privileged owner lookup, not an ambient read. */
 export function expectProviderSubscriptionReferenceLookup(
-  args: ProviderSubscriptionLookupArgs,
+  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
   providerSubscriptionId: string
 ) {
-  const whereNode = args.where?.(
-    {
-      id: 'subscriptions.id',
-      providerSubscriptionId: 'subscriptions.provider_subscription_id',
-    },
-    {
-      eq: (left, right) => ({ op: 'eq', left, right }),
-      or: (...clauses) => ({ op: 'or', clauses }),
-    }
-  ) as
-    { op?: string; clauses?: Array<{ op?: string; left?: unknown; right?: unknown }> } | undefined;
-
-  expect(whereNode).toEqual({
-    op: 'or',
-    clauses: [
-      { op: 'eq', left: 'subscriptions.id', right: providerSubscriptionId },
-      {
-        op: 'eq',
-        left: 'subscriptions.provider_subscription_id',
-        right: providerSubscriptionId,
-      },
-    ],
-  });
+  expect(hoisted.resolution.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith(
+    providerSubscriptionId
+  );
 }
 
 export function mockRacedSubscriptionInsert(
@@ -269,6 +281,12 @@ export function resetPaddleHandlerMocks(
   hoisted.db.query.subscriptions.findFirst.mockReset();
   hoisted.db.query.tenantSettings.findFirst.mockReset();
   hoisted.db.query.webhookEvents.findFirst.mockReset();
+  for (const resolver of Object.values(hoisted.resolution)) resolver.mockReset();
+  // Unknown references resolve to nothing until a test names an owner.
+  hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
+  hoisted.resolution.resolvePaddleUserOwner.mockResolvedValue(null);
+  hoisted.resolution.resolvePaddleCustomerEmailOwner.mockResolvedValue(null);
+  hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(null);
   hoisted.db.query.agentClients.findFirst.mockReset();
   hoisted.db.query.membershipPlans.findFirst.mockReset();
   hoisted.db.select.mockImplementation(() => ({

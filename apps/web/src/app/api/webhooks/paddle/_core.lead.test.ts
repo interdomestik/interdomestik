@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hoisted, callPaddleWebhookCore } from './_core.fixture';
+import { hoisted, callPaddleWebhookCore, receiptAdmission } from './_core.fixture';
 
 describe('handlePaddleWebhookCore lead conversion', () => {
   beforeEach(() => {
@@ -38,11 +38,8 @@ describe('handlePaddleWebhookCore lead conversion', () => {
       tenantId: 'tenant_1',
       userId: 'user_1',
     });
-    hoisted.dbUserFindFirst.mockResolvedValue(null);
-    hoisted.insertWebhookEvent.mockResolvedValue({
-      inserted: true,
-      webhookEventRowId: 'webhook_event_1',
-    });
+    hoisted.resolvePaddleUserOwner.mockResolvedValue(null);
+    hoisted.insertWebhookEvent.mockResolvedValue(receiptAdmission());
     hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
     hoisted.hasTenantLeadForConversion.mockResolvedValue(true);
     hoisted.convertLeadToMember.mockResolvedValue({
@@ -73,7 +70,7 @@ describe('handlePaddleWebhookCore lead conversion', () => {
 
   it('skips lead conversion when the webhook cannot resolve a canonical tenant', async () => {
     hoisted.findSubscriptionByProviderReference.mockResolvedValue(null);
-    hoisted.dbUserFindFirst.mockResolvedValue(null);
+    hoisted.resolvePaddleUserOwner.mockResolvedValue(null);
 
     const result = await callPaddleWebhookCore();
 
@@ -114,10 +111,7 @@ describe('handlePaddleWebhookCore lead conversion', () => {
         signatureBypassed: false,
       });
       hoisted.findSubscriptionByProviderReference.mockResolvedValue({ tenantId: 'tenant_1' });
-      hoisted.insertWebhookEvent.mockResolvedValue({
-        inserted: true,
-        webhookEventRowId: 'webhook_event_1',
-      });
+      hoisted.insertWebhookEvent.mockResolvedValue(receiptAdmission());
       hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
       hoisted.hasTenantLeadForConversion.mockResolvedValue(true);
       hoisted.handlePaddleEvent.mockResolvedValue(undefined);
@@ -175,7 +169,7 @@ describe('handlePaddleWebhookCore lead conversion', () => {
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.findSubscriptionByProviderReference).toHaveBeenCalledWith('sub_provider_1');
     expect(hoisted.findSubscriptionByProviderReference).not.toHaveBeenCalledWith('txn_verified_1');
-    expect(hoisted.dbUserFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
     expect(hoisted.convertLeadToMember).toHaveBeenCalledWith(
       { tenantId: 'tenant_from_subscription' },
       { leadId: 'lead_1' }
@@ -284,7 +278,7 @@ describe('handlePaddleWebhookCore lead conversion', () => {
 
     expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
       expect.objectContaining({
-        webhookEventRowId: 'webhook_event_1',
+        receiptLease: receiptAdmission().receiptLease,
         eventType: 'transaction.completed',
         eventId: 'evt_verified',
         tenantId: 'tenant_1',

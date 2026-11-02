@@ -1,4 +1,5 @@
-import { db, eq, user as userTable, withTenantContext } from '@interdomestik/database';
+import { eq, user as userTable, withTenantContext } from '@interdomestik/database';
+import { resolvePaddleCustomerEmailOwner } from '@interdomestik/database/paddle-provider-resolution';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
 import {
@@ -51,25 +52,34 @@ function isUniqueViolation(error: unknown): error is { code: string } {
   );
 }
 
-async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null> {
-  // BLOCKED(rc31-u2): global email lookup across tenants to detect cross-tenant ownership (identity resolution by design); needs privileged manifest entry
-  // db-access-guard: system-exempt -- reason: checkout reconciliation probes global email ownership before tenant-scoped user writes
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.email, email),
-    columns: {
-      id: true,
-      tenantId: true,
-      branchId: true,
-      email: true,
-      name: true,
-      role: true,
-      memberNumber: true,
-      agentId: true,
-      createdBy: true,
-      assistedByAgentId: true,
-    },
-  });
-  return userRecord ?? null;
+/**
+ * Global email ownership: the privileged probe names the owning user/tenant (or reports ambiguity),
+ * and the full record is read inside that owner's tenant. Ambiguity is a conflict.
+ */
+async function findUserByEmail(email: string): Promise<ReconciledUserRecord | null | 'ambiguous'> {
+  const owner = await resolvePaddleCustomerEmailOwner(email);
+  if (owner === 'ambiguous' || !owner) return owner;
+
+  const userRecord = await withTenantContext({ tenantId: owner.tenantId }, tx =>
+    tx.query.user.findFirst({
+      where: (users, { and, eq }) =>
+        and(eq(users.id, owner.userId), eq(users.tenantId, owner.tenantId)),
+      columns: {
+        id: true,
+        tenantId: true,
+        branchId: true,
+        email: true,
+        name: true,
+        role: true,
+        memberNumber: true,
+        agentId: true,
+        createdBy: true,
+        assistedByAgentId: true,
+      },
+    })
+  );
+  // The owner was resolved but is not visible in its tenant: treat as a conflict, never as absent.
+  return userRecord ?? 'ambiguous';
 }
 
 export async function reconcileCheckoutUser(
@@ -87,7 +97,14 @@ export async function reconcileCheckoutUser(
   const { customerEmail, customData: mergedCustomData } = evidence;
   const tenantId = normalizeText(mergedCustomData.tenantId)!;
 
-  let existingUser = await findUserByEmail(customerEmail);
+  const emailOwner = await findUserByEmail(customerEmail);
+  if (emailOwner === 'ambiguous') {
+    console.warn(
+      `[Webhook] Cannot reconcile checkout user for subscription ${sub.id}; email ownership for ${customerEmail} is ambiguous or not visible in its owning tenant`
+    );
+    return null;
+  }
+  let existingUser = emailOwner;
   const customDataUserId = normalizeText(mergedCustomData?.userId);
 
   if (existingUser && existingUser.tenantId !== tenantId) {
@@ -147,10 +164,11 @@ export async function reconcileCheckoutUser(
         throw error;
       }
 
-      existingUser = await findUserByEmail(customerEmail);
-      if (!existingUser || existingUser.tenantId !== tenantId) {
+      const racedOwner = await findUserByEmail(customerEmail);
+      if (!racedOwner || racedOwner === 'ambiguous' || racedOwner.tenantId !== tenantId) {
         throw error;
       }
+      existingUser = racedOwner;
 
       userId = existingUser.id;
     }

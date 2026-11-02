@@ -50,6 +50,12 @@ const hoisted = vi.hoisted(() => {
     failAck: false,
   };
 
+  // Tenant-scoped reads inside a tenant context go through `tx.query`, the same mock as `db.query`.
+  const query = {
+    user: { findFirst: vi.fn() as Mock },
+    subscriptions: { findFirst: vi.fn() as Mock },
+  };
+
   async function transaction<T>(callback: (tx: unknown) => Promise<T>): Promise<T> {
     let release = () => {};
     let staged: StoredRow | undefined;
@@ -94,6 +100,7 @@ const hoisted = vi.hoisted(() => {
       };
     }
     const tx = {
+      query,
       select: (shape: Record<string, unknown> = {}) => ({
         from: (table: unknown) => ({ where: selectWhere.bind(null, table, shape) }),
       }),
@@ -139,11 +146,9 @@ const hoisted = vi.hoisted(() => {
       transaction: vi.fn(transaction) as Mock<typeof transaction>,
       insert: vi.fn() as Mock,
       update: vi.fn() as Mock,
-      query: {
-        user: { findFirst: vi.fn() as Mock },
-        subscriptions: { findFirst: vi.fn() as Mock },
-      },
+      query,
     },
+    resolvePaddleUserOwner: vi.fn() as Mock,
     findSubscriptionByProviderReference: vi.fn() as Mock,
   };
 });
@@ -158,6 +163,9 @@ vi.mock('@interdomestik/database', () => ({
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
   webhookEvents: { payload: 'webhook_events.payload' },
+}));
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   auditLog: hoisted.auditLog,
@@ -210,6 +218,11 @@ beforeEach(() => {
   hoisted.findSubscriptionByProviderReference.mockImplementation(async () =>
     hoisted.store.row ? { ...hoisted.store.row } : null
   );
+  // The privileged lookup names the user's tenant; the profile is read inside it.
+  hoisted.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
+    userId,
+    tenantId: 'tenant_ks',
+  }));
   hoisted.db.query.user.findFirst.mockResolvedValue({
     id: 'user_1',
     email: 'member@example.com',

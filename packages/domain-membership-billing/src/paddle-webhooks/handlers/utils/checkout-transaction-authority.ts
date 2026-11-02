@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { readVerifiedPaddleTransactionEvidence } from '@interdomestik/database/paddle-provider-resolution';
 import { RetryablePaddleWebhookError } from '../../errors';
 import type { CheckoutCustomData, ResolvePaddleCustomer } from '../../types';
 import type { TransactionOrderPayload } from './checkout-order-integrity';
@@ -37,20 +37,10 @@ export async function loadCheckoutTransactionData(args: {
   processingScopeKey: string;
   entityRoute: boolean;
 }): Promise<TransactionPayloadLike | null> {
-  // BLOCKED(rc31-u2): webhook_events lookup by provider transaction id before any tenant is known; needs privileged manifest entry
-  // db-access-guard: system-exempt -- reason: verified Paddle transaction evidence bootstraps checkout reconciliation before user context exists
-  const webhookEvent = await db.query.webhookEvents.findFirst({
-    where: (events, { and, eq }) =>
-      args.entityRoute
-        ? and(
-            eq(events.providerTransactionId, args.transactionId),
-            eq(events.provider, 'paddle'),
-            eq(events.signatureValid, true),
-            eq(events.eventType, 'transaction.completed'),
-            eq(events.processingScopeKey, args.processingScopeKey)
-          )
-        : eq(events.providerTransactionId, args.transactionId),
-    columns: { payload: true, processingResult: true },
+  const webhookEvent = await readVerifiedPaddleTransactionEvidence({
+    transactionId: args.transactionId,
+    processingScopeKey: args.processingScopeKey,
+    entityRoute: args.entityRoute,
   });
 
   if (!webhookEvent) {

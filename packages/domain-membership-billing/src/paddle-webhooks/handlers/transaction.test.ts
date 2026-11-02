@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleTransactionCompleted } from './transaction';
-import { expectProviderSubscriptionReferenceLookup, resetPaddleHandlerMocks } from './test-support';
+import {
+  expectProviderSubscriptionReferenceLookup,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -13,6 +18,12 @@ vi.mock('@interdomestik/database', async () => {
   const mocks = await import('./test-support');
 
   return mocks.createPaddleDatabaseMockModule(hoisted);
+});
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () => {
+  const mocks = await import('./test-support');
+
+  return mocks.createPaddleResolutionMockModule(hoisted);
 });
 
 vi.mock('../../commissions/create', async () => {
@@ -35,7 +46,8 @@ beforeEach(() => {
 
 describe('handleTransactionCompleted', () => {
   it('logs payment.processed event with tenantId', async () => {
-    // Mock User resolution
+    // Mock User resolution: the privileged lookup names the tenant, the profile is read inside it.
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       tenantId: 'tenant_abc',
     });
@@ -83,9 +95,11 @@ describe('handleTransactionCompleted', () => {
 
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolution.resolvePaddleUserOwner).not.toHaveBeenCalled();
   });
 
   it('prefers persisted subscription ownership over stale transaction customData agent attribution', async () => {
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_row', tenantId: 'tenant_real' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       tenantId: 'tenant_real',
       agentId: 'agent_canonical',
@@ -117,6 +131,7 @@ describe('handleTransactionCompleted', () => {
 
   it('uses canonical user ownership for transaction audit metadata when no subscription owner exists', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       tenantId: 'tenant_abc',
       agentId: null,
@@ -149,6 +164,7 @@ describe('handleTransactionCompleted', () => {
   it('skips transaction audit when provider tenant metadata conflicts with persisted subscription', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_row', tenantId: 'tenant_real' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       tenantId: 'tenant_real',
     });
@@ -178,6 +194,7 @@ describe('handleTransactionCompleted', () => {
   it('skips transaction audit when provider user metadata conflicts with persisted subscription user', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_row', tenantId: 'tenant_real' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       tenantId: 'tenant_real',
       userId: 'user_real',
@@ -209,10 +226,8 @@ describe('handleTransactionCompleted', () => {
   });
 
   it('resolves transaction tenant from provider subscription id lookups', async () => {
-    hoisted.db.query.subscriptions.findFirst.mockImplementationOnce(async args => {
-      expectProviderSubscriptionReferenceLookup(args, 'sub_provider_456');
-      return { tenantId: 'tenant_real' };
-    });
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_row_456', tenantId: 'tenant_real' });
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({ tenantId: 'tenant_real' });
 
     await handleTransactionCompleted(
       {
@@ -226,6 +241,11 @@ describe('handleTransactionCompleted', () => {
       { logAuditEvent }
     );
 
+    expectProviderSubscriptionReferenceLookup(hoisted, 'sub_provider_456');
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_real' },
+      expect.any(Function)
+    );
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_real',

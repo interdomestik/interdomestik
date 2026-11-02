@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   requestPasswordReset: vi.fn(),
-  dbUserFindFirst: vi.fn(),
+  resolvePaddleUserOwner: vi.fn(),
   convertLeadToMember: vi.fn(),
   hasTenantLeadForConversion: vi.fn(),
   findSubscriptionByProviderReference: vi.fn(),
@@ -25,14 +25,8 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      user: {
-        findFirst: hoisted.dbUserFindFirst,
-      },
-    },
-  },
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
@@ -80,4 +74,13 @@ async function callPaddleWebhookCore() {
   });
 }
 
-export { hoisted, callPaddleWebhookCore };
+/** The lease a successful receipt admission grants; terminal writes are bound to it. */
+function receiptAdmission(id = 'webhook_event_1') {
+  return {
+    inserted: true as const,
+    webhookEventRowId: id,
+    receiptLease: { id, leaseStartedAt: new Date('2026-09-25T08:00:00.000Z') },
+  };
+}
+
+export { hoisted, callPaddleWebhookCore, receiptAdmission };

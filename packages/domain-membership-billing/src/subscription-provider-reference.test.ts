@@ -4,6 +4,7 @@ const hoisted = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   findSubscriptionFirst: vi.fn(),
+  resolvePaddleSubscriptionOwner: vi.fn(),
   or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
   subscriptions: {
     id: 'subscriptions.id',
@@ -23,6 +24,10 @@ vi.mock('@interdomestik/database', () => {
     subscriptions: hoisted.subscriptions,
   };
 });
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
+}));
 
 import { withTenantContext } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from './subscription';
@@ -68,18 +73,19 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
     );
   });
 
-  it('keeps the payment-provider fallback lookup unscoped when tenant is unknown', async () => {
+  it('resolves the payment-provider fallback through the privileged owner lookup when tenant is unknown', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce({
+      subscriptionId: 'sub_internal_1',
+      tenantId: 'tenant_abc',
+    });
     hoisted.findSubscriptionFirst.mockImplementationOnce(async (args: FindFirstArgs) => {
       const whereNode = args.where?.(hoisted.subscriptions, hoisted);
+      // The read is bound to the resolved tenant and the resolved row id, never the raw reference.
       expect(whereNode).toEqual({
-        op: 'or',
+        op: 'and',
         args: [
-          { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_123' },
-          {
-            op: 'eq',
-            left: 'subscriptions.provider_subscription_id',
-            right: 'sub_provider_123',
-          },
+          { op: 'eq', left: 'subscriptions.tenant_id', right: 'tenant_abc' },
+          { op: 'eq', left: 'subscriptions.id', right: 'sub_internal_1' },
         ],
       });
       return { id: 'sub_internal_1', tenantId: 'tenant_abc' };
@@ -89,5 +95,28 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
       id: 'sub_internal_1',
       tenantId: 'tenant_abc',
     });
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_provider_123');
+    expect(withTenantContext).toHaveBeenCalledTimes(1);
+    expect(withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_abc' },
+      expect.any(Function)
+    );
+  });
+
+  it('returns null without a tenant context when the owner lookup finds nothing or is ambiguous', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce(null);
+
+    await expect(findSubscriptionByProviderReference('sub_provider_123')).resolves.toBeNull();
+
+    expect(withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
+  });
+
+  it('does not use the privileged owner lookup when the caller supplies the tenant', async () => {
+    hoisted.findSubscriptionFirst.mockResolvedValueOnce({ id: 'sub_internal_1' });
+
+    await findSubscriptionByProviderReference('sub_provider_123', { tenantId: 'tenant_abc' });
+
+    expect(hoisted.resolvePaddleSubscriptionOwner).not.toHaveBeenCalled();
   });
 });

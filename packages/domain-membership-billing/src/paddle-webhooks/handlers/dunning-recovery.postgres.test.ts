@@ -118,7 +118,12 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         tenantId,
       };
       const admit = (input = receipt) => insertWebhookEvent(input);
-      const first = await admit();
+      const admitLease = async () => {
+        const admission = await admit();
+        if (!admission.inserted) throw new Error('expected the receipt to be admitted');
+        return admission;
+      };
+      const first = await admitLease();
       expect(first.inserted).toBe(true);
       await expect(handleOrderedPastDue(args)).rejects.toMatchObject({
         name: 'RetryablePaddleWebhookError',
@@ -129,21 +134,24 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       await expect(admit()).rejects.toMatchObject({
         name: 'RetryablePaddleWebhookError',
       });
-      await admin`update webhook_events set received_at = now() - interval '6 minutes' where id = ${first.webhookEventRowId!}`;
+      await admin`update webhook_events set received_at = now() - interval '6 minutes' where id = ${first.webhookEventRowId}`;
       expect(await admit({ ...receipt, payloadHash: 'different' })).toMatchObject({
         inserted: false,
       });
-      expect(await admit()).toEqual(first);
+      // Reclaiming the abandoned receipt admits the same row under a new lease.
+      const reclaimed = await admitLease();
+      expect(reclaimed.webhookEventRowId).toBe(first.webhookEventRowId);
       deps.sendPreparedPastDueEmail.mockRejectedValueOnce(new Error('retryable sender outage'));
       const failure = await handleOrderedPastDue(args).catch(error => error);
       expect(isRetryablePaddleWebhookError(failure)).toBe(true);
       await markWebhookFailed({
         ...receipt,
-        webhookEventRowId: first.webhookEventRowId!,
+        receiptLease: reclaimed.receiptLease,
         error: failure,
         retryable: true,
       });
-      expect(await admit()).toEqual(first);
+      // A retryable failure is reclaimable again, still on the same receipt row.
+      expect((await admitLease()).webhookEventRowId).toBe(first.webhookEventRowId);
       const audit = await admin`select id from audit_log where entity_id = ${subscriptionId}`;
       const pending =
         await admin`select status from engagement_email_sends where subscription_id = ${subscriptionId}`;

@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { createActiveSubscriptionUpdatedEvent, resetPaddleHandlerMocks } from './test-support';
+import {
+  createActiveSubscriptionUpdatedEvent,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -11,6 +15,10 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
+);
+
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -67,7 +75,8 @@ beforeEach(() => {
 describe('entity subscription order integrity', () => {
   it('defers until its completed transaction receipt exists', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue(null);
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(null);
+    mockUserOwner(hoisted, 'tenant_ks');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.com',
@@ -82,6 +91,7 @@ describe('entity subscription order integrity', () => {
 
   it('rejects an initial lifecycle update without causal order authority', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    mockUserOwner(hoisted, 'tenant_ks');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.com',
@@ -101,7 +111,10 @@ describe('entity subscription order integrity', () => {
 
   it('writes entitlement only after full order reconciliation', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue(completedEntityTransaction());
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(
+      completedEntityTransaction()
+    );
+    mockUserOwner(hoisted, 'tenant_ks');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.com',
@@ -111,15 +124,20 @@ describe('entity subscription order integrity', () => {
 
     await handleSubscriptionChanged(entitySubscriptionCreated());
 
-    expect(hoisted.db.query.webhookEvents.findFirst).toHaveBeenCalledWith(expect.anything());
+    expect(hoisted.resolution.readVerifiedPaddleTransactionEvidence).toHaveBeenCalledWith({
+      transactionId: 'txn_entity_1',
+      processingScopeKey: 'entity:ks',
+      entityRoute: true,
+    });
     expect(hoisted.tx.insert).toHaveBeenCalled();
   });
 
   it('fails closed before entitlement when order currency conflicts', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue(
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(
       completedEntityTransaction({ currencyCode: 'USD' })
     );
+    mockUserOwner(hoisted, 'tenant_ks');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.com',

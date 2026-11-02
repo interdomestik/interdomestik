@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hoisted, callPaddleWebhookCore } from './_core.fixture';
+import { hoisted, callPaddleWebhookCore, receiptAdmission } from './_core.fixture';
 
 describe('handlePaddleWebhookCore tenant resolution', () => {
   beforeEach(() => {
@@ -27,11 +27,11 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
       signatureBypassed: false,
     });
     hoisted.findSubscriptionByProviderReference.mockResolvedValue(null);
-    hoisted.dbUserFindFirst.mockResolvedValue({ tenantId: 'tenant_from_user' });
-    hoisted.insertWebhookEvent.mockResolvedValue({
-      inserted: true,
-      webhookEventRowId: 'webhook_event_1',
+    hoisted.resolvePaddleUserOwner.mockResolvedValue({
+      userId: 'user_from_custom_data',
+      tenantId: 'tenant_from_user',
     });
+    hoisted.insertWebhookEvent.mockResolvedValue(receiptAdmission());
     hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
     hoisted.handlePaddleEvent.mockResolvedValue(undefined);
     hoisted.markWebhookProcessed.mockResolvedValue(undefined);
@@ -48,7 +48,7 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.findSubscriptionByProviderReference).toHaveBeenCalledWith('sub_provider_1');
-    expect(hoisted.dbUserFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
     expect(hoisted.insertWebhookEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_from_subscription',
@@ -64,7 +64,8 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.findSubscriptionByProviderReference).toHaveBeenCalledWith('sub_provider_1');
-    expect(hoisted.dbUserFindFirst).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledWith('user_from_custom_data');
     expect(hoisted.insertWebhookEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant_from_user',
@@ -94,15 +95,8 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
     const result = await callPaddleWebhookCore();
 
     expect(result).toEqual({ status: 200, body: { success: true } });
-    expect(hoisted.dbUserFindFirst).toHaveBeenCalledTimes(1);
-    const query = hoisted.dbUserFindFirst.mock.calls[0]?.[0] as {
-      where: (
-        users: { id: string },
-        ops: { eq: (left: string, right: string) => unknown }
-      ) => unknown;
-    };
-    const eq = vi.fn();
-    query.where({ id: 'users.id' }, { eq });
-    expect(eq).toHaveBeenCalledWith('users.id', 'user_from_custom_data');
+    // The fallback resolves by the trimmed id only; the privileged lookup names the tenant.
+    expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledWith('user_from_custom_data');
   });
 });

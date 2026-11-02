@@ -5,7 +5,6 @@ const hoisted = vi.hoisted(() => ({
     query: {
       user: { findFirst: vi.fn() },
       account: { findFirst: vi.fn() },
-      webhookEvents: { findFirst: vi.fn() },
       tenantSettings: { findFirst: vi.fn() },
     },
     transaction: vi.fn(),
@@ -16,6 +15,8 @@ const hoisted = vi.hoisted(() => ({
     query: {} as Record<string, unknown>,
   },
   withTenantContext: vi.fn(),
+  resolvePaddleCustomerEmailOwner: vi.fn(),
+  readVerifiedPaddleTransactionEvidence: vi.fn(),
   insertedUserValues: vi.fn(),
   updatedUserValues: vi.fn(),
   generateMemberNumber: vi.fn(),
@@ -33,6 +34,11 @@ vi.mock('@interdomestik/database', () => ({
   eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
   withTenantContext: hoisted.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleCustomerEmailOwner: hoisted.resolvePaddleCustomerEmailOwner,
+  readVerifiedPaddleTransactionEvidence: hoisted.readVerifiedPaddleTransactionEvidence,
 }));
 
 vi.mock('@interdomestik/database/member-number', () => ({
@@ -61,7 +67,8 @@ describe('reconcileCheckoutUser', () => {
     vi.clearAllMocks();
     hoisted.db.query.user.findFirst.mockReset();
     hoisted.db.query.account.findFirst.mockReset();
-    hoisted.db.query.webhookEvents.findFirst.mockReset();
+    hoisted.readVerifiedPaddleTransactionEvidence.mockReset();
+    hoisted.resolvePaddleCustomerEmailOwner.mockReset().mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockReset();
     hoisted.db.transaction.mockReset();
     hoisted.tx.insert.mockReset();
@@ -103,7 +110,7 @@ describe('reconcileCheckoutUser', () => {
   });
 
   it('creates a new member user from stored transaction payload and requests onboarding', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -116,16 +123,15 @@ describe('reconcileCheckoutUser', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_new',
-        tenantId: 'tenant_mk',
-        email: 'buyer@example.com',
-        name: 'buyer',
-        memberNumber: 'MEM-2026-000123',
-      });
+    // No tenant owns the email (privileged probe); the reads below are the agent branch lookup and
+    // the final reload.
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'user_new',
+      tenantId: 'tenant_mk',
+      email: 'buyer@example.com',
+      name: 'buyer',
+      memberNumber: 'MEM-2026-000123',
+    });
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
@@ -182,7 +188,7 @@ describe('reconcileCheckoutUser', () => {
   });
 
   it('reuses an existing same-tenant user and skips onboarding when credentials already exist', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'existing@example.com',
@@ -191,6 +197,10 @@ describe('reconcileCheckoutUser', () => {
           },
         },
       },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue({
+      userId: 'user_existing',
+      tenantId: 'tenant_ks',
     });
     hoisted.db.query.user.findFirst
       .mockResolvedValueOnce({
@@ -225,6 +235,12 @@ describe('reconcileCheckoutUser', () => {
       { requestPasswordResetOnboarding }
     );
 
+    expect(hoisted.resolvePaddleCustomerEmailOwner).toHaveBeenCalledWith('existing@example.com');
+    // The owner's full record is read inside the owning tenant, never through an ambient read.
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
@@ -239,7 +255,7 @@ describe('reconcileCheckoutUser', () => {
   it('returns null when stored transaction payload tenant mismatches the existing user tenant', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'wrong@example.com',
@@ -248,6 +264,10 @@ describe('reconcileCheckoutUser', () => {
           },
         },
       },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue({
+      userId: 'user_wrong',
+      tenantId: 'tenant_ks',
     });
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_wrong',
@@ -281,7 +301,7 @@ describe('reconcileCheckoutUser', () => {
   it('returns null when subscription customData conflicts with stored transaction tenant', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -304,6 +324,7 @@ describe('reconcileCheckoutUser', () => {
     );
 
     expect(result).toBeNull();
+    expect(hoisted.resolvePaddleCustomerEmailOwner).not.toHaveBeenCalled();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(hoisted.tx.update).not.toHaveBeenCalled();
@@ -317,7 +338,7 @@ describe('reconcileCheckoutUser', () => {
   it('returns null when customData user does not match the canonical email user', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'existing@example.com',
@@ -327,6 +348,10 @@ describe('reconcileCheckoutUser', () => {
           },
         },
       },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue({
+      userId: 'user_existing',
+      tenantId: 'tenant_ks',
     });
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_existing',
@@ -361,7 +386,7 @@ describe('reconcileCheckoutUser', () => {
   it('returns null instead of creating a member when customData asserts a missing user', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'new@example.com',
@@ -399,7 +424,7 @@ describe('reconcileCheckoutUser', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     requestPasswordResetOnboarding.mockRejectedValueOnce(new Error('email offline'));
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -409,7 +434,7 @@ describe('reconcileCheckoutUser', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce({
       id: 'user_new',
       tenantId: 'tenant_mk',
       email: 'buyer@example.com',
@@ -449,7 +474,7 @@ describe('reconcileCheckoutUser', () => {
   it('reuses a raced same-tenant user when insert hits a unique violation', async () => {
     const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
 
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'race@example.com',
@@ -459,8 +484,11 @@ describe('reconcileCheckoutUser', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
+    // First probe: nobody owns the email yet. After the unique violation the winner owns it.
+    hoisted.resolvePaddleCustomerEmailOwner
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ userId: 'user_race', tenantId: 'tenant_mk' });
+    hoisted.db.query.user.findFirst
       .mockResolvedValueOnce({
         id: 'user_race',
         tenantId: 'tenant_mk',
@@ -511,7 +539,7 @@ describe('reconcileCheckoutUser', () => {
   });
 
   it('preserves elevated roles while still backfilling member state', async () => {
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'admin@example.com',
@@ -521,6 +549,10 @@ describe('reconcileCheckoutUser', () => {
           },
         },
       },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue({
+      userId: 'user_admin',
+      tenantId: 'tenant_ks',
     });
     hoisted.db.query.user.findFirst
       .mockResolvedValueOnce({
@@ -578,6 +610,98 @@ describe('reconcileCheckoutUser', () => {
       joinedAt: expect.any(Date),
     });
     expect(insertedUserValuesInclude({ memberId: 'user_admin', status: 'active' })).toBe(false);
+    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('returns null without any write when email ownership is ambiguous across tenants', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
+      payload: {
+        data: {
+          customerEmail: 'shared@example.com',
+          customData: { tenantId: 'tenant_mk' },
+        },
+      },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue('ambiguous');
+
+    const result = await reconcileCheckoutUser(
+      {
+        id: 'sub_ambiguous',
+        transactionId: 'txn_ambiguous',
+        customData: { tenantId: 'tenant_mk' },
+      },
+      { requestPasswordResetOnboarding }
+    );
+
+    expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('is ambiguous'));
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
+    expect(hoisted.generateMemberNumber).not.toHaveBeenCalled();
+    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('treats an email owner that is not visible in its own tenant as a conflict, never as absent', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
+      payload: {
+        data: {
+          customerEmail: 'hidden@example.com',
+          customData: { tenantId: 'tenant_mk' },
+        },
+      },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner.mockResolvedValue({
+      userId: 'user_hidden',
+      tenantId: 'tenant_ks',
+    });
+    hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
+
+    const result = await reconcileCheckoutUser(
+      { id: 'sub_hidden', transactionId: 'txn_hidden', customData: { tenantId: 'tenant_mk' } },
+      { requestPasswordResetOnboarding }
+    );
+
+    expect(result).toBeNull();
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
+    expect(hoisted.tx.insert).not.toHaveBeenCalled();
+    expect(hoisted.tx.update).not.toHaveBeenCalled();
+    expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it('rethrows the unique violation when the raced email owner is ambiguous', async () => {
+    const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
+    hoisted.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
+      payload: {
+        data: {
+          customerEmail: 'race@example.com',
+          customData: { tenantId: 'tenant_mk' },
+        },
+      },
+    });
+    hoisted.resolvePaddleCustomerEmailOwner
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('ambiguous');
+    hoisted.db.query.tenantSettings.findFirst.mockResolvedValue(undefined);
+    hoisted.insertedUserValues.mockRejectedValueOnce(uniqueViolation);
+
+    await expect(
+      reconcileCheckoutUser(
+        { id: 'sub_race', transactionId: 'txn_race', customData: { tenantId: 'tenant_mk' } },
+        { requestPasswordResetOnboarding }
+      )
+    ).rejects.toBe(uniqueViolation);
     expect(requestPasswordResetOnboarding).not.toHaveBeenCalled();
   });
 });

@@ -4,7 +4,7 @@ import {
 } from '@/actions/thank-you-letter/delivery';
 import { logAuditEvent } from '@/lib/audit';
 import { paddleDunningEmailDeps } from '@/lib/email';
-import { db } from '@interdomestik/database';
+import { resolvePaddleUserOwner } from '@interdomestik/database/paddle-provider-resolution';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
 import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 import {
@@ -191,13 +191,9 @@ async function resolveWebhookTenantId(
 
   const userId = normalizeText(customData?.userId);
   if (userId) {
-    // BLOCKED(rc31-u2): webhook resolves the tenant from a provider-supplied userId; no canonical tenant until this lookup (identity bootstrap).
-    // db-access-guard: system-exempt -- reason: Paddle customData userId is a fallback only after canonical subscription lookup cannot resolve tenant
-    const userRecord = await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { tenantId: true },
-    });
-    if (userRecord?.tenantId) return userRecord.tenantId;
+    // Fallback after canonical subscription lookup: exact user id to owning tenant only.
+    const owner = await resolvePaddleUserOwner(userId);
+    if (owner) return owner.tenantId;
   }
 
   return null;
@@ -305,11 +301,11 @@ export async function handlePaddleWebhookCore(args: {
     { logAuditEvent }
   );
 
-  if (!insertResult.inserted || !insertResult.webhookEventRowId) {
+  if (!insertResult.inserted) {
     return { status: 200, body: { success: true, duplicate: true } };
   }
 
-  const webhookEventRowId = insertResult.webhookEventRowId;
+  const { receiptLease, webhookEventRowId } = insertResult;
   try {
     await persistInvoiceAndLedgerInvariants(
       {
@@ -349,14 +345,14 @@ export async function handlePaddleWebhookCore(args: {
       }
     );
     await markWebhookProcessed(
-      { headers, webhookEventRowId, eventType, eventId: normalizedEventId ?? undefined, tenantId },
+      { headers, receiptLease, eventType, eventId: normalizedEventId ?? undefined, tenantId },
       { logAuditEvent }
     );
   } catch (processingError) {
     await markWebhookFailed(
       {
         headers,
-        webhookEventRowId,
+        receiptLease,
         eventType,
         eventId: normalizedEventId ?? undefined,
         error: processingError,

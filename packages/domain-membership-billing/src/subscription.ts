@@ -1,4 +1,5 @@
-import { and, db, eq, subscriptions, withTenantContext } from '@interdomestik/database';
+import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
+import { resolvePaddleSubscriptionOwner } from '@interdomestik/database/paddle-provider-resolution';
 
 import {
   getMembershipLifecycleBucket,
@@ -60,15 +61,18 @@ export async function findSubscriptionByProviderReference(
     );
   }
 
-  // BLOCKED(rc31-u2): webhook tenant resolution by provider subscription reference (cross-tenant lookup by design); needs privileged manifest entry
-  // db-access-guard: system-exempt -- reason: provider reference lookup resolves tenant from payment provider event
-  return db.query.subscriptions.findFirst({
-    where: (subs, { eq: eqFn, or: orFn }) =>
-      orFn(
-        eqFn(subs.id, normalizedReference),
-        eqFn(subs.providerSubscriptionId, normalizedReference)
-      ),
-  });
+  // Unscoped provider reference: resolve the owning tenant/id exactly (ambiguity fails closed),
+  // then read that one subscription inside its tenant.
+  const owner = await resolvePaddleSubscriptionOwner(normalizedReference);
+  if (!owner) {
+    return null;
+  }
+  return withTenantContext({ tenantId: owner.tenantId }, tx =>
+    tx.query.subscriptions.findFirst({
+      where: (subs, { and: andFn, eq: eqFn }) =>
+        andFn(eqFn(subs.tenantId, owner.tenantId), eqFn(subs.id, owner.subscriptionId)),
+    })
+  );
 }
 
 export function resolveProviderSubscriptionHandle(subscription: {

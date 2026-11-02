@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { readPaddleCanonicalUser } from './utils/canonical-user';
 import { findSubscriptionByProviderReference } from '../../subscription';
 import { transactionEventDataSchema } from '../schemas';
 import type { PaddleWebhookAuditDeps } from '../types';
@@ -95,12 +95,7 @@ async function resolveTransactionTenantContext(args: {
   }
 
   if (userId) {
-    // BLOCKED(rc31-u2): tenant resolution from provider-supplied userId (identity/tenant lookup by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps transaction tenant context before tenant-scoped audit writes
-    const user = await db.query.user.findFirst({
-      where: (t, { eq }) => eq(t.id, userId),
-      columns: { tenantId: true, agentId: true },
-    });
+    const user = await readPaddleCanonicalUser(userId);
 
     if (!user) {
       console.warn(`[Webhook] Transaction ${args.transactionId} user ${userId} was not found`);

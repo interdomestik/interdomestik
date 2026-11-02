@@ -4,6 +4,8 @@ import { handleSubscriptionPastDue } from './dunning';
 import {
   createPastDueSubscriptionEvent,
   mockRacedSubscriptionInsert,
+  mockSubscriptionOwner,
+  mockUserOwner,
   resetPaddleHandlerMocks,
   routeTenantContextToDbMock,
 } from './test-support';
@@ -17,6 +19,12 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async function () {
   const support = await import('./test-support');
   return support.createPaddleDatabaseMockModule(hoisted);
+});
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', async function () {
+  const mocks = await import('./test-support');
+
+  return mocks.createPaddleResolutionMockModule(hoisted);
 });
 
 vi.mock('../../commissions/create', async function () {
@@ -40,6 +48,7 @@ describe('handleSubscriptionPastDue', () => {
     const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -62,12 +71,14 @@ describe('handleSubscriptionPastDue', () => {
   it('does not resend the payment failed email after the first dunning attempt', async () => {
     const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_abc' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
       id: 'sub_existing',
       tenantId: 'tenant_abc',
       userId: 'user_123',
       dunningAttemptCount: 1,
     });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -83,12 +94,14 @@ describe('handleSubscriptionPastDue', () => {
   it('uses existing subscription user when past-due customData omits userId', async () => {
     const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_abc' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_abc',
       userId: 'user_canonical',
       dunningAttemptCount: 0,
     });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_canonical',
       email: 'canonical@example.com',
@@ -123,12 +136,14 @@ describe('handleSubscriptionPastDue', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const sendPaymentFailedEmail = vi.fn().mockResolvedValue(undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_real' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_real',
       userId: 'user_123',
       dunningAttemptCount: 0,
     });
+    mockUserOwner(hoisted, 'tenant_real');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -164,6 +179,7 @@ describe('handleSubscriptionPastDue', () => {
   it('skips dunning writes when provider user metadata conflicts with existing subscription user', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_abc' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_abc',
@@ -185,6 +201,7 @@ describe('handleSubscriptionPastDue', () => {
       },
     });
 
+    expect(hoisted.resolution.resolvePaddleUserOwner).not.toHaveBeenCalled();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
     expect(hoisted.db.insert).not.toHaveBeenCalled();
     expect(hoisted.db.update).not.toHaveBeenCalled();
@@ -200,15 +217,13 @@ describe('handleSubscriptionPastDue', () => {
   it('retries as an update when a raced insert hits a unique constraint', async () => {
     const { mockSet, mockWhere } = mockRacedSubscriptionInsert(hoisted);
 
-    hoisted.db.query.subscriptions.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'mock_sub_existing',
-        tenantId: 'tenant_abc',
-        userId: 'user_123',
-        dunningAttemptCount: 0,
-      });
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'mock_sub_existing',
+      tenantId: 'tenant_abc',
+      userId: 'user_123',
+      dunningAttemptCount: 0,
+    });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -251,6 +266,7 @@ describe('handleSubscriptionPastDue', () => {
       values: insertedValues,
     });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',

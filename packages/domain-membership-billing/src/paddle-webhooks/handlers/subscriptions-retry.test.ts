@@ -14,6 +14,10 @@ vi.mock('@interdomestik/database', async () => {
   const support = await import('./test-support');
   return support.createPaddleDatabaseMockModule(hoisted);
 });
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
+);
+
 vi.mock('../../commissions/create', async () => {
   const support = await import('./test-support');
   return support.createCommissionMockModule();
@@ -69,7 +73,7 @@ describe('handleSubscriptionChanged entity retry', () => {
       role: 'member',
     };
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       processingResult: 'ok',
       payload: {
         data: {
@@ -86,10 +90,8 @@ describe('handleSubscriptionChanged entity retry', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(newMember);
+    // No tenant owns the email; the reads are the agent branch lookup and the final reload.
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(newMember);
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
@@ -118,7 +120,7 @@ describe('handleSubscriptionChanged entity retry', () => {
     const sendThankYouLetter = vi.fn();
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
     hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue(undefined);
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue(undefined);
 
     await expect(
       handleSubscriptionChanged(
@@ -217,6 +219,7 @@ describe('handleSubscriptionChanged entity retry', () => {
     expect(hoisted.tx.update).not.toHaveBeenCalled();
     expect(hoisted.appendEvent).not.toHaveBeenCalled();
     expect(hoisted.db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolution.resolvePaddleSubscriptionOwner).not.toHaveBeenCalled();
     expect(prepareThankYouLetter).not.toHaveBeenCalled();
     expect(membershipConfirmationDelivery.claimExisting).not.toHaveBeenCalled();
     expect(membershipConfirmationDelivery.claim).not.toHaveBeenCalled();

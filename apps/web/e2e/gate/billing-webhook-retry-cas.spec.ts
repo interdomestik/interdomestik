@@ -56,7 +56,11 @@ test('B5 retry compare-and-set admits one concurrent claimant', async ({}, testI
     expect.arrayContaining([
       {
         status: 'fulfilled',
-        value: { inserted: true, webhookEventRowId: receiptId },
+        value: {
+          inserted: true,
+          webhookEventRowId: receiptId,
+          receiptLease: { id: receiptId, leaseStartedAt: expect.any(Date) },
+        },
       },
       {
         status: 'rejected',
@@ -65,13 +69,32 @@ test('B5 retry compare-and-set admits one concurrent claimant', async ({}, testI
     ])
   );
 
-  await markWebhookProcessed({
-    headers: new Headers(),
-    webhookEventRowId: receiptId,
-    eventType: 'subscription.created',
-    eventId,
-    tenantId: 'tenant_ks',
-  });
+  const admitted = concurrentClaims.find(
+    (claim): claim is PromiseFulfilledResult<Awaited<ReturnType<typeof insertWebhookEvent>>> =>
+      claim.status === 'fulfilled'
+  )?.value;
+  if (!admitted?.inserted) throw new Error('expected one admitted receipt lease');
+
+  // A stale lease (an earlier attempt on the same receipt) cannot write the terminal result.
+  await expect(
+    markWebhookProcessed({
+      headers: new Headers(),
+      receiptLease: { id: receiptId, leaseStartedAt: new Date(0) },
+      eventType: 'subscription.created',
+      eventId,
+      tenantId: 'tenant_ks',
+    })
+  ).resolves.toBe(false);
+
+  await expect(
+    markWebhookProcessed({
+      headers: new Headers(),
+      receiptLease: admitted.receiptLease,
+      eventType: 'subscription.created',
+      eventId,
+      tenantId: 'tenant_ks',
+    })
+  ).resolves.toBe(true);
   await expect(insertWebhookEvent(replayParams)).resolves.toEqual({
     inserted: false,
     webhookEventRowId: null,

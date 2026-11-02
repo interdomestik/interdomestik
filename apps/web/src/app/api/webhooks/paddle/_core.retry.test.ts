@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  dbUserFindFirst: vi.fn(),
+  resolvePaddleUserOwner: vi.fn(),
   findSubscriptionByProviderReference: vi.fn(),
   handlePaddleEvent: vi.fn(),
   insertWebhookEvent: vi.fn(),
@@ -22,8 +22,8 @@ vi.mock('@/lib/auth', () => ({ auth: { api: { requestPasswordReset: vi.fn() } } 
 vi.mock('@/lib/email', () => ({
   paddleDunningEmailDeps: {},
 }));
-vi.mock('@interdomestik/database', () => ({
-  db: { query: { user: { findFirst: hoisted.dbUserFindFirst } } },
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   findSubscriptionByProviderReference: hoisted.findSubscriptionByProviderReference,
@@ -54,6 +54,12 @@ vi.mock('@interdomestik/domain-leads', () => ({
 }));
 
 import { handlePaddleWebhookCore } from './_core';
+
+const RECEIPT_ADMISSION = {
+  inserted: true as const,
+  webhookEventRowId: 'webhook_event_1',
+  receiptLease: { id: 'webhook_event_1', leaseStartedAt: new Date('2026-09-25T08:00:00.000Z') },
+};
 
 async function callCore() {
   return handlePaddleWebhookCore({
@@ -90,11 +96,8 @@ describe('handlePaddleWebhookCore retry contract', () => {
       signatureBypassed: false,
     });
     hoisted.findSubscriptionByProviderReference.mockResolvedValue(null);
-    hoisted.dbUserFindFirst.mockResolvedValue(null);
-    hoisted.insertWebhookEvent.mockResolvedValue({
-      inserted: true,
-      webhookEventRowId: 'webhook_event_1',
-    });
+    hoisted.resolvePaddleUserOwner.mockResolvedValue(null);
+    hoisted.insertWebhookEvent.mockResolvedValue(RECEIPT_ADMISSION);
     hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
     hoisted.handlePaddleEvent.mockResolvedValue(undefined);
     hoisted.markWebhookProcessed.mockResolvedValue(undefined);
@@ -133,7 +136,7 @@ describe('handlePaddleWebhookCore retry contract', () => {
       await expect(callCore()).rejects.toThrow('verified dependency not ready');
       expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
         expect.objectContaining({
-          webhookEventRowId: 'webhook_event_1',
+          receiptLease: RECEIPT_ADMISSION.receiptLease,
           retryable: true,
         }),
         expect.any(Object)
@@ -148,7 +151,7 @@ describe('handlePaddleWebhookCore retry contract', () => {
     await expect(callCore()).rejects.toThrow('database unavailable');
     expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
       expect.objectContaining({
-        webhookEventRowId: 'webhook_event_1',
+        receiptLease: RECEIPT_ADMISSION.receiptLease,
         retryable: false,
       }),
       expect.any(Object)
@@ -170,6 +173,10 @@ describe('handlePaddleWebhookCore retry contract', () => {
         processingScopeKey: 'entity:mk',
       }),
       expect.any(Object)
+    );
+    // Unverified evidence never carries a tenant.
+    expect(hoisted.persistInvalidSignatureAttempt.mock.calls[0]?.[0]).not.toHaveProperty(
+      'tenantId'
     );
     expect(hoisted.insertWebhookEvent).not.toHaveBeenCalled();
   });

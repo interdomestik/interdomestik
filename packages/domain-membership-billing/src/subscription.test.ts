@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   or: vi.fn((...args: unknown[]) => ({ op: 'or', args })),
   findSubscriptionFirst: vi.fn(),
+  resolvePaddleSubscriptionOwner: vi.fn(),
   withTenantContext: vi.fn(
     async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
       action({
@@ -36,6 +37,10 @@ vi.mock('@interdomestik/database', () => ({
   or: hoisted.or,
   subscriptions: hoisted.subscriptions,
   withTenantContext: hoisted.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
 }));
 
 import {
@@ -119,42 +124,28 @@ describe('subscription claim eligibility', () => {
     );
   });
 
-  it('looks up subscriptions by either internal id or provider subscription id', async () => {
+  it('resolves a provider reference to its owning tenant, then reads the resolved subscription', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce({
+      subscriptionId: 'sub_internal_1',
+      tenantId: 'tenant_ks',
+    });
     hoisted.findSubscriptionFirst.mockImplementationOnce(
       async (args: {
         where?: (
           subs: Record<string, string>,
           operators: {
+            and: (...clauses: unknown[]) => unknown;
             eq: (left: unknown, right: unknown) => unknown;
-            or: (...clauses: unknown[]) => unknown;
           }
         ) => unknown;
       }) => {
-        const whereNode = args.where?.(
-          {
-            id: 'subscriptions.id',
-            providerSubscriptionId: 'subscriptions.provider_subscription_id',
-          },
-          {
-            eq: (left, right) => ({ op: 'eq', left, right }),
-            or: (...clauses) => ({ op: 'or', clauses }),
-          }
-        ) as
-          | {
-              op?: string;
-              clauses?: Array<{ op?: string; left?: unknown; right?: unknown }>;
-            }
-          | undefined;
-
-        expect(whereNode).toEqual({
-          op: 'or',
-          clauses: [
-            { op: 'eq', left: 'subscriptions.id', right: 'sub_provider_123' },
-            {
-              op: 'eq',
-              left: 'subscriptions.provider_subscription_id',
-              right: 'sub_provider_123',
-            },
+        expect(
+          args.where?.({ id: 'subscriptions.id', tenantId: 'subscriptions.tenant_id' }, hoisted)
+        ).toEqual({
+          op: 'and',
+          args: [
+            { op: 'eq', left: 'subscriptions.tenant_id', right: 'tenant_ks' },
+            { op: 'eq', left: 'subscriptions.id', right: 'sub_internal_1' },
           ],
         });
 
@@ -166,6 +157,22 @@ describe('subscription claim eligibility', () => {
       id: 'sub_internal_1',
       providerSubscriptionId: 'sub_provider_123',
     });
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_provider_123');
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_ks' },
+      expect.any(Function)
+    );
+  });
+
+  it('returns null without any tenant context when the provider reference has no unique owner', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce(null);
+
+    await expect(findSubscriptionByProviderReference('sub_unknown')).resolves.toBeNull();
+
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_unknown');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
   });
 
   it('prefers provider subscription id when calling the billing provider', () => {

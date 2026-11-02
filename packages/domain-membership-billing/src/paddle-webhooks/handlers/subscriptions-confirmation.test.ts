@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import { mockSubscriptionOwner, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -10,6 +10,10 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
+);
+
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -44,6 +48,7 @@ describe('subscription confirmation dispatch', () => {
     resetPaddleHandlerMocks(hoisted);
     sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_123' });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.test',
@@ -136,6 +141,8 @@ describe('subscription confirmation dispatch', () => {
   });
 
   it('does not dispatch when checkout tenant conflicts with canonical ownership', async () => {
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_real' });
+    mockUserOwner(hoisted, 'tenant_real');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_real',
@@ -168,7 +175,7 @@ describe('subscription confirmation dispatch', () => {
       )
     ).rejects.toThrow('customData tenant=tenant_bad conflicts with canonical tenant=tenant_real');
 
-    expect(hoisted.db.query.webhookEvents.findFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolution.readVerifiedPaddleTransactionEvidence).not.toHaveBeenCalled();
     expect(hoisted.tx.insert).not.toHaveBeenCalled();
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
@@ -176,6 +183,8 @@ describe('subscription confirmation dispatch', () => {
 
   it('fails closed before dispatch when provider tenant conflicts with an existing subscription', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_real' });
+    mockUserOwner(hoisted, 'tenant_real');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_real',
@@ -231,6 +240,7 @@ describe('subscription confirmation dispatch', () => {
 
   it('fails before dispatch when a valid event has no canonical tenant context', async () => {
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    hoisted.resolution.resolvePaddleUserOwner.mockResolvedValue(null);
     hoisted.db.query.user.findFirst.mockResolvedValue(undefined);
 
     await expect(
@@ -263,6 +273,8 @@ describe('subscription confirmation dispatch', () => {
     const where = vi.fn().mockReturnValue({ returning });
     const set = vi.fn().mockReturnValue({ where });
     hoisted.tx.update.mockReturnValue({ set });
+    mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_existing', tenantId: 'tenant_abc' });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_existing',
       tenantId: 'tenant_abc',

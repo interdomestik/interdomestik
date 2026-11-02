@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   ledgerOnConflictDoNothing: vi.fn(),
   ledgerReturning: vi.fn(),
   ledgerValues: vi.fn(),
+  resolvePaddleSubscriptionOwner: vi.fn(),
   sql: vi.fn(() => ({ mockedSql: true })),
   subscriptionFindFirst: vi.fn(),
   transaction: vi.fn(),
@@ -29,6 +30,10 @@ vi.mock('@interdomestik/database', () => ({
   },
   withTenantContext: hoisted.transaction,
   sql: hoisted.sql,
+}));
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
 }));
 
 import { persistInvoiceAndLedgerInvariants } from './invariants';
@@ -54,7 +59,12 @@ function transactionInput(customData?: Record<string, string>) {
 describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    const tx = { insert: hoisted.txInsert };
+    // Unknown provider references resolve to no owner unless a test names one.
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
+    const tx = {
+      insert: hoisted.txInsert,
+      query: { subscriptions: { findFirst: hoisted.subscriptionFindFirst } },
+    };
     hoisted.transaction.mockImplementation(async (_context, callback) => callback(tx));
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) return { values: hoisted.invoiceValues };
@@ -74,6 +84,10 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   });
 
   it('uses stored subscription legal tenant and billing entity for invoice scope', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue({
+      subscriptionId: 'sub_1',
+      tenantId: 'tenant_ks',
+    });
     hoisted.subscriptionFindFirst.mockResolvedValue({
       billingEntity: 'mk',
       id: 'sub_1',
@@ -110,6 +124,10 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   });
 
   it('uses recovery success-fee legal tenant metadata before subscription scope', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue({
+      subscriptionId: 'sub_1',
+      tenantId: 'tenant_ks',
+    });
     hoisted.subscriptionFindFirst.mockResolvedValue({
       billingEntity: 'ks',
       id: 'sub_1',
@@ -141,7 +159,10 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
         })
       )
     ).rejects.toThrow('conflicts with legal tenant');
-    expect(hoisted.subscriptionFindFirst).toHaveBeenCalledTimes(1);
+    // The provider reference is looked up once; with no unique owner nothing is read or written.
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_paddle_1');
+    expect(hoisted.subscriptionFindFirst).not.toHaveBeenCalled();
     expect(hoisted.invoiceValues).not.toHaveBeenCalled();
   });
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import { mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -11,6 +11,10 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
+);
+
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -24,6 +28,7 @@ describe('subscription locale isolation', () => {
   beforeEach(() => {
     resetPaddleHandlerMocks(hoisted);
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'member@example.test',

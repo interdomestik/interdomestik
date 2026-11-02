@@ -1,4 +1,5 @@
-import { db, withTenantContext } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
+import { readPaddleCanonicalUser } from './utils/canonical-user';
 
 import { findSubscriptionByProviderReference } from '../../subscription';
 import { RetryablePaddleWebhookError } from '../errors';
@@ -86,14 +87,8 @@ export async function resolvePastDueContext(
 }
 
 async function findPastDueUserRecord(userId: string): Promise<PastDueUserRecord | null> {
-  return (
-    // BLOCKED(rc31-u2): tenant resolution from provider-supplied userId (identity/tenant lookup by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps dunning tenant context before tenant-scoped writes
-    (await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
-      columns: { id: true, email: true, name: true, tenantId: true },
-    })) ?? null
-  );
+  const user = await readPaddleCanonicalUser(userId);
+  return user ? { id: user.id, email: user.email, name: user.name, tenantId: user.tenantId } : null;
 }
 
 async function findExistingPastDueSubscriptionByProvider(

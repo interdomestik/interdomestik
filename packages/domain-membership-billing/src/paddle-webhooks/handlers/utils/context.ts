@@ -1,4 +1,5 @@
 import { db, withTenantContext, type TenantTransaction } from '@interdomestik/database';
+import { readPaddleCanonicalUser } from './canonical-user';
 import { findSubscriptionByProviderReference } from '../../../subscription';
 
 export class PaddleSubscriptionContextConflictError extends Error {
@@ -79,12 +80,7 @@ export async function resolveSubscriptionContext(sub: any) {
     );
   }
 
-  // BLOCKED(rc31-u2): tenant resolution from provider-supplied userId (identity/tenant lookup by design); needs privileged manifest entry
-  // db-access-guard: system-exempt -- reason: Paddle userId lookup bootstraps tenant context before tenant-scoped subscription writes
-  const userRecord = await db.query.user.findFirst({
-    where: (users, { eq }) => eq(users.id, userId),
-    columns: { tenantId: true, email: true, name: true, memberNumber: true, agentId: true },
-  });
+  const userRecord = await readPaddleCanonicalUser(userId);
 
   if (!userRecord) {
     console.warn(

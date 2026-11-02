@@ -19,7 +19,9 @@
     "./claim-number": "./src/claim-number.ts",
     "./tenant-directory": "./src/tenant-directory.ts",
     "./public-token-tenant": "./src/public-token-tenant.ts",
-    "./scheduled-tenant-work": "./src/scheduled-tenant-work.ts"
+    "./scheduled-tenant-work": "./src/scheduled-tenant-work.ts",
+    "./paddle-webhook-receipts": "./src/paddle-webhook-receipts.ts",
+    "./paddle-provider-resolution": "./src/paddle-provider-resolution.ts"
   },
   "scripts": {
     "db:generate": "pnpm run generate",

@@ -17,3 +17,7 @@ export function subscriptionCreatedReceipt(suffix: string): ReceiptParams {
     tenantId: 'tenant_mk',
   };
 }
+
+export function receiptLease(id: string, leaseStartedAt = new Date('2026-09-25T08:00:00.000Z')) {
+  return { id, leaseStartedAt };
+}

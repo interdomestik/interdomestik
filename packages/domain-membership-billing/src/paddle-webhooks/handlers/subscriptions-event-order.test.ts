@@ -4,7 +4,12 @@ import { createCommissionWithDispositionCore } from '../../commissions/create';
 import { PaddleEventOrderingError } from '../errors';
 import { handleSubscriptionChanged } from './subscriptions';
 import { upsertSubscription } from './subscription-upsert';
-import { createActiveSubscriptionUpdatedEvent, resetPaddleHandlerMocks } from './test-support';
+import {
+  createActiveSubscriptionUpdatedEvent,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -14,6 +19,10 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
+);
+
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );
@@ -103,6 +112,8 @@ function entityCreated() {
 
 beforeEach(() => {
   resetPaddleHandlerMocks(hoisted);
+  mockSubscriptionOwner(hoisted, { subscriptionId: 'sub_paddle_456', tenantId: 'tenant_ks' });
+  mockUserOwner(hoisted, 'tenant_ks');
   hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
     id: 'sub_paddle_456',
     status: 'canceled',

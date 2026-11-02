@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   dbSubscriptionFindFirst: vi.fn(),
-  dbUserFindFirst: vi.fn(),
+  resolvePaddleSubscriptionOwner: vi.fn(),
+  resolvePaddleUserOwner: vi.fn(),
   handlePaddleWebhookCore: vi.fn(),
   parsePaddleWebhookBody: vi.fn(),
   verifyPaddleWebhook: vi.fn(),
@@ -19,14 +20,14 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => 
     verifyPaddleWebhook: hoisted.verifyPaddleWebhook,
   };
 });
-vi.mock('@interdomestik/database', () => ({
-  db: {
-    query: {
-      subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst },
-      user: { findFirst: hoisted.dbUserFindFirst },
-    },
-  },
+vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
+  resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
+vi.mock('@interdomestik/database', () => {
+  const db = { query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } };
+  return { db, withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db) };
+});
 
 import { handlePaddleWebhookEntityCore } from './_core';
 
@@ -55,6 +56,10 @@ describe('handlePaddleWebhookEntityCore billing snapshots', () => {
       signatureBypassed: false,
       signatureValid: true,
     });
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue({
+      subscriptionId: 'sub_internal_mk',
+      tenantId: 'tenant_ks',
+    });
     hoisted.dbSubscriptionFindFirst.mockResolvedValue({
       billingEntity: 'mk',
       legalTenantId: 'tenant_mk',
@@ -72,8 +77,9 @@ describe('handlePaddleWebhookEntityCore billing snapshots', () => {
     });
 
     expect(result).toEqual({ status: 200, body: { success: true } });
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_paddle_mk');
     expect(hoisted.dbSubscriptionFindFirst).toHaveBeenCalledTimes(1);
-    expect(hoisted.dbUserFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
       expect.objectContaining({ billingEntity: 'mk' })
     );

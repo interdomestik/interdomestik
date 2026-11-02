@@ -4,6 +4,7 @@ import { handleSubscriptionChanged } from './subscriptions';
 import {
   createActiveSubscriptionUpdatedEvent,
   mockRacedSubscriptionInsert,
+  mockUserOwner,
   resetPaddleHandlerMocks,
 } from './test-support';
 
@@ -15,6 +16,10 @@ const hoisted = await vi.hoisted(async () => {
 
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
+);
+
+vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
+  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
 );
 
 vi.mock('../../commissions/create', async () =>
@@ -34,7 +39,8 @@ beforeEach(() => {
 
 describe('handleSubscriptionChanged', () => {
   it('validates input and logs audit event on success', async () => {
-    // Mock User
+    // Mock User: the privileged lookup names the tenant, the profile is read inside it.
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -62,6 +68,11 @@ describe('handleSubscriptionChanged', () => {
         payload: { cancelAtPeriodEnd: false, fromStatus: 'none', toStatus: 'active' },
       })
     );
+    expect(hoisted.resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('user_123');
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant_abc' },
+      expect.any(Function)
+    );
     expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(expect.anything());
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -78,7 +89,7 @@ describe('handleSubscriptionChanged', () => {
     const sendThankYouLetter = vi.fn();
 
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue(undefined);
-    hoisted.db.query.webhookEvents.findFirst.mockResolvedValue({
+    hoisted.resolution.readVerifiedPaddleTransactionEvidence.mockResolvedValue({
       payload: {
         data: {
           customerEmail: 'buyer@example.com',
@@ -90,18 +101,16 @@ describe('handleSubscriptionChanged', () => {
         },
       },
     });
-    hoisted.db.query.user.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'user_new',
-        tenantId: 'tenant_mk',
-        email: 'buyer@example.com',
-        name: '',
-        memberNumber: 'MEM-2026-000123',
-        branchId: 'branch-mk-main',
-        role: 'member',
-      });
+    // No tenant owns the email, so the reads are the agent branch lookup and the final reload.
+    hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'user_new',
+      tenantId: 'tenant_mk',
+      email: 'buyer@example.com',
+      name: '',
+      memberNumber: 'MEM-2026-000123',
+      branchId: 'branch-mk-main',
+      role: 'member',
+    });
     hoisted.db.query.account.findFirst.mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
@@ -154,11 +163,13 @@ describe('handleSubscriptionChanged', () => {
     const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
     hoisted.tx.update.mockReturnValue({ set: mockSet });
 
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    // The provider reference resolves to nothing; the user-scoped fallback finds the row.
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce({
       id: 'mock_sub_existing',
       tenantId: 'tenant_abc',
       userId: 'user_123',
     });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -180,6 +191,7 @@ describe('handleSubscriptionChanged', () => {
 
     hoisted.tx.insert.mockReturnValue({ values: insertedValues });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+    mockUserOwner(hoisted, 'tenant_mk');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -219,12 +231,12 @@ describe('handleSubscriptionChanged', () => {
     hoisted.db.query.subscriptions.findFirst
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 'mock_sub_existing',
         tenantId: 'tenant_abc',
         userId: 'user_123',
       });
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst.mockResolvedValue({
       id: 'user_123',
       email: 'test@example.com',
@@ -264,6 +276,7 @@ describe('handleSubscriptionChanged', () => {
 
     hoisted.tx.insert.mockReturnValue({ values: insertedValues });
     hoisted.db.query.subscriptions.findFirst.mockResolvedValueOnce(null);
+    mockUserOwner(hoisted, 'tenant_abc');
     hoisted.db.query.user.findFirst
       .mockResolvedValueOnce({
         tenantId: 'tenant_abc',
