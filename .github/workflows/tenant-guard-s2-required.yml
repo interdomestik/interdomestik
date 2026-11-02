@@ -40,9 +40,9 @@ jobs:
           expected_repo='interdomestik/interdomestik'
           expected_branch='main'
           # Immutable approved S2 source. Advancing it requires a separately reviewed revision of this file.
-          # OWNER PIN (pending): the reviewed commit that adds the S2 source; unset values fail closed.
-          source_commit='0000000000000000000000000000000000000000'
-          source_tree='0000000000000000000000000000000000000000'
+          # OWNER PIN: the reviewed commit that adds the S2 source; it must be reachable from origin.
+          source_commit='2fe95e05c2cd79dd95754be91c1ad92082ab3094'
+          source_tree='c2fcacae6b3e4b8f0cb4ae22d2247f36e1868210'
           # Owner-pinned trusted comparator; it must equal the pin inside the approved source.
           trusted_commit='859d5019a4e4134f7580033f71460f1602b372aa'
           trusted_tree='44d8b3e7730ca1c0aaa6a006aa63cf59f361618a'

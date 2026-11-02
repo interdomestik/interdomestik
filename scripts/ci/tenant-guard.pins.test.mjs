@@ -105,6 +105,7 @@ test('the S2 required workflow binds the same trusted pin and runs only the S2 e
   assert.equal(pin('trusted_tree'), TRUSTED.tree);
   assert.match(pin('source_commit') ?? '', /^[0-9a-f]{40}$/u);
   assert.match(pin('source_tree') ?? '', /^[0-9a-f]{40}$/u);
+  assert.notEqual(pin('source_commit'), '0'.repeat(40), 'the S2 source must be pinned');
   assert.match(workflow, /const pending = \['scripts\/ci\/tenant-guard\.mjs'\];/u);
   assert.match(workflow, /GIT_DIR="\$work\/git"/u);
   assert.doesNotMatch(workflow, /check-db-access-guard|db-access-baseline/u);

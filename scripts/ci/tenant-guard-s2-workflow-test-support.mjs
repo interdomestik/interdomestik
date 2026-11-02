@@ -104,9 +104,9 @@ export function openPullRequest(mutate = () => {}, { base = 'main', force = [] }
 export function route(pr, { source = main, overrides = {}, extraEnv = {} } = {}) {
   const tree = git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
   const script = step.run
-    .replace(/^source_commit='0{40}'$/mu, `source_commit='${source}'`)
-    .replace(/^source_tree='0{40}'$/mu, `source_tree='${tree}'`);
-  assert.notEqual(script, step.run, 'the pending source pin lines must exist');
+    .replace(/^source_commit='[0-9a-f]{40}'$/mu, `source_commit='${source}'`)
+    .replace(/^source_tree='[0-9a-f]{40}'$/mu, `source_tree='${tree}'`);
+  assert.notEqual(script, step.run, 'the source pin lines must exist');
   const env = {
     PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`,
     GITHUB_WORKSPACE: pr.ws,
