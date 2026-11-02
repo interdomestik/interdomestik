@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logLeadActivityCore } from './log-lead';
 
@@ -25,6 +26,8 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('logLeadActivityCore', () => {
+  const authority = mintTestTenantAuthority('t1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.withTenantContext.mockImplementation(
@@ -53,13 +56,14 @@ describe('logLeadActivityCore', () => {
   } as any;
 
   it('fails if unauthorized (no session)', async () => {
-    const result = await logLeadActivityCore({ session: null, data: validData });
+    const result = await logLeadActivityCore({ session: null, authority: null, data: validData });
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
   });
 
   it('fails if user is member', async () => {
     const result = await logLeadActivityCore({
       session: { user: { role: 'member', tenantId: 't1' } } as any,
+      authority,
       data: validData,
     });
     expect(result).toEqual({ success: false, error: 'Permission denied: insufficient role' });
@@ -68,6 +72,7 @@ describe('logLeadActivityCore', () => {
   it('fails if missing tenantId', async () => {
     const result = await logLeadActivityCore({
       session: { user: { role: 'agent' } } as any, // Missing tenantId
+      authority,
       data: validData,
     });
     expect(result).toEqual({ success: false, error: 'Missing tenantId' });
@@ -76,6 +81,7 @@ describe('logLeadActivityCore', () => {
   it('fails validation (Zod) on empty subject', async () => {
     const result = await logLeadActivityCore({
       session: validSession,
+      authority,
       data: { ...validData, subject: '' },
     });
     expect(result).toEqual({ success: false, error: 'Validation failed: Subject is required' });
@@ -91,6 +97,7 @@ describe('logLeadActivityCore', () => {
 
     const result = await logLeadActivityCore({
       session: validSession,
+      authority,
       data: validData,
     });
 
@@ -107,6 +114,7 @@ describe('logLeadActivityCore', () => {
 
     const result = await logLeadActivityCore({
       session: validSession,
+      authority,
       data: validData,
     });
 
@@ -117,11 +125,12 @@ describe('logLeadActivityCore', () => {
   it('logs activity if valid', async () => {
     const result = await logLeadActivityCore({
       session: validSession,
+      authority,
       data: validData,
     });
 
     expect(result).toEqual({ success: true });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 't1' }, expect.any(Function));
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.insert).toHaveBeenCalled();
     const inserted = mocks.values.mock.calls[0][0];
     expect(inserted).toMatchObject({

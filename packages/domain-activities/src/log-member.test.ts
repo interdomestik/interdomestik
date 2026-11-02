@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { logActivityCore } from './log-member';
@@ -30,6 +31,8 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('logActivityCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   const validData = {
     memberId: 'member-1',
     type: 'call' as const,
@@ -65,6 +68,7 @@ describe('logActivityCore', () => {
       session: {
         user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
       },
+      authority,
       data: validData,
     });
 
@@ -83,6 +87,7 @@ describe('logActivityCore', () => {
       session: {
         user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
       },
+      authority,
       data: validData,
     });
 
@@ -95,14 +100,12 @@ describe('logActivityCore', () => {
       session: {
         user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
       },
+      authority,
       data: validData,
     });
 
     expect(result).toEqual({ success: true });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.insert).toHaveBeenCalled();
     expect(mocks.values).toHaveBeenCalledWith(
       expect.objectContaining({

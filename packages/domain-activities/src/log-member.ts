@@ -1,4 +1,8 @@
 import { db, memberActivities, user, withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -22,9 +26,10 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
 
 export async function logActivityCore(params: {
   session: ActivitySession | null;
+  authority: TenantAuthority | null;
   data: LogActivityInput;
 }): Promise<ActionResult> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session) {
     return { success: false, error: 'Unauthorized' };
@@ -36,7 +41,10 @@ export async function logActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
-  const tenantId = session.user.tenantId;
+  if (!authority) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
@@ -51,7 +59,7 @@ export async function logActivityCore(params: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const member = await withTenantContext({ tenantId }, tx =>
+    const member = await withTenantContext(authority, tx =>
       tx.query.user.findFirst({
         where: eq(user.id, memberId),
       })
@@ -79,7 +87,7 @@ export async function logActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantContext({ tenantId }, tx => tx.insert(memberActivities).values(newActivity));
+    await withTenantContext(authority, tx => tx.insert(memberActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

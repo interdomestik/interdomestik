@@ -1,4 +1,8 @@
 import { crmActivities, crmLeads, withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -12,9 +16,10 @@ const ALLOWED_ROLES = new Set(['admin', 'staff', 'agent']);
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
+  authority: TenantAuthority | null;
   data: LogLeadActivityInput;
 }): Promise<ActionResult> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session) return { success: false, error: 'Unauthorized' };
 
@@ -27,7 +32,10 @@ export async function logLeadActivityCore(params: {
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
-  const tenantId = session.user.tenantId;
+  if (!authority) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
@@ -40,7 +48,7 @@ export async function logLeadActivityCore(params: {
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const lead = await withTenantContext({ tenantId }, tx =>
+    const lead = await withTenantContext(authority, tx =>
       tx.query.crmLeads.findFirst({
         where: eq(crmLeads.id, leadId),
       })
@@ -67,7 +75,7 @@ export async function logLeadActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantContext({ tenantId }, tx => tx.insert(crmActivities).values(newActivity));
+    await withTenantContext(authority, tx => tx.insert(crmActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {
