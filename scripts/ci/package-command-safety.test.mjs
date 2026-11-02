@@ -260,11 +260,14 @@ test('package command contracts remain truthful and keep heavy proof explicit', 
     'coverage:gate',
     'e2e:gate',
     'e2e:smoke',
-    'check:db-access',
+    'check:tenant-guard',
     'check:architecture-boundaries',
   ]) {
     assert.match(packageJson.scripts['pr:verify'], new RegExp(required.replace(':', '\\:')));
   }
+  // S″ is the required tenant guard; the legacy DB access guard stays an explicit command only.
+  assert.equal(packageJson.scripts['check:tenant-guard'], 'node scripts/ci/tenant-guard.mjs');
+  assert.doesNotMatch(packageJson.scripts['pr:verify'], /check:db-access/u);
   assert.equal(databasePackageJson.scripts['db:generate'], 'pnpm run generate');
   assert.equal(databasePackageJson.scripts.generate, 'drizzle-kit generate');
 });

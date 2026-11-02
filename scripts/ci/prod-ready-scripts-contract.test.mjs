@@ -10,7 +10,8 @@ test('production code readiness gate stays Docker-free', () => {
   assert.match(script, /\bpnpm lint\b/);
   assert.match(script, /pnpm --filter @interdomestik\/web test:unit --run/);
   assert.match(script, /\bpnpm check:architecture-boundaries\b/);
-  assert.match(script, /\bpnpm check:db-access\b/);
+  assert.match(script, /\bpnpm check:tenant-guard\b/);
+  assert.doesNotMatch(script, /\bpnpm check:db-access\b/);
   assert.match(script, /\bpnpm i18n:check\b/);
   assert.match(script, /\bpnpm repo:size:check\b/);
   assert.doesNotMatch(script, /\bdocker\b|\bsupabase\b|\be2e\b|\brelease:gate\b/);
