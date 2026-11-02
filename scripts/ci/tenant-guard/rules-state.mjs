@@ -3,7 +3,7 @@
 import ts from 'typescript';
 import { LEGACY, PRIVILEGED } from './manifest.mjs';
 import { originKey } from './modules.mjs';
-import { byCodeUnit, sha256 } from './rules-digest.mjs';
+import { byCodeUnit, hasFlag, sha256 } from './rules-digest.mjs';
 import { fingerprint, isFunctionLike, unitName, unitOf } from './syntax.mjs';
 
 /** Installs the pinned-state, write-target and state-contract analyses on `ctx`. */
@@ -134,7 +134,7 @@ export function installState(ctx) {
     const fact = factsOf(origin.file);
     const statement = fact?.statements.get(origin.name);
     if (!statement || !ts.isVariableStatement(statement)) return false;
-    if ((statement.declarationList.flags & ts.NodeFlags.Const) === 0) return false;
+    if (!hasFlag(statement.declarationList, ts.NodeFlags.Const)) return false;
     const declaration = statement.declarationList.declarations.find(
       each => ts.isIdentifier(each.name) && each.name.text === origin.name
     );

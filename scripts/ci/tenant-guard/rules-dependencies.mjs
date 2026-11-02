@@ -3,7 +3,7 @@
 import ts from 'typescript';
 import { LEGACY, PRIVILEGED } from './manifest.mjs';
 import { originKey } from './modules.mjs';
-import { within } from './rules-digest.mjs';
+import { hasFlag, within } from './rules-digest.mjs';
 import { isFunctionLike, unitName } from './syntax.mjs';
 
 /** Installs the dependency, transfer and tenant-state analyses on `ctx`. */
@@ -177,7 +177,7 @@ export function installDependencies(ctx) {
     ts.SyntaxKind.CommaToken,
   ]);
   function holdsPrimitive(statement, declaration) {
-    if ((statement.declarationList.flags & ts.NodeFlags.Const) === 0) return false;
+    if (!hasFlag(statement.declarationList, ts.NodeFlags.Const)) return false;
     const initializer = unwrap(declaration.initializer);
     if (!initializer) return false;
     if (ts.isBinaryExpression(initializer)) {

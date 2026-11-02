@@ -2,6 +2,7 @@
 
 import ts from 'typescript';
 import { originKey } from './modules.mjs';
+import { hasFlag } from './rules-digest.mjs';
 import { isFunctionLike, unitOf } from './syntax.mjs';
 
 /** Installs the tenant-state use analyses and the reference index on `ctx`. */
@@ -152,7 +153,7 @@ export function installStateUse(ctx) {
         statement &&
         ts.isVariableStatement(statement) &&
         statement.parent === fact.sourceFile &&
-        (parent.parent.flags & ts.NodeFlags.Const) !== 0
+        hasFlag(parent.parent, ts.NodeFlags.Const)
       ) {
         note.alias({ file: fact.file, name: parent.name.text }, entry);
         return null;

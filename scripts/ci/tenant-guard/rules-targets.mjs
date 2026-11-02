@@ -1,6 +1,7 @@
 // Tenant guard stage: function targets, kernel callbacks and transaction hand-off.
 
 import ts from 'typescript';
+import { hasFlag } from './rules-digest.mjs';
 import { isFunctionLike, referenceForm } from './syntax.mjs';
 
 /** Installs function-target resolution and the hand-off analysis on `ctx`. */
@@ -95,8 +96,7 @@ export function installTargets(ctx) {
     if (binding.kind === 'function') return path.length === 0 ? [{ fact, fn: binding.decl }] : null;
     if (binding.kind === 'var') {
       const declaration = binding.decl;
-      if (!declaration.initializer || (declaration.parent.flags & ts.NodeFlags.Const) === 0)
-        return null;
+      if (!declaration.initializer || !hasFlag(declaration.parent, ts.NodeFlags.Const)) return null;
       if (declaration.name !== binding.id) {
         const property = boundProperty(declaration.name, binding.id);
         if (property === null) return null;

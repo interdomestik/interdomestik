@@ -1,7 +1,7 @@
 // Tenant guard stage: receiver sinks, contract coverage and legacy tenant sinks.
 
 import ts from 'typescript';
-import { sha256 } from './rules-digest.mjs';
+import { hasFlag, sha256 } from './rules-digest.mjs';
 import { callArguments, fingerprint, isFunctionLike, unitName, unitOf } from './syntax.mjs';
 
 /** Installs receiver-sink, contract-coverage and legacy-sink bookkeeping on `ctx`. */
@@ -158,7 +158,7 @@ export function installSinks(ctx) {
     ) {
       return false;
     }
-    if ((declaration.parent.flags & ts.NodeFlags.Const) === 0) return false;
+    if (!hasFlag(declaration.parent, ts.NodeFlags.Const)) return false;
     const uses = fact.references.filter(reference => reference.binding?.decl === declaration);
     return (
       uses.length > 0 &&
