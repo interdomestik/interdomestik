@@ -38,30 +38,29 @@ function compile(where: unknown) {
 
 const NOW = new Date('2026-11-02T10:00:00.000Z');
 
-test('claim tracking resolver selects only tenant and claim, queries by hash and limits to two', async t => {
+const ACTIVE = { expiresAt: new Date('2026-12-01T00:00:00.000Z'), revokedAt: null };
+
+test('claim tracking resolver queries by hash only, selects bounded columns and limits to two', async t => {
   const rawToken = 'raw-public-token-value';
-  const { calls } = mockSelect(t, [{ tenantId: 'tenant-ks', claimId: 'claim-1' }]);
+  const { calls } = mockSelect(t, [{ tenantId: 'tenant-ks', claimId: 'claim-1', ...ACTIVE }]);
 
   const result = await resolveClaimTrackingTokenTenant(rawToken, NOW);
 
   assert.deepEqual(result, { tenantId: 'tenant-ks', claimId: 'claim-1' });
   assert.equal(calls.length, 1);
-  assert.deepEqual(Object.keys(calls[0].columns as object).sort(), ['claimId', 'tenantId']);
+  assert.deepEqual(Object.keys(calls[0].columns as object).sort(), [
+    'claimId',
+    'expiresAt',
+    'revokedAt',
+    'tenantId',
+  ]);
   assert.equal(calls[0].limit, 2);
 
   const compiled = compile(calls[0].where);
   const expectedHash = createHash('sha256').update(rawToken).digest('hex');
-  assert.ok(compiled.params.includes(expectedHash), 'where must bind the sha256 hex of the token');
+  assert.equal(compiled.sql, '"claim_tracking_tokens"."token_hash" = $1');
+  assert.deepEqual(compiled.params, [expectedHash], 'where must bind only the sha256 hex');
   assert.ok(!compiled.params.includes(rawToken), 'raw token must never be a query parameter');
-  assert.ok(
-    compiled.params.some(
-      param => param instanceof Date || (typeof param === 'string' && param === NOW.toISOString())
-    ),
-    'where must bind the expiry comparison to now'
-  );
-  assert.match(compiled.sql, /"token_hash" = \$1/);
-  assert.match(compiled.sql, /"expires_at" > \$2/);
-  assert.match(compiled.sql, /"revoked_at" is null/);
 });
 
 test('claim tracking resolver fails closed on zero or ambiguous matches', async t => {
@@ -70,15 +69,41 @@ test('claim tracking resolver fails closed on zero or ambiguous matches', async 
   assert.equal(none.calls[0].limit, 2);
   none.method.mock.restore();
 
+  const twoActive = mockSelect(t, [
+    { tenantId: 'tenant-ks', claimId: 'claim-1', ...ACTIVE },
+    { tenantId: 'tenant-al', claimId: 'claim-2', ...ACTIVE },
+  ]);
+  assert.equal(await resolveClaimTrackingTokenTenant('token-a', NOW), null);
+  twoActive.method.mock.restore();
+
+  // An inactive same-hash row in another tenant still makes the hash ambiguous.
   mockSelect(t, [
-    { tenantId: 'tenant-ks', claimId: 'claim-1' },
-    { tenantId: 'tenant-al', claimId: 'claim-2' },
+    { tenantId: 'tenant-ks', claimId: 'claim-1', ...ACTIVE },
+    { tenantId: 'tenant-al', claimId: 'claim-2', expiresAt: ACTIVE.expiresAt, revokedAt: NOW },
+  ]);
+  assert.equal(await resolveClaimTrackingTokenTenant('token-a', NOW), null);
+});
+
+test('claim tracking resolver rejects a unique but expired or revoked token', async t => {
+  const expired = mockSelect(t, [
+    { tenantId: 'tenant-ks', claimId: 'claim-1', expiresAt: NOW, revokedAt: null },
+  ]);
+  assert.equal(await resolveClaimTrackingTokenTenant('token-a', NOW), null);
+  expired.method.mock.restore();
+
+  mockSelect(t, [
+    {
+      tenantId: 'tenant-ks',
+      claimId: 'claim-1',
+      expiresAt: ACTIVE.expiresAt,
+      revokedAt: new Date('2026-11-01T00:00:00.000Z'),
+    },
   ]);
   assert.equal(await resolveClaimTrackingTokenTenant('token-a', NOW), null);
 });
 
 test('claim tracking resolver returns null for an empty token without querying', async t => {
-  const { method } = mockSelect(t, [{ tenantId: 'tenant-ks', claimId: 'claim-1' }]);
+  const { method } = mockSelect(t, [{ tenantId: 'tenant-ks', claimId: 'claim-1', ...ACTIVE }]);
 
   assert.equal(await resolveClaimTrackingTokenTenant('', NOW), null);
   assert.equal(method.mock.callCount(), 0);

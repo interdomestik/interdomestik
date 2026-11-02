@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { dbAdmin } from './db';
 import { npsSurveyTokens } from './schema/automation';
 import { claimTrackingTokens } from './schema/tracking';
@@ -20,19 +20,21 @@ export async function resolveClaimTrackingTokenTenant(
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
   // db-access-guard: system-exempt -- reason: exact bearer-hash tracking token to tenant/claim resolution only; no claim data
   const rows = await dbAdmin
-    .select({ tenantId: claimTrackingTokens.tenantId, claimId: claimTrackingTokens.claimId })
+    .select({
+      tenantId: claimTrackingTokens.tenantId,
+      claimId: claimTrackingTokens.claimId,
+      expiresAt: claimTrackingTokens.expiresAt,
+      revokedAt: claimTrackingTokens.revokedAt,
+    })
     .from(claimTrackingTokens)
-    .where(
-      and(
-        eq(claimTrackingTokens.tokenHash, tokenHash),
-        gt(claimTrackingTokens.expiresAt, now),
-        isNull(claimTrackingTokens.revokedAt)
-      )
-    )
+    .where(eq(claimTrackingTokens.tokenHash, tokenHash))
     .limit(2);
-  // The hash is unique per tenant only; an ambiguous match resolves to nothing.
+  // The hash is unique per tenant only. Ambiguity is judged over every row with this hash, active
+  // or not, so a hash present in two tenants never resolves; validity is checked afterwards.
   if (rows.length !== 1) return null;
-  return { tenantId: rows[0].tenantId, claimId: rows[0].claimId };
+  const [row] = rows;
+  if (row.revokedAt || row.expiresAt.getTime() <= now.getTime()) return null;
+  return { tenantId: row.tenantId, claimId: row.claimId };
 }
 
 export async function resolveNpsSurveyTokenTenant(
