@@ -97,6 +97,41 @@ test('Q5: member extraction or mutation of an operator result is refused', () =>
         "  reviewer.id.name = 'other';",
       ]),
     ],
+    computedDestructuring: [
+      /is destructured into stolen, which is read through \(stolen.queryChunks\)/u,
+      ...inFunction([
+        "  const { ['where']: stolen }: any = { where: eq(claims.id, 'x') };",
+        "  stolen.queryChunks[1].name = 'other';",
+      ]),
+    ],
+    computedParameter: [
+      /is destructured into stolen, which is read through \(stolen.queryChunks\)/u,
+      "function peek({ ['where']: stolen }: any) { stolen.queryChunks[1].name = 'other'; }",
+      ...inFunction(["  peek({ where: eq(claims.id, 'x') });"]),
+    ],
+    unknownComputedKey: [
+      /is destructured by a computed key \(\[input.name\]: stolen\)/u,
+      ...inFunction([
+        "  const { [input.name]: stolen }: any = { where: eq(claims.id, 'x') };",
+        "  stolen.queryChunks[1].name = 'other';",
+      ]),
+    ],
+    prototypeSetter: [
+      /sets an object prototype \(__proto__: eq\(claims.id, 'x'\)\)/u,
+      ...inFunction([
+        "  const box: any = { __proto__: eq(claims.id, 'x') };",
+        "  box.queryChunks[1].name = 'other';",
+      ]),
+    ],
+    prototypeSpellings: [
+      /sets an object prototype \(\['__proto__'\]: eq\(claims.id, 'x'\)\)/u,
+      ...inFunction([
+        "  const a = { ['__proto__']: eq(claims.id, 'x') };",
+        "  const b = { '__proto__': eq(claims.id, 'y') };",
+        "  const c = { __proto__: eq(claims.status, 'z') };",
+        '  return [a, b, c];',
+      ]),
+    ],
     returnedCallback: [
       /#claims .* is returned from a function value/u,
       ...inFunction(["  return [1].map(() => eq(claims.id, 'x'));"]),
@@ -107,6 +142,9 @@ test('Q5: member extraction or mutation of an operator result is refused', () =>
     assert.ok(result.violations.length > 0, name);
     assertRefused(result, 'C1', pattern);
   }
+  // Every spelling that names `__proto__` (data property or prototype) is refused.
+  const spellings = resultRun(cases.prototypeSpellings.slice(1)).violations;
+  assert.equal(spellings.filter(v => /sets an object prototype/u.test(v.detail)).length, 3);
 });
 
 test('Q5: ordinary condition composition reaching a recognized builder is accepted', () => {
@@ -116,7 +154,7 @@ test('Q5: ordinary condition composition reaching a recognized builder is accept
     'async function first(executor: any, where: any) {',
     '  return executor.query.claims.findFirst({ where, columns: { id: true } });',
     '}',
-    'function page(executor: any, { where, limit }: any) {',
+    "function page(executor: any, { ['where']: where, limit }: any) {",
     '  return executor.select().from(claims).where(where).limit(limit);',
     '}',
     'export function read(authority: any, input: any) {',

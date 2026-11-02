@@ -2,12 +2,10 @@
 //
 // An imported operator does not detach what it is given: Drizzle `eq(claims.id, x)` keeps the
 // column object itself in the returned SQL (`queryChunks`), so the result is an alias of schema
-// state. In changed code a held value may only be bound, collected, combined by operators, passed
-// to workspace functions (the parameter is held; the result too when it returns it), returned
-// from declared functions (changed call results are held) and consumed by a query builder.
-// Member extraction, mutation, storage and other consumers are refused; an external callee's
-// result is held. Custody is finite: held whole, held at one object key (`{ where }`: only that
-// member is held) or a Drizzle table alias (each member is a held column); deeper is whole.
+// state. In changed code it may only be bound, collected, composed, passed to workspace functions
+// (the parameter is held), returned from declared functions and consumed by a query builder;
+// anything else is refused. Custody is finite: held whole, at one static object key (`{ where }`)
+// or as a Drizzle table alias (each member is a held column); deeper or unknown keys are whole.
 
 import ts from 'typescript';
 import { unitOf } from './syntax.mjs';
@@ -21,16 +19,19 @@ const COLLECTORS = new Set(['push', 'unshift']);
 // Drizzle operators whose result is a table alias: every member is a column of the table.
 const TABLE_ALIASES = new Set(['alias', 'aliasedTable']);
 const TABLE = Symbol('table');
+const UNKNOWN = Symbol('unknown key'); // a computed key that is not a literal: it may be any key
 
 /** Installs the held-value (custody) analysis on `ctx`. */
 export function installCustody(ctx) {
-  const { BUILDER_METHODS, outermost, propertyNameOf, unwrap, yieldsOperand } = ctx;
+  const { BUILDER_METHODS, outermost, unwrap, yieldsOperand } = ctx;
+  // The one property-key policy, for every carrier: a name or a literal computed key.
+  const staticKey = name => {
+    const literal = ts.isComputedPropertyName(name) ? unwrap(name.expression) : name;
+    if (ts.isStringLiteralLike(literal) || ts.isNumericLiteral(literal)) return literal.text;
+    return ts.isIdentifier(literal) && literal === name ? name.text : UNKNOWN;
+  };
 
   const text = (fact, node) => node.getText(fact.sourceFile).slice(0, 60);
-  const changed = (fact, node) => {
-    const unit = unitOf(node);
-    return !unit || !fact.unchanged(unit);
-  };
   const isWrite = node => {
     const parent = outermost(node).parent;
     return (
@@ -46,11 +47,9 @@ export function installCustody(ctx) {
         reference.binding?.decl === decl && reference.node.text === name && !isWrite(reference.node)
     );
   const visit = (seen, node, key) => {
-    seen.visited ??= new Map();
-    const keys = seen.visited.get(node) ?? new Set();
-    seen.visited.set(node, keys);
+    const keys = (seen.visited ??= new Map()).get(node) ?? new Set();
     if (keys.has(key)) return false;
-    keys.add(key);
+    seen.visited.set(node, keys.add(key));
     return true;
   };
   const isTableAlias = (fact, callee) => {
@@ -100,7 +99,10 @@ export function installCustody(ctx) {
       ts.isShorthandPropertyAssignment(parent) ||
       (ts.isPropertyAssignment(parent) && parent.initializer === value)
     ) {
-      return next(parent.parent, key === null ? (propertyNameOf(parent.name) ?? null) : null);
+      // `{ __proto__: held }` makes it the prototype: refused in every spelling.
+      const name = staticKey(parent.name);
+      if (name === '__proto__') return `sets an object prototype (${text(fact, parent)})`;
+      return next(parent.parent, key === null && name !== UNKNOWN ? name : null);
     }
     if (ts.isPropertyAccessExpression(parent) && parent.expression === value) {
       return memberProblem(fact, parent, next, key);
@@ -156,9 +158,8 @@ export function installCustody(ctx) {
   /** `{ [key]: name, ...rest }` taken from an object that holds a value at `key`. */
   function patternProblem(fact, pattern, decl, key, seen) {
     for (const element of pattern.elements) {
-      const name = element.dotDotDotToken
-        ? key
-        : propertyNameOf(element.propertyName ?? element.name);
+      const name = element.dotDotDotToken ? key : staticKey(element.propertyName ?? element.name);
+      if (name === UNKNOWN) return `is destructured by a computed key (${text(fact, element)})`;
       if (name !== key) continue;
       if (!ts.isIdentifier(element.name)) return `is destructured (${text(fact, element)})`;
       const custody = element.dotDotDotToken ? key : null;
@@ -189,7 +190,7 @@ export function installCustody(ctx) {
         if (ts.isExportSpecifier(reference.node.parent)) continue; // re-exports are followed by key
         return `is returned by a function used as a value (${text(caller, use.parent)})`;
       }
-      if (!changed(caller, use.parent)) continue;
+      if (unitOf(use.parent) && caller.unchanged(unitOf(use.parent))) continue;
       const problem = heldResultProblem(caller, unitOf(use.parent), use.parent, seen, key);
       if (problem) return `is returned to ${text(caller, use.parent)}, which ${problem}`;
     }
