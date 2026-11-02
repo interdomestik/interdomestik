@@ -17,6 +17,9 @@
     "./tenant-security": "./src/tenant-security.ts",
     "./member-number": "./src/member-number.ts",
     "./claim-number": "./src/claim-number.ts",
+    "./tenant-authority": "./src/tenant-authority-public.ts",
+    "./tenant-authority-registrar": "./src/tenant-authority-registrar.ts",
+    "./testing/tenant-authority": "./src/testing/tenant-authority.ts",
     "./tenant-directory": "./src/tenant-directory.ts"
   },
   "scripts": {

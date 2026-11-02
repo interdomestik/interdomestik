@@ -2,13 +2,10 @@ import { sql } from 'drizzle-orm';
 
 import { assertRlsConnectionRoleReady, dbRls } from './db';
 import { assertRlsRoleIdentifier } from './rls-role-assertion';
+import type { TenantAuthority } from './tenant-authority';
+import { resolveTenantContext, type TenantContext } from './tenant-context-resolution';
 
-export type TenantContext = {
-  tenantId: string;
-  accessTenantId?: string | null;
-  role?: string | null;
-  dbRole?: string | null;
-};
+export type { TenantContext } from './tenant-context-resolution';
 
 export type TenantTransaction = Parameters<typeof dbRls.transaction>[0] extends (
   tx: infer T
@@ -18,33 +15,18 @@ export type TenantTransaction = Parameters<typeof dbRls.transaction>[0] extends 
 
 const CONFIGURED_RLS_ROLE = process.env.DB_RLS_ROLE?.trim() || null;
 
-function assertNonEmptyTenantId(tenantId: string, label: string): string {
-  const normalized = tenantId.trim();
-  if (!normalized) {
-    throw new Error(`withTenantContext requires a non-empty ${label}`);
-  }
-  return normalized;
-}
-
-function resolveAccessTenantId(context: TenantContext, tenantId: string): string {
-  if (context.accessTenantId === null || context.accessTenantId === undefined) {
-    return tenantId;
-  }
-  return context.accessTenantId.trim() || tenantId;
-}
-
 function setLocalRoleSql(role: string) {
   const safeRole = assertRlsRoleIdentifier(role);
   return sql.raw(`set local role "${safeRole}"`);
 }
 
 export async function withTenantContext<T>(
-  context: TenantContext,
+  context: TenantAuthority | TenantContext,
   action: (tx: TenantTransaction) => Promise<T>
 ): Promise<T> {
-  const tenantId = assertNonEmptyTenantId(context.tenantId, 'tenantId');
-  const accessTenantId = resolveAccessTenantId(context, tenantId);
-  const effectiveDbRole = context.dbRole?.trim() || CONFIGURED_RLS_ROLE;
+  const { tenantId, accessTenantId, role } = resolveTenantContext(context);
+  // The database role comes only from deployment configuration, never from a caller.
+  const effectiveDbRole = CONFIGURED_RLS_ROLE;
 
   await assertRlsConnectionRoleReady();
 
@@ -57,15 +39,15 @@ export async function withTenantContext<T>(
     await tx.execute(
       sql`select set_config('app.current_access_tenant_id', ${accessTenantId}, true)`
     );
-    if (context.role) {
-      await tx.execute(sql`select set_config('app.user_role', ${context.role}, true)`);
+    if (role) {
+      await tx.execute(sql`select set_config('app.user_role', ${role}, true)`);
     }
     return action(tx);
   });
 }
 
 export async function withTenantDb<T>(
-  context: TenantContext,
+  context: TenantAuthority | TenantContext,
   action: (tx: TenantTransaction) => Promise<T>
 ): Promise<T> {
   return withTenantContext(context, action);
