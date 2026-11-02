@@ -258,3 +258,13 @@ test('an executable bundler config is admitted only unchanged from the trusted t
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('export patterns resolve as Node does: every target star takes the match; multi-star keys never match', async () => {
+  const { packageCandidates } = await import('./tenant-guard/package-exports.mjs');
+  const pkg = {
+    dir: 'packages/x',
+    exports: { './*': './src/*/entry-*.ts', './a*b*': './src/hidden.ts' },
+  };
+  assert.ok(packageCandidates(pkg, '/db').includes('packages/x/src/db/entry-db.ts'));
+  assert.ok(!packageCandidates(pkg, '/a1b2').includes('packages/x/src/hidden.ts'));
+});

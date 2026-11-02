@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 import { sha256 } from './tenant-guard/rules.mjs';
 import {
   collectUnits,
@@ -23,7 +24,14 @@ if (!file || !unit || kindArgs.length === 0 || !reason) {
   );
   process.exit(2);
 }
-const sourceFile = parseSource(file, fs.readFileSync(file, 'utf8'));
+// Only a file inside this repository can be pinned.
+const repoRoot = path.resolve(import.meta.dirname, '../..');
+const fullPath = path.resolve(repoRoot, file);
+if (!fullPath.startsWith(repoRoot + path.sep)) {
+  console.error(`${file} is not inside the repository`);
+  process.exit(2);
+}
+const sourceFile = parseSource(file, fs.readFileSync(fullPath, 'utf8'));
 const named = collectUnits(sourceFile).filter(
   candidate => unitName(candidate, sourceFile) === unit
 );

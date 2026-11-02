@@ -92,7 +92,7 @@ export function createModuleGraph({
         if (match === null) continue;
         for (const target of targets) {
           if (!/^(?:apps|packages)\//u.test(target)) continue;
-          bases.push(target.replace('*', match));
+          bases.push(target.replaceAll('*', match));
           workspace = true;
         }
       }
