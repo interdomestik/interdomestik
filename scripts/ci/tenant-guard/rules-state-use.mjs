@@ -94,7 +94,13 @@ export function installStateUse(ctx) {
         return receiver ? `is handed to ${receiver}` : null;
       }
       const problem = stateCalleeProblem(fact, unit, call.expression, changed);
-      return problem ? `is passed to ${problem}` : null;
+      if (problem) return `is passed to ${problem}`;
+      return schema && changed ? ctx.heldCallProblem(fact, unit, call) : null;
+    }
+    // A tagged template (Drizzle `sql`) keeps its interpolated values: its result is held too.
+    if (schema && changed && ts.isTemplateSpan(parent)) {
+      const tagged = parent.parent.parent;
+      if (ts.isTaggedTemplateExpression(tagged)) return ctx.heldCallProblem(fact, unit, tagged);
     }
     if (schema && member && ctx.builderProjection(fact, value)) return null;
     if (
@@ -285,6 +291,7 @@ export function installStateUse(ctx) {
     propertyNameOf,
     referenceAt,
     returnsOf,
+    stateCalleeProblem,
     stateUseProblem,
     usesOf,
   });

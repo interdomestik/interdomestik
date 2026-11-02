@@ -3,6 +3,7 @@
 // execute them in the original evaluation order.
 
 import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
+import { installCustody } from './rules-custody.mjs';
 import { installDependencies } from './rules-dependencies.mjs';
 import { installReceivers } from './rules-receivers.mjs';
 import { installSinks } from './rules-sinks.mjs';
@@ -61,6 +62,7 @@ export function evaluate({
   installTargets(ctx);
   installReceivers(ctx);
   installSinks(ctx);
+  installCustody(ctx);
   scanFiles(ctx);
   propagate(ctx);
   return report(ctx);
