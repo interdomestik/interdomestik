@@ -46,7 +46,7 @@ export const RETIRED_LEGACY_TESTS = Object.freeze({
 });
 
 const byCodeUnit = (a, b) => (a < b ? -1 : Number(a > b));
-const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 const testDeclarations = (source, name) =>
   source.match(new RegExp(`\\btest\\(\\s*(['"\`])${escapeRegExp(name)}\\1`, 'gu'))?.length ?? 0;
 

@@ -5,14 +5,13 @@ import test from 'node:test';
 import { commit, git, tmp, writeFile } from './db-access-required-git.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
-  ATTACK,
   adminRead,
   archive,
   assertFailed,
+  ATTACK,
+  fixture,
   fixtureOrigin,
-  main,
   openPullRequest,
-  pulls,
   route,
   skip,
   sourceVariant,
@@ -75,7 +74,7 @@ test('a report that does not name the pinned comparator, or is not a pass, fails
     `process.stdout.write(${JSON.stringify(JSON.stringify({ trusted, telemetry: { files: 1 }, violations }))});\n`;
   // Variants exist on origin before the workspace is cloned, as an authority branch would.
   const otherTrusted = sourceVariant({
-    'scripts/ci/tenant-guard.mjs': report({ commit: main, tree: TRUSTED.tree }, []),
+    'scripts/ci/tenant-guard.mjs': report({ commit: fixture.main, tree: TRUSTED.tree }, []),
   });
   const crashed = sourceVariant({ 'scripts/ci/tenant-guard.mjs': 'process.exit(3);\n' });
   const nonzero = sourceVariant({
@@ -159,11 +158,11 @@ test(
     assertFailed(route(dirty), /workspace differs from the merge commit/u);
 
     const repo = fixtureOrigin();
-    git(repo, 'checkout', '-q', '-b', `side-${pulls}`, 'main');
+    git(repo, 'checkout', '-q', '-b', `side-${fixture.pulls}`, 'main');
     writeFile(repo, 'apps/web/src/lib/s2-side.ts', ['export const side = 1;']);
     commit(repo, 'unprotected side base');
     git(repo, 'checkout', '-q', 'main');
-    const stacked = openPullRequest(() => {}, { base: `side-${pulls}` });
+    const stacked = openPullRequest(() => {}, { base: `side-${fixture.pulls}` });
     assertFailed(route(stacked), /base commit not on protected main/u);
   }
 );

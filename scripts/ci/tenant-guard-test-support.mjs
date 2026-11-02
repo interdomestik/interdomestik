@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import { evaluate } from './tenant-guard/rules.mjs';
 

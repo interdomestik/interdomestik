@@ -50,42 +50,7 @@ export function installTrust(ctx) {
       }
       return state;
     };
-    // Top-level declarations by name, so an origin { file, name } maps to its unit.
-    // `statements` maps each name to its whole top-level statement, which is what a closure
-    // comparison binds (a wrapper and its arguments included).
-    const declarations = new Map();
-    const statements = new Map();
-    for (const statement of sourceFile.statements) {
-      if (
-        (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
-        statement.name
-      ) {
-        declarations.set(statement.name.text, statement);
-        statements.set(statement.name.text, statement);
-      } else if (ts.isVariableStatement(statement)) {
-        for (const declaration of statement.declarationList.declarations) {
-          if (!ts.isIdentifier(declaration.name)) continue;
-          statements.set(declaration.name.text, statement);
-          let initializer = declaration.initializer;
-          // `const f = cache(async (...) => ...)`: an argument-forwarding wrapper around one function
-          // declares f as that function, so its callers stay resolvable.
-          if (
-            initializer &&
-            ts.isCallExpression(initializer) &&
-            initializer.arguments.length === 1 &&
-            (ts.isArrowFunction(initializer.arguments[0]) ||
-              ts.isFunctionExpression(initializer.arguments[0]))
-          ) {
-            initializer = initializer.arguments[0];
-          }
-          const unit =
-            initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
-              ? initializer
-              : statement;
-          declarations.set(declaration.name.text, unit);
-        }
-      }
-    }
+    const { declarations, statements } = topLevelDeclarations(sourceFile);
     fact = { file, sourceFile, references, unchanged, declarations, statements };
     facts.set(file, fact);
     return fact;
@@ -97,30 +62,7 @@ export function installTrust(ctx) {
   function originsOf(fact, reference) {
     const { binding, node } = reference;
     if (!binding) return { origins: [], form: referenceForm(node) };
-    if (binding.kind === 'import') {
-      if (binding.specifier === null)
-        return { origins: [{ unresolved: '<import=>' }], form: referenceForm(node) };
-      if (binding.imported === '*') {
-        const [moduleObject] = graph.resolveImport(fact.file, binding.specifier, '*');
-        const member = memberUse(node);
-        if (!moduleObject?.namespace)
-          return { origins: [moduleObject].filter(Boolean), form: referenceForm(node) };
-        if (member) {
-          const origins = moduleObject.namespace.flatMap(target =>
-            graph.resolveExport(target, member.name)
-          );
-          return { origins, form: member.form, namespace: moduleObject.namespace };
-        }
-        return { origins: [], form: 'namespace-value', namespace: moduleObject.namespace };
-      }
-      const origins = graph.resolveImport(fact.file, binding.specifier, binding.imported);
-      if (binding.imported === 'default' && origins.length === 0) {
-        // No declared default: under CJS interop the binding is the module object itself.
-        const { files } = graph.resolveSpecifier(fact.file, binding.specifier);
-        return { origins: [], form: 'namespace-value', namespace: files };
-      }
-      return { origins, form: referenceForm(node) };
-    }
+    if (binding.kind === 'import') return importOrigins(fact, binding, node);
     if (
       binding.scope === fact.sourceFile &&
       ['var', 'function', 'class', 'enum'].includes(binding.kind)
@@ -131,6 +73,31 @@ export function installTrust(ctx) {
       };
     }
     return { origins: [], form: referenceForm(node), local: true };
+  }
+  function importOrigins(fact, binding, node) {
+    if (binding.specifier === null)
+      return { origins: [{ unresolved: '<import=>' }], form: referenceForm(node) };
+    if (binding.imported === '*') return namespaceOrigins(fact, binding, node);
+    const origins = graph.resolveImport(fact.file, binding.specifier, binding.imported);
+    if (binding.imported === 'default' && origins.length === 0) {
+      // No declared default: under CJS interop the binding is the module object itself.
+      const { files } = graph.resolveSpecifier(fact.file, binding.specifier);
+      return { origins: [], form: 'namespace-value', namespace: files };
+    }
+    return { origins, form: referenceForm(node) };
+  }
+  function namespaceOrigins(fact, binding, node) {
+    const [moduleObject] = graph.resolveImport(fact.file, binding.specifier, '*');
+    const member = memberUse(node);
+    if (!moduleObject?.namespace)
+      return { origins: [moduleObject].filter(Boolean), form: referenceForm(node) };
+    if (member) {
+      const origins = moduleObject.namespace.flatMap(target =>
+        graph.resolveExport(target, member.name)
+      );
+      return { origins, form: member.form, namespace: moduleObject.namespace };
+    }
+    return { origins: [], form: 'namespace-value', namespace: moduleObject.namespace };
   }
 
   const privilegedModule = new Map();
@@ -157,77 +124,39 @@ export function installTrust(ctx) {
   // entry unpinnable. A null pin map (fixture setup only) computes digests without enforcing them.
   const legacyDigests = new Map();
   const legacyClosureProblems = new Map();
-  function moduleEdges(file, sourceFile) {
-    const edges = [];
-    const problems = [];
-    const visit = node => {
-      let specifier = null;
-      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
-        const typeOnly = ts.isImportDeclaration(node)
-          ? node.importClause?.isTypeOnly
-          : node.isTypeOnly;
-        if (!typeOnly && ts.isStringLiteral(node.moduleSpecifier))
-          specifier = node.moduleSpecifier.text;
-      } else if (
-        ts.isImportEqualsDeclaration(node) &&
-        ts.isExternalModuleReference(node.moduleReference)
-      ) {
-        specifier = ts.isStringLiteral(node.moduleReference.expression)
-          ? node.moduleReference.expression.text
-          : null;
-        if (specifier === null) problems.push(`${file}: opaque import-equals`);
-      } else if (ts.isCallExpression(node)) {
-        const callee = node.expression;
-        const loader =
-          callee.kind === ts.SyntaxKind.ImportKeyword ||
-          (ts.isIdentifier(callee) && callee.text === 'require');
-        if (loader) {
-          const argument = node.arguments[0];
-          if (argument && ts.isStringLiteralLike(argument)) specifier = argument.text;
-          else problems.push(`${file}: dynamic import with a non-literal specifier`);
-        }
-      }
-      if (specifier !== null) edges.push(specifier);
-      ts.forEachChild(node, visit);
-    };
-    visit(sourceFile);
-    return { edges, problems };
-  }
   function legacyDigest(key) {
     if (legacyDigests.has(key)) return legacyDigests.get(key);
     const start = key.slice(0, key.lastIndexOf('#'));
-    const lines = [`entry=${key}`];
-    const problems = [];
-    const seen = new Set([start]);
-    const queue = [start];
-    while (queue.length > 0) {
-      const file = queue.shift();
-      const fact = factsOf(file);
-      if (!fact) {
-        problems.push(`${file}: missing module`);
-        continue;
-      }
-      // Exact bytes: a finite reviewed kernel module is bound as written, layout included.
-      lines.push(`module:${file}=${sha256(fact.sourceFile.text)}`);
-      const { edges, problems: edgeProblems } = moduleEdges(file, fact.sourceFile);
-      problems.push(...edgeProblems);
-      for (const specifier of edges) {
-        const resolved = graph.resolveSpecifier(file, specifier);
-        if (resolved.external) lines.push(`external:${resolved.external}`);
-        else if (resolved.unresolved) problems.push(`${file}: unresolved import ${specifier}`);
-        for (const target of resolved.files) {
-          if (seen.has(target)) continue;
-          seen.add(target);
-          queue.push(target);
-        }
-      }
-    }
+    const walk = { lines: [`entry=${key}`], problems: [], seen: new Set([start]), queue: [start] };
+    while (walk.queue.length > 0) visitClosureModule(walk, walk.queue.shift());
+    const { lines, problems, seen } = walk;
     for (const file of seen) ctx.pinnedModules.add(file);
     for (const problem of problems) lines.push(`problem:${problem}`);
     const digest = sha256([...new Set(lines)].sort(byCodeUnit).join('\n'));
     legacyDigests.set(key, digest);
     legacyClosureProblems.set(key, [...new Set(problems)]);
     return digest;
+  }
+  function visitClosureModule(walk, file) {
+    const fact = factsOf(file);
+    if (!fact) {
+      walk.problems.push(`${file}: missing module`);
+      return;
+    }
+    // Exact bytes: a finite reviewed kernel module is bound as written, layout included.
+    walk.lines.push(`module:${file}=${sha256(fact.sourceFile.text)}`);
+    const { edges, problems: edgeProblems } = moduleEdges(file, fact.sourceFile);
+    walk.problems.push(...edgeProblems);
+    for (const specifier of edges) {
+      const resolved = graph.resolveSpecifier(file, specifier);
+      if (resolved.external) walk.lines.push(`external:${resolved.external}`);
+      else if (resolved.unresolved) walk.problems.push(`${file}: unresolved import ${specifier}`);
+      for (const target of resolved.files) {
+        if (walk.seen.has(target)) continue;
+        walk.seen.add(target);
+        walk.queue.push(target);
+      }
+    }
   }
   const legacyPinned = key =>
     legacyPins === null ||
@@ -246,31 +175,25 @@ export function installTrust(ctx) {
     if (LEGACY.has(key)) return legacyPinned(key);
     if (closureMemo.has(key)) return closureMemo.get(key) !== false;
     closureMemo.set(key, 'pending');
-    const fact = factsOf(origin.file);
-    let result = true;
-    if (!fact) result = false;
-    else {
-      const unit = fact.statements.get(origin.name);
-      if (!unit)
-        result = true; // re-export or type-only name; resolution already followed it
-      else if (!fact.unchanged(unit)) result = false;
-      else {
-        for (const reference of fact.references) {
-          if (!within(reference.node, unit) || !reference.binding) continue;
-          const { origins } = originsOf(fact, reference);
-          for (const dependency of origins) {
-            if (dependency.local && dependency.name === origin.name) continue;
-            if (!closureUnchanged(dependency)) {
-              result = false;
-              break;
-            }
-          }
-          if (!result) break;
-        }
-      }
-    }
+    const result = declarationClosureUnchanged(origin);
     closureMemo.set(key, result);
     return result;
+  }
+  function declarationClosureUnchanged(origin) {
+    const fact = factsOf(origin.file);
+    if (!fact) return false;
+    const unit = fact.statements.get(origin.name);
+    if (!unit) return true; // re-export or type-only name; resolution already followed it
+    if (!fact.unchanged(unit)) return false;
+    return fact.references.every(
+      reference =>
+        !within(reference.node, unit) ||
+        !reference.binding ||
+        originsOf(fact, reference).origins.every(
+          dependency =>
+            (dependency.local && dependency.name === origin.name) || closureUnchanged(dependency)
+        )
+    );
   }
   Object.assign(ctx, {
     closureUnchanged,
@@ -283,4 +206,90 @@ export function installTrust(ctx) {
     legacyPinned,
     originsOf,
   });
+}
+
+// Top-level declarations by name, so an origin { file, name } maps to its unit.
+// `statements` maps each name to its whole top-level statement, which is what a closure
+// comparison binds (a wrapper and its arguments included).
+function topLevelDeclarations(sourceFile) {
+  const declarations = new Map();
+  const statements = new Map();
+  for (const statement of sourceFile.statements) {
+    if (
+      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
+      statement.name
+    ) {
+      declarations.set(statement.name.text, statement);
+      statements.set(statement.name.text, statement);
+    } else if (ts.isVariableStatement(statement)) {
+      indexVariableStatement(statement, declarations, statements);
+    }
+  }
+  return { declarations, statements };
+}
+
+function indexVariableStatement(statement, declarations, statements) {
+  for (const declaration of statement.declarationList.declarations) {
+    if (!ts.isIdentifier(declaration.name)) continue;
+    statements.set(declaration.name.text, statement);
+    declarations.set(declaration.name.text, declaredUnit(statement, declaration));
+  }
+}
+
+function declaredUnit(statement, declaration) {
+  let initializer = declaration.initializer;
+  // `const f = cache(async (...) => ...)`: an argument-forwarding wrapper around one function
+  // declares f as that function, so its callers stay resolvable.
+  if (
+    initializer &&
+    ts.isCallExpression(initializer) &&
+    initializer.arguments.length === 1 &&
+    (ts.isArrowFunction(initializer.arguments[0]) ||
+      ts.isFunctionExpression(initializer.arguments[0]))
+  ) {
+    initializer = initializer.arguments[0];
+  }
+  return initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+    ? initializer
+    : statement;
+}
+
+function moduleEdges(file, sourceFile) {
+  const edges = [];
+  const problems = [];
+  const visit = node => {
+    const specifier = edgeSpecifier(node, file, problems);
+    if (specifier !== null) edges.push(specifier);
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return { edges, problems };
+}
+
+/** The runtime module specifier a node imports, or null (recording an opaque one in `problems`). */
+function edgeSpecifier(node, file, problems) {
+  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+    const typeOnly = ts.isImportDeclaration(node) ? node.importClause?.isTypeOnly : node.isTypeOnly;
+    return !typeOnly && ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : null;
+  }
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+    if (ts.isStringLiteral(node.moduleReference.expression))
+      return node.moduleReference.expression.text;
+    problems.push(`${file}: opaque import-equals`);
+    return null;
+  }
+  return ts.isCallExpression(node) ? loaderSpecifier(node, file, problems) : null;
+}
+
+/** The specifier of a dynamic `import()` or `require()` call, or null. */
+function loaderSpecifier(node, file, problems) {
+  const callee = node.expression;
+  const loader =
+    callee.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(callee) && callee.text === 'require');
+  if (!loader) return null;
+  const argument = node.arguments[0];
+  if (argument && ts.isStringLiteralLike(argument)) return argument.text;
+  problems.push(`${file}: dynamic import with a non-literal specifier`);
+  return null;
 }

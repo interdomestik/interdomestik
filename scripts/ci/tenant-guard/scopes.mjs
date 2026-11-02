@@ -73,62 +73,56 @@ export function inTypePosition(node) {
   return false;
 }
 
+// Parents whose identifiers never read a binding: import names, `export * as ns`, `import.meta`,
+// and a catch clause's own (its variable is a declaration).
+const NEVER_READS = [
+  ts.isImportClause,
+  ts.isNamespaceImport,
+  ts.isImportSpecifier,
+  ts.isNamespaceExport,
+  ts.isMetaProperty,
+  ts.isCatchClause,
+];
+// Parents whose `name` declares or keys something rather than reading a binding.
+const NAMES_DECLARATION = [
+  ts.isPropertyAccessExpression,
+  ts.isPropertyAssignment,
+  ts.isPropertyDeclaration,
+  ts.isPropertySignature,
+  ts.isMethodDeclaration,
+  ts.isMethodSignature,
+  ts.isGetAccessorDeclaration,
+  ts.isSetAccessorDeclaration,
+  ts.isEnumMember,
+  ts.isVariableDeclaration,
+  ts.isParameter,
+  ts.isFunctionDeclaration,
+  ts.isFunctionExpression,
+  ts.isClassDeclaration,
+  ts.isClassExpression,
+  ts.isEnumDeclaration,
+  ts.isModuleDeclaration,
+  ts.isTypeParameterDeclaration,
+  ts.isImportEqualsDeclaration,
+  ts.isJsxAttribute,
+];
+const LABELLED = [ts.isLabeledStatement, ts.isBreakStatement, ts.isContinueStatement];
+
 /** Identifiers that name a declaration, a property key or a label rather than reading a binding. */
 export function isNonReference(node) {
   const parent = node.parent;
   if (!parent) return true;
-  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return true;
-  if (ts.isQualifiedName(parent) && parent.right === node) return true;
-  if (
-    (ts.isPropertyAssignment(parent) ||
-      ts.isPropertyDeclaration(parent) ||
-      ts.isPropertySignature(parent) ||
-      ts.isMethodDeclaration(parent) ||
-      ts.isMethodSignature(parent) ||
-      ts.isGetAccessorDeclaration(parent) ||
-      ts.isSetAccessorDeclaration(parent) ||
-      ts.isEnumMember(parent)) &&
-    parent.name === node
-  ) {
-    return true;
-  }
-  if (ts.isBindingElement(parent) && parent.propertyName === node) return true;
-  if (ts.isBindingElement(parent) && parent.name === node) return true;
-  if (ts.isVariableDeclaration(parent) && parent.name === node) return true;
-  if (ts.isParameter(parent) && parent.name === node) return true;
-  if (
-    (ts.isFunctionDeclaration(parent) ||
-      ts.isFunctionExpression(parent) ||
-      ts.isClassDeclaration(parent) ||
-      ts.isClassExpression(parent) ||
-      ts.isEnumDeclaration(parent) ||
-      ts.isModuleDeclaration(parent) ||
-      ts.isTypeParameterDeclaration(parent)) &&
-    parent.name === node
-  ) {
-    return true;
-  }
-  if (ts.isImportClause(parent) || ts.isNamespaceImport(parent) || ts.isImportSpecifier(parent))
-    return true;
-  if (ts.isImportEqualsDeclaration(parent) && parent.name === node) return true;
+  if (NEVER_READS.some(is => is(parent))) return true;
+  if (NAMES_DECLARATION.some(is => is(parent))) return parent.name === node;
+  if (ts.isQualifiedName(parent)) return parent.right === node;
+  if (ts.isBindingElement(parent)) return parent.propertyName === node || parent.name === node;
+  if (LABELLED.some(is => is(parent))) return parent.label === node;
   if (ts.isExportSpecifier(parent)) {
     // `export { local as name }` without a module specifier reads `local`.
     const declaration = parent.parent.parent;
     if (declaration.moduleSpecifier) return true;
     return (parent.propertyName ?? parent.name) !== node;
   }
-  if (ts.isNamespaceExport(parent)) return true;
-  if (
-    (ts.isLabeledStatement(parent) ||
-      ts.isBreakStatement(parent) ||
-      ts.isContinueStatement(parent)) &&
-    parent.label === node
-  ) {
-    return true;
-  }
-  if (ts.isJsxAttribute(parent) && parent.name === node) return true;
-  if (ts.isMetaProperty(parent)) return true;
-  if (ts.isCatchClause(parent)) return true;
   return false;
 }
 
@@ -158,74 +152,7 @@ export function analyzeScopes(sourceFile) {
   };
 
   const collect = node => {
-    if (ts.isImportDeclaration(node) && node.importClause && !node.importClause.isTypeOnly) {
-      const clause = node.importClause;
-      const specifier = ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : null;
-      if (clause.name)
-        declare(sourceFile, clause.name, {
-          kind: 'import',
-          specifier,
-          imported: 'default',
-          decl: node,
-        });
-      const bindings = clause.namedBindings;
-      if (bindings && ts.isNamespaceImport(bindings)) {
-        declare(sourceFile, bindings.name, {
-          kind: 'import',
-          specifier,
-          imported: '*',
-          decl: node,
-        });
-      } else if (bindings && ts.isNamedImports(bindings)) {
-        for (const element of bindings.elements) {
-          if (element.isTypeOnly) continue;
-          declare(sourceFile, element.name, {
-            kind: 'import',
-            specifier,
-            imported: (element.propertyName ?? element.name).text,
-            decl: node,
-          });
-        }
-      }
-    } else if (ts.isImportEqualsDeclaration(node)) {
-      const reference = node.moduleReference;
-      const specifier =
-        ts.isExternalModuleReference(reference) && ts.isStringLiteral(reference.expression)
-          ? reference.expression.text
-          : null;
-      declare(sourceFile, node.name, { kind: 'import', specifier, imported: '*', decl: node });
-    } else if (ts.isVariableDeclaration(node)) {
-      const list = node.parent;
-      const isVar =
-        ts.isVariableDeclarationList(list) && (list.flags & ts.NodeFlags.BlockScoped) === 0;
-      const loop =
-        list.parent &&
-        (ts.isForStatement(list.parent) ||
-          ts.isForInStatement(list.parent) ||
-          ts.isForOfStatement(list.parent));
-      const scopeNode = isVar
-        ? functionScopeOf(node)
-        : loop
-          ? list.parent
-          : blockScopeOf(list.parent ?? node);
-      for (const identifier of bindingNames(node.name, [])) {
-        declare(scopeNode, identifier, { kind: 'var', decl: node });
-      }
-    } else if (ts.isParameter(node)) {
-      for (const identifier of bindingNames(node.name, [])) {
-        declare(node.parent, identifier, { kind: 'param', decl: node.parent });
-      }
-    } else if (ts.isFunctionDeclaration(node) && node.name) {
-      declare(blockScopeOf(node), node.name, { kind: 'function', decl: node });
-    } else if (ts.isFunctionExpression(node) && node.name) {
-      declare(node, node.name, { kind: 'function', decl: node });
-    } else if (ts.isClassDeclaration(node) && node.name) {
-      declare(blockScopeOf(node), node.name, { kind: 'class', decl: node });
-    } else if (ts.isClassExpression(node) && node.name) {
-      declare(node, node.name, { kind: 'class', decl: node });
-    } else if (ts.isEnumDeclaration(node)) {
-      declare(blockScopeOf(node), node.name, { kind: 'enum', decl: node });
-    } else if (ts.isCatchClause(node) && node.variableDeclaration) {
+    if (ts.isCatchClause(node) && node.variableDeclaration) {
       for (const identifier of bindingNames(node.variableDeclaration.name, [])) {
         declare(node, identifier, { kind: 'catch', decl: node });
       }
@@ -233,6 +160,7 @@ export function analyzeScopes(sourceFile) {
       if (node.block) ts.forEachChild(node.block, collect);
       return;
     }
+    declareNode(declare, sourceFile, node);
     ts.forEachChild(node, collect);
   };
   collect(sourceFile);
@@ -264,4 +192,77 @@ export function analyzeScopes(sourceFile) {
   };
   visit(sourceFile);
   return { references, lookup };
+}
+
+// Named function, class and enum declarations: [test, kind, declared in the enclosing block].
+const NAMED_BINDINGS = [
+  [ts.isFunctionDeclaration, 'function', true],
+  [ts.isFunctionExpression, 'function', false],
+  [ts.isClassDeclaration, 'class', true],
+  [ts.isClassExpression, 'class', false],
+  [ts.isEnumDeclaration, 'enum', true],
+];
+
+/** Declares the bindings `node` itself introduces (other than a catch variable). */
+function declareNode(declare, sourceFile, node) {
+  if (ts.isImportDeclaration(node)) {
+    if (node.importClause && !node.importClause.isTypeOnly)
+      declareImport(declare, sourceFile, node);
+  } else if (ts.isImportEqualsDeclaration(node)) {
+    declareImportEquals(declare, sourceFile, node);
+  } else if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
+    declareNames(declare, node);
+  } else {
+    const named = NAMED_BINDINGS.find(([is]) => is(node));
+    if (named && node.name) {
+      const [, kind, inBlock] = named;
+      declare(inBlock ? blockScopeOf(node) : node, node.name, { kind, decl: node });
+    }
+  }
+}
+
+function declareImportEquals(declare, sourceFile, node) {
+  const reference = node.moduleReference;
+  const specifier =
+    ts.isExternalModuleReference(reference) && ts.isStringLiteral(reference.expression)
+      ? reference.expression.text
+      : null;
+  declare(sourceFile, node.name, { kind: 'import', specifier, imported: '*', decl: node });
+}
+
+/** The names a variable declaration or a parameter binds. */
+function declareNames(declare, node) {
+  const [scopeNode, binding] = ts.isParameter(node)
+    ? [node.parent, { kind: 'param', decl: node.parent }]
+    : [variableScopeOf(node), { kind: 'var', decl: node }];
+  for (const identifier of bindingNames(node.name, [])) declare(scopeNode, identifier, binding);
+}
+
+function declareImport(declare, sourceFile, node) {
+  const clause = node.importClause;
+  const specifier = ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : null;
+  const imported = (name, from) =>
+    declare(sourceFile, name, { kind: 'import', specifier, imported: from, decl: node });
+  if (clause.name) imported(clause.name, 'default');
+  const bindings = clause.namedBindings;
+  if (bindings && ts.isNamespaceImport(bindings)) {
+    imported(bindings.name, '*');
+  } else if (bindings && ts.isNamedImports(bindings)) {
+    for (const element of bindings.elements) {
+      if (!element.isTypeOnly) imported(element.name, (element.propertyName ?? element.name).text);
+    }
+  }
+}
+
+/** `var` is function-scoped; `let`/`const` belong to their loop, else their block. */
+function variableScopeOf(node) {
+  const list = node.parent;
+  const isVar = ts.isVariableDeclarationList(list) && (list.flags & ts.NodeFlags.BlockScoped) === 0;
+  if (isVar) return functionScopeOf(node);
+  const loop =
+    list.parent &&
+    (ts.isForStatement(list.parent) ||
+      ts.isForInStatement(list.parent) ||
+      ts.isForOfStatement(list.parent));
+  return loop ? list.parent : blockScopeOf(list.parent ?? node);
 }

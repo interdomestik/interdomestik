@@ -9,8 +9,15 @@ import { DB } from './privileged.mjs';
 
 export const KERNEL = /^packages\/database\//u;
 
-export const TEST_SOURCE =
-  /(?:(?:^|\/)(?:__tests__|__mocks__|tests?|e2e)\/|\.(?:test|spec|e2e)\.[cm]?[jt]sx?$|(?:^|\/|[.-])test-(?:support|fixtures?|mocks?|utils|helpers?|bootstrap)\.[cm]?[jt]sx?$|\.(?:integration-)?fixtures?\.[cm]?[jt]sx?$|\.compile-fail\.[cm]?[jt]sx?$)/u;
+// A test source by directory or by file name: each alternative is one naming convention.
+const TEST_SOURCE_FORMS = [
+  String.raw`(?:^|\/)(?:__tests__|__mocks__|tests?|e2e)\/`,
+  String.raw`\.(?:test|spec|e2e)\.[cm]?[jt]sx?$`,
+  String.raw`(?:^|\/|[.-])test-(?:support|fixtures?|mocks?|utils|helpers?|bootstrap)\.[cm]?[jt]sx?$`,
+  String.raw`\.(?:integration-)?fixtures?\.[cm]?[jt]sx?$`,
+  String.raw`\.compile-fail\.[cm]?[jt]sx?$`,
+];
+export const TEST_SOURCE = new RegExp(`(?:${TEST_SOURCE_FORMS.join('|')})`, 'u');
 
 /**
  * Legacy-accepting operations. Accepted only where the enclosing unit is unchanged from the

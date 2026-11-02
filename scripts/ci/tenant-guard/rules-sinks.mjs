@@ -52,67 +52,66 @@ export function installSinks(ctx) {
       return problems;
     }
     const objectUses = (binding, member) => {
-      for (const use of usesOf(sink.fact, binding)) {
-        const value = outermost(use.node);
-        const parent = value.parent;
-        if (ts.isPropertyAccessExpression(parent) && parent.expression === value) {
-          if (parent.name.text === member)
-            report(sink.fact, parent, handOffProblem(sink.fact, parent, sink.param, sink.path));
-          continue;
-        }
-        if (
-          ts.isVariableDeclaration(parent) &&
-          parent.initializer === value &&
-          ts.isObjectBindingPattern(parent.name)
-        ) {
-          for (const element of parent.name.elements) {
-            const property = element.dotDotDotToken ? '...' : elementKey(element);
-            if (property === UNKNOWN_KEY) {
-              report(sink.fact, element, 'a callback read through a computed key');
-              continue;
-            }
-            if (property !== member && property !== '...') continue;
-            if (property === '...' && !restCarries(parent.name, member)) continue;
-            const inner = sink.fact.references.find(
-              reference => reference.binding?.id === element.name
-            )?.binding;
-            if (!inner) continue;
-            if (property === '...') objectUses(inner, member);
-            else functionUses(inner);
-          }
-          continue;
-        }
-        // Truthiness tests of the carrier do not reach the callback.
-        if (
-          (ts.isConditionalExpression(parent) && parent.condition === value) ||
-          (ts.isIfStatement(parent) && parent.expression === value) ||
-          (ts.isPrefixUnaryExpression(parent) && parent.operator === ts.SyntaxKind.ExclamationToken)
-        ) {
-          continue;
-        }
-        // The whole object, or a spread of it, handed to another function keeps the member.
-        const carried = ts.isSpreadAssignment(parent) ? outermost(parent.parent) : value;
-        const call = carried.parent;
-        const targets =
-          call && ts.isCallExpression(call) && call.arguments.includes(carried)
-            ? functionTargets(sink.fact, call.expression)
-            : null;
-        if (!targets || targets.length === 0) {
-          report(
-            sink.fact,
-            use.node,
-            `a callback carrier handed on (${parent.getText(sink.fact.sourceFile).slice(0, 40)})`
-          );
-          continue;
-        }
-        for (const target of targets) {
-          receiverSink({
-            ...sink,
-            fact: target.fact,
-            fn: target.fn,
-            index: call.arguments.indexOf(carried),
-          });
-        }
+      for (const use of usesOf(sink.fact, binding)) objectUse(use, member);
+    };
+    const objectUse = (use, member) => {
+      const value = outermost(use.node);
+      const parent = value.parent;
+      if (ts.isPropertyAccessExpression(parent) && parent.expression === value) {
+        if (parent.name.text === member)
+          report(sink.fact, parent, handOffProblem(sink.fact, parent, sink.param, sink.path));
+        return;
+      }
+      if (
+        ts.isVariableDeclaration(parent) &&
+        parent.initializer === value &&
+        ts.isObjectBindingPattern(parent.name)
+      ) {
+        for (const element of parent.name.elements) destructuredUse(parent.name, element, member);
+        return;
+      }
+      // Truthiness tests of the carrier do not reach the callback.
+      if (isCarrierTest(parent, value)) return;
+      carriedUse(use, value, parent);
+    };
+    const destructuredUse = (pattern, element, member) => {
+      const property = element.dotDotDotToken ? '...' : elementKey(element);
+      if (property === UNKNOWN_KEY) {
+        report(sink.fact, element, 'a callback read through a computed key');
+        return;
+      }
+      if (property !== member && property !== '...') return;
+      if (property === '...' && !restCarries(pattern, member)) return;
+      const inner = sink.fact.references.find(
+        reference => reference.binding?.id === element.name
+      )?.binding;
+      if (!inner) return;
+      if (property === '...') objectUses(inner, member);
+      else functionUses(inner);
+    };
+    // The whole object, or a spread of it, handed to another function keeps the member.
+    const carriedUse = (use, value, parent) => {
+      const carried = ts.isSpreadAssignment(parent) ? outermost(parent.parent) : value;
+      const call = carried.parent;
+      const targets =
+        call && ts.isCallExpression(call) && call.arguments.includes(carried)
+          ? functionTargets(sink.fact, call.expression)
+          : null;
+      if (!targets || targets.length === 0) {
+        report(
+          sink.fact,
+          use.node,
+          `a callback carrier handed on (${parent.getText(sink.fact.sourceFile).slice(0, 40)})`
+        );
+        return;
+      }
+      for (const target of targets) {
+        receiverSink({
+          ...sink,
+          fact: target.fact,
+          fn: target.fn,
+          index: call.arguments.indexOf(carried),
+        });
       }
     };
     const functionUses = binding => {
@@ -174,20 +173,6 @@ export function installSinks(ctx) {
         );
       })
     );
-  }
-
-  /** The expression a legacy operation takes its tenant from. */
-  function tenantExpressionOf(node, form) {
-    if (form === 'call') {
-      const call = node.parent;
-      return call && ts.isCallExpression(call) && call.arguments[0] ? [call.arguments[0]] : [];
-    }
-    // Ambient client: the whole statement or initializer the query chain lives in.
-    let current = node;
-    while (current.parent && !ts.isStatement(current.parent) && !isFunctionLike(current.parent)) {
-      current = current.parent;
-    }
-    return [current];
   }
 
   // ---- contracts (C3 and connection control) -----------------------------------------------
@@ -264,4 +249,26 @@ export function installSinks(ctx) {
     sinkArguments,
     tenantExpressionOf,
   });
+}
+
+/** The expression a legacy operation takes its tenant from. */
+function tenantExpressionOf(node, form) {
+  if (form === 'call') {
+    const call = node.parent;
+    return call && ts.isCallExpression(call) && call.arguments[0] ? [call.arguments[0]] : [];
+  }
+  // Ambient client: the whole statement or initializer the query chain lives in.
+  let current = node;
+  while (current.parent && !ts.isStatement(current.parent) && !isFunctionLike(current.parent)) {
+    current = current.parent;
+  }
+  return [current];
+}
+
+function isCarrierTest(parent, value) {
+  return (
+    (ts.isConditionalExpression(parent) && parent.condition === value) ||
+    (ts.isIfStatement(parent) && parent.expression === value) ||
+    (ts.isPrefixUnaryExpression(parent) && parent.operator === ts.SyntaxKind.ExclamationToken)
+  );
 }

@@ -10,8 +10,24 @@ import { parseSource } from './syntax.mjs';
 
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'];
 // Data and style imports carry no executable code.
-const ASSET =
-  /\.(?:json|css|scss|sass|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|md|txt|html)(?:\?.*)?$/u;
+const ASSET_EXTENSIONS = [
+  'json',
+  'css',
+  'scss',
+  'sass',
+  'svg',
+  'png',
+  'jpe?g',
+  'gif',
+  'webp',
+  'ico',
+  'woff2?',
+  'ttf',
+  'md',
+  'txt',
+  'html',
+];
+const ASSET = new RegExp(String.raw`\.(?:${ASSET_EXTENSIONS.join('|')})(?:\?.*)?$`, 'u');
 
 // `resolution` carries the candidate configs' tsconfig `paths` rules and `baseUrl` roots
 // (resolution.mjs); `appAliases` are fixed prefix aliases.
@@ -47,70 +63,46 @@ export function createModuleGraph({
     return null;
   }
 
+  // The union of every alternative a configured resolver could take. A match that points into
+  // the workspace makes the specifier workspace code (unresolved if no file exists); a baseUrl
+  // root only counts where it reaches a file, since tsc then falls back to node_modules.
+  function configuredBases(specifier) {
+    const bases = [];
+    let workspace = false;
+    const add = base => {
+      bases.push(base);
+      workspace = true;
+    };
+    for (const [prefix, target] of appAliases) {
+      if (specifier.startsWith(prefix)) add(target + specifier.slice(prefix.length));
+    }
+    for (const { pattern, targets } of resolution.pathRules) {
+      const match = pathRuleMatch(pattern, specifier);
+      if (match === null) continue;
+      for (const target of targets.filter(each => /^(?:apps|packages)\//u.test(each))) {
+        add(target.replaceAll('*', () => match)); // literal: `$` in a match is not a pattern
+      }
+    }
+    const pkg = [...packages.values()]
+      .filter(entry => specifier === entry.name || specifier.startsWith(`${entry.name}/`))
+      .sort((left, right) => right.name.length - left.name.length)[0];
+    if (pkg) packageCandidates(pkg, specifier.slice(pkg.name.length)).forEach(add);
+    for (const root of resolution.baseRoots) {
+      const base = path.join(root || '.', specifier);
+      if (resolveFile(base)) add(base);
+    }
+    return { bases, workspace };
+  }
+
   const resolutionCache = new Map();
   /** { files: string[], external: string|null, unresolved: boolean } */
   function resolveSpecifier(fromFile, specifier) {
     const cacheKey = `${path.dirname(fromFile)}\u0000${specifier}`;
     const cached = resolutionCache.get(cacheKey);
     if (cached) return cached;
-    let bases = null;
-    let workspace = false;
-    if (
-      specifier.startsWith('./') ||
-      specifier.startsWith('../') ||
-      specifier === '.' ||
-      specifier === '..'
-    ) {
-      bases = [path.join(path.dirname(fromFile), specifier)];
-      workspace = true;
-    } else {
-      // The union of every alternative a configured resolver could take. A match that points into
-      // the workspace makes the specifier workspace code (unresolved if no file exists); a baseUrl
-      // root only counts where it reaches a file, since tsc then falls back to node_modules.
-      bases = [];
-      for (const [prefix, target] of appAliases) {
-        if (specifier.startsWith(prefix)) {
-          bases.push(target + specifier.slice(prefix.length));
-          workspace = true;
-        }
-      }
-      for (const { pattern, targets } of resolution.pathRules) {
-        const star = pattern.indexOf('*');
-        let match = null;
-        if (star < 0) match = specifier === pattern ? '' : null;
-        else {
-          const prefix = pattern.slice(0, star);
-          const suffix = pattern.slice(star + 1);
-          if (
-            specifier.startsWith(prefix) &&
-            specifier.endsWith(suffix) &&
-            specifier.length >= prefix.length + suffix.length
-          ) {
-            match = specifier.slice(prefix.length, specifier.length - suffix.length);
-          }
-        }
-        if (match === null) continue;
-        for (const target of targets) {
-          if (!/^(?:apps|packages)\//u.test(target)) continue;
-          bases.push(target.replaceAll('*', () => match)); // literal: `$` in a match is not a pattern
-          workspace = true;
-        }
-      }
-      const pkg = [...packages.values()]
-        .filter(entry => specifier === entry.name || specifier.startsWith(`${entry.name}/`))
-        .sort((left, right) => right.name.length - left.name.length)[0];
-      if (pkg) {
-        bases.push(...packageCandidates(pkg, specifier.slice(pkg.name.length)));
-        workspace = true;
-      }
-      for (const root of resolution.baseRoots) {
-        const base = path.join(root || '.', specifier);
-        if (resolveFile(base)) {
-          bases.push(base);
-          workspace = true;
-        }
-      }
-    }
+    const { bases, workspace } = isRelative(specifier)
+      ? { bases: [path.join(path.dirname(fromFile), specifier)], workspace: true }
+      : configuredBases(specifier);
     let result;
     if (ASSET.test(specifier)) result = { files: [], external: specifier, unresolved: false };
     else if (!workspace) result = { files: [], external: specifier, unresolved: false };
@@ -130,73 +122,7 @@ export function createModuleGraph({
     tables.set(file, table);
     const sourceFile = sourceFileOf(file);
     if (!sourceFile) return table;
-    for (const statement of sourceFile.statements) {
-      if (
-        ts.isImportDeclaration(statement) &&
-        statement.importClause &&
-        !statement.importClause.isTypeOnly
-      ) {
-        const specifier = statement.moduleSpecifier.text;
-        const clause = statement.importClause;
-        if (clause.name) table.imports.set(clause.name.text, { specifier, imported: 'default' });
-        const bindings = clause.namedBindings;
-        if (bindings && ts.isNamespaceImport(bindings)) {
-          table.imports.set(bindings.name.text, { specifier, imported: '*' });
-        } else if (bindings && ts.isNamedImports(bindings)) {
-          for (const element of bindings.elements) {
-            if (!element.isTypeOnly) {
-              table.imports.set(element.name.text, {
-                specifier,
-                imported: (element.propertyName ?? element.name).text,
-              });
-            }
-          }
-        }
-      } else if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
-        const specifier =
-          statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
-            ? statement.moduleSpecifier.text
-            : null;
-        const clause = statement.exportClause;
-        if (!clause && specifier) table.stars.push(specifier);
-        else if (clause && ts.isNamespaceExport(clause) && specifier) {
-          table.named.set(clause.name.text, { kind: 'namespace', specifier });
-        } else if (clause && ts.isNamedExports(clause)) {
-          for (const element of clause.elements) {
-            if (element.isTypeOnly) continue;
-            const local = (element.propertyName ?? element.name).text;
-            table.named.set(
-              element.name.text,
-              specifier ? { kind: 'reexport', specifier, name: local } : { kind: 'local', local }
-            );
-          }
-        }
-      } else if (ts.isExportAssignment(statement)) {
-        const local = ts.isIdentifier(statement.expression) ? statement.expression.text : null;
-        table.named.set('default', local ? { kind: 'local', local } : { kind: 'expression' });
-      } else if (hasExportModifier(statement)) {
-        if (ts.isVariableStatement(statement)) {
-          for (const declaration of statement.declarationList.declarations) {
-            const names = [];
-            const collect = name => {
-              if (ts.isIdentifier(name)) names.push(name.text);
-              else
-                for (const element of name.elements)
-                  if (ts.isBindingElement(element)) collect(element.name);
-            };
-            collect(declaration.name);
-            for (const name of names) table.named.set(name, { kind: 'local', local: name });
-          }
-        } else if (statement.name && ts.isIdentifier(statement.name)) {
-          if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement))
-            continue;
-          const exported = hasDefaultModifier(statement) ? 'default' : statement.name.text;
-          table.named.set(exported, { kind: 'local', local: statement.name.text });
-        } else if (hasDefaultModifier(statement)) {
-          table.named.set('default', { kind: 'expression' });
-        }
-      }
-    }
+    for (const statement of sourceFile.statements) recordStatement(table, statement);
     return table;
   }
 
@@ -266,3 +192,107 @@ export function createModuleGraph({
 }
 
 export const originKey = origin => (origin.file ? `${origin.file}#${origin.name}` : null);
+
+function isRelative(specifier) {
+  return (
+    specifier.startsWith('./') ||
+    specifier.startsWith('../') ||
+    specifier === '.' ||
+    specifier === '..'
+  );
+}
+
+/** What a tsconfig `paths` pattern captures from `specifier` ('' for an exact key), or null. */
+function pathRuleMatch(pattern, specifier) {
+  const star = pattern.indexOf('*');
+  if (star < 0) return specifier === pattern ? '' : null;
+  const prefix = pattern.slice(0, star);
+  const suffix = pattern.slice(star + 1);
+  if (
+    specifier.startsWith(prefix) &&
+    specifier.endsWith(suffix) &&
+    specifier.length >= prefix.length + suffix.length
+  ) {
+    return specifier.slice(prefix.length, specifier.length - suffix.length);
+  }
+  return null;
+}
+
+// ---- per-file export tables ----------------------------------------------------------------
+function recordStatement(table, statement) {
+  if (
+    ts.isImportDeclaration(statement) &&
+    statement.importClause &&
+    !statement.importClause.isTypeOnly
+  ) {
+    recordImport(table, statement);
+  } else if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
+    recordExportDeclaration(table, statement);
+  } else if (ts.isExportAssignment(statement)) {
+    const local = ts.isIdentifier(statement.expression) ? statement.expression.text : null;
+    table.named.set('default', local ? { kind: 'local', local } : { kind: 'expression' });
+  } else if (hasExportModifier(statement)) {
+    recordExportedDeclaration(table, statement);
+  }
+}
+
+function recordImport(table, statement) {
+  const specifier = statement.moduleSpecifier.text;
+  const clause = statement.importClause;
+  if (clause.name) table.imports.set(clause.name.text, { specifier, imported: 'default' });
+  const bindings = clause.namedBindings;
+  if (bindings && ts.isNamespaceImport(bindings)) {
+    table.imports.set(bindings.name.text, { specifier, imported: '*' });
+  } else if (bindings && ts.isNamedImports(bindings)) {
+    for (const element of bindings.elements.filter(each => !each.isTypeOnly)) {
+      table.imports.set(element.name.text, {
+        specifier,
+        imported: (element.propertyName ?? element.name).text,
+      });
+    }
+  }
+}
+
+function recordExportDeclaration(table, statement) {
+  const specifier =
+    statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
+      ? statement.moduleSpecifier.text
+      : null;
+  const clause = statement.exportClause;
+  if (!clause && specifier) table.stars.push(specifier);
+  else if (clause && ts.isNamespaceExport(clause) && specifier) {
+    table.named.set(clause.name.text, { kind: 'namespace', specifier });
+  } else if (clause && ts.isNamedExports(clause)) {
+    for (const element of clause.elements.filter(each => !each.isTypeOnly)) {
+      const local = (element.propertyName ?? element.name).text;
+      table.named.set(
+        element.name.text,
+        specifier ? { kind: 'reexport', specifier, name: local } : { kind: 'local', local }
+      );
+    }
+  }
+}
+
+function recordExportedDeclaration(table, statement) {
+  if (ts.isVariableStatement(statement)) {
+    for (const declaration of statement.declarationList.declarations) {
+      for (const name of boundNames(declaration.name, [])) {
+        table.named.set(name, { kind: 'local', local: name });
+      }
+    }
+  } else if (statement.name && ts.isIdentifier(statement.name)) {
+    if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) return;
+    const exported = hasDefaultModifier(statement) ? 'default' : statement.name.text;
+    table.named.set(exported, { kind: 'local', local: statement.name.text });
+  } else if (hasDefaultModifier(statement)) {
+    table.named.set('default', { kind: 'expression' });
+  }
+}
+
+function boundNames(name, out) {
+  if (ts.isIdentifier(name)) out.push(name.text);
+  else
+    for (const element of name.elements)
+      if (ts.isBindingElement(element)) boundNames(element.name, out);
+  return out;
+}

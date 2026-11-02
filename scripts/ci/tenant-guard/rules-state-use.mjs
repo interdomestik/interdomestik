@@ -2,166 +2,14 @@
 
 import ts from 'typescript';
 import { originKey } from './modules.mjs';
-import { hasFlag } from './rules-digest.mjs';
-import { isFunctionLike, unitOf } from './syntax.mjs';
+import { createStateUseProblem } from './rules-state-use-problem.mjs';
+import { isFunctionLike } from './syntax.mjs';
 
 /** Installs the tenant-state use analyses and the reference index on `ctx`. */
 export function installStateUse(ctx) {
-  const {
-    BUILDER_METHODS,
-    DB_SRC,
-    MUTATORS,
-    SCHEMA,
-    argumentCall,
-    calleeProblem,
-    closureUnchanged,
-    escapeContract,
-    isWriteTarget,
-    originsOf,
-    outermost,
-    readContract,
-    shallowPrimitive,
-    unwrap,
-    yieldsOperand,
-  } = ctx;
+  const { DB_SRC, calleeProblem, originsOf, unwrap } = ctx;
 
-  /**
-   * Why a reference to tenant state is not an accepted form, or null when it is. Refused from any
-   * code: a write (assignment, update, delete, destructuring target), a call through a computed
-   * member that is not a literal, a known mutating method, and an escape (stored, returned,
-   * aliased, passed to a callee whose closure changed). Changed code may in addition call no method
-   * on the state at all unless a source-bound read-only contract names that member path (Q3).
-   * Accepted: member reads, iteration, operators and conditions, calls into unchanged closures,
-   * and, for reviewed schema values only, being handed to a finite query-builder method (Q2). A
-   * function binding is refused only when it is reassigned.
-   */
-  function stateUseProblem(fact, node, entry, note) {
-    const { origin, kind } = entry;
-    const unit = unitOf(node);
-    const changed = !unit || !fact.unchanged(unit);
-    let value = outermost(node);
-    const path = [];
-    let member = false;
-    let computed = false;
-    while (
-      (ts.isPropertyAccessExpression(value.parent) || ts.isElementAccessExpression(value.parent)) &&
-      value.parent.expression === value
-    ) {
-      const access = value.parent;
-      member = true;
-      if (ts.isPropertyAccessExpression(access)) path.push(access.name.text);
-      else {
-        const argument = unwrap(access.argumentExpression);
-        if (ts.isStringLiteralLike(argument) || ts.isNumericLiteral(argument))
-          path.push(argument.text);
-        else computed = true;
-      }
-      value = outermost(access);
-    }
-    const parent = value.parent;
-    // Unchanged code that writes or mutates state keeps doing so; when what it writes depends on
-    // the unit's own parameters the unit is a writer, held to the legacy-sink caller rules.
-    const writer = target => {
-      if (changed) return null;
-      note.writer(fact, unit, target);
-      return null;
-    };
-    if (isWriteTarget(value)) return changed ? 'is written by changed code' : writer(value.parent);
-    if (kind === 'function') return null;
-    if (
-      (ts.isCallExpression(parent) || ts.isTaggedTemplateExpression(parent)) &&
-      (parent.expression ?? parent.tag) === value
-    ) {
-      if (!member) return closureUnchanged(origin) ? null : 'is called while its closure changed';
-      if (computed) return changed ? 'is called through a computed member' : writer(parent);
-      const method = path[path.length - 1];
-      if (MUTATORS.has(method))
-        return changed ? `is mutated by changed code (${method})` : writer(parent);
-      if (changed && !readContract(entry.root ?? originKey(origin), path.join('.'))) {
-        return `is called by changed code (${path.join('.')}) without a read-only contract`;
-      }
-      return null;
-    }
-    const schema = kind === 'kernel' && SCHEMA.test(origin.file);
-    const call = argumentCall(value);
-    if (call) {
-      const callee = unwrap(call.expression);
-      if (
-        schema &&
-        ts.isPropertyAccessExpression(callee) &&
-        BUILDER_METHODS.has(callee.name.text)
-      ) {
-        const receiver = ctx.receiverProblem(fact, callee.expression);
-        return receiver ? `is handed to ${receiver}` : null;
-      }
-      const problem = stateCalleeProblem(fact, unit, call.expression, changed);
-      if (problem) return `is passed to ${problem}`;
-      return schema && changed ? ctx.heldCallProblem(fact, unit, call) : null;
-    }
-    // A tagged template (Drizzle `sql`) keeps its interpolated values: its result is held too.
-    if (schema && changed && ts.isTemplateSpan(parent)) {
-      const tagged = parent.parent.parent;
-      if (ts.isTaggedTemplateExpression(tagged)) return ctx.heldCallProblem(fact, unit, tagged);
-    }
-    if (schema && member && ctx.builderProjection(fact, value)) return null;
-    if (
-      ts.isSpreadElement(parent) &&
-      (ts.isCallExpression(parent.parent) || ts.isNewExpression(parent.parent))
-    ) {
-      const problem = stateCalleeProblem(fact, unit, parent.parent.expression, changed);
-      return problem ? `is spread into ${problem}` : null;
-    }
-    // A shallow copy or an iteration hands out the members themselves: from changed code only
-    // when every member of the state is a primitive (a const literal of primitives).
-    if (
-      (ts.isForOfStatement(parent) && parent.expression === value) ||
-      (ts.isSpreadElement(parent) && ts.isArrayLiteralExpression(parent.parent)) ||
-      ts.isSpreadAssignment(parent)
-    ) {
-      return !changed || (!member && shallowPrimitive(origin))
-        ? null
-        : 'is copied or iterated by changed code while its members are not primitives';
-    }
-    // Reads that yield a primitive: key iteration, operators whose result is not an operand,
-    // conditions, template text, computed keys. (`a ?? b`, `a || b`, `a && b` and `a, b` can
-    // yield the operand itself.)
-    if (
-      (ts.isForInStatement(parent) && parent.expression === value) ||
-      (ts.isBinaryExpression(parent) &&
-        !isWriteTarget(parent.left) &&
-        !yieldsOperand(parent, value)) ||
-      ts.isPrefixUnaryExpression(parent) ||
-      ts.isTypeOfExpression(parent) ||
-      ts.isTemplateSpan(parent) ||
-      (ts.isElementAccessExpression(parent) && parent.argumentExpression === value) ||
-      (ts.isConditionalExpression(parent) && parent.condition === value) ||
-      ((ts.isIfStatement(parent) || ts.isWhileStatement(parent) || ts.isSwitchStatement(parent)) &&
-        parent.expression === value)
-    ) {
-      return null;
-    }
-    if (member && !changed) return null; // a member read in unchanged code
-    // `const ALIAS = state` at module scope: the alias is the same state, judged at its own uses.
-    if (
-      !member &&
-      ts.isVariableDeclaration(parent) &&
-      parent.initializer === value &&
-      ts.isIdentifier(parent.name)
-    ) {
-      const statement = parent.parent?.parent;
-      if (
-        statement &&
-        ts.isVariableStatement(statement) &&
-        statement.parent === fact.sourceFile &&
-        hasFlag(parent.parent, ts.NodeFlags.Const)
-      ) {
-        note.alias({ file: fact.file, name: parent.name.text }, entry);
-        return null;
-      }
-    }
-    if (escapeContract(entry.root ?? originKey(origin), fact, unit)) return null;
-    return `escapes (${parent?.getText(fact.sourceFile).slice(0, 60)})`;
-  }
+  const stateUseProblem = createStateUseProblem(ctx, stateCalleeProblem);
 
   /**
    * Why tenant state may not be handed to `callee`, or null. Beyond the unchanged-closure rule,
@@ -266,19 +114,6 @@ export function installStateUse(ctx) {
     return null;
   }
 
-  /** The expressions a function returns (an expression body, or its own return statements). */
-  function returnsOf(fn) {
-    if (!fn.body) return [];
-    if (!ts.isBlock(fn.body)) return [fn.body];
-    const found = [];
-    const visit = node => {
-      if (node !== fn.body && isFunctionLike(node)) return;
-      if (ts.isReturnStatement(node) && node.expression) found.push(node.expression);
-      ts.forEachChild(node, visit);
-    };
-    visit(fn.body);
-    return found;
-  }
   Object.assign(ctx, {
     BUILDER_CLIENTS,
     SPREAD,
@@ -296,4 +131,18 @@ export function installStateUse(ctx) {
     stateUseProblem,
     usesOf,
   });
+}
+
+/** The expressions a function returns (an expression body, or its own return statements). */
+function returnsOf(fn) {
+  if (!fn.body) return [];
+  if (!ts.isBlock(fn.body)) return [fn.body];
+  const found = [];
+  const visit = node => {
+    if (node !== fn.body && isFunctionLike(node)) return;
+    if (ts.isReturnStatement(node) && node.expression) found.push(node.expression);
+    ts.forEachChild(node, visit);
+  };
+  visit(fn.body);
+  return found;
 }

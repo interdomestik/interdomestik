@@ -92,29 +92,38 @@ export function resolutionConfig(repoRoot) {
     const dir = path.posix.dirname(file) === '.' ? '' : path.posix.dirname(file);
     let result = { baseUrl: null, paths: null, pathsBase: null };
     const parents = config.extends === undefined ? [] : [config.extends].flat();
-    for (const parent of parents) {
-      const target = typeof parent === 'string' ? repoPath(dir, parent) : null;
-      const real =
-        target && fs.existsSync(path.join(repoRoot, target))
-          ? fs.realpathSync(path.join(repoRoot, target))
-          : null;
-      if (
-        typeof parent !== 'string' ||
-        !/^\.\.?\//u.test(parent) ||
-        !known.has(target) ||
-        !real?.startsWith(realRoot + path.sep)
-      ) {
-        violations.push(violation(file, `unsupported extends ${JSON.stringify(parent)}`));
-        continue;
-      }
-      const inherited = load(target, seen);
-      result = {
-        baseUrl: inherited.baseUrl ?? result.baseUrl,
-        paths: inherited.paths ?? result.paths,
-        pathsBase: inherited.paths ? inherited.pathsBase : result.pathsBase,
-      };
+    for (const parent of parents) result = inherit(file, dir, parent, result, seen);
+    applyOptions(file, dir, config.compilerOptions ?? {}, result);
+    effective.set(file, result);
+    return result;
+  }
+
+  /** `result` overlaid by the config a relative `extends` names, or unchanged when refused. */
+  function inherit(file, dir, parent, result, seen) {
+    const target = typeof parent === 'string' ? repoPath(dir, parent) : null;
+    const real =
+      target && fs.existsSync(path.join(repoRoot, target))
+        ? fs.realpathSync(path.join(repoRoot, target))
+        : null;
+    if (
+      typeof parent !== 'string' ||
+      !/^\.\.?\//u.test(parent) ||
+      !known.has(target) ||
+      !real?.startsWith(realRoot + path.sep)
+    ) {
+      violations.push(violation(file, `unsupported extends ${JSON.stringify(parent)}`));
+      return result;
     }
-    const options = config.compilerOptions ?? {};
+    const inherited = load(target, seen);
+    return {
+      baseUrl: inherited.baseUrl ?? result.baseUrl,
+      paths: inherited.paths ?? result.paths,
+      pathsBase: inherited.paths ? inherited.pathsBase : result.pathsBase,
+    };
+  }
+
+  /** A config's own resolver options, applied over what it inherits. */
+  function applyOptions(file, dir, options, result) {
     for (const option of UNMODELED_OPTIONS) {
       if (option in options)
         violations.push(violation(file, `unmodeled resolver option ${option}`));
@@ -132,8 +141,6 @@ export function resolutionConfig(repoRoot) {
         result.pathsBase = dir;
       }
     }
-    effective.set(file, result);
-    return result;
   }
 
   const pathRules = [];
@@ -211,7 +218,7 @@ export function bundlerConfigViolations(repoRoot, commit) {
       } catch {
         trusted = null;
       }
-      if (!trusted || !trusted.equals(current)) {
+      if (!trusted?.equals(current)) {
         violations.push(
           violation(
             file,

@@ -177,7 +177,7 @@ export const CONTRACTS = deepFreeze([
     kinds: {
       execute: 2,
     },
-    sha256: 'cfe8462912b4d664a74dffdd447ebe88b46d00b7f2b00ea23ae4265ac0dd7f9f',
+    sha256: 'b618b73bda9f1bdb1fca1edc12bc6ab407215104ae9d3c6d08111d805636ff31',
     reason:
       "Parameterized follow-up insert/complete on the repository authority's tenant transaction; row tenant_id is the authority tenant and a caller tenant mismatch throws before SQL.",
   },
@@ -218,8 +218,7 @@ export const CONTRACTS = deepFreeze([
       'sql.raw': 1,
     },
     sha256: '01515117e17a2e4eda0f8691f20d94e7ebde813d50b65291578faeb9a8e92dcd',
-    reason:
-      'Identifier-only raw SQL: the alias is validated against ^[A-Za-z_]\\w*$ and the column names are fixed code constants; no value reaches sql.raw.',
+    reason: String.raw`Identifier-only raw SQL: the alias is validated against ^[A-Za-z_]\w*$ and the column names are fixed code constants; no value reaches sql.raw.`,
   },
   {
     file: 'packages/domain-claims/src/claims/recovery-invariant-evidence.ts',

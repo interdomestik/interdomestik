@@ -16,21 +16,22 @@ export function installState(ctx) {
       const fact = factsOf(file);
       if (!fact) continue;
       for (const name of graph.exportNames(file)) {
-        for (const origin of graph.resolveExport(file, name)) {
-          if (origin.file !== file) continue;
-          const key = originKey(origin);
-          if (!key || LEGACY.has(key) || PRIVILEGED.has(key) || tenantState.has(key)) continue;
-          const statement = fact.statements.get(origin.name);
-          if (!statement || !ts.isVariableStatement(statement)) continue;
-          const declaration = statement.declarationList.declarations.find(
-            candidate => ts.isIdentifier(candidate.name) && candidate.name.text === origin.name
-          );
-          if (!declaration || holdsPrimitive(statement, declaration)) continue;
-          if (isFunctionLike(fact.declarations.get(origin.name))) continue;
-          tenantState.set(key, { origin, kind: 'kernel' });
-        }
+        for (const origin of graph.resolveExport(file, name)) seedExport(fact, file, origin);
       }
     }
+  }
+  function seedExport(fact, file, origin) {
+    if (origin.file !== file) return;
+    const key = originKey(origin);
+    if (!key || LEGACY.has(key) || PRIVILEGED.has(key) || tenantState.has(key)) return;
+    const statement = fact.statements.get(origin.name);
+    if (!statement || !ts.isVariableStatement(statement)) return;
+    const declaration = statement.declarationList.declarations.find(
+      candidate => ts.isIdentifier(candidate.name) && candidate.name.text === origin.name
+    );
+    if (!declaration || holdsPrimitive(statement, declaration)) return;
+    if (isFunctionLike(fact.declarations.get(origin.name))) return;
+    tenantState.set(key, { origin, kind: 'kernel' });
   }
 
   // Methods that mutate their receiver in place (Array, Map, Set, Object, Reflect).
@@ -114,20 +115,6 @@ export function installState(ctx) {
       current.parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
     );
   };
-
-  /** Whether a binary expression can evaluate to `operand` itself. */
-  function yieldsOperand(binary, operand) {
-    const operator = binary.operatorToken.kind;
-    if (operator === ts.SyntaxKind.CommaToken) return binary.right === operand;
-    if (
-      operator === ts.SyntaxKind.BarBarToken ||
-      operator === ts.SyntaxKind.QuestionQuestionToken
-    ) {
-      return true;
-    }
-    if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return binary.right === operand;
-    return false;
-  }
 
   /** Whether a state binding is a const literal whose every member is a primitive literal. */
   function shallowPrimitive(origin) {
@@ -229,4 +216,15 @@ export function installState(ctx) {
     shallowPrimitive,
     yieldsOperand,
   });
+}
+
+/** Whether a binary expression can evaluate to `operand` itself. */
+function yieldsOperand(binary, operand) {
+  const operator = binary.operatorToken.kind;
+  if (operator === ts.SyntaxKind.CommaToken) return binary.right === operand;
+  if (operator === ts.SyntaxKind.BarBarToken || operator === ts.SyntaxKind.QuestionQuestionToken) {
+    return true;
+  }
+  if (operator === ts.SyntaxKind.AmpersandAmpersandToken) return binary.right === operand;
+  return false;
 }

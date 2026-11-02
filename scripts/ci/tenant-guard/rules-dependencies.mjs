@@ -33,29 +33,10 @@ export function installDependencies(ctx) {
         continue;
       }
       // A local declared inside the unit: follow its initializer and every assignment to it.
-      const sources = [];
-      if (ts.isVariableDeclaration(binding.decl) && binding.decl.initializer)
-        sources.push(binding.decl.initializer);
-      if (binding.kind === 'function' && binding.decl.body) sources.push(binding.decl.body);
-      const loop = binding.decl.parent?.parent;
-      if (loop && (ts.isForOfStatement(loop) || ts.isForInStatement(loop)))
-        sources.push(loop.expression);
-      for (const other of unitReferences) {
-        if (other.binding !== binding) continue;
-        const parent = other.node.parent;
-        if (
-          parent &&
-          ts.isBinaryExpression(parent) &&
-          parent.left === other.node &&
-          parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
-          parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment
-        ) {
-          sources.push(parent.right);
-        }
-      }
-      for (const reference2 of unitReferences) {
-        if (sources.some(source => within(reference2.node, source))) queue.push(reference2);
-      }
+      const sources = localSources(binding, unitReferences);
+      queue.push(
+        ...unitReferences.filter(other => sources.some(source => within(other.node, source)))
+      );
     }
     return { params, external };
   }
@@ -221,45 +202,47 @@ export function installDependencies(ctx) {
   }
   function collectTenantState(fact, references) {
     const queue = references.flatMap(reference => originsOf(fact, reference).origins);
-    while (queue.length > 0) {
-      const origin = queue.shift();
-      if (origin.external || origin.unresolved || origin.namespace) continue;
-      const key = originKey(origin);
-      if (!key || LEGACY.has(key) || PRIVILEGED.has(key) || stateVisited.has(key)) continue;
-      stateVisited.add(key);
-      if (ctx.pinnedModules.has(origin.file)) continue;
-      const owner = factsOf(origin.file);
-      const statement = owner?.statements.get(origin.name);
-      if (!statement) continue;
-      let followed = [];
-      if (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) {
-        tenantState.set(key, { origin, kind: 'function' });
-        followed = ts.isFunctionDeclaration(statement) ? [statement] : [];
-      } else if (ts.isVariableStatement(statement)) {
-        const declaration = statement.declarationList.declarations.find(
-          candidate => ts.isIdentifier(candidate.name) && candidate.name.text === origin.name
-        );
-        if (!declaration || holdsPrimitive(statement, declaration)) continue;
-        const unit = owner.declarations.get(origin.name);
-        const functionValue = unit !== statement && isFunctionLike(unit);
-        tenantState.set(key, { origin, kind: functionValue ? 'function' : 'value' });
-        // The whole initializer (a wrapper and its arguments included) is followed as an alias.
-        for (const reference of owner.references) {
-          if (
-            within(reference.node, statement) &&
-            reference.binding &&
-            !(functionValue && within(reference.node, unit))
-          ) {
-            queue.push(...originsOf(owner, reference).origins);
-          }
-        }
-        if (functionValue) followed = [unit];
-      }
-      for (const unit of followed) {
-        const { external } = expressionDependencies(owner, unit, returnRoots(unit));
-        for (const reference of external) queue.push(...originsOf(owner, reference).origins);
+    while (queue.length > 0) collectStateOrigin(queue, queue.shift());
+  }
+  function collectStateOrigin(queue, origin) {
+    if (origin.external || origin.unresolved || origin.namespace) return;
+    const key = originKey(origin);
+    if (!key || LEGACY.has(key) || PRIVILEGED.has(key) || stateVisited.has(key)) return;
+    stateVisited.add(key);
+    if (ctx.pinnedModules.has(origin.file)) return;
+    const owner = factsOf(origin.file);
+    const statement = owner?.statements.get(origin.name);
+    if (!statement) return;
+    for (const unit of recordState(queue, { owner, statement, origin, key })) {
+      const { external } = expressionDependencies(owner, unit, returnRoots(unit));
+      for (const reference of external) queue.push(...originsOf(owner, reference).origins);
+    }
+  }
+  /** Records the state a top-level statement declares; returns the functions to follow. */
+  function recordState(queue, { owner, statement, origin, key }) {
+    if (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) {
+      tenantState.set(key, { origin, kind: 'function' });
+      return ts.isFunctionDeclaration(statement) ? [statement] : [];
+    }
+    if (!ts.isVariableStatement(statement)) return [];
+    const declaration = statement.declarationList.declarations.find(
+      candidate => ts.isIdentifier(candidate.name) && candidate.name.text === origin.name
+    );
+    if (!declaration || holdsPrimitive(statement, declaration)) return [];
+    const unit = owner.declarations.get(origin.name);
+    const functionValue = unit !== statement && isFunctionLike(unit);
+    tenantState.set(key, { origin, kind: functionValue ? 'function' : 'value' });
+    // The whole initializer (a wrapper and its arguments included) is followed as an alias.
+    for (const reference of owner.references) {
+      if (
+        within(reference.node, statement) &&
+        reference.binding &&
+        !(functionValue && within(reference.node, unit))
+      ) {
+        queue.push(...originsOf(owner, reference).origins);
       }
     }
+    return functionValue ? [unit] : [];
   }
   Object.assign(ctx, {
     argumentCall,
@@ -273,4 +256,30 @@ export function installDependencies(ctx) {
     transferProblem,
     unwrap,
   });
+}
+
+/** What a local binding declared inside a unit is computed from: initializer, body, assignments. */
+function localSources(binding, unitReferences) {
+  const sources = [];
+  if (ts.isVariableDeclaration(binding.decl) && binding.decl.initializer)
+    sources.push(binding.decl.initializer);
+  if (binding.kind === 'function' && binding.decl.body) sources.push(binding.decl.body);
+  const loop = binding.decl.parent?.parent;
+  if (loop && (ts.isForOfStatement(loop) || ts.isForInStatement(loop)))
+    sources.push(loop.expression);
+  for (const other of unitReferences) {
+    if (other.binding === binding && isAssigned(other.node)) sources.push(other.node.parent.right);
+  }
+  return sources;
+}
+
+function isAssigned(node) {
+  const parent = node.parent;
+  return Boolean(
+    parent &&
+    ts.isBinaryExpression(parent) &&
+    parent.left === node &&
+    parent.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+    parent.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+  );
 }

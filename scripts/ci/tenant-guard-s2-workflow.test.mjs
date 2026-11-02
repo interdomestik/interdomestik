@@ -5,10 +5,10 @@ import test from 'node:test';
 import { commit, git, tmp, writeFile } from './db-access-required-git.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
-  ATTACK,
   adminRead,
   assertFailed,
-  main,
+  ATTACK,
+  fixture,
   openPullRequest,
   route,
   skip,
@@ -25,7 +25,7 @@ test(
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
     assert.match(
       result.stdout,
-      new RegExp(`source=${main} tree=[0-9a-f]{40} role=approved-guard`, 'u')
+      new RegExp(`source=${fixture.main} tree=[0-9a-f]{40} role=approved-guard`, 'u')
     );
     assert.match(result.stdout, new RegExp(`trusted=${TRUSTED.commit} tree=${TRUSTED.tree}`, 'u'));
     assert.match(result.stdout, /Protected tenant guard S2 passed .*files=\d+ .*violations=0/u);

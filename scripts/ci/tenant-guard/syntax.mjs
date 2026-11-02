@@ -4,17 +4,17 @@
 // reference resolved to its lexical binding.
 
 import ts from 'typescript';
-import { analyzeScopes, isFunctionLike } from './scopes.mjs';
+import { isFunctionLike } from './scopes.mjs';
 export { analyzeScopes, isFunctionLike } from './scopes.mjs';
 
+const SCRIPT_KINDS = [
+  [/\.[cm]?tsx$/u, ts.ScriptKind.TSX],
+  [/\.[cm]?jsx$/u, ts.ScriptKind.JSX],
+  [/\.[cm]?js$/u, ts.ScriptKind.JS],
+];
+
 export function parseSource(file, text) {
-  const kind = /\.[cm]?tsx$/u.test(file)
-    ? ts.ScriptKind.TSX
-    : /\.[cm]?jsx$/u.test(file)
-      ? ts.ScriptKind.JSX
-      : /\.[cm]?js$/u.test(file)
-        ? ts.ScriptKind.JS
-        : ts.ScriptKind.TS;
+  const kind = SCRIPT_KINDS.find(([pattern]) => pattern.test(file))?.[1] ?? ts.ScriptKind.TS;
   return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
 }
 
@@ -141,13 +141,10 @@ export function callArguments(node) {
   if (ts.isCallExpression(parent)) return [...parent.arguments];
   if (ts.isTaggedTemplateExpression(parent)) return [parent.template];
   if (ts.isJsxOpeningElement(parent) || ts.isJsxSelfClosingElement(parent)) {
-    const values = parent.attributes.properties.flatMap(property =>
-      ts.isJsxSpreadAttribute(property)
-        ? [property.expression]
-        : property.initializer
-          ? [property.initializer]
-          : []
-    );
+    const values = parent.attributes.properties.flatMap(property => {
+      if (ts.isJsxSpreadAttribute(property)) return [property.expression];
+      return property.initializer ? [property.initializer] : [];
+    });
     if (ts.isJsxOpeningElement(parent)) values.push(...parent.parent.children);
     return values;
   }

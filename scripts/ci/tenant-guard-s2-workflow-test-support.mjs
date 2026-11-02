@@ -25,7 +25,7 @@ export const archive = path.join(rootDir, 'tmp', 'db-access-protected', `typescr
 export const sri = file =>
   `sha512-${createHash('sha512').update(fs.readFileSync(file)).digest('base64')}`;
 export const lockIntegrity =
-  /^ {2}typescript@5\.9\.3:\n\s+resolution:\s*\n?\s*\{\s*integrity:\s*(sha512-[A-Za-z0-9+/=]+)/mu.exec(
+  /^ {2}typescript@5\.9\.3:\n\s+resolution:\s*\{\s*integrity:\s*(sha512-[A-Za-z0-9+/=]+)/mu.exec(
     fs.readFileSync(path.join(rootDir, 'pnpm-lock.yaml'), 'utf8')
   )?.[1];
 export const ready = fs.existsSync(archive) && lockIntegrity && sri(archive) === lockIntegrity;
@@ -33,11 +33,12 @@ export const skip = ready ? false : `needs the verified TypeScript ${TS} archive
 
 // Protected main: the current working tree (tracked and unignored files) as one commit on top of
 // the trusted comparator. It is also the approved source unless a test pins a variant.
-export let origin;
-export let main;
+// Mutable fixture state lives on one shared object; `fixture.main` is the protected main commit.
+export const fixture = { origin: null, main: null, variants: 0, pulls: 0 };
 export function fixtureOrigin() {
-  if (origin) return origin;
-  origin = tmp('s2-origin');
+  if (fixture.origin) return fixture.origin;
+  const origin = tmp('s2-origin');
+  fixture.origin = origin;
   git(origin, 'init', '-q', '-b', 'main');
   const common = git(rootDir, 'rev-parse', '--path-format=absolute', '--git-common-dir');
   fs.writeFileSync(
@@ -46,33 +47,41 @@ export function fixtureOrigin() {
   );
   git(origin, `--work-tree=${rootDir}`, 'add', '-A');
   const tree = git(origin, 'write-tree');
-  main = git(origin, 'commit-tree', tree, '-p', TRUSTED.commit, '-m', 'protected main snapshot');
-  git(origin, 'update-ref', 'refs/heads/main', main);
+  fixture.main = git(
+    origin,
+    'commit-tree',
+    tree,
+    '-p',
+    TRUSTED.commit,
+    '-m',
+    'protected main snapshot'
+  );
+  git(origin, 'update-ref', 'refs/heads/main', fixture.main);
   git(origin, 'reset', '-q', '--hard', 'main');
   return origin;
 }
 
 // An approved-source variant on its own origin branch (reachable, as an authority branch is).
-export let variants = 0;
 export function sourceVariant(files, { reachable = true } = {}) {
   const repo = fixtureOrigin();
-  variants += 1;
-  git(repo, 'checkout', '-q', '-b', `authority-${variants}`, 'main');
+  fixture.variants += 1;
+  const variant = fixture.variants;
+  git(repo, 'checkout', '-q', '-b', `authority-${variant}`, 'main');
   for (const [file, content] of Object.entries(files)) writeFile(repo, file, content);
-  const sha = commit(repo, `source variant ${variants}`);
+  const sha = commit(repo, `source variant ${variant}`);
   git(repo, 'checkout', '-q', 'main');
-  if (!reachable) git(repo, 'branch', '-q', '-D', `authority-${variants}`);
+  if (!reachable) git(repo, 'branch', '-q', '-D', `authority-${variant}`);
   return sha;
 }
 
-export let pulls = 0;
 export function openPullRequest(mutate = () => {}, { base = 'main', force = [] } = {}) {
   const repo = fixtureOrigin();
-  pulls += 1;
-  git(repo, 'checkout', '-q', '-b', `candidate-${pulls}`, base);
+  fixture.pulls += 1;
+  const pull = fixture.pulls;
+  git(repo, 'checkout', '-q', '-b', `candidate-${pull}`, base);
   mutate(repo);
   if (force.length) git(repo, 'add', '-f', '--', ...force);
-  const head = commit(repo, `candidate ${pulls}`);
+  const head = commit(repo, `candidate ${pull}`);
   git(repo, 'checkout', '-q', 'main');
   const baseSha = git(repo, 'rev-parse', `${base}^{commit}`);
   const ws = tmp('s2-ws');
@@ -101,7 +110,7 @@ export function openPullRequest(mutate = () => {}, { base = 'main', force = [] }
   };
 }
 
-export function route(pr, { source = main, overrides = {}, extraEnv = {} } = {}) {
+export function route(pr, { source = fixture.main, overrides = {}, extraEnv = {} } = {}) {
   const tree = git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
   const COMMIT_PIN = /^source_commit='[0-9a-f]{40}'$/mu;
   const TREE_PIN = /^source_tree='[0-9a-f]{40}'$/mu;
