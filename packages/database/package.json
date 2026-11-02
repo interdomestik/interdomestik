@@ -21,7 +21,9 @@
     "./public-token-tenant": "./src/public-token-tenant.ts",
     "./scheduled-tenant-work": "./src/scheduled-tenant-work.ts",
     "./paddle-webhook-receipts": "./src/paddle-webhook-receipts.ts",
-    "./paddle-provider-resolution": "./src/paddle-provider-resolution.ts"
+    "./paddle-provider-resolution": "./src/paddle-provider-resolution.ts",
+    "./platform-directory": "./src/platform-directory.ts",
+    "./tenant-classification-move": "./src/tenant-classification-move.ts"
   },
   "scripts": {
     "db:generate": "pnpm run generate",

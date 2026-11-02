@@ -1,55 +1,85 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  dbSelect: vi.fn(),
+  listTenantIds: vi.fn(),
+  withTenantContext: vi.fn(),
+  tenantRows: new Map<string, unknown>(),
+  failure: { error: undefined as unknown, remaining: 0 },
+  whereCalls: [] as unknown[],
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: {
-    select: hoisted.dbSelect,
-  },
+  withTenantContext: hoisted.withTenantContext,
   claims: {
     status: 'claims.status',
     caseLifecycleState: 'claims.caseLifecycleState',
     recoveryLifecycleState: 'claims.recoveryLifecycleState',
     claimAmount: 'claims.claimAmount',
+    tenantId: 'claims.tenantId',
   },
+}));
+
+vi.mock('@interdomestik/database/platform-directory', () => ({
+  listTenantIdsForPlatformAggregate: hoisted.listTenantIds,
 }));
 
 vi.mock('drizzle-orm', () => ({
   count: vi.fn(() => 'count()'),
+  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   sql: vi.fn((strings: TemplateStringsArray) => strings.join('')),
 }));
 
 import { getPublicStatsCore } from './_core';
 
-type FromResult<T> = {
-  from: () => Promise<T[]>;
-};
+type StatsRow = { totalClaims: unknown; resolvedClaims: unknown; totalRecovered: unknown };
 
-type RejectingFromResult = {
-  from: () => Promise<never>;
-};
-
-function makeFromResult<T>(rows: T[]): FromResult<T> {
+function makeTx(rows: StatsRow[]) {
   return {
-    from: async () => rows,
-  };
-}
-
-function makeRejectingFromResult(error: unknown): RejectingFromResult {
-  return {
-    from: async () => {
-      throw error;
-    },
+    select: () => ({
+      from: () => ({
+        where: (clause: unknown) => {
+          hoisted.whereCalls.push(clause);
+          return Promise.resolve(rows);
+        },
+      }),
+    }),
   };
 }
 
 describe('getPublicStatsCore', () => {
-  it('calculates success rate and total recovered', async () => {
-    hoisted.dbSelect.mockReturnValueOnce(
-      makeFromResult([{ totalClaims: 10, resolvedClaims: 4, totalRecovered: '2000' }])
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.tenantRows.clear();
+    hoisted.whereCalls.length = 0;
+    hoisted.failure.error = undefined;
+    hoisted.failure.remaining = 0;
+    hoisted.listTenantIds.mockReset();
+    hoisted.withTenantContext.mockReset();
+    hoisted.withTenantContext.mockImplementation(
+      async (ctx: { tenantId: string }, cb: (tx: unknown) => unknown) => {
+        if (hoisted.failure.remaining > 0) {
+          hoisted.failure.remaining -= 1;
+          throw hoisted.failure.error;
+        }
+        const row = hoisted.tenantRows.get(ctx.tenantId);
+        return cb(makeTx(row ? [row as StatsRow] : []));
+      }
     );
+  });
+
+  function seedTenant(
+    tenantId: string,
+    totalClaims: number | string,
+    resolvedClaims: number | string,
+    totalRecovered: string
+  ) {
+    hoisted.tenantRows.set(tenantId, { totalClaims, resolvedClaims, totalRecovered });
+  }
+
+  it('sums per-tenant counts and calculates success rate and total recovered', async () => {
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a', 'tenant-b']);
+    seedTenant('tenant-a', 6, 3, '1500');
+    seedTenant('tenant-b', 4, 1, '500');
 
     const stats = await getPublicStatsCore();
 
@@ -62,10 +92,42 @@ describe('getPublicStatsCore', () => {
     });
   });
 
+  it('reads each tenant inside its own system tenant context with a tenant predicate', async () => {
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a', 'tenant-b']);
+    seedTenant('tenant-a', 1, 0, '0');
+    seedTenant('tenant-b', 1, 0, '0');
+
+    await getPublicStatsCore();
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
+      { tenantId: 'tenant-a', role: 'system' },
+      { tenantId: 'tenant-b', role: 'system' },
+    ]);
+    expect(hoisted.whereCalls).toEqual([
+      { op: 'eq', left: 'claims.tenantId', right: 'tenant-a' },
+      { op: 'eq', left: 'claims.tenantId', right: 'tenant-b' },
+    ]);
+  });
+
+  it('returns zeros and reads no tenant data when there are no tenants', async () => {
+    hoisted.listTenantIds.mockResolvedValue([]);
+
+    const stats = await getPublicStatsCore();
+
+    expect(stats).toEqual({
+      totalClaims: 0,
+      resolvedClaims: 0,
+      totalRecovered: 0,
+      successRate: 0,
+      avgResponseTime: 24,
+    });
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+
   it('returns successRate 0 when totalClaims is 0', async () => {
-    hoisted.dbSelect.mockReturnValueOnce(
-      makeFromResult([{ totalClaims: 0, resolvedClaims: 0, totalRecovered: '0' }])
-    );
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a']);
+    seedTenant('tenant-a', 0, 0, '0');
 
     const stats = await getPublicStatsCore();
 
@@ -73,9 +135,8 @@ describe('getPublicStatsCore', () => {
   });
 
   it('rounds successRate', async () => {
-    hoisted.dbSelect.mockReturnValueOnce(
-      makeFromResult([{ totalClaims: 3, resolvedClaims: 2, totalRecovered: '0' }])
-    );
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a']);
+    seedTenant('tenant-a', 3, 2, '0');
 
     const stats = await getPublicStatsCore();
 
@@ -83,9 +144,8 @@ describe('getPublicStatsCore', () => {
   });
 
   it('coerces aggregate stats values to numbers', async () => {
-    hoisted.dbSelect.mockReturnValueOnce(
-      makeFromResult([{ totalClaims: '10', resolvedClaims: '4', totalRecovered: '2000' }])
-    );
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a']);
+    seedTenant('tenant-a', '10', '4', '2000');
 
     const stats = await getPublicStatsCore();
 
@@ -98,26 +158,43 @@ describe('getPublicStatsCore', () => {
     });
   });
 
-  it('retries once after a transient stats error', async () => {
-    hoisted.dbSelect
-      .mockReturnValueOnce(
-        makeRejectingFromResult(Object.assign(new Error('reset'), { code: 'ECONNRESET' }))
-      )
-      .mockReturnValueOnce(
-        makeFromResult([{ totalClaims: 10, resolvedClaims: 4, totalRecovered: '2000' }])
-      );
+  it('treats a tenant with no stats row as zero', async () => {
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a', 'tenant-empty']);
+    seedTenant('tenant-a', 5, 5, '100');
 
     const stats = await getPublicStatsCore();
 
-    expect(stats.successRate).toBe(40);
-    expect(hoisted.dbSelect).toHaveBeenCalledTimes(2);
+    expect(stats.totalClaims).toBe(5);
+    expect(stats.successRate).toBe(100);
+  });
+
+  it('retries once after a transient stats error without double counting', async () => {
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a', 'tenant-b']);
+    seedTenant('tenant-a', 6, 3, '1500');
+    seedTenant('tenant-b', 4, 1, '500');
+    hoisted.failure.error = Object.assign(new Error('reset'), { code: 'ECONNRESET' });
+    hoisted.failure.remaining = 1;
+
+    const stats = await getPublicStatsCore();
+
+    expect(stats).toMatchObject({ totalClaims: 10, resolvedClaims: 4, successRate: 40 });
+    expect(hoisted.listTenantIds).toHaveBeenCalledTimes(2);
   });
 
   it('rethrows non-transient stats errors without retrying', async () => {
-    const error = Object.assign(new Error('boom'), { code: 'EINVAL' });
-    hoisted.dbSelect.mockReturnValueOnce(makeRejectingFromResult(error));
+    hoisted.listTenantIds.mockResolvedValue(['tenant-a']);
+    hoisted.failure.error = Object.assign(new Error('boom'), { code: 'EINVAL' });
+    hoisted.failure.remaining = 1;
 
     await expect(getPublicStatsCore()).rejects.toThrow('boom');
-    expect(hoisted.dbSelect).toHaveBeenCalledTimes(1);
+    expect(hoisted.listTenantIds).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a tenant list failure such as the tenant bound', async () => {
+    hoisted.listTenantIds.mockRejectedValue(new Error('Platform aggregate exceeds 500 tenants'));
+
+    await expect(getPublicStatsCore()).rejects.toThrow('exceeds 500 tenants');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -34,8 +35,13 @@ const mocks = vi.hoisted(() => {
       values,
     })),
     sum: vi.fn((value: unknown) => ({ op: 'sum', value })),
+    listTenantIdsForPlatformAggregate: vi.fn(async (): Promise<string[]> => []),
   };
 });
+
+vi.mock('@interdomestik/database/platform-directory', () => ({
+  listTenantIdsForPlatformAggregate: mocks.listTenantIdsForPlatformAggregate,
+}));
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
@@ -43,7 +49,11 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  agentClients: { agentId: 'agent_clients.agent_id', status: 'agent_clients.status' },
+  agentClients: {
+    agentId: 'agent_clients.agent_id',
+    status: 'agent_clients.status',
+    tenantId: 'agent_clients.tenant_id',
+  },
   agentCommissions: {
     agentId: 'agent_commissions.agent_id',
     amount: 'agent_commissions.amount',
@@ -96,30 +106,75 @@ describe('domain analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.queryPlans.length = 0;
+    mocks.listTenantIdsForPlatformAggregate.mockResolvedValue([]);
   });
 
   it('classifies agent capacity using active clients and recent claim volume', async () => {
     queuePlans({ at: 'where', result: [{ count: 150 }] }, { at: 'where', result: [{ count: 12 }] });
 
-    await expect(getAgentCapacitySignal('agent-1')).resolves.toEqual({
+    await expect(getAgentCapacitySignal('tenant-1', 'agent-1')).resolves.toEqual({
       capacity: 'near_limit',
       activeClients: 150,
       recentClaimsVol: 12,
     });
   });
 
-  it('builds a high-risk increasing claim load forecast', async () => {
-    queuePlans(
-      { at: 'where', result: [{ count: 1201 }] },
-      { at: 'where', result: [{ count: 900 }] }
-    );
+  it('runs agent capacity inside the given tenant context with tenant predicates', async () => {
+    queuePlans({ at: 'where', result: [{ count: 1 }] }, { at: 'where', result: [{ count: 2 }] });
 
-    await expect(getClaimLoadForecast()).resolves.toEqual({
+    await getAgentCapacitySignal('tenant-7', 'agent-1');
+
+    expect(withTenantContext).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(withTenantContext).mock.calls[0][0]).toEqual({ tenantId: 'tenant-7' });
+    expect(mocks.eq).toHaveBeenCalledWith('agent_clients.tenant_id', 'tenant-7');
+    expect(mocks.eq).toHaveBeenCalledWith('claims.tenant_id', 'tenant-7');
+    expect(mocks.eq).toHaveBeenCalledWith('agent_clients.agent_id', 'agent-1');
+    expect(mocks.eq).toHaveBeenCalledWith('claims.agent_id', 'agent-1');
+  });
+
+  it('builds a high-risk increasing claim load forecast', async () => {
+    mocks.listTenantIdsForPlatformAggregate.mockResolvedValue(['tenant-1']);
+    queuePlans({ at: 'where', result: [{ current: 1201, previous: 900 }] });
+
+    await expect(getClaimLoadForecast({ role: 'super_admin' })).resolves.toEqual({
       trend: 'increasing',
       riskLevel: 'high',
       deltaPercent: ((1201 - 900) / 900) * 100,
     });
   });
+
+  it('sums the claim load forecast across tenants, one tenant context each', async () => {
+    mocks.listTenantIdsForPlatformAggregate.mockResolvedValue(['tenant-a', 'tenant-b']);
+    queuePlans(
+      { at: 'where', result: [{ current: 600, previous: 300 }] },
+      { at: 'where', result: [{ current: 601, previous: 600 }] }
+    );
+
+    await expect(getClaimLoadForecast({ role: 'super_admin' })).resolves.toEqual({
+      trend: 'increasing',
+      riskLevel: 'high',
+      deltaPercent: ((1201 - 900) / 900) * 100,
+    });
+    expect(withTenantContext).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(withTenantContext).mock.calls.map(call => call[0])).toEqual([
+      { tenantId: 'tenant-a', role: 'super_admin' },
+      { tenantId: 'tenant-b', role: 'super_admin' },
+    ]);
+    expect(mocks.eq).toHaveBeenCalledWith('claims.tenant_id', 'tenant-a');
+    expect(mocks.eq).toHaveBeenCalledWith('claims.tenant_id', 'tenant-b');
+  });
+
+  it.each([['tenant_admin'], ['staff'], ['member'], [null], [undefined]])(
+    'rejects the claim load forecast for a %s actor before any tenant read',
+    async role => {
+      await expect(getClaimLoadForecast({ role })).rejects.toThrow(
+        'Unauthorized: Super Admin access required'
+      );
+      expect(mocks.listTenantIdsForPlatformAggregate).not.toHaveBeenCalled();
+      expect(withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    }
+  );
 
   it('computes branch stress with overload thresholds', async () => {
     queuePlans({ at: 'where', result: [{ count: 2 }] }, { at: 'where', result: [{ count: 12 }] });
@@ -148,21 +203,21 @@ describe('domain analytics', () => {
     expect(mocks.eq).toHaveBeenCalledWith('agent_commissions.tenant_id', 'tenant-1');
   });
 
-  it('aggregates global super-admin KPIs across tenants, branches, users, and claims', async () => {
+  it('aggregates super-admin KPIs across tenants, summing per-tenant figures', async () => {
+    mocks.listTenantIdsForPlatformAggregate.mockResolvedValue(['tenant-a', 'tenant-b']);
     queuePlans(
-      { at: 'from', result: [{ count: 3 }] },
-      { at: 'from', result: [{ count: 8 }] },
+      // tenant-a: branches, users, claims
+      { at: 'where', result: [{ count: 3 }] },
+      { at: 'where', result: [{ staff: 2, agents: 10, members: 200 }] },
+      { at: 'where', result: [{ total: 300, today: 4, last7d: 20, last30d: 60 }] },
+      // tenant-b
       { at: 'where', result: [{ count: 5 }] },
-      { at: 'where', result: [{ count: 25 }] },
-      { at: 'where', result: [{ count: 480 }] },
-      { at: 'from', result: [{ count: 600 }] },
-      { at: 'where', result: [{ count: 9 }] },
-      { at: 'where', result: [{ count: 44 }] },
-      { at: 'where', result: [{ count: 120 }] }
+      { at: 'where', result: [{ staff: 3, agents: 15, members: 280 }] },
+      { at: 'where', result: [{ total: 300, today: 5, last7d: 24, last30d: 60 }] }
     );
 
-    await expect(getSuperAdminKPIs()).resolves.toEqual({
-      totalTenants: 3,
+    await expect(getSuperAdminKPIs({ role: 'super_admin' })).resolves.toEqual({
+      totalTenants: 2,
       totalBranches: 8,
       totalStaff: 5,
       totalAgents: 25,
@@ -174,7 +229,41 @@ describe('domain analytics', () => {
         last30d: 120,
       },
     });
+    expect(withTenantContext).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(withTenantContext).mock.calls.map(call => call[0])).toEqual([
+      { tenantId: 'tenant-a', role: 'super_admin' },
+      { tenantId: 'tenant-b', role: 'super_admin' },
+    ]);
+    for (const tenantId of ['tenant-a', 'tenant-b']) {
+      expect(mocks.eq).toHaveBeenCalledWith('branches.tenant_id', tenantId);
+      expect(mocks.eq).toHaveBeenCalledWith('user.tenant_id', tenantId);
+      expect(mocks.eq).toHaveBeenCalledWith('claims.tenant_id', tenantId);
+    }
   });
+
+  it('returns zeroed super-admin KPIs when there are no tenants', async () => {
+    await expect(getSuperAdminKPIs({ role: 'super_admin' })).resolves.toEqual({
+      totalTenants: 0,
+      totalBranches: 0,
+      totalStaff: 0,
+      totalAgents: 0,
+      totalMembers: 0,
+      claimsMetrics: { total: 0, today: 0, last7d: 0, last30d: 0 },
+    });
+    expect(withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it.each([['tenant_admin'], ['staff'], ['agent'], ['member'], [null], [undefined]])(
+    'rejects super-admin KPIs for a %s actor before any tenant read',
+    async role => {
+      await expect(getSuperAdminKPIs({ role })).rejects.toThrow(
+        'Unauthorized: Super Admin access required'
+      );
+      expect(mocks.listTenantIdsForPlatformAggregate).not.toHaveBeenCalled();
+      expect(withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.db.select).not.toHaveBeenCalled();
+    }
+  );
 
   it('maps tenant claim counts into tenant admin KPI buckets', async () => {
     queuePlans(

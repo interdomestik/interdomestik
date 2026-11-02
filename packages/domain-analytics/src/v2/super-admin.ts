@@ -1,5 +1,6 @@
-import { db } from '@interdomestik/database';
-import { branches, claims, tenants, user } from '@interdomestik/database/schema';
+import { withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForPlatformAggregate } from '@interdomestik/database/platform-directory';
+import { branches, claims, user } from '@interdomestik/database/schema';
 import { count, eq, sql } from 'drizzle-orm';
 
 export interface SuperAdminKPIs {
@@ -16,67 +17,66 @@ export interface SuperAdminKPIs {
   };
 }
 
-export async function getSuperAdminKPIs(): Promise<SuperAdminKPIs> {
-  const [
-    tenantCount,
-    branchCount,
-    staffCount,
-    agentCount,
-    memberCount,
-    claimsTotal,
-    claimsToday,
-    claims7d,
-    claims30d,
-  ] = await Promise.all([
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(tenants),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(branches),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(user).where(eq(user.role, 'staff')),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(user).where(eq(user.role, 'agent')),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(user).where(eq(user.role, 'member')),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db.select({ count: count() }).from(claims),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(sql`created_at >= NOW() - INTERVAL '1 day'`),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(sql`created_at >= NOW() - INTERVAL '7 days'`),
-    // BLOCKED(rc31-u2): super_admin view over all tenants (cross-tenant by design); needs privileged manifest entry
-    // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(sql`created_at >= NOW() - INTERVAL '30 days'`),
-  ]);
+export type PlatformAnalyticsActor = { role: string | null | undefined };
 
-  return {
-    totalTenants: tenantCount[0].count,
-    totalBranches: branchCount[0].count,
-    totalStaff: staffCount[0].count,
-    totalAgents: agentCount[0].count,
-    totalMembers: memberCount[0].count,
-    claimsMetrics: {
-      total: claimsTotal[0].count,
-      today: claimsToday[0].count,
-      last7d: claims7d[0].count,
-      last30d: claims30d[0].count,
-    },
+/** Platform analytics are super_admin only; any other actor fails closed before a tenant is read. */
+export function assertPlatformAnalyticsActor(actor: PlatformAnalyticsActor): void {
+  if (actor.role !== 'super_admin') {
+    throw new Error('Unauthorized: Super Admin access required');
+  }
+}
+
+/**
+ * Platform totals for a super_admin. Each tenant's figures are read under that tenant's RLS
+ * context and summed; only totals are returned.
+ */
+export async function getSuperAdminKPIs(actor: PlatformAnalyticsActor): Promise<SuperAdminKPIs> {
+  assertPlatformAnalyticsActor(actor);
+  const tenantIds = await listTenantIdsForPlatformAggregate();
+  const kpis: SuperAdminKPIs = {
+    totalTenants: tenantIds.length,
+    totalBranches: 0,
+    totalStaff: 0,
+    totalAgents: 0,
+    totalMembers: 0,
+    claimsMetrics: { total: 0, today: 0, last7d: 0, last30d: 0 },
   };
+
+  for (const tenantId of tenantIds) {
+    const tenant = await withTenantContext({ tenantId, role: 'super_admin' }, async tx => {
+      const [branchRow] = await tx
+        .select({ count: count() })
+        .from(branches)
+        .where(eq(branches.tenantId, tenantId));
+      const [userRow] = await tx
+        .select({
+          staff: sql<number>`COUNT(*) FILTER (WHERE ${user.role} = 'staff')`,
+          agents: sql<number>`COUNT(*) FILTER (WHERE ${user.role} = 'agent')`,
+          members: sql<number>`COUNT(*) FILTER (WHERE ${user.role} = 'member')`,
+        })
+        .from(user)
+        .where(eq(user.tenantId, tenantId));
+      const [claimRow] = await tx
+        .select({
+          total: count(),
+          today: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} >= NOW() - INTERVAL '1 day')`,
+          last7d: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} >= NOW() - INTERVAL '7 days')`,
+          last30d: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} >= NOW() - INTERVAL '30 days')`,
+        })
+        .from(claims)
+        .where(eq(claims.tenantId, tenantId));
+      return { branchRow, userRow, claimRow };
+    });
+
+    kpis.totalBranches += Number(tenant.branchRow?.count ?? 0);
+    kpis.totalStaff += Number(tenant.userRow?.staff ?? 0);
+    kpis.totalAgents += Number(tenant.userRow?.agents ?? 0);
+    kpis.totalMembers += Number(tenant.userRow?.members ?? 0);
+    kpis.claimsMetrics.total += Number(tenant.claimRow?.total ?? 0);
+    kpis.claimsMetrics.today += Number(tenant.claimRow?.today ?? 0);
+    kpis.claimsMetrics.last7d += Number(tenant.claimRow?.last7d ?? 0);
+    kpis.claimsMetrics.last30d += Number(tenant.claimRow?.last30d ?? 0);
+  }
+
+  return kpis;
 }

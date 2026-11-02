@@ -1,6 +1,8 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForPlatformAggregate } from '@interdomestik/database/platform-directory';
 import { claims } from '@interdomestik/database/schema';
-import { count, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { assertPlatformAnalyticsActor, type PlatformAnalyticsActor } from '../v2/super-admin';
 
 export interface ForecastResult {
   trend: 'increasing' | 'stable' | 'decreasing';
@@ -8,30 +10,29 @@ export interface ForecastResult {
   deltaPercent: number;
 }
 
-export async function getClaimLoadForecast(): Promise<ForecastResult> {
+export async function getClaimLoadForecast(actor: PlatformAnalyticsActor): Promise<ForecastResult> {
+  assertPlatformAnalyticsActor(actor);
   // Logic: Compare claims in last 14-30 days period vs last 0-14 days period (rolling windows)
   // We'll roughly say:
   // Current Period: Now to -14d
   // Previous Period: -14d to -28d
 
-  // BLOCKED(rc31-u2): cross-tenant analytics aggregate by design (no tenant parameter); needs privileged manifest or per-tenant loop
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [currentPeriod] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(sql`created_at >= NOW() - INTERVAL '14 days'`);
-
-  // BLOCKED(rc31-u2): cross-tenant analytics aggregate by design (no tenant parameter); needs privileged manifest or per-tenant loop
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [previousPeriod] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(
-      sql`created_at < NOW() - INTERVAL '14 days' AND created_at >= NOW() - INTERVAL '28 days'`
+  // Platform totals: each tenant's window counts are read under its own RLS context and summed.
+  let current = 0;
+  let previous = 0;
+  for (const tenantId of await listTenantIdsForPlatformAggregate()) {
+    const [row] = await withTenantContext({ tenantId, role: 'super_admin' }, tx =>
+      tx
+        .select({
+          current: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} >= NOW() - INTERVAL '14 days')`,
+          previous: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} < NOW() - INTERVAL '14 days' AND ${claims.createdAt} >= NOW() - INTERVAL '28 days')`,
+        })
+        .from(claims)
+        .where(eq(claims.tenantId, tenantId))
     );
-
-  const current = currentPeriod.count;
-  const previous = previousPeriod.count;
+    current += Number(row?.current ?? 0);
+    previous += Number(row?.previous ?? 0);
+  }
 
   // Prevent division by zero
   const safePrevious = previous === 0 ? 1 : previous;

@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
 import { agentClients, claims } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
 
@@ -8,25 +8,38 @@ export interface AgentCapacityResult {
   recentClaimsVol: number;
 }
 
-export async function getAgentCapacitySignal(agentId: string): Promise<AgentCapacityResult> {
-  // Signals: Total Active Clients + Claims touched in last 30d
+export async function getAgentCapacitySignal(
+  tenantId: string,
+  agentId: string
+): Promise<AgentCapacityResult> {
+  // Signals: Total Active Clients + Claims touched in last 30d, both bound to the caller's tenant.
 
-  // BLOCKED(rc31-u2): no tenant at call site (agentId only) and cross-tenant analytics aggregate; needs privileged manifest or tenantId parameter
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [clients] = await db
-    .select({ count: count() })
-    .from(agentClients)
-    .where(and(eq(agentClients.agentId, agentId), eq(agentClients.status, 'active')));
+  const { clients, recentClaims } = await withTenantContext({ tenantId }, async tx => {
+    const [clients] = await tx
+      .select({ count: count() })
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.tenantId, tenantId),
+          eq(agentClients.agentId, agentId),
+          eq(agentClients.status, 'active')
+        )
+      );
+    const [recentClaims] = await tx
+      .select({ count: count() })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.tenantId, tenantId),
+          eq(claims.agentId, agentId),
+          sql`${claims.createdAt} >= NOW() - INTERVAL '30 days'`
+        )
+      );
+    return { clients, recentClaims };
+  });
 
-  // BLOCKED(rc31-u2): no tenant at call site (agentId only) and cross-tenant analytics aggregate; needs privileged manifest or tenantId parameter
-  // db-access-guard: system-exempt -- reason: intentionally cross-tenant analytics aggregate reviewed for SEC04B
-  const [recentClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.agentId, agentId), sql`created_at >= NOW() - INTERVAL '30 days'`));
-
-  const clientCount = clients.count;
-  const claimVol = recentClaims.count;
+  const clientCount = Number(clients?.count ?? 0);
+  const claimVol = Number(recentClaims?.count ?? 0);
 
   // Heuristic:
   // If clients > 200 OR recent claims > 50 => Overloaded

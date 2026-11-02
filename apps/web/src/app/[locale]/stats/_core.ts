@@ -1,6 +1,7 @@
-import { claims, db } from '@interdomestik/database';
+import { claims, withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForPlatformAggregate } from '@interdomestik/database/platform-directory';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
-import { count, sql } from 'drizzle-orm';
+import { count, eq, sql } from 'drizzle-orm';
 
 export type PublicStats = {
   totalClaims: number;
@@ -29,23 +30,30 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      // BLOCKED(rc31-u2): cross-tenant by design -- unauthenticated public aggregate over all tenants; needs a privileged manifest entry or per-tenant loop.
-      // db-access-guard: system-exempt -- reason: public aggregate stats intentionally read cross-tenant counts only
-      const [statsRow] = await db
-        .select({
-          totalClaims: count(),
-          resolvedClaims: sql<number>`
-            COUNT(*) FILTER (WHERE ${claimLifecycleStatusIs('resolved')})
-          `,
-          totalRecovered: sql<string>`
-            COALESCE(SUM(CASE WHEN ${claimLifecycleStatusIs('resolved')} THEN ${claims.claimAmount} ELSE 0 END), 0)
-          `,
-        })
-        .from(claims);
-
-      const totalClaims = Number(statsRow?.totalClaims ?? 0);
-      const resolvedClaims = Number(statsRow?.resolvedClaims ?? 0);
-      const totalRecovered = Number(statsRow?.totalRecovered ?? 0);
+      let totalClaims = 0;
+      let resolvedClaims = 0;
+      let totalRecovered = 0;
+      // Fixed public aggregate: no actor input, no per-tenant figure or tenant list leaves this
+      // function. Each tenant's counts are read under its own RLS context and summed.
+      for (const tenantId of await listTenantIdsForPlatformAggregate()) {
+        const [statsRow] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+          tx
+            .select({
+              totalClaims: count(),
+              resolvedClaims: sql<number>`
+                COUNT(*) FILTER (WHERE ${claimLifecycleStatusIs('resolved')})
+              `,
+              totalRecovered: sql<string>`
+                COALESCE(SUM(CASE WHEN ${claimLifecycleStatusIs('resolved')} THEN ${claims.claimAmount} ELSE 0 END), 0)
+              `,
+            })
+            .from(claims)
+            .where(eq(claims.tenantId, tenantId))
+        );
+        totalClaims += Number(statsRow?.totalClaims ?? 0);
+        resolvedClaims += Number(statsRow?.resolvedClaims ?? 0);
+        totalRecovered += Number(statsRow?.totalRecovered ?? 0);
+      }
 
       return {
         totalClaims,

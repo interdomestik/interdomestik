@@ -1,154 +1,61 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type QueryTable = { findFirst: ReturnType<typeof vi.fn> };
 type MockTenantSession = { user: { accessTenantId?: string | null; tenantId?: string | null } };
-const mocks = vi.hoisted(() => {
-  const makeQueryTable = (): QueryTable => ({
-    findFirst: vi.fn(),
-  });
 
-  const tables = {
-    claims: makeQueryTable(),
-    subscriptions: makeQueryTable(),
-    userNotificationPreferences: makeQueryTable(),
-    memberNotes: makeQueryTable(),
-    agentClients: makeQueryTable(),
-    pushSubscriptions: makeQueryTable(),
-    membershipCards: makeQueryTable(),
-    userRoles: makeQueryTable(),
-    memberLeads: makeQueryTable(),
-    emailCampaignLogs: makeQueryTable(),
-    membershipFamilyMembers: makeQueryTable(),
-    notifications: makeQueryTable(),
-    referrals: makeQueryTable(),
-    memberReferralRewards: makeQueryTable(),
-    tenants: makeQueryTable(),
-    user: makeQueryTable(),
-  };
-  const where = vi.fn();
-  const resolveTenantId = ({ user }: MockTenantSession) =>
+const mocks = vi.hoisted(() => {
+  const accessTenantOf = ({ user }: MockTenantSession) =>
     user.accessTenantId?.trim() || user.tenantId?.trim();
+  const returning = vi.fn();
+  const where = vi.fn(() => ({ returning }));
   const set = vi.fn(() => ({ where }));
   const update = vi.fn(() => ({ set }));
+  const findFirst = vi.fn();
+  const tx = { update, query: { user: { findFirst } } };
+
   return {
-    db: {
-      transaction: vi.fn(),
-      query: tables,
-    },
-    tx: {
-      update,
-      query: tables,
-    },
-    update,
-    set,
+    returning,
     where,
-    tables,
+    set,
+    update,
+    findFirst,
+    tx,
+    withTenantContext: vi.fn(),
+    moveUserTenantClassification: vi.fn(),
     user: {
       id: 'user.id',
       tenantId: 'user.tenantId',
       tenantClassificationPending: 'user.tenantClassificationPending',
     },
-    tenants: {
-      id: 'tenants.id',
-      isActive: 'tenants.isActive',
-    },
-    claims: {
-      tenantId: 'claims.tenantId',
-      userId: 'claims.userId',
-    },
-    subscriptions: {
-      tenantId: 'subscriptions.tenantId',
-      userId: 'subscriptions.userId',
-    },
-    userNotificationPreferences: {
-      tenantId: 'userNotificationPreferences.tenantId',
-      userId: 'userNotificationPreferences.userId',
-    },
-    memberNotes: {
-      tenantId: 'memberNotes.tenantId',
-      memberId: 'memberNotes.memberId',
-    },
-    notifications: {
-      tenantId: 'notifications.tenantId',
-      userId: 'notifications.userId',
-    },
-    pushSubscriptions: {
-      tenantId: 'pushSubscriptions.tenantId',
-      userId: 'pushSubscriptions.userId',
-    },
-    userRoles: {
-      tenantId: 'userRoles.tenantId',
-      userId: 'userRoles.userId',
-    },
-    agentClients: {
-      tenantId: 'agentClients.tenantId',
-      memberId: 'agentClients.memberId',
-    },
-    membershipCards: {
-      tenantId: 'membershipCards.tenantId',
-      userId: 'membershipCards.userId',
-    },
-    memberLeads: {
-      tenantId: 'memberLeads.tenantId',
-      convertedUserId: 'memberLeads.convertedUserId',
-    },
-    emailCampaignLogs: {
-      tenantId: 'emailCampaignLogs.tenantId',
-      userId: 'emailCampaignLogs.userId',
-    },
-    membershipFamilyMembers: {
-      tenantId: 'membershipFamilyMembers.tenantId',
-      userId: 'membershipFamilyMembers.userId',
-    },
-    referrals: {
-      tenantId: 'referrals.tenantId',
-      referrerId: 'referrals.referrerId',
-    },
-    memberReferralRewards: {
-      tenantId: 'memberReferralRewards.tenantId',
-      referredMemberId: 'memberReferralRewards.referredMemberId',
-    },
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-    and: vi.fn((...parts: unknown[]) => ({ op: 'and', parts })),
     withTenant: vi.fn((tenantId: string, tenantColumn: unknown, filter: unknown) => ({
       op: 'withTenant',
       tenantId,
       tenantColumn,
       filter,
     })),
-    ensureAccessTenantId: vi.fn(resolveTenantId),
-    ensureTenantId: vi.fn(resolveTenantId),
+    ensureAccessTenantId: vi.fn(accessTenantOf),
+    // The session's own tenant (not the access tenant), as the real helper reads it.
+    ensureTenantId: vi.fn(({ user }: MockTenantSession) => user.tenantId?.trim()),
   };
 });
+
 vi.mock('@interdomestik/database', () => ({
-  db: mocks.db,
   user: mocks.user,
-  tenants: mocks.tenants,
-  claims: mocks.claims,
-  subscriptions: mocks.subscriptions,
-  userNotificationPreferences: mocks.userNotificationPreferences,
-  memberNotes: mocks.memberNotes,
-  notifications: mocks.notifications,
-  pushSubscriptions: mocks.pushSubscriptions,
-  userRoles: mocks.userRoles,
-  agentClients: mocks.agentClients,
-  membershipCards: mocks.membershipCards,
-  memberLeads: mocks.memberLeads,
-  emailCampaignLogs: mocks.emailCampaignLogs,
-  membershipFamilyMembers: mocks.membershipFamilyMembers,
-  referrals: mocks.referrals,
-  memberReferralRewards: mocks.memberReferralRewards,
   eq: mocks.eq,
-  and: mocks.and,
+  withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/tenant-classification-move', () => ({
+  moveUserTenantClassification: mocks.moveUserTenantClassification,
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: mocks.withTenant,
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureAccessTenantId: mocks.ensureAccessTenantId,
   ensureTenantId: mocks.ensureTenantId,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
 }));
 
 vi.mock('./access', () => ({
@@ -168,98 +75,244 @@ const superAdminSession = {
 describe('resolveTenantClassificationCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    mocks.where.mockResolvedValue(undefined);
-    mocks.set.mockReturnValue({ where: mocks.where });
-    mocks.update.mockReturnValue({ set: mocks.set });
-    mocks.db.transaction.mockImplementation(async callback => callback(mocks.tx as never));
-
-    for (const table of Object.values(mocks.tables)) {
-      table.findFirst.mockResolvedValue(undefined);
-    }
-
-    mocks.tables.user.findFirst.mockResolvedValue({
-      id: 'member-1',
-      tenantId: 'tenant_ks',
-      tenantClassificationPending: true,
+    mocks.withTenantContext.mockImplementation(
+      async (_ctx: unknown, callback: (tx: unknown) => unknown) => callback(mocks.tx)
+    );
+    mocks.findFirst.mockResolvedValue({ id: 'member-1', tenantClassificationPending: true });
+    mocks.returning.mockResolvedValue([{ id: 'member-1' }]);
+    mocks.moveUserTenantClassification.mockResolvedValue({
+      outcome: 'moved',
+      previousPending: true,
     });
   });
 
-  it('confirms the current tenant and clears pending', async () => {
-    const result = await resolveTenantClassificationCore({
-      session: adminSession,
-      userId: 'member-1',
-      currentTenantId: 'tenant_ks',
+  describe('confirm_current', () => {
+    it('confirms the current tenant and clears pending inside that tenant context', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+      });
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          previousTenantId: 'tenant_ks',
+          tenantId: 'tenant_ks',
+          previousPending: true,
+          tenantClassificationPending: false,
+          resolutionMode: 'confirm_current',
+        },
+      });
+      expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+      expect(mocks.withTenantContext.mock.calls[0][0]).toEqual({ tenantId: 'tenant_ks' });
+      expect(mocks.set).toHaveBeenCalledWith({ tenantClassificationPending: false });
+      expect(mocks.withTenant).toHaveBeenCalledWith(
+        'tenant_ks',
+        'user.tenantId',
+        expect.anything()
+      );
+      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
 
-    expect(result).toEqual({
-      success: true,
-      data: {
-        previousTenantId: 'tenant_ks',
-        tenantId: 'tenant_ks',
-        previousPending: true,
-        tenantClassificationPending: false,
-        resolutionMode: 'confirm_current',
-      },
+    it('reports previousPending false for an already-resolved user', async () => {
+      mocks.findFirst.mockResolvedValue({ id: 'member-1', tenantClassificationPending: false });
+
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+      });
+
+      expect(result).toMatchObject({ success: true, data: { previousPending: false } });
     });
-    expect(mocks.db.transaction).toHaveBeenCalledOnce();
-    expect(mocks.set).toHaveBeenCalledWith({
-      tenantId: 'tenant_ks',
-      tenantClassificationPending: false,
+
+    it('returns User not found, without updating, when the user is not in the tenant', async () => {
+      mocks.findFirst.mockResolvedValue(undefined);
+
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+      });
+
+      expect(result).toEqual({ error: 'User not found' });
+      expect(mocks.update).not.toHaveBeenCalled();
+    });
+
+    it('returns User not found when the update affects no row', async () => {
+      mocks.returning.mockResolvedValue([]);
+
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+      });
+
+      expect(result).toEqual({ error: 'User not found' });
+    });
+
+    it('lets a super admin confirm a non-session current tenant under that tenant context', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_mk',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toMatchObject({
+        success: true,
+        data: { previousTenantId: 'tenant_mk', tenantId: 'tenant_mk' },
+      });
+      expect(mocks.withTenantContext.mock.calls[0][0]).toEqual({ tenantId: 'tenant_mk' });
     });
   });
 
-  it('allows super admins to reassign eligible members', async () => {
-    mocks.tables.tenants.findFirst.mockResolvedValueOnce({ id: 'tenant_mk' });
+  describe('reassign', () => {
+    it('moves the user for a super admin and returns the move result', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+        targetTenantId: 'tenant_mk',
+      });
 
-    const result = await resolveTenantClassificationCore({
-      session: superAdminSession,
-      userId: 'member-1',
-      currentTenantId: 'tenant_ks',
-      targetTenantId: 'tenant_mk',
+      expect(result).toEqual({
+        success: true,
+        data: {
+          previousTenantId: 'tenant_ks',
+          tenantId: 'tenant_mk',
+          previousPending: true,
+          tenantClassificationPending: false,
+          resolutionMode: 'reassign',
+        },
+      });
+      expect(mocks.moveUserTenantClassification).toHaveBeenCalledTimes(1);
+      expect(mocks.moveUserTenantClassification).toHaveBeenCalledWith({
+        userId: 'member-1',
+        fromTenantId: 'tenant_ks',
+        toTenantId: 'tenant_mk',
+      });
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
-    expect(result).toEqual({
-      success: true,
-      data: {
-        previousTenantId: 'tenant_ks',
-        tenantId: 'tenant_mk',
-        previousPending: true,
-        tenantClassificationPending: false,
-        resolutionMode: 'reassign',
-      },
+    it('propagates previousPending false from the move', async () => {
+      mocks.moveUserTenantClassification.mockResolvedValue({
+        outcome: 'moved',
+        previousPending: false,
+      });
+
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toMatchObject({ success: true, data: { previousPending: false } });
     });
-    expect(mocks.set).toHaveBeenCalledWith({
-      tenantId: 'tenant_mk',
-      tenantClassificationPending: false,
+
+    it.each([
+      ['user_not_found', 'User not found'],
+      ['target_tenant_not_found', 'Target tenant not found'],
+      [
+        'tenant_bound_records_exist',
+        'Cannot reassign tenant classification while tenant-bound records exist',
+      ],
+    ])('maps the %s outcome to the %s error', async (outcome, error) => {
+      mocks.moveUserTenantClassification.mockResolvedValue({ outcome });
+
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toEqual({ error });
+    });
+
+    it('returns a generic error when the move throws', async () => {
+      mocks.moveUserTenantClassification.mockRejectedValue(new Error('db down'));
+
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toEqual({ error: 'Failed to resolve tenant classification' });
+    });
+
+    it('rejects a non-super-admin whose resolved tenant differs from the current tenant', async () => {
+      // The session tenant matches currentTenantId, but the access tenant resolves elsewhere.
+      const result = await resolveTenantClassificationCore({
+        session: {
+          user: {
+            id: 'admin-1',
+            role: 'tenant_admin',
+            tenantId: 'tenant_ks',
+            accessTenantId: 'tenant_mk',
+          },
+        } as never,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+      });
+
+      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-super-admin naming a different target tenant', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_ks',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
   });
 
-  it('rejects cross-tenant operations for non-super-admin sessions', async () => {
-    const result = await resolveTenantClassificationCore({
-      session: adminSession,
-      userId: 'member-1',
-      currentTenantId: 'tenant_mk',
+  describe('input validation', () => {
+    it('rejects cross-tenant operations for non-super-admin sessions', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: 'member-1',
+        currentTenantId: 'tenant_mk',
+      });
+
+      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
+      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
 
-    expect(result).toEqual({ error: 'Unauthorized' });
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
-  });
+    it('requires a user id', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: adminSession,
+        userId: '  ',
+        currentTenantId: 'tenant_ks',
+      });
 
-  it('blocks reassignment when tenant-bound records exist', async () => {
-    mocks.tables.tenants.findFirst.mockResolvedValueOnce({ id: 'tenant_mk' });
-    mocks.tables.claims.findFirst.mockResolvedValueOnce({ id: 'claim-1' });
-
-    const result = await resolveTenantClassificationCore({
-      session: superAdminSession,
-      userId: 'member-1',
-      currentTenantId: 'tenant_ks',
-      targetTenantId: 'tenant_mk',
+      expect(result).toEqual({ error: 'User ID is required' });
     });
 
-    expect(result).toEqual({
-      error: 'Cannot reassign tenant classification while tenant-bound records exist',
+    it('requires a current tenant', async () => {
+      const result = await resolveTenantClassificationCore({
+        session: superAdminSession,
+        userId: 'member-1',
+        currentTenantId: ' ',
+        targetTenantId: 'tenant_mk',
+      });
+
+      expect(result).toEqual({ error: 'Current tenant is required' });
+      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
   });
 });

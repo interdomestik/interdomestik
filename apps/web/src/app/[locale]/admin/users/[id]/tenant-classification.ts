@@ -1,6 +1,4 @@
-import { db } from '@interdomestik/database/db';
-import { tenants } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { listActiveTenantDirectory } from '@interdomestik/database/platform-directory';
 
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 
@@ -18,23 +16,12 @@ export async function getTenantClassificationOptions(params: {
     return [];
   }
 
-  // BLOCKED(rc31-u2): cross-tenant by design -- super_admin lists all active tenants; needs a privileged manifest entry, no single session tenant applies.
-  // db-access-guard: system-exempt -- reason: super-admin tenant classification selector lists active tenant metadata only
-  const activeTenants = await db.query.tenants.findMany({
-    where: eq(tenants.isActive, true),
-    columns: {
-      id: true,
-      name: true,
-      countryCode: true,
-    },
-    orderBy: (table, { asc: ascFn }) => [ascFn(table.name)],
+  const activeTenants = await listActiveTenantDirectory({
+    excludeTenantId: params.currentTenantId,
   });
-
-  return activeTenants
-    .filter(tenant => tenant.id !== params.currentTenantId)
-    .map(tenant => ({
-      id: tenant.id,
-      name: tenant.name,
-      countryCode: tenant.countryCode,
-    }));
+  return activeTenants.map(tenant => ({
+    id: tenant.id,
+    name: tenant.name,
+    countryCode: tenant.countryCode,
+  }));
 }

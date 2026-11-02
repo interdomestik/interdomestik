@@ -14,7 +14,7 @@ export async function getSuperAdminKPIsAction() {
     if (!isSuperAdmin(userRole)) {
       throw new Error('Unauthorized: Super Admin access required');
     }
-    return await getSuperAdminKPIs();
+    return await getSuperAdminKPIs({ role: userRole });
   });
 }
 

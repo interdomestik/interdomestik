@@ -6,7 +6,8 @@ import {
 import { HealthProfile, computeHealthScore } from '@/features/admin/health/health-model';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { withTenantContext } from '@interdomestik/database';
-import { db } from '@interdomestik/database/db';
+import { resolveBranchOwner } from '@interdomestik/database/platform-directory';
+import { readTenantCurrency } from '@interdomestik/database/tenant-directory';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
@@ -82,38 +83,35 @@ export async function getBranchDashboardV2Data(
         const scope = scopeFilter(session);
         let tenantId = scope.tenantId;
 
-        // Fetch Branch Metadata first to confirm existence and get tenantId if cross-tenant
-        // Support lookup by either ID (UUID) or code (e.g., branch_mk_b)
-        const findBranch = (executor: Pick<typeof db, 'query'>) =>
-          executor.query.branches.findFirst({
-            where: or(eq(branches.id, branchId), eq(branches.code, branchId)),
-            with: {
-              tenant: true,
-            },
-          });
-        let branchResult: Awaited<ReturnType<typeof findBranch>>;
+        // Super_admin (cross-tenant) first resolves the branch's owning tenant from its id or
+        // code; every scope then reads the branch inside one tenant context. Support lookup by
+        // either ID (UUID) or code (e.g., branch_mk_b).
         if (scope.isCrossTenantScope) {
-          // BLOCKED(rc31-u2): cross-tenant by design -- the super_admin arm has no tenant until this lookup resolves it; needs a privileged manifest entry.
-          // db-access-guard: system-exempt -- reason: branch id or code lookup resolves tenant before scoped dashboard reads
-          branchResult = await findBranch(db);
-        } else {
-          branchResult = await withTenantContext({ tenantId }, tx => findBranch(tx));
+          const owner = await resolveBranchOwner(branchId);
+          if (!owner) {
+            return null; // Unknown or ambiguous across tenants: allow the 404 handler to take over
+          }
+          tenantId = owner.tenantId;
         }
+        if (!tenantId) {
+          throw new Error('Forbidden: Missing Tenant');
+        }
+        const scopedTenantId = tenantId;
+        const branchResult = await withTenantContext({ tenantId: scopedTenantId }, tx =>
+          tx.query.branches.findFirst({
+            where: and(
+              eq(branches.tenantId, scopedTenantId),
+              or(eq(branches.id, branchId), eq(branches.code, branchId))
+            ),
+          })
+        );
 
         if (!branchResult) {
           return null; // Return null if not found, allowing 404 handler to take over
         }
-
-        // If user is super_admin (cross-tenant), ensure we use the branch's tenantId
-        if (scope.isCrossTenantScope) {
-          tenantId = branchResult.tenantId;
-        } else {
-          // Verify branch belongs to user's tenant
-          if (branchResult.tenantId !== tenantId) {
-            throw new Error('Forbidden: Tenant Mismatch');
-          }
-        }
         const resolvedBranchId = branchResult.id;
+        // The tenant directory is not readable under RLS; currency comes from its fixed projection.
+        const tenantCurrency = (await readTenantCurrency(tenantId)) ?? 'EUR';
 
         // Parallel Data Fetching
         const [
@@ -211,7 +209,7 @@ export async function getBranchDashboardV2Data(
             name: branchResult.name,
             code: branchResult.code ?? '',
             isActive: branchResult.isActive,
-            currency: branchResult.tenant.currency,
+            currency: tenantCurrency,
           },
           health: {
             ...branchHealth,

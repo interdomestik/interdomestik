@@ -14,7 +14,7 @@ export async function getClaimLoadForecastAction() {
     if (!isSuperAdmin(userRole)) {
       throw new Error('Unauthorized');
     }
-    return await getClaimLoadForecast();
+    return await getClaimLoadForecast({ role: userRole });
   });
 }
 
@@ -37,12 +37,11 @@ export async function getBranchStressAction(branchId: string) {
 
 // 3. Tenant Admin: Agent Capacity
 export async function getAgentCapacityAction(agentId: string) {
-  return runAuthenticatedAction(async ({ userRole }) => {
+  return runAuthenticatedAction(async ({ userRole, tenantId }) => {
     if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
       throw new Error('Unauthorized');
     }
-    // Again, implicit safety via tenant scoping would be better, but domain query assumes agent exists.
-    // In strict V3, we assume getting this for an analytics dashboard.
-    return await getAgentCapacitySignal(agentId);
+    // Bound to the session tenant: an agent outside it contributes no rows.
+    return await getAgentCapacitySignal(tenantId, agentId);
   });
 }

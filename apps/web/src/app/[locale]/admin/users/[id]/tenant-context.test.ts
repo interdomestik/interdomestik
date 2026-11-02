@@ -2,22 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveAdminTenantContext } from './tenant-context';
 
 const mocks = vi.hoisted(() => ({
-  findFirst: vi.fn(),
+  readActiveTenantId: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      tenants: {
-        findFirst: (...args: unknown[]) => mocks.findFirst(...args),
-      },
-    },
-  },
+vi.mock('@interdomestik/database/platform-directory', () => ({
+  readActiveTenantId: (...args: unknown[]) => mocks.readActiveTenantId(...args),
 }));
 
 describe('resolveAdminTenantContext', () => {
   beforeEach(() => {
-    mocks.findFirst.mockReset();
+    mocks.readActiveTenantId.mockReset();
   });
 
   it('returns session tenant for non-super-admin users', async () => {
@@ -27,7 +21,7 @@ describe('resolveAdminTenantContext', () => {
     });
 
     expect(tenantId).toBe('tenant_ks');
-    expect(mocks.findFirst).not.toHaveBeenCalled();
+    expect(mocks.readActiveTenantId).not.toHaveBeenCalled();
   });
 
   it('falls back to tenantId when accessTenantId is blank', async () => {
@@ -39,11 +33,11 @@ describe('resolveAdminTenantContext', () => {
     });
 
     expect(tenantId).toBe('tenant_ks');
-    expect(mocks.findFirst).not.toHaveBeenCalled();
+    expect(mocks.readActiveTenantId).not.toHaveBeenCalled();
   });
 
   it('allows super_admin tenant switch only for active tenants', async () => {
-    mocks.findFirst.mockResolvedValue({ id: 'tenant_mk' });
+    mocks.readActiveTenantId.mockResolvedValue('tenant_mk');
 
     const tenantId = await resolveAdminTenantContext({
       session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
@@ -51,11 +45,12 @@ describe('resolveAdminTenantContext', () => {
     });
 
     expect(tenantId).toBe('tenant_mk');
-    expect(mocks.findFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.readActiveTenantId).toHaveBeenCalledTimes(1);
+    expect(mocks.readActiveTenantId).toHaveBeenCalledWith('tenant_mk');
   });
 
   it('falls back to session tenant when requested tenant is invalid', async () => {
-    mocks.findFirst.mockResolvedValue(undefined);
+    mocks.readActiveTenantId.mockResolvedValue(null);
 
     const tenantId = await resolveAdminTenantContext({
       session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
@@ -63,5 +58,15 @@ describe('resolveAdminTenantContext', () => {
     });
 
     expect(tenantId).toBe('tenant_ks');
+  });
+
+  it('uses the session tenant without a lookup when super_admin requests no tenant', async () => {
+    const tenantId = await resolveAdminTenantContext({
+      session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
+      searchParams: {},
+    });
+
+    expect(tenantId).toBe('tenant_ks');
+    expect(mocks.readActiveTenantId).not.toHaveBeenCalled();
   });
 });

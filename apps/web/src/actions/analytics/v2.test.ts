@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getBranchKPIs: vi.fn(),
+  getSuperAdminKPIs: vi.fn(),
   getTenantAdminKPIs: vi.fn(),
   runAuthenticatedAction: vi.fn(),
 }));
@@ -12,11 +13,11 @@ vi.mock('@/lib/safe-action', () => ({
 
 vi.mock('@interdomestik/domain-analytics', () => ({
   getBranchKPIs: mocks.getBranchKPIs,
-  getSuperAdminKPIs: vi.fn(),
+  getSuperAdminKPIs: mocks.getSuperAdminKPIs,
   getTenantAdminKPIs: mocks.getTenantAdminKPIs,
 }));
 
-import { getBranchKPIsAction, getTenantAdminKPIsAction } from './v2';
+import { getBranchKPIsAction, getSuperAdminKPIsAction, getTenantAdminKPIsAction } from './v2';
 
 describe('analytics v2 actions role boundaries', () => {
   let actionContext: {
@@ -35,7 +36,25 @@ describe('analytics v2 actions role boundaries', () => {
     mocks.runAuthenticatedAction.mockImplementation(async callback => callback(actionContext));
     mocks.getBranchKPIs.mockResolvedValue({ branchId: 'branch-2' });
     mocks.getTenantAdminKPIs.mockResolvedValue({ tenantId: 'tenant-1' });
+    mocks.getSuperAdminKPIs.mockResolvedValue({ totalTenants: 2 });
   });
+
+  it('passes the super admin role as the actor for platform KPIs', async () => {
+    await expect(getSuperAdminKPIsAction()).resolves.toEqual({ totalTenants: 2 });
+    expect(mocks.getSuperAdminKPIs).toHaveBeenCalledWith({ role: 'super_admin' });
+  });
+
+  it.each(['tenant_admin', 'staff', 'branch_manager', 'agent', 'member'])(
+    'rejects %s from platform KPIs before the domain call',
+    async userRole => {
+      actionContext = { ...actionContext, userRole };
+
+      await expect(getSuperAdminKPIsAction()).rejects.toThrow(
+        'Unauthorized: Super Admin access required'
+      );
+      expect(mocks.getSuperAdminKPIs).not.toHaveBeenCalled();
+    }
+  );
 
   it('keeps super admins authorized for tenant admin KPIs', async () => {
     await expect(getTenantAdminKPIsAction()).resolves.toEqual({ tenantId: 'tenant-1' });

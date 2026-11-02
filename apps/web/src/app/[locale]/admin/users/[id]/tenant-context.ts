@@ -1,6 +1,4 @@
-import { db } from '@interdomestik/database/db';
-import { tenants } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { readActiveTenantId } from '@interdomestik/database/platform-directory';
 
 type SessionLike = {
   user?: {
@@ -35,12 +33,6 @@ export async function resolveAdminTenantContext(params: {
     return sessionTenantId;
   }
 
-  // BLOCKED(rc31-u2): cross-tenant by design -- super_admin validates a tenant id taken from searchParams; no canonical tenant to run withTenantContext under.
-  // db-access-guard: system-exempt -- reason: super-admin requested tenant validation reads active tenant metadata only
-  const requestedTenant = await db.query.tenants.findFirst({
-    where: and(eq(tenants.id, requestedTenantId), eq(tenants.isActive, true)),
-    columns: { id: true },
-  });
-
-  return requestedTenant?.id ?? sessionTenantId;
+  // Only super_admin reaches here; an unknown or inactive tenant falls back to the session tenant.
+  return (await readActiveTenantId(requestedTenantId)) ?? sessionTenantId;
 }
