@@ -1,7 +1,4 @@
-import {
-  CRM_REPORTING_MAX_WINDOW_DAYS,
-  type CrmReportingBaseInput,
-} from '@interdomestik/domain-crm/reporting';
+import { CRM_REPORTING_MAX_WINDOW_DAYS } from '@interdomestik/domain-crm/reporting';
 import type {
   CrmForecastSnapshotRepository,
   CrmReportingRepository,
@@ -22,21 +19,24 @@ import {
 
 import {
   assertNoCrmForecastSnapshotPiiKeys,
-  buildCrmForecastSnapshotsForWorkItem,
   isCrmForecastSnapshotSoftTimeoutError,
-  throwIfCrmForecastSnapshotAborted,
   withCrmForecastSnapshotTimeout,
   type CrmForecastSnapshotTenantWeightedRows,
 } from './_shared';
-
-export const CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX = 'crm-forecast-snapshot';
-export const CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL = '_no_branch';
+import {
+  CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
+  CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
+  SOFT_TIMEOUT_MESSAGE,
+  processWorkItem,
+} from './_work-item';
+export {
+  CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
+  CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
+  buildSnapshotIdempotencyKey,
+} from './_work-item';
 export const CRM_FORECAST_SNAPSHOT_TARGET_DURATION_MS = 60_000;
 export const CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS = 5_000;
-
-const SYSTEM_ACTOR_ID = 'system:crm-forecast-snapshot-scheduler';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const SOFT_TIMEOUT_MESSAGE = 'CRM forecast snapshot timed out';
 
 export type CrmForecastSnapshotSchedulerResult = {
   completedAt: string;
@@ -246,7 +246,7 @@ function startInclusiveForSnapshotDate(snapshotDateEndExclusive: Date): Date {
   return new Date(snapshotDateEndExclusive.getTime() - CRM_REPORTING_MAX_WINDOW_DAYS * MS_PER_DAY);
 }
 
-type CrmForecastSnapshotTenantRepositories = {
+export type CrmForecastSnapshotTenantRepositories = {
   reportingRepository: CrmReportingRepository;
   snapshotRepository: CrmForecastSnapshotRepository;
 };
@@ -280,71 +280,6 @@ function createTenantRepositories(
     cache.set(tenantId, created);
     return created;
   };
-}
-
-async function processWorkItem(args: {
-  repositories: CrmForecastSnapshotTenantRepositories;
-  signal: AbortSignal;
-  snapshotDate: string;
-  snapshotDateEndExclusive: Date;
-  snapshotDateStartInclusive: Date;
-  sourceRunId: string;
-  tenantRows: CrmForecastSnapshotTenantWeightedRows;
-  workItem: CrmForecastSnapshotWorkItem;
-}): Promise<number | 'version_conflict'> {
-  const snapshots = await buildCrmForecastSnapshotsForWorkItem({
-    abortMessage: SOFT_TIMEOUT_MESSAGE,
-    createdAt: new Date().toISOString(),
-    idempotencyKey: buildSnapshotIdempotencyKey(args.workItem, {
-      snapshotDate: args.snapshotDate,
-      sourceRunId: args.sourceRunId,
-    }),
-    reportingInputFor,
-    reportingRepository: args.repositories.reportingRepository,
-    signal: args.signal,
-    snapshotDate: args.snapshotDate,
-    snapshotDateEndExclusive: args.snapshotDateEndExclusive,
-    snapshotDateStartInclusive: args.snapshotDateStartInclusive,
-    sourceRunId: args.sourceRunId,
-    tenantRows: args.tenantRows,
-    workItem: args.workItem,
-  });
-
-  if (snapshots.length === 0) return 0;
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const inserted = await args.repositories.snapshotRepository.insertPipelineSnapshots({
-    snapshots,
-  });
-  throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  if (!inserted.success) return inserted.reason;
-  return inserted.snapshots.length;
-}
-
-function reportingInputFor(tenantId: string, from: Date, to: Date): CrmReportingBaseInput {
-  return {
-    actor: {
-      actorId: SYSTEM_ACTOR_ID,
-      role: 'admin',
-      scope: { permissions: ['crm:forecast-snapshot:scheduler'] },
-      tenantId,
-    },
-    window: { from: from.toISOString(), to: to.toISOString() },
-  };
-}
-
-export function buildSnapshotIdempotencyKey(
-  workItem: CrmForecastSnapshotWorkItem,
-  params: { snapshotDate: string; sourceRunId: string }
-): string {
-  return [
-    CRM_FORECAST_SNAPSHOT_IDEMPOTENCY_PREFIX,
-    workItem.tenantId,
-    workItem.pipelineId,
-    workItem.branchId ?? CRM_FORECAST_SNAPSHOT_NO_BRANCH_SENTINEL,
-    workItem.currencyCode,
-    params.snapshotDate,
-    params.sourceRunId,
-  ].join(':');
 }
 
 function withTimeout<T>(

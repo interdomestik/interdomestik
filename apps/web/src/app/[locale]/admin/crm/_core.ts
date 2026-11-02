@@ -29,6 +29,14 @@ import {
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
 } from '@/adapters/crm/forecast-snapshot-work-items';
+import {
+  branchLabel,
+  pipelineLabel,
+  workItemKey,
+  compareCoverageRows,
+  deriveBatchRows,
+} from './_forecast-observability-rows';
+export { ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_BATCH_ROWS } from './_forecast-observability-rows';
 
 export const ADMIN_CRM_REPORTING_WINDOW_DAYS = 90;
 export const ADMIN_CRM_REPORTING_SOURCE_TOP_N = 10;
@@ -37,7 +45,6 @@ export const ADMIN_CRM_SNAPSHOT_DELAYED_AFTER_HOURS = 24;
 export const ADMIN_CRM_SNAPSHOT_STALE_AFTER_HOURS = 48;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_WINDOW_DAYS = 1;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_COVERAGE_ROWS = 100;
-export const ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_BATCH_ROWS = 10;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_DELAYED_AFTER_HOURS = 30;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_STALE_AFTER_HOURS = 48;
 export const ADMIN_CRM_FORECAST_OBSERVABILITY_MARKER_PREFIX = 'admin-crm-forecast-observability-';
@@ -307,14 +314,6 @@ function toErrorWidget<T>(
   };
 }
 
-function branchLabel(branchId: string | null): string {
-  return branchId ?? 'tenant';
-}
-
-function pipelineLabel(pipelineId: string): string {
-  return pipelineId;
-}
-
 function snapshotDateRange(snapshotDate: string): {
   snapshotDateEndExclusive: Date;
   snapshotDateStartInclusive: Date;
@@ -325,17 +324,6 @@ function snapshotDateRange(snapshotDate: string): {
     snapshotDateEndExclusive.getUTCDate() + ADMIN_CRM_FORECAST_OBSERVABILITY_WINDOW_DAYS
   );
   return { snapshotDateEndExclusive, snapshotDateStartInclusive };
-}
-
-function workItemKey(input: {
-  branchId?: string | null;
-  currencyCode: string;
-  pipelineId: string;
-  tenantId: string;
-}): string {
-  return [input.tenantId, input.pipelineId, input.branchId ?? '', input.currencyCode].join(
-    '\u001f'
-  );
 }
 
 function deriveAdminCrmForecastObservabilityStatus(
@@ -374,90 +362,6 @@ function maxIso(values: readonly string[]): string | null {
     if (!latest || value > latest) return value;
     return latest;
   }, null);
-}
-
-function compareCoverageRows(
-  left: AdminCrmForecastObservabilityCoverageRow,
-  right: AdminCrmForecastObservabilityCoverageRow
-): number {
-  const severity: Record<AdminCrmForecastObservabilityStatus, number> = {
-    missing: 0,
-    stale: 1,
-    delayed: 2,
-    fresh: 3,
-  };
-  const byStatus = severity[left.status] - severity[right.status];
-  if (byStatus !== 0) return byStatus;
-  const byBranchLabel = left.branchLabel.localeCompare(right.branchLabel);
-  if (byBranchLabel !== 0) return byBranchLabel;
-  const byPipelineLabel = left.pipelineLabel.localeCompare(right.pipelineLabel);
-  if (byPipelineLabel !== 0) return byPipelineLabel;
-  const byCurrency = left.currencyCode.localeCompare(right.currencyCode);
-  if (byCurrency !== 0) return byCurrency;
-  const byBranchId = (left.branchId ?? '').localeCompare(right.branchId ?? '');
-  if (byBranchId !== 0) return byBranchId;
-  return left.pipelineId.localeCompare(right.pipelineId);
-}
-
-function deriveBatchRows(
-  rows: readonly CrmForecastSnapshotObservedRow[]
-): AdminCrmForecastObservabilityBatchRow[] {
-  const missingSourceRunKey = '\u0000missing-source-run';
-  const batches = new Map<
-    string,
-    {
-      branches: Set<string>;
-      currencies: Set<string>;
-      firstSnapshotCreatedAt: string;
-      lastSnapshotCreatedAt: string;
-      pipelines: Set<string>;
-      snapshotDate: string;
-      sourceRunId: string | null;
-      workItems: Set<string>;
-    }
-  >();
-
-  for (const row of rows) {
-    const sourceRunKey = row.sourceRunId ?? missingSourceRunKey;
-    const existing = batches.get(sourceRunKey);
-    const batch = existing ?? {
-      branches: new Set<string>(),
-      currencies: new Set<string>(),
-      firstSnapshotCreatedAt: row.createdAt,
-      lastSnapshotCreatedAt: row.createdAt,
-      pipelines: new Set<string>(),
-      snapshotDate: row.snapshotDate,
-      sourceRunId: row.sourceRunId,
-      workItems: new Set<string>(),
-    };
-    batch.firstSnapshotCreatedAt =
-      row.createdAt < batch.firstSnapshotCreatedAt ? row.createdAt : batch.firstSnapshotCreatedAt;
-    batch.lastSnapshotCreatedAt =
-      row.createdAt > batch.lastSnapshotCreatedAt ? row.createdAt : batch.lastSnapshotCreatedAt;
-    batch.branches.add(row.branchId ?? '');
-    batch.currencies.add(row.currencyCode);
-    batch.pipelines.add(row.pipelineId);
-    batch.workItems.add(workItemKey(row));
-    batches.set(sourceRunKey, batch);
-  }
-
-  return [...batches.entries()]
-    .map(([, batch]) => ({
-      branchCount: batch.branches.size,
-      currencyCount: batch.currencies.size,
-      firstSnapshotCreatedAt: batch.firstSnapshotCreatedAt,
-      lastSnapshotCreatedAt: batch.lastSnapshotCreatedAt,
-      observedWorkItems: batch.workItems.size,
-      pipelineCount: batch.pipelines.size,
-      snapshotDate: batch.snapshotDate,
-      sourceRunId: batch.sourceRunId,
-    }))
-    .sort((left, right) => {
-      const byLastSnapshot = right.lastSnapshotCreatedAt.localeCompare(left.lastSnapshotCreatedAt);
-      if (byLastSnapshot !== 0) return byLastSnapshot;
-      return (left.sourceRunId ?? '').localeCompare(right.sourceRunId ?? '');
-    })
-    .slice(0, ADMIN_CRM_FORECAST_OBSERVABILITY_MAX_BATCH_ROWS);
 }
 
 export function deriveAdminCrmForecastObservability(args: {

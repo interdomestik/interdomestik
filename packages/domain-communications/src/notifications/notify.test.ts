@@ -1,58 +1,5 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { authority, mocks } from './notify.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const authority = mintTestTenantAuthority('tenant-1');
-
-const mocks = vi.hoisted(() => {
-  const findFirst = vi.fn();
-  const del = vi.fn();
-  const insert = vi.fn();
-  return {
-    delete: del,
-    deleteWhere: vi.fn(),
-    findFirst,
-    insertValues: vi.fn(),
-    insert,
-    onConflictDoNothing: vi.fn(),
-    dbMock: { query: { user: { findFirst } }, delete: del, insert },
-    withTenant: vi.fn(() => ({ scoped: true })),
-    withTenantContext: vi.fn(),
-  };
-});
-
-mocks.insert.mockReturnValue({ values: mocks.insertValues });
-
-mocks.withTenantContext.mockImplementation(
-  async (_context: unknown, callback: (tx: unknown) => unknown) => callback(mocks.dbMock)
-);
-
-vi.mock('@interdomestik/database', () => ({
-  db: mocks.dbMock,
-  withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/schema', () => ({
-  notifications: {
-    id: 'notifications.id',
-    tenantId: 'notifications.tenant_id',
-    type: 'notifications.type',
-    userId: 'notifications.user_id',
-  },
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
-vi.mock('../email', () => ({
-  sendClaimAssignedEmail: vi.fn(),
-  sendClaimSubmittedEmail: vi.fn(),
-  sendEmail: vi.fn().mockResolvedValue({ success: true, id: 'email-1' }),
-  sendNewMessageEmail: vi.fn(),
-  sendPaymentVerificationEmail: vi.fn(),
-  sendStatusChangedEmail: vi.fn(),
-}));
-
 import { sendEmail } from '../email';
 import {
   clearSupportHandoffPublicResponseNotifications,

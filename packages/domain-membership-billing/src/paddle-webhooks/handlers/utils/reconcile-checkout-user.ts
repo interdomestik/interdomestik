@@ -4,11 +4,7 @@ import {
   issueTenantMemberNumber,
   user as userTable,
 } from '@interdomestik/database';
-import {
-  authorizePaddleBillingTenant,
-  authorizePaddleTenant,
-  resolvePaddleCustomerEmailOwner,
-} from '@interdomestik/database';
+import { authorizePaddleBillingTenant } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -25,13 +21,19 @@ import type {
 } from '../../types';
 import { resolveCheckoutTransactionEvidence } from './checkout-transaction-evidence';
 import { resolveBranchId } from './context';
+import {
+  normalizeText,
+  shouldPromoteRole,
+  isUniqueViolation,
+  findUserByEmail,
+} from './reconcile-checkout-user-lookup';
 
 type ReconcileCheckoutUserDeps = {
   requestPasswordResetOnboarding?: RequestPasswordResetOnboarding;
   resolvePaddleCustomer?: ResolvePaddleCustomer;
 };
 
-type ReconciledUserRecord = {
+export type ReconciledUserRecord = {
   id: string;
   tenantId: string;
   branchId: string | null;
@@ -43,26 +45,6 @@ type ReconciledUserRecord = {
   assistedByAgentId?: string | null;
   agentId?: string | null;
 };
-
-function normalizeText(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function shouldPromoteRole(role: string | null | undefined): boolean {
-  return !role || role === 'user' || role === 'member';
-}
-
-function isUniqueViolation(error: unknown): error is { code: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    typeof (error as { code?: unknown }).code === 'string' &&
-    (error as { code: string }).code === '23505'
-  );
-}
 
 // The global member number is issued for a committed member on its own connection. The membership
 // confirmation needs it, so a failure fails the delivery as retryable: the receipt is released for
@@ -87,40 +69,6 @@ async function issueReconciledMemberNumber(
       `Member number was not issued for reconciled user ${userId}`
     );
   }
-}
-
-/**
- * Global email ownership: the privileged probe names the owning user/tenant (or reports ambiguity),
- * and the full record is read inside that owner's tenant. Ambiguity is a conflict.
- */
-
-async function findUserByEmail(
-  delivery: IngressCapability<'paddle-delivery'>,
-  email: string
-): Promise<ReconciledUserRecord | null | 'ambiguous'> {
-  const owner = await resolvePaddleCustomerEmailOwner(email);
-  if (owner === 'ambiguous' || !owner) return owner;
-
-  const userRecord = await withTenantAuthority(authorizePaddleTenant(delivery, owner), tx =>
-    tx.query.user.findFirst({
-      where: (users, { and, eq }) =>
-        and(eq(users.id, owner.userId), eq(users.tenantId, owner.tenantId)),
-      columns: {
-        id: true,
-        tenantId: true,
-        branchId: true,
-        email: true,
-        name: true,
-        role: true,
-        memberNumber: true,
-        agentId: true,
-        createdBy: true,
-        assistedByAgentId: true,
-      },
-    })
-  );
-  // The owner was resolved but is not visible in its tenant: treat as a conflict, never as absent.
-  return userRecord ?? 'ambiguous';
 }
 
 export async function reconcileCheckoutUser(

@@ -40,7 +40,6 @@ export async function updateScopedAgentLeadStatus(params: {
 }) {
   const { notes, scope, status } = params;
   const scopedWhere = buildAgentLeadWhere(scope);
-  const { tenantId } = readTenantAuthority(scope.authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
   const lead = await withTenantAuthority(scope.authority, tx =>
     tx.query.memberLeads.findFirst({

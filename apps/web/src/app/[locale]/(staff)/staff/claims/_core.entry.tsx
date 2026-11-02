@@ -13,36 +13,16 @@ import { Fragment } from 'react';
 
 import { StaffClaimsControls } from './staff-claims-controls';
 import { StaffClaimsRow } from './staff-claims-row';
+import { getSingleParam, parseStaffAssignmentFilter, buildStaffClaimsHref } from './_claims-href';
 
 type Props = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type SearchParamValue = string | string[] | undefined;
+export type SearchParamValue = string | string[] | undefined;
 
-type StaffAssignmentFilter = 'all' | 'mine' | 'unassigned';
-
-function getSingleParam(value: SearchParamValue) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function parseStaffAssignmentFilter(
-  value: SearchParamValue,
-  role: string | null | undefined
-): StaffAssignmentFilter {
-  const filter = getSingleParam(value);
-
-  if (filter === 'unassigned') {
-    return 'unassigned';
-  }
-
-  if (filter === 'mine' && role === 'staff') {
-    return 'mine';
-  }
-
-  return 'all';
-}
+export type StaffAssignmentFilter = 'all' | 'mine' | 'unassigned';
 
 function parseStaffStatusFilter(value: SearchParamValue) {
   const filter = getSingleParam(value);
@@ -58,34 +38,6 @@ function parseSearchTerm(value: SearchParamValue) {
 
 function parseDiasporaFilter(value: SearchParamValue): DiasporaOriginFilter {
   return parseDiasporaOriginFilter(getSingleParam(value));
-}
-
-function buildStaffClaimsHref(args: {
-  assigned: StaffAssignmentFilter;
-  diasporaOrigin: DiasporaOriginFilter;
-  search?: string;
-  status?: (typeof ACTIONABLE_CLAIM_STATUSES)[number];
-}) {
-  const params = new URLSearchParams();
-
-  if (args.assigned !== 'all') {
-    params.set('assigned', args.assigned);
-  }
-
-  if (args.status) {
-    params.set('status', args.status);
-  }
-
-  if (args.diasporaOrigin !== 'all') {
-    params.set('diaspora', args.diasporaOrigin);
-  }
-
-  if (args.search) {
-    params.set('search', args.search);
-  }
-
-  const query = params.toString();
-  return query ? `/staff/claims?${query}` : '/staff/claims';
 }
 
 export default async function StaffClaimsPage({ params, searchParams }: Props) {

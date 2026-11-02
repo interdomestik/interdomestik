@@ -1,45 +1,9 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { authority } from './extras.test-support';
 import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
-
-const authority = mintTestTenantAuthority('tenant_1');
-
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agentClients.tenantId',
-    memberId: 'agentClients.memberId',
-    agentId: 'agentClients.agentId',
-  },
-  db: {
-    transaction: vi.fn(),
-    query: {
-      agentSettings: {
-        findFirst: vi.fn(),
-      },
-      referrals: {
-        findFirst: vi.fn(),
-      },
-    },
-  },
-  appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
-  and: vi.fn((...parts) => ({ op: 'and', parts })),
-  eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-  withTenantContext: vi.fn(async (_context: unknown, callback: unknown) => {
-    const { db } = await import('@interdomestik/database');
-    return (db.transaction as any)(callback);
-  }),
-}));
-
-vi.mock('../../../../../domain-referrals/src', () => ({
-  createMemberReferralRewardCore: vi.fn(),
-}));
-
-vi.mock('../../../commissions/create', () => ({
-  createCommissionWithDispositionCore: vi.fn(),
-}));
 
 describe('handleNewSubscriptionExtras', () => {
   const handleCreatedSubscriptionExtras = (
@@ -219,85 +183,6 @@ describe('handleNewSubscriptionExtras', () => {
       expect.objectContaining({
         authority,
         subscriptionId: 'sub_123',
-      })
-    );
-  });
-
-  it('should skip commission if no agentId', async () => {
-    await handleCreatedSubscriptionExtras({
-      sub: mockSub,
-      userId: 'user_1',
-      authority,
-      customData: { locale: 'en' },
-      priceId: 'price_1',
-      userRecord: mockUserRecord,
-      deps: mockDeps,
-    });
-
-    expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    // The only tenant context left is the read-only referral lookup: no write statement ran.
-    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
-    expect(tx.insert).not.toHaveBeenCalled();
-    expect(tx.update).not.toHaveBeenCalled();
-  });
-
-  it('records read-only attribution without reactivating agent-client read-scope links', async () => {
-    await handleCreatedSubscriptionExtras({
-      sub: mockSub,
-      userId: 'user_1',
-      authority,
-      customData: { agentId: 'agent_1' },
-      priceId: 'price_1',
-      userRecord: mockUserRecord,
-      deps: mockDeps,
-    });
-
-    expect(db.transaction).toHaveBeenCalled();
-    expect(tx.update).toHaveBeenCalled();
-    expect(updateWhere).toHaveBeenCalled();
-    expect(tx.insert).not.toHaveBeenCalled();
-    expect(onConflictDoUpdate).not.toHaveBeenCalled();
-  });
-
-  it('creates a member referral reward for a first paid subscription without an agent commission', async () => {
-    (db.query.referrals.findFirst as any).mockResolvedValue({ id: 'ref_1' });
-    (createMemberReferralRewardCore as any).mockResolvedValue({
-      success: true,
-      data: {
-        kind: 'created',
-        created: true,
-        id: 'reward_1',
-        rewardCents: 500,
-        status: 'pending',
-        rewardType: 'fixed',
-        currencyCode: 'EUR',
-      },
-    });
-
-    await handleCreatedSubscriptionExtras({
-      sub: mockSub,
-      userId: 'user_1',
-      authority,
-      customData: { locale: 'en' },
-      priceId: 'price_1',
-      userRecord: mockUserRecord,
-      deps: mockDeps,
-    });
-
-    expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
-    expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
-      expect.objectContaining({
-        authority,
-        referralId: 'ref_1',
-        subscriptionId: 'sub_123',
-        qualifyingEventType: 'first_paid_membership',
-        paymentAmountCents: 2000,
-      })
-    );
-    expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'referral.reward.created',
-        entityType: 'referral_reward',
       })
     );
   });

@@ -1,10 +1,6 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth';
-import {
-  CRM_ACTOR_ROLES,
-  type CrmActorContext,
-  type CrmActorRole,
-} from '@interdomestik/domain-crm/context';
+import { type SessionWithTenant } from '@interdomestik/shared-auth';
+import { type CrmActorContext } from '@interdomestik/domain-crm/context';
 import {
   CrmTaskRepositoryFailure,
   assignCrmTask,
@@ -32,14 +28,14 @@ import {
   type CrmTaskSubjectReference,
   type CrmTaskTransition,
 } from '@interdomestik/domain-crm/tasks';
-import { nanoid } from 'nanoid';
+
 import { revalidatePath } from 'next/cache';
 
-import { createCrmTaskRepository } from '@/adapters/crm/task-repository';
 import { LOCALES } from '@/i18n/locales';
-import { logAuditEvent, type AuditEvent } from '@/lib/audit';
+import { type AuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
-import type { RateLimitResult } from '@/lib/rate-limit.core';
+
+import { mergeDeps, failure, createActorContext, createMutationContext } from './crm-tasks-context';
 
 export type CrmTaskBoundaryOutcome =
   | 'success'
@@ -131,7 +127,7 @@ export type ReopenCrmTaskCoreInput = {
   readonly taskId: string;
 };
 
-type CrmTaskCoreDeps = {
+export type CrmTaskCoreDeps = {
   readonly audit?: (event: AuditEvent) => Promise<void>;
   readonly now?: () => string;
   readonly rateLimit?: typeof enforceRateLimitForAction;
@@ -140,7 +136,7 @@ type CrmTaskCoreDeps = {
   readonly taskId?: () => string;
 };
 
-type CoreParams = {
+export type CoreParams = {
   /** The session tenant authority; every repository this action builds runs under it. */
   readonly authority: TenantAuthority | null;
   readonly deps?: CrmTaskCoreDeps;
@@ -148,7 +144,7 @@ type CoreParams = {
   readonly session: SessionWithTenant;
 };
 
-type MutationContext =
+export type MutationContext =
   | {
       readonly actor: CrmActorContext;
       readonly authority: TenantAuthority;
@@ -164,69 +160,7 @@ export type CrmTaskExistingMutationGuard = (params: {
   readonly input: { readonly expectedLifecycleVersion: number; readonly taskId: string };
   readonly requestHeaders: Headers;
 }) => Promise<CrmTaskBoundaryResult | null>;
-
-const MUTATION_LIMIT = 30;
-const MUTATION_WINDOW_SECONDS = 60;
 const CRM_TASK_REVALIDATION_PATHS = ['/agent/crm', '/staff/crm', '/admin/crm'] as const;
-
-const defaultDeps: Omit<Required<CrmTaskCoreDeps>, 'repository'> = {
-  audit: logAuditEvent,
-  now: () => new Date().toISOString(),
-  rateLimit: enforceRateLimitForAction,
-  revalidate: revalidatePath,
-  taskId: nanoid,
-};
-
-function mergeDeps(
-  deps: CrmTaskCoreDeps | undefined,
-  authority: TenantAuthority
-): Required<CrmTaskCoreDeps> {
-  return { ...defaultDeps, repository: createCrmTaskRepository(authority), ...deps };
-}
-
-function failure(
-  outcome: Exclude<CrmTaskBoundaryOutcome, 'success' | 'idempotent_replay' | 'rate_limited'>,
-  reason: string
-): CrmTaskBoundaryResult {
-  return { outcome, reason };
-}
-
-function isCrmActorRole(role: unknown): role is CrmActorRole {
-  return typeof role === 'string' && (CRM_ACTOR_ROLES as readonly string[]).includes(role);
-}
-
-function normalizeCrmActorRole(role: unknown): CrmActorRole | null {
-  if (role === 'tenant_admin' || role === 'super_admin') return 'admin';
-  return isCrmActorRole(role) ? role : null;
-}
-
-function createActorContext(session: SessionWithTenant): CrmActorContext | CrmTaskBoundaryResult {
-  if (!session?.user?.id) return failure('unauthorized', 'missing_session');
-
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return failure('unauthorized', 'missing_session');
-  }
-
-  const role = normalizeCrmActorRole(session.user.role);
-  if (!role) return failure('forbidden', 'role_scope');
-  if (role === 'member') return failure('forbidden', 'role_scope');
-
-  return {
-    actorId: session.user.id,
-    role,
-    scope: {
-      agentId: session.user.agentId ?? (role === 'agent' ? session.user.id : null),
-      branchId: session.user.branchId ?? null,
-      memberId: null,
-      staffId:
-        role === 'staff' || role === 'branch_manager' || role === 'admin' ? session.user.id : null,
-    },
-    tenantId,
-  };
-}
 
 function isBoundaryResult(value: MutationContext): value is CrmTaskBoundaryResult {
   return 'outcome' in value;
@@ -256,36 +190,6 @@ function mapRepositoryFailure(error: unknown): CrmTaskBoundaryResult {
   }
   if (error.reason === 'subject_not_found') return failure('not_found', error.reason);
   return failure('forbidden', error.reason);
-}
-
-function mapRateLimit(limit: RateLimitResult): CrmTaskBoundaryResult | null {
-  if (!limit.limited) return null;
-  return {
-    outcome: 'rate_limited',
-    reason: 'rate_limited',
-    retryAfter: limit.retryAfter,
-  };
-}
-
-async function createMutationContext(params: CoreParams): Promise<MutationContext> {
-  const actor = createActorContext(params.session);
-  if ('outcome' in actor) return actor;
-  if (!params.authority) return failure('unauthorized', 'missing_session');
-
-  const deps = mergeDeps(params.deps, params.authority);
-  const requestHeaders = params.requestHeaders ?? new Headers();
-  const limit = await deps.rateLimit({
-    headers: requestHeaders,
-    keySuffix: actor.actorId,
-    limit: MUTATION_LIMIT,
-    name: 'action:crm-tasks',
-    productionSensitive: true,
-    windowSeconds: MUTATION_WINDOW_SECONDS,
-  });
-  const rateLimited = mapRateLimit(limit);
-  if (rateLimited) return rateLimited;
-
-  return { actor, authority: params.authority, deps, requestHeaders };
 }
 
 function revalidateCrmTaskPaths(deps: Required<CrmTaskCoreDeps>): void {

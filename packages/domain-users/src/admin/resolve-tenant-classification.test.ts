@@ -1,91 +1,17 @@
+import {
+  adminAuthority,
+  adminSession,
+  delegatedMkAuthority,
+  mocks,
+  superAdminSession,
+  superAuthority,
+} from './resolve-tenant-classification.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-type MockTenantSession = { user: { accessTenantId?: string | null; tenantId?: string | null } };
-
-const mocks = vi.hoisted(() => {
-  const accessTenantOf = ({ user }: MockTenantSession) =>
-    user.accessTenantId?.trim() || user.tenantId?.trim();
-  const returning = vi.fn();
-  const where = vi.fn(() => ({ returning }));
-  const set = vi.fn(() => ({ where }));
-  const update = vi.fn(() => ({ set }));
-  const findFirst = vi.fn();
-  const tx = { update, query: { user: { findFirst } } };
-
-  return {
-    returning,
-    where,
-    set,
-    update,
-    findFirst,
-    tx,
-    withTenantContext: vi.fn(),
-    delegateSuperAdminTenant: vi.fn(),
-    user: {
-      id: 'user.id',
-      tenantId: 'user.tenantId',
-      tenantClassificationPending: 'user.tenantClassificationPending',
-    },
-    eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-    withTenant: vi.fn((tenantId: string, tenantColumn: unknown, filter: unknown) => ({
-      op: 'withTenant',
-      tenantId,
-      tenantColumn,
-      filter,
-    })),
-    ensureAccessTenantId: vi.fn(accessTenantOf),
-    // The session's own tenant (not the access tenant), as the real helper reads it.
-    ensureTenantId: vi.fn(({ user }: MockTenantSession) => user.tenantId?.trim()),
-  };
-});
-
-vi.mock('@interdomestik/database', () => ({
-  user: mocks.user,
-  eq: mocks.eq,
-  withTenantContext: mocks.withTenantContext,
-  delegateSuperAdminTenant: mocks.delegateSuperAdminTenant,
-}));
-
-vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant: mocks.withTenant,
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureAccessTenantId: mocks.ensureAccessTenantId,
-  ensureTenantId: mocks.ensureTenantId,
-}));
-
-vi.mock('./access', () => ({
-  requireTenantAdminSession: vi.fn(async (session: unknown) => session),
-}));
-
 import {
   TENANT_REASSIGNMENT_UNAVAILABLE_ERROR,
   resolveTenantClassificationCore,
 } from './resolve-tenant-classification';
-
-const adminSession = {
-  user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' },
-} as never;
-
-const superAdminSession = {
-  user: { id: 'super-1', role: 'super_admin', tenantId: 'tenant_ks' },
-} as never;
-
-// Session-producer authorities for the sessions above, and a super-admin delegation target.
-const adminAuthority = mintTestTenantAuthority('tenant_ks', {
-  userId: 'admin-1',
-  role: 'tenant_admin',
-});
-const superAuthority = mintTestTenantAuthority('tenant_ks', {
-  userId: 'super-1',
-  role: 'super_admin',
-});
-const delegatedMkAuthority = mintTestTenantAuthority('tenant_mk', {
-  userId: 'super-1',
-  role: 'super_admin',
-});
 
 describe('resolveTenantClassificationCore', () => {
   beforeEach(() => {

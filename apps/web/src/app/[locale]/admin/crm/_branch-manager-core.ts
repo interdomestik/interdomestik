@@ -12,7 +12,6 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type {
   CrmForecastSnapshotRepository,
-  CrmPipelineSnapshotRecord,
   CrmReportingRepository,
 } from '@interdomestik/domain-crm/reporting/repository';
 
@@ -22,12 +21,16 @@ import {
 } from '@/adapters/crm/reporting-repository';
 
 import { getPreviousUtcSnapshotDate, type AdminCrmSnapshotFreshness } from './_core';
+import { pipelineLabel, mapSnapshotRows } from './_branch-manager-snapshots';
+export {
+  BRANCH_MANAGER_CRM_SNAPSHOT_DELAYED_AFTER_HOURS,
+  BRANCH_MANAGER_CRM_SNAPSHOT_STALE_AFTER_HOURS,
+  deriveBranchManagerCrmSnapshotFreshness,
+} from './_branch-manager-snapshots';
 
 export const BRANCH_MANAGER_CRM_REPORTING_WINDOW_DAYS = 90;
 export const BRANCH_MANAGER_CRM_REPORTING_SOURCE_TOP_N = 10;
 export const BRANCH_MANAGER_CRM_REPORTING_MARKER_PREFIX = 'branch-manager-crm-reporting-';
-export const BRANCH_MANAGER_CRM_SNAPSHOT_DELAYED_AFTER_HOURS = 24;
-export const BRANCH_MANAGER_CRM_SNAPSHOT_STALE_AFTER_HOURS = 48;
 
 export const BRANCH_MANAGER_CRM_REPORTING_ERROR_MESSAGE_BY_REASON: Record<
   CrmReportingAuthorizationDenialReason | 'repository_failure',
@@ -132,22 +135,6 @@ export function createBranchManagerCrmReportingWindow(nowIso: string): CrmReport
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
-export function deriveBranchManagerCrmSnapshotFreshness(
-  snapshotDate: string | null,
-  nowIso: string
-): AdminCrmSnapshotFreshness {
-  if (!snapshotDate) return 'missing';
-  const [year, month, day] = snapshotDate.split('-').map(Number);
-  if (!year || !month || !day) return 'stale';
-  const snapshotEnd = Date.UTC(year, month - 1, day + 1) - 1;
-  const now = Date.parse(nowIso);
-  if (!Number.isFinite(now)) return 'stale';
-  const ageHours = (now - snapshotEnd) / (60 * 60 * 1000);
-  if (ageHours < BRANCH_MANAGER_CRM_SNAPSHOT_DELAYED_AFTER_HOURS) return 'fresh';
-  if (ageHours < BRANCH_MANAGER_CRM_SNAPSHOT_STALE_AFTER_HOURS) return 'delayed';
-  return 'stale';
-}
-
 function branchIdFor(actor: CrmActorContext): string {
   const branchId = actor.scope.branchId;
   if (!branchId) throw new BranchManagerCrmReportingAccessDeniedError('branch_scope');
@@ -156,10 +143,6 @@ function branchIdFor(actor: CrmActorContext): string {
 
 function branchLabelFor(branchId: string, label?: string | null): string {
   return label?.trim() || branchId;
-}
-
-function pipelineLabel(pipelineId: string): string {
-  return pipelineId;
 }
 
 function sourceLabel(row: { source: string | null; utmSource: string | null }): string {
@@ -217,34 +200,6 @@ function filterSourceRowsToBranch(
   branchId: string
 ): CrmSourceBreakdownRow[] {
   return rows.filter(row => row.branchId === branchId);
-}
-
-function mapSnapshotRows(
-  rows: readonly CrmPipelineSnapshotRecord[],
-  args: { branchId: string; branchLabel: string; nowIso: string }
-): BranchManagerCrmSnapshotRow[] {
-  return rows
-    .filter(row => row.branchId === args.branchId)
-    .map(row => ({
-      branchId: args.branchId,
-      branchLabel: args.branchLabel,
-      closedLostAmountMinor: row.closedLostAmountMinor,
-      closedWonAmountMinor: row.closedWonAmountMinor,
-      currencyCode: row.currencyCode,
-      freshness: deriveBranchManagerCrmSnapshotFreshness(row.snapshotDate, args.nowIso),
-      openDealCount: row.openDealCount,
-      pipelineId: row.pipelineId,
-      pipelineLabel: pipelineLabel(row.pipelineId),
-      snapshotDate: row.snapshotDate,
-      snapshotVersion: row.snapshotVersion,
-      totalPipelineAmountMinor: row.rawValueAmountMinor,
-      weightedPipelineAmountMinor: row.weightedValueAmountMinor,
-    }))
-    .sort((left, right) => {
-      const byCurrency = left.currencyCode.localeCompare(right.currencyCode);
-      if (byCurrency !== 0) return byCurrency;
-      return left.pipelineLabel.localeCompare(right.pipelineLabel);
-    });
 }
 
 async function readSnapshotWidget(args: {
