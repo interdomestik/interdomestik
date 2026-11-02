@@ -158,6 +158,18 @@ vi.mock('@interdomestik/database', () => {
         ),
       },
     },
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn((where: WhereClause) => ({
+          limit: vi.fn(async (count: number) =>
+            hoisted.store.tokens
+              .filter(token => matches(where, token))
+              .slice(0, count)
+              .map(() => ({ id: 'token-row' }))
+          ),
+        })),
+      })),
+    })),
     update: vi.fn(() => ({
       set: vi.fn(() => ({ where: hoisted.updateWhere })),
     })),
@@ -181,6 +193,20 @@ vi.mock('@interdomestik/database', () => {
     ) => action(db),
   };
 });
+
+// Emulates the privileged resolver: exact hash, unexpired, unrevoked, exactly one tenant-bound match.
+vi.mock('@interdomestik/database/public-token-tenant', () => ({
+  resolveClaimTrackingTokenTenant: vi.fn(async (rawToken: string, now: Date) => {
+    const rows = hoisted.store.tokens.filter(
+      token =>
+        token.tokenHash === `hash:${rawToken}` &&
+        token.tenantId !== null &&
+        token.expiresAt.getTime() > now.getTime() &&
+        token.revokedAt === null
+    );
+    return rows.length === 1 ? { tenantId: rows[0].tenantId, claimId: rows[0].claimId } : null;
+  }),
+}));
 
 vi.mock('@interdomestik/database/schema', () => trackingSchemaMock);
 

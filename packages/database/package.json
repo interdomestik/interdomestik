@@ -17,7 +17,8 @@
     "./tenant-security": "./src/tenant-security.ts",
     "./member-number": "./src/member-number.ts",
     "./claim-number": "./src/claim-number.ts",
-    "./tenant-directory": "./src/tenant-directory.ts"
+    "./tenant-directory": "./src/tenant-directory.ts",
+    "./public-token-tenant": "./src/public-token-tenant.ts"
   },
   "scripts": {
     "db:generate": "pnpm run generate",

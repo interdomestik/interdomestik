@@ -9,17 +9,26 @@ const m = vi.hoisted(() => {
   const dbSelect = vi.fn(() => select), dbUpdate = vi.fn(() => update), dbInsert = vi.fn(() => insert);
   const txUpdate = vi.fn(() => update), txInsert = vi.fn(() => insert);
   const columns = new Proxy({}, { get: (_target, prop) => String(prop) });
-  const withTenantContext = vi.fn(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: txInsert, update: txUpdate }));
-  return { columns, dbInsert, dbSelect, dbUpdate, insert, select, txInsert, txUpdate, update, withTenantContext };
+  const txSelect = vi.fn(() => select);
+  const withTenantContext = vi.fn(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: txInsert, select: txSelect, update: txUpdate }));
+  const resolveNpsSurveyTokenTenant = vi.fn();
+  return { columns, dbInsert, dbSelect, dbUpdate, insert, resolveNpsSurveyTokenTenant, select, txInsert, txSelect, txUpdate, update, withTenantContext };
 });
 
 // prettier-ignore
 vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, select: m.dbSelect, update: m.dbUpdate }, withTenantContext: m.withTenantContext }));
 
 // prettier-ignore
+vi.mock('@interdomestik/database/public-token-tenant', () => ({ resolveNpsSurveyTokenTenant: m.resolveNpsSurveyTokenTenant }));
+
+// prettier-ignore
 vi.mock('@interdomestik/database/schema', () => ({ npsSurveyResponses: m.columns, npsSurveyTokens: m.columns }));
 
-vi.mock('drizzle-orm', () => ({ and: vi.fn(), eq: vi.fn(), isNull: vi.fn() }));
+vi.mock('drizzle-orm', () => ({
+  and: (...args: unknown[]) => ({ op: 'and', args }),
+  eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
+  isNull: (value: unknown) => ({ op: 'isNull', value }),
+}));
 vi.mock('nanoid', () => ({ nanoid: () => 'test-id-123' }));
 
 const tokenRow = (overrides: Record<string, unknown> = {}) => ({
@@ -31,6 +40,18 @@ const tokenRow = (overrides: Record<string, unknown> = {}) => ({
   userId: 'user-1',
   ...overrides,
 });
+
+// prettier-ignore
+function resetMocks() {
+  vi.clearAllMocks();
+  m.select.from.mockReturnThis(); m.select.where.mockReturnThis(); m.select.limit.mockReturnValue([]);
+  m.update.set.mockReturnThis(); m.update.where.mockReturnThis(); m.update.returning.mockResolvedValue([]);
+  m.insert.values.mockResolvedValue(undefined);
+  m.dbSelect.mockReturnValue(m.select); m.dbUpdate.mockReturnValue(m.update); m.dbInsert.mockReturnValue(m.insert);
+  m.txSelect.mockReturnValue(m.select); m.txUpdate.mockReturnValue(m.update); m.txInsert.mockReturnValue(m.insert);
+  m.withTenantContext.mockImplementation(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: m.txInsert, select: m.txSelect, update: m.txUpdate }));
+  m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-1' });
+}
 
 function post(body: unknown, headers?: HeadersInit) {
   return POST(
@@ -44,15 +65,7 @@ function post(body: unknown, headers?: HeadersInit) {
 
 // prettier-ignore
 describe('POST /api/public/nps', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    m.select.from.mockReturnThis(); m.select.where.mockReturnThis(); m.select.limit.mockReturnValue([]);
-    m.update.set.mockReturnThis(); m.update.where.mockReturnThis(); m.update.returning.mockResolvedValue([]);
-    m.insert.values.mockResolvedValue(undefined);
-    m.dbSelect.mockReturnValue(m.select); m.dbUpdate.mockReturnValue(m.update); m.dbInsert.mockReturnValue(m.insert);
-    m.txUpdate.mockReturnValue(m.update); m.txInsert.mockReturnValue(m.insert);
-    m.withTenantContext.mockImplementation(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: m.txInsert, update: m.txUpdate }));
-  });
+  beforeEach(resetMocks);
 
   it.each([['not-json', 400, { error: 'Invalid JSON' }], [{ token: 'abc', score: 11 }, 400, { error: 'Invalid request' }]])('rejects invalid submission %#', async (body, status, expected) => {
     const response = await post(body);
@@ -65,6 +78,41 @@ describe('POST /api/public/nps', () => {
     const response = await post({ token: 'valid-token-12345', score: 7 });
     expect(response.status).toBe(status);
     expect(await response.json()).toEqual(expected);
+    expect(m.txUpdate).not.toHaveBeenCalled(); expect(m.txInsert).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 without any tenant context, update or insert when the token resolves to no tenant', async () => {
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue(null);
+    m.select.limit.mockReturnValue([tokenRow()]);
+    const response = await post({ token: 'unknown-token-12345', score: 7 });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Invalid token' });
+    expect(m.resolveNpsSurveyTokenTenant).toHaveBeenCalledWith('unknown-token-12345');
+    expect(m.withTenantContext).not.toHaveBeenCalled();
+    expect(m.txSelect).not.toHaveBeenCalled(); expect(m.txUpdate).not.toHaveBeenCalled(); expect(m.txInsert).not.toHaveBeenCalled();
+    expect(m.dbSelect).not.toHaveBeenCalled(); expect(m.dbUpdate).not.toHaveBeenCalled(); expect(m.dbInsert).not.toHaveBeenCalled();
+  });
+
+  it('binds the token lookup and the one-use update to the resolved tenant', async () => {
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-resolved' });
+    m.select.limit.mockReturnValue([tokenRow({ tenantId: 'tenant-resolved' })]); m.update.returning.mockResolvedValue([{ id: 'tok-1' }]);
+    const response = await post({ token: 'valid-token-12345', score: 8 });
+    expect(response.status).toBe(200);
+    expect(m.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-resolved' }, expect.any(Function));
+    expect(m.select.where).toHaveBeenCalledWith({ op: 'and', args: [{ op: 'eq', left: 'token', right: 'valid-token-12345' }, { op: 'eq', left: 'tenantId', right: 'tenant-resolved' }] });
+    expect(m.update.where).toHaveBeenCalledWith({ op: 'and', args: [{ op: 'eq', left: 'id', right: 'tok-1' }, { op: 'eq', left: 'tenantId', right: 'tenant-resolved' }, { op: 'isNull', value: 'usedAt' }] });
+    expect(m.insert.values).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'tenant-resolved', tokenId: 'tok-1' }));
+  });
+
+  it('returns 500 when the tenant transaction fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    m.select.limit.mockReturnValue([tokenRow()]); m.update.returning.mockRejectedValue(new Error('boom'));
+    const response = await post({ token: 'valid-token-12345', score: 7 });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Failed to submit' });
+    expect(m.insert.values).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('submits through the token tenant context', async () => {
@@ -90,28 +138,63 @@ describe('POST /api/public/nps', () => {
 });
 
 describe('GET /api/public/nps', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    m.select.from.mockReturnThis();
-    m.select.where.mockReturnThis();
-    m.select.limit.mockReturnValue([]);
+  beforeEach(resetMocks);
+
+  it('rejects a missing token without resolving or querying', async () => {
+    const response = await GET(new Request('http://localhost:3000/api/public/nps'));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Missing token' });
+    expect(m.resolveNpsSurveyTokenTenant).not.toHaveBeenCalled();
+    expect(m.withTenantContext).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['http://localhost:3000/api/public/nps', 400, { error: 'Missing token' }],
-    ['http://localhost:3000/api/public/nps?token=bad', 404, { error: 'Invalid token' }],
-  ])('rejects invalid lookup %#', async (url, status, expected) => {
-    const response = await GET(new Request(url));
-    expect(response.status).toBe(status);
-    expect(await response.json()).toEqual(expected);
+  it('returns 404 without a tenant context when the token resolves to no tenant', async () => {
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue(null);
+    const response = await GET(new Request('http://localhost:3000/api/public/nps?token=bad'));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Invalid token' });
+    expect(m.withTenantContext).not.toHaveBeenCalled();
+    expect(m.txSelect).not.toHaveBeenCalled();
   });
 
-  it('returns valid:true for fresh token', async () => {
+  it('returns 404 when the token is missing inside the resolved tenant', async () => {
+    const response = await GET(new Request('http://localhost:3000/api/public/nps?token=gone'));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Invalid token' });
+  });
+
+  it('returns 410 for an expired token', async () => {
+    m.select.limit.mockReturnValue([tokenRow({ expiresAt: new Date('2000-01-01T00:00:00.000Z') })]);
+    const response = await GET(new Request('http://localhost:3000/api/public/nps?token=old'));
+    expect(response.status).toBe(410);
+    expect(await response.json()).toEqual({ error: 'Token expired' });
+  });
+
+  it('returns valid:true for fresh token and binds the lookup to the resolved tenant', async () => {
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-resolved' });
     m.select.limit.mockReturnValue([tokenRow()]);
 
     const response = await GET(new Request('http://localhost:3000/api/public/nps?token=ok'));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ valid: true, alreadySubmitted: false });
+    expect(m.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-resolved' },
+      expect.any(Function)
+    );
+    expect(m.select.where).toHaveBeenCalledWith({
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'token', right: 'ok' },
+        { op: 'eq', left: 'tenantId', right: 'tenant-resolved' },
+      ],
+    });
+  });
+
+  it('reports alreadySubmitted for a used token', async () => {
+    m.select.limit.mockReturnValue([tokenRow({ usedAt: new Date('2025-01-01T00:00:00.000Z') })]);
+    const response = await GET(new Request('http://localhost:3000/api/public/nps?token=used'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ valid: true, alreadySubmitted: true });
   });
 });

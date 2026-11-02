@@ -1,4 +1,5 @@
-import { db, withTenantContext } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
+import { resolveClaimTrackingTokenTenant } from '@interdomestik/database/public-token-tenant';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
@@ -35,49 +36,48 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
       // Implementation depends on how we get IP here. For now, we skip IP check in this loader
       // and assume proxy handles DDoS.
 
-      // 1. Hash Token
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
-      // 2. Lookup Token
+      // 1. Resolve the token's tenant (fixed privileged lookup; internal only)
       const now = new Date();
-
-      // BLOCKED(rc31-u2): token-resolved public page -- the tenant is only known after this bearer-token lookup; needs a privileged manifest entry.
-      // db-access-guard: system-exempt -- reason: bearer tracking token lookup resolves tenant before scoped claim status read
-      const record = await db.query.claimTrackingTokens.findFirst({
-        where: and(
-          eq(claimTrackingTokens.tokenHash, tokenHash),
-          gt(claimTrackingTokens.expiresAt, now),
-          isNull(claimTrackingTokens.revokedAt)
-        ),
-      });
-
-      if (!record) {
+      const resolved = await resolveClaimTrackingTokenTenant(token, now);
+      if (!resolved) {
         return null;
       }
 
-      if (!record.tenantId) {
-        return null;
-      }
+      // 2. Revalidate the token and read the minimal claim status inside that tenant
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const { tenantId, claimId } = resolved;
+      const claim = await withTenantContext({ tenantId }, async tx => {
+        const [validToken] = await tx
+          .select({ id: claimTrackingTokens.id })
+          .from(claimTrackingTokens)
+          .where(
+            and(
+              eq(claimTrackingTokens.tenantId, tenantId),
+              eq(claimTrackingTokens.claimId, claimId),
+              eq(claimTrackingTokens.tokenHash, tokenHash),
+              gt(claimTrackingTokens.expiresAt, now),
+              isNull(claimTrackingTokens.revokedAt)
+            )
+          )
+          .limit(1);
+        if (!validToken) return undefined;
 
-      // 3. Fetch Claim Status (Minimal)
-      const recordTenantId = record.tenantId;
-      const claim = await withTenantContext({ tenantId: recordTenantId }, tx =>
-        tx.query.claims.findFirst({
-          where: and(eq(claims.id, record.claimId), eq(claims.tenantId, recordTenantId)),
+        return tx.query.claims.findFirst({
+          where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
           columns: {
             id: true,
             caseLifecycleState: true,
             recoveryLifecycleState: true,
             updatedAt: true,
           },
-        })
-      );
+        });
+      });
 
       if (!claim) return null;
 
       const { status } = resolveClaimLifecycleReadProjection(claim);
 
-      // 4. Return DTO (No PII)
+      // 3. Return DTO (No PII)
       return {
         claimId: claim.id,
         status,
