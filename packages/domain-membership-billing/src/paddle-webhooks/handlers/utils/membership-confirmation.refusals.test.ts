@@ -1,58 +1,18 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  installMembershipConfirmationHooks,
+  authority,
+  sendThankYouLetter,
+  prepareThankYouLetter,
+  deliveryStore,
+  userRecord,
+  subscription,
+} from './membership-confirmation.fixtures.test-support';
+import { describe, expect, it } from 'vitest';
 import { RetryablePaddleWebhookError } from '../../errors';
 import { processMembershipConfirmation } from './membership-confirmation';
 
 describe('processMembershipConfirmation', () => {
-  const authority = mintTestTenantAuthority('tenant_mk');
-  const sendThankYouLetter = vi.fn();
-  const prepareThankYouLetter = vi.fn();
-  const deliveryStore = {
-    claimExisting: vi.fn().mockResolvedValue({ kind: 'not_found' }),
-    claim: vi.fn(),
-    ready: vi.fn(),
-    complete: vi.fn(),
-    fail: vi.fn(),
-  };
-  const userRecord = {
-    email: 'member@example.test',
-    name: 'Member One',
-    memberNumber: 'MEM-2026-001',
-  };
-  const subscription = {
-    id: 'sub_provider_1',
-    status: 'active',
-    items: [
-      {
-        price: {
-          name: 'Annual membership',
-          unit_price: { amount: '2000', currency_code: 'EUR' },
-        },
-      },
-    ],
-    billing_cycle: { frequency: 1, interval: 'year' },
-    current_billing_period: {
-      starts_at: '2026-01-01T00:00:00Z',
-      ends_at: '2027-01-01T00:00:00Z',
-    },
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sendThankYouLetter.mockResolvedValue({ success: true, id: 'email_123' });
-    prepareThankYouLetter.mockImplementation(({ email }) => ({
-      to: email,
-      subject: 'Membership confirmed',
-      html: '<p>Membership confirmed</p>',
-      text: 'Membership confirmed',
-    }));
-    deliveryStore.claim.mockImplementation(async ({ snapshot }) => ({
-      kind: 'claimed',
-      deliveryId: 'delivery_123',
-      requiresEffects: true,
-      snapshot,
-    }));
-  });
+  installMembershipConfirmationHooks();
 
   it('refuses an active confirmation from a non-created provider event', async () => {
     await processMembershipConfirmation({

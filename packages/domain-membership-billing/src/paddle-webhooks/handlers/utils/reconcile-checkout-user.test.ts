@@ -1,66 +1,15 @@
+import { installReconcileCheckoutUserHooks } from './reconcile-checkout-user.hooks.test-support';
 import { hoisted, insertedUserValuesInclude } from './reconcile-checkout-user.test-support';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  TEST_PADDLE_DELIVERY,
-  authorizeAnyTestPaddleBillingTenant,
-  authorizeTestPaddleOwner,
-} from '../../paddle-authority.test-support';
+import { describe, expect, it, vi } from 'vitest';
+import { TEST_PADDLE_DELIVERY } from '../../paddle-authority.test-support';
 import { isRetryablePaddleWebhookError } from '../../errors';
 import { reconcileCheckoutUser } from './reconcile-checkout-user';
 
 describe('reconcileCheckoutUser', () => {
   const requestPasswordResetOnboarding = vi.fn();
 
-  beforeEach(() => {
-    hoisted.authorizePaddleBillingTenant.mockReset();
-    hoisted.authorizePaddleBillingTenant.mockImplementation(authorizeAnyTestPaddleBillingTenant);
-    hoisted.authorizePaddleTenant.mockReset();
-    hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
-    vi.clearAllMocks();
-    hoisted.db.query.user.findFirst.mockReset();
-    hoisted.hasTenantMemberCredential.mockReset().mockResolvedValue(false);
-    hoisted.readVerifiedPaddleTransactionEvidence.mockReset();
-    hoisted.resolvePaddleCustomerEmailOwner.mockReset().mockResolvedValue(null);
-    hoisted.db.query.tenantSettings.findFirst.mockReset();
-    hoisted.db.transaction.mockReset();
-    hoisted.tx.insert.mockReset();
-    hoisted.tx.update.mockReset();
-    hoisted.insertedUserValues.mockReset();
-    hoisted.updatedUserValues.mockReset();
-    hoisted.issueTenantMemberNumber.mockReset();
-    hoisted.nanoid.mockReset();
-
-    hoisted.nanoid.mockReturnValue('user_new');
-    hoisted.issueTenantMemberNumber.mockResolvedValue({
-      memberNumber: 'MEM-2026-000123',
-      isNew: true,
-    });
-
-    hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
-    // Tenant-scoped statements (writes via tx.insert/update, reads via tx.query) share one context mock.
-    hoisted.tx.query = hoisted.db.query;
-    hoisted.withTenantContext.mockReset();
-    hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
-      callback(hoisted.tx)
-    );
-
-    hoisted.tx.insert.mockImplementation(() => ({
-      values: hoisted.insertedUserValues,
-    }));
-    hoisted.insertedUserValues.mockReturnValue({
-      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-    });
-
-    hoisted.tx.update.mockImplementation(() => ({
-      set: hoisted.updatedUserValues,
-    }));
-    hoisted.updatedUserValues.mockReturnValue({
-      where: () => ({
-        returning: async () => [{ id: 'user_existing' }],
-      }),
-    });
-  });
+  installReconcileCheckoutUserHooks();
 
   const counterDown = new Error('counter down');
   it.each([
