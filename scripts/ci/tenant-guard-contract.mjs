@@ -26,12 +26,22 @@ if (!file || !unit || kindArgs.length === 0 || !reason) {
 }
 // Only a file inside this repository can be pinned, after symlinks are followed.
 const repoRoot = fs.realpathSync(path.resolve(import.meta.dirname, '../..'));
-const fullPath = fs.realpathSync(path.resolve(repoRoot, file));
-if (!fullPath.startsWith(repoRoot + path.sep)) {
-  console.error(`${file} is not inside the repository`);
+function readInsideRepository(relative) {
+  const lexical = path.resolve(repoRoot, relative);
+  if (lexical.startsWith(repoRoot + path.sep)) {
+    const real = fs.realpathSync(lexical);
+    if (real.startsWith(repoRoot + path.sep)) return fs.readFileSync(real, 'utf8');
+  }
+  throw new Error(`${relative} is not inside the repository`);
+}
+let text;
+try {
+  text = readInsideRepository(file);
+} catch (error) {
+  console.error(error.message);
   process.exit(2);
 }
-const sourceFile = parseSource(file, fs.readFileSync(fullPath, 'utf8'));
+const sourceFile = parseSource(file, text);
 const named = collectUnits(sourceFile).filter(
   candidate => unitName(candidate, sourceFile) === unit
 );
