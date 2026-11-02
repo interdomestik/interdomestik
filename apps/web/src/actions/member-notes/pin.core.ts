@@ -31,21 +31,25 @@ export async function toggleNotePinCore(params: {
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await withTenantAuthority(authority, async tx =>
-      tx
-        .select()
-        .from(memberNotes)
-        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
-        .limit(1)
+    const [existing] = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select()
+          .from(memberNotes)
+          .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+          .limit(1)
     );
     if (!existing) return { success: false, error: 'Note not found' };
 
     const newPinned = !existing.isPinned;
-    await withTenantAuthority(authority, async tx =>
-      tx
-        .update(memberNotes)
-        .set({ isPinned: newPinned, updatedAt: new Date() })
-        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .update(memberNotes)
+          .set({ isPinned: newPinned, updatedAt: new Date() })
+          .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
     );
 
     await logAuditEvent({

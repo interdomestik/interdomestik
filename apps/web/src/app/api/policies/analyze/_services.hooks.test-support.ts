@@ -4,8 +4,8 @@ import { beforeEach, vi } from 'vitest';
 export function installServicesHooks(): void {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.authorizeInngestEventTenant.mockImplementation(
-      async (_ingress: unknown, tenantId: string) => authorityFor(tenantId)
+    mocks.authorizeInngestEventTenant.mockImplementation((_ingress: unknown, tenantId: string) =>
+      Promise.resolve(authorityFor(tenantId))
     );
     mocks.nanoid.mockReturnValueOnce('extraction-1');
     mocks.selectWhere.mockResolvedValue([

@@ -32,29 +32,35 @@ export async function updateAgentTierCore(params: {
   const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const existing = await withTenantAuthority(authority, async tx =>
-      tx.query.agentSettings?.findFirst({
-        where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
-      })
+    const existing = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.agentSettings?.findFirst({
+          where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
+        })
     );
 
     if (existing) {
-      await withTenantAuthority(authority, async tx =>
-        tx
-          .update(agentSettings)
-          .set({ tier, updatedAt: new Date() })
-          .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)))
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .update(agentSettings)
+            .set({ tier, updatedAt: new Date() })
+            .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)))
       );
     } else {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-      await withTenantAuthority(authority, async tx =>
-        tx.insert(agentSettings).values({
-          id: nanoid(),
-          tenantId,
-          agentId,
-          tier,
-          commissionRates: {},
-        })
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.insert(agentSettings).values({
+            id: nanoid(),
+            tenantId,
+            agentId,
+            tier,
+            commissionRates: {},
+          })
       );
     }
 

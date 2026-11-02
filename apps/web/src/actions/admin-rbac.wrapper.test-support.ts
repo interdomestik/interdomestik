@@ -39,14 +39,16 @@ vi.mock('@/lib/audit', () => ({
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
-      getSession: vi.fn(async () => ({
-        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
-      })),
+      getSession: vi.fn(() =>
+        Promise.resolve({
+          user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' },
+        })
+      ),
     },
   },
 }));
 vi.mock('@/server/auth/effective-portal-access', () => ({
-  requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
+  requireEffectivePortalAccessOrUnauthorized: vi.fn(() => Promise.resolve(undefined)),
 }));
 vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),

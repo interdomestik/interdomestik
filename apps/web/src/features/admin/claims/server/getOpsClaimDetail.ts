@@ -48,6 +48,27 @@ function isNeutralDeploymentHost(host: string): boolean {
   return configuredNeutralHosts().has(normalizeRequestHost(host));
 }
 
+/**
+ * The tenant this request reads: a tenant host must match the session's access tenant, and a host
+ * without a tenant must be a neutral deployment or the exact front door. Null fails closed.
+ */
+function resolveRequestTenant(
+  requestHeaders: Headers,
+  sessionAccessTenantId: string
+): string | null {
+  const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
+  const hostTenantId = resolveTenantFromHost(requestHost);
+  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return null;
+  if (
+    !hostTenantId &&
+    !isNeutralDeploymentHost(requestHost) &&
+    !isExactIdaFrontDoorHost(requestHost)
+  ) {
+    return null;
+  }
+  return hostTenantId ?? sessionAccessTenantId;
+}
+
 export async function getOpsClaimDetail(
   claimId: string,
   authority: TenantAuthority
@@ -65,17 +86,8 @@ export async function getOpsClaimDetail(
   const visibility = await resolveClaimsVisibility(session);
   if (!visibility || !canViewAdminClaims(visibility)) return { kind: 'not_found' };
   if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
-  const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-  const hostTenantId = resolveTenantFromHost(requestHost);
-  if (hostTenantId && hostTenantId !== sessionAccessTenantId) return { kind: 'not_found' };
-  if (
-    !hostTenantId &&
-    !isNeutralDeploymentHost(requestHost) &&
-    !isExactIdaFrontDoorHost(requestHost)
-  ) {
-    return { kind: 'not_found' };
-  }
-  const tenantId = hostTenantId ?? sessionAccessTenantId;
+  const tenantId = resolveRequestTenant(requestHeaders, sessionAccessTenantId);
+  if (tenantId === null) return { kind: 'not_found' };
   // The read runs under the caller's authority, which must be this session user's for this tenant.
   const granted = readTenantAuthority(authority);
   if (granted.tenantId !== tenantId || granted.principal?.userId !== session.user?.id) {

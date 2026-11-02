@@ -1,4 +1,3 @@
-import { eq } from '@interdomestik/database';
 import { authorizePaddleTenant, resolvePaddleCustomerEmailOwner } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';

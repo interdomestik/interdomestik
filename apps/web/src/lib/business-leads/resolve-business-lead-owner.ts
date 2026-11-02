@@ -27,16 +27,18 @@ function readStringValue(value: unknown, preferredKeys: readonly string[]): stri
 
 async function resolveDefaultBranchId(authority: TenantAuthority): Promise<string | null> {
   const { tenantId } = readTenantAuthority(authority);
-  const defaultBranchSetting = await withTenantAuthority(authority, async tx =>
-    tx.query.tenantSettings.findFirst({
-      where: (settings, { and, eq }) =>
-        and(
-          eq(settings.tenantId, tenantId),
-          eq(settings.category, 'rbac'),
-          eq(settings.key, 'default_branch_id')
-        ),
-      columns: { value: true },
-    })
+  const defaultBranchSetting = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.tenantSettings.findFirst({
+        where: (settings, { and, eq }) =>
+          and(
+            eq(settings.tenantId, tenantId),
+            eq(settings.category, 'rbac'),
+            eq(settings.key, 'default_branch_id')
+          ),
+        columns: { value: true },
+      })
   );
 
   return readStringValue(defaultBranchSetting?.value, [
@@ -51,16 +53,18 @@ export async function resolveBusinessLeadOwner(
   authority: TenantAuthority
 ): Promise<{ agentId: string; branchId: string } | null> {
   const { tenantId } = readTenantAuthority(authority);
-  const ownerSetting = await withTenantAuthority(authority, async tx =>
-    tx.query.tenantSettings.findFirst({
-      where: (settings, { and, eq }) =>
-        and(
-          eq(settings.tenantId, tenantId),
-          eq(settings.category, 'sales'),
-          eq(settings.key, 'business_lead_owner')
-        ),
-      columns: { value: true },
-    })
+  const ownerSetting = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.tenantSettings.findFirst({
+        where: (settings, { and, eq }) =>
+          and(
+            eq(settings.tenantId, tenantId),
+            eq(settings.category, 'sales'),
+            eq(settings.key, 'business_lead_owner')
+          ),
+        columns: { value: true },
+      })
   );
 
   const agentId = readStringValue(ownerSetting?.value, ['agentId', 'ownerAgentId', 'id', 'value']);
@@ -69,11 +73,13 @@ export async function resolveBusinessLeadOwner(
     return null;
   }
 
-  const owner = await withTenantAuthority(authority, async tx =>
-    tx.query.user.findFirst({
-      where: (users, { and, eq }) => and(eq(users.id, agentId), eq(users.tenantId, tenantId)),
-      columns: { id: true, branchId: true },
-    })
+  const owner = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.user.findFirst({
+        where: (users, { and, eq }) => and(eq(users.id, agentId), eq(users.tenantId, tenantId)),
+        columns: { id: true, branchId: true },
+      })
   );
 
   if (!owner?.id) {

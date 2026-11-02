@@ -66,7 +66,7 @@ export async function logActivityCore(params: {
       })
     );
 
-    if (!member || member.tenantId !== tenantId) {
+    if (member?.tenantId !== tenantId) {
       return { success: false, error: 'Member access denied' };
     }
 

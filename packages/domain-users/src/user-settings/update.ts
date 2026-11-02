@@ -40,28 +40,12 @@ export async function updateNotificationPreferencesCore(params: {
   }
 
   try {
-    const [existing] = await withTenantAuthority(authority, async tx =>
-      tx
-        .select()
-        .from(userNotificationPreferences)
-        .where(
-          withTenant(
-            tenantId,
-            userNotificationPreferences.tenantId,
-            eq(userNotificationPreferences.userId, session.user.id)
-          )
-        )
-        .limit(1)
-    );
-
-    if (existing) {
-      await withTenantAuthority(authority, async tx =>
-        tx
-          .update(userNotificationPreferences)
-          .set({
-            ...preferences,
-            updatedAt: new Date(),
-          })
+    const [existing] = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select()
+          .from(userNotificationPreferences)
           .where(
             withTenant(
               tenantId,
@@ -69,18 +53,40 @@ export async function updateNotificationPreferencesCore(params: {
               eq(userNotificationPreferences.userId, session.user.id)
             )
           )
+          .limit(1)
+    );
+
+    if (existing) {
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .update(userNotificationPreferences)
+            .set({
+              ...preferences,
+              updatedAt: new Date(),
+            })
+            .where(
+              withTenant(
+                tenantId,
+                userNotificationPreferences.tenantId,
+                eq(userNotificationPreferences.userId, session.user.id)
+              )
+            )
       );
     } else {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session before preference insert
-      await withTenantAuthority(authority, async tx =>
-        tx.insert(userNotificationPreferences).values({
-          id: nanoid(),
-          tenantId,
-          userId: session.user.id,
-          ...preferences,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.insert(userNotificationPreferences).values({
+            id: nanoid(),
+            tenantId,
+            userId: session.user.id,
+            ...preferences,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
       );
     }
 

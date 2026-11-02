@@ -58,5 +58,6 @@ export async function authorizeSessionUserTenant(userId: string): Promise<Tenant
     if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
     return null;
   }
-  return authorized && authorized.session.user.id === userId ? authorized.authority : null;
+  if (!authorized) return null;
+  return authorized.session.user.id === userId ? authorized.authority : null;
 }

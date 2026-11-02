@@ -29,10 +29,12 @@ export async function getWrappedStatsCore(params: {
   }
   const { tenantId } = readTenantAuthority(authority);
 
-  const subscription = await withTenantAuthority(authority, async tx =>
-    tx.query.subscriptions.findFirst({
-      where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
-    })
+  const subscription = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+      })
   );
 
   if (!subscription?.createdAt) {
@@ -41,10 +43,12 @@ export async function getWrappedStatsCore(params: {
 
   const daysProtected = differenceInDays(new Date(), subscription.createdAt);
 
-  const userClaims = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findMany({
-      where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
-    })
+  const userClaims = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findMany({
+        where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
+      })
   );
 
   const claimsWithStatus = userClaims.map(claim => ({

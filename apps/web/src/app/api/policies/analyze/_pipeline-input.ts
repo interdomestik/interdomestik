@@ -96,12 +96,16 @@ export async function claimPolicyExtractionRun(
     return { status: 'skipped', policyId: queuedRun.policyId };
   }
 
-  const [claimedRun] = await withTenantAuthority(authority, async tx =>
-    tx
-      .update(aiRuns)
-      .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
-      .where(and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued')))
-      .returning({ id: aiRuns.id })
+  const [claimedRun] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .update(aiRuns)
+        .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
+        .where(
+          and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'))
+        )
+        .returning({ id: aiRuns.id })
   );
 
   if (!claimedRun) return { status: 'skipped', policyId: queuedRun.policyId };

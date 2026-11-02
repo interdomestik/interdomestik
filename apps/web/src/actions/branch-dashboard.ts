@@ -66,7 +66,7 @@ export async function getBranchDashboard(
     let readAuthority: TenantAuthority;
     if (scope.isCrossTenantScope) {
       const delegated = await delegateSuperAdminBranchOwner(authority, branchId);
-      if (!delegated || delegated.branchId !== branchId) {
+      if (delegated?.branchId !== branchId) {
         return { success: false, error: 'Branch not found' };
       }
       readAuthority = delegated.authority;

@@ -9,6 +9,7 @@ import { selectActiveSubscriptionMembers } from '../_scheduled-members';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { EngagementCronResults, EngagementMember } from './_core';
+import { forEachInOrder } from '@/lib/in-order';
 
 export async function processSeasonalEngagement(
   ingress: IngressCapability<'cron'>,
@@ -29,7 +30,7 @@ export async function processSeasonalEngagement(
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
   const seasonalMembers = await selectActiveSubscriptionMembers({ ingress, limit: 100 });
 
-  for (const member of seasonalMembers) {
+  await forEachInOrder(seasonalMembers, async member => {
     await processSeasonalMember(
       member,
       authorityForTenant(authorities, member.tenantId),
@@ -39,7 +40,7 @@ export async function processSeasonalEngagement(
       results,
       headers
     );
-  }
+  });
 }
 
 export async function processSeasonalMember(

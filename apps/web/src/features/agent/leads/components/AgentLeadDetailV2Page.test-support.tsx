@@ -9,7 +9,7 @@ const hoisted = vi.hoisted(() => ({
       this.name = 'AgentLeadDetailsAccessDeniedError';
     }
   },
-  headersMock: vi.fn(async () => new Headers()),
+  headersMock: vi.fn(() => Promise.resolve(new Headers())),
   redirectMock: vi.fn((params: { href: string; locale: string }) => {
     throw new Error(`redirect:${params.href}:${params.locale}`);
   }),
@@ -17,7 +17,7 @@ const hoisted = vi.hoisted(() => ({
     throw new Error('not-found');
   }),
   setRequestLocaleMock: vi.fn(),
-  getTranslationsMock: vi.fn(async (_namespace?: string) => (key: string) => key),
+  getTranslationsMock: vi.fn((_namespace?: string) => Promise.resolve((key: string) => key)),
   getSessionMock: vi.fn(),
   ensureTenantIdMock: vi.fn((_session?: unknown) => 'tenant-1'),
   getAgentLeadDetailsCoreMock: vi.fn(),

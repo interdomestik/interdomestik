@@ -10,6 +10,7 @@ import {
 } from './campaign-execution';
 import { sendCheckinEmail, sendOnboardingEmail, sendWelcomeEmail } from './email';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from './in-order';
 
 type CronIngress = IngressCapability<'cron' | 'inngest'>;
 
@@ -40,7 +41,7 @@ async function runWelcomeCampaign(
   const campaignId = 'welcome_day_0';
   const now = new Date();
 
-  for (const { authority } of await listScheduledTenantWork(ingress)) {
+  await forEachInOrder(await listScheduledTenantWork(ingress), async ({ authority }) => {
     const { tenantId } = readTenantAuthority(authority);
     await executeCampaign(
       campaignId,
@@ -68,7 +69,7 @@ async function runWelcomeCampaign(
       },
       context
     );
-  }
+  });
 }
 
 async function runOnboardingCampaign(

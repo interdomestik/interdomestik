@@ -97,8 +97,8 @@ export function auditRow() {
   };
 }
 
-export async function auditRows() {
-  return [auditRow()];
+export function auditRows() {
+  return Promise.resolve([auditRow()]);
 }
 
 export function createInsertValues(table: unknown) {
@@ -112,12 +112,12 @@ export function createInsertValues(table: unknown) {
   return Promise.resolve([]);
 }
 
-export async function groupedRows(selection: unknown, table: unknown) {
-  if (table === crmLeads) return [{ agentId: 'agent-2', count: 4 }];
+export function groupedRows(selection: unknown, table: unknown) {
+  if (table === crmLeads) return Promise.resolve([{ agentId: 'agent-2', count: 4 }]);
   if (selection && table === crmLeadOwnershipHistory) {
-    return [{ agentId: 'agent-2', count: 1 }];
+    return Promise.resolve([{ agentId: 'agent-2', count: 1 }]);
   }
-  return [{ agentId: 'agent-2', count: 2 }];
+  return Promise.resolve([{ agentId: 'agent-2', count: 2 }]);
 }
 
 export function createSelectQuery(selection: unknown) {
@@ -134,11 +134,11 @@ export function createSelectQuery(selection: unknown) {
   };
 }
 
-export async function updatedRows(table: unknown) {
-  if (table === crmLeads) return [leadRow({ agentId: 'agent-2' })];
-  if (table === crmLeadOwnershipHistory) return [{ id: 'ownership-history-1' }];
-  if (table === crmRoutingCursors) return [{ ruleId: 'rule-1' }];
-  return [];
+export function updatedRows(table: unknown) {
+  if (table === crmLeads) return Promise.resolve([leadRow({ agentId: 'agent-2' })]);
+  if (table === crmLeadOwnershipHistory) return Promise.resolve([{ id: 'ownership-history-1' }]);
+  if (table === crmRoutingCursors) return Promise.resolve([{ ruleId: 'rule-1' }]);
+  return Promise.resolve([]);
 }
 
 export function createUpdateQuery(table: unknown) {
@@ -169,14 +169,14 @@ export function createFakeDatabase() {
       };
     },
     query: {
-      branches: { findFirst: vi.fn(async () => ({ id: 'branch-1' })) },
-      crmRoutingAssignmentsAudit: { findFirst: vi.fn(async () => null) },
-      crmRoutingCursors: { findMany: vi.fn(async () => []) },
-      crmRoutingRules: { findMany: vi.fn(async () => []) },
-      crmLeads: { findFirst: vi.fn(async () => leadRow()) },
-      crmActivities: { findMany: vi.fn(async () => []) },
-      crmLeadOwnershipHistory: { findMany: vi.fn(async () => []) },
-      user: { findFirst: vi.fn(async () => ({ id: 'agent-2' })) },
+      branches: { findFirst: vi.fn(() => Promise.resolve({ id: 'branch-1' })) },
+      crmRoutingAssignmentsAudit: { findFirst: vi.fn(() => Promise.resolve(null)) },
+      crmRoutingCursors: { findMany: vi.fn(() => Promise.resolve([])) },
+      crmRoutingRules: { findMany: vi.fn(() => Promise.resolve([])) },
+      crmLeads: { findFirst: vi.fn(() => Promise.resolve(leadRow())) },
+      crmActivities: { findMany: vi.fn(() => Promise.resolve([])) },
+      crmLeadOwnershipHistory: { findMany: vi.fn(() => Promise.resolve([])) },
+      user: { findFirst: vi.fn(() => Promise.resolve({ id: 'agent-2' })) },
     },
     select: vi.fn(createSelectQuery),
     update(table: unknown) {

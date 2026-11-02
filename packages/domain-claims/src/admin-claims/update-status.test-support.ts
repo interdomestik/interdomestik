@@ -74,7 +74,7 @@ vi.mock('@interdomestik/database', () => {
   return {
     ...moduleMock,
     withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
-      callback(moduleMock.db),
+      await callback(moduleMock.db),
   };
 });
 

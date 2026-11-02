@@ -30,30 +30,32 @@ export async function getMemberNotesCore(params: {
   const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const rows = await withTenantAuthority(authority, async tx =>
-      tx
-        .select({
-          id: memberNotes.id,
-          memberId: memberNotes.memberId,
-          authorId: memberNotes.authorId,
-          authorName: userTable.name,
-          type: memberNotes.type,
-          content: memberNotes.content,
-          isPinned: memberNotes.isPinned,
-          isInternal: memberNotes.isInternal,
-          followUpDate: memberNotes.followUpDate,
-          createdAt: memberNotes.createdAt,
-          updatedAt: memberNotes.updatedAt,
-        })
-        .from(memberNotes)
-        .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-        .where(
-          and(
-            eq(memberNotes.tenantId, tenantId), // SECURITY: Tenant scoping
-            eq(memberNotes.memberId, memberId)
+    const rows = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            id: memberNotes.id,
+            memberId: memberNotes.memberId,
+            authorId: memberNotes.authorId,
+            authorName: userTable.name,
+            type: memberNotes.type,
+            content: memberNotes.content,
+            isPinned: memberNotes.isPinned,
+            isInternal: memberNotes.isInternal,
+            followUpDate: memberNotes.followUpDate,
+            createdAt: memberNotes.createdAt,
+            updatedAt: memberNotes.updatedAt,
+          })
+          .from(memberNotes)
+          .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
+          .where(
+            and(
+              eq(memberNotes.tenantId, tenantId), // SECURITY: Tenant scoping
+              eq(memberNotes.memberId, memberId)
+            )
           )
-        )
-        .orderBy(desc(memberNotes.isPinned), desc(memberNotes.createdAt))
+          .orderBy(desc(memberNotes.isPinned), desc(memberNotes.createdAt))
     );
 
     return { success: true, data: rows.map(mapNoteRow) };

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  headersMock: vi.fn(async () => new Headers()),
+  headersMock: vi.fn(() => Promise.resolve(new Headers())),
   redirectMock: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
@@ -20,12 +20,14 @@ const hoisted = vi.hoisted(() => ({
         tenantId: string | null;
       };
     } | null>
-  >(async () => null),
-  getTranslationsMock: vi.fn(async () => (key: string) => key),
+  >(() => Promise.resolve(null)),
+  getTranslationsMock: vi.fn(() => Promise.resolve((key: string) => key)),
   setRequestLocaleMock: vi.fn(),
-  getFormatterMock: vi.fn(async () => ({
-    number: vi.fn((val: number) => String(val)),
-  })),
+  getFormatterMock: vi.fn(() =>
+    Promise.resolve({
+      number: vi.fn(String),
+    })
+  ),
   ensureTenantIdMock: vi.fn((_session?: unknown) => 'tenant-1'),
   authority: (tenantId: string) => mintTestTenantAuthority(tenantId),
   getAgentCrmCompletedTaskQueueCoreMock: vi.fn(),

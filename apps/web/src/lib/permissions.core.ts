@@ -77,19 +77,21 @@ export async function assertAgentClientAccess(ctx: ProtectedActionContext, clien
   if (!actorAgentId) return; // Not an agent (Admin/Staff), pass.
 
   const { tenantId } = readTenantAuthority(ctx.authority);
-  const [link] = await withTenantAuthority(ctx.authority, async tx =>
-    tx
-      .select({ id: agentClients.id })
-      .from(agentClients)
-      .where(
-        and(
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.agentId, actorAgentId),
-          eq(agentClients.memberId, clientUserId),
-          eq(agentClients.status, 'active')
+  const [link] = await withTenantAuthority(
+    ctx.authority,
+    async tx =>
+      await tx
+        .select({ id: agentClients.id })
+        .from(agentClients)
+        .where(
+          and(
+            eq(agentClients.tenantId, tenantId),
+            eq(agentClients.agentId, actorAgentId),
+            eq(agentClients.memberId, clientUserId),
+            eq(agentClients.status, 'active')
+          )
         )
-      )
-      .limit(1)
+        .limit(1)
   );
 
   if (!link) {

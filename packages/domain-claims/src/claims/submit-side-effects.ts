@@ -4,6 +4,7 @@ import type { CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import type { ClaimAssignmentContext } from './submit-assignment';
 import type { ClaimsDeps, ClaimsSession } from './types';
+import { forEachInOrder } from '../in-order';
 
 export async function logClaimSubmittedAudit(args: {
   deps: ClaimsDeps;
@@ -47,13 +48,14 @@ export async function dispatchQueuedClaimAiRuns(
   queuedRuns: QueuedClaimAiRun[],
   deps: ClaimsDeps
 ): Promise<void> {
-  if (!deps.dispatchClaimAiRun) {
+  const dispatchClaimAiRun = deps.dispatchClaimAiRun;
+  if (!dispatchClaimAiRun) {
     return;
   }
 
-  for (const queuedRun of queuedRuns) {
+  await forEachInOrder(queuedRuns, async queuedRun => {
     try {
-      await deps.dispatchClaimAiRun(queuedRun);
+      await dispatchClaimAiRun(queuedRun);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to dispatch claim AI run.';
       if (deps.markClaimAiRunDispatchFailed) {
@@ -63,7 +65,7 @@ export async function dispatchQueuedClaimAiRuns(
         });
       }
     }
-  }
+  });
 }
 
 export function notifyClaimSubmitted(args: {

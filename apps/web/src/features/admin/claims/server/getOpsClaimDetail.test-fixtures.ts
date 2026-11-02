@@ -241,12 +241,14 @@ export function resetOpsClaimDetailMocks(): void {
   });
   hoisted.claimsFindFirst.mockResolvedValue(createClaim());
   // Delegates to the claim's home tenant with the caller's principal, as the kernel producer does.
-  hoisted.delegateClaimHomeTenantRead.mockImplementation(async (authority: TenantAuthority) => {
+  hoisted.delegateClaimHomeTenantRead.mockImplementation((authority: TenantAuthority) => {
     const { principal } = readTenantAuthority(authority);
-    return mintTestTenantAuthority('tenant_home', {
-      userId: principal?.userId,
-      role: principal?.role,
-    });
+    return Promise.resolve(
+      mintTestTenantAuthority('tenant_home', {
+        userId: principal?.userId,
+        role: principal?.role,
+      })
+    );
   });
   hoisted.withTenantContext.mockImplementation(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>

@@ -42,21 +42,23 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
 
   // Create or update mock subscription
   // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  await withTenantAuthority(authority, async tx =>
-    tx
-      .insert(subscriptions)
-      .values({
-        id: `mock_sub_${Date.now()}`,
-        userId: session.user.id,
-        tenantId,
-        ...activeAnnualMembershipState,
-      })
-      .onConflictDoUpdate({
-        target: [subscriptions.userId],
-        set: {
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .insert(subscriptions)
+        .values({
+          id: `mock_sub_${Date.now()}`,
+          userId: session.user.id,
+          tenantId,
           ...activeAnnualMembershipState,
-        },
-      })
+        })
+        .onConflictDoUpdate({
+          target: [subscriptions.userId],
+          set: {
+            ...activeAnnualMembershipState,
+          },
+        })
   );
 
   revalidatePath('/[locale]/(app)/member/membership', 'layout');

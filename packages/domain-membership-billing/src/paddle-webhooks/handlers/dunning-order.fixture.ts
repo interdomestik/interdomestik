@@ -184,10 +184,12 @@ vi.mock('../../annual-membership', () => ({
     planId,
     ...(planKey ? { planKey } : {}),
   }),
-  resolveCanonicalMembershipPlanState: vi.fn(async () => ({
-    planId: 'standard',
-    planKey: null,
-  })),
+  resolveCanonicalMembershipPlanState: vi.fn(() =>
+    Promise.resolve({
+      planId: 'standard',
+      planKey: null,
+    })
+  ),
 }));
 
 export function seed(status: string, markerAt: string, markerEventId: string) {
@@ -225,15 +227,17 @@ beforeEach(() => {
   hoisted.store.failAck = false;
   hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
   // Tenant-scoped lookup under the canonical authority the core resolved.
-  hoisted.findPaddleSubscriptionInTenant.mockImplementation(async () =>
-    hoisted.store.row ? { ...hoisted.store.row } : null
+  hoisted.findPaddleSubscriptionInTenant.mockImplementation(() =>
+    Promise.resolve(hoisted.store.row ? { ...hoisted.store.row } : null)
   );
-  hoisted.findPaddleSubscriptionByReference.mockImplementation(async () => null);
+  hoisted.findPaddleSubscriptionByReference.mockImplementation(() => Promise.resolve(null));
   // The privileged lookup names the user's tenant; the profile is read inside it.
-  hoisted.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
-    userId,
-    tenantId: 'tenant_ks',
-  }));
+  hoisted.resolvePaddleUserOwner.mockImplementation((userId: string) =>
+    Promise.resolve({
+      userId,
+      tenantId: 'tenant_ks',
+    })
+  );
   hoisted.db.query.user.findFirst.mockResolvedValue({
     id: 'user_1',
     email: 'member@example.com',

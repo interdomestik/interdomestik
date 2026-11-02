@@ -6,13 +6,16 @@ const hoisted = vi.hoisted(() => ({
   getAdminCrmReportingCoreMock: vi.fn(),
   getAdminCrmRoutingRulesCoreMock: vi.fn(),
   getBranchManagerCrmReportingCoreMock: vi.fn(),
-  getFormatterMock: vi.fn(async () => ({
-    number: vi.fn((value: number) => String(value)),
-  })),
+  getFormatterMock: vi.fn(() =>
+    Promise.resolve({
+      number: vi.fn(String),
+    })
+  ),
   getSessionSafeMock: vi.fn(),
-  getTranslationsMock: vi.fn(
-    async () => (key: string, values?: Record<string, unknown>) =>
+  getTranslationsMock: vi.fn(() =>
+    Promise.resolve((key: string, values?: Record<string, string | number>) =>
       values?.count != null ? `${key}:${values.count}` : key
+    )
   ),
   notFoundMock: vi.fn(() => {
     throw new Error('notFound');
@@ -41,7 +44,7 @@ vi.mock('@/lib/tenant-authority.server', () => ({
 }));
 
 vi.mock('next/headers', () => ({
-  headers: vi.fn(async () => new Headers()),
+  headers: vi.fn(() => Promise.resolve(new Headers())),
 }));
 
 vi.mock('next/navigation', () => ({

@@ -33,33 +33,36 @@ export function createCrmForecastSnapshotObservabilityRepository(
 ): CrmForecastSnapshotObservabilityRepository {
   return {
     async listObservedSnapshots(params) {
-      const rows = await runInCrmTenantContext(executor, authority, async scoped =>
-        scoped
-          .select({
-            branchId: crmPipelineSnapshots.branchId,
-            createdAt: crmPipelineSnapshots.createdAt,
-            currencyCode: crmPipelineSnapshots.currencyCode,
-            pipelineId: crmPipelineSnapshots.pipelineId,
-            snapshotDate: crmPipelineSnapshots.snapshotDate,
-            snapshotVersion: crmPipelineSnapshots.snapshotVersion,
-            sourceRunId: crmPipelineSnapshots.sourceRunId,
-            tenantId: crmPipelineSnapshots.tenantId,
-          })
-          .from(crmPipelineSnapshots)
-          .where(
-            and(
-              eq(crmPipelineSnapshots.tenantId, params.tenantId),
-              eq(crmPipelineSnapshots.snapshotDate, params.snapshotDate)
+      const rows = await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped
+            .select({
+              branchId: crmPipelineSnapshots.branchId,
+              createdAt: crmPipelineSnapshots.createdAt,
+              currencyCode: crmPipelineSnapshots.currencyCode,
+              pipelineId: crmPipelineSnapshots.pipelineId,
+              snapshotDate: crmPipelineSnapshots.snapshotDate,
+              snapshotVersion: crmPipelineSnapshots.snapshotVersion,
+              sourceRunId: crmPipelineSnapshots.sourceRunId,
+              tenantId: crmPipelineSnapshots.tenantId,
+            })
+            .from(crmPipelineSnapshots)
+            .where(
+              and(
+                eq(crmPipelineSnapshots.tenantId, params.tenantId),
+                eq(crmPipelineSnapshots.snapshotDate, params.snapshotDate)
+              )
             )
-          )
-          .orderBy(
-            asc(crmPipelineSnapshots.pipelineId),
-            asc(crmPipelineSnapshots.branchId),
-            asc(crmPipelineSnapshots.currencyCode),
-            desc(crmPipelineSnapshots.snapshotVersion),
-            asc(crmPipelineSnapshots.sourceRunId),
-            asc(crmPipelineSnapshots.createdAt)
-          )
+            .orderBy(
+              asc(crmPipelineSnapshots.pipelineId),
+              asc(crmPipelineSnapshots.branchId),
+              asc(crmPipelineSnapshots.currencyCode),
+              desc(crmPipelineSnapshots.snapshotVersion),
+              asc(crmPipelineSnapshots.sourceRunId),
+              asc(crmPipelineSnapshots.createdAt)
+            )
       );
 
       return rows.map(row => ({

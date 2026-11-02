@@ -48,15 +48,17 @@ export async function resolveStaffSupportSessionBranch<T extends StaffSupportSes
   }
 
   const { tenantId: authorityTenantId } = readTenantAuthority(authority);
-  const staffUser = await withTenantAuthority(authority, async tx =>
-    tx.query.user.findFirst({
-      where: withTenant(
-        authorityTenantId,
-        user.tenantId,
-        and(eq(user.id, userId), eq(user.role, role))
-      ),
-      columns: { branchId: true },
-    })
+  const staffUser = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.user.findFirst({
+        where: withTenant(
+          authorityTenantId,
+          user.tenantId,
+          and(eq(user.id, userId), eq(user.role, role))
+        ),
+        columns: { branchId: true },
+      })
   );
 
   if (!staffUser?.branchId) {

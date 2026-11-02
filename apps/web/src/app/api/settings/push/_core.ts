@@ -59,8 +59,14 @@ function isOwnedSubscription(
 
 async function findPushSubscriptionByEndpoint(endpoint: string, authority: TenantAuthority) {
   // db-access-guard: tenant-scoped -- reason: RLS-scoped endpoint lookup; cross-tenant endpoint collisions surface via the unique-violation path
-  const [existing] = await withTenantAuthority(authority, async tx =>
-    tx.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)).limit(1)
+  const [existing] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(pushSubscriptions)
+        .where(eq(pushSubscriptions.endpoint, endpoint))
+        .limit(1)
   );
 
   return existing;
@@ -77,25 +83,27 @@ async function updatePushSubscription(args: {
   const { endpoint, authority, userId, p256dh, authKey, userAgent } = args;
   const { tenantId } = readTenantAuthority(authority);
 
-  await withTenantAuthority(authority, async tx =>
-    tx
-      .update(pushSubscriptions)
-      .set({
-        tenantId,
-        userId,
-        endpoint,
-        p256dh,
-        auth: authKey,
-        userAgent,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(pushSubscriptions.endpoint, endpoint),
-          eq(pushSubscriptions.tenantId, tenantId),
-          eq(pushSubscriptions.userId, userId)
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .update(pushSubscriptions)
+        .set({
+          tenantId,
+          userId,
+          endpoint,
+          p256dh,
+          auth: authKey,
+          userAgent,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(pushSubscriptions.endpoint, endpoint),
+            eq(pushSubscriptions.tenantId, tenantId),
+            eq(pushSubscriptions.userId, userId)
+          )
         )
-      )
   );
 }
 
@@ -139,18 +147,20 @@ export async function upsertPushSubscriptionCore(args: {
   } else {
     try {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before push subscription insert
-      await withTenantAuthority(authority, async tx =>
-        tx.insert(pushSubscriptions).values({
-          id: nanoid(),
-          tenantId: resolvedTenantId,
-          userId,
-          endpoint,
-          p256dh,
-          auth: authKey,
-          userAgent,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.insert(pushSubscriptions).values({
+            id: nanoid(),
+            tenantId: resolvedTenantId,
+            userId,
+            endpoint,
+            p256dh,
+            auth: authKey,
+            userAgent,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
       );
     } catch (error) {
       if (!isUniqueViolation(error)) {
@@ -196,16 +206,18 @@ export async function deletePushSubscriptionCore(args: {
     return { status: 400, body: { error: 'Invalid subscription' } };
   }
 
-  await withTenantAuthority(authority, async tx =>
-    tx
-      .delete(pushSubscriptions)
-      .where(
-        and(
-          eq(pushSubscriptions.endpoint, endpoint),
-          eq(pushSubscriptions.tenantId, resolvedTenantId),
-          eq(pushSubscriptions.userId, userId)
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .delete(pushSubscriptions)
+        .where(
+          and(
+            eq(pushSubscriptions.endpoint, endpoint),
+            eq(pushSubscriptions.tenantId, resolvedTenantId),
+            eq(pushSubscriptions.userId, userId)
+          )
         )
-      )
   );
 
   return {

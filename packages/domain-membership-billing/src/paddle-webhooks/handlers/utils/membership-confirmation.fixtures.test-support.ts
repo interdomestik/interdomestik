@@ -52,12 +52,14 @@ export function installMembershipConfirmationHooks(): void {
       html: '<p>Membership confirmed</p>',
       text: 'Membership confirmed',
     }));
-    deliveryStore.claim.mockImplementation(async ({ snapshot }) => ({
-      kind: 'claimed',
-      deliveryId: 'delivery_123',
-      requiresEffects: true,
-      snapshot,
-    }));
+    deliveryStore.claim.mockImplementation(({ snapshot }) =>
+      Promise.resolve({
+        kind: 'claimed',
+        deliveryId: 'delivery_123',
+        requiresEffects: true,
+        snapshot,
+      })
+    );
   });
 }
 

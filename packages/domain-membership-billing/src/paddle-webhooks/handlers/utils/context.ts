@@ -182,7 +182,7 @@ export async function authorizeReconciledCheckoutUser(
   subscriptionId: string
 ): Promise<TenantAuthority> {
   const owner = await resolvePaddleUserOwner(reconciled.userId);
-  if (!owner || owner.userId !== reconciled.userId) {
+  if (owner?.userId !== reconciled.userId) {
     throw new PaddleSubscriptionContextConflictError(
       `Cannot resolve subscription ${subscriptionId}; reconciled user ${reconciled.userId} has no unique owner`
     );

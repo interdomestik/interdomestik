@@ -221,6 +221,18 @@ export async function notifyClaimAssigned(
   return result;
 }
 
+/** Push delivery bound to the caller's audit sink and tenant authority. */
+function pushWith(deps: NotificationDeps) {
+  return (
+    userId: string,
+    channel: 'claim_updates' | 'messages',
+    payload: Parameters<typeof sendPushToUser>[2]
+  ) =>
+    (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
+      logAuditEvent: deps.logAuditEvent,
+      authority: deps.authority,
+    });
+}
 /**
  * Notify member about claim status change
  */
@@ -232,15 +244,7 @@ export async function notifyStatusChanged(
   newStatus: string,
   deps: NotificationDeps
 ) {
-  const push = (
-    userId: string,
-    channel: 'claim_updates' | 'messages',
-    payload: Parameters<typeof sendPushToUser>[2]
-  ) =>
-    (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
-      logAuditEvent: deps.logAuditEvent,
-      authority: deps.authority,
-    });
+  const push = pushWith(deps);
 
   const result = await sendNotification(
     userId,
@@ -284,15 +288,7 @@ export async function notifyNewMessage(
   messagePreview: string,
   deps: NotificationDeps
 ) {
-  const push = (
-    userId: string,
-    channel: 'claim_updates' | 'messages',
-    payload: Parameters<typeof sendPushToUser>[2]
-  ) =>
-    (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
-      logAuditEvent: deps.logAuditEvent,
-      authority: deps.authority,
-    });
+  const push = pushWith(deps);
 
   const result = await sendNotification(
     recipientId,

@@ -60,7 +60,7 @@ vi.mock('@interdomestik/database', () => ({
   appendEvent: mocks.appendEvent,
   claims: mocks.table('claims'),
   db: { transaction: mocks.transaction },
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: unknown) => mocks.transaction(cb)),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: unknown) => await mocks.transaction(cb)),
   desc: vi.fn(field => ({ direction: 'desc', field })),
   eq: mocks.eq,
   inArray: mocks.inArray,

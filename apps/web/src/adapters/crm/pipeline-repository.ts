@@ -88,61 +88,70 @@ export function createCrmPipelineRepository(
   return {
     async createPipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline create writes explicit tenantId from the authorized domain mutation output
-      await runInCrmTenantContext(executor, authority, async scoped =>
-        scoped.transaction(async tx => {
-          await tx.insert(crmPipelines).values(pipelineValues(params.pipeline));
-          if (params.pipeline.stages.length > 0) {
-            await tx.insert(crmPipelineStages).values(params.pipeline.stages.map(stageValues));
-          }
-        })
+      await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped.transaction(async tx => {
+            await tx.insert(crmPipelines).values(pipelineValues(params.pipeline));
+            if (params.pipeline.stages.length > 0) {
+              await tx.insert(crmPipelineStages).values(params.pipeline.stages.map(stageValues));
+            }
+          })
       );
       return params.pipeline;
     },
 
     async findPipelineById(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline lookup constrains by explicit tenantId and hides archived rows by default
-      const row = await runInCrmTenantContext(executor, authority, async scoped =>
-        scoped.query.crmPipelines.findFirst({
-          where: and(
-            eq(crmPipelines.id, params.pipelineId),
-            eq(crmPipelines.tenantId, params.tenantId),
-            isNull(crmPipelines.archivedAt)
-          ),
-          with: {
-            stages: {
-              where: isNull(crmPipelineStages.archivedAt),
-              orderBy: [asc(crmPipelineStages.order)],
+      const row = await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped.query.crmPipelines.findFirst({
+            where: and(
+              eq(crmPipelines.id, params.pipelineId),
+              eq(crmPipelines.tenantId, params.tenantId),
+              isNull(crmPipelines.archivedAt)
+            ),
+            with: {
+              stages: {
+                where: isNull(crmPipelineStages.archivedAt),
+                orderBy: [asc(crmPipelineStages.order)],
+              },
             },
-          },
-        })
+          })
       );
       return row ? mapPipeline(row) : null;
     },
 
     async updatePipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline update constrains by pipeline id plus explicit tenantId from domain mutation output
-      await runInCrmTenantContext(executor, authority, async scoped =>
-        scoped.transaction(async tx => {
-          await tx
-            .update(crmPipelines)
-            .set(pipelineValues(params.pipeline))
-            .where(
-              and(
-                eq(crmPipelines.id, params.pipeline.id),
-                eq(crmPipelines.tenantId, params.pipeline.tenantId)
-              )
-            );
-
-          for (const stage of params.pipeline.stages) {
+      await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped.transaction(async tx => {
             await tx
-              .insert(crmPipelineStages)
-              .values(stageValues(stage))
-              .onConflictDoUpdate({
-                target: crmPipelineStages.id,
-                set: stageValues(stage),
-              });
-          }
-        })
+              .update(crmPipelines)
+              .set(pipelineValues(params.pipeline))
+              .where(
+                and(
+                  eq(crmPipelines.id, params.pipeline.id),
+                  eq(crmPipelines.tenantId, params.pipeline.tenantId)
+                )
+              );
+
+            for (const stage of params.pipeline.stages) {
+              await tx
+                .insert(crmPipelineStages)
+                .values(stageValues(stage))
+                .onConflictDoUpdate({
+                  target: crmPipelineStages.id,
+                  set: stageValues(stage),
+                });
+            }
+          })
       );
       return params.pipeline;
     },

@@ -57,18 +57,20 @@ export async function createCommissionWithDispositionCore(
     // IDEMPOTENCY CHECK: If subscriptionId is provided, check for existing commission
     if (data.subscriptionId) {
       const subscriptionId = data.subscriptionId;
-      const [existing] = await withTenantAuthority(authority, async tx =>
-        tx
-          .select({ id: agentCommissions.id })
-          .from(agentCommissions)
-          .where(
-            and(
-              eq(agentCommissions.tenantId, tenantId),
-              eq(agentCommissions.subscriptionId, subscriptionId),
-              eq(agentCommissions.type, data.type)
+      const [existing] = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({ id: agentCommissions.id })
+            .from(agentCommissions)
+            .where(
+              and(
+                eq(agentCommissions.tenantId, tenantId),
+                eq(agentCommissions.subscriptionId, subscriptionId),
+                eq(agentCommissions.type, data.type)
+              )
             )
-          )
-          .limit(1)
+            .limit(1)
       );
 
       if (existing) {
@@ -81,20 +83,22 @@ export async function createCommissionWithDispositionCore(
 
     const id = nanoid();
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await withTenantAuthority(authority, async tx =>
-      tx.insert(agentCommissions).values({
-        id,
-        tenantId,
-        agentId: data.agentId,
-        memberId: data.memberId ?? null,
-        subscriptionId: data.subscriptionId ?? null,
-        type: data.type,
-        status: 'pending',
-        amount: normalizedAmount.toFixed(2),
-        currency,
-        earnedAt: new Date(),
-        metadata: data.metadata ?? {},
-      })
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.insert(agentCommissions).values({
+          id,
+          tenantId,
+          agentId: data.agentId,
+          memberId: data.memberId ?? null,
+          subscriptionId: data.subscriptionId ?? null,
+          type: data.type,
+          status: 'pending',
+          amount: normalizedAmount.toFixed(2),
+          currency,
+          earnedAt: new Date(),
+          metadata: data.metadata ?? {},
+        })
     );
 
     console.log(`[Commission] Created commission ${id} for agent ${data.agentId}`);

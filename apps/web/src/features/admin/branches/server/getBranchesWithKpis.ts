@@ -25,7 +25,7 @@ export interface BranchWithKpis {
 
 export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
   return runAuthenticatedAction<BranchWithKpis[]>(async ({ session, authority }) => {
-    return Sentry.withServerActionInstrumentation(
+    return await Sentry.withServerActionInstrumentation(
       'getBranchesWithKpis',
       { recordResponse: true },
       async () => {

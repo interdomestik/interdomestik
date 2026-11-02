@@ -139,21 +139,23 @@ export async function submitAiReview(args: {
   correctedExtraction?: Record<string, unknown>;
 }): Promise<SubmitAiReviewResult> {
   const { tenantId } = readTenantAuthority(args.authority);
-  const [existingRun] = await withTenantAuthority(args.authority, async tx =>
-    tx
-      .select({
-        id: aiRuns.id,
-        workflow: aiRuns.workflow,
-        entityType: aiRuns.entityType,
-        entityId: aiRuns.entityId,
-        extractionReviewStatus: documentExtractions.reviewStatus,
-        extractionJson: documentExtractions.extractedJson,
-        extractionWarnings: documentExtractions.warnings,
-      })
-      .from(aiRuns)
-      .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-      .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, tenantId)))
-      .limit(1)
+  const [existingRun] = await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx
+        .select({
+          id: aiRuns.id,
+          workflow: aiRuns.workflow,
+          entityType: aiRuns.entityType,
+          entityId: aiRuns.entityId,
+          extractionReviewStatus: documentExtractions.reviewStatus,
+          extractionJson: documentExtractions.extractedJson,
+          extractionWarnings: documentExtractions.warnings,
+        })
+        .from(aiRuns)
+        .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+        .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.tenantId, tenantId)))
+        .limit(1)
   );
 
   if (!existingRun) {

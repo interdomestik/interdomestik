@@ -105,7 +105,7 @@ function databaseExports(): {
   return {
     and: mocks.and,
     db: mocks.db,
-    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(mocks.db)),
     eq: mocks.eq,
     sql: mocks.sql,
     supportHandoffs: mocks.supportHandoffs,
@@ -126,16 +126,16 @@ vi.mock('@interdomestik/shared-auth', sharedAuthExports);
 vi.mock('drizzle-orm', drizzleExports);
 function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}): {
   user: {
-    branchId?: string | null | undefined;
+    branchId?: string | null;
     id: string;
-    role?: string | null | undefined;
-    tenantId?: string | null | undefined;
-    accessTenantId?: string | null | undefined;
-    email?: string | null | undefined;
+    role?: string | null;
+    tenantId?: string | null;
+    accessTenantId?: string | null;
+    email?: string | null;
   };
 } {
   return {
-    user: Object.assign({ id: 'member-1', role: 'member', tenantId: 'tenant-1' }, overrides),
+    user: { id: 'member-1', role: 'member', tenantId: 'tenant-1', ...overrides },
   } as SupportHandoffSession;
 }
 

@@ -21,40 +21,42 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
   if (!branchId) return [];
 
   // db-access-guard: tenant-scoped -- reason: tenant, branch, assigned actor, and lead visibility constrain legacy follow-up reads
-  const rows = await withTenantAuthority(params.authority, async tx =>
-    tx
-      .select({
-        agentId: crmActivities.agentId,
-        branchId: crmActivities.branchId,
-        completedAt: crmActivities.completedAt,
-        createdAt: crmActivities.createdAt,
-        id: crmActivities.id,
-        leadId: crmActivities.leadId,
-        scheduledAt: crmActivities.scheduledAt,
-        subject: crmActivities.summary,
-        tenantId: crmActivities.tenantId,
-        type: crmActivities.type,
-      })
-      .from(crmActivities)
-      .innerJoin(
-        crmLeads,
-        and(
-          eq(crmLeads.id, crmActivities.leadId),
-          eq(crmLeads.tenantId, params.actor.tenantId),
-          eq(crmLeads.agentId, params.actor.actorId),
-          eq(crmLeads.branchId, branchId)
+  const rows = await withTenantAuthority(
+    params.authority,
+    async tx =>
+      await tx
+        .select({
+          agentId: crmActivities.agentId,
+          branchId: crmActivities.branchId,
+          completedAt: crmActivities.completedAt,
+          createdAt: crmActivities.createdAt,
+          id: crmActivities.id,
+          leadId: crmActivities.leadId,
+          scheduledAt: crmActivities.scheduledAt,
+          subject: crmActivities.summary,
+          tenantId: crmActivities.tenantId,
+          type: crmActivities.type,
+        })
+        .from(crmActivities)
+        .innerJoin(
+          crmLeads,
+          and(
+            eq(crmLeads.id, crmActivities.leadId),
+            eq(crmLeads.tenantId, params.actor.tenantId),
+            eq(crmLeads.agentId, params.actor.actorId),
+            eq(crmLeads.branchId, branchId)
+          )
         )
-      )
-      .where(
-        and(
-          eq(crmActivities.tenantId, params.actor.tenantId),
-          eq(crmActivities.agentId, params.actor.actorId),
-          eq(crmActivities.branchId, branchId),
-          eq(crmActivities.leadId, params.leadId),
-          eq(crmActivities.type, CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE)
+        .where(
+          and(
+            eq(crmActivities.tenantId, params.actor.tenantId),
+            eq(crmActivities.agentId, params.actor.actorId),
+            eq(crmActivities.branchId, branchId),
+            eq(crmActivities.leadId, params.leadId),
+            eq(crmActivities.type, CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE)
+          )
         )
-      )
-      .limit(params.limit ?? 25)
+        .limit(params.limit ?? 25)
   );
 
   return rows.map(row => ({

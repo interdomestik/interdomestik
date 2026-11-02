@@ -34,6 +34,7 @@ export type WhereClause =
   | undefined;
 
 export type ColumnMap = Record<string, boolean>;
+type PresentWhereClause = Exclude<WhereClause, undefined>;
 
 function resolveField(value: unknown, row: QueryRow): unknown {
   switch (value) {
@@ -103,13 +104,13 @@ function pickColumns<T extends Record<string, unknown>>(row: T, columns?: Column
 
 export function findClaim(
   claims: ClaimRow[],
-  args: { where?: WhereClause; columns?: ColumnMap }
+  args: { where?: PresentWhereClause; columns?: ColumnMap }
 ): Record<string, unknown> | null {
   const claim = claims.find(row => matches(args.where, row));
   return claim ? pickColumns(claim, args.columns) : null;
 }
 
-export function findToken(tokens: TokenRow[], args: { where?: WhereClause }) {
+export function findToken(tokens: TokenRow[], args: { where?: PresentWhereClause }) {
   const token = tokens.find(row => matches(args.where, row));
   return token ? { ...token } : null;
 }

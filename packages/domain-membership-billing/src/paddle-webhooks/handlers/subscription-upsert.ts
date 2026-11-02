@@ -249,12 +249,14 @@ async function findExistingSubscription(subId: string, userId: string, authority
 async function findExistingSubscriptionForUser(userId: string, authority: TenantAuthority) {
   const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from canonical Paddle context constrains fallback lookup.
-  return withTenantAuthority(authority, async tx =>
-    tx.query.subscriptions.findFirst({
-      where: (subs, { and: andFn, eq: eqFn }) =>
-        andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
-      columns: { id: true, status: true, tenantId: true, userId: true },
-    })
+  return withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.subscriptions.findFirst({
+        where: (subs, { and: andFn, eq: eqFn }) =>
+          andFn(eqFn(subs.userId, userId), eqFn(subs.tenantId, tenantId)),
+        columns: { id: true, status: true, tenantId: true, userId: true },
+      })
   );
 }
 

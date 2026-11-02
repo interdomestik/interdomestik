@@ -44,6 +44,29 @@ export async function persistInvalidSignatureAttempt(
   });
 }
 
+type ReceiptAuditEntry = Pick<
+  Parameters<NonNullable<PaddleWebhookAuditDeps['logAuditEvent']>>[0],
+  'action' | 'entityId' | 'metadata'
+>;
+
+/** Records a system receipt audit row under the receipt tenant, when an audit sink and tenant exist. */
+async function auditReceipt(
+  deps: PaddleWebhookAuditDeps,
+  params: { headers: Headers; authority?: TenantAuthority | null },
+  entry: ReceiptAuditEntry
+): Promise<void> {
+  if (!deps.logAuditEvent || !params.authority) return;
+  await deps.logAuditEvent({
+    actorRole: 'system',
+    action: entry.action,
+    entityType: 'webhook_event',
+    ...(entry.entityId === undefined ? {} : { entityId: entry.entityId }),
+    authority: params.authority,
+    metadata: entry.metadata,
+    headers: params.headers,
+  });
+}
+
 export async function insertWebhookEvent(
   params: {
     headers: Headers;
@@ -81,69 +104,51 @@ export async function insertWebhookEvent(
 
   if (admission.outcome === 'admitted' && admission.reclaimed) {
     const receiptLease = admission.lease;
-    if (deps.logAuditEvent && params.authority) {
-      await deps.logAuditEvent({
-        actorRole: 'system',
-        action: 'webhook.retry_received',
-        entityType: 'webhook_event',
-        entityId: receiptLease.id,
-        authority: params.authority,
-        metadata: {
-          provider: 'paddle',
-          dedupeKey: params.dedupeKey,
-          processingScopeKey: params.processingScopeKey,
-          eventType: params.eventType,
-          eventId: params.eventId,
-        },
-        headers: params.headers,
-      });
-    }
+    await auditReceipt(deps, params, {
+      action: 'webhook.retry_received',
+      entityId: receiptLease.id,
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+      },
+    });
 
     return { inserted: true as const, webhookEventRowId: receiptLease.id, receiptLease };
   }
 
   if (admission.outcome === 'in_progress') {
-    if (deps.logAuditEvent && params.authority) {
-      await deps.logAuditEvent({
-        actorRole: 'system',
-        action: 'webhook.retry_deferred',
-        entityType: 'webhook_event',
-        entityId: admission.receiptId,
-        authority: params.authority,
-        metadata: {
-          provider: 'paddle',
-          dedupeKey: params.dedupeKey,
-          processingScopeKey: params.processingScopeKey,
-          eventType: params.eventType,
-          eventId: params.eventId,
-        },
-        headers: params.headers,
-      });
-    }
+    await auditReceipt(deps, params, {
+      action: 'webhook.retry_deferred',
+      entityId: admission.receiptId,
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+      },
+    });
     throw new RetryablePaddleWebhookError(
       `Paddle webhook ${params.eventId ?? params.dedupeKey} is still processing`
     );
   }
 
   if (admission.outcome === 'duplicate') {
-    if (deps.logAuditEvent && params.authority) {
-      await deps.logAuditEvent({
-        actorRole: 'system',
-        action: 'webhook.duplicate',
-        entityType: 'webhook_event',
-        authority: params.authority,
-        metadata: {
-          provider: 'paddle',
-          dedupeKey: params.dedupeKey,
-          processingScopeKey: params.processingScopeKey,
-          eventType: params.eventType,
-          eventId: params.eventId,
-          providerTransactionId: params.providerTransactionId ?? null,
-          signatureBypassed: params.signatureBypassed,
-        },
-        headers: params.headers,
-      });
-    }
+    await auditReceipt(deps, params, {
+      action: 'webhook.duplicate',
+      metadata: {
+        provider: 'paddle',
+        dedupeKey: params.dedupeKey,
+        processingScopeKey: params.processingScopeKey,
+        eventType: params.eventType,
+        eventId: params.eventId,
+        providerTransactionId: params.providerTransactionId ?? null,
+        signatureBypassed: params.signatureBypassed,
+      },
+    });
 
     return { inserted: false as const, webhookEventRowId: null };
   }
@@ -151,25 +156,19 @@ export async function insertWebhookEvent(
   const receiptLease = admission.lease;
   const webhookEventRowId = receiptLease.id;
 
-  if (deps.logAuditEvent && params.authority) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.received',
-      entityType: 'webhook_event',
-      entityId: webhookEventRowId,
-      authority: params.authority,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        processingScopeKey: params.processingScopeKey,
-        providerTransactionId: params.providerTransactionId ?? null,
-        signatureValid: params.signatureValid,
-        signatureBypassed: params.signatureBypassed,
-      },
-      headers: params.headers,
-    });
-  }
+  await auditReceipt(deps, params, {
+    action: 'webhook.received',
+    entityId: webhookEventRowId,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      processingScopeKey: params.processingScopeKey,
+      providerTransactionId: params.providerTransactionId ?? null,
+      signatureValid: params.signatureValid,
+      signatureBypassed: params.signatureBypassed,
+    },
+  });
 
   return { inserted: true as const, webhookEventRowId, receiptLease };
 }
@@ -191,22 +190,16 @@ export async function markWebhookProcessed(
     return false;
   }
 
-  if (deps.logAuditEvent && params.authority) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.processed',
-      entityType: 'webhook_event',
-      entityId: params.receiptLease.id,
-      authority: params.authority,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        result: 'ok',
-      },
-      headers: params.headers,
-    });
-  }
+  await auditReceipt(deps, params, {
+    action: 'webhook.processed',
+    entityId: params.receiptLease.id,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      result: 'ok',
+    },
+  });
   return true;
 }
 
@@ -234,22 +227,16 @@ export async function markWebhookFailed(
     return false;
   }
 
-  if (deps.logAuditEvent && params.authority) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.failed',
-      entityType: 'webhook_event',
-      entityId: params.receiptLease.id,
-      authority: params.authority,
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        result: 'error',
-        error: message,
-      },
-      headers: params.headers,
-    });
-  }
+  await auditReceipt(deps, params, {
+    action: 'webhook.failed',
+    entityId: params.receiptLease.id,
+    metadata: {
+      provider: 'paddle',
+      eventType: params.eventType,
+      eventId: params.eventId,
+      result: 'error',
+      error: message,
+    },
+  });
   return true;
 }

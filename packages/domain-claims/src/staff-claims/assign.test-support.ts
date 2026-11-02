@@ -2,7 +2,6 @@ import type { Mock } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
-import { withTenantContext } from '@interdomestik/database';
 import type { ClaimsSession } from '../claims/types';
 
 const mocks: {
@@ -91,12 +90,13 @@ vi.mock('@interdomestik/database', () => ({
     select: mocks.select,
     update: mocks.update,
   },
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
-    cb({
-      query: { user: { findFirst: mocks.userFindFirst } },
-      select: mocks.select,
-      update: mocks.update,
-    })
+  withTenantContext: vi.fn(
+    async (_ctx: unknown, cb: (tx: any) => unknown) =>
+      await cb({
+        query: { user: { findFirst: mocks.userFindFirst } },
+        select: mocks.select,
+        update: mocks.update,
+      })
   ),
   claims: mocks.claims,
   eq: mocks.eq,

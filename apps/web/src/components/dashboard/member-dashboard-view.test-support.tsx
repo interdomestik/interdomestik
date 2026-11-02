@@ -8,30 +8,35 @@ import type { ReactNode } from 'react';
 import { expect, vi } from 'vitest';
 import { MemberDashboardView } from './member-dashboard-view';
 
-const h = vi.hoisted(() => ({
-  activeSubscription: null as Record<string, unknown> | null,
-  documents: 0,
-  active: vi.fn(),
-  redirect: vi.fn(),
-  findSubscriptions: vi.fn(async (): Promise<Array<Record<string, unknown>>> => []),
-  withTenant: vi.fn(
-    async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
-      action({
-        query: {
-          subscriptions: {
-            findMany: h.findSubscriptions,
-          },
-        },
-        select: vi.fn(() => ({
-          from: vi.fn(() => ({
-            leftJoin: vi.fn(() => ({
-              where: vi.fn(async () => [{ count: h.documents }]),
-            })),
-          })),
+const h = vi.hoisted(() => {
+  const mocks = {
+    activeSubscription: null as Record<string, unknown> | null,
+    documents: 0,
+    active: vi.fn(),
+    redirect: vi.fn(),
+    findSubscriptions: vi.fn((): Promise<Array<Record<string, unknown>>> => Promise.resolve([])),
+    // The member document count query: select().from().leftJoin().where() resolves the count row.
+    selectDocumentCount: vi.fn(() => ({
+      from: vi.fn(() => ({
+        leftJoin: vi.fn(() => ({
+          where: vi.fn(() => Promise.resolve([{ count: mocks.documents }])),
         })),
-      })
-  ),
-}));
+      })),
+    })),
+    withTenant: vi.fn(
+      async (_context: { tenantId: string; role?: string }, action: (tx: unknown) => unknown) =>
+        await action({
+          query: {
+            subscriptions: {
+              findMany: mocks.findSubscriptions,
+            },
+          },
+          select: mocks.selectDocumentCount,
+        })
+    ),
+  };
+  return mocks;
+});
 
 export type DashboardMessages =
   typeof enMessages | typeof mkMessages | typeof sqMessages | typeof srMessages;
@@ -49,7 +54,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('next-intl/server', () => ({
   // prettier-ignore
-  getTranslations: vi.fn(async (namespace?: string) => Object.assign(translate(namespace), { raw: () => JSON.stringify({ manage: { open: 'Resume or manage' } }) })),
+  getTranslations: vi.fn((namespace?: string) => Promise.resolve(Object.assign(translate(namespace), { raw: () => JSON.stringify({ manage: { open: 'Resume or manage' } }) }))),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -69,13 +74,7 @@ vi.mock('@interdomestik/database', () => ({
         findMany: h.findSubscriptions,
       },
     },
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        leftJoin: vi.fn(() => ({
-          where: vi.fn(async () => [{ count: h.documents }]),
-        })),
-      })),
-    })),
+    select: h.selectDocumentCount,
   },
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   subscriptions: {

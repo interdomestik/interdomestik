@@ -28,67 +28,57 @@ export const tenantOf = (value: TenantAuthority) => readTenantAuthority(value).t
 export function createRepository() {
   const rows = new Map<string, Row>();
   const repository: MembershipConfirmationDeliveryRepository = {
-    async insertPending(_authority, row) {
-      if (rows.has(row.dedupeKey)) return null;
+    insertPending(_authority, row) {
+      if (rows.has(row.dedupeKey)) return Promise.resolve(null);
       rows.set(row.dedupeKey, {
         ...row,
         providerMessageId: null,
         error: null,
       });
-      return { id: row.id };
+      return Promise.resolve({ id: row.id });
     },
-    async find(value, dedupeKey) {
+    find(value, dedupeKey) {
       const row = rows.get(dedupeKey);
-      return row?.tenantId === tenantOf(value) ? row : null;
+      return Promise.resolve(row?.tenantId === tenantOf(value) ? row : null);
     },
-    async reclaimError(value, dedupeKey) {
+    reclaimError(value, dedupeKey) {
       const row = rows.get(dedupeKey);
-      if (!row || row.tenantId !== tenantOf(value) || row.status !== 'error') return false;
+      if (row?.tenantId !== tenantOf(value) || row.status !== 'error')
+        return Promise.resolve(false);
       row.status = 'pending';
       row.error = null;
-      return true;
+      return Promise.resolve(true);
     },
-    async markReady(value, deliveryId, dedupeKey, subscriptionId) {
+    markReady(value, deliveryId, dedupeKey, subscriptionId) {
       const row = rows.get(dedupeKey);
       if (
-        !row ||
-        row.tenantId !== tenantOf(value) ||
+        row?.tenantId !== tenantOf(value) ||
         row.id !== deliveryId ||
         row.status !== 'authorized'
       ) {
-        return false;
+        return Promise.resolve(false);
       }
       row.status = 'pending';
       row.subscriptionId = subscriptionId;
-      return true;
+      return Promise.resolve(true);
     },
-    async markSent(value, deliveryId, dedupeKey, providerMessageId) {
+    markSent(value, deliveryId, dedupeKey, providerMessageId) {
       const row = rows.get(dedupeKey);
-      if (
-        !row ||
-        row.tenantId !== tenantOf(value) ||
-        row.id !== deliveryId ||
-        row.status !== 'pending'
-      ) {
-        return false;
+      if (row?.tenantId !== tenantOf(value) || row.id !== deliveryId || row.status !== 'pending') {
+        return Promise.resolve(false);
       }
       row.status = 'sent';
       row.providerMessageId = providerMessageId;
-      return true;
+      return Promise.resolve(true);
     },
-    async markError(value, deliveryId, dedupeKey, error) {
+    markError(value, deliveryId, dedupeKey, error) {
       const row = rows.get(dedupeKey);
-      if (
-        !row ||
-        row.tenantId !== tenantOf(value) ||
-        row.id !== deliveryId ||
-        row.status !== 'pending'
-      ) {
-        return false;
+      if (row?.tenantId !== tenantOf(value) || row.id !== deliveryId || row.status !== 'pending') {
+        return Promise.resolve(false);
       }
       row.status = 'error';
       row.error = error;
-      return true;
+      return Promise.resolve(true);
     },
   };
 

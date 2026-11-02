@@ -28,7 +28,7 @@ export async function getTenantAdminDashboardV2Data(
   authority: TenantAuthority
 ): Promise<DashboardV2Data> {
   const { tenantId } = readTenantAuthority(authority);
-  return Sentry.withServerActionInstrumentation(
+  return await Sentry.withServerActionInstrumentation(
     'getTenantAdminDashboardV2Data',
     { recordResponse: true },
     async () => {

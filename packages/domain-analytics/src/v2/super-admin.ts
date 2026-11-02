@@ -6,6 +6,7 @@ import {
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { count, eq, sql } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from '../in-order';
 
 export interface SuperAdminKPIs {
   totalTenants: number;
@@ -47,7 +48,7 @@ export async function getSuperAdminKPIs(actor: PlatformAnalyticsActor): Promise<
     claimsMetrics: { total: 0, today: 0, last7d: 0, last30d: 0 },
   };
 
-  for (const { tenantId, authority } of work) {
+  await forEachInOrder(work, async ({ tenantId, authority }) => {
     const tenant = await withTenantAuthority(authority, async tx => {
       const [branchRow] = await tx
         .select({ count: count() })
@@ -81,7 +82,7 @@ export async function getSuperAdminKPIs(actor: PlatformAnalyticsActor): Promise<
     kpis.claimsMetrics.today += Number(tenant.claimRow?.today ?? 0);
     kpis.claimsMetrics.last7d += Number(tenant.claimRow?.last7d ?? 0);
     kpis.claimsMetrics.last30d += Number(tenant.claimRow?.last30d ?? 0);
-  }
+  });
 
   return kpis;
 }

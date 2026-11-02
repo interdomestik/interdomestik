@@ -31,12 +31,12 @@ export function installReconcileCheckoutUserHooks(): void {
       isNew: true,
     });
 
-    hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
+    hoisted.db.transaction.mockImplementation(async callback => await callback(hoisted.tx));
     // Tenant-scoped statements (writes via tx.insert/update, reads via tx.query) share one context mock.
     hoisted.tx.query = hoisted.db.query;
     hoisted.withTenantContext.mockReset();
-    hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
-      callback(hoisted.tx)
+    hoisted.withTenantContext.mockImplementation(
+      async (_context, callback) => await callback(hoisted.tx)
     );
 
     hoisted.tx.insert.mockImplementation(() => ({
@@ -51,7 +51,7 @@ export function installReconcileCheckoutUserHooks(): void {
     }));
     hoisted.updatedUserValues.mockReturnValue({
       where: () => ({
-        returning: async () => [{ id: 'user_existing' }],
+        returning: () => Promise.resolve([{ id: 'user_existing' }]),
       }),
     });
   });

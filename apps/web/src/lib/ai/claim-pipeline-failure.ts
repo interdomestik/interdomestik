@@ -13,17 +13,19 @@ export async function markClaimAiRunFailed(args: { run: ClaimedClaimAiRun; error
       : 'claim_ai_processing_failed';
   const message = args.error instanceof Error ? args.error.message : 'Claim AI workflow failed.';
 
-  const [persistedFailure] = await withTenantAuthority(args.run.authority, async tx =>
-    tx
-      .update(aiRuns)
-      .set({
-        status: 'failed',
-        completedAt: new Date(),
-        errorCode,
-        errorMessage: message,
-      })
-      .where(and(eq(aiRuns.id, args.run.runId), eq(aiRuns.status, 'processing')))
-      .returning({ id: aiRuns.id, errorCode: aiRuns.errorCode })
+  const [persistedFailure] = await withTenantAuthority(
+    args.run.authority,
+    async tx =>
+      await tx
+        .update(aiRuns)
+        .set({
+          status: 'failed',
+          completedAt: new Date(),
+          errorCode,
+          errorMessage: message,
+        })
+        .where(and(eq(aiRuns.id, args.run.runId), eq(aiRuns.status, 'processing')))
+        .returning({ id: aiRuns.id, errorCode: aiRuns.errorCode })
   );
 
   if (!persistedFailure?.errorCode) {

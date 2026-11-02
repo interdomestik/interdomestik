@@ -27,6 +27,7 @@ import {
   markAsSkipped,
   markAsError,
 } from './_seasonal';
+import { forEachInOrder } from '@/lib/in-order';
 
 export type EngagementCronResults = {
   day7: number;
@@ -83,7 +84,7 @@ async function processLifecycleEngagement(
   headers: Headers,
   results: EngagementCronResults
 ) {
-  for (const cadence of ENGAGEMENT_CADENCE) {
+  await forEachInOrder(ENGAGEMENT_CADENCE, async cadence => {
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
     const members = await selectActiveSubscriptionMembers({
@@ -92,7 +93,7 @@ async function processLifecycleEngagement(
       createdBetween: { start, end },
     });
 
-    for (const member of members) {
+    await forEachInOrder(members, async member => {
       await processMemberEngagement(
         member,
         authorityForTenant(authorities, member.tenantId),
@@ -100,8 +101,8 @@ async function processLifecycleEngagement(
         results,
         headers
       );
-    }
-  }
+    });
+  });
 }
 
 async function processMemberEngagement(

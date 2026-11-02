@@ -116,7 +116,7 @@ export function createAdminRepositoryForTest(fakeDb: unknown) {
 
 export function createUpdateDb(rows: readonly unknown[], existingCursor: unknown = null) {
   const calls: unknown[] = [];
-  const findFirst = vi.fn(async () => existingCursor);
+  const findFirst = vi.fn(async () => await existingCursor);
   return {
     calls,
     findFirst,
@@ -134,7 +134,7 @@ export function createUpdateDb(rows: readonly unknown[], existingCursor: unknown
             return {
               where(where: unknown) {
                 calls.push({ action: 'where', where });
-                return { returning: vi.fn(async () => rows) };
+                return { returning: vi.fn(() => Promise.resolve(rows)) };
               },
             };
           },

@@ -55,7 +55,7 @@ export async function logLeadActivityCore(params: {
       })
     );
 
-    if (!lead || lead.tenantId !== tenantId) {
+    if (lead?.tenantId !== tenantId) {
       return { success: false, error: 'Lead access denied' };
     }
 

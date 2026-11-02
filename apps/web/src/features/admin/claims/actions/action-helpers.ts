@@ -142,7 +142,7 @@ export async function logAudit(
   actorId: string,
   action: string,
   entityId: string,
-  metadata: Record<string, unknown> = {},
+  metadata: Record<string, unknown>,
   executor: AuditWriteExecutor
 ) {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary

@@ -57,7 +57,7 @@ const mocks: MocksMocks = vi.hoisted(() => {
       values,
     })),
     sum: vi.fn((value: unknown) => ({ op: 'sum', value })),
-    listTenantIdsForPlatformAggregate: vi.fn(async (): Promise<string[]> => []),
+    listTenantIdsForPlatformAggregate: vi.fn((): Promise<string[]> => Promise.resolve([])),
     listSuperAdminAggregateWork: vi.fn(),
     produced: [] as unknown[],
   };
@@ -66,7 +66,7 @@ const mocks: MocksMocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   listSuperAdminAggregateWork: mocks.listSuperAdminAggregateWork,
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(mocks.db)),
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({

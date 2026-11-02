@@ -242,18 +242,21 @@ export function createApplyCrmLeadRoutingDecisionCoordinator(
     input: ApplyCrmLeadRoutingDecisionInput
   ): Promise<ApplyCrmLeadRoutingDecisionResult> {
     try {
-      return await runInCrmTenantContext(executor, authority, async scoped =>
-        scoped.transaction(async tx => {
-          const transaction = tx as never as CrmRoutingApplicationDb;
-          return applyCrmLeadRoutingDecision(
-            input,
-            createRoutingApplicationPorts(transaction, {
-              authority,
-              outbox: options.createOutboxPort(transaction),
-              services,
-            })
-          );
-        })
+      return await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped =>
+          await scoped.transaction(async tx => {
+            const transaction = tx as never as CrmRoutingApplicationDb;
+            return await applyCrmLeadRoutingDecision(
+              input,
+              createRoutingApplicationPorts(transaction, {
+                authority,
+                outbox: options.createOutboxPort(transaction),
+                services,
+              })
+            );
+          })
       );
     } catch (error) {
       if (error instanceof CrmRoutingApplicationRollback) return error.result;

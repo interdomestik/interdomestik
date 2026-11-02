@@ -1,10 +1,7 @@
 import { vi } from 'vitest';
 import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
 import {
-  createCrmForecastSnapshotTestDeps,
-  createCrmForecastSnapshotWeightedRow,
   crmForecastSnapshotTestAuthority,
-  crmForecastSnapshotTestIngress,
   crmForecastSnapshotTestWorkItem,
 } from './_core.test-helpers';
 
@@ -16,9 +13,11 @@ vi.mock('@interdomestik/database', () => ({
 
 export const now = new Date('2026-05-14T05:15:00.000Z');
 export const workItem: CrmForecastSnapshotWorkItem = crmForecastSnapshotTestWorkItem;
-export const weightedRow = createCrmForecastSnapshotWeightedRow;
-export const createDeps = createCrmForecastSnapshotTestDeps;
-export const ingress = crmForecastSnapshotTestIngress;
+export {
+  createCrmForecastSnapshotTestDeps as createDeps,
+  createCrmForecastSnapshotWeightedRow as weightedRow,
+  crmForecastSnapshotTestIngress as ingress,
+} from './_core.test-helpers';
 
 export function scheduleTenants(...tenantIds: string[]) {
   hoisted.listScheduledTenantWork.mockResolvedValue(

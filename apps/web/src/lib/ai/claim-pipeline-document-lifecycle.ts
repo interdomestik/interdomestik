@@ -82,12 +82,14 @@ export async function failDeletedDocumentClaimAiRun(
       )
     : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [failedRun] = await withTenantAuthority(authority, async tx =>
-    tx
-      .update(aiRuns)
-      .set(buildDeletedClaimRunFailure(new Date()))
-      .where(failurePredicate)
-      .returning({ id: aiRuns.id })
+  const [failedRun] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .update(aiRuns)
+        .set(buildDeletedClaimRunFailure(new Date()))
+        .where(failurePredicate)
+        .returning({ id: aiRuns.id })
   );
 
   if (!failedRun) return null;

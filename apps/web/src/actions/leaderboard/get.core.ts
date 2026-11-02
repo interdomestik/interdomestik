@@ -62,31 +62,35 @@ export async function getAgentLeaderboardCore(params: {
     const tenantFilter = eq(agentCommissions.tenantId, tenantId);
 
     // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-    const results = await withTenantAuthority(authority, async tx =>
-      tx
-        .select({
-          agentId: agentCommissions.agentId,
-          totalEarned: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
-          dealCount: sql<number>`COUNT(*)`,
-        })
-        .from(agentCommissions)
-        .where(and(dateFilter, tenantFilter))
-        .groupBy(agentCommissions.agentId)
-        .orderBy(
-          desc(
-            sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
+    const results = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            agentId: agentCommissions.agentId,
+            totalEarned: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
+            dealCount: sql<number>`COUNT(*)`,
+          })
+          .from(agentCommissions)
+          .where(and(dateFilter, tenantFilter))
+          .groupBy(agentCommissions.agentId)
+          .orderBy(
+            desc(
+              sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
+            )
           )
-        )
-        .limit(10)
+          .limit(10)
     );
 
     const topAgents: LeaderboardEntry[] = await Promise.all(
       results.map(async (row, index) => {
-        const agentData = await withTenantAuthority(authority, async tx =>
-          tx.query.user.findFirst({
-            where: and(eq(user.id, row.agentId), eq(user.tenantId, tenantId)),
-            columns: { name: true, image: true },
-          })
+        const agentData = await withTenantAuthority(
+          authority,
+          async tx =>
+            await tx.query.user.findFirst({
+              where: and(eq(user.id, row.agentId), eq(user.tenantId, tenantId)),
+              columns: { name: true, image: true },
+            })
         );
 
         return {
@@ -113,7 +117,7 @@ export async function getAgentLeaderboardCore(params: {
       const allRanked = await withTenantAuthority(
         authority,
         async tx =>
-          tx
+          await tx
             .select({
               agentId: agentCommissions.agentId,
               total: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,

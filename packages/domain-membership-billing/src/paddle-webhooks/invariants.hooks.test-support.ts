@@ -11,7 +11,9 @@ export function installInvariantsHooks(): void {
       insert: hoisted.txInsert,
     };
 
-    hoisted.transaction.mockImplementation(async (_context, callback) => callback(tx as never));
+    hoisted.transaction.mockImplementation(
+      async (_context, callback) => await callback(tx as never)
+    );
 
     hoisted.txInsert.mockImplementation(table => {
       if (table === hoisted.billingInvoices) {

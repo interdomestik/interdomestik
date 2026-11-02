@@ -86,7 +86,7 @@ export function repository(overrides: Partial<CrmTaskRepository> = {}) {
     appendTaskHistory: vi.fn(),
     findTaskById: vi.fn(),
     findTaskByIdempotencyKey: vi.fn().mockResolvedValue(null),
-    saveTask: vi.fn(async ({ task: saved }) => saved),
+    saveTask: vi.fn(async ({ task: saved }) => await saved),
     validateSubjectReference: vi.fn().mockResolvedValue({
       branchId: 'branch-1',
       tenantId: 'tenant-1',

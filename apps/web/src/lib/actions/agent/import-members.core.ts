@@ -2,6 +2,7 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ImportMemberRowInput } from './schemas';
 import { importMemberRowSchema } from './schemas';
 import { registerMemberCore } from './register-member.core';
+import { forEachInOrder } from '@/lib/in-order';
 
 type ImportMembersCoreParams = {
   agent: { id: string; name?: string | null };
@@ -38,7 +39,7 @@ export async function importMembersCore({
 
   const results: ImportMemberResult[] = [];
 
-  for (const [index, row] of rows.entries()) {
+  await forEachInOrder(rows.entries(), async ([index, row]) => {
     const validated = importMemberRowSchema.safeParse(row);
 
     if (!validated.success) {
@@ -49,7 +50,7 @@ export async function importMembersCore({
         ok: false,
         error: 'Validation failed',
       });
-      continue;
+      return;
     }
 
     const formData = new FormData();
@@ -70,7 +71,7 @@ export async function importMembersCore({
         fullName: validated.data.fullName,
         ok: true,
       });
-      continue;
+      return;
     }
 
     results.push({
@@ -80,7 +81,7 @@ export async function importMembersCore({
       ok: false,
       error: result.error,
     });
-  }
+  });
 
   return {
     summary: {

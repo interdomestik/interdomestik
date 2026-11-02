@@ -52,39 +52,49 @@ export async function getAgentDashboardDataCore(params: {
     status => status !== 'draft' && status !== newStatus && !completedStatuses.includes(status)
   );
 
-  const [totalRes] = await withTenantAuthority(authority, async tx =>
-    tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
+  const [totalRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
   );
-  const [newRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs(newStatus)))
+  const [newRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs(newStatus)))
   );
 
   const inProgressCondition =
     inProgressStatuses.length > 0 ? claimLifecycleStatusIn(inProgressStatuses) : sql`false`;
 
-  const [inProgressRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), inProgressCondition))
+  const [inProgressRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), inProgressCondition))
   );
-  const [completedRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)))
+  const [completedRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)))
   );
 
-  const recentClaims = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findMany({
-      where: eq(claims.tenantId, tenantId),
-      orderBy: [desc(claims.updatedAt)],
-      limit: 5,
-      with: { user: true },
-    })
+  const recentClaims = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findMany({
+        where: eq(claims.tenantId, tenantId),
+        orderBy: [desc(claims.updatedAt)],
+        limit: 5,
+        with: { user: true },
+      })
   );
 
   return {

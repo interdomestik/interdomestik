@@ -23,38 +23,48 @@ export async function getAdminDashboardStats(authority: TenantAuthority): Promis
   const NEW_STATUS: ClaimStatus = 'submitted';
   const RESOLVED_STATUS: ClaimStatus = 'resolved';
 
-  const [totalClaimsRes] = await withTenantAuthority(authority, async tx =>
-    tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
+  const [totalClaimsRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
   );
 
-  const [newClaimsRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(claims)
-      .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)))
+  const [newClaimsRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)))
   );
 
-  const [resolvedClaimsRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(claims)
-      .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)))
+  const [resolvedClaimsRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(claims)
+        .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)))
   );
 
-  const [totalUsersRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)))
+  const [totalUsersRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({ count: count() })
+        .from(user)
+        .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)))
   );
 
-  const [volumeRes] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({
-        sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
-      })
-      .from(claims)
-      .where(eq(claims.tenantId, tenantId))
+  const [volumeRes] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({
+          sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
+        })
+        .from(claims)
+        .where(eq(claims.tenantId, tenantId))
   );
 
   return {
@@ -68,15 +78,17 @@ export async function getAdminDashboardStats(authority: TenantAuthority): Promis
 
 export async function getRecentClaims(authority: TenantAuthority, limit = 5) {
   const { tenantId } = readTenantAuthority(authority);
-  const recentClaims = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findMany({
-      where: (claims, { eq }) => eq(claims.tenantId, tenantId),
-      with: {
-        user: true,
-      },
-      limit,
-      orderBy: [desc(claims.createdAt)],
-    })
+  const recentClaims = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findMany({
+        where: (claims, { eq }) => eq(claims.tenantId, tenantId),
+        with: {
+          user: true,
+        },
+        limit,
+        orderBy: [desc(claims.createdAt)],
+      })
   );
 
   return recentClaims.map(claim => ({
@@ -87,15 +99,17 @@ export async function getRecentClaims(authority: TenantAuthority, limit = 5) {
 
 export async function getUnassignedClaims(authority: TenantAuthority, limit = 5) {
   const { tenantId } = readTenantAuthority(authority);
-  return await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findMany({
-      with: {
-        user: true,
-      },
-      where: (claims, { and, eq, isNull }) =>
-        and(eq(claims.tenantId, tenantId), isNull(claims.staffId)),
-      limit,
-      orderBy: [desc(claims.createdAt)],
-    })
+  return await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findMany({
+        with: {
+          user: true,
+        },
+        where: (claims, { and, eq, isNull }) =>
+          and(eq(claims.tenantId, tenantId), isNull(claims.staffId)),
+        limit,
+        orderBy: [desc(claims.createdAt)],
+      })
   );
 }

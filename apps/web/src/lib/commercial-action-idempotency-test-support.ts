@@ -53,7 +53,9 @@ export const databaseModuleMock = () => ({
   db: dbEntry,
   withTenantContext: withTenantContextMock,
   // The public-site producer admits any requested tenant here; its active-tenant probe is kernel-tested.
-  authorizePublicSiteTenant: vi.fn(async (tenantId: string) => mintTestTenantAuthority(tenantId)),
+  authorizePublicSiteTenant: vi.fn((tenantId: string) =>
+    Promise.resolve(mintTestTenantAuthority(tenantId))
+  ),
   commercialActionIdempotency: {
     id: 'id_col',
     action: 'action_col',

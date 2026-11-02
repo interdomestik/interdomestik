@@ -93,38 +93,40 @@ export async function getAssignedStaffClaimAttention(
   const { tenantId } = readTenantAuthority(authority);
   const staffId = actor.id;
 
-  const rows = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({
-        claimId: claimInformationRequests.claimId,
-        requestId: claimInformationRequests.id,
-        dueAt: claimInformationRequests.dueAt,
-        submittedAt: claimInformationRequestEvidence.submittedAt,
-      })
-      .from(claimInformationRequests)
-      .innerJoin(
-        claims,
-        and(
-          eq(claims.id, claimInformationRequests.claimId),
-          eq(claims.tenantId, claimInformationRequests.tenantId)
+  const rows = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({
+          claimId: claimInformationRequests.claimId,
+          requestId: claimInformationRequests.id,
+          dueAt: claimInformationRequests.dueAt,
+          submittedAt: claimInformationRequestEvidence.submittedAt,
+        })
+        .from(claimInformationRequests)
+        .innerJoin(
+          claims,
+          and(
+            eq(claims.id, claimInformationRequests.claimId),
+            eq(claims.tenantId, claimInformationRequests.tenantId)
+          )
         )
-      )
-      .leftJoin(
-        claimInformationRequestEvidence,
-        and(
-          eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
-          eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
-          eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
+        .leftJoin(
+          claimInformationRequestEvidence,
+          and(
+            eq(claimInformationRequestEvidence.tenantId, claimInformationRequests.tenantId),
+            eq(claimInformationRequestEvidence.claimId, claimInformationRequests.claimId),
+            eq(claimInformationRequestEvidence.requestId, claimInformationRequests.id)
+          )
         )
-      )
-      .where(
-        and(
-          eq(claimInformationRequests.tenantId, tenantId),
-          inArray(claimInformationRequests.claimId, [...claimIds]),
-          eq(claimInformationRequests.status, 'open'),
-          eq(claims.staffId, staffId)
+        .where(
+          and(
+            eq(claimInformationRequests.tenantId, tenantId),
+            inArray(claimInformationRequests.claimId, [...claimIds]),
+            eq(claimInformationRequests.status, 'open'),
+            eq(claims.staffId, staffId)
+          )
         )
-      )
   );
 
   return deriveAssignedClaimAttention(claimIds, rows, now);

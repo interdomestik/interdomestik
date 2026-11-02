@@ -151,7 +151,7 @@ vi.mock('@interdomestik/database', () => ({
   branches: mocks.branches,
   claims: mocks.claims,
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(mocks.db)),
   desc: mocks.desc,
   eq: mocks.eq,
   ilike: mocks.ilike,

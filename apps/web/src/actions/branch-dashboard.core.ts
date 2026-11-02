@@ -32,11 +32,13 @@ export async function getBranchById(
 ): Promise<BranchMetadata | null> {
   const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const result = await withTenantAuthority(authority, async tx =>
-    tx.query.branches.findFirst({
-      where: (b, { and: andOp, eq: eqOp }) =>
-        andOp(eqOp(b.id, branchId), eqOp(b.tenantId, tenantId)),
-    })
+  const result = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.branches.findFirst({
+        where: (b, { and: andOp, eq: eqOp }) =>
+          andOp(eqOp(b.id, branchId), eqOp(b.tenantId, tenantId)),
+      })
   );
 
   if (!result) return null;
@@ -72,54 +74,66 @@ export async function getBranchStats(
   const [agentCount, memberCount, openClaimsCount, cashPendingCount, slaBreachesCount] =
     await Promise.all([
       // Count agents in branch
-      withTenantAuthority(authority, async tx =>
-        tx
-          .select({ count: count() })
-          .from(user)
-          .where(
-            and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent'))
-          )
+      withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({ count: count() })
+            .from(user)
+            .where(
+              and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent'))
+            )
       ),
 
       // Count ALL members in this branch (role 'user' or 'member')
-      withTenantAuthority(authority, async tx =>
-        tx
-          .select({ count: count() })
-          .from(user)
-          .where(
-            and(
-              eq(user.branchId, branchId),
-              eq(user.tenantId, tenantId),
-              inArray(user.role, ['user', 'member'])
+      withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({ count: count() })
+            .from(user)
+            .where(
+              and(
+                eq(user.branchId, branchId),
+                eq(user.tenantId, tenantId),
+                inArray(user.role, ['user', 'member'])
+              )
             )
-          )
       ),
 
       // Open Claims: actionable statuses (Shared Definition)
-      withTenantAuthority(authority, async tx =>
-        tx
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(eq(claims.branchId, branchId), eq(claims.tenantId, tenantId), getOpenClaimsFilter())
-          )
+      withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({ count: count() })
+            .from(claims)
+            .where(
+              and(
+                eq(claims.branchId, branchId),
+                eq(claims.tenantId, tenantId),
+                getOpenClaimsFilter()
+              )
+            )
       ),
 
       // Cash Pending: unresolved cash verification load in this branch.
       getBranchCashPendingCount({ authority, branchId }),
 
       // SLA Breaches: submitted > 30 days (Shared Definition)
-      withTenantAuthority(authority, async tx =>
-        tx
-          .select({ count: count() })
-          .from(claims)
-          .where(
-            and(
-              eq(claims.branchId, branchId),
-              eq(claims.tenantId, tenantId),
-              getSlaBreachesFilter()
+      withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select({ count: count() })
+            .from(claims)
+            .where(
+              and(
+                eq(claims.branchId, branchId),
+                eq(claims.tenantId, tenantId),
+                getSlaBreachesFilter()
+              )
             )
-          )
       ),
     ]);
 
@@ -159,30 +173,34 @@ export async function getBranchAgents(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const results = await withTenantAuthority(authority, async tx =>
-    tx
-      .select({
-        agentId: user.id,
-        agentName: user.name,
-        memberCount: sql<number>`(
+  const results = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select({
+          agentId: user.id,
+          agentName: user.name,
+          memberCount: sql<number>`(
           SELECT COUNT(*) FROM agent_clients 
           WHERE agent_clients.agent_id = ${user.id}
         )`.as('member_count'),
-        activeClaimCount: sql<number>`(
+          activeClaimCount: sql<number>`(
           SELECT COUNT(*) FROM claims 
           WHERE claims.agent_id = ${user.id} 
           AND ${lifecycleSql.claimLifecycleStatusNotInForAlias('claims', ['resolved', 'rejected'])}
         )`.as('active_claim_count'),
-        submittedClaimsLast30Days: sql<number>`(
+          submittedClaimsLast30Days: sql<number>`(
           SELECT COUNT(*) FROM claims 
           WHERE claims.agent_id = ${user.id}
           AND ${lifecycleSql.claimLifecycleStatusIsForAlias('claims', 'submitted')}
           AND claims.created_at >= ${thirtyDaysAgo}
         )`.as('submitted_claims_last_30_days'),
-      })
-      .from(user)
-      .where(and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent')))
-      .orderBy(desc(sql`submitted_claims_last_30_days`))
+        })
+        .from(user)
+        .where(
+          and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent'))
+        )
+        .orderBy(desc(sql`submitted_claims_last_30_days`))
   );
 
   return results.map(r => ({

@@ -39,9 +39,9 @@ export function createDatabaseDouble(results: WorkItemRow[][]) {
       from: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'from', args)),
       groupBy: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'groupBy', args)),
       innerJoin: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'innerJoin', args)),
-      limit: vi.fn(async (...args: unknown[]) => {
+      limit: vi.fn((...args: unknown[]) => {
         calls.push({ args, method: 'limit' });
-        return limitResults.shift() ?? [];
+        return Promise.resolve(limitResults.shift() ?? []);
       }),
       orderBy: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'orderBy', args)),
       where: vi.fn((...args: unknown[]) => pushCall(chain, calls, 'where', args)),

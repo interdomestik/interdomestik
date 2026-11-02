@@ -9,8 +9,8 @@ const hoisted = vi.hoisted(() => {
   return {
     db,
     dbSelect,
-    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db)
+    withTenantContext: vi.fn(
+      async (_context: unknown, callback: (tx: typeof db) => unknown) => await callback(db)
     ),
   };
 });

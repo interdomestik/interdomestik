@@ -25,10 +25,12 @@ export function mockUserOwner(
   hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>,
   tenantId: string
 ) {
-  hoisted.resolution.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
-    userId,
-    tenantId,
-  }));
+  hoisted.resolution.resolvePaddleUserOwner.mockImplementation((userId: string) =>
+    Promise.resolve({
+      userId,
+      tenantId,
+    })
+  );
 }
 
 /** The privileged resolver names this exact subscription's owning tenant. */
@@ -152,7 +154,9 @@ export function resetPaddleHandlerMocks(
   }));
   hoisted.db.transaction.mockImplementation(async callback => callback(hoisted.tx));
   // Default tenant context: writes/selects land on the transaction mock, reads on db.query.
-  hoisted.withTenantContext.mockImplementation(async (_context, callback) => callback(hoisted.tx));
+  hoisted.withTenantContext.mockImplementation(
+    async (_context, callback) => await callback(hoisted.tx)
+  );
   hoisted.db.insert.mockImplementation(() => ({
     values: vi.fn().mockResolvedValue(undefined),
   }));
@@ -194,5 +198,7 @@ export function resetPaddleHandlerMocks(
 export function routeTenantContextToDbMock(
   hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
 ) {
-  hoisted.withTenantContext.mockImplementation(async (_context, callback) => callback(hoisted.db));
+  hoisted.withTenantContext.mockImplementation(
+    async (_context, callback) => await callback(hoisted.db)
+  );
 }

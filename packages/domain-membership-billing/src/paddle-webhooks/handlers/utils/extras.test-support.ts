@@ -1,6 +1,5 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { db } from '@interdomestik/database';
 import { vi } from 'vitest';
 
 export const authority: TenantAuthority = mintTestTenantAuthority('tenant_1');

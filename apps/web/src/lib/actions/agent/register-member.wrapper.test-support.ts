@@ -44,9 +44,9 @@ vi.mock('@interdomestik/database', async () => {
     eq: vi.fn((column: unknown, value: unknown) => ({ kind: 'eq', column, value })),
     membershipPlans: helper.CANONICAL_MEMBERSHIP_PLAN_COLUMNS,
     db,
-    withTenantContext: async (context: unknown, cb: (tx: unknown) => unknown) => {
+    withTenantContext: (context: unknown, cb: (tx: unknown) => unknown) => {
       mocks.withTenantContext(context);
-      return cb(db);
+      return Promise.resolve(cb(db));
     },
   };
 });

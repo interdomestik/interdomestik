@@ -10,8 +10,8 @@ export function installAgentCrmFollowUpHooks(): void {
       findById: mocks.findById,
     });
     mocks.findById.mockResolvedValue(lead());
-    mocks.createFollowUpActivity.mockImplementation(async ({ activity: created }) =>
-      activity({ ...created, agentId: 'agent-1' })
+    mocks.createFollowUpActivity.mockImplementation(({ activity: created }) =>
+      Promise.resolve(activity({ ...created, agentId: 'agent-1' }))
     );
     mocks.listCrmLeadFollowUpActivitiesForLead.mockResolvedValue([]);
     mocks.listCrmLeadFollowUpTasksForLead.mockResolvedValue([

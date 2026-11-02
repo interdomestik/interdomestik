@@ -41,14 +41,16 @@ export async function activateSponsoredMembership(subscriptionId: string) {
 
   const { tenantId } = readTenantAuthority(authority);
 
-  const subscription = await withTenantAuthority(authority, async tx =>
-    tx.query.subscriptions.findFirst({
-      where: and(
-        eq(subscriptions.id, subscriptionId),
-        eq(subscriptions.userId, session.user.id),
-        eq(subscriptions.tenantId, tenantId)
-      ),
-    })
+  const subscription = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.subscriptions.findFirst({
+        where: and(
+          eq(subscriptions.id, subscriptionId),
+          eq(subscriptions.userId, session.user.id),
+          eq(subscriptions.tenantId, tenantId)
+        ),
+      })
   );
 
   if (!subscription) {
@@ -66,14 +68,16 @@ export async function activateSponsoredMembership(subscriptionId: string) {
     subscription.planKey
   );
 
-  await withTenantAuthority(authority, async tx =>
-    tx
-      .update(subscriptions)
-      .set({
-        ...activeAnnualMembershipState,
-        updatedAt: currentPeriodStart,
-      })
-      .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)))
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .update(subscriptions)
+        .set({
+          ...activeAnnualMembershipState,
+          updatedAt: currentPeriodStart,
+        })
+        .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)))
   );
 
   revalidatePath(MEMBER_MEMBERSHIP_PATH);

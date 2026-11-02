@@ -48,7 +48,7 @@ const mocks: MocksMocks = vi.hoisted(() => {
 mocks.insert.mockReturnValue({ values: mocks.insertValues });
 
 mocks.withTenantContext.mockImplementation(
-  async (_context: unknown, callback: (tx: unknown) => unknown) => callback(mocks.dbMock)
+  async (_context: unknown, callback: (tx: unknown) => unknown) => await callback(mocks.dbMock)
 );
 
 vi.mock('@interdomestik/database', () => ({

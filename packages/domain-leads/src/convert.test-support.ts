@@ -76,8 +76,9 @@ export function createTransactionHarness() {
       values: vi.fn((values: Record<string, unknown>) => {
         insertRecords.push({ table, values });
         return {
-          onConflictDoUpdate: vi.fn(async (payload: Record<string, unknown>) => {
+          onConflictDoUpdate: vi.fn((payload: Record<string, unknown>) => {
             conflictRecords.push({ table, values, payload });
+            return Promise.resolve();
           }),
         };
       }),
@@ -86,11 +87,12 @@ export function createTransactionHarness() {
       set: vi.fn((values: Record<string, unknown>) => {
         updateCalls.push({ table, values });
         return {
-          where: vi.fn(async (where: unknown) => {
-            const lastCall = updateCalls[updateCalls.length - 1];
+          where: vi.fn((where: unknown) => {
+            const lastCall = updateCalls.at(-1);
             if (lastCall) {
               lastCall.where = where;
             }
+            return Promise.resolve();
           }),
         };
       }),

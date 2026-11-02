@@ -1,5 +1,10 @@
-import { and, eq, subscriptions } from '@interdomestik/database';
-import { authorizePaddleTenant, resolvePaddleSubscriptionOwner } from '@interdomestik/database';
+import {
+  and,
+  authorizePaddleTenant,
+  eq,
+  resolvePaddleSubscriptionOwner,
+  subscriptions,
+} from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import {
   readTenantAuthority,

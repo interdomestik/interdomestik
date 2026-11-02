@@ -67,16 +67,18 @@ export async function createSignedUploadCore(args: {
   const { tenantId } = readTenantAuthority(authority);
   let storageTenantId = tenantId;
   if (claimId) {
-    const claim = await withTenantAuthority(authority, async tx =>
-      tx.query.claims.findFirst({
-        where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
-        columns: {
-          id: true,
-          tenantId: true,
-          userId: true,
-          agentId: true,
-        },
-      })
+    const claim = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.claims.findFirst({
+          where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
+          columns: {
+            id: true,
+            tenantId: true,
+            userId: true,
+            agentId: true,
+          },
+        })
     );
 
     if (!claim) return { ok: false, status: 404, error: 'Claim not found' };

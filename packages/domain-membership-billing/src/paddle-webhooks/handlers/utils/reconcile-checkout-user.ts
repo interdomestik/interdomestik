@@ -1,10 +1,10 @@
 import {
+  authorizePaddleBillingTenant,
   eq,
   hasTenantMemberCredential,
   issueTenantMemberNumber,
   user as userTable,
 } from '@interdomestik/database';
-import { authorizePaddleBillingTenant } from '@interdomestik/database';
 import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -211,21 +211,23 @@ export async function reconcileCheckoutUser(
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from reconciled checkout context constrains final user reload
-  const finalUser = await withTenantAuthority(billingAuthority, async tx =>
-    tx.query.user.findFirst({
-      where: (users, { and, eq }) =>
-        and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
-      columns: {
-        id: true,
-        tenantId: true,
-        branchId: true,
-        email: true,
-        name: true,
-        role: true,
-        memberNumber: true,
-        agentId: true,
-      },
-    })
+  const finalUser = await withTenantAuthority(
+    billingAuthority,
+    async tx =>
+      await tx.query.user.findFirst({
+        where: (users, { and, eq }) =>
+          and(eq(users.email, customerEmail), eq(users.tenantId, tenantId)),
+        columns: {
+          id: true,
+          tenantId: true,
+          branchId: true,
+          email: true,
+          name: true,
+          role: true,
+          memberNumber: true,
+          agentId: true,
+        },
+      })
   );
 
   if (!finalUser) {

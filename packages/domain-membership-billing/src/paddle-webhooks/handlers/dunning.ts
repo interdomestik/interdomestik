@@ -155,22 +155,26 @@ async function persistPastDueSubscription(args: {
   if (args.existingSub) {
     const existingSubId = args.existingSub.id;
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user/subscription context constrains dunning update
-    await withTenantAuthority(args.authority, async tx =>
-      tx
-        .update(subscriptions)
-        .set(args.values)
-        .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, tenantId)))
+    await withTenantAuthority(
+      args.authority,
+      async tx =>
+        await tx
+          .update(subscriptions)
+          .set(args.values)
+          .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, tenantId)))
     );
     return;
   }
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user context is included in dunning insert values
-    await withTenantAuthority(args.authority, async tx =>
-      tx.insert(subscriptions).values({
-        id: args.subscriptionId,
-        ...args.values,
-      })
+    await withTenantAuthority(
+      args.authority,
+      async tx =>
+        await tx.insert(subscriptions).values({
+          id: args.subscriptionId,
+          ...args.values,
+        })
     );
   } catch (error) {
     if (!isUniqueViolation(error)) {
@@ -186,13 +190,15 @@ async function persistPastDueSubscription(args: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await withTenantAuthority(args.authority, async tx =>
-      tx
-        .update(subscriptions)
-        .set(args.values)
-        .where(
-          and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, tenantId))
-        )
+    await withTenantAuthority(
+      args.authority,
+      async tx =>
+        await tx
+          .update(subscriptions)
+          .set(args.values)
+          .where(
+            and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, tenantId))
+          )
     );
   }
 }

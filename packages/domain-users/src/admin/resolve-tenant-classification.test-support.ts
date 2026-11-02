@@ -91,7 +91,7 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 vi.mock('./access', () => ({
-  requireTenantAdminSession: vi.fn(async (session: unknown) => session),
+  requireTenantAdminSession: vi.fn(async (session: unknown) => await session),
 }));
 
 export const adminSession = {

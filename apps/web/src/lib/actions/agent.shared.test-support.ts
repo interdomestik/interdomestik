@@ -72,7 +72,7 @@ vi.mock('@interdomestik/database', async importOriginal => {
   return {
     ...(await importOriginal<typeof import('@interdomestik/database')>()),
     withTenantContext: async (_context: unknown, callback: (tx: unknown) => unknown) =>
-      callback(mockedDb),
+      await callback(mockedDb),
   };
 });
 vi.mock('@interdomestik/database/schema', () => ({

@@ -31,22 +31,26 @@ export async function deleteMemberNoteCore(params: {
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await withTenantAuthority(authority, async tx =>
-      tx
-        .select()
-        .from(memberNotes)
-        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
-        .limit(1)
+    const [existing] = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select()
+          .from(memberNotes)
+          .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+          .limit(1)
     );
     if (!existing) return { success: false, error: 'Note not found' };
     if (existing.authorId !== session.user.id && session.user.role !== 'admin') {
       return { success: false, error: 'You can only delete your own notes' };
     }
 
-    await withTenantAuthority(authority, async tx =>
-      tx
-        .delete(memberNotes)
-        .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .delete(memberNotes)
+          .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)))
     );
 
     await logAuditEvent({

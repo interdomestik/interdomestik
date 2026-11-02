@@ -37,23 +37,25 @@ export async function assertProcessingRunHasActiveDocument(
   failure: DeletedDocumentFailure
 ) {
   // Pre-download liveness check, constrained by exact runId, tenantId, and documentId.
-  const [activeRun] = await withTenantAuthority(run.authority, async tx =>
-    tx
-      .select({ id: aiRuns.id })
-      .from(aiRuns)
-      .innerJoin(
-        documents,
-        and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
-      )
-      .where(
-        and(
-          eq(aiRuns.id, run.runId),
-          eq(aiRuns.status, 'processing'),
-          eq(documents.id, run.documentId),
-          eq(documents.tenantId, run.tenantId),
-          isNull(documents.deletedAt)
+  const [activeRun] = await withTenantAuthority(
+    run.authority,
+    async tx =>
+      await tx
+        .select({ id: aiRuns.id })
+        .from(aiRuns)
+        .innerJoin(
+          documents,
+          and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
         )
-      )
+        .where(
+          and(
+            eq(aiRuns.id, run.runId),
+            eq(aiRuns.status, 'processing'),
+            eq(documents.id, run.documentId),
+            eq(documents.tenantId, run.tenantId),
+            isNull(documents.deletedAt)
+          )
+        )
   );
 
   if (!activeRun) throwDeletedDocumentError(failure);

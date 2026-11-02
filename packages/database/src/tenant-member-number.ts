@@ -27,7 +27,7 @@ export async function issueTenantMemberNumber(
   if (!userId || !(joinedAt instanceof Date) || Number.isNaN(joinedAt.getTime())) return null;
 
   // db-access-guard: system-exempt -- reason: global member-number sequence for one committed member of the authority's tenant
-  return dbAdmin.transaction(async tx => {
+  return await dbAdmin.transaction(async tx => {
     const [member] = await tx
       .select({ id: user.id })
       .from(user)

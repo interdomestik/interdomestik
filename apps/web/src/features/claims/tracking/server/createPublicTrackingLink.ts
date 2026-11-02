@@ -49,11 +49,13 @@ export async function createPublicTrackingLink(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before tracking link claim lookup
-      const claim = await withTenantAuthority(authority, async tx =>
-        tx.query.claims.findFirst({
-          where: and(eq(claims.id, claimId), visibilityCondition),
-          columns: { id: true, tenantId: true },
-        })
+      const claim = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.query.claims.findFirst({
+            where: and(eq(claims.id, claimId), visibilityCondition),
+            columns: { id: true, tenantId: true },
+          })
       );
 
       if (!claim) {
@@ -69,28 +71,35 @@ export async function createPublicTrackingLink(
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days TTL
 
       // 3. Revoke previous tokens (Optional but strictly safer as per plan)
-      await withTenantAuthority(authority, async tx =>
-        tx
-          .update(claimTrackingTokens)
-          .set({ revokedAt: new Date() })
-          .where(
-            and(
-              eq(claimTrackingTokens.claimId, claimId),
-              or(eq(claimTrackingTokens.tenantId, tenantId), isNull(claimTrackingTokens.tenantId)),
-              isNull(claimTrackingTokens.revokedAt)
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .update(claimTrackingTokens)
+            .set({ revokedAt: new Date() })
+            .where(
+              and(
+                eq(claimTrackingTokens.claimId, claimId),
+                or(
+                  eq(claimTrackingTokens.tenantId, tenantId),
+                  isNull(claimTrackingTokens.tenantId)
+                ),
+                isNull(claimTrackingTokens.revokedAt)
+              )
             )
-          )
       );
 
       // 4. Store Hash
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      await withTenantAuthority(authority, async tx =>
-        tx.insert(claimTrackingTokens).values({
-          tenantId: claim.tenantId,
-          claimId: claim.id,
-          tokenHash,
-          expiresAt,
-        })
+      await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.insert(claimTrackingTokens).values({
+            tenantId: claim.tenantId,
+            claimId: claim.id,
+            tokenHash,
+            expiresAt,
+          })
       );
 
       // 5. Return URL

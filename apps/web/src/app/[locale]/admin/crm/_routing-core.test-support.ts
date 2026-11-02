@@ -73,18 +73,22 @@ export function repository(
   overrides: Partial<AdminCrmRoutingRuleAdminRepository> = {}
 ): AdminCrmRoutingRuleAdminRepository {
   return {
-    archiveRoutingRule: vi.fn(async () => rule()),
-    createRoutingRule: vi.fn(async () => rule()),
-    getRoutingRule: vi.fn(async () => rule()),
-    listAgentScopes: vi.fn(async () => [
-      { branchId: null, id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
-      { branchId: null, id: 'agent-2', role: 'agent', tenantId: 'tenant-1' },
-    ]),
-    listBranches: vi.fn(async () => [{ id: 'branch-1', label: 'North', tenantId: 'tenant-1' }]),
-    listRoutingRulesForAdmin: vi.fn(async () => [rule()]),
-    reorderRoutingRules: vi.fn(async () => [rule()]),
-    setRoutingRuleEnabled: vi.fn(async () => rule()),
-    updateRoutingRule: vi.fn(async () => rule()),
+    archiveRoutingRule: vi.fn(() => Promise.resolve(rule())),
+    createRoutingRule: vi.fn(() => Promise.resolve(rule())),
+    getRoutingRule: vi.fn(() => Promise.resolve(rule())),
+    listAgentScopes: vi.fn(() =>
+      Promise.resolve([
+        { branchId: null, id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+        { branchId: null, id: 'agent-2', role: 'agent', tenantId: 'tenant-1' },
+      ])
+    ),
+    listBranches: vi.fn(() =>
+      Promise.resolve([{ id: 'branch-1', label: 'North', tenantId: 'tenant-1' }])
+    ),
+    listRoutingRulesForAdmin: vi.fn(() => Promise.resolve([rule()])),
+    reorderRoutingRules: vi.fn(() => Promise.resolve([rule()])),
+    setRoutingRuleEnabled: vi.fn(() => Promise.resolve(rule())),
+    updateRoutingRule: vi.fn(() => Promise.resolve(rule())),
     ...overrides,
   };
 }

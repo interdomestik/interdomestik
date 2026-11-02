@@ -26,15 +26,17 @@ export function createCrmLeadDetailRepository(
     async findAgentLead(params) {
       const branchId = requireBranchScope(params.actor);
 
-      const lead = await withTenantAuthority(authority, async tx =>
-        tx.query.crmLeads.findFirst({
-          where: and(
-            eq(crmLeads.id, params.leadId),
-            eq(crmLeads.tenantId, params.actor.tenantId),
-            eq(crmLeads.agentId, params.actor.actorId),
-            eq(crmLeads.branchId, branchId)
-          ),
-        })
+      const lead = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx.query.crmLeads.findFirst({
+            where: and(
+              eq(crmLeads.id, params.leadId),
+              eq(crmLeads.tenantId, params.actor.tenantId),
+              eq(crmLeads.agentId, params.actor.actorId),
+              eq(crmLeads.branchId, branchId)
+            ),
+          })
       );
       return lead ?? null;
     },
@@ -42,17 +44,19 @@ export function createCrmLeadDetailRepository(
     async listAgentLeadDeals(params) {
       requireBranchScope(params.actor);
 
-      const rows = await withTenantAuthority(authority, async tx =>
-        tx
-          .select()
-          .from(crmDeals)
-          .where(
-            and(
-              eq(crmDeals.leadId, params.lead.id),
-              eq(crmDeals.tenantId, params.actor.tenantId),
-              eq(crmDeals.agentId, params.actor.actorId)
+      const rows = await withTenantAuthority(
+        authority,
+        async tx =>
+          await tx
+            .select()
+            .from(crmDeals)
+            .where(
+              and(
+                eq(crmDeals.leadId, params.lead.id),
+                eq(crmDeals.tenantId, params.actor.tenantId),
+                eq(crmDeals.agentId, params.actor.actorId)
+              )
             )
-          )
       );
       return rows as AgentCrmLeadDetailDealRow[];
     },

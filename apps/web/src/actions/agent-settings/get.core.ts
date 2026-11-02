@@ -32,10 +32,12 @@ export async function getAgentSettingsCore(params: {
   const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const settings = await withTenantAuthority(authority, async tx =>
-      tx.query.agentSettings?.findFirst({
-        where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
-      })
+    const settings = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.agentSettings?.findFirst({
+          where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
+        })
     );
 
     if (!settings) {

@@ -40,10 +40,12 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: mocks.requireSessionOrRedirect,
 }));
 vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: vi.fn(async () => ({
-    session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-    authority: mintTestTenantAuthority('tenant-1'),
-  })),
+  authorizeSessionTenant: vi.fn(() =>
+    Promise.resolve({
+      session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+      authority: mintTestTenantAuthority('tenant-1'),
+    })
+  ),
 }));
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -68,8 +70,8 @@ vi.mock('@interdomestik/database', () => {
       userId: 'claims.user_id',
     },
     db,
-    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db)
+    withTenantContext: vi.fn(
+      async (_context: unknown, callback: (tx: typeof db) => unknown) => await callback(db)
     ),
     desc: mocks.desc,
     eq: mocks.eq,
@@ -143,7 +145,7 @@ vi.mock('lucide-react', () => ({
   Phone: () => <span aria-hidden="true" />,
 }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string) => key),
+  getTranslations: vi.fn(() => Promise.resolve((key: string) => key)),
   setRequestLocale: mocks.setRequestLocale,
 }));
 vi.mock('next/navigation', () => ({

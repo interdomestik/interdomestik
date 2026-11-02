@@ -39,7 +39,7 @@ export async function appendTenantMemberCredential(
   if (!agentId || !userId || !email || !BCRYPT_HASH.test(credential.passwordHash)) return false;
 
   // db-access-guard: system-exempt -- reason: first credential of a member the authority's agent just created in its own tenant
-  return dbAdmin.transaction(async tx => {
+  return await dbAdmin.transaction(async tx => {
     const [member] = await tx
       .select({ id: user.id })
       .from(user)

@@ -125,14 +125,16 @@ export function createFakeDb(options: {
     id: 'lead-1',
     tenantId: 'tenant-1',
   };
-  const crmTaskFindFirst = vi.fn(async (): Promise<ReturnType<typeof rowFromTask> | null> => null);
+  const crmTaskFindFirst = vi.fn((): Promise<ReturnType<typeof rowFromTask> | null> =>
+    Promise.resolve(null)
+  );
 
   const query = {
-    crmDeals: { findFirst: vi.fn(async () => null) },
-    crmLeads: { findFirst: vi.fn(async () => leadRow) },
-    crmTaskHistory: { findMany: vi.fn(async () => historyRows) },
+    crmDeals: { findFirst: vi.fn(() => Promise.resolve(null)) },
+    crmLeads: { findFirst: vi.fn(() => Promise.resolve(leadRow)) },
+    crmTaskHistory: { findMany: vi.fn(() => Promise.resolve(historyRows)) },
     crmTasks: { findFirst: crmTaskFindFirst },
-    supportHandoffs: { findFirst: vi.fn(async () => null) },
+    supportHandoffs: { findFirst: vi.fn(() => Promise.resolve(null)) },
   };
 
   const tx = {
@@ -142,9 +144,11 @@ export function createFakeDb(options: {
         values(values: unknown) {
           calls.push({ action: 'values', table, values });
           return {
-            returning: vi.fn(async () => {
-              if (table === crmTasks && options.insertTaskError) throw options.insertTaskError;
-              return table === crmTasks ? [taskRow] : [];
+            returning: vi.fn(() => {
+              if (table === crmTasks && options.insertTaskError) {
+                return Promise.reject(options.insertTaskError);
+              }
+              return Promise.resolve(table === crmTasks ? [taskRow] : []);
             }),
           };
         },
@@ -159,7 +163,7 @@ export function createFakeDb(options: {
             where(where: unknown) {
               calls.push({ action: 'where', table, where });
               return {
-                returning: vi.fn(async () => options.updateRows ?? [taskRow]),
+                returning: vi.fn(() => Promise.resolve(options.updateRows ?? [taskRow])),
               };
             },
           };
@@ -172,7 +176,9 @@ export function createFakeDb(options: {
     calls,
     db: {
       query,
-      transaction: vi.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
+      transaction: vi.fn(
+        async (callback: (transaction: typeof tx) => unknown) => await callback(tx)
+      ),
     } as unknown as TaskRepositoryDb,
     query,
     task,

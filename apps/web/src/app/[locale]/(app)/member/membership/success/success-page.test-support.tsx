@@ -51,8 +51,8 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: hoisted.routerReplaceMock, refresh: hoisted.routerRefreshMock }),
 }));
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
-    getNamespacedTranslation(options)
+  getTranslations: vi.fn((options?: { namespace?: string } | string) =>
+    Promise.resolve(getNamespacedTranslation(options))
   ),
 }));
 vi.mock('@/components/shell/session', () => ({
@@ -130,8 +130,8 @@ export function resetSuccessHarness(): void {
     user: { id: 'member-1', name: 'Test Member', tenantId: 'tenant-ks' },
   });
   hoisted.getActiveSubscriptionMock.mockResolvedValue(null);
-  hoisted.authorizeSessionUserTenantMock.mockImplementation(async (userId: string) =>
-    mintTestTenantAuthority('tenant-ks', { userId })
+  hoisted.authorizeSessionUserTenantMock.mockImplementation((userId: string) =>
+    Promise.resolve(mintTestTenantAuthority('tenant-ks', { userId }))
   );
   hoisted.isBillingTestActivationEnabledMock.mockReturnValue(false);
 }

@@ -90,20 +90,22 @@ async function findLatestRequestDefault(args: {
   tenantId: string;
   userId: string;
 }): Promise<LatestDeletionRequest | null> {
-  const latest = await withTenantAuthority(args.authority, async tx =>
-    tx.query.auditLog.findFirst({
-      columns: {
-        id: true,
-        createdAt: true,
-      },
-      where: and(
-        eq(auditLog.tenantId, args.tenantId),
-        eq(auditLog.actorId, args.userId),
-        eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
-        eq(auditLog.entityType, 'user')
-      ),
-      orderBy: [desc(auditLog.createdAt)],
-    })
+  const latest = await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx.query.auditLog.findFirst({
+        columns: {
+          id: true,
+          createdAt: true,
+        },
+        where: and(
+          eq(auditLog.tenantId, args.tenantId),
+          eq(auditLog.actorId, args.userId),
+          eq(auditLog.action, REQUEST_DATA_DELETION_ACTION),
+          eq(auditLog.entityType, 'user')
+        ),
+        orderBy: [desc(auditLog.createdAt)],
+      })
   );
 
   if (!latest) return null;
@@ -117,24 +119,26 @@ async function insertRequestDefault(args: DataDeletionRequestInsert): Promise<st
   const requestId = nanoid();
 
   // db-access-guard: system-exempt -- reason: privacy deletion endpoint writes system audit trail
-  await withTenantAuthority(args.authority, async tx =>
-    tx.insert(auditLog).values({
-      id: requestId,
-      tenantId: args.tenantId,
-      actorId: args.userId,
-      actorRole: args.actorRole,
-      action: REQUEST_DATA_DELETION_ACTION,
-      entityType: 'user',
-      entityId: args.userId,
-      metadata: {
-        reason: args.reason,
-        source: 'self-service-api',
-        ipAddress: args.ipAddress,
-        userAgent: args.userAgent,
-        requestedAt: args.requestedAt.toISOString(),
-        status: 'pending',
-      },
-    })
+  await withTenantAuthority(
+    args.authority,
+    async tx =>
+      await tx.insert(auditLog).values({
+        id: requestId,
+        tenantId: args.tenantId,
+        actorId: args.userId,
+        actorRole: args.actorRole,
+        action: REQUEST_DATA_DELETION_ACTION,
+        entityType: 'user',
+        entityId: args.userId,
+        metadata: {
+          reason: args.reason,
+          source: 'self-service-api',
+          ipAddress: args.ipAddress,
+          userAgent: args.userAgent,
+          requestedAt: args.requestedAt.toISOString(),
+          status: 'pending',
+        },
+      })
   );
 
   return requestId;

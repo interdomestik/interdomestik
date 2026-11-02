@@ -42,15 +42,17 @@ export async function assignClaimCore(params: {
 
   const authority = params.authority;
   const { tenantId } = readTenantAuthority(authority);
-  const claim = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findFirst({
-      where: (claimsTable, { eq }) =>
-        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
-      columns: {
-        id: true,
-        staffId: true,
-      },
-    })
+  const claim = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
+        columns: {
+          id: true,
+          staffId: true,
+        },
+      })
   );
 
   if (!claim) {
@@ -67,14 +69,16 @@ export async function assignClaimCore(params: {
   });
 
   if (result.success) {
-    const updatedClaim = await withTenantAuthority(authority, async tx =>
-      tx.query.claims.findFirst({
-        where: (claimsTable, { eq }) =>
-          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
-        columns: {
-          staffId: true,
-        },
-      })
+    const updatedClaim = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.claims.findFirst({
+          where: (claimsTable, { eq }) =>
+            withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
+          columns: {
+            staffId: true,
+          },
+        })
     );
 
     if (!updatedClaim) {

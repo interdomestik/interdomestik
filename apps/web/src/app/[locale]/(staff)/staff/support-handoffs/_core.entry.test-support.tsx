@@ -57,7 +57,7 @@ export function createDatabaseMock(mocks: StaffHandoffMocks) {
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     db,
     withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db),
+      await callback(db),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
     user: {
       branchId: 'user.branch_id',

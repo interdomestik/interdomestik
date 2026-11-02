@@ -68,15 +68,17 @@ export async function listLeadsAction(input: unknown) {
 
     // Fetch leads
     // db-access-guard: tenant-scoped -- reason: tenant predicate built in local conditions array before this DB call
-    const leads = await withTenantAuthority(authority, async tx =>
-      tx.query.memberLeads.findMany({
-        where: and(...conditions),
-        orderBy: [desc(memberLeads.createdAt)],
-        with: {
-          leadPaymentAttempts: true,
-        },
-        limit: 100, // Safety limit
-      })
+    const leads = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx.query.memberLeads.findMany({
+          where: and(...conditions),
+          orderBy: [desc(memberLeads.createdAt)],
+          with: {
+            leadPaymentAttempts: true,
+          },
+          limit: 100, // Safety limit
+        })
     );
 
     return leads;

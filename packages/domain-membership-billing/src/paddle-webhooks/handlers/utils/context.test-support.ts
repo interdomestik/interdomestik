@@ -1,4 +1,3 @@
-import { db } from '@interdomestik/database';
 import { vi, type Mock } from 'vitest';
 
 // Matches Vitest's own Procedure so typed mocks stay callable and assignable like inferred ones.
@@ -22,7 +21,7 @@ vi.mock('@interdomestik/database', () => {
   };
   return {
     db,
-    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => await cb(db)),
     ...resolution,
   };
 });

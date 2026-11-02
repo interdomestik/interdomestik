@@ -26,7 +26,7 @@ vi.mock('@interdomestik/database', () => {
   const db = { query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } };
   return {
     db,
-    withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db),
+    withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => await cb(db),
     resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
     resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
   };

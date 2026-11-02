@@ -67,12 +67,13 @@ const mocks: {
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const txSelect = vi.fn();
-  const transaction = vi.fn(async cb =>
-    cb({
-      insert: txInsert,
-      select: txSelect,
-      update: txUpdate,
-    })
+  const transaction = vi.fn(
+    async cb =>
+      await cb({
+        insert: txInsert,
+        select: txSelect,
+        update: txUpdate,
+      })
   );
 
   return {
@@ -124,8 +125,8 @@ vi.mock('@interdomestik/database', () => ({
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) =>
-    mocks.db.transaction(cb)
+  withTenantContext: vi.fn(
+    async (_ctx: unknown, cb: (tx: any) => unknown) => await mocks.db.transaction(cb)
   ),
   eq: mocks.eq,
 }));

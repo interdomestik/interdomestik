@@ -25,7 +25,7 @@ vi.mock(
 vi.mock('@interdomestik/database', async () => {
   const { db } = await import('@interdomestik/database/db');
   mocks.withTenantContext.mockImplementation(
-    async (_context: unknown, callback: (tx: unknown) => unknown) => callback(db)
+    async (_context: unknown, callback: (tx: unknown) => unknown) => await callback(db)
   );
   return { withTenantContext: mocks.withTenantContext };
 });

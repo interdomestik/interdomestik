@@ -87,7 +87,7 @@ export async function appendCaseGrantDocumentAudit(
     return false;
   }
   const metadata = {
-    ...(event.metadata ?? {}),
+    ...event.metadata,
     accessTenantId: descriptor.tenantId,
     viaCaseScopedGrant: true,
   };

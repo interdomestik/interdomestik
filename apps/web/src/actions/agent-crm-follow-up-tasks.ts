@@ -11,6 +11,7 @@ import {
 } from '@/adapters/crm/lead-follow-up-repository';
 import { type CrmTaskBoundaryResult } from './crm-tasks.core';
 import type { AgentCrmFollowUpActionResult } from './agent-crm-follow-up.core';
+import { forEachInOrder } from '@/lib/in-order';
 
 export const FOLLOW_UP_TASK_LABEL = 'Follow up';
 
@@ -86,7 +87,7 @@ export async function completeShadowedLegacyFollowUps(params: {
     hasSameScheduledAt(activity, scheduledAt)
   );
 
-  for (const activity of shadowedActivities) {
+  await forEachInOrder(shadowedActivities, async activity => {
     await completeCrmLeadFollowUp(
       {
         activityId: activity.id,
@@ -96,5 +97,5 @@ export async function completeShadowedLegacyFollowUps(params: {
       createCrmLeadFollowUpRepository(params.authority),
       { now: () => new Date().toISOString() }
     );
-  }
+  });
 }

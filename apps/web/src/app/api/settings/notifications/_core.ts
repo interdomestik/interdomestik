@@ -32,17 +32,19 @@ export async function getNotificationPreferencesCore(args: {
   const { userId, authority } = args;
   const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [preferences] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select()
-      .from(userNotificationPreferences)
-      .where(
-        and(
-          eq(userNotificationPreferences.userId, userId),
-          eq(userNotificationPreferences.tenantId, resolvedTenantId)
+  const [preferences] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(userNotificationPreferences)
+        .where(
+          and(
+            eq(userNotificationPreferences.userId, userId),
+            eq(userNotificationPreferences.tenantId, resolvedTenantId)
+          )
         )
-      )
-      .limit(1)
+        .limit(1)
   );
 
   if (!preferences) return DEFAULT_NOTIFICATION_PREFERENCES;
@@ -65,47 +67,53 @@ export async function upsertNotificationPreferencesCore(args: {
   const { userId, authority, preferences } = args;
   const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [existing] = await withTenantAuthority(authority, async tx =>
-    tx
-      .select()
-      .from(userNotificationPreferences)
-      .where(
-        and(
-          eq(userNotificationPreferences.userId, userId),
-          eq(userNotificationPreferences.tenantId, resolvedTenantId)
-        )
-      )
-      .limit(1)
-  );
-
-  if (existing) {
-    await withTenantAuthority(authority, async tx =>
-      tx
-        .update(userNotificationPreferences)
-        .set({
-          ...preferences,
-          updatedAt: new Date(),
-        })
+  const [existing] = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx
+        .select()
+        .from(userNotificationPreferences)
         .where(
           and(
             eq(userNotificationPreferences.userId, userId),
             eq(userNotificationPreferences.tenantId, resolvedTenantId)
           )
         )
+        .limit(1)
+  );
+
+  if (existing) {
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .update(userNotificationPreferences)
+          .set({
+            ...preferences,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(userNotificationPreferences.userId, userId),
+              eq(userNotificationPreferences.tenantId, resolvedTenantId)
+            )
+          )
     );
 
     return;
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before preference insert
-  await withTenantAuthority(authority, async tx =>
-    tx.insert(userNotificationPreferences).values({
-      id: nanoid(),
-      tenantId: resolvedTenantId,
-      userId,
-      ...preferences,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
+  await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.insert(userNotificationPreferences).values({
+        id: nanoid(),
+        tenantId: resolvedTenantId,
+        userId,
+        ...preferences,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
   );
 }

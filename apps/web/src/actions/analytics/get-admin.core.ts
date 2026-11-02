@@ -46,23 +46,25 @@ export async function getAdminAnalyticsCore(params: {
     }
     const { daysBack, limit } = parsed.data;
 
-    const activeSubs = await withTenantAuthority(authority, async tx =>
-      tx
-        .select({
-          subId: subscriptions.id,
-          price: membershipPlans.price,
-          interval: membershipPlans.interval,
-          createdAt: subscriptions.createdAt,
-        })
-        .from(subscriptions)
-        .leftJoin(
-          membershipPlans,
-          and(
-            eq(subscriptions.tenantId, membershipPlans.tenantId),
-            eq(subscriptions.planKey, membershipPlans.id)
+    const activeSubs = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            subId: subscriptions.id,
+            price: membershipPlans.price,
+            interval: membershipPlans.interval,
+            createdAt: subscriptions.createdAt,
+          })
+          .from(subscriptions)
+          .leftJoin(
+            membershipPlans,
+            and(
+              eq(subscriptions.tenantId, membershipPlans.tenantId),
+              eq(subscriptions.planKey, membershipPlans.id)
+            )
           )
-        )
-        .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)))
+          .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)))
     );
 
     let mrr = 0;
@@ -84,19 +86,21 @@ export async function getAdminAnalyticsCore(params: {
     const lookbackDate = new Date();
     lookbackDate.setDate(lookbackDate.getDate() - daysBack);
 
-    const recentGrowth = await withTenantAuthority(authority, async tx =>
-      tx
-        .select({
-          date: sql<string>`DATE(${subscriptions.createdAt})`,
-          count: sql<number>`count(*)`,
-        })
-        .from(subscriptions)
-        .where(
-          and(gte(subscriptions.createdAt, lookbackDate), eq(subscriptions.tenantId, tenantId))
-        )
-        .groupBy(sql`DATE(${subscriptions.createdAt})`)
-        .orderBy(sql`DATE(${subscriptions.createdAt})`)
-        .limit(limit)
+    const recentGrowth = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            date: sql<string>`DATE(${subscriptions.createdAt})`,
+            count: sql<number>`count(*)`,
+          })
+          .from(subscriptions)
+          .where(
+            and(gte(subscriptions.createdAt, lookbackDate), eq(subscriptions.tenantId, tenantId))
+          )
+          .groupBy(sql`DATE(${subscriptions.createdAt})`)
+          .orderBy(sql`DATE(${subscriptions.createdAt})`)
+          .limit(limit)
     );
 
     const formattedGrowth = recentGrowth.map(item => ({

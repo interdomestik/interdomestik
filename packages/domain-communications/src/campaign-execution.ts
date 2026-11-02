@@ -9,6 +9,7 @@ import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { stringifyError } from './campaign-retry';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from './in-order';
 
 export {
   DEFAULT_RETRY_ATTEMPTS,
@@ -202,7 +203,7 @@ export async function processBatchedUserCampaign(args: {
   const errors: string[] = [];
   const stats = { attempted: 0, sent: 0, skipped: 0 };
 
-  for (const { authority } of await listScheduledTenantWork(args.ingress)) {
+  await forEachInOrder(await listScheduledTenantWork(args.ingress), async ({ authority }) => {
     await forEachBatchedUsers({
       fetchBatch: afterId => getUsersBatch({ authority, afterId, limit: USER_BATCH_SIZE }),
       onBatch: async batch => {
@@ -212,12 +213,12 @@ export async function processBatchedUserCampaign(args: {
           users: batch,
         });
 
-        for (const u of batch) {
+        await forEachInOrder(batch, async u => {
           await processCampaignUser(u, args, authority, alreadySentSet, stats, logs, errors);
-        }
+        });
       },
     });
-  }
+  });
 
   return {
     logs,
@@ -274,7 +275,7 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
       })),
     });
 
-    for (const item of batch) {
+    await forEachInOrder(batch, async item => {
       const userMini: UserMini = {
         id: item.userId,
         email: item.user?.email ?? item.email ?? null,
@@ -287,10 +288,10 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
         context.errors.push(
           tenantMismatchMessage(userMini.id, userMini.tenantId, authorityTenantId)
         );
-        continue;
+        return;
       }
       if (shouldSkipUser(userMini, alreadySentSet, context.stats, context.errors)) {
-        continue;
+        return;
       }
 
       context.stats.attempted += 1;
@@ -315,7 +316,7 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
           `Failed ${campaignId} for userId=${userMini.id} email=${userMini.email}: ${stringifyError(err)}`
         );
       }
-    }
+    });
     afterId = batch.at(-1)!.id;
   }
 }
@@ -328,7 +329,7 @@ export async function processStandardUserCampaign(
   context: { logs: string[]; errors: string[]; stats: any },
   sendFn: (u: UserMini) => Promise<void>
 ) {
-  for (const { authority } of await listScheduledTenantWork(ingress)) {
+  await forEachInOrder(await listScheduledTenantWork(ingress), async ({ authority }) => {
     const { tenantId } = readTenantAuthority(authority);
     await executeCampaign(
       campaignId,
@@ -353,5 +354,5 @@ export async function processStandardUserCampaign(
       },
       context
     );
-  }
+  });
 }

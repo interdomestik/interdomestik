@@ -80,15 +80,17 @@ export async function updateClaimStatusCore(params: {
   const status = parsed.data.status;
   const { tenantId } = readTenantAuthority(authority);
 
-  const claim = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findFirst({
-      where: (claimsTable, { eq }) =>
-        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-      columns: {
-        caseLifecycleState: true,
-        recoveryLifecycleState: true,
-      },
-    })
+  const claim = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+        columns: {
+          caseLifecycleState: true,
+          recoveryLifecycleState: true,
+        },
+      })
   );
 
   if (!claim) {
@@ -115,15 +117,17 @@ export async function updateClaimStatusCore(params: {
     }
   );
 
-  const updatedClaim = await withTenantAuthority(authority, async tx =>
-    tx.query.claims.findFirst({
-      where: (claimsTable, { eq }) =>
-        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
-      columns: {
-        caseLifecycleState: true,
-        recoveryLifecycleState: true,
-      },
-    })
+  const updatedClaim = await withTenantAuthority(
+    authority,
+    async tx =>
+      await tx.query.claims.findFirst({
+        where: (claimsTable, { eq }) =>
+          withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+        columns: {
+          caseLifecycleState: true,
+          recoveryLifecycleState: true,
+        },
+      })
   );
 
   if (!updatedClaim) {

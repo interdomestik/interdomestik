@@ -36,12 +36,14 @@ export async function updateMemberNoteCore(params: {
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await withTenantAuthority(authority, async tx =>
-      tx
-        .select()
-        .from(memberNotes)
-        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
-        .limit(1)
+    const [existing] = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select()
+          .from(memberNotes)
+          .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+          .limit(1)
     );
     if (!existing) return { success: false, error: 'Note not found' };
     if (existing.authorId !== session.user.id && session.user.role !== 'admin') {
@@ -59,11 +61,13 @@ export async function updateMemberNoteCore(params: {
     if (validated.data.followUpDate !== undefined)
       updateData.followUpDate = validated.data.followUpDate;
 
-    await withTenantAuthority(authority, async tx =>
-      tx
-        .update(memberNotes)
-        .set(updateData)
-        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+    await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .update(memberNotes)
+          .set(updateData)
+          .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
     );
 
     const updatedFields = Object.keys(updateData).filter(key => key !== 'updatedAt');
@@ -80,25 +84,27 @@ export async function updateMemberNoteCore(params: {
       },
     });
 
-    const [updated] = await withTenantAuthority(authority, async tx =>
-      tx
-        .select({
-          id: memberNotes.id,
-          memberId: memberNotes.memberId,
-          authorId: memberNotes.authorId,
-          authorName: userTable.name,
-          type: memberNotes.type,
-          content: memberNotes.content,
-          isPinned: memberNotes.isPinned,
-          isInternal: memberNotes.isInternal,
-          followUpDate: memberNotes.followUpDate,
-          createdAt: memberNotes.createdAt,
-          updatedAt: memberNotes.updatedAt,
-        })
-        .from(memberNotes)
-        .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-        .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
-        .limit(1)
+    const [updated] = await withTenantAuthority(
+      authority,
+      async tx =>
+        await tx
+          .select({
+            id: memberNotes.id,
+            memberId: memberNotes.memberId,
+            authorId: memberNotes.authorId,
+            authorName: userTable.name,
+            type: memberNotes.type,
+            content: memberNotes.content,
+            isPinned: memberNotes.isPinned,
+            isInternal: memberNotes.isInternal,
+            followUpDate: memberNotes.followUpDate,
+            createdAt: memberNotes.createdAt,
+            updatedAt: memberNotes.updatedAt,
+          })
+          .from(memberNotes)
+          .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
+          .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)))
+          .limit(1)
     );
 
     return { success: true, data: mapNoteRow(updated) };

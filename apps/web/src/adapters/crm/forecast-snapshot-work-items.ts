@@ -7,6 +7,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 
 import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
+import { forEachInOrder } from '@/lib/in-order';
 
 export const CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN = 1000;
 const CRM_FORECAST_SNAPSHOT_DEFERRED_COUNT_LIMIT = 2_147_483_647;
@@ -123,15 +124,18 @@ async function runWorkItemQuery(
   // query's leading sort key) with a shared row budget, so the concatenation equals the former
   // single cross-tenant ordered result.
   const rows: WorkItemRow[] = [];
-  for (const { authority, tenantId } of scope) {
+  await forEachInOrder(scope, async ({ authority, tenantId }) => {
     const remaining = limit - rows.length;
-    if (remaining <= 0) break;
+    // Once the budget is spent the remaining tenants are not queried.
+    if (remaining <= 0) return;
     rows.push(
-      ...(await runInCrmTenantContext(executor, authority, async scoped =>
-        buildWorkItemQuery(scoped, { ...params, tenantId }).limit(remaining)
+      ...(await runInCrmTenantContext(
+        executor,
+        authority,
+        async scoped => await buildWorkItemQuery(scoped, { ...params, tenantId }).limit(remaining)
       ))
     );
-  }
+  });
   return rows;
 }
 

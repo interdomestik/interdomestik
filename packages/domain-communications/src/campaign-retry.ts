@@ -21,16 +21,17 @@ export async function withRetries<T>(
   const attempts = opts?.attempts ?? DEFAULT_RETRY_ATTEMPTS;
   const baseDelayMs = opts?.baseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  // With no attempt allowed nothing runs and, as before, an undefined last error is thrown.
+  if (attempts < 1) throw undefined;
+
+  const attemptFrom = async (attempt: number): Promise<T> => {
     try {
       return await fn();
     } catch (err) {
-      lastError = err;
-      if (attempt === attempts) break;
+      if (attempt >= attempts) throw err;
       await sleep(baseDelayMs * 2 ** (attempt - 1));
+      return attemptFrom(attempt + 1);
     }
-  }
-
-  throw lastError;
+  };
+  return attemptFrom(1);
 }

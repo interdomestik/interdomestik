@@ -5,6 +5,7 @@ import type { IngressCapability } from '@interdomestik/database/ingress';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, eq, gt } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { forEachInOrder } from '@/lib/in-order';
 
 export type DunningCronStats = {
   checked: number;
@@ -81,14 +82,14 @@ async function processBatch(params: {
   stats: DunningCronStats;
 }) {
   const { authority, subscriptions, now, headers, stats } = params;
-  for (const sub of subscriptions) {
-    if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
+  await forEachInOrder(subscriptions, async sub => {
+    if (!sub.gracePeriodEndsAt || !sub.pastDueAt) return;
     try {
       await processDunningSubscription({ authority, sub, now, headers, stats });
     } catch {
       stats.errors++;
     }
-  }
+  });
 }
 
 // `sub` was selected under `authority` with a tenant predicate, so it belongs to that tenant.

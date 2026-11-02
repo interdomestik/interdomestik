@@ -36,7 +36,7 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/queue', () => ({
 }));
 vi.mock('@interdomestik/ui', async () => (await import('./_core.entry.test-support')).uiMock);
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async () => (key: string) => key),
+  getTranslations: vi.fn(() => Promise.resolve((key: string) => key)),
   setRequestLocale: mocks.setRequestLocale,
 }));
 vi.mock('next/navigation', () => ({
