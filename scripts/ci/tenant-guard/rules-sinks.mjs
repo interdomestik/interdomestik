@@ -158,7 +158,7 @@ export function installSinks(ctx) {
     ) {
       return false;
     }
-    if (!(declaration.parent.flags & ts.NodeFlags.Const)) return false;
+    if ((declaration.parent.flags & ts.NodeFlags.Const) === 0) return false;
     const uses = fact.references.filter(reference => reference.binding?.decl === declaration);
     return (
       uses.length > 0 &&

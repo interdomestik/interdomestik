@@ -3,7 +3,7 @@
 import ts from 'typescript';
 import { LEGACY, PRIVILEGED } from './manifest.mjs';
 import { originKey } from './modules.mjs';
-import { sha256 } from './rules-digest.mjs';
+import { byCodeUnit, sha256 } from './rules-digest.mjs';
 import { fingerprint, isFunctionLike, unitName, unitOf } from './syntax.mjs';
 
 /** Installs the pinned-state, write-target and state-contract analyses on `ctx`. */
@@ -12,7 +12,7 @@ export function installState(ctx) {
 
   const pinnedModules = new Set();
   function seedPinnedState() {
-    for (const file of [...pinnedModules].sort()) {
+    for (const file of [...pinnedModules].sort(byCodeUnit)) {
       const fact = factsOf(file);
       if (!fact) continue;
       for (const name of graph.exportNames(file)) {
@@ -134,7 +134,7 @@ export function installState(ctx) {
     const fact = factsOf(origin.file);
     const statement = fact?.statements.get(origin.name);
     if (!statement || !ts.isVariableStatement(statement)) return false;
-    if (!(statement.declarationList.flags & ts.NodeFlags.Const)) return false;
+    if ((statement.declarationList.flags & ts.NodeFlags.Const) === 0) return false;
     const declaration = statement.declarationList.declarations.find(
       each => ts.isIdentifier(each.name) && each.name.text === origin.name
     );

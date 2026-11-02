@@ -3,7 +3,7 @@
 import ts from 'typescript';
 import { LEGACY, PRIVILEGED, TEST_SOURCE } from './manifest.mjs';
 import { originKey } from './modules.mjs';
-import { sha256, within } from './rules-digest.mjs';
+import { byCodeUnit, sha256, within } from './rules-digest.mjs';
 import {
   analyzeScopes,
   collectUnits,
@@ -224,7 +224,7 @@ export function installTrust(ctx) {
     }
     for (const file of seen) ctx.pinnedModules.add(file);
     for (const problem of problems) lines.push(`problem:${problem}`);
-    const digest = sha256([...new Set(lines)].sort().join('\n'));
+    const digest = sha256([...new Set(lines)].sort(byCodeUnit).join('\n'));
     legacyDigests.set(key, digest);
     legacyClosureProblems.set(key, [...new Set(problems)]);
     return digest;

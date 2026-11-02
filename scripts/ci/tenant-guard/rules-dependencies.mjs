@@ -177,7 +177,7 @@ export function installDependencies(ctx) {
     ts.SyntaxKind.CommaToken,
   ]);
   function holdsPrimitive(statement, declaration) {
-    if (!(statement.declarationList.flags & ts.NodeFlags.Const)) return false;
+    if ((statement.declarationList.flags & ts.NodeFlags.Const) === 0) return false;
     const initializer = unwrap(declaration.initializer);
     if (!initializer) return false;
     if (ts.isBinaryExpression(initializer)) {

@@ -2,6 +2,7 @@
 
 import ts from 'typescript';
 import { originKey } from './modules.mjs';
+import { byCodeUnit } from './rules-digest.mjs';
 
 /** Installs the query-receiver analysis and reference lookup on `ctx`. */
 export function installReceivers(ctx) {
@@ -145,12 +146,12 @@ export function installReceivers(ctx) {
       if (property === '...' && path.length > 0 && !restCarries(declaration.name, path[0]))
         return null; // the rest omits it: undefined
       const at = property === null || property === '...' ? path : [property, ...path];
-      if (declaration.parent.flags & ts.NodeFlags.Const) {
+      if ((declaration.parent.flags & ts.NodeFlags.Const) !== 0) {
         return declaration.initializer
           ? receiverProblem(fact, declaration.initializer, at, seen)
           : unknown;
       }
-      if (!(declaration.parent.flags & ts.NodeFlags.Let) || property !== null) return unknown;
+      if ((declaration.parent.flags & ts.NodeFlags.Let) === 0 || property !== null) return unknown;
       // `let`: the initializer and every plain assignment.
       if (declaration.initializer) {
         const problem = receiverProblem(fact, declaration.initializer, path, seen);
@@ -202,7 +203,7 @@ export function installReceivers(ctx) {
     if (
       ts.isVariableDeclaration(declaration) &&
       ts.isIdentifier(declaration.name) &&
-      declaration.parent.flags & ts.NodeFlags.Const
+      (declaration.parent.flags & ts.NodeFlags.Const) !== 0
     ) {
       return { local: declaration };
     }
@@ -213,7 +214,7 @@ export function installReceivers(ctx) {
   function referencesTo(key) {
     if (!originIndex) {
       originIndex = new Map();
-      for (const file of [...sources.keys()].sort()) {
+      for (const file of [...sources.keys()].sort(byCodeUnit)) {
         if (isTest(file) || /\.d\.[cm]?ts$/u.test(file)) continue;
         const fact = factsOf(file);
         if (!fact) continue;

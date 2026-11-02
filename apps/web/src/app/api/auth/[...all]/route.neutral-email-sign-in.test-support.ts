@@ -28,6 +28,8 @@ vi.mock('better-auth/next-js', () => ({
 
 export const NEUTRAL_HOST = 'www.interdomestik.com';
 export const MEMBER_EMAIL = 'member.mk@interdomestik.test';
+// The provider checks this credential; the route under test only forwards it.
+const PROVIDER_CHECKED = 'provider-verifies';
 
 export type SignInRequestOptions = {
   host?: string;
@@ -47,7 +49,7 @@ export function buildSignInRequest(options: SignInRequestOptions = {}): Request 
       'content-type': 'application/json',
       ...options.headers,
     },
-    body: JSON.stringify(options.body ?? { email: MEMBER_EMAIL, password: 'provider-verifies' }),
+    body: JSON.stringify(options.body ?? { email: MEMBER_EMAIL, password: PROVIDER_CHECKED }),
   });
 }
 

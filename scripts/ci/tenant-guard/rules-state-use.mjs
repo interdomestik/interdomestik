@@ -152,7 +152,7 @@ export function installStateUse(ctx) {
         statement &&
         ts.isVariableStatement(statement) &&
         statement.parent === fact.sourceFile &&
-        parent.parent.flags & ts.NodeFlags.Const
+        (parent.parent.flags & ts.NodeFlags.Const) !== 0
       ) {
         note.alias({ file: fact.file, name: parent.name.text }, entry);
         return null;

@@ -45,6 +45,7 @@ export const RETIRED_LEGACY_TESTS = Object.freeze({
   ]),
 });
 
+const byCodeUnit = (a, b) => (a < b ? -1 : Number(a > b));
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 const testDeclarations = (source, name) =>
   source.match(new RegExp(`\\btest\\(\\s*(['"\`])${escapeRegExp(name)}\\1`, 'gu'))?.length ?? 0;
@@ -187,7 +188,7 @@ export async function main(argv, root = REPO_ROOT, { capture = false } = {}) {
   const serial = files => runSerial(root, files, skipArgs, capture);
   if (mode === 'parallel') return runParallel({ root });
   // Every active contract file in one serialized runner: the full local and Z620 parity lane.
-  if (mode === 'all') return serial(Object.values(shards).flat().sort());
+  if (mode === 'all') return serial(Object.values(shards).flat().sort(byCodeUnit));
   if (mode === 'core') return serial(shards.core);
   if (mode === 'guard-trust' && shard === undefined) {
     return serial(Object.values(GUARD_TRUST_SHARDS).flat());

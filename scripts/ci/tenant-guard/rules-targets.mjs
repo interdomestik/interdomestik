@@ -95,7 +95,8 @@ export function installTargets(ctx) {
     if (binding.kind === 'function') return path.length === 0 ? [{ fact, fn: binding.decl }] : null;
     if (binding.kind === 'var') {
       const declaration = binding.decl;
-      if (!declaration.initializer || !(declaration.parent.flags & ts.NodeFlags.Const)) return null;
+      if (!declaration.initializer || (declaration.parent.flags & ts.NodeFlags.Const) === 0)
+        return null;
       if (declaration.name !== binding.id) {
         const property = boundProperty(declaration.name, binding.id);
         if (property === null) return null;

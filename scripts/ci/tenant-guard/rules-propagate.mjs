@@ -3,6 +3,7 @@
 import ts from 'typescript';
 import { LEGACY } from './manifest.mjs';
 import { originKey } from './modules.mjs';
+import { byCodeUnit } from './rules-digest.mjs';
 import { isFunctionLike, unitName, unitOf } from './syntax.mjs';
 
 /** Checks accepted legacy operations and propagates sinks and tenant state to a fixpoint. */
@@ -97,7 +98,7 @@ export function propagate(ctx) {
     let grew = true;
     while (grew) {
       grew = false;
-      for (const file of [...sources.keys()].sort()) {
+      for (const file of [...sources.keys()].sort(byCodeUnit)) {
         if (isTest(file) || /\.d\.[cm]?ts$/u.test(file)) continue;
         const fact = factsOf(file);
         if (!fact) continue;
@@ -205,7 +206,7 @@ export function propagate(ctx) {
         }
       },
     };
-    for (const file of [...sources.keys()].sort()) {
+    for (const file of [...sources.keys()].sort(byCodeUnit)) {
       if (isTest(file) || /\.d\.[cm]?ts$/u.test(file) || pinnedModules.has(file)) continue;
       const fact = factsOf(file);
       if (!fact) continue;

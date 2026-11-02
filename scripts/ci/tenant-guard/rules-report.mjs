@@ -1,6 +1,7 @@
 // Tenant guard report: receiver sinks, unresolved legacy sinks, pins and contract use.
 
 import { LEGACY } from './manifest.mjs';
+import { byCodeUnit } from './rules-digest.mjs';
 
 /** Reports the remaining findings and returns the guard result. */
 export function report(ctx) {
@@ -93,7 +94,7 @@ export function report(ctx) {
     accepted,
     telemetry,
     sinks: [...legacySinks.keys()],
-    tenantState: [...tenantState.keys()].sort(),
+    tenantState: [...tenantState.keys()].sort(byCodeUnit),
     legacyDigests: Object.fromEntries(legacyDigests),
   };
 }

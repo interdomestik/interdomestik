@@ -37,13 +37,12 @@ export function mockInsert(t: test.TestContext, returningRows: unknown[] = []) {
     };
     calls.push(call);
     // Awaiting the chain directly (no `.returning`) and awaiting `.returning(...)` both resolve.
-    const conflict = {
+    const conflict = Object.assign(Promise.resolve(undefined), {
       returning: (columns: unknown) => {
         call.returning = columns;
         return Promise.resolve(returningRows);
       },
-      then: (resolve: (value: unknown) => unknown) => resolve(undefined),
-    };
+    });
     const chain = {
       values: (values: Record<string, unknown>) => {
         call.values = values;

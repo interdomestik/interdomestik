@@ -2,6 +2,9 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { byCodeUnit } from './rules-digest.mjs';
+
+const GIT = '/usr/bin/git';
 
 // Module resolution inputs are candidate data, not guard authority. Every tsconfig/jsconfig in the
 // workspace is parsed as data (never executed) and its `baseUrl` and `paths` become resolution
@@ -30,7 +33,7 @@ export function workspaceDirs(repoRoot) {
       if (item.isDirectory()) dirs.push(`${parent}/${item.name}`);
     }
   }
-  return dirs.sort();
+  return dirs.sort(byCodeUnit);
 }
 
 function configFiles(repoRoot) {
@@ -50,7 +53,7 @@ function configFiles(repoRoot) {
   visit('', false);
   visit('apps', true);
   visit('packages', true);
-  return files.sort();
+  return files.sort(byCodeUnit);
 }
 
 function readConfig(repoRoot, file) {
@@ -160,7 +163,7 @@ export function resolutionConfig(repoRoot) {
       baseRoots.delete(root);
     }
   }
-  return { pathRules, baseRoots: [...baseRoots].sort(), violations };
+  return { pathRules, baseRoots: [...baseRoots].sort(byCodeUnit), violations };
 }
 
 /** The pnpm workspace globs must stay the two the guard enumerates. */
@@ -200,7 +203,7 @@ export function bundlerConfigViolations(repoRoot, commit) {
       const current = fs.readFileSync(path.join(repoRoot, file));
       let trusted = null;
       try {
-        trusted = execFileSync('git', ['cat-file', 'blob', `${commit}:${file}`], {
+        trusted = execFileSync(GIT, ['cat-file', 'blob', `${commit}:${file}`], {
           cwd: repoRoot,
           stdio: ['ignore', 'pipe', 'ignore'],
           maxBuffer: 16 * 1024 * 1024,

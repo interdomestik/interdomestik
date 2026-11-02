@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { workspaceDirs } from './resolution.mjs';
 
+const GIT = '/usr/bin/git';
+
 export const SOURCE = /\.[cm]?[jt]sx?$/u;
 const GENERATED = /(^|\/)(node_modules|dist|build|coverage|test-results|\.next|\.turbo)(\/|$)/u;
 const ROOTS = ['apps/web/src', 'packages'];
@@ -44,7 +46,7 @@ export function currentSources(repoRoot) {
 /** The trusted tree's sources, read from git by commit and verified against the pinned tree id. */
 export function trustedSources(repoRoot, { commit, tree }) {
   const git = (args, input) =>
-    execFileSync('git', args, { cwd: repoRoot, input, maxBuffer: 256 * 1024 * 1024 }).toString(
+    execFileSync(GIT, args, { cwd: repoRoot, input, maxBuffer: 256 * 1024 * 1024 }).toString(
       'utf8'
     );
   const actualTree = git(['rev-parse', `${commit}^{tree}`]).trim();
@@ -55,7 +57,7 @@ export function trustedSources(repoRoot, { commit, tree }) {
     .filter(file => file && SOURCE.test(file) && !GENERATED.test(file));
   const sources = new Map();
   if (files.length === 0) return sources;
-  const batch = execFileSync('git', ['cat-file', '--batch'], {
+  const batch = execFileSync(GIT, ['cat-file', '--batch'], {
     cwd: repoRoot,
     input: files.map(file => `${commit}:${file}\n`).join(''),
     maxBuffer: 512 * 1024 * 1024,

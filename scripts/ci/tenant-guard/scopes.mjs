@@ -196,7 +196,8 @@ export function analyzeScopes(sourceFile) {
       declare(sourceFile, node.name, { kind: 'import', specifier, imported: '*', decl: node });
     } else if (ts.isVariableDeclaration(node)) {
       const list = node.parent;
-      const isVar = ts.isVariableDeclarationList(list) && !(list.flags & ts.NodeFlags.BlockScoped);
+      const isVar =
+        ts.isVariableDeclarationList(list) && (list.flags & ts.NodeFlags.BlockScoped) === 0;
       const loop =
         list.parent &&
         (ts.isForStatement(list.parent) ||

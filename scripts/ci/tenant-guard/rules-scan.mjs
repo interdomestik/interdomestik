@@ -11,6 +11,7 @@ import {
   PRIVILEGED,
 } from './manifest.mjs';
 import { originKey } from './modules.mjs';
+import { byCodeUnit } from './rules-digest.mjs';
 import { unitOf } from './syntax.mjs';
 
 /** Applies the per-file rules to every non-test source. */
@@ -29,7 +30,7 @@ export function scanFiles(ctx) {
     violate,
   } = ctx;
 
-  for (const file of [...sources.keys()].sort()) {
+  for (const file of [...sources.keys()].sort(byCodeUnit)) {
     if (isTest(file) || /\.d\.[cm]?ts$/u.test(file)) continue;
     const fact = factsOf(file);
     if (!fact) continue;
