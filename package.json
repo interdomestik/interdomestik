@@ -134,7 +134,7 @@
     "test:z620-runner": "node --test scripts/ci/z620-runner.test.mjs",
     "test:z620-resources": "node --test scripts/ci/z620-resource.test.mjs",
     "test:z620-sonar-contract": "node --test scripts/ci/z620-sonar-contract.test.mjs",
-    "test:ci:contracts": "node --test --test-concurrency=1 scripts/ci/*.test.mjs scripts/check-modularity-guard.test.mjs",
+    "test:ci:contracts": "node scripts/ci/contract-test-shards.mjs all",
     "test:ci:contracts:core": "node scripts/ci/contract-test-shards.mjs core",
     "test:ci:contracts:guard-trust": "node scripts/ci/contract-test-shards.mjs guard-trust",
     "test:ci:contracts:parallel": "node scripts/ci/contract-test-shards.mjs parallel",
