@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSubscriptionChanged } from './subscriptions';
-import { mockSubscriptionOwner, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
+import {
+  TEST_PADDLE_DELIVERY,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -53,6 +58,7 @@ describe('subscription confirmation dispatch', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.updated',
           data: {
             id: 'sub_existing',
@@ -81,6 +87,7 @@ describe('subscription confirmation dispatch', () => {
   it('ignores an invalid provider payload before any write or dispatch', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: { id: 'sub_123', customData: { userId: 'user_123' } },
       },
@@ -100,6 +107,7 @@ describe('subscription confirmation dispatch', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.created',
           data: {
             id: 'sub_missing_tenant',
@@ -142,6 +150,7 @@ describe('subscription confirmation dispatch', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: 'sub_existing',

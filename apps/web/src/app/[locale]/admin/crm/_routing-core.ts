@@ -1,9 +1,10 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmRoutingStrategy } from '@interdomestik/domain-crm/routing';
 import { z } from 'zod';
 
 import {
-  adminCrmRoutingRuleRepository,
+  createAdminCrmRoutingRuleRepository,
   type AdminCrmRoutingRuleAdminRepository,
   type AdminCrmRoutingRuleRow,
   type AdminCrmRoutingRuleWriteInput,
@@ -140,11 +141,11 @@ export function resolveAdminCrmRoutingActor(
 }
 
 export async function getAdminCrmRoutingRulesCore(
-  args: { actor: CrmActorContext },
+  args: { actor: CrmActorContext; authority: TenantAuthority },
   deps: { repository?: AdminCrmRoutingRuleAdminRepository } = {}
 ): Promise<AdminCrmRoutingRulesPayload> {
   if (args.actor.role !== 'admin') throw new AdminCrmRoutingAccessDeniedError();
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository ?? createAdminCrmRoutingRuleRepository(args.authority);
   const [rules, branches] = await Promise.all([
     repository.listRoutingRulesForAdmin({ actor: args.actor }),
     repository.listBranches({ tenantId: args.actor.tenantId }),
@@ -162,6 +163,8 @@ export async function getAdminCrmRoutingRulesCore(
 
 export async function runAdminCrmRoutingRuleAction(
   args: {
+    /** The session tenant authority; routing writes run under it and never under the form's ids. */
+    authority: TenantAuthority | null;
     input: unknown;
     kind: AdminCrmRoutingActionKind;
     session: AdminCrmRoutingSession | null;
@@ -169,9 +172,9 @@ export async function runAdminCrmRoutingRuleAction(
   deps: RunAdminCrmRoutingRuleActionDeps = {}
 ): Promise<AdminCrmRoutingActionResult> {
   const actor = resolveAdminCrmRoutingActor(args.session);
-  if (!actor) return { reason: 'forbidden', status: 'error' };
+  if (!actor || !args.authority) return { reason: 'forbidden', status: 'error' };
 
-  const repository = deps.repository ?? adminCrmRoutingRuleRepository;
+  const repository = deps.repository ?? createAdminCrmRoutingRuleRepository(args.authority);
   try {
     if (args.kind === 'create') return await createRule(actor, args.input, repository);
     if (args.kind === 'update') return await updateRule(actor, args.input, repository);

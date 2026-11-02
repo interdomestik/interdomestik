@@ -31,7 +31,7 @@ import {
   getPaddleSubscriptionReferences,
   normalizeText,
   resolveWebhookSubscription,
-  resolveWebhookTenantId,
+  resolveWebhookTenant,
 } from './paddle-webhook-resolution';
 
 export {
@@ -118,6 +118,7 @@ export async function handlePaddleWebhookCore(args: {
       secret,
       signature,
       parsedPayload,
+      billingEntity,
     });
   } catch {
     try {
@@ -165,8 +166,9 @@ export async function handlePaddleWebhookCore(args: {
   const normalizedEventId = normalizeText(eventId);
   const data = (eventData as { data?: unknown }).data;
 
-  const subscription = await resolveWebhookSubscription(data);
-  const tenantId = await resolveWebhookTenantId(data, subscription);
+  const subscription = await resolveWebhookSubscription(verified.delivery, data);
+  const webhookTenant = await resolveWebhookTenant(verified.delivery, data, subscription);
+  const tenantId = webhookTenant?.tenantId ?? null;
   const processingScopeKey = resolveProcessingScopeKey({ tenantId, billingEntity });
   const dedupeKey = resolveScopedDedupeKey({
     processingScopeKey,
@@ -189,6 +191,7 @@ export async function handlePaddleWebhookCore(args: {
       payloadHash,
       parsedPayload,
       tenantId,
+      authority: webhookTenant?.authority ?? null,
     },
     { logAuditEvent }
   );
@@ -208,25 +211,32 @@ export async function handlePaddleWebhookCore(args: {
     await persistInvoiceAndLedgerInvariants(
       {
         headers,
+        delivery: verified.delivery,
         webhookEventRowId,
         eventType,
         eventId: normalizedEventId ?? undefined,
         tenantId,
         billingEntity: billingEntity ?? null,
         providerTransactionId,
-        storedSubscriptionId: subscription?.id ?? null,
+        storedSubscriptionId: subscription?.subscription.id ?? null,
         data,
       },
       { logAuditEvent }
     );
 
-    await reconcilePaddleLeadConversion({ eventType, data, tenantId, subscription });
+    await reconcilePaddleLeadConversion({
+      eventType,
+      data,
+      authority: webhookTenant?.authority ?? null,
+      subscription: subscription?.subscription ?? null,
+    });
 
     await handlePaddleEvent(
       buildPaddleEventDispatchParams({
         eventType,
         data,
-        tenantId,
+        delivery: verified.delivery,
+        authority: webhookTenant?.authority ?? null,
         processingScopeKey,
         providerEventId: normalizedEventId,
         providerEventOccurredAt: parsedBody.eventOccurredAtFromPayload,
@@ -243,7 +253,14 @@ export async function handlePaddleWebhookCore(args: {
       }
     );
     await markWebhookProcessed(
-      { headers, receiptLease, eventType, eventId: normalizedEventId ?? undefined, tenantId },
+      {
+        headers,
+        receiptLease,
+        eventType,
+        eventId: normalizedEventId ?? undefined,
+        tenantId,
+        authority: webhookTenant?.authority ?? null,
+      },
       { logAuditEvent }
     );
   } catch (processingError) {
@@ -256,6 +273,7 @@ export async function handlePaddleWebhookCore(args: {
         error: processingError,
         retryable: isRetryablePaddleWebhookError(processingError),
         tenantId,
+        authority: webhookTenant?.authority ?? null,
       },
       { logAuditEvent }
     );

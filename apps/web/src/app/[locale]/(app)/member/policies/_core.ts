@@ -1,7 +1,12 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { withTenantContext } from '@interdomestik/database';
+
 import { documentExtractions, documents, policies } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { desc } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type PolicyRow = typeof policies.$inferSelect;
 
@@ -32,11 +37,12 @@ function resolvePolicyAnalysis(
 }
 
 export async function getPoliciesWithDocumentLinksCore(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
 }): Promise<PolicyWithDocumentLink[]> {
-  const { tenantId, userId } = args;
-  const userPolicies = await withTenantContext({ tenantId }, tx =>
+  const { authority, userId } = args;
+  const { tenantId } = readTenantAuthority(authority);
+  const userPolicies = await withTenantAuthority(authority, tx =>
     tx.query.policies.findMany({
       where: (policiesTable, { and, eq }) =>
         and(eq(policiesTable.userId, userId), eq(policiesTable.tenantId, tenantId)),
@@ -50,7 +56,7 @@ export async function getPoliciesWithDocumentLinksCore(args: {
 
   const policyIds = userPolicies.map(policy => policy.id);
 
-  const extractions = await withTenantContext({ tenantId }, tx =>
+  const extractions = await withTenantAuthority(authority, tx =>
     tx.query.documentExtractions.findMany({
       where: (extractionsTable, { and, eq, inArray: whereInArray }) =>
         and(
@@ -74,7 +80,7 @@ export async function getPoliciesWithDocumentLinksCore(args: {
     }
   }
 
-  const policyDocuments = (await withTenantContext({ tenantId }, tx =>
+  const policyDocuments = (await withTenantAuthority(authority, tx =>
     tx.query.documents.findMany({
       columns: {
         id: true,

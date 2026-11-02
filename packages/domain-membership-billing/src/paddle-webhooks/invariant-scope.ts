@@ -1,4 +1,5 @@
-import { findSubscriptionByProviderReference } from '../subscription';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { findPaddleSubscriptionByReference } from '../subscription';
 import { resolveBillingEntityFromPathSegment, type BillingEntity } from '../paddle-server';
 import {
   normalizeBillingText,
@@ -56,6 +57,7 @@ function assertRouteEntityMatches(
 }
 
 export async function resolveInvariantScope(params: {
+  delivery: IngressCapability<'paddle-delivery'>;
   billingEntity?: BillingEntity | null;
   data: unknown;
   tenantId?: string | null;
@@ -89,7 +91,8 @@ export async function resolveInvariantScope(params: {
 
   const subscriptionId = normalizeBillingText(payload.subscriptionId || payload.subscription_id);
   if (subscriptionId) {
-    const subscription = await findSubscriptionByProviderReference(subscriptionId);
+    const subscription = (await findPaddleSubscriptionByReference(subscriptionId, params.delivery))
+      ?.subscription;
     if (subscription) {
       return assertRouteEntityMatches(
         resolveBillingScopeFromSnapshot(subscription, 'subscription billing snapshot'),

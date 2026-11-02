@@ -1,31 +1,37 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 
 import { revokeAgentClientReadScope } from '../../../ownership-attribution';
 import type { CheckoutCustomData } from '../../types';
 import { recordMembershipAttributionRecordedEvent } from './membership-attribution-recorded-event';
 import { resolveNewMembershipOwnership, type WebhookUserRecord } from './new-membership-ownership';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function recordReadOnlyMembershipAttribution(args: {
   providerEventId?: string;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
 }): Promise<void> {
+  const { authority } = args;
   const ownership = resolveNewMembershipOwnership(args);
   const agentId = ownership.agentId;
   const ownershipSource = ownership.resolvedFrom;
   if (!agentId || !ownershipSource) return;
 
+  const { tenantId } = readTenantAuthority(authority);
   const eventId = args.providerEventId
-    ? `paddle:${args.tenantId}:${args.providerEventId}:agent-attribution-recorded`
+    ? `paddle:${tenantId}:${args.providerEventId}:agent-attribution-recorded`
     : undefined;
   try {
     const now = new Date();
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await withTenantContext({ tenantId: args.tenantId }, async tx => {
+    await withTenantAuthority(authority, async tx => {
       await revokeAgentClientReadScope(tx, {
-        tenantId: args.tenantId,
+        tenantId,
         memberId: args.userId,
       });
       await recordMembershipAttributionRecordedEvent({
@@ -33,7 +39,7 @@ export async function recordReadOnlyMembershipAttribution(args: {
         memberId: args.userId,
         now,
         ownershipSource,
-        tenantId: args.tenantId,
+        tenantId,
         tx,
       });
     });

@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentLeaderboardCore } from './get.core';
 
@@ -62,6 +63,8 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn().mockReturnValue('tenant-1'),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getAgentLeaderboardCore', () => {
   const mockSession = {
     session: {
@@ -104,7 +107,11 @@ describe('getAgentLeaderboardCore', () => {
       .orderBy()
       .limit.mockReturnValue(Promise.resolve(mockDbResult));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
+    const result = await getAgentLeaderboardCore({
+      session: mockSession as never,
+      authority,
+      period: 'week',
+    });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -122,7 +129,11 @@ describe('getAgentLeaderboardCore', () => {
       .orderBy()
       .limit.mockReturnValue(Promise.reject(new Error('DB Fail')));
 
-    const result = await getAgentLeaderboardCore({ session: mockSession as never, period: 'week' });
+    const result = await getAgentLeaderboardCore({
+      session: mockSession as never,
+      authority,
+      period: 'week',
+    });
     expect(result).toEqual({ success: false, error: 'Failed to fetch leaderboard' });
   });
 });

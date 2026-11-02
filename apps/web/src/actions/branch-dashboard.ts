@@ -13,7 +13,12 @@ import type { ActionResult } from '@/types/actions';
 import { formatControlViolation } from '@interdomestik/domain-membership-billing';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 
-import { getActionContext } from './admin-users/context';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { delegateSuperAdminBranchOwner } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 
 export async function getBranchDashboard(
   branchId: string
@@ -25,12 +30,13 @@ export async function getBranchDashboard(
   };
 
   try {
-    const { session } = await getActionContext();
+    const authorized = await authorizeSessionTenant();
 
-    if (!session?.user) {
+    if (!authorized) {
       // Expected RBAC denial - do NOT send to Sentry
       return { success: false, error: 'Unauthorized' };
     }
+    const { session, authority } = authorized;
 
     // Populate Sentry context
     sentryContext.userId = session.user.id;
@@ -55,25 +61,31 @@ export async function getBranchDashboard(
       return { success: false, error: 'Insufficient permissions' };
     }
 
-    // For cross-tenant scope (super_admin), derive tenantId from the branch
-    // For tenant-scoped users, use their tenantId
-    const tenantId = scope.isCrossTenantScope
-      ? ((await resolveTenantFromBranch(branchId)) ?? '')
-      : scope.tenantId;
-
-    if (!tenantId) {
-      return { success: false, error: 'Branch not found' };
+    // For cross-tenant scope (super_admin), the branch's owning tenant is delegated from the super
+    // admin's own session authority. Tenant-scoped users read under their session authority only.
+    let readAuthority: TenantAuthority;
+    if (scope.isCrossTenantScope) {
+      const delegated = await delegateSuperAdminBranchOwner(authority, branchId);
+      if (!delegated || delegated.branchId !== branchId) {
+        return { success: false, error: 'Branch not found' };
+      }
+      readAuthority = delegated.authority;
+    } else {
+      if (!scope.tenantId || scope.tenantId !== readTenantAuthority(authority).tenantId) {
+        return { success: false, error: 'Branch not found' };
+      }
+      readAuthority = authority;
     }
 
     // Fetch branch with tenant scoping
-    const branch = await getBranchById(branchId, tenantId);
+    const branch = await getBranchById(branchId, readAuthority);
     if (!branch) {
       return { success: false, error: 'Branch not found' };
     }
 
     const [stats, agents] = await Promise.all([
-      getBranchStats(branchId, tenantId, branch.isActive, branch.tenantId),
-      getBranchAgents(branchId, tenantId),
+      getBranchStats(branchId, readAuthority, branch.isActive, branch.tenantId),
+      getBranchAgents(branchId, readAuthority),
     ]);
 
     if (!stats.ok) {
@@ -101,21 +113,4 @@ export async function getBranchDashboard(
     console.error('[Action:getBranchDashboard]', err);
     return { success: false, error: 'Failed to retrieve branch dashboard' };
   }
-}
-
-/**
- * Helper for super_admin: resolve tenantId from branchId
- */
-async function resolveTenantFromBranch(branchId: string): Promise<string | null> {
-  const { db } = await import('@interdomestik/database/db');
-  const { branches } = await import('@interdomestik/database/schema');
-  const { eq } = await import('drizzle-orm');
-
-  // db-access-guard: system-exempt -- reason: super-admin branch lookup resolves tenant before scoped dashboard reads
-  const result = await db.query.branches.findFirst({
-    where: eq(branches.id, branchId),
-    columns: { tenantId: true },
-  });
-
-  return result?.tenantId ?? null;
 }

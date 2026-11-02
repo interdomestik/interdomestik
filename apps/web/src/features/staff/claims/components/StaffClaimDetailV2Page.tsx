@@ -5,8 +5,9 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { MissingTenantError } from '@interdomestik/shared-auth';
 import {
   Card,
   CardContent,
@@ -27,13 +28,19 @@ import { getStaffClaimDetailsCore } from '@/app/[locale]/(staff)/staff/claims/[i
 export async function StaffClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  try {
+    authorized = await authorizeSessionTenant(await headers());
+  } catch (error) {
+    // A session without a tenant cannot view staff claim details.
+    if (error instanceof MissingTenantError) return notFound();
+    throw error;
+  }
 
-  if (session?.user?.role !== 'staff') {
+  if (authorized?.session.user.role !== 'staff') {
     return notFound();
   }
+  const { session, authority } = authorized;
   if (!session.user.tenantId) {
     return notFound();
   }
@@ -43,17 +50,17 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
       branchId: session.user.branchId ?? null,
       claimId: id,
       staffId: session.user.id,
-      tenantId: session.user.tenantId,
+      authority,
     }),
     getStaffClaimDetail({
       branchId: session.user.branchId ?? null,
       claimId: id,
       staffId: session.user.id,
-      tenantId: session.user.tenantId,
+      authority,
     }),
     getStaffAssignmentOptions({
       branchId: session.user.branchId ?? null,
-      tenantId: session.user.tenantId,
+      authority,
     }),
   ]);
   if (result.kind !== 'ok' || !commercialDetail) return notFound();

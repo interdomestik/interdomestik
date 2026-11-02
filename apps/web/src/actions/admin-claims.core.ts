@@ -5,11 +5,11 @@ import { getActionContext } from './admin-claims/context';
 import { updateClaimStatusCore } from './admin-claims/update-status';
 
 export async function updateClaimStatus(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
-  return updateClaimStatusCore({ formData, session, requestHeaders });
+  const { session, authority, requestHeaders } = await getActionContext();
+  return updateClaimStatusCore({ formData, session, authority, requestHeaders });
 }
 
 export async function assignClaim(claimId: string, staffId: string | null) {
-  const { session, requestHeaders } = await getActionContext();
-  return assignClaimCore({ claimId, staffId, session, requestHeaders });
+  const { session, authority, requestHeaders } = await getActionContext();
+  return assignClaimCore({ claimId, staffId, session, authority, requestHeaders });
 }

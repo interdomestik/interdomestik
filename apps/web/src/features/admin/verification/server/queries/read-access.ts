@@ -1,4 +1,5 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { isStaffOrHigher } from '@interdomestik/shared-auth';
 
 /**
@@ -6,6 +7,7 @@ import { isStaffOrHigher } from '@interdomestik/shared-auth';
  * Satisfied by the action context and by the API's plain verification context.
  */
 export type VerificationReadContext = {
+  authority: TenantAuthority;
   tenantId: string;
   userRole: string;
   scope: { branchId: string | null };

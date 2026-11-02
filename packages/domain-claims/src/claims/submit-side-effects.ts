@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import type { CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import type { ClaimAssignmentContext } from './submit-assignment';
@@ -6,7 +8,7 @@ import type { ClaimsDeps, ClaimsSession } from './types';
 export async function logClaimSubmittedAudit(args: {
   deps: ClaimsDeps;
   session: ClaimsSession;
-  tenantId: string;
+  authority: TenantAuthority;
   requestHeaders: Headers;
   claimId: string;
   data: CreateClaimValues;
@@ -22,7 +24,7 @@ export async function logClaimSubmittedAudit(args: {
   await args.deps.logAuditEvent({
     actorId: args.session.user.id,
     actorRole: args.session.user.role,
-    tenantId: args.tenantId,
+    authority: args.authority,
     action: 'claim.submitted',
     entityType: 'claim',
     entityId: args.claimId,
@@ -57,7 +59,6 @@ export async function dispatchQueuedClaimAiRuns(
       if (deps.markClaimAiRunDispatchFailed) {
         await deps.markClaimAiRunDispatchFailed({
           runId: queuedRun.runId,
-          tenantId: queuedRun.tenantId,
           message,
         });
       }
@@ -68,7 +69,7 @@ export async function dispatchQueuedClaimAiRuns(
 export function notifyClaimSubmitted(args: {
   deps: ClaimsDeps;
   session: ClaimsSession;
-  tenantId: string;
+  authority: TenantAuthority;
   claimId: string;
   data: CreateClaimValues;
 }) {
@@ -85,7 +86,7 @@ export function notifyClaimSubmitted(args: {
         title: args.data.title,
         category: args.data.category,
       },
-      { tenantId: args.tenantId }
+      { authority: args.authority }
     )
   ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
 }

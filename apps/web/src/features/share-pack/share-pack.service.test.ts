@@ -1,12 +1,17 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   insert: vi.fn(),
+  select: vi.fn(),
   values: vi.fn(),
   withTenantContext: vi.fn(),
+  resolveSharePackTenant: vi.fn(),
+  findPack: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  resolveSharePackTenant: hoisted.resolveSharePackTenant,
   withTenantContext: (
     context: { tenantId: string },
     action: (tx: Record<string, unknown>) => Promise<unknown>
@@ -16,10 +21,10 @@ vi.mock('@interdomestik/database', () => ({
       insert: hoisted.insert,
       query: {
         sharePacks: {
-          findFirst: vi.fn(),
+          findFirst: hoisted.findPack,
         },
       },
-      select: vi.fn(),
+      select: hoisted.select,
     });
   },
 }));
@@ -39,8 +44,10 @@ vi.mock('@interdomestik/database/schema', () => ({
 }));
 
 import {
+  createSharePack,
   generateShareToken,
   hashShareTokenForAudit,
+  getSharePack,
   logAuditEvent,
   verifyShareToken,
 } from './share-pack.service';
@@ -105,13 +112,15 @@ describe('share-pack.service token security', () => {
   it('hashes share tokens before storing audit rows', async () => {
     const token = 'raw-share-token';
 
+    const authority = mintTestTenantAuthority('tenant_mk');
     await logAuditEvent({
-      tenantId: 'tenant_mk',
+      authority,
       ids: ['doc-1'],
       shareToken: token,
     });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority);
+    expect(hoisted.values).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'tenant_mk' }));
     expect(hashShareTokenForAudit(token)).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(hoisted.values).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -123,5 +132,78 @@ describe('share-pack.service token security', () => {
         shareToken: token,
       })
     );
+  });
+
+  it('creates a share pack under the session tenant authority and scopes it to its tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant_mk');
+    hoisted.select.mockReturnValue({
+      from: () => ({ where: async () => [{ id: 'doc-1' }, { id: 'doc-2' }] }),
+    });
+
+    const result = await createSharePack({
+      authority,
+      userId: 'user-1',
+      documentIds: ['doc-1', 'doc-2'],
+    });
+
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(1, authority);
+    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(2, authority);
+    expect(hoisted.values).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant_mk', createdByUserId: 'user-1' })
+    );
+    expect(verifyShareToken(result.token)).toMatchObject({
+      packId: result.packId,
+      tenantId: 'tenant_mk',
+    });
+  });
+
+  it('rejects document ids outside the authority tenant before inserting a pack', async () => {
+    const authority = mintTestTenantAuthority('tenant_mk');
+    hoisted.select.mockReturnValue({
+      from: () => ({ where: async () => [{ id: 'doc-1' }] }),
+    });
+
+    await expect(
+      createSharePack({ authority, userId: 'user-1', documentIds: ['doc-1', 'foreign'] })
+    ).rejects.toThrow('Invalid IDs');
+    expect(hoisted.values).not.toHaveBeenCalled();
+  });
+
+  it('reads a shared pack only under the authority its stored pack resolves to', async () => {
+    process.env = { ...process.env, SHARE_PACK_SECRET: 'share-pack-test-secret' };
+    const token = generateShareToken({ packId: 'pack-1', tenantId: 'tenant_mk' });
+    const authority = mintTestTenantAuthority('tenant_mk');
+    hoisted.resolveSharePackTenant.mockResolvedValueOnce({ tenantId: 'tenant_mk', authority });
+    hoisted.findPack.mockResolvedValueOnce({ id: 'pack-1', documentIds: ['doc-1'] });
+    hoisted.select.mockReturnValueOnce({ from: () => ({ where: async () => [{ id: 'doc-1' }] }) });
+
+    const result = await getSharePack({ token });
+
+    expect(hoisted.resolveSharePackTenant).toHaveBeenCalledWith(
+      'pack-1',
+      'tenant_mk',
+      expect.any(Date)
+    );
+    expect(result?.authority).toBe(authority);
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(1, authority);
+    expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(2, authority);
+  });
+
+  it('reads nothing when the stored pack does not resolve for the signed token', async () => {
+    process.env = { ...process.env, SHARE_PACK_SECRET: 'share-pack-test-secret' };
+    const token = generateShareToken({ packId: 'pack-1', tenantId: 'tenant_mk' });
+    hoisted.resolveSharePackTenant.mockResolvedValueOnce(null);
+
+    await expect(getSharePack({ token })).resolves.toBeNull();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('never resolves a pack for an unsigned or forged token', async () => {
+    process.env = { ...process.env, SHARE_PACK_SECRET: 'share-pack-test-secret' };
+
+    await expect(getSharePack({ token: 'not-a-token' })).resolves.toBeNull();
+    expect(hoisted.resolveSharePackTenant).not.toHaveBeenCalled();
   });
 });

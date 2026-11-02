@@ -1,11 +1,16 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { sendEmail } from '../email';
 import { buildEmailTemplate, joinUrl, DEFAULT_APP_URL } from '../email/templates';
 import type { NotificationEvent } from './notify-types';
 
-export function queryUserById(userId: string, tenantId: string) {
-  return withTenantContext({ tenantId }, tx =>
+export function queryUserById(userId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx =>
     tx.query.user.findFirst({
       where: (users, { eq }) => withTenant(tenantId, users.tenantId, eq(users.id, userId)),
       columns: { email: true, emailVerified: true, tenantId: true },
@@ -15,11 +20,11 @@ export function queryUserById(userId: string, tenantId: string) {
 
 export function sendVerifiedEmail(
   userId: string,
-  tenantId: string,
+  authority: TenantAuthority,
   label: string,
   dispatch: (verifiedEmail: string) => Promise<unknown>
 ) {
-  queryUserById(userId, tenantId)
+  queryUserById(userId, authority)
     .then(userRecord => {
       if (!userRecord?.email || !userRecord.emailVerified) {
         return;

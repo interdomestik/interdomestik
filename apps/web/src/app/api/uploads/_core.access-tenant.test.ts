@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -53,7 +54,13 @@ describe('createSignedUploadCore access tenant isolation', () => {
   });
 
   it('uses access tenant for claim lookup and claim home tenant for storage', async () => {
+    const authority = mintTestTenantAuthority('tenant_access', {
+      accessTenantId: 'tenant_access',
+      userId: 'member-1',
+      role: 'member',
+    });
     const result = await createSignedUploadCore({
+      authority,
       bucket: 'claim-evidence',
       input: {
         claimId: 'claim-1',
@@ -72,10 +79,7 @@ describe('createSignedUploadCore access tenant isolation', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_access', role: 'member' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
     expect(hoisted.matchesAccessTenant).not.toHaveBeenCalledWith(
       expect.anything(),

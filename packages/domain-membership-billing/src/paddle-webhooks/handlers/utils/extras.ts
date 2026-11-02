@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { referrals } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
@@ -12,6 +15,7 @@ import {
   toOwnershipResolvedFrom,
   type WebhookUserRecord,
 } from './new-membership-ownership';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { redactEmail } from './membership-confirmation';
 
@@ -19,13 +23,13 @@ async function processCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
   priceId: string;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, priceId, deps } =
+  const { internalSubscriptionId, sub, userId, authority, customData, userRecord, priceId, deps } =
     args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
   const ownership = resolveNewMembershipOwnership({ userRecord, customData });
@@ -34,7 +38,8 @@ async function processCommissions(args: {
 
   if (!agentId || transactionTotal <= 0) return;
 
-  const agentSettings = await withTenantContext({ tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(authority);
+  const agentSettings = await withTenantAuthority(authority, tx =>
     tx.query.agentSettings?.findFirst({
       where: (settings, { and, eq }) =>
         and(eq(settings.agentId, agentId), eq(settings.tenantId, tenantId)),
@@ -50,7 +55,7 @@ async function processCommissions(args: {
     type: 'new_membership',
     amount: commissionAmount,
     currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
-    tenantId,
+    authority,
     metadata: {
       planId: priceId,
       transactionTotal,
@@ -70,7 +75,7 @@ async function processCommissions(args: {
       action: 'commission.created',
       entityType: 'commission',
       entityId: commissionResult.data?.id ?? null,
-      tenantId,
+      authority,
       metadata: {
         agentId,
         memberId: userId,
@@ -94,17 +99,18 @@ async function processMemberReferralRewards(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   customData: CheckoutCustomData | undefined;
   userRecord?: WebhookUserRecord | null;
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { internalSubscriptionId, sub, userId, tenantId, customData, userRecord, deps } = args;
+  const { internalSubscriptionId, sub, userId, authority, customData, userRecord, deps } = args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
 
   if (resolveNewMembershipOwnership({ userRecord, customData }).agentId) return;
 
-  const referralRow = await withTenantContext({ tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(authority);
+  const referralRow = await withTenantAuthority(authority, tx =>
     tx.query.referrals.findFirst({
       where: and(eq(referrals.tenantId, tenantId), eq(referrals.referredId, userId)),
       columns: {
@@ -114,7 +120,7 @@ async function processMemberReferralRewards(args: {
   );
 
   const rewardResult = await createMemberReferralRewardCore({
-    tenantId,
+    authority,
     referralId: referralRow?.id ?? null,
     subscriptionId: resolvedSubscriptionId,
     qualifyingEventId: sub.id,
@@ -132,7 +138,7 @@ async function processMemberReferralRewards(args: {
       action: 'referral.reward.created',
       entityType: 'referral_reward',
       entityId: rewardResult.data.id,
-      tenantId,
+      authority,
       metadata: {
         memberId: userId,
         subscriptionId: resolvedSubscriptionId,
@@ -148,7 +154,7 @@ async function processRenewalCommissions(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   priceId: string;
   ownership?: {
     subscriptionAgentId?: string | null;
@@ -158,7 +164,7 @@ async function processRenewalCommissions(args: {
   };
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { internalSubscriptionId, sub, userId, tenantId, priceId, ownership, deps } = args;
+  const { internalSubscriptionId, sub, userId, authority, priceId, ownership, deps } = args;
   const resolvedSubscriptionId = internalSubscriptionId ?? sub.id;
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
   if (transactionTotal <= 0) return;
@@ -166,7 +172,7 @@ async function processRenewalCommissions(args: {
   const subscriptionAgentId = ownership?.subscriptionAgentId;
 
   const commissionResult = await createRenewalCommissionCore({
-    tenantId,
+    authority,
     memberId: userId,
     subscriptionId: resolvedSubscriptionId,
     priceId,
@@ -184,7 +190,7 @@ async function processRenewalCommissions(args: {
       action: 'commission.created',
       entityType: 'commission',
       entityId: commissionResult.data.id,
-      tenantId,
+      authority,
       metadata: {
         memberId: userId,
         subscriptionId: resolvedSubscriptionId,
@@ -205,7 +211,7 @@ async function processRenewalCommissions(args: {
       action: 'commission.unresolved',
       entityType: 'commission',
       entityId: null,
-      tenantId,
+      authority,
       metadata: {
         memberId: userId,
         subscriptionId: resolvedSubscriptionId,
@@ -223,7 +229,7 @@ export async function handleNewSubscriptionExtras(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   customData: CheckoutCustomData | undefined;
   priceId: string;
   userRecord: WebhookUserRecord | null;
@@ -238,7 +244,7 @@ export async function handleRenewalSubscriptionExtras(args: {
   internalSubscriptionId?: string;
   sub: any;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   customData: CheckoutCustomData | undefined;
   priceId: string;
   userRecord: any;

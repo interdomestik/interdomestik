@@ -38,10 +38,15 @@ vi.mock('drizzle-orm', () => ({
   isNull: vi.fn((field: unknown) => ({ field, op: 'isNull' })),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { loadPolicyInput } from './_pipeline-file';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const run = {
   runId: 'run-1',
+  authority,
   tenantId: 'tenant-1',
   documentId: 'doc-1',
   policyId: 'policy-1',

@@ -1,3 +1,4 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -36,6 +37,9 @@ vi.mock('@interdomestik/database', () => {
 
 import { handlePaddleWebhookEntityCore } from './_core';
 
+// Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints.
+const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
+
 describe('handlePaddleWebhookEntityCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,6 +70,7 @@ describe('handlePaddleWebhookEntityCore', () => {
       },
       signatureValid: true,
       signatureBypassed: false,
+      delivery: TEST_PADDLE_DELIVERY,
     });
     hoisted.resolvePaddleUserOwner.mockResolvedValue({
       userId: 'user_owner',
@@ -90,6 +95,8 @@ describe('handlePaddleWebhookEntityCore', () => {
       expect.objectContaining({
         secret: 'whsec_ks',
         signature: 'sig_ks',
+        // The preflight verification is bound to the entity route that received the delivery.
+        billingEntity: 'ks',
       })
     );
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
@@ -113,6 +120,7 @@ describe('handlePaddleWebhookEntityCore', () => {
       },
       signatureValid: true,
       signatureBypassed: false,
+      delivery: TEST_PADDLE_DELIVERY,
     });
     hoisted.resolvePaddleUserOwner.mockResolvedValue({
       userId: 'user_owner',
@@ -150,6 +158,7 @@ describe('handlePaddleWebhookEntityCore', () => {
       },
       signatureValid: true,
       signatureBypassed: false,
+      delivery: TEST_PADDLE_DELIVERY,
     });
 
     const result = await handlePaddleWebhookEntityCore({

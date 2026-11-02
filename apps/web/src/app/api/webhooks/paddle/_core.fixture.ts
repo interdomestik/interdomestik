@@ -1,11 +1,21 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
+/**
+ * Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints. `authorizePaddleTenant`
+ * is mocked in these tests, so an opaque frozen token is enough; tests assert it reaches the
+ * producer and the handlers unchanged.
+ */
+const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
+
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn(),
   requestPasswordReset: vi.fn(),
   resolvePaddleUserOwner: vi.fn(),
   convertLeadToMember: vi.fn(),
   hasTenantLeadForConversion: vi.fn(),
-  findSubscriptionByProviderReference: vi.fn(),
+  findPaddleSubscriptionByReference: vi.fn(),
   handlePaddleEvent: vi.fn(),
   insertWebhookEvent: vi.fn(),
   markWebhookFailed: vi.fn(),
@@ -26,11 +36,12 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  findSubscriptionByProviderReference: hoisted.findSubscriptionByProviderReference,
+  findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,
 }));
 
 vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', () => ({
@@ -64,6 +75,19 @@ vi.mock('@/lib/email', () => ({
 
 import { handlePaddleWebhookCore } from './_core';
 
+// A resolver-owned subscription together with the authority it was read under.
+function subscriptionLookup<T extends { tenantId: string }>(subscription: T) {
+  return { subscription, authority: mintTestTenantAuthority(subscription.tenantId) };
+}
+
+// Default behaviour of the mocked producer: an authority for the owner's tenant.
+function installAuthorizePaddleTenantMock() {
+  hoisted.authorizePaddleTenant.mockImplementation(
+    (_delivery: unknown, owner: { tenantId: string }) => mintTestTenantAuthority(owner.tenantId)
+  );
+}
+installAuthorizePaddleTenantMock();
+
 async function callPaddleWebhookCore() {
   return handlePaddleWebhookCore({
     paddle: {} as never,
@@ -83,4 +107,11 @@ function receiptAdmission(id = 'webhook_event_1') {
   };
 }
 
-export { hoisted, callPaddleWebhookCore, receiptAdmission };
+export {
+  hoisted,
+  callPaddleWebhookCore,
+  installAuthorizePaddleTenantMock,
+  receiptAdmission,
+  subscriptionLookup,
+  TEST_PADDLE_DELIVERY,
+};

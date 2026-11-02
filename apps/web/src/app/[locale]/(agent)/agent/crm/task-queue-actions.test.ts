@@ -1,8 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   cancelCrmTaskActionWithGuardMock: vi.fn(),
   completeCrmTaskActionMock: vi.fn(),
+  createAgentCrmTaskWorkQueueRepositoryMock: vi.fn(),
   readAgentCompletedTaskQueueMock: vi.fn(),
   readAgentTaskWorkQueueMock: vi.fn(),
   reopenCrmTaskActionWithGuardMock: vi.fn(),
@@ -21,10 +23,7 @@ vi.mock('@/actions/crm-tasks', () => ({
 }));
 
 vi.mock('@/adapters/crm/task-work-queue-repository', () => ({
-  agentCrmTaskWorkQueueRepository: {
-    readAgentCompletedTaskQueue: hoisted.readAgentCompletedTaskQueueMock,
-    readAgentTaskWorkQueue: hoisted.readAgentTaskWorkQueueMock,
-  },
+  createAgentCrmTaskWorkQueueRepository: hoisted.createAgentCrmTaskWorkQueueRepositoryMock,
 }));
 
 import {
@@ -35,7 +34,13 @@ import {
   submitAgentCrmTaskQueueReopenAction,
 } from './task-queue-actions';
 
+hoisted.createAgentCrmTaskWorkQueueRepositoryMock.mockReturnValue({
+  readAgentCompletedTaskQueue: hoisted.readAgentCompletedTaskQueueMock,
+  readAgentTaskWorkQueue: hoisted.readAgentTaskWorkQueueMock,
+});
+
 const mockRequestHeaders = new Headers();
+const mockAuthority = mintTestTenantAuthority('tenant-1');
 const mockAgentActor = {
   actorId: 'agent-1',
   role: 'agent',
@@ -58,6 +63,7 @@ function mockCancelActionWithQueueGuard(): void {
     const guardResult = guard
       ? await guard({
           actor: mockAgentActor,
+          authority: mockAuthority,
           deps: {},
           input,
           requestHeaders: mockRequestHeaders,
@@ -73,6 +79,7 @@ function mockReopenActionWithQueueGuard(): void {
     const guardResult = guard
       ? await guard({
           actor: mockAgentActor,
+          authority: mockAuthority,
           deps: {},
           input,
           requestHeaders: mockRequestHeaders,
@@ -88,6 +95,7 @@ function mockPriorityActionWithQueueGuard(): void {
     const guardResult = guard
       ? await guard({
           actor: mockAgentActor,
+          authority: mockAuthority,
           deps: {},
           input,
           requestHeaders: mockRequestHeaders,
@@ -244,6 +252,7 @@ describe('submitAgentCrmTaskQueueCancellationAction', () => {
     });
 
     expect(result).toEqual({ reasonCode: 'duplicate', success: true });
+    expect(hoisted.createAgentCrmTaskWorkQueueRepositoryMock.mock.calls[0][0]).toBe(mockAuthority);
     expect(hoisted.readAgentTaskWorkQueueMock).toHaveBeenCalledWith({
       actor: mockAgentActor,
       now: expect.any(String),
@@ -352,6 +361,7 @@ describe('submitAgentCrmTaskQueueReopenAction', () => {
     });
 
     expect(result).toEqual({ reasonCode: 'incomplete', success: true });
+    expect(hoisted.createAgentCrmTaskWorkQueueRepositoryMock.mock.calls[0][0]).toBe(mockAuthority);
     expect(hoisted.readAgentCompletedTaskQueueMock).toHaveBeenCalledWith({
       actor: mockAgentActor,
       now: expect.any(String),

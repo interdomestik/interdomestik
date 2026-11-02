@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberReferralRewards } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 
 import type {
@@ -8,6 +11,7 @@ import type {
   MemberReferralRewardType,
   MemberReferralQualifyingEventType,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface MemberReferralAdminRewardRow {
   id: string;
@@ -74,16 +78,17 @@ function buildStatusPatch(params: {
 }
 
 export async function listMemberReferralRewardsCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<MemberReferralAdminRewardRow[]>> {
   try {
+    const { tenantId } = readTenantAuthority(params.authority);
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS);
     const offset = params.offset ?? 0;
-    const rows = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    const rows = await withTenantAuthority(params.authority, tx =>
       tx.query.memberReferralRewards.findMany({
-        where: and(eq(memberReferralRewards.tenantId, params.tenantId)),
+        where: and(eq(memberReferralRewards.tenantId, tenantId)),
         limit,
         offset,
       })
@@ -100,15 +105,16 @@ export async function listMemberReferralRewardsCore(params: {
 }
 
 export async function updateMemberReferralRewardStatusCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   rewardId: string;
   newStatus: MemberReferralRewardStatus;
 }): Promise<ActionResult<MemberReferralAdminRewardRow>> {
   try {
-    const current = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    const { tenantId } = readTenantAuthority(params.authority);
+    const current = await withTenantAuthority(params.authority, tx =>
       tx.query.memberReferralRewards.findFirst({
         where: and(
-          eq(memberReferralRewards.tenantId, params.tenantId),
+          eq(memberReferralRewards.tenantId, tenantId),
           eq(memberReferralRewards.id, params.rewardId)
         ),
       })
@@ -134,13 +140,13 @@ export async function updateMemberReferralRewardStatusCore(params: {
       newStatus: params.newStatus,
     });
 
-    const [updated] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    const [updated] = await withTenantAuthority(params.authority, tx =>
       tx
         .update(memberReferralRewards)
         .set(patch)
         .where(
           and(
-            eq(memberReferralRewards.tenantId, params.tenantId),
+            eq(memberReferralRewards.tenantId, tenantId),
             eq(memberReferralRewards.id, params.rewardId)
           )
         )

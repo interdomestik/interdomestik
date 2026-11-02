@@ -28,10 +28,12 @@ export function resolveTenantContext(
 ): ResolvedTenantContext {
   if (isTenantAuthority(context)) {
     const descriptor = readTenantAuthority(context);
+    // A system authority (no principal) keeps the 'system' role label legacy system callers set.
+    // RLS policies do not read app.user_role; it is diagnostic context only.
     return {
       tenantId: descriptor.tenantId,
       accessTenantId: descriptor.accessTenantId,
-      role: descriptor.principal?.role ?? null,
+      role: descriptor.principal ? descriptor.principal.role : 'system',
     };
   }
   const legacy = context as Partial<TenantContext> | null;

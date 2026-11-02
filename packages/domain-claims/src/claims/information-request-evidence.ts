@@ -6,9 +6,12 @@ import {
   claims,
   eq,
   isNull,
-  withTenantContext,
 } from '@interdomestik/database';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -28,21 +31,19 @@ export type AcknowledgeInformationRequestEvidenceResult =
 
 export async function acknowledgeInformationRequestEvidence(
   session: ClaimsSession | null,
+  authority: TenantAuthority | null,
   input: unknown
 ): Promise<AcknowledgeInformationRequestEvidenceResult> {
-  if (session?.user.role !== 'staff') return { success: false, error: 'access_denied' };
-  let tenantId: string;
-  try {
-    tenantId = ensureAccessTenantId(session);
-  } catch {
+  if (session?.user.role !== 'staff' || !authority) {
     return { success: false, error: 'access_denied' };
   }
+  const { tenantId } = readTenantAuthority(authority);
   const parsed = acknowledgeInformationRequestEvidenceInput.safeParse(input);
   if (!parsed.success) return { success: false, error: 'invalid_input' };
 
   const data = parsed.data;
   const actorId = session.user.id;
-  return withTenantContext({ tenantId, role: 'staff' }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     const [claim] = await tx
       .select({ staffId: claims.staffId })
       .from(claims)

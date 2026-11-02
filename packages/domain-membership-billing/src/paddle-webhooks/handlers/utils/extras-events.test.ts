@@ -1,7 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 const databaseMocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
@@ -82,7 +85,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
         currentBillingPeriod: { endsAt: '2026-01-01T00:00:00Z' },
         items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
       },
-      tenantId: 'tenant_1',
+      authority,
       userId: 'user_1',
       userRecord: { email: 'member@example.invalid', memberNumber: 'M-1', name: 'Member' },
     });
@@ -125,7 +128,7 @@ describe('handleNewSubscriptionExtras membership events', () => {
           id: 'sub_123',
           items: [{ price: { unitPrice: { amount: '2000', currencyCode: 'EUR' } } }],
         },
-        tenantId: 'tenant_1',
+        authority,
         userId: 'user_1',
         userRecord: { email: 'member@example.invalid', memberNumber: 'M-1', name: 'Member' },
       })

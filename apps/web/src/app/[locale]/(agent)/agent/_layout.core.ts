@@ -1,6 +1,10 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { agentSettings } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface AgentLayoutServices {
   db: {
@@ -36,12 +40,14 @@ export async function getAgentTierCore(
 
 export async function getAgentTier(params: {
   agentId: string;
-  tenantId?: string | null;
+  /** The session's tenant authority; null for a session that carries no tenant. */
+  authority: TenantAuthority | null;
 }): Promise<string> {
-  const { tenantId } = params;
-  if (!tenantId) {
+  const { agentId, authority } = params;
+  if (!authority) {
     return 'standard';
   }
 
-  return withTenantContext({ tenantId }, tx => getAgentTierCore(params, { db: tx }));
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, tx => getAgentTierCore({ agentId, tenantId }, { db: tx }));
 }

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { updateNotificationPreferencesCore } from './update';
 
 // Mock dependencies
@@ -75,6 +76,8 @@ describe('updateNotificationPreferencesCore', () => {
     },
   };
 
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -86,6 +89,7 @@ describe('updateNotificationPreferencesCore', () => {
   it('returns Unauthorized when no session', async () => {
     const result = await updateNotificationPreferencesCore({
       session: null,
+      authority,
       preferences: validPreferences,
     });
 
@@ -95,9 +99,10 @@ describe('updateNotificationPreferencesCore', () => {
     }
   });
 
-  it('returns Unauthorized when user has no tenant', async () => {
+  it('returns Unauthorized when there is no tenant authority', async () => {
     const result = await updateNotificationPreferencesCore({
       session: { user: { id: 'user-1' } } as any,
+      authority: null,
       preferences: validPreferences,
     });
 
@@ -115,6 +120,7 @@ describe('updateNotificationPreferencesCore', () => {
 
     const result = await updateNotificationPreferencesCore({
       session: mockSession as any,
+      authority,
       preferences: invalidPreferences,
     });
 
@@ -132,6 +138,7 @@ describe('updateNotificationPreferencesCore', () => {
 
     const result = await updateNotificationPreferencesCore({
       session: mockSession as any,
+      authority,
       preferences: incompletePreferences,
     });
 
@@ -149,6 +156,7 @@ describe('updateNotificationPreferencesCore', () => {
 
     const result = await updateNotificationPreferencesCore({
       session: mockSession as any,
+      authority,
       preferences: wrongTypePreferences,
     });
 
@@ -161,6 +169,7 @@ describe('updateNotificationPreferencesCore', () => {
   it('accepts valid preferences and returns success', async () => {
     const result = await updateNotificationPreferencesCore({
       session: mockSession as any,
+      authority,
       preferences: validPreferences,
     });
 

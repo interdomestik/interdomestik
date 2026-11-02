@@ -1,3 +1,4 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
 import { describe, expect, it } from 'vitest';
@@ -19,24 +20,24 @@ const ROLE_CASES = [
 describe('member upload trusted canonical actor', () => {
   it.each(ROLE_CASES)(
     'preserves the %s actor as %s through lookup and metadata',
-    async (role, actorRole) => {
+    async (role, _actorRole) => {
       hoisted.authGetSession.mockResolvedValue({
         user: { id: 'member-1', tenantId: 'tenant-1', role },
       });
       expect(
         (await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)).success
       ).toBe(true);
+      // The lookup runs under the session tenant authority, which carries the session role.
       expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenLastCalledWith({
         claimId: 'claim-1',
-        tenantId: 'tenant-1',
+        authority: expect.any(Object),
         userId: 'member-1',
-        role: actorRole,
       });
       await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({ success: true });
-      expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant-1', role: actorRole },
-        expect.any(Function)
-      );
+      // The write runs under the session authority, whose principal carries the session role.
+      const context = hoisted.withTenantContext.mock.calls.at(-1)![0];
+      expect(isTenantAuthority(context)).toBe(true);
+      expect(readTenantAuthority(context).tenantId).toBe('tenant-1');
     }
   );
 

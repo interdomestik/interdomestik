@@ -9,24 +9,30 @@ import type { BranchAgentRow, BranchMetadata, BranchStats } from '@/actions/bran
 import { getBranchCashPendingCount } from '@/features/admin/branches/server/branch-cash-metrics';
 import { computeHealthScore, computeSeverity } from '@/features/admin/branches/utils/branch-risk';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
-import { withTenantContext } from '@interdomestik/database';
+
 import { claims, user } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import {
   guardBranchStatsScope,
   type ControlResult,
 } from '@interdomestik/domain-membership-billing';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /**
  * Fetch branch metadata by ID with tenant scoping
  */
 export async function getBranchById(
   branchId: string,
-  tenantId: string
+  authority: TenantAuthority
 ): Promise<BranchMetadata | null> {
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const result = await withTenantContext({ tenantId }, async tx =>
+  const result = await withTenantAuthority(authority, async tx =>
     tx.query.branches.findFirst({
       where: (b, { and: andOp, eq: eqOp }) =>
         andOp(eqOp(b.id, branchId), eqOp(b.tenantId, tenantId)),
@@ -53,10 +59,11 @@ export async function getBranchById(
  */
 export async function getBranchStats(
   branchId: string,
-  tenantId: string,
+  authority: TenantAuthority,
   isActive: boolean,
   branchTenantId?: string | null
 ): Promise<ControlResult<BranchStats>> {
+  const { tenantId } = readTenantAuthority(authority);
   const scopeGuard = guardBranchStatsScope({ branchId, tenantId, branchTenantId });
   if (!scopeGuard.ok) {
     return scopeGuard;
@@ -65,7 +72,7 @@ export async function getBranchStats(
   const [agentCount, memberCount, openClaimsCount, cashPendingCount, slaBreachesCount] =
     await Promise.all([
       // Count agents in branch
-      withTenantContext({ tenantId }, async tx =>
+      withTenantAuthority(authority, async tx =>
         tx
           .select({ count: count() })
           .from(user)
@@ -75,7 +82,7 @@ export async function getBranchStats(
       ),
 
       // Count ALL members in this branch (role 'user' or 'member')
-      withTenantContext({ tenantId }, async tx =>
+      withTenantAuthority(authority, async tx =>
         tx
           .select({ count: count() })
           .from(user)
@@ -89,7 +96,7 @@ export async function getBranchStats(
       ),
 
       // Open Claims: actionable statuses (Shared Definition)
-      withTenantContext({ tenantId }, async tx =>
+      withTenantAuthority(authority, async tx =>
         tx
           .select({ count: count() })
           .from(claims)
@@ -99,10 +106,10 @@ export async function getBranchStats(
       ),
 
       // Cash Pending: unresolved cash verification load in this branch.
-      getBranchCashPendingCount({ tenantId, branchId }),
+      getBranchCashPendingCount({ authority, branchId }),
 
       // SLA Breaches: submitted > 30 days (Shared Definition)
-      withTenantContext({ tenantId }, async tx =>
+      withTenantAuthority(authority, async tx =>
         tx
           .select({ count: count() })
           .from(claims)
@@ -146,12 +153,13 @@ export async function getBranchStats(
  */
 export async function getBranchAgents(
   branchId: string,
-  tenantId: string
+  authority: TenantAuthority
 ): Promise<BranchAgentRow[]> {
+  const { tenantId } = readTenantAuthority(authority);
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const results = await withTenantContext({ tenantId }, async tx =>
+  const results = await withTenantAuthority(authority, async tx =>
     tx
       .select({
         agentId: user.id,

@@ -1,6 +1,15 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveBranchId, resolveSubscriptionContext } from './context';
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeTestPaddleOwner,
+} from '../../paddle-authority.test-support';
+import {
+  authorizeReconciledCheckoutUser,
+  resolveBranchId,
+  resolveSubscriptionContext,
+} from './context';
 
 // Mock the database structure with basic spies
 vi.mock('@interdomestik/database', () => {
@@ -25,6 +34,7 @@ vi.mock('@interdomestik/database', () => {
 });
 
 const resolution = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn(),
   resolvePaddleSubscriptionOwner: vi.fn(),
   resolvePaddleUserOwner: vi.fn(),
 }));
@@ -50,6 +60,7 @@ const mockDbResponse = (returnValue: any) => {
 describe('context utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolution.authorizePaddleTenant.mockReset().mockImplementation(authorizeTestPaddleOwner);
     resolution.resolvePaddleSubscriptionOwner.mockReset().mockResolvedValue(null);
     resolution.resolvePaddleUserOwner.mockReset().mockResolvedValue(null);
   });
@@ -117,7 +128,7 @@ describe('context utils', () => {
   describe('resolveSubscriptionContext', () => {
     it('should return null if no userId in customData', async () => {
       const sub = { id: 's_1', customData: {} };
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
       expect(result).toBeNull();
     });
 
@@ -139,9 +150,24 @@ describe('context utils', () => {
         mockDbResponse({ value: { branchId: 'br_def' } })
       );
 
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
 
-      expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tn_ex' }, expect.any(Function));
+      // The subscription owner's authority is reused for the user read and the branch lookup.
+      const subscriptionOwner = resolution.resolvePaddleSubscriptionOwner.mock.results[0]!;
+      const subscriptionAuthority = resolution.authorizePaddleTenant.mock.results[0]!.value;
+      expect(resolution.authorizePaddleTenant.mock.calls[0]).toEqual([
+        TEST_PADDLE_DELIVERY,
+        await subscriptionOwner.value,
+      ]);
+      expect(resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(
+        await subscriptionOwner.value
+      );
+      expect(withTenantContext).toHaveBeenLastCalledWith(
+        subscriptionAuthority,
+        expect.any(Function)
+      );
+      expect(result?.authority).toBe(subscriptionAuthority);
+      expect(readTenantAuthority(result!.authority).tenantId).toBe('tn_ex');
       expect(result).toEqual(
         expect.objectContaining({
           userId: 'u_1',
@@ -161,8 +187,17 @@ describe('context utils', () => {
         mockDbResponse({ value: { branchId: 'br_def' } })
       );
 
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
       expect(result?.tenantId).toBe('tn_usr');
+      // No existing subscription: the authority comes from the resolver owner of the user.
+      const userOwner = await resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+      expect(resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+        TEST_PADDLE_DELIVERY,
+        userOwner
+      );
+      expect(resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(userOwner);
+      expect(withTenantContext).toHaveBeenLastCalledWith(result?.authority, expect.any(Function));
+      expect(readTenantAuthority(result!.authority).tenantId).toBe('tn_usr');
     });
 
     it('should reuse existing subscription user when customData omits userId', async () => {
@@ -186,7 +221,7 @@ describe('context utils', () => {
         mockDbResponse({ value: { branchId: 'br_agent' } })
       );
 
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
 
       expect(result).toEqual(
         expect.objectContaining({
@@ -218,12 +253,43 @@ describe('context utils', () => {
         mockDbResponse({ value: { branchId: 'br_def' } })
       );
 
-      await expect(resolveSubscriptionContext(sub)).rejects.toThrow(
+      await expect(resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub)).rejects.toThrow(
         'customData tenant=tenant_bad conflicts with canonical tenant=tenant_real'
       );
       expect(warnSpy).not.toHaveBeenCalled();
+      // The provider-supplied tenant never becomes an authority, and no branch lookup ran.
+      for (const call of resolution.authorizePaddleTenant.mock.calls) {
+        expect(call[1]).not.toEqual(expect.objectContaining({ tenantId: 'tenant_bad' }));
+      }
+      expect(withTenantContext).toHaveBeenCalledTimes(2);
 
       warnSpy.mockRestore();
+    });
+
+    it('should fail closed without branch lookup when the existing subscription tenant differs from the user tenant', async () => {
+      const sub = { id: 's_existing', customData: { userId: 'u_1' } };
+
+      resolution.resolvePaddleSubscriptionOwner.mockResolvedValue({
+        subscriptionId: 's_existing',
+        tenantId: 'tenant_sub',
+      });
+      resolution.resolvePaddleUserOwner.mockResolvedValue({
+        userId: 'u_1',
+        tenantId: 'tenant_user',
+      });
+      (db.query.subscriptions.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_sub', userId: 'u_1' })
+      );
+      (db.query.user.findFirst as any).mockImplementation(
+        mockDbResponse({ tenantId: 'tenant_user', email: 'member@example.com' })
+      );
+
+      await expect(resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub)).rejects.toThrow(
+        'existing subscription tenant=tenant_sub conflicts with user tenant=tenant_user'
+      );
+      // Only the two owner-scoped reads ran; no effect ran under either authority.
+      expect(withTenantContext).toHaveBeenCalledTimes(2);
+      expect(db.query.tenantSettings.findFirst).not.toHaveBeenCalled();
     });
 
     it('should reject mismatched customData user when an existing subscription has canonical user', async () => {
@@ -238,7 +304,7 @@ describe('context utils', () => {
         mockDbResponse({ tenantId: 'tenant_real', userId: 'u_real' })
       );
 
-      await expect(resolveSubscriptionContext(sub)).rejects.toThrow(
+      await expect(resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub)).rejects.toThrow(
         'customData user=u_bad conflicts with existing subscription user=u_real'
       );
       expect(resolution.resolvePaddleUserOwner).not.toHaveBeenCalled();
@@ -254,7 +320,7 @@ describe('context utils', () => {
       (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse(undefined));
 
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
 
       expect(result).toBeNull();
       expect(withTenantContext).not.toHaveBeenCalled();
@@ -265,8 +331,53 @@ describe('context utils', () => {
       (db.query.subscriptions.findFirst as any).mockImplementation(mockDbResponse(undefined));
       (db.query.user.findFirst as any).mockImplementation(mockDbResponse(undefined));
 
-      const result = await resolveSubscriptionContext(sub);
+      const result = await resolveSubscriptionContext(TEST_PADDLE_DELIVERY, sub);
       expect(result).toBeNull();
+    });
+  });
+  describe('authorizeReconciledCheckoutUser', () => {
+    it('mints the authority from the resolver owner of the persisted user', async () => {
+      const owner = { userId: 'u_new', tenantId: 'tenant_mk' };
+      resolution.resolvePaddleUserOwner.mockResolvedValue(owner);
+
+      const authority = await authorizeReconciledCheckoutUser(
+        TEST_PADDLE_DELIVERY,
+        { userId: 'u_new', tenantId: 'tenant_mk' },
+        's_1'
+      );
+
+      expect(resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('u_new');
+      expect(resolution.authorizePaddleTenant).toHaveBeenCalledWith(TEST_PADDLE_DELIVERY, owner);
+      expect(resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
+      expect(readTenantAuthority(authority).tenantId).toBe('tenant_mk');
+    });
+
+    it('fails closed when the persisted user belongs to another tenant than the evidence', async () => {
+      resolution.resolvePaddleUserOwner.mockResolvedValue({
+        userId: 'u_new',
+        tenantId: 'tenant_ks',
+      });
+
+      await expect(
+        authorizeReconciledCheckoutUser(
+          TEST_PADDLE_DELIVERY,
+          { userId: 'u_new', tenantId: 'tenant_mk' },
+          's_1'
+        )
+      ).rejects.toThrow('conflicts with webhook authority tenant=tenant_ks');
+    });
+
+    it('fails closed when the persisted user has no unique owner', async () => {
+      resolution.resolvePaddleUserOwner.mockResolvedValue(null);
+
+      await expect(
+        authorizeReconciledCheckoutUser(
+          TEST_PADDLE_DELIVERY,
+          { userId: 'u_new', tenantId: 'tenant_mk' },
+          's_1'
+        )
+      ).rejects.toThrow('has no unique owner');
+      expect(resolution.authorizePaddleTenant).not.toHaveBeenCalled();
     });
   });
 });

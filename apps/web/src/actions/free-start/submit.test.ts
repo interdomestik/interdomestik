@@ -1,3 +1,5 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitFreeStartIntakeCore } from './submit.core';
@@ -15,9 +17,24 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
     mockRunCommercialActionWithIdempotency(...args),
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  authorizePublicSiteTenant: async (tenantId: string) => mintTestTenantAuthority(tenantId),
+}));
+
 vi.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
 }));
+
+// The reservation scope carries the public-site authority of the host partition, never a raw id.
+function tenantScope(tenantId: string) {
+  return {
+    kind: 'tenant',
+    authority: expect.toSatisfy(
+      (authority: unknown) => readTenantAuthority(authority as never).tenantId === tenantId
+    ),
+    actorUserId: null,
+  };
+}
 
 // Configuration read by the real tenant resolver; stubbed empty per test and restored after.
 const TENANT_HOST_ENV = [
@@ -137,11 +154,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'free-start.submit',
-        scope: {
-          kind: 'tenant',
-          tenantId: 'tenant_ks',
-          actorUserId: null,
-        },
+        scope: tenantScope('tenant_ks'),
         idempotencyKey: 'free-start-1',
         requestFingerprint: validInput,
       })
@@ -162,7 +175,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
 
       expect(result).toMatchObject({ success: true });
       expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
-        expect.objectContaining({ scope: { kind: 'tenant', tenantId, actorUserId: null } })
+        expect.objectContaining({ scope: tenantScope(tenantId) })
       );
     }
   );

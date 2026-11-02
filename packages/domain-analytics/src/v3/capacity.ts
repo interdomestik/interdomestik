@@ -1,6 +1,10 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { agentClients, claims } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface AgentCapacityResult {
   capacity: 'available' | 'near_limit' | 'overloaded';
@@ -9,12 +13,13 @@ export interface AgentCapacityResult {
 }
 
 export async function getAgentCapacitySignal(
-  tenantId: string,
+  authority: TenantAuthority,
   agentId: string
 ): Promise<AgentCapacityResult> {
+  const { tenantId } = readTenantAuthority(authority);
   // Signals: Total Active Clients + Claims touched in last 30d, both bound to the caller's tenant.
 
-  const { clients, recentClaims } = await withTenantContext({ tenantId }, async tx => {
+  const { clients, recentClaims } = await withTenantAuthority(authority, async tx => {
     const [clients] = await tx
       .select({ count: count() })
       .from(agentClients)

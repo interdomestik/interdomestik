@@ -1,5 +1,7 @@
 import { beforeEach, vi, type Mock } from 'vitest';
 
+import { authorizeTestPaddleOwner } from '../paddle-authority.test-support';
+
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps, PastDueEmailDeps } from '../types';
 import { projectLockedSubscriptionOrder } from './provider-event-order.test-support';
 
@@ -148,8 +150,10 @@ const hoisted = vi.hoisted(() => {
       update: vi.fn() as Mock,
       query,
     },
+    authorizePaddleTenant: vi.fn() as Mock,
     resolvePaddleUserOwner: vi.fn() as Mock,
-    findSubscriptionByProviderReference: vi.fn() as Mock,
+    findPaddleSubscriptionByReference: vi.fn() as Mock,
+    findPaddleSubscriptionInTenant: vi.fn() as Mock,
   };
 });
 
@@ -163,6 +167,7 @@ vi.mock('@interdomestik/database', () => ({
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
   webhookEvents: { payload: 'webhook_events.payload' },
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 
@@ -171,14 +176,18 @@ vi.mock('@interdomestik/database/schema', () => ({
   engagementEmailSends: hoisted.engagementEmailSends,
 }));
 vi.mock('../../subscription', () => ({
-  findSubscriptionByProviderReference: hoisted.findSubscriptionByProviderReference,
+  findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,
+  findPaddleSubscriptionInTenant: hoisted.findPaddleSubscriptionInTenant,
 }));
 vi.mock('../../annual-membership', () => ({
   createCanonicalMembershipPlanState: (planId: string, planKey?: string | null) => ({
     planId,
     ...(planKey ? { planKey } : {}),
   }),
-  resolveCanonicalMembershipPlanState: vi.fn(async () => ({ planId: 'standard', planKey: null })),
+  resolveCanonicalMembershipPlanState: vi.fn(async () => ({
+    planId: 'standard',
+    planKey: null,
+  })),
 }));
 
 export function seed(status: string, markerAt: string, markerEventId: string) {
@@ -214,9 +223,12 @@ beforeEach(() => {
   hoisted.store.failAudit = false;
   hoisted.store.failIntent = false;
   hoisted.store.failAck = false;
-  hoisted.findSubscriptionByProviderReference.mockImplementation(async () =>
+  hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
+  // Tenant-scoped lookup under the canonical authority the core resolved.
+  hoisted.findPaddleSubscriptionInTenant.mockImplementation(async () =>
     hoisted.store.row ? { ...hoisted.store.row } : null
   );
+  hoisted.findPaddleSubscriptionByReference.mockImplementation(async () => null);
   // The privileged lookup names the user's tenant; the profile is read inside it.
   hoisted.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
     userId,

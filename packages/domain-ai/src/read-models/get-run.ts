@@ -1,6 +1,11 @@
-import { eq, withTenantContext } from '@interdomestik/database';
+import { eq } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AiRunWorkflowState = 'queued' | 'processing' | 'completed' | 'needs_review' | 'failed';
 
@@ -43,10 +48,11 @@ function deriveWorkflowState(status: string, reviewStatus: string): AiRunWorkflo
 }
 
 export async function getAiRun(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   runId: string;
 }): Promise<AiRunReadModel | null> {
-  const [row] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(params.authority);
+  const [row] = await withTenantAuthority(params.authority, tx =>
     tx
       .select({
         id: aiRuns.id,
@@ -68,7 +74,7 @@ export async function getAiRun(params: {
       })
       .from(aiRuns)
       .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
-      .where(withTenant(params.tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
+      .where(withTenant(tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
       .limit(1)
   );
 

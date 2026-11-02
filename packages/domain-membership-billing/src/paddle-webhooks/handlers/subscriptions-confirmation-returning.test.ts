@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { mockUserOwner, resetPaddleHandlerMocks } from './test-support';
+import { TEST_PADDLE_DELIVERY, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -62,6 +62,7 @@ describe('returning subscription confirmation', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         providerEventId: 'evt_returning_1',
         webhookPayloadHash: 'payload_hash_returning_1',

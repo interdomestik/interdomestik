@@ -1,11 +1,16 @@
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { deriveClaimSlaPhase } from '@/features/claims/policy/slaPolicy';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { withTenantContext, type TenantTransaction } from '@interdomestik/database';
+import { type TenantTransaction } from '@interdomestik/database';
 import type { db } from '@interdomestik/database/db';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { agentClients, claims, serviceUsage, subscriptions } from '@interdomestik/database/schema';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type GroupDashboardSummary = {
   activatedMembersCount: number;
@@ -145,9 +150,10 @@ export async function getGroupDashboardSummaryCore(
 
 export async function getGroupDashboardSummary(params: {
   agentId: string;
-  tenantId: string;
+  authority: TenantAuthority;
 }): Promise<GroupDashboardSummary> {
-  return withTenantContext({ tenantId: params.tenantId }, tx =>
-    getGroupDashboardSummaryCore(params, { db: tx })
+  const { tenantId } = readTenantAuthority(params.authority);
+  return withTenantAuthority(params.authority, tx =>
+    getGroupDashboardSummaryCore({ agentId: params.agentId, tenantId }, { db: tx })
   );
 }

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -289,7 +290,8 @@ describe('routing application service coordinator', () => {
     });
 
     const apply = createApplyCrmLeadRoutingDecisionCoordinator({
-      database: fake.database as never,
+      authority: mintTestTenantAuthority('tenant-1'),
+      executor: fake.database as never,
       createOutboxPort,
       services: { outboxEventId: () => 'outbox-1' },
     });
@@ -335,7 +337,8 @@ describe('routing application service coordinator', () => {
     });
 
     const apply = createApplyCrmLeadRoutingDecisionCoordinator({
-      database: fake.database as never,
+      authority: mintTestTenantAuthority('tenant-1'),
+      executor: fake.database as never,
       createOutboxPort: () => ({ appendEvent: vi.fn() }),
     });
 
@@ -357,7 +360,8 @@ describe('routing application service coordinator', () => {
     applyMock.mockRejectedValueOnce(new Error('db unavailable'));
 
     const apply = createApplyCrmLeadRoutingDecisionCoordinator({
-      database: fake.database as never,
+      authority: mintTestTenantAuthority('tenant-1'),
+      executor: fake.database as never,
       createOutboxPort: () => ({ appendEvent: vi.fn() }),
     });
 

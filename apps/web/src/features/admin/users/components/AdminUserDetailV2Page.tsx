@@ -1,5 +1,9 @@
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ArrowLeft } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -32,7 +36,7 @@ type AdminUserDetailV2PageProps = Readonly<{
   id: string;
   locale: string;
   searchParams: Record<string, string | string[] | undefined>;
-  tenantId: string | null;
+  authority: TenantAuthority | null;
   actorRole: string | null;
   actorBranchId: string | null;
   tenantClassificationOptions: AdminTenantOption[];
@@ -83,7 +87,7 @@ export async function AdminUserDetailV2Page({
   id,
   locale,
   searchParams,
-  tenantId,
+  authority,
   actorRole,
   actorBranchId,
   tenantClassificationOptions,
@@ -94,7 +98,7 @@ export async function AdminUserDetailV2Page({
 
   const result = await getAdminUserProfileCore({
     userId: id,
-    tenantId,
+    authority,
     actor: { role: actorRole, branchId: actorBranchId },
     recentClaimsLimit: RECENT_CLAIMS_LIMIT,
   });
@@ -103,6 +107,8 @@ export async function AdminUserDetailV2Page({
   }
 
   const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
+  // A found profile implies an authority; client components receive only its tenant id.
+  const tenantId = authority ? readTenantAuthority(authority).tenantId : null;
   const hasMemberNumber = Boolean(member.memberNumber);
   const hasSubscription = Boolean(subscription);
   const isMembershipProfile = hasMemberNumber || hasSubscription;

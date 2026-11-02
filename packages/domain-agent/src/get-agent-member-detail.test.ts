@@ -40,6 +40,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getAgentMemberDetail } from './get-agent-member-detail';
 
 describe('getAgentMemberDetail', () => {
@@ -63,7 +64,7 @@ describe('getAgentMemberDetail', () => {
 
     const result = await getAgentMemberDetail({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       memberId: 'member-1',
     });
 
@@ -78,7 +79,7 @@ describe('getAgentMemberDetail', () => {
 
     const result = await getAgentMemberDetail({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       memberId: 'member-2',
     });
 
@@ -88,14 +89,15 @@ describe('getAgentMemberDetail', () => {
 
   it('enforces tenant isolation', async () => {
     mocks.findAssignment.mockResolvedValue(null);
+    const authority = mintTestTenantAuthority('tenant-2');
 
     await getAgentMemberDetail({
       agentId: 'agent-2',
-      tenantId: 'tenant-2',
+      authority,
       memberId: 'member-3',
     });
 
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-2' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('agent_clients.tenant_id', 'tenant-2');
   });
 });

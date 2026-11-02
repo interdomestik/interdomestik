@@ -64,6 +64,10 @@ describe('MemberPoliciesV2Page', () => {
     const tree = await MemberPoliciesV2Page({ locale: 'en' });
     const { container } = render(tree);
 
+    expect(hoisted.getPoliciesWithDocumentLinksCore).toHaveBeenCalledWith({
+      authority: expect.any(Object),
+      userId: 'user-1',
+    });
     expect(screen.getByRole('button', { name: 'View PDF' })).toBeDisabled();
     expect(container.innerHTML).not.toContain('https://cdn.example/policy.pdf');
   });

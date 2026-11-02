@@ -3,7 +3,8 @@ import {
   type CrmLeadMutationResult,
 } from '@interdomestik/domain-crm/leads/mutations';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { crmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { createCrmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
 
 function mapStageError(result: Extract<CrmLeadMutationResult, { success: false }>) {
   if (result.error === 'not_found') {
@@ -21,7 +22,15 @@ function mapStageError(result: Extract<CrmLeadMutationResult, { success: false }
   return { error: 'Forbidden' as const };
 }
 
-export async function updateLeadStatusCore(actor: CrmActorContext, leadId: string, stage: string) {
-  const result = await updateCrmLeadStage({ actor, leadId, stage }, crmLeadMutationRepository);
+export async function updateLeadStatusCore(
+  actor: CrmActorContext,
+  authority: TenantAuthority,
+  leadId: string,
+  stage: string
+) {
+  const result = await updateCrmLeadStage(
+    { actor, leadId, stage },
+    createCrmLeadMutationRepository(authority)
+  );
   return result.success ? { success: true as const } : mapStageError(result);
 }

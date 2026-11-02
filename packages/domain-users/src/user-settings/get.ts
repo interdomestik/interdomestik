@@ -1,26 +1,30 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
 import { DEFAULT_NOTIFICATION_PREFERENCES, type NotificationPreferences } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getNotificationPreferencesCore(params: {
   session: UserSession | null;
+  authority: TenantAuthority | null;
 }): Promise<
   | { success: true; preferences: NotificationPreferences; error: undefined }
   | { success: false; error: string }
 > {
-  const { session } = params;
+  const { session, authority } = params;
 
-  if (!session?.user) {
+  if (!session?.user || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
   try {
-    const tenantId = ensureTenantId(session);
-    const [preferences] = await withTenantContext({ tenantId }, tx =>
+    const { tenantId } = readTenantAuthority(authority);
+    const [preferences] = await withTenantAuthority(authority, tx =>
       tx
         .select()
         .from(userNotificationPreferences)

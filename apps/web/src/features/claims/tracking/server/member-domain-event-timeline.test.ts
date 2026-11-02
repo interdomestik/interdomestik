@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -58,11 +59,9 @@ describe('member domain-event timeline', () => {
     );
     const chain = selectChain([eventRow()]);
     hoisted.select.mockReturnValueOnce(chain);
-    const result = await getMemberTimelineFromDomainEvents(context);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: context.tenantId },
-      expect.any(Function)
-    );
+    const authority = mintTestTenantAuthority(context.tenantId);
+    const result = await getMemberTimelineFromDomainEvents(context, authority);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.select).toHaveBeenCalledTimes(1);
     expect(result[0]?.id).toBe('event-1');
     const joinArgs = chain.innerJoin.mock.calls[0]?.[1].args;
@@ -85,6 +84,15 @@ describe('member domain-event timeline', () => {
         { op: 'eq', left: 'domainEvents.eventName', right: 'claim.status_changed' },
       ],
     });
+  });
+
+  it('fails closed without querying when the authority is for a different tenant than the claim', async () => {
+    vi.clearAllMocks();
+    await expect(
+      getMemberTimelineFromDomainEvents(context, mintTestTenantAuthority('tenant-other'))
+    ).rejects.toThrow('tenant authority');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.select).not.toHaveBeenCalled();
   });
 
   it('maps claim.status_changed@1 without actor, raw payload, or internal fields', () => {

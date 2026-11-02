@@ -1,10 +1,12 @@
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { markMessagesAsReadCore as markMessagesAsReadCoreDomain } from '@interdomestik/domain-communications/messages/mark-read';
 import { markMessagesReadSchema } from '@interdomestik/domain-communications/messages/schemas';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
 
 export async function markMessagesAsReadCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   messageIds: string[];
   requestHeaders: Headers;
 }) {

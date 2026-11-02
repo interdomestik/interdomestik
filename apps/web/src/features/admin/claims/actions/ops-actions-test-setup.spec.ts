@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, expect, vi } from 'vitest';
 
 // Exercises the real ops action guards (action-helpers + ops-action-outcome) with only the
@@ -157,6 +158,20 @@ export const FORBIDDEN_USERS: ReadonlyArray<readonly [string, Record<string, unk
   ['case-variant admin', { role: 'ADMIN' }],
   ['staff holding persisted admin grants', { role: 'staff', roles: ['admin', 'tenant_admin'] }],
 ];
+
+/** The tenant context handed to withTenantContext: every ops entrypoint passes the session's authority. */
+export function expectOpsTenantContext(
+  _entrypoint: string,
+  context: unknown,
+  expected: { tenantId: string; role: string }
+) {
+  expect(readTenantAuthority(context as never)).toMatchObject({
+    tenantId: expected.tenantId,
+    accessTenantId: expected.tenantId,
+    purpose: 'session',
+    principal: expect.objectContaining({ role: expected.role }),
+  });
+}
 
 export const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'] as const;
 

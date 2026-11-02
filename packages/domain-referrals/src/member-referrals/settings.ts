@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberReferralSettings } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -9,6 +12,7 @@ import type {
   MemberReferralProgramSettings,
   MemberReferralSettingsInput,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const DEFAULT_SETTINGS: MemberReferralProgramSettings = {
   tenantId: '',
@@ -52,27 +56,26 @@ function normalizeSettingsRow(
 }
 
 export async function getMemberReferralProgramSettingsCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
 }): Promise<ActionResult<MemberReferralProgramSettings>> {
+  const { authority } = params;
+  const { tenantId } = readTenantAuthority(authority);
   try {
-    const row = await withTenantContext({ tenantId: params.tenantId }, tx =>
+    const row = await withTenantAuthority(authority, tx =>
       tx.query.memberReferralSettings.findFirst({
-        where: eq(memberReferralSettings.tenantId, params.tenantId),
+        where: eq(memberReferralSettings.tenantId, tenantId),
       })
     );
 
     return {
       success: true,
-      data: normalizeSettingsRow(
-        params.tenantId,
-        row as Partial<MemberReferralProgramSettings> | null
-      ),
+      data: normalizeSettingsRow(tenantId, row as Partial<MemberReferralProgramSettings> | null),
     };
   } catch (error) {
     if (isMissingRelationError(error)) {
       return {
         success: true,
-        data: normalizeSettingsRow(params.tenantId, null),
+        data: normalizeSettingsRow(tenantId, null),
       };
     }
     console.error('Error reading member referral settings:', error);
@@ -81,13 +84,14 @@ export async function getMemberReferralProgramSettingsCore(params: {
 }
 
 export async function upsertMemberReferralProgramSettingsCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   settings: MemberReferralSettingsInput;
 }): Promise<ActionResult<MemberReferralProgramSettings>> {
-  const { tenantId, settings } = params;
+  const { authority, settings } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const current = await getMemberReferralProgramSettingsCore({ tenantId });
+    const current = await getMemberReferralProgramSettingsCore({ authority });
     if (!current.success) {
       return current;
     }
@@ -98,7 +102,7 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
     });
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .insert(memberReferralSettings)
         .values({

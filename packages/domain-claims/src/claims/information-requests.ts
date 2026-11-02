@@ -7,10 +7,13 @@ import {
   claims,
   desc,
   eq,
-  withTenantContext,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { z } from 'zod';
 import type { ClaimsSession } from './types';
 
@@ -37,20 +40,18 @@ export type InformationRequestResult =
 
 export async function createInformationRequest(
   session: ClaimsSession | null,
+  authority: TenantAuthority | null,
   input: unknown
 ): Promise<InformationRequestResult> {
-  if (session?.user.role !== 'staff') return { success: false, error: 'access_denied' };
-  let tenantId: string;
-  try {
-    tenantId = ensureAccessTenantId(session);
-  } catch {
+  if (session?.user.role !== 'staff' || !authority) {
     return { success: false, error: 'access_denied' };
   }
+  const { tenantId } = readTenantAuthority(authority);
   const parsed = informationRequestInput.safeParse(input);
   if (!parsed.success) return { success: false, error: 'invalid_input' };
   const data = parsed.data;
   const actorId = session.user.id;
-  return withTenantContext({ tenantId, role: 'staff' }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     const [claim] = await tx
       .select({
         staffId: claims.staffId,
@@ -104,16 +105,15 @@ export async function createInformationRequest(
 }
 
 /** Both reads are ownership-scoped, including when a caller supplies another claim ID. */
-export async function getInformationRequests(session: ClaimsSession | null, claimId: string) {
+export async function getInformationRequests(
+  session: ClaimsSession | null,
+  authority: TenantAuthority | null,
+  claimId: string
+) {
   const actor = session?.user;
-  if (!actor || !['staff', 'member', 'user'].includes(actor.role ?? '')) return [];
-  let tenantId: string;
-  try {
-    tenantId = ensureAccessTenantId(session!);
-  } catch {
-    return [];
-  }
-  return withTenantContext({ tenantId, role: actor.role! }, async tx => {
+  if (!actor || !authority || !['staff', 'member', 'user'].includes(actor.role ?? '')) return [];
+  const { tenantId } = readTenantAuthority(authority);
+  return withTenantAuthority(authority, async tx => {
     const rows = await tx
       // Public projection excludes private correlation and staff identity.
       .select({

@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -136,13 +137,12 @@ describe('POST /api/share-pack', () => {
       validUntil: '2026-04-25T12:00:00.000Z',
     });
     expect(hoisted.createSharePack).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'user-1',
       documentIds: ['doc-1', 'doc-2'],
     });
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant-1',
         ids: ['doc-1', 'doc-2'],
         accessedBy: 'user-1',
         shareToken: 'share-token',
@@ -150,5 +150,9 @@ describe('POST /api/share-pack', () => {
         userAgent: 'vitest-agent',
       })
     );
+    // The pack and its audit run under one session authority for the session tenant.
+    const authority = hoisted.createSharePack.mock.calls[0]?.[0].authority;
+    expect(hoisted.logAuditEvent.mock.calls[0]?.[0].authority).toBe(authority);
+    expect(readTenantAuthority(authority).tenantId).toBe('tenant-1');
   });
 });

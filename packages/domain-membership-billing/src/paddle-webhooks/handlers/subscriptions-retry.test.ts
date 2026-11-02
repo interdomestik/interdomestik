@@ -1,8 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RetryablePaddleWebhookError } from '../errors';
 import { handleSubscriptionChanged } from './subscriptions';
-import { resetPaddleHandlerMocks } from './test-support';
+import { TEST_PADDLE_DELIVERY, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(() =>
   import('./test-support').then(({ createHoistedPaddleHandlerMocks }) =>
@@ -88,13 +89,16 @@ describe('handleSubscriptionChanged entity retry', () => {
     });
     // No tenant owns the email; the reads are the agent branch lookup and the final reload.
     hoisted.db.query.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(newMember);
-    hoisted.db.query.account.findFirst.mockResolvedValue(null);
+    // After reconciliation the persisted user is named by the privileged owner lookup.
+    mockUserOwner(hoisted, 'tenant_mk');
+    hoisted.identity.hasTenantMemberCredential.mockResolvedValue(false);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
     });
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         processingScopeKey: 'entity:mk',
         providerEventId: 'evt_new',
@@ -121,6 +125,7 @@ describe('handleSubscriptionChanged entity retry', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.created',
           processingScopeKey: 'entity:mk',
           providerEventId: 'evt_waiting',
@@ -199,8 +204,9 @@ describe('handleSubscriptionChanged entity retry', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
-        tenantId: 'tenant_mk',
+        authority: mintTestTenantAuthority('tenant_mk'),
         providerEventId: 'evt_retry',
         webhookPayloadHash: 'payload_hash_retry',
         data,
@@ -239,8 +245,9 @@ describe('handleSubscriptionChanged entity retry', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.created',
-          tenantId: 'tenant_mk',
+          authority: mintTestTenantAuthority('tenant_mk'),
           providerEventId: 'evt_in_progress',
           webhookPayloadHash: 'payload_hash_in_progress',
           data: subscriptionData('sub_in_progress', 'txn_in_progress'),

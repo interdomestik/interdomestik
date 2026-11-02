@@ -1,4 +1,6 @@
 import { getSessionSafe } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import { serializeMemberVaultConsentDisplay } from '@/features/claims/tracking/server/member-vault-consent-serialization';
@@ -26,12 +28,18 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   }
   const memberSession = withMemberActorRoleOnSession(session);
 
-  const claim = await getMemberClaimDetail(memberSession, id);
+  const authorized = await authorizeSessionTenant(await headers());
+
+  const authority = authorized?.authority ?? null;
+
+  const claim = await getMemberClaimDetail(memberSession, authority, id);
 
   if (!claim) {
     return notFound();
   }
-  const informationRequests = await getInformationRequests(memberSession, id).catch(() => null);
+  const informationRequests = await getInformationRequests(memberSession, authority, id).catch(
+    () => null
+  );
 
   // Serialize dates for Client Component
   const serializedClaim = {

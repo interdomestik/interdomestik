@@ -3,6 +3,7 @@ import { MockActivationTrigger } from '@/components/billing/mock-activation-trig
 import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { CheckCircle2 } from 'lucide-react';
@@ -37,8 +38,9 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const classificationPending =
     (session.user as { tenantClassificationPending?: boolean | null })
       .tenantClassificationPending === true;
-  const activeSubscription = tenantId
-    ? await getActiveSubscription(session.user.id, tenantId)
+  const authority = tenantId ? await authorizeSessionUserTenant(session.user.id) : null;
+  const activeSubscription = authority
+    ? await getActiveSubscription(session.user.id, authority)
     : null;
   const membershipActive = Boolean(activeSubscription);
   const t = await getTranslations({ locale, namespace: 'membership.success' });

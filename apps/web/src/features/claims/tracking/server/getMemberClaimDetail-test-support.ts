@@ -1,4 +1,7 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
+
+export const memberDetailAuthority = mintTestTenantAuthority('tenant-1');
 
 const hoisted = vi.hoisted(() => ({
   caseCompanionNextStep: {

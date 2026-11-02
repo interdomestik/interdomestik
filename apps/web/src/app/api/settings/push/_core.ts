@@ -1,8 +1,12 @@
-import { withTenantContext } from '@interdomestik/database';
 import { pushSubscriptions } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { pushSubscriptionSchema } from '@interdomestik/domain-communications/notifications/schemas';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type PushSubscriptionBody = {
   endpoint: string;
@@ -53,9 +57,9 @@ function isOwnedSubscription(
   return subscription.tenantId === tenantId && subscription.userId === userId;
 }
 
-async function findPushSubscriptionByEndpoint(endpoint: string, tenantId: string) {
+async function findPushSubscriptionByEndpoint(endpoint: string, authority: TenantAuthority) {
   // db-access-guard: tenant-scoped -- reason: RLS-scoped endpoint lookup; cross-tenant endpoint collisions surface via the unique-violation path
-  const [existing] = await withTenantContext({ tenantId }, async tx =>
+  const [existing] = await withTenantAuthority(authority, async tx =>
     tx.select().from(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)).limit(1)
   );
 
@@ -64,15 +68,16 @@ async function findPushSubscriptionByEndpoint(endpoint: string, tenantId: string
 
 async function updatePushSubscription(args: {
   endpoint: string;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   p256dh: string;
   authKey: string;
   userAgent?: string;
 }) {
-  const { endpoint, tenantId, userId, p256dh, authKey, userAgent } = args;
+  const { endpoint, authority, userId, p256dh, authKey, userAgent } = args;
+  const { tenantId } = readTenantAuthority(authority);
 
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .update(pushSubscriptions)
       .set({
@@ -96,14 +101,15 @@ async function updatePushSubscription(args: {
 
 export async function upsertPushSubscriptionCore(args: {
   userId: string;
-  tenantId?: string | null;
+  /** The session's tenant authority; null when the session carries no tenant. */
+  authority?: TenantAuthority | null;
   body: PushSubscriptionBody;
 }): Promise<CoreResult> {
-  const { userId, tenantId, body } = args;
-  if (!tenantId) {
+  const { userId, authority, body } = args;
+  if (!authority) {
     return { status: 400, body: { error: 'Missing tenantId' } };
   }
-  const resolvedTenantId = tenantId;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
   const validation = pushSubscriptionSchema.safeParse(body);
 
@@ -115,14 +121,14 @@ export async function upsertPushSubscriptionCore(args: {
   const { p256dh, auth: authKey } = keys;
   const updateArgs = {
     endpoint,
-    tenantId: resolvedTenantId,
+    authority,
     userId,
     p256dh,
     authKey,
     userAgent,
   };
 
-  const existing = await findPushSubscriptionByEndpoint(endpoint, resolvedTenantId);
+  const existing = await findPushSubscriptionByEndpoint(endpoint, authority);
 
   if (existing) {
     if (!isOwnedSubscription(existing, resolvedTenantId, userId)) {
@@ -133,7 +139,7 @@ export async function upsertPushSubscriptionCore(args: {
   } else {
     try {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before push subscription insert
-      await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+      await withTenantAuthority(authority, async tx =>
         tx.insert(pushSubscriptions).values({
           id: nanoid(),
           tenantId: resolvedTenantId,
@@ -151,7 +157,7 @@ export async function upsertPushSubscriptionCore(args: {
         throw error;
       }
 
-      const racedExisting = await findPushSubscriptionByEndpoint(endpoint, resolvedTenantId);
+      const racedExisting = await findPushSubscriptionByEndpoint(endpoint, authority);
       if (!racedExisting || !isOwnedSubscription(racedExisting, resolvedTenantId, userId)) {
         return pushEndpointConflict();
       }
@@ -176,20 +182,21 @@ export async function upsertPushSubscriptionCore(args: {
 
 export async function deletePushSubscriptionCore(args: {
   userId: string;
-  tenantId?: string | null;
+  /** The session's tenant authority; null when the session carries no tenant. */
+  authority?: TenantAuthority | null;
   endpoint: string;
 }): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
-  const { endpoint, tenantId, userId } = args;
-  if (!tenantId) {
+  const { endpoint, authority, userId } = args;
+  if (!authority) {
     return { status: 400, body: { error: 'Missing tenantId' } };
   }
-  const resolvedTenantId = tenantId;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
   if (!endpoint) {
     return { status: 400, body: { error: 'Invalid subscription' } };
   }
 
-  await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .delete(pushSubscriptions)
       .where(

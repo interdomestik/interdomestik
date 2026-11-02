@@ -11,6 +11,9 @@ import {
 import { user } from '../src/schema/auth';
 import { subscriptions } from '../src/schema/subscriptions';
 import { webhookEvents } from '../src/schema/webhooks';
+import { mintIngressCapability } from '../src/ingress-capability';
+import { authorizePaddleTenant } from '../src/paddle-tenant-authority';
+import { readTenantAuthority } from '../src/tenant-authority';
 
 type Captured = {
   columns: unknown;
@@ -172,4 +175,35 @@ test('customer email owner resolver reports none, ambiguous and blank distinctly
   const blank = mockSelect(t, [{ userId: 'user_1', tenantId: 'tenant_ks' }]);
   assert.equal(await resolvePaddleCustomerEmailOwner(''), null);
   assert.equal(blank.method.mock.callCount(), 0);
+});
+
+test('a Paddle tenant authority needs a verified delivery and a resolver-produced owner', async t => {
+  mockSelect(t, [{ userId: 'user_1', tenantId: 'tenant_ks' }]);
+  const owner = await resolvePaddleUserOwner('user_1');
+  assert.ok(owner);
+  assert.equal(Object.isFrozen(owner), true);
+  const delivery = mintIngressCapability('paddle-delivery');
+
+  const authority = authorizePaddleTenant(delivery, owner);
+  const descriptor = readTenantAuthority(authority);
+  assert.equal(descriptor.tenantId, 'tenant_ks');
+  assert.equal(descriptor.accessTenantId, 'tenant_ks');
+  assert.equal(descriptor.purpose, 'paddle-webhook');
+  assert.equal(descriptor.principal, null);
+
+  // A caller-built owner, even one naming the same tenant, is not a resolver result.
+  assert.throws(
+    () => authorizePaddleTenant(delivery, { tenantId: 'tenant_ks' }),
+    /resolver-produced owner/u
+  );
+  assert.throws(() => authorizePaddleTenant(delivery, { ...owner }), /resolver-produced owner/u);
+  // No verified delivery, a different ingress kind, or an expired delivery is refused.
+  const forged = Object.freeze(Object.create(null)) as typeof delivery;
+  assert.throws(() => authorizePaddleTenant(forged, owner), /Unrecognized ingress capability/u);
+  assert.throws(
+    () => authorizePaddleTenant(mintIngressCapability('cron') as never, owner),
+    /Unrecognized ingress capability/u
+  );
+  const expired = mintIngressCapability('paddle-delivery', Date.now() - 11 * 60_000);
+  assert.throws(() => authorizePaddleTenant(expired, owner), /Expired ingress capability/u);
 });

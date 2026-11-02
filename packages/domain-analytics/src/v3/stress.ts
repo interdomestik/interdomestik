@@ -1,6 +1,10 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claims, user } from '@interdomestik/database/schema';
 import { and, count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface BranchStressResult {
   stressScore: number; // 0-100
@@ -9,10 +13,11 @@ export interface BranchStressResult {
 }
 
 export async function getBranchStressIndex(
-  tenantId: string,
+  authority: TenantAuthority,
   branchId: string
 ): Promise<BranchStressResult> {
-  const [activeAgents] = await withTenantContext({ tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(authority);
+  const [activeAgents] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(user)
@@ -20,7 +25,7 @@ export async function getBranchStressIndex(
   );
 
   // Count open claims (submitted, in_review) older than 7 days
-  const [agingClaims] = await withTenantContext({ tenantId }, tx =>
+  const [agingClaims] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(claims)

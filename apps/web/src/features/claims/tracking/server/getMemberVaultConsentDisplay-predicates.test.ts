@@ -11,7 +11,12 @@ const hoisted = vi.hoisted(() => ({
   inArray: vi.fn((left: unknown, right: unknown) => ({ op: 'inArray', left, right })),
 }));
 
-import { baseParams, orderedRowsChain } from './getMemberVaultConsentDisplay.test-support';
+import {
+  baseAuthority,
+  baseParams,
+  baseTenantId,
+  orderedRowsChain,
+} from './getMemberVaultConsentDisplay.test-support';
 
 const schema = vi.hoisted(() => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
@@ -71,8 +76,8 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       )
       .mockReturnValueOnce(orderedRowsChain([]));
     const tx = { select } as unknown as TenantTransaction;
-    await getMemberVaultConsentDisplay(baseParams, tx);
-    expect(hoisted.locale).toHaveBeenCalledWith(baseParams.tenantId);
+    await getMemberVaultConsentDisplay(baseParams, baseAuthority, tx);
+    expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
     expect(select).toHaveBeenCalledTimes(2);
   });
@@ -82,14 +87,11 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
     hoisted.select.mockReturnValueOnce(documents);
 
-    await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual({
+    await expect(getMemberVaultConsentDisplay(baseParams, baseAuthority)).resolves.toEqual({
       kind: 'ready',
       items: [],
     });
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: baseParams.tenantId },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(baseAuthority, expect.any(Function));
     expect(documents.where).toHaveBeenCalledWith({
       op: 'and',
       args: [
@@ -112,7 +114,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
     hoisted.select.mockReturnValueOnce(documents).mockReturnValueOnce(consents);
 
-    await getMemberVaultConsentDisplay(baseParams);
+    await getMemberVaultConsentDisplay(baseParams, baseAuthority);
 
     expect(documents.orderBy).toHaveBeenCalledWith(
       { op: 'desc', column: 'documents.createdAt' },

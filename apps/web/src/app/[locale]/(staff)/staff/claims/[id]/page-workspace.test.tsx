@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -234,22 +235,29 @@ describe('staff case workspace hierarchy', () => {
   it('preserves the authorized reads and their argument shape', async () => {
     await renderWorkspacePage('en');
 
+    const authority = hoisted.current.authority!;
     expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledWith({
       branchId: 'branch-a',
       claimId: 'claim-1',
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority,
     });
+    expect(
+      (hoisted.getStaffClaimDetailMock.mock.calls[0] as unknown as [{ authority: unknown }])[0]
+        .authority
+    ).toBe(authority);
+    expect(readTenantAuthority(authority).tenantId).toBe('tenant-ks');
     expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
       claimId: 'claim-1',
-      tenantId: 'tenant-ks',
+      authority,
     });
     expect(hoisted.getStaffAssignmentOptionsMock).toHaveBeenCalledWith({
       branchId: 'branch-a',
-      tenantId: 'tenant-ks',
+      authority,
     });
     expect(hoisted.getInformationRequestsMock).toHaveBeenCalledWith(
       expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
+      authority,
       'claim-1'
     );
   });

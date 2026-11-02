@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,6 +38,15 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSessionMock,
     },
   },
+}));
+
+const sessionAuthority = mintTestTenantAuthority('tenant-1');
+
+vi.mock('@/actions/commissions/context', () => ({
+  getActionContext: async () => ({
+    session: await hoisted.getSessionMock(),
+    authority: sessionAuthority,
+  }),
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
@@ -187,9 +197,17 @@ describe('AgentDashboardV2Page tenant boundary', () => {
     await AgentDashboardV2Page({ locale: 'en', tier: 'pro' });
 
     expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
+      sessionAuthority,
       expect.any(Function)
     );
+    expect(hoisted.getAgentReferralLinkCoreMock).toHaveBeenCalledWith({
+      session: expect.anything(),
+      authority: sessionAuthority,
+    });
+    expect(hoisted.getMyCommissionSummaryMock).toHaveBeenCalledWith({
+      session: expect.anything(),
+      authority: expect.anything(),
+    });
     expect(hoisted.statsCoreMock).toHaveBeenCalledWith(
       { agentId: 'agent-1', tenantId: 'tenant-1' },
       expect.objectContaining({ db: expect.any(Object) })

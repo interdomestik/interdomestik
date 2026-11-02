@@ -1,5 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMyCommissionsCore } from './get-my';
@@ -56,10 +56,6 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: vi.fn(() => 'tenant-1'),
-}));
-
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...clauses) => ({ op: 'and', clauses })),
   desc: vi.fn(column => ({ op: 'desc', column })),
@@ -81,7 +77,9 @@ describe('getMyCommissionsCore', () => {
   });
 
   it('scopes agent commission list reads and member enrichment to the session tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     const result = await getMyCommissionsCore({
+      authority,
       session: {
         user: {
           id: 'agent-1',
@@ -94,8 +92,7 @@ describe('getMyCommissionsCore', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(ensureTenantId).toHaveBeenCalled();
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.commissionsQuery.where).toHaveBeenCalledWith({
       op: 'and',
       clauses: [

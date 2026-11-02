@@ -8,6 +8,7 @@ import {
 } from './update-status-test-core';
 import { updateClaimStatusCore } from './update-status';
 import {
+  staffAuthority,
   createSession,
   expectBlockedStatusChange,
   mockRecoverySelects,
@@ -146,6 +147,7 @@ describe('staff updateClaimStatusCore', () => {
     ]);
 
     const result = await updateClaimStatusCore({
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'verification',
       note: 'Initial staff triage',
@@ -195,6 +197,7 @@ describe('staff updateClaimStatusCore', () => {
     staleClaim.status = 'submitted';
     mocks.tenantReadSelectChain.limit.mockResolvedValue([staleClaim]);
     const result = await updateClaimStatusCore({
+      authority: staffAuthority,
       claimId: 'claim-1',
       newStatus: 'evaluation',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -213,6 +216,7 @@ describe('staff updateClaimStatusCore', () => {
 
     const result = await updateClaimStatusCore(
       {
+        authority: staffAuthority,
         claimId: 'claim-1',
         newStatus: 'verification',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -225,8 +229,8 @@ describe('staff updateClaimStatusCore', () => {
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority: staffAuthority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
     await vi.waitFor(() =>
       expect(notifyStatusChanged).toHaveBeenCalledWith(
@@ -235,7 +239,7 @@ describe('staff updateClaimStatusCore', () => {
         { id: 'claim-1', title: 'Vehicle claim' },
         'submitted',
         'verification',
-        { tenantId: 'tenant-1' }
+        { authority: staffAuthority }
       )
     );
   });

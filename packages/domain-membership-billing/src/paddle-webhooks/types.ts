@@ -1,10 +1,14 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
+// An audit row is written inside the tenant that owns it, so every event carries the authority the
+// effect ran under rather than a tenant id the logger would have to trust.
 export type AuditEvent = {
+  authority: TenantAuthority;
   actorId?: string | null;
   actorRole?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
-  tenantId?: string | null;
   metadata?: Record<string, unknown>;
   headers?: Headers;
 };
@@ -120,36 +124,43 @@ export type MembershipConfirmationClaim =
     }
   | { kind: 'already_sent' | 'conflict' | 'in_progress' };
 
+/**
+ * Every store call runs under the tenant authority of the webhook delivery that owns the claim; a
+ * snapshot, evidence or stored row naming a different tenant fails closed.
+ */
 export type MembershipConfirmationDeliveryStore = {
   claimReadyRetry?: (params: {
+    authority: TenantAuthority;
     evidence: MembershipConfirmationRetryEvidence;
     idempotencyKey: string;
   }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }>;
   claimExisting: (params: {
+    authority: TenantAuthority;
     evidence: MembershipConfirmationEvidence;
     idempotencyKey: string;
   }) => Promise<MembershipConfirmationClaim | { kind: 'not_found' }>;
   claim: (params: {
+    authority: TenantAuthority;
     idempotencyKey: string;
     snapshot: MembershipConfirmationSnapshot;
   }) => Promise<MembershipConfirmationClaim>;
   ready: (params: {
+    authority: TenantAuthority;
     deliveryId: string;
     idempotencyKey: string;
     subscriptionId: string;
-    tenantId: string;
   }) => Promise<void>;
   complete: (params: {
+    authority: TenantAuthority;
     deliveryId: string;
     idempotencyKey: string;
     providerMessageId: string;
-    tenantId: string;
   }) => Promise<void>;
   fail: (params: {
+    authority: TenantAuthority;
     deliveryId: string;
     error: string;
     idempotencyKey: string;
-    tenantId: string;
   }) => Promise<void>;
 };
 

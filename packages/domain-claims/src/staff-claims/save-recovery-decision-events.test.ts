@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -70,6 +71,8 @@ function primeScopeAndDecision(existingDecision: unknown[] = []) {
   mocks.decisionSelect.limit.mockResolvedValue(existingDecision);
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveRecoveryDecisionCore recovery decision events', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -77,6 +80,7 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
     primeScopeAndDecision();
 
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Clear insurer path and viable monetary recovery.',
@@ -102,6 +106,7 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
     primeScopeAndDecision([{ id: 'decision-1' }]);
 
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'declined',
       declineReasonCode: 'insufficient_evidence',
@@ -131,6 +136,7 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
   it('does not emit recovery decision events for denied callers or out-of-scope claims', async () => {
     expect(
       await saveRecoveryDecisionCore({
+        authority,
         claimId: 'claim-1',
         decisionType: 'accepted',
         session: session('member'),
@@ -144,6 +150,7 @@ describe('saveRecoveryDecisionCore recovery decision events', () => {
 
     expect(
       await saveRecoveryDecisionCore({
+        authority,
         claimId: 'claim-1',
         decisionType: 'accepted',
         session: session(),

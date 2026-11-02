@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -42,20 +43,19 @@ beforeEach(() => {
 });
 
 describe('activateAgentUserProfile', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   it('scopes the role update to the authenticated user, tenant, and current role', async () => {
     await expect(
       activateAgentUserProfile({
         currentRole: 'member',
         referralCode: 'ARBEN-1234',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).resolves.toBeUndefined();
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.set).toHaveBeenCalledWith(
       expect.objectContaining({
         role: 'agent',
@@ -81,7 +81,7 @@ describe('activateAgentUserProfile', () => {
       activateAgentUserProfile({
         currentRole: 'member',
         referralCode: 'ARBEN-1234',
-        tenantId: 'tenant-1',
+        authority,
         userId: 'member-1',
       })
     ).rejects.toThrow(/scope no longer matches/i);

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -58,7 +59,17 @@ vi.mock('drizzle-orm', () => ({
   or: mocks.or,
 }));
 
-import { getMessagesForClaimCore } from './get';
+import { getMessagesForClaimCore as getMessagesForClaimCoreRaw } from './get';
+
+const authorityOf = (session: { user: { tenantId: string } }) =>
+  mintTestTenantAuthority(session.user.tenantId);
+
+// Calls the core with the authority the request session would have produced.
+const getMessagesForClaimCore = (params: { session: never | null; claimId: string }) =>
+  getMessagesForClaimCoreRaw({
+    ...params,
+    authority: params.session ? authorityOf(params.session) : null,
+  });
 
 describe('getMessagesForClaimCore', () => {
   beforeEach(() => {
@@ -164,5 +175,39 @@ describe('getMessagesForClaimCore', () => {
 
     expect(result).toEqual({ success: true, messages: [] });
     expect(mocks.selectChain.orderBy).toHaveBeenCalled();
+  });
+});
+
+describe('getMessagesForClaimCore authority', () => {
+  it('reads under the authority it was given, scoped to that tenant', async () => {
+    mocks.context.mockImplementation((_context, action) =>
+      action({
+        query: { claims: { findFirst: mocks.findFirst }, agentClients: { findFirst: vi.fn() } },
+        select: vi.fn(() => mocks.selectChain),
+      })
+    );
+    mocks.findFirst.mockResolvedValue(null);
+    const authority = mintTestTenantAuthority('tenant-9');
+
+    await getMessagesForClaimCoreRaw({
+      session: { user: { id: 'user-1', role: 'user', tenantId: 'tenant-1' } } as never,
+      authority,
+      claimId: 'claim-1',
+    });
+
+    expect(mocks.context.mock.calls.at(-1)![0]).toBe(authority);
+  });
+
+  it('refuses a missing authority without opening a tenant transaction', async () => {
+    mocks.context.mockClear();
+
+    await expect(
+      getMessagesForClaimCoreRaw({
+        session: { user: { id: 'user-1', role: 'user', tenantId: 'tenant-1' } } as never,
+        authority: null,
+        claimId: 'claim-1',
+      })
+    ).resolves.toEqual({ success: false, error: 'Unauthorized' });
+    expect(mocks.context).not.toHaveBeenCalled();
   });
 });

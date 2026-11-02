@@ -1,8 +1,12 @@
-import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq, subscriptions } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getPaddle, resolveBillingEntityForTenantId } from '../paddle-server';
 
 import type { PaymentUpdateUrlResult, SubscriptionSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // Canonical roles allowed to trigger their own payment-method recovery. Agents/staff/admin
 // act on behalf of members through separate, more privileged flows, not this member action.
@@ -164,11 +168,12 @@ function validatePaymentUpdateTransaction(params: {
 
 export async function getPaymentUpdateUrlCore(params: {
   session: SubscriptionSession | null;
+  authority: TenantAuthority | null;
   subscriptionId: string;
 }): Promise<PaymentUpdateUrlResult> {
-  const { session, subscriptionId } = params;
+  const { session, authority, subscriptionId } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     return { error: 'Unauthorized', url: undefined };
   }
 
@@ -178,8 +183,8 @@ export async function getPaymentUpdateUrlCore(params: {
   }
 
   try {
-    const tenantId = ensureTenantId(session);
-    const sub = await withTenantContext({ tenantId }, tx =>
+    const { tenantId } = readTenantAuthority(authority);
+    const sub = await withTenantAuthority(authority, tx =>
       tx.query.subscriptions.findFirst({
         where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
       })

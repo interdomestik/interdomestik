@@ -6,16 +6,18 @@ import type {
   CrmForecastSnapshotRepository,
   CrmReportingRepository,
 } from '@interdomestik/domain-crm/reporting/repository';
+import { listScheduledTenantWork, type ScheduledTenantWork } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
-  crmForecastSnapshotWorkItemRepository,
+  createCrmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
 } from '@/adapters/crm/forecast-snapshot-work-items';
 import {
-  crmForecastSnapshotRepository,
-  crmReportingRepository,
+  createCrmForecastSnapshotRepository,
+  createCrmReportingRepository,
 } from '@/adapters/crm/reporting-repository';
 
 import {
@@ -52,6 +54,8 @@ export type CrmForecastSnapshotSchedulerResult = {
 export type CrmForecastSnapshotSchedulerLogger = Pick<Console, 'error' | 'info' | 'warn'>;
 
 export type RunCrmForecastSnapshotSchedulerCoreArgs = {
+  /** The cron admission the route obtained; the only way a run reaches the per-tenant authorities. */
+  ingress: IngressCapability<'cron'>;
   logger?: CrmForecastSnapshotSchedulerLogger;
   maxWorkItemsPerRun?: number;
   now: Date;
@@ -79,9 +83,11 @@ export async function runCrmForecastSnapshotSchedulerCore(
     args.workItemSoftTimeoutMs ?? CRM_FORECAST_SNAPSHOT_WORK_ITEM_SOFT_TIMEOUT_MS;
   const snapshotDateEndExclusive = endExclusiveForSnapshotDate(snapshotDate);
   const snapshotDateStartInclusive = startInclusiveForSnapshotDate(snapshotDateEndExclusive);
-  const workItemRepository = args.workItemRepository ?? crmForecastSnapshotWorkItemRepository;
-  const reportingRepository = args.reportingRepository ?? crmReportingRepository;
-  const snapshotRepository = args.snapshotRepository ?? crmForecastSnapshotRepository;
+  const scheduledTenants = await listScheduledTenantWork(args.ingress);
+  const workItemRepository =
+    args.workItemRepository ??
+    createCrmForecastSnapshotWorkItemRepository(scheduledTenants.map(tenant => tenant.authority));
+  const repositories = createTenantRepositories(scheduledTenants, args);
   const logger = args.logger ?? console;
 
   const listed = await workItemRepository.listWorkItems({
@@ -101,15 +107,15 @@ export async function runCrmForecastSnapshotSchedulerCore(
     }
 
     try {
+      const tenantRepositories = repositories(workItem.tenantId);
       const inserted = await withTimeout(
         signal =>
           processWorkItem({
-            reportingRepository,
+            repositories: tenantRepositories,
             signal,
             snapshotDate,
             snapshotDateEndExclusive,
             snapshotDateStartInclusive,
-            snapshotRepository,
             sourceRunId,
             tenantRows,
             workItem,
@@ -240,13 +246,48 @@ function startInclusiveForSnapshotDate(snapshotDateEndExclusive: Date): Date {
   return new Date(snapshotDateEndExclusive.getTime() - CRM_REPORTING_MAX_WINDOW_DAYS * MS_PER_DAY);
 }
 
-async function processWorkItem(args: {
+type CrmForecastSnapshotTenantRepositories = {
   reportingRepository: CrmReportingRepository;
+  snapshotRepository: CrmForecastSnapshotRepository;
+};
+
+/**
+ * Per-tenant repositories for a scheduled run. A work item can only be processed for a tenant the
+ * cron admission enumerated: its repositories are built from that tenant's scheduled-work
+ * authority, and a tenant outside the enumeration fails closed instead of reaching a client.
+ */
+function createTenantRepositories(
+  scheduledTenants: readonly ScheduledTenantWork[],
+  overrides: Pick<
+    RunCrmForecastSnapshotSchedulerCoreArgs,
+    'reportingRepository' | 'snapshotRepository'
+  >
+): (tenantId: string) => CrmForecastSnapshotTenantRepositories {
+  const authorities = new Map(scheduledTenants.map(tenant => [tenant.tenantId, tenant.authority]));
+  const cache = new Map<string, CrmForecastSnapshotTenantRepositories>();
+  return tenantId => {
+    const cached = cache.get(tenantId);
+    if (cached) return cached;
+    const authority = authorities.get(tenantId);
+    if (!authority) {
+      throw new Error('CRM forecast snapshot work item tenant was not admitted for this run');
+    }
+    const created = {
+      reportingRepository: overrides.reportingRepository ?? createCrmReportingRepository(authority),
+      snapshotRepository:
+        overrides.snapshotRepository ?? createCrmForecastSnapshotRepository(authority),
+    };
+    cache.set(tenantId, created);
+    return created;
+  };
+}
+
+async function processWorkItem(args: {
+  repositories: CrmForecastSnapshotTenantRepositories;
   signal: AbortSignal;
   snapshotDate: string;
   snapshotDateEndExclusive: Date;
   snapshotDateStartInclusive: Date;
-  snapshotRepository: CrmForecastSnapshotRepository;
   sourceRunId: string;
   tenantRows: CrmForecastSnapshotTenantWeightedRows;
   workItem: CrmForecastSnapshotWorkItem;
@@ -259,7 +300,7 @@ async function processWorkItem(args: {
       sourceRunId: args.sourceRunId,
     }),
     reportingInputFor,
-    reportingRepository: args.reportingRepository,
+    reportingRepository: args.repositories.reportingRepository,
     signal: args.signal,
     snapshotDate: args.snapshotDate,
     snapshotDateEndExclusive: args.snapshotDateEndExclusive,
@@ -271,7 +312,9 @@ async function processWorkItem(args: {
 
   if (snapshots.length === 0) return 0;
   throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
-  const inserted = await args.snapshotRepository.insertPipelineSnapshots({ snapshots });
+  const inserted = await args.repositories.snapshotRepository.insertPipelineSnapshots({
+    snapshots,
+  });
   throwIfCrmForecastSnapshotAborted(args.signal, SOFT_TIMEOUT_MESSAGE);
   if (!inserted.success) return inserted.reason;
   return inserted.snapshots.length;

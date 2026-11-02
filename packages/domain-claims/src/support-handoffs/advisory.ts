@@ -1,4 +1,8 @@
-import { claims, desc, eq, supportHandoffs, withTenantContext } from '@interdomestik/database';
+import { claims, desc, eq, supportHandoffs } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, count, inArray } from 'drizzle-orm';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
@@ -8,6 +12,7 @@ import {
   type ActiveHandoffStatus,
   type MemberActiveHandoffAdvisory,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function normalizeDate(value: Date | string | null | undefined) {
   if (!value) return new Date(0).toISOString();
@@ -48,16 +53,17 @@ function buildActiveClaimHandoffScope(args: {
 }
 
 export async function getMemberActiveHandoffAdvisory(args: {
+  authority: TenantAuthority;
   claimId?: string | null;
   memberId: string;
-  tenantId: string;
 }): Promise<MemberActiveHandoffAdvisory> {
+  const { tenantId } = readTenantAuthority(args.authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const countQuery = withTenantContext({ tenantId: args.tenantId }, tx =>
+  const countQuery = withTenantAuthority(args.authority, tx =>
     tx
       .select({ activeCount: count() })
       .from(supportHandoffs)
-      .where(buildActiveMemberHandoffScope(args))
+      .where(buildActiveMemberHandoffScope({ memberId: args.memberId, tenantId }))
   );
 
   if (!args.claimId) {
@@ -67,7 +73,7 @@ export async function getMemberActiveHandoffAdvisory(args: {
   }
 
   const claimId = args.claimId;
-  const claimMatchQuery = withTenantContext({ tenantId: args.tenantId }, tx =>
+  const claimMatchQuery = withTenantAuthority(args.authority, tx =>
     tx
       .select({
         status: supportHandoffs.status,
@@ -79,15 +85,12 @@ export async function getMemberActiveHandoffAdvisory(args: {
         claimStatus: claimLifecycleStatusSql(),
       })
       .from(supportHandoffs)
-      .leftJoin(
-        claims,
-        and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, args.tenantId))
-      )
+      .leftJoin(claims, and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, tenantId)))
       .where(
         buildActiveClaimHandoffScope({
           claimId,
           memberId: args.memberId,
-          tenantId: args.tenantId,
+          tenantId,
         })
       )
       .orderBy(desc(supportHandoffs.createdAt), desc(supportHandoffs.id))

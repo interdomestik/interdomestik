@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Session } from './context';
@@ -22,8 +23,7 @@ vi.mock('@interdomestik/database', () => {
   return {
     db,
     withTenantContext: vi.fn(
-      async (_context: { tenantId: string }, action: (tx: typeof db) => Promise<unknown>) =>
-        action(db)
+      async (_context: unknown, action: (tx: typeof db) => Promise<unknown>) => action(db)
     ),
   };
 });
@@ -36,6 +36,8 @@ vi.mock('nanoid', () => ({
   nanoid: () => 'id-1',
 }));
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('updateAgentCommissionRatesCore', () => {
   it('rejects rates outside 0..1', async () => {
     const result = await updateAgentCommissionRatesCore({
@@ -43,6 +45,7 @@ describe('updateAgentCommissionRatesCore', () => {
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
         session: { id: 'session-1' },
       } as unknown as NonNullable<Session>,
+      authority,
       agentId: 'agent-1',
       rates: { member: 1.1 } as unknown as import('../commissions.types').CommissionRates,
     });

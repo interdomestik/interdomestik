@@ -2,10 +2,23 @@ import { createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { dbAdmin } from './db';
 import { npsSurveyTokens } from './schema/automation';
+import { sharePacks } from './schema/documents';
 import { claimTrackingTokens } from './schema/tracking';
+import { mintTenantAuthority, type TenantAuthority } from './tenant-authority';
 
-export type ClaimTrackingTokenTenant = { tenantId: string; claimId: string };
-export type NpsSurveyTokenTenant = { tenantId: string };
+// The authority is the public-token producer's grant: minted only after one exact token resolved
+// to one tenant, carrying no principal. It is scoped to that tenant, never to a session.
+export type ClaimTrackingTokenTenant = {
+  tenantId: string;
+  claimId: string;
+  authority: TenantAuthority;
+};
+export type NpsSurveyTokenTenant = { tenantId: string; authority: TenantAuthority };
+export type SharePackTenant = { tenantId: string; authority: TenantAuthority };
+
+function mintPublicTokenAuthority(tenantId: string): TenantAuthority {
+  return mintTenantAuthority({ tenantId, purpose: 'public-token' });
+}
 
 // Token tables are tenant-isolated, so an unauthenticated bearer cannot be resolved under the
 // restricted runtime role. These fixed lookups return only the tenant (and bound claim) for one
@@ -34,7 +47,11 @@ export async function resolveClaimTrackingTokenTenant(
   if (rows.length !== 1) return null;
   const [row] = rows;
   if (row.revokedAt || row.expiresAt.getTime() <= now.getTime()) return null;
-  return { tenantId: row.tenantId, claimId: row.claimId };
+  return {
+    tenantId: row.tenantId,
+    claimId: row.claimId,
+    authority: mintPublicTokenAuthority(row.tenantId),
+  };
 }
 
 export async function resolveNpsSurveyTokenTenant(
@@ -48,5 +65,34 @@ export async function resolveNpsSurveyTokenTenant(
     .where(eq(npsSurveyTokens.token, rawToken))
     .limit(2);
   if (rows.length !== 1) return null;
-  return { tenantId: rows[0].tenantId };
+  return { tenantId: rows[0].tenantId, authority: mintPublicTokenAuthority(rows[0].tenantId) };
+}
+
+/**
+ * Resolves the tenant of one live share pack named by a share token the caller has already verified.
+ * The pack id is only the signed token's claim, so the stored pack must exist exactly once, belong
+ * to the tenant the token also names, and be neither revoked nor expired. Only the share-pack
+ * service, which verifies the token signature first, may call this.
+ */
+export async function resolveSharePackTenant(
+  packId: string,
+  tokenTenantId: string,
+  now: Date
+): Promise<SharePackTenant | null> {
+  if (!packId || !tokenTenantId) return null;
+  // db-access-guard: system-exempt -- reason: exact signed share-pack id to tenant resolution only; documents stay tenant-scoped
+  const rows = await dbAdmin
+    .select({
+      tenantId: sharePacks.tenantId,
+      expiresAt: sharePacks.expiresAt,
+      revokedAt: sharePacks.revokedAt,
+    })
+    .from(sharePacks)
+    .where(eq(sharePacks.id, packId))
+    .limit(2);
+  if (rows.length !== 1) return null;
+  const [row] = rows;
+  if (row.tenantId !== tokenTenantId) return null;
+  if (row.revokedAt || row.expiresAt.getTime() <= now.getTime()) return null;
+  return { tenantId: row.tenantId, authority: mintPublicTokenAuthority(row.tenantId) };
 }

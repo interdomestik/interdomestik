@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -25,8 +26,8 @@ import {
   createCrmRoutingRepository,
 } from './routing-repository';
 
-type AdminRoutingDb = Parameters<typeof createAdminCrmRoutingRuleRepository>[0];
-type RoutingRepositoryDb = Parameters<typeof createCrmRoutingRepository>[0];
+type AdminRoutingDb = NonNullable<Parameters<typeof createAdminCrmRoutingRuleRepository>[1]>;
+type RoutingRepositoryDb = NonNullable<Parameters<typeof createCrmRoutingRepository>[1]>;
 
 const now = new Date('2026-05-16T08:00:00.000Z');
 
@@ -115,7 +116,10 @@ function auditRow(overrides: Record<string, unknown> = {}) {
 }
 
 function createAdminRepositoryForTest(fakeDb: unknown) {
-  return createAdminCrmRoutingRuleRepository(fakeDb as AdminRoutingDb);
+  return createAdminCrmRoutingRuleRepository(
+    mintTestTenantAuthority('tenant-1'),
+    fakeDb as AdminRoutingDb
+  );
 }
 
 function createUpdateDb(rows: readonly unknown[], existingCursor: unknown = null) {
@@ -162,7 +166,10 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      routingRepositoryDb(fakeDb)
+    );
 
     await expect(repository.listRoutingRules({ actor: branchManager })).resolves.toEqual([
       {
@@ -205,7 +212,10 @@ describe('crmRoutingRepository', () => {
         updatedAt: now,
       },
     ]);
-    const repository = createCrmRoutingRepository(fake.db as never);
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      fake.db as never
+    );
 
     await expect(
       repository.advanceRoutingCursor({ advancement, idempotencyKey: 'route:lead-1' })
@@ -259,7 +269,10 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      routingRepositoryDb(fakeDb)
+    );
 
     await expect(
       repository.advanceRoutingCursor({
@@ -289,7 +302,10 @@ describe('crmRoutingRepository', () => {
 
   it('returns cursor_conflict when the compare-and-swap update finds no cursor row', async () => {
     const fake = createUpdateDb([]);
-    const repository = createCrmRoutingRepository(fake.db as never);
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      fake.db as never
+    );
 
     await expect(repository.advanceRoutingCursor({ advancement })).resolves.toEqual({
       reason: 'cursor_conflict',
@@ -305,7 +321,10 @@ describe('crmRoutingRepository', () => {
       tenantId: advancement.tenantId,
       updatedAt: now,
     });
-    const repository = createCrmRoutingRepository(fake.db as never);
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      fake.db as never
+    );
 
     await expect(
       repository.advanceRoutingCursor({ advancement, idempotencyKey: 'route:lead-1' })
@@ -360,7 +379,10 @@ describe('crmRoutingRepository', () => {
       },
       update: vi.fn(),
     };
-    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      routingRepositoryDb(fakeDb)
+    );
 
     await expect(
       repository.appendRoutingAssignmentAudit({
@@ -385,7 +407,10 @@ describe('crmRoutingRepository', () => {
         crmRoutingRules: { findMany: vi.fn() },
       },
     };
-    const repository = createCrmRoutingRepository(routingRepositoryDb(fakeDb));
+    const repository = createCrmRoutingRepository(
+      mintTestTenantAuthority('tenant-1'),
+      routingRepositoryDb(fakeDb)
+    );
 
     await expect(
       repository.findRoutingAssignmentAuditByIdempotency({

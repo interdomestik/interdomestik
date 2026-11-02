@@ -1,6 +1,14 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { expect, vi } from 'vitest';
 import { createQueuedFrom as createQueuedFromMock } from '../../../../../scripts/tests/queued-select-mock';
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeAnyTestPaddleBillingTenant,
+  authorizeTestPaddleOwner,
+} from '../paddle-authority.test-support';
 import type { MockFunction, createHoistedPaddleHandlerMocks } from './test-support-mocks';
+
+export { TEST_PADDLE_DELIVERY, authorizeTestPaddleOwner };
 
 export { createQueuedFromMock as createQueuedFrom };
 export {
@@ -31,7 +39,10 @@ export function mockSubscriptionOwner(
   hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(owner);
 }
 
-export function createPastDueSubscriptionEvent() {
+/** Verified-delivery stand-in carried by every webhook event fixture. */
+export type PaddleEventDelivery = IngressCapability<'paddle-delivery'>;
+
+function pastDueSubscriptionEventBody() {
   return {
     data: {
       id: 'sub_paddle_456',
@@ -51,7 +62,13 @@ export function createPastDueSubscriptionEvent() {
   };
 }
 
-export function createActiveSubscriptionUpdatedEvent() {
+export function createPastDueSubscriptionEvent(): ReturnType<
+  typeof pastDueSubscriptionEventBody
+> & { delivery: PaddleEventDelivery } {
+  return { delivery: TEST_PADDLE_DELIVERY, ...pastDueSubscriptionEventBody() };
+}
+
+function activeSubscriptionUpdatedEventBody() {
   return {
     eventType: 'subscription.updated',
     data: {
@@ -66,6 +83,12 @@ export function createActiveSubscriptionUpdatedEvent() {
       currentBillingPeriod: { startsAt: '2023-01-01', endsAt: '2024-01-01' },
     },
   };
+}
+
+export function createActiveSubscriptionUpdatedEvent(): ReturnType<
+  typeof activeSubscriptionUpdatedEventBody
+> & { delivery: PaddleEventDelivery } {
+  return { delivery: TEST_PADDLE_DELIVERY, ...activeSubscriptionUpdatedEventBody() };
 }
 
 /** An unscoped provider reference is resolved by the privileged owner lookup, not an ambient read. */
@@ -105,11 +128,18 @@ export function resetPaddleHandlerMocks(
   vi.clearAllMocks();
   hoisted.selectResults.length = 0;
   hoisted.db.query.user.findFirst.mockReset();
-  hoisted.db.query.account.findFirst.mockReset();
+  hoisted.identity.hasTenantMemberCredential.mockReset().mockResolvedValue(false);
+  hoisted.identity.issueTenantMemberNumber
+    .mockReset()
+    .mockResolvedValue({ memberNumber: 'MEM-2026-000123', isNew: true });
   hoisted.db.query.subscriptions.findFirst.mockReset();
   hoisted.db.query.tenantSettings.findFirst.mockReset();
   hoisted.db.query.webhookEvents.findFirst.mockReset();
   for (const resolver of Object.values(hoisted.resolution)) resolver.mockReset();
+  hoisted.resolution.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
+  hoisted.resolution.authorizePaddleBillingTenant.mockImplementation(
+    authorizeAnyTestPaddleBillingTenant
+  );
   // Unknown references resolve to nothing until a test names an owner.
   hoisted.resolution.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
   hoisted.resolution.resolvePaddleUserOwner.mockResolvedValue(null);

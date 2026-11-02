@@ -1,4 +1,5 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   authorizeCrmReportingRead,
   CRM_REPORTING_MAX_WINDOW_DAYS,
@@ -14,17 +15,17 @@ import type {
 } from '@interdomestik/domain-crm/reporting/repository';
 
 import {
-  crmForecastSnapshotRepository,
-  crmReportingRepository,
+  createCrmForecastSnapshotRepository,
+  createCrmReportingRepository,
 } from '@/adapters/crm/reporting-repository';
 import {
-  crmForecastSnapshotObservabilityRepository,
+  createCrmForecastSnapshotObservabilityRepository,
   type CrmForecastSnapshotObservabilityRepository,
   type CrmForecastSnapshotObservedRow,
 } from '@/adapters/crm/forecast-snapshot-observability';
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
-  crmForecastSnapshotWorkItemRepository,
+  createCrmForecastSnapshotWorkItemRepository,
   type CrmForecastSnapshotWorkItem,
   type CrmForecastSnapshotWorkItemRepository,
 } from '@/adapters/crm/forecast-snapshot-work-items';
@@ -815,7 +816,7 @@ async function settleForecastObservabilityWidget(
 }
 
 export async function getAdminCrmReportingCore(
-  args: { actor: CrmActorContext },
+  args: { actor: CrmActorContext; authority: TenantAuthority },
   options: AdminCrmReportingCoreOptions = {}
 ): Promise<AdminCrmReportingDashboard> {
   if (!args.actor.tenantId) {
@@ -839,13 +840,16 @@ export async function getAdminCrmReportingCore(
     throw new AdminCrmReportingAccessDeniedError(denied);
   }
 
-  const reportingRepository = options.reportingRepository ?? crmReportingRepository;
+  const reportingRepository =
+    options.reportingRepository ?? createCrmReportingRepository(args.authority);
   const forecastSnapshotRepository =
-    options.forecastSnapshotRepository ?? crmForecastSnapshotRepository;
+    options.forecastSnapshotRepository ?? createCrmForecastSnapshotRepository(args.authority);
   const forecastSnapshotObservabilityRepository =
-    options.forecastSnapshotObservabilityRepository ?? crmForecastSnapshotObservabilityRepository;
+    options.forecastSnapshotObservabilityRepository ??
+    createCrmForecastSnapshotObservabilityRepository(args.authority);
   const forecastSnapshotWorkItemRepository =
-    options.forecastSnapshotWorkItemRepository ?? crmForecastSnapshotWorkItemRepository;
+    options.forecastSnapshotWorkItemRepository ??
+    createCrmForecastSnapshotWorkItemRepository([args.authority]);
   const logger = options.logger ?? console;
   const noBranchLabel = options.labels?.noBranch ?? 'No branch';
   const snapshotDate = getPreviousUtcSnapshotDate(nowIso);

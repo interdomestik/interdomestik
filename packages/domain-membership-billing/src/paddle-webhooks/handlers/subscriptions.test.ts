@@ -1,7 +1,9 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
 import {
+  TEST_PADDLE_DELIVERY,
   createActiveSubscriptionUpdatedEvent,
   mockUserOwner,
   resetPaddleHandlerMocks,
@@ -51,7 +53,7 @@ describe('handleSubscriptionChanged', () => {
     };
 
     await handleSubscriptionChanged(
-      { eventType: 'subscription.updated', data: validPayload },
+      { delivery: TEST_PADDLE_DELIVERY, eventType: 'subscription.updated', data: validPayload },
       { logAuditEvent, sendThankYouLetter }
     );
 
@@ -64,16 +66,26 @@ describe('handleSubscriptionChanged', () => {
       })
     );
     expect(hoisted.resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('user_123');
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_abc' },
-      expect.any(Function)
+    // No stored subscription: the authority comes from the user's resolver owner, the exact object
+    // the resolver returned, and every tenant-scoped statement runs under it.
+    const userOwner = await hoisted.resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      userOwner
     );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(userOwner);
+    const authority = hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value;
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    for (const [context] of hoisted.withTenantContext.mock.calls) {
+      expect(context).toBe(authority);
+    }
     expect(hoisted.db.query.user.findFirst).toHaveBeenCalledWith(expect.anything());
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'subscription.updated',
         entityId: 'sub_123',
-        tenantId: 'tenant_abc', // <--- Critical Check
+        // The audit row is written under the very authority the effects ran under.
+        authority: hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value,
         metadata: expect.objectContaining({ status: 'active', userId: 'user_123' }),
       })
     );
@@ -106,13 +118,16 @@ describe('handleSubscriptionChanged', () => {
       branchId: 'branch-mk-main',
       role: 'member',
     });
-    hoisted.db.query.account.findFirst.mockResolvedValue(null);
+    hoisted.identity.hasTenantMemberCredential.mockResolvedValue(false);
     hoisted.db.query.tenantSettings.findFirst.mockResolvedValue({
       value: { branchId: 'branch-mk-main' },
     });
+    // After reconciliation the persisted user is named by the privileged owner lookup.
+    mockUserOwner(hoisted, 'tenant_mk');
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         data: {
           id: 'sub_new',
@@ -142,11 +157,50 @@ describe('handleSubscriptionChanged', () => {
     // Previously 3 ambient transactions (user insert, subscription insert, attribution); every
     // tenant-scoped statement now runs through the canonical webhook tenant context. The four extra
     // contexts beyond the original seven are the canonical plan lookups and the branch-default
-    // resolution, which previously ran on the ambient client.
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(11);
+    // resolution, which previously ran on the ambient client. The credential lookup is identity
+    // data the runtime role cannot read, so it runs through the fixed tenant-bound producer
+    // instead of a tenant context.
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(10);
+    // Reconciliation runs under the billing authority for the delivery's bound tenant; the
+    // post-reconciliation effects run under an authority minted from the resolver owner of the
+    // reconciled user. No legacy tenant literal reaches the tenant-context boundary.
+    expect(hoisted.resolution.authorizePaddleBillingTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      'tenant_mk'
+    );
+    const billingAuthority = hoisted.resolution.authorizePaddleBillingTenant.mock.results[0]!.value;
+    expect(readTenantAuthority(billingAuthority).tenantId).toBe('tenant_mk');
+    // The created member's number and credential state come from the fixed identity producers,
+    // under the billing authority and for the member the tenant transaction created.
+    const [[, createdUserId]] = hoisted.identity.hasTenantMemberCredential.mock.calls;
+    expect(hoisted.identity.hasTenantMemberCredential).toHaveBeenCalledWith(
+      billingAuthority,
+      createdUserId
+    );
+    expect(hoisted.identity.issueTenantMemberNumber).toHaveBeenCalledWith(billingAuthority, {
+      userId: createdUserId,
+      joinedAt: expect.any(Date),
+    });
+    expect(hoisted.resolution.resolvePaddleUserOwner).toHaveBeenCalledWith('user_new');
+    const reconciledOwner = await hoisted.resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledTimes(1);
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      reconciledOwner
+    );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(reconciledOwner);
+    const userAuthority = hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value;
+    expect(readTenantAuthority(userAuthority).tenantId).toBe('tenant_mk');
+    let billingContexts = 0;
+    let userContexts = 0;
     for (const [context] of hoisted.withTenantContext.mock.calls) {
-      expect(context).toEqual({ tenantId: 'tenant_mk' });
+      expect(isTenantAuthority(context)).toBe(true);
+      if (context === billingAuthority) billingContexts += 1;
+      else if (context === userAuthority) userContexts += 1;
+      else throw new Error('unexpected tenant context');
     }
+    expect(billingContexts).toBeGreaterThan(0);
+    expect(userContexts).toBeGreaterThan(0);
     expect(hoisted.tx.insert).toHaveBeenCalled();
     expect(sendThankYouLetter).not.toHaveBeenCalled();
   });
@@ -196,6 +250,7 @@ describe('handleSubscriptionChanged', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: 'sub_paddle_annual',

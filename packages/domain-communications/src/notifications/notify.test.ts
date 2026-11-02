@@ -1,4 +1,7 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const mocks = vi.hoisted(() => {
   const findFirst = vi.fn();
@@ -86,7 +89,7 @@ describe('sendNotification', () => {
       'user-1',
       'new_message',
       { claimId: 'claim-1' },
-      { tenantId: 'tenant-1' }
+      { authority }
     );
 
     expect(result).toEqual({ success: false, error: 'Tenant mismatch for notification' });
@@ -95,6 +98,19 @@ describe('sendNotification', () => {
       expect.anything(),
       expect.any(Object)
     );
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to notify without a tenant authority and touches no tenant data', async () => {
+    const result = await sendNotification(
+      'user-1',
+      'new_message',
+      { claimId: 'claim-1' },
+      { authority: undefined as never }
+    );
+
+    expect(result).toEqual({ success: false, error: 'Missing tenant authority for notification' });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 
@@ -109,14 +125,12 @@ describe('sendNotification', () => {
       'user-1',
       'new_message',
       { claimId: 'claim-1' },
-      { tenantId: 'tenant-1' }
+      { authority }
     );
 
     expect(result).toEqual({ success: true });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    for (const call of mocks.withTenantContext.mock.calls) expect(call[0]).toBe(authority);
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: 'tenant-1',
@@ -140,7 +154,7 @@ describe('sendNotification', () => {
         { id: 'claim-1', title: 'Vehicle claim' },
         'submitted',
         'verification',
-        { sendPushToUser, tenantId: 'tenant-1' }
+        { sendPushToUser, authority }
       )
     ).toEqual({ success: true });
     expect(mocks.insertValues).toHaveBeenCalledWith(
@@ -150,8 +164,11 @@ describe('sendNotification', () => {
       'user-1',
       'claim_updates',
       expect.objectContaining({ url: '/member/claims/claim-1' }),
-      expect.objectContaining({ tenantId: 'tenant-1' })
+      expect.objectContaining({ authority })
     );
+    expect(
+      (sendPushToUser.mock.calls[0]?.[3] as { authority: unknown } | undefined)?.authority
+    ).toBe(authority);
   });
 
   it('uses the canonical member claim route for the submitting member', async () => {
@@ -170,7 +187,7 @@ describe('sendNotification', () => {
           id: 'claim-1',
           title: 'Vehicle claim',
         },
-        { tenantId: 'tenant-1' }
+        { authority }
       )
     ).toEqual({ success: true });
     expect(mocks.insertValues).toHaveBeenCalledWith(
@@ -197,7 +214,7 @@ describe('sendNotification', () => {
       'member@example.com',
       { id: 'claim-1', title: 'Vehicle claim' },
       'accepted',
-      { tenantId: 'tenant-1' }
+      { authority }
     );
 
     expect(result).toEqual({ success: true });
@@ -240,7 +257,7 @@ describe('sendNotification', () => {
       {
         actionUrl: '/sq/member/help?handoffId=handoff-1',
         content: 'Një përditësim nga stafi është i disponueshëm për kërkesën tuaj të mbështetjes.',
-        tenantId: 'tenant-1',
+        authority,
         title: 'Përditësim nga stafi',
       }
     );
@@ -270,14 +287,12 @@ describe('sendNotification', () => {
     const result = await clearSupportHandoffPublicResponseNotifications(
       'member-1',
       { id: 'handoff-1' },
-      { tenantId: 'tenant-1' }
+      { authority }
     );
 
     expect(result).toEqual({ success: true });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    for (const call of mocks.withTenantContext.mock.calls) expect(call[0]).toBe(authority);
     expect(mocks.delete).toHaveBeenCalledWith(expect.anything());
     expect(mocks.deleteWhere).toHaveBeenCalledWith(expect.objectContaining({ scoped: true }));
     expect(mocks.withTenant).toHaveBeenCalledWith(

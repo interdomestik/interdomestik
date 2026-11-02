@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { actor, leadRow } from './lead-branch-ownership.test-support';
@@ -54,8 +55,12 @@ vi.mock('@interdomestik/database/db', () => ({
   },
 }));
 
-import { crmLeadFollowUpRepository } from './lead-follow-up-repository';
-import { crmLeadMutationRepository } from './lead-mutation-repository';
+import { createCrmLeadFollowUpRepository } from './lead-follow-up-repository';
+import { createCrmLeadMutationRepository } from './lead-mutation-repository';
+
+const crmLeadMutationRepository = createCrmLeadMutationRepository(
+  mintTestTenantAuthority(actor.tenantId)
+);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -144,7 +149,7 @@ describe('CRM durable lead branch ownership repositories', () => {
     mocks.userFindFirst.mockResolvedValue({ branchId: 'branch-new' });
 
     await expect(
-      crmLeadFollowUpRepository.findById({
+      createCrmLeadFollowUpRepository(mintTestTenantAuthority(actor.tenantId)).findById({
         actor: { ...actor, scope: { ...actor.scope, branchId: 'branch-new' } },
         leadId: 'lead-1',
       })
@@ -234,5 +239,32 @@ describe('CRM durable lead branch ownership repositories', () => {
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('writes no follow-up activity whose tenant is not the repository authority', async () => {
+    const { db } = await import('@interdomestik/database/db');
+    const repository = createCrmLeadFollowUpRepository(mintTestTenantAuthority(actor.tenantId));
+    const activity = {
+      id: 'activity-1',
+      tenantId: 'tenant-other',
+      leadId: 'lead-1',
+      type: 'follow_up',
+      summary: 'Call back',
+      scheduledAt: '2026-11-03T09:00:00.000Z',
+    };
+
+    await expect(repository.createFollowUpActivity({ activity, actor } as never)).rejects.toThrow(
+      'CRM follow-up activity tenant does not match the tenant authority'
+    );
+    await expect(
+      repository.completeFollowUpActivity({
+        activityId: 'activity-1',
+        actor: { ...actor, tenantId: 'tenant-other' },
+        completedAt: '2026-11-03T10:00:00.000Z',
+        leadId: 'lead-1',
+      })
+    ).rejects.toThrow('CRM follow-up actor tenant does not match the tenant authority');
+    expect(db.execute).not.toHaveBeenCalled();
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
 });

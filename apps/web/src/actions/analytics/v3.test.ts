@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -20,9 +21,11 @@ vi.mock('@interdomestik/domain-analytics', () => ({
 import { getAgentCapacityAction, getBranchStressAction, getClaimLoadForecastAction } from './v3';
 
 describe('analytics v3 actions role boundaries', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
   let actionContext: {
     userRole: string;
     tenantId: string;
+    authority: typeof authority;
   };
 
   beforeEach(() => {
@@ -30,6 +33,7 @@ describe('analytics v3 actions role boundaries', () => {
     actionContext = {
       userRole: 'super_admin',
       tenantId: 'tenant-1',
+      authority,
     };
     mocks.runAuthenticatedAction.mockImplementation(async callback => callback(actionContext));
     mocks.getAgentCapacitySignal.mockResolvedValue({ agentId: 'agent-1' });
@@ -39,7 +43,7 @@ describe('analytics v3 actions role boundaries', () => {
 
   it('passes the super admin role as the actor for the claim load forecast', async () => {
     await expect(getClaimLoadForecastAction()).resolves.toEqual({ trend: 'stable' });
-    expect(mocks.getClaimLoadForecast).toHaveBeenCalledWith({ role: 'super_admin' });
+    expect(mocks.getClaimLoadForecast).toHaveBeenCalledWith(authority);
   });
 
   it.each(['tenant_admin', 'staff', 'branch_manager', 'member'])(
@@ -54,23 +58,24 @@ describe('analytics v3 actions role boundaries', () => {
 
   it('keeps super admins authorized for branch stress', async () => {
     await expect(getBranchStressAction('branch-1')).resolves.toEqual({ branchId: 'branch-1' });
-    expect(mocks.getBranchStressIndex).toHaveBeenCalledWith('tenant-1', 'branch-1');
+    expect(mocks.getBranchStressIndex).toHaveBeenCalledWith(authority, 'branch-1');
   });
 
   it('keeps super admins authorized for agent capacity', async () => {
     await expect(getAgentCapacityAction('agent-1')).resolves.toEqual({ agentId: 'agent-1' });
-    expect(mocks.getAgentCapacitySignal).toHaveBeenCalledWith('tenant-1', 'agent-1');
+    expect(mocks.getAgentCapacitySignal).toHaveBeenCalledWith(authority, 'agent-1');
   });
 
   it.each(['tenant_admin', 'staff'])(
     'binds agent capacity for %s to the session tenant',
     async userRole => {
-      actionContext = { userRole, tenantId: 'tenant-9' };
+      const tenant9Authority = mintTestTenantAuthority('tenant-9');
+      actionContext = { userRole, tenantId: 'tenant-9', authority: tenant9Authority };
 
       await getAgentCapacityAction('agent-7');
 
       expect(mocks.getAgentCapacitySignal).toHaveBeenCalledTimes(1);
-      expect(mocks.getAgentCapacitySignal).toHaveBeenCalledWith('tenant-9', 'agent-7');
+      expect(mocks.getAgentCapacitySignal).toHaveBeenCalledWith(tenant9Authority, 'agent-7');
     }
   );
 

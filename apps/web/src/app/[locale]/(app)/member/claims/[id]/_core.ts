@@ -1,12 +1,11 @@
-import {
-  claimDocuments,
-  claimStageHistory,
-  claims,
-  eq,
-  withTenantContext,
-} from '@interdomestik/database';
+import { claimDocuments, claimStageHistory, claims, eq } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, desc } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
@@ -58,11 +57,12 @@ export type MemberClaimDetailsResult =
 export async function getMemberClaimDetailsCore(args: {
   claimId: string;
   viewerUserId: string;
-  viewerTenantId: string;
+  authority: TenantAuthority;
 }): Promise<MemberClaimDetailsResult> {
-  const { claimId, viewerTenantId, viewerUserId } = args;
+  const { claimId, authority, viewerUserId } = args;
+  const { tenantId: viewerTenantId } = readTenantAuthority(authority);
 
-  const claim = (await withTenantContext({ tenantId: viewerTenantId }, tx =>
+  const claim = (await withTenantAuthority(authority, tx =>
     tx.query.claims.findFirst({
       where: and(eq(claims.id, claimId), eq(claims.tenantId, viewerTenantId)),
       with: { user: true },
@@ -74,7 +74,7 @@ export async function getMemberClaimDetailsCore(args: {
   const tenantId = claim.tenantId;
   if (!tenantId) return { kind: 'not_found' };
 
-  const documents = await withTenantContext({ tenantId }, tx =>
+  const documents = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: claimDocuments.id,
@@ -87,7 +87,7 @@ export async function getMemberClaimDetailsCore(args: {
       .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)))
   );
 
-  const publicStageHistoryRows = await withTenantContext({ tenantId }, tx =>
+  const publicStageHistoryRows = await withTenantAuthority(authority, tx =>
     tx
       .select({
         toStatus: claimStageHistory.toStatus,

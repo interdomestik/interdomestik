@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -39,6 +40,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 import { getMemberReferralLinkCore } from './link';
 
 describe('getMemberReferralLinkCore', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
   const originalEnv = process.env.NEXT_PUBLIC_APP_URL;
 
   beforeEach(() => {
@@ -58,6 +60,7 @@ describe('getMemberReferralLinkCore', () => {
       session: {
         user: { id: 'user-1', role: 'user', name: 'Jane Doe', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<import('./context').Session>,
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -67,7 +70,7 @@ describe('getMemberReferralLinkCore', () => {
       expect(result.data.whatsappShareUrl).toContain(encodeURIComponent(result.data.link));
     }
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   ensureClaimsAccess: vi.fn(),
@@ -88,6 +89,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 import { getAgentMemberClaims } from './getAgentMemberClaims';
 describe('getAgentMemberClaims', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.ensureClaimsAccess.mockReturnValue({
@@ -120,9 +122,12 @@ describe('getAgentMemberClaims', () => {
   });
 
   it('includes members linked through active agent_clients when user.agentId is empty', async () => {
-    const result = await getAgentMemberClaims({
-      user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
-    });
+    const result = await getAgentMemberClaims(
+      {
+        user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+      },
+      authority
+    );
 
     expect(result).toHaveLength(1);
     expect(result[0]?.memberId).toBe('member-2');
@@ -132,10 +137,8 @@ describe('getAgentMemberClaims', () => {
       statusLabelKey: 'claims-tracking.status.evaluation',
     });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
       userId: 'agent-1',
@@ -166,11 +169,42 @@ describe('getAgentMemberClaims', () => {
       },
     ]);
 
-    const result = await getAgentMemberClaims({
-      user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
-    });
+    const result = await getAgentMemberClaims(
+      {
+        user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+      },
+      authority
+    );
 
     expect(result).toEqual([]);
     expect(hoisted.findManyUsers).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without reading when the authority is for a different tenant than the session', async () => {
+    await expect(
+      getAgentMemberClaims(
+        {
+          user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+        },
+        mintTestTenantAuthority('tenant-2')
+      )
+    ).rejects.toThrow();
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findManyUsers).not.toHaveBeenCalled();
+    expect(hoisted.findManyClaims).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without reading when no tenant authority is supplied', async () => {
+    await expect(
+      getAgentMemberClaims(
+        {
+          user: { id: 'agent-1', role: 'agent', branchId: 'branch-1', tenantId: 'tenant-1' },
+        },
+        null
+      )
+    ).rejects.toThrow();
+
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });

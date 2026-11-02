@@ -1,30 +1,36 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberNotes, user as userTable } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq } from 'drizzle-orm';
 import type { ActionResult, MemberNote } from '../member-notes.types';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 import { mapNoteRow } from './map';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getMemberNotesCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   memberId: string;
 }): Promise<ActionResult<MemberNote[]>> {
-  const { session, memberId } = params;
+  const { session, authority, memberId } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canAccessNotes(session.user.role)) return { success: false, error: 'Access denied' };
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const rows = await withTenantContext({ tenantId }, async tx =>
+    const rows = await withTenantAuthority(authority, async tx =>
       tx
         .select({
           id: memberNotes.id,

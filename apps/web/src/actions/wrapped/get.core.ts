@@ -1,23 +1,35 @@
-import { claims, subscriptions, withTenantContext } from '@interdomestik/database';
+import { claims, subscriptions } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { differenceInDays } from 'date-fns';
 import { and, eq } from 'drizzle-orm';
 
 import type { Session } from './context';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function getWrappedStatsCore(params: { session: Session | null }) {
-  const { session } = params;
+export async function getWrappedStatsCore(params: {
+  session: Session | null;
+  authority: TenantAuthority | null;
+}) {
+  const { session, authority } = params;
 
   if (!session?.user?.id) {
     throw new Error('Unauthorized');
   }
 
   const userId = session.user.id;
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  if (!authority) {
+    throw new Error('Unauthorized');
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
-  const subscription = await withTenantContext({ tenantId }, async tx =>
+  const subscription = await withTenantAuthority(authority, async tx =>
     tx.query.subscriptions.findFirst({
       where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
     })
@@ -29,7 +41,7 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
 
   const daysProtected = differenceInDays(new Date(), subscription.createdAt);
 
-  const userClaims = await withTenantContext({ tenantId }, async tx =>
+  const userClaims = await withTenantAuthority(authority, async tx =>
     tx.query.claims.findMany({
       where: and(eq(claims.userId, userId), eq(claims.tenantId, tenantId)),
     })

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { actor, leadRow } from './lead-branch-ownership.test-support';
@@ -54,7 +55,11 @@ vi.mock('@interdomestik/database/db', () => ({
   },
 }));
 
-import { crmLeadMutationRepository } from './lead-mutation-repository';
+import { createCrmLeadMutationRepository } from './lead-mutation-repository';
+
+const crmLeadMutationRepository = createCrmLeadMutationRepository(
+  mintTestTenantAuthority(actor.tenantId)
+);
 
 type TransferOwnershipParams = Parameters<typeof crmLeadMutationRepository.transferOwnership>[0];
 

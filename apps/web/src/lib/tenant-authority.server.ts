@@ -44,3 +44,19 @@ export async function authorizeSessionTenant(
   });
   return Object.freeze({ session, authority });
 }
+
+/**
+ * The authority of the request session, only when that session is the given user's: for pages that
+ * already hold a session and must not read under anyone else's. Null when the request is
+ * unauthenticated, has no tenant, or authenticates a different user.
+ */
+export async function authorizeSessionUserTenant(userId: string): Promise<TenantAuthority | null> {
+  let authorized: AuthorizedSession | null;
+  try {
+    authorized = await authorizeSessionTenant();
+  } catch (error) {
+    if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
+    return null;
+  }
+  return authorized && authorized.session.user.id === userId ? authorized.authority : null;
+}

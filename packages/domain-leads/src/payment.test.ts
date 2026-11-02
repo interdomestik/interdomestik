@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -70,13 +71,15 @@ beforeEach(() => {
 });
 
 describe('startPayment', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   it('carries optional agent and branch scope through payment validation and status update', async () => {
     await expect(
       startPayment(
         {
           agentId: 'agent-1',
           branchId: 'branch-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         {
           amountCents: 15000,
@@ -102,7 +105,7 @@ describe('startPayment', () => {
     };
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
     for (const call of mocks.withTenantContext.mock.calls) {
-      expect(call[0]).toEqual({ tenantId: 'tenant-1' });
+      expect(call[0]).toBe(authority);
     }
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith({
@@ -125,7 +128,7 @@ describe('startPayment', () => {
         {
           agentId: 'agent-1',
           branchId: 'branch-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         {
           amountCents: 15000,

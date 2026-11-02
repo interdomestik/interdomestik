@@ -1,10 +1,13 @@
-import { withTenantContext } from '@interdomestik/database';
 import {
   agentClients,
   agentCommissions,
   subscriptions,
   user as userTable,
 } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import {
@@ -13,6 +16,7 @@ import {
   type ControlViolation,
   type ControlResult,
 } from '../../enterprise-controls';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type CommissionPayabilityRow = {
   id: string;
@@ -31,7 +35,7 @@ type AgentClientBindingRow = {
 };
 
 export async function preflightCommissionPayability(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   ids: string[];
   now?: Date;
 }): Promise<ControlResult<CommissionPayabilityRow[]>> {
@@ -41,7 +45,7 @@ export async function preflightCommissionPayability(args: {
   }
 
   const rows = await fetchCommissionPayabilityRows({
-    tenantId: args.tenantId,
+    authority: args.authority,
     ids,
   });
   const rowsById = new Map(rows.map(row => [row.id, row]));
@@ -60,7 +64,7 @@ export async function preflightCommissionPayability(args: {
       : [];
 
   const agentClientBindings = await fetchActiveAgentClientBindings({
-    tenantId: args.tenantId,
+    authority: args.authority,
     memberIds: rows.map(row => row.memberId).filter((id): id is string => Boolean(id)),
   });
   const agentClientAgentIdsByMemberId = groupAgentClientBindings(agentClientBindings);
@@ -107,12 +111,13 @@ export async function preflightCommissionPayability(args: {
 }
 
 async function fetchCommissionPayabilityRows(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   ids: string[];
 }): Promise<CommissionPayabilityRow[]> {
   if (args.ids.length === 0) return [];
+  const { tenantId } = readTenantAuthority(args.authority);
 
-  return withTenantContext({ tenantId: args.tenantId }, tx =>
+  return withTenantAuthority(args.authority, tx =>
     tx
       .select({
         id: agentCommissions.id,
@@ -139,20 +144,19 @@ async function fetchCommissionPayabilityRows(args: {
           eq(agentCommissions.memberId, userTable.id)
         )
       )
-      .where(
-        and(eq(agentCommissions.tenantId, args.tenantId), inArray(agentCommissions.id, args.ids))
-      )
+      .where(and(eq(agentCommissions.tenantId, tenantId), inArray(agentCommissions.id, args.ids)))
   );
 }
 
 async function fetchActiveAgentClientBindings(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   memberIds: string[];
 }): Promise<AgentClientBindingRow[]> {
   const memberIds = [...new Set(args.memberIds)];
   if (memberIds.length === 0) return [];
+  const { tenantId } = readTenantAuthority(args.authority);
 
-  return withTenantContext({ tenantId: args.tenantId }, tx =>
+  return withTenantAuthority(args.authority, tx =>
     tx
       .select({
         memberId: agentClients.memberId,
@@ -161,7 +165,7 @@ async function fetchActiveAgentClientBindings(args: {
       .from(agentClients)
       .where(
         and(
-          eq(agentClients.tenantId, args.tenantId),
+          eq(agentClients.tenantId, tenantId),
           eq(agentClients.status, 'active'),
           inArray(agentClients.memberId, memberIds)
         )

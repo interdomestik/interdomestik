@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => {
   }));
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     db: {
       select,
       transaction,
@@ -81,6 +82,7 @@ vi.mock('@/lib/storage/evidence-bucket', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
 }));
@@ -122,8 +124,13 @@ vi.mock('@interdomestik/domain-claims', () => ({
   resolveClaimDocumentAiExtractionConsent: mocks.resolveClaimDocumentAiExtractionConsent,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { processClaimDocumentWorkflowRunService } from './claim-workflows';
 import { claimIntakeAiCallContext } from '@/test/ai-call-context';
+
+const authority = mintTestTenantAuthority('tenant-1');
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 function buildQueuedRun(
   overrides: Partial<{
@@ -172,6 +179,7 @@ function buildProcessingDeps(analyzePdfResult: string) {
 describe('processClaimDocumentWorkflowRunService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockResolvedValue(authority);
     mocks.nanoid.mockReturnValueOnce('extraction-1').mockReturnValueOnce('extraction-2');
     mocks.resolveEvidenceBucketName.mockReturnValue('resolved-evidence-bucket');
     mocks.resolveClaimDocumentAiExtractionConsent.mockResolvedValue({
@@ -202,6 +210,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: buildProcessingDeps('Country: IT'),
     });
@@ -229,10 +238,8 @@ describe('processClaimDocumentWorkflowRunService', () => {
         claimSnapshot: { incidentDate: '2026-02-15' },
       })
     );
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-1');
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.txUpdate).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({ __name: 'ai_runs' })

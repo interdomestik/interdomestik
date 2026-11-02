@@ -1,4 +1,5 @@
 import { getMemberActiveHandoffAdvisory } from '@interdomestik/domain-claims/support-handoffs/advisory';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { AlertCircle } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
@@ -7,22 +8,22 @@ type SelectedClaim = {
 } | null;
 
 type AdvisoryBannerProps = {
+  authority: TenantAuthority;
   memberId: string;
   selectedClaim: SelectedClaim;
-  tenantId: string;
 };
 
 export async function AdvisoryBanner({
+  authority,
   memberId,
   selectedClaim,
-  tenantId,
 }: Readonly<AdvisoryBannerProps>) {
   let advisory: Awaited<ReturnType<typeof getMemberActiveHandoffAdvisory>>;
   try {
     advisory = await getMemberActiveHandoffAdvisory({
+      authority,
       claimId: selectedClaim?.id ?? null,
       memberId,
-      tenantId,
     });
   } catch (error) {
     console.error('Member support handoff advisory lookup failed', error);

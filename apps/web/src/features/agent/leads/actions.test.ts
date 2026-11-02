@@ -1,3 +1,4 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -159,10 +160,14 @@ describe('convertLeadToClient', () => {
     await expect(convertLeadToClient('lead-2')).resolves.toEqual({ success: true });
 
     const scopedWhere = scopedWhereForLead('lead-2');
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    const authorityContexts = mocks.withTenantContext.mock.calls
+      .map(([context]) => context)
+      .filter(isTenantAuthority);
+    expect(authorityContexts).toHaveLength(2);
+    expect(authorityContexts.map(context => readTenantAuthority(context).tenantId)).toEqual([
+      'tenant-1',
+      'tenant-1',
+    ]);
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
     expect(mocks.where).toHaveBeenCalledWith(scopedWhere);
     expect(mocks.startPayment).not.toHaveBeenCalled();
@@ -246,8 +251,10 @@ describe('updateLeadStatus', () => {
       success: true,
     });
 
+    const paymentContext = mocks.startPayment.mock.calls[0][0];
+    expect(readTenantAuthority(paymentContext.authority).tenantId).toBe('tenant-1');
     expect(mocks.startPayment).toHaveBeenCalledWith(
-      { agentId: 'agent-1', branchId: 'branch-1', tenantId: 'tenant-1' },
+      { agentId: 'agent-1', authority: paymentContext.authority, branchId: 'branch-1' },
       {
         leadId: 'lead-3',
         method: 'cash',

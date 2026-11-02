@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
@@ -41,13 +45,13 @@ const mockTenantTx = {
   update: () => mockUpdateChain,
 };
 const mockWithTenantContext = vi.fn(
-  async (_context: { tenantId: string }, action: (tx: typeof mockTenantTx) => Promise<unknown>) =>
+  async (_context: TenantAuthority, action: (tx: typeof mockTenantTx) => Promise<unknown>) =>
     action(mockTenantTx)
 );
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: (
-    context: { tenantId: string },
+    context: TenantAuthority,
     action: (tx: typeof mockTenantTx) => Promise<unknown>
   ) => mockWithTenantContext(context, action),
   userNotificationPreferences: {
@@ -133,6 +137,7 @@ describe('GET /api/settings/notifications', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(readTenantAuthority(mockWithTenantContext.mock.calls[0][0]).tenantId).toBe('tenant_mk');
     expect(data).toEqual({
       emailClaimUpdates: true,
       emailMarketing: false,

@@ -1,5 +1,10 @@
-import { and, eq, user, withTenantContext } from '@interdomestik/database';
+import { and, eq, user } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type StaffAssignmentOption = {
   id: string;
@@ -8,14 +13,15 @@ export type StaffAssignmentOption = {
 
 export async function getStaffAssignmentOptions(args: {
   branchId?: string | null;
-  tenantId: string;
+  authority: TenantAuthority;
 }): Promise<StaffAssignmentOption[]> {
+  const { tenantId } = readTenantAuthority(args.authority);
   const scopedRole =
     args.branchId == null
       ? eq(user.role, 'staff')
       : and(eq(user.role, 'staff'), eq(user.branchId, args.branchId));
 
-  const staff = await withTenantContext({ tenantId: args.tenantId }, tx =>
+  const staff = await withTenantAuthority(args.authority, tx =>
     tx.query.user.findMany({
       columns: {
         email: true,
@@ -23,7 +29,7 @@ export async function getStaffAssignmentOptions(args: {
         name: true,
       },
       orderBy: (users, { asc }) => [asc(users.name), asc(users.email)],
-      where: withTenant(args.tenantId, user.tenantId, scopedRole),
+      where: withTenant(tenantId, user.tenantId, scopedRole),
     })
   );
 

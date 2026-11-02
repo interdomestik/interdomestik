@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -100,6 +101,9 @@ function expectForbiddenFieldsAbsent(value: unknown) {
   }
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+const tenantTwoAuthority = mintTestTenantAuthority('tenant-2');
+
 describe('getMemberActiveHandoffAdvisory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,11 +113,11 @@ describe('getMemberActiveHandoffAdvisory', () => {
     const countQuery = queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-1', tenantId: 'tenant-1' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-1', authority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.db.select).toHaveBeenCalledTimes(1);
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(countQuery.where).toHaveBeenCalledWith(expect.objectContaining({ scoped: true }));
     expect(mocks.eq).toHaveBeenCalledWith('support_handoffs.member_id', 'member-1');
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
@@ -142,7 +146,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
       getMemberActiveHandoffAdvisory({
         claimId: 'claim-1',
         memberId: 'member-1',
-        tenantId: 'tenant-1',
+        authority,
       })
     ).resolves.toEqual({
       activeCount: 2,
@@ -170,7 +174,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
       getMemberActiveHandoffAdvisory({
         claimId: 'claim-2',
         memberId: 'member-1',
-        tenantId: 'tenant-1',
+        authority,
       })
     ).resolves.toEqual({ activeCount: 3, claimMatch: null, linkedClaim: null });
 
@@ -182,7 +186,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-closed', tenantId: 'tenant-1' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-closed', authority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.inArray).toHaveBeenCalledWith('support_handoffs.status', ACTIVE_HANDOFF_STATUSES);
@@ -192,7 +196,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     queueCountRows([{ activeCount: 0 }]);
 
     await expect(
-      getMemberActiveHandoffAdvisory({ memberId: 'member-1', tenantId: 'tenant-2' })
+      getMemberActiveHandoffAdvisory({ memberId: 'member-1', authority: tenantTwoAuthority })
     ).resolves.toEqual({ activeCount: 0, claimMatch: null, linkedClaim: null });
 
     expect(mocks.withTenant).toHaveBeenCalledWith(
@@ -219,7 +223,7 @@ describe('getMemberActiveHandoffAdvisory', () => {
     const result = await getMemberActiveHandoffAdvisory({
       claimId: 'claim-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expectForbiddenFieldsAbsent(result);

@@ -7,12 +7,14 @@ import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { ResidenceCountrySettings } from '@/components/settings/residence-country-settings';
 import { redirect } from '@/i18n/routing';
-import { eq, user, withTenantContext } from '@interdomestik/database';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function SettingsSkeleton() {
   return (
@@ -33,8 +35,10 @@ async function getResidenceCountry(session: MemberSettingsSession) {
   if (!tenantId) return null;
 
   try {
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return null;
     // db-access-guard: tenant-scoped -- reason: member settings reads the signed-in user by session tenant and user id
-    const row = await withTenantContext({ tenantId }, tx =>
+    const row = await withTenantAuthority(authorized.authority, tx =>
       tx.query.user.findFirst({
         where: withTenant(tenantId, user.tenantId, eq(user.id, session.user.id)),
         columns: { residenceCountry: true },

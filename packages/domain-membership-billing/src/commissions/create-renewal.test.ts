@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database';
+import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createRenewalCommissionCore } from './create-renewal';
@@ -30,6 +31,8 @@ vi.mock('./types', () => ({
 }));
 
 describe('createRenewalCommissionCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -59,7 +62,7 @@ describe('createRenewalCommissionCore', () => {
     });
 
     const result = await createRenewalCommissionCore({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       subscriptionId: 'sub-1',
       transactionTotal: 50,
@@ -85,7 +88,7 @@ describe('createRenewalCommissionCore', () => {
         type: 'renewal',
         amount: 12.5,
         currency: 'USD',
-        tenantId: 'tenant-1',
+        authority,
         metadata: expect.objectContaining({
           saleOwnerType: 'agent',
           saleOwnerId: 'agent-current',
@@ -94,6 +97,7 @@ describe('createRenewalCommissionCore', () => {
         }),
       })
     );
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     if (result.success) {
       expect(result.data).toEqual({
         kind: 'created',
@@ -114,7 +118,7 @@ describe('createRenewalCommissionCore', () => {
     });
 
     const result = await createRenewalCommissionCore({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       subscriptionId: 'sub-1',
       transactionTotal: 50,
@@ -154,7 +158,7 @@ describe('createRenewalCommissionCore', () => {
     });
 
     await createRenewalCommissionCore({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       subscriptionId: 'sub-1',
       transactionTotal: 50,
@@ -190,7 +194,7 @@ describe('createRenewalCommissionCore', () => {
     });
 
     const result = await createRenewalCommissionCore({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       subscriptionId: 'sub-1',
       transactionTotal: 50,

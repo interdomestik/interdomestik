@@ -1,38 +1,29 @@
-import { readActiveTenantId } from '@interdomestik/database';
-
-type SessionLike = {
-  user?: {
-    accessTenantId?: string | null;
-    role?: string | null;
-    tenantId?: string | null;
-  } | null;
-} | null;
+import { delegateSuperAdminTenant } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 function getFirst(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function resolveSessionTenantId(session: SessionLike): string | null {
-  return session?.user?.accessTenantId?.trim() || session?.user?.tenantId?.trim() || null;
-}
-
-export async function resolveAdminTenantContext(params: {
-  session: SessionLike;
+/**
+ * The tenant authority an admin profile read runs under: the session's own, or for a super_admin
+ * naming a tenant, a delegation to that tenant. An unknown or inactive tenant falls back to the
+ * session authority, as the tenant switch always has.
+ */
+export async function resolveAdminTenantAuthority(params: {
+  authority: TenantAuthority | null;
+  role: string | null;
   searchParams: Record<string, string | string[] | undefined>;
-}): Promise<string | null> {
-  const { session, searchParams } = params;
-  const sessionTenantId = resolveSessionTenantId(session);
-  const role = session?.user?.role ?? null;
-
-  if (role !== 'super_admin') {
-    return sessionTenantId;
+}): Promise<TenantAuthority | null> {
+  const { authority, role, searchParams } = params;
+  if (!authority || role !== 'super_admin') {
+    return authority;
   }
 
-  const requestedTenantId = getFirst(searchParams.tenantId);
+  const requestedTenantId = getFirst(searchParams.tenantId)?.trim();
   if (!requestedTenantId) {
-    return sessionTenantId;
+    return authority;
   }
 
-  // Only super_admin reaches here; an unknown or inactive tenant falls back to the session tenant.
-  return (await readActiveTenantId(requestedTenantId)) ?? sessionTenantId;
+  return (await delegateSuperAdminTenant(authority, requestedTenantId)) ?? authority;
 }

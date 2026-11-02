@@ -1,5 +1,10 @@
-import { and, claimStageHistory, desc, eq, withTenantContext } from '@interdomestik/database';
+import { and, claimStageHistory, desc, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type ClaimTimelineEvent = {
   id: string;
@@ -24,12 +29,13 @@ function toIso(value: Date | string | null | undefined): string {
 }
 
 export async function getClaimTimeline(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   claimId: string;
 }): Promise<ClaimTimelineEvent[]> {
-  const { tenantId, claimId } = params;
+  const { authority, claimId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const rows = await withTenantContext({ tenantId }, tx =>
+  const rows = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: claimStageHistory.id,

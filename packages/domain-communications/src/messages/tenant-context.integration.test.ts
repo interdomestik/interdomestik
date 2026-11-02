@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import {
   assertSyntheticMessageDatabaseUrl,
   fixture,
@@ -9,6 +10,12 @@ import {
   session,
   registerMessageRlsFixture,
 } from './tenant-context.integration-fixture';
+const memberAuthority = () =>
+  mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' });
+const asActor = (id: string, role: string, tenantId = homeTenantId) => ({
+  session: session(id, role, tenantId),
+  authority: mintTestTenantAuthority(tenantId, { userId: id, role }),
+});
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;
 
 describe('message fixture database safety', () => {
@@ -61,7 +68,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     expect(unscoped.count).toBe(0);
     for (let read = 0; read < 2; read++) {
       const result = await fixture.get({
-        session: session(ids.member, 'member'),
+        ...asActor(ids.member, 'member'),
         claimId: ids.claim,
       });
       expect(result.success).toBe(true);
@@ -79,28 +86,28 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
 
   it('preserves member/tenant denial, staff assignment and linked-agent visibility', async () => {
     expect(
-      await fixture.get({ session: session(ids.otherMember, 'member'), claimId: ids.claim })
+      await fixture.get({ ...asActor(ids.otherMember, 'member'), claimId: ids.claim })
     ).toMatchObject({ success: false });
     expect(
       await fixture.get({
-        session: session(ids.member, 'member', otherTenantId),
+        ...asActor(ids.member, 'member', otherTenantId),
         claimId: ids.claim,
       })
     ).toMatchObject({ success: false });
     expect(
-      await fixture.get({ session: session(ids.otherMember, 'staff'), claimId: ids.claim })
+      await fixture.get({ ...asActor(ids.otherMember, 'staff'), claimId: ids.claim })
     ).toMatchObject({ success: false });
-    const staff = await fixture.get({ session: session(ids.staff, 'staff'), claimId: ids.claim });
+    const staff = await fixture.get({ ...asActor(ids.staff, 'staff'), claimId: ids.claim });
     expect(staff.messages?.map(message => message.id)).toEqual(
       expect.arrayContaining([ids.public, ids.internal])
     );
-    const agent = await fixture.get({ session: session(ids.agent, 'agent'), claimId: ids.claim });
+    const agent = await fixture.get({ ...asActor(ids.agent, 'agent'), claimId: ids.claim });
     expect(agent.messages?.map(message => message.id)).toEqual([ids.public]);
   });
 
   it('persists visible recipient receipts while rejecting internal/own/out-of-scope mutations', async () => {
     await fixture.markRead({
-      session: session(ids.otherMember, 'member'),
+      ...asActor(ids.otherMember, 'member'),
       messageIds: [ids.public],
     });
     expect(
@@ -112,7 +119,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     ).toBeNull();
     expect(
       await fixture.markRead({
-        session: session(ids.member, 'member'),
+        ...asActor(ids.member, 'member'),
         messageIds: [ids.public, ids.internal],
       })
     ).toEqual({ success: true });
@@ -135,6 +142,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
   it('sends a persisted public message with the same transaction and denies member internal send', async () => {
     const result = await fixture.send({
       session: session(ids.member, 'member'),
+      authority: memberAuthority(),
       requestHeaders: new Headers(),
       claimId: ids.claim,
       content: 'Synthetic member reply',
@@ -146,10 +154,10 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       senderId: ids.member,
       isInternal: false,
     });
-    const reread = await fixture.get({ session: session(ids.staff, 'staff'), claimId: ids.claim });
+    const reread = await fixture.get({ ...asActor(ids.staff, 'staff'), claimId: ids.claim });
     expect(reread.messages?.map(message => message.id)).toContain(result.message.id);
     await fixture.markRead({
-      session: session(ids.member, 'member'),
+      ...asActor(ids.member, 'member'),
       messageIds: [result.message.id],
     });
     expect(
@@ -162,6 +170,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
     expect(
       await fixture.send({
         session: session(ids.member, 'member'),
+        authority: memberAuthority(),
         requestHeaders: new Headers(),
         claimId: ids.claim,
         content: 'Forbidden private note',
@@ -176,6 +185,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
       expect(
         await fixture.send({
           session: session(ids.member, 'member'),
+          authority: memberAuthority(),
           requestHeaders: new Headers(),
           claimId: ids.claim,
           content: 'Projection failure rollback',
@@ -195,6 +205,7 @@ suite('message operations on a real NOBYPASSRLS connection', () => {
   it('keeps the existing error response after a post-commit audit failure without holding the transaction', async () => {
     const result = await fixture.send({
       session: session(ids.member, 'member'),
+      authority: memberAuthority(),
       requestHeaders: new Headers(),
       claimId: ids.claim,
       content: 'Committed before audit failure',

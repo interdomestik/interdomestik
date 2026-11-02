@@ -1,7 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 const databaseMocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
@@ -62,7 +65,7 @@ describe('new subscription extras idempotency', () => {
       providerEventId: 'evt_provider_1',
       sub: { id: 'sub_1', items: [{ price: { unitPrice: { amount: '2000' } } }] },
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: { email: 'member@example.test', memberNumber: 'M-1', name: 'Member' },

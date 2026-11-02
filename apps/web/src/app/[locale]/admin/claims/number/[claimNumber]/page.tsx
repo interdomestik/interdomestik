@@ -1,7 +1,6 @@
-import { auth } from '@/lib/auth';
 import { canViewAdminClaims, resolveClaimsVisibility } from '@/features/admin/claims/server';
 import { runNumberResolverInTenantContext } from '@/features/admin/number-resolvers/tenant-context';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -26,11 +25,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ClaimNumberResolverPage({ params }: Props) {
   const { locale, claimNumber } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
+  // The session's tenant authority (its effective access tenant); a session without tenant scope
+  // throws here, before any lookup.
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session) {
+  if (!authorized) {
     redirect(`/${locale}/login`);
   }
+  const { session, authority } = authorized;
   const visibility = await resolveClaimsVisibility(session);
   if (!visibility || !canViewAdminClaims(visibility)) {
     notFound();
@@ -39,15 +41,12 @@ export default async function ClaimNumberResolverPage({ params }: Props) {
     notFound();
   }
 
-  const tenantId = ensureTenantId(session);
-
   // Audit invariant: RESOLVER_TENANT_SCOPED (where: tenantId, claimNumber)
 
   const { claimId } = await getClaimNumberResolverCore({
     claimNumber,
     visibility,
-    inTenantContext: lookup =>
-      runNumberResolverInTenantContext({ tenantId, role: visibility.role }, lookup),
+    inTenantContext: lookup => runNumberResolverInTenantContext(authority, lookup),
   });
 
   if (!claimId) {

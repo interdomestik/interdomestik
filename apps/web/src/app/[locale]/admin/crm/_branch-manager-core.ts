@@ -1,4 +1,5 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   authorizeCrmReportingRead,
   CRM_REPORTING_MAX_WINDOW_DAYS,
@@ -16,8 +17,8 @@ import type {
 } from '@interdomestik/domain-crm/reporting/repository';
 
 import {
-  crmForecastSnapshotRepository,
-  crmReportingRepository,
+  createCrmForecastSnapshotRepository,
+  createCrmReportingRepository,
 } from '@/adapters/crm/reporting-repository';
 
 import { getPreviousUtcSnapshotDate, type AdminCrmSnapshotFreshness } from './_core';
@@ -350,7 +351,7 @@ async function settleWidget<T>(
 }
 
 export async function getBranchManagerCrmReportingCore(
-  args: { actor: CrmActorContext },
+  args: { actor: CrmActorContext; authority: TenantAuthority },
   options: BranchManagerCrmReportingCoreOptions = {}
 ): Promise<BranchManagerCrmReportingDashboard> {
   if (!args.actor.tenantId) {
@@ -372,9 +373,10 @@ export async function getBranchManagerCrmReportingCore(
     throw new BranchManagerCrmReportingAccessDeniedError(denied);
   }
 
-  const reportingRepository = options.reportingRepository ?? crmReportingRepository;
+  const reportingRepository =
+    options.reportingRepository ?? createCrmReportingRepository(args.authority);
   const forecastSnapshotRepository =
-    options.forecastSnapshotRepository ?? crmForecastSnapshotRepository;
+    options.forecastSnapshotRepository ?? createCrmForecastSnapshotRepository(args.authority);
   const logger = options.logger ?? console;
   const snapshotDate = getPreviousUtcSnapshotDate(nowIso);
 

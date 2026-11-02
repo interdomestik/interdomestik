@@ -1,7 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeSessionTenantMock: vi.fn(),
   StaffCrmReportingAccessDeniedError: class StaffCrmReportingAccessDeniedError extends Error {
     constructor(readonly reason: string) {
       super(`Staff CRM reporting read denied: ${reason}`);
@@ -27,6 +29,14 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('@/components/shell/session', () => {
   return { getSessionSafe: hoisted.getSessionSafeMock };
 });
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn(async () => new Headers()),
+}));
 
 vi.mock('next/navigation', () => {
   return { notFound: hoisted.notFoundMock };
@@ -65,6 +75,8 @@ vi.mock('@/components/crm/charts/reporting-chart-boundary', () => ({
 }));
 
 import StaffCrmPage from './page';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 function dataDashboard() {
   return {
@@ -149,6 +161,7 @@ function dataDashboard() {
 describe('StaffCrmPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizeSessionTenantMock.mockResolvedValue({ authority: TEST_AUTHORITY });
     hoisted.getSessionSafeMock.mockResolvedValue({
       user: {
         branchId: null,
@@ -172,6 +185,7 @@ describe('StaffCrmPage', () => {
           scope: { branchId: null, staffId: 'staff-1' },
           tenantId: 'tenant-1',
         },
+        authority: TEST_AUTHORITY,
       },
       { labels: { noBranch: 'label.no-branch' } }
     );

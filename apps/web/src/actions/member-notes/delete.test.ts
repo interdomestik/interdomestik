@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { deleteMemberNoteCore } from './delete.core';
 
@@ -48,6 +49,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('deleteMemberNoteCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,6 +79,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockStaffSession as never,
+      authority,
       noteId: 'note-1',
     });
 
@@ -88,6 +92,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockStaffSession as never,
+      authority,
       noteId: 'note-1',
     });
 
@@ -100,6 +105,7 @@ describe('deleteMemberNoteCore', () => {
 
     const result = await deleteMemberNoteCore({
       session: mockAdminSession as never,
+      authority,
       noteId: 'note-1',
     });
 

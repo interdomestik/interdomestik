@@ -1,6 +1,10 @@
 import webPush, { type PushSubscription } from 'web-push';
 
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { pushSubscriptions, userNotificationPreferences } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
@@ -48,7 +52,7 @@ export async function sendPushToUser(
   payload: PushPayload,
   deps: {
     logAuditEvent?: AuditLogger;
-    tenantId: string;
+    authority: TenantAuthority;
   }
 ) {
   const vapid = getVapidDetails();
@@ -57,13 +61,14 @@ export async function sendPushToUser(
   }
 
   // Push targets are tenant-owned: preferences and subscriptions are read inside the caller's tenant.
-  const resolvedTenantId = deps.tenantId;
-  if (!resolvedTenantId) {
+  const { authority } = deps;
+  if (!authority) {
     return { success: false, skipped: true, reason: 'missing_tenant' as const };
   }
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
   // Respect stored preferences
-  const [prefs] = await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+  const [prefs] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         pushClaimUpdates: userNotificationPreferences.pushClaimUpdates,
@@ -87,7 +92,7 @@ export async function sendPushToUser(
     return { success: false, skipped: true, reason: 'preferences_disabled' as const };
   }
 
-  const subscriptions = await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+  const subscriptions = await withTenantAuthority(authority, tx =>
     tx
       .select({
         endpoint: pushSubscriptions.endpoint,
@@ -134,7 +139,7 @@ export async function sendPushToUser(
 
         // Cleanup invalid/expired subscriptions.
         if (statusCode === 404 || statusCode === 410) {
-          await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+          await withTenantAuthority(authority, tx =>
             tx
               .delete(pushSubscriptions)
               .where(
@@ -160,6 +165,7 @@ export async function sendPushToUser(
 
   if (deps?.logAuditEvent) {
     await deps.logAuditEvent({
+      authority,
       actorId: userId,
       actorRole: 'system',
       action: 'push.sent',

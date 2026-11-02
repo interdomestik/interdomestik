@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSIGNMENT_TARGET_DENIED_ERROR,
@@ -6,6 +7,19 @@ import {
   unassignOwner,
 } from './ops-assignment.test-bootstrap';
 import { createFakeTx, routeTenantContext, sessionFor, sqlOf } from './ops-assignment.test-fixture';
+
+/** The tenant context handed to withTenantContext must be the session's tenant authority. */
+function expectSessionTenantAuthority(
+  context: unknown,
+  expected: { tenantId: string; role: string }
+) {
+  expect(readTenantAuthority(context as never)).toMatchObject({
+    tenantId: expected.tenantId,
+    accessTenantId: expected.tenantId,
+    purpose: 'session',
+    principal: expect.objectContaining({ role: expected.role }),
+  });
+}
 
 function expectNoAssignmentSideEffects() {
   expect(mocks.withTenantContext).not.toHaveBeenCalled();
@@ -61,10 +75,11 @@ describe('assignOwner exercised-role authorization', () => {
       await expect(assignOwner('claim-1', 'staff-1', 'en')).resolves.toMatchObject({
         success: true,
       });
-      expect(mocks.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant-1', role },
-        expect.any(Function)
-      );
+      expect(mocks.withTenantContext).toHaveBeenCalledWith(expect.anything(), expect.any(Function));
+      expectSessionTenantAuthority(mocks.withTenantContext.mock.calls[0][0], {
+        tenantId: 'tenant-1',
+        role,
+      });
       expect(mocks.directDbAccess).toEqual([]);
     }
   );
@@ -82,10 +97,10 @@ describe('assignOwner tenant and target input', () => {
       success: true,
     });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-access', role: 'tenant_admin' },
-      expect.any(Function)
-    );
+    expectSessionTenantAuthority(mocks.withTenantContext.mock.calls[0][0], {
+      tenantId: 'tenant-access',
+      role: 'tenant_admin',
+    });
     const claimRead = sqlOf(tx.query.claims.findFirst.mock.calls[0][0].where);
     const targetRead = sqlOf(targetLock.mock.calls[0][0].where);
     expect(claimRead.params).toContain('tenant-access');

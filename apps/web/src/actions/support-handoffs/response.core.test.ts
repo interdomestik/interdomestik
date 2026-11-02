@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -33,6 +34,8 @@ const staffSession = {
   },
 } as Parameters<typeof updateSupportHandoffPublicResponseCore>[0]['session'];
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('updateSupportHandoffPublicResponseCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,6 +54,7 @@ describe('updateSupportHandoffPublicResponseCore', () => {
     });
 
     const result = await updateSupportHandoffPublicResponseCore({
+      authority,
       expectedVersion: 1,
       handoffId: 'handoff-1',
       requestHeaders: new Headers({ referer: 'https://ks.example.test/sq/staff/support-handoffs' }),
@@ -81,7 +85,7 @@ describe('updateSupportHandoffPublicResponseCore', () => {
       {
         actionUrl: '/sq/member/help?handoffId=handoff-1',
         content: 'Një përditësim nga stafi është i disponueshëm për kërkesën tuaj të mbështetjes.',
-        tenantId: 'tenant-1',
+        authority,
         title: 'Përditësim nga stafi',
       }
     );
@@ -99,6 +103,7 @@ describe('updateSupportHandoffPublicResponseCore', () => {
     });
 
     const result = await updateSupportHandoffPublicResponseCore({
+      authority,
       expectedVersion: 1,
       handoffId: 'handoff-1',
       response: 'Member-visible response',
@@ -130,6 +135,7 @@ describe('updateSupportHandoffPublicResponseCore', () => {
     });
 
     const result = await updateSupportHandoffPublicResponseCore({
+      authority,
       expectedVersion: 1,
       handoffId: 'handoff-1',
       response: 'Member-visible response',

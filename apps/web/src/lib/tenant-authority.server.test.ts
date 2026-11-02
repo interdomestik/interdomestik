@@ -9,7 +9,7 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('./auth', () => ({ auth: { api: { getSession: hoisted.getSession } } }));
 vi.mock('./auth.server', () => ({ getCachedSession: hoisted.getCachedSession }));
 
-import { authorizeSessionTenant } from './tenant-authority.server';
+import { authorizeSessionTenant, authorizeSessionUserTenant } from './tenant-authority.server';
 
 const session = {
   user: {
@@ -67,5 +67,30 @@ describe('authorizeSessionTenant', () => {
     const first = await authorizeSessionTenant();
     const second = await authorizeSessionTenant();
     expect(first!.authority).not.toBe(second!.authority);
+  });
+});
+
+describe('authorizeSessionUserTenant', () => {
+  beforeEach(() => {
+    hoisted.getCachedSession.mockReset();
+  });
+
+  it("returns the session authority only for the session's own user", async () => {
+    hoisted.getCachedSession.mockResolvedValue(session);
+    const authority = await authorizeSessionUserTenant('user-1');
+    expect(readTenantAuthority(authority!).principal?.userId).toBe('user-1');
+    await expect(authorizeSessionUserTenant('user-2')).resolves.toBeNull();
+  });
+
+  it('returns null for an unauthenticated request or a session without a tenant', async () => {
+    hoisted.getCachedSession.mockResolvedValue(null);
+    await expect(authorizeSessionUserTenant('user-1')).resolves.toBeNull();
+    hoisted.getCachedSession.mockResolvedValue({ user: { id: 'user-1', role: 'member' } });
+    await expect(authorizeSessionUserTenant('user-1')).resolves.toBeNull();
+  });
+
+  it('propagates session failures other than a missing tenant', async () => {
+    hoisted.getCachedSession.mockRejectedValue(new Error('session store down'));
+    await expect(authorizeSessionUserTenant('user-1')).rejects.toThrow('session store down');
   });
 });

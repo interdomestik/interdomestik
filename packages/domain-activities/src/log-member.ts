@@ -1,4 +1,4 @@
-import { db, memberActivities, user, withTenantContext } from '@interdomestik/database';
+import { db, memberActivities, user } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 
 import { activitySchema, type LogActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type { LogActivityInput } from './schema';
 
@@ -59,7 +60,7 @@ export async function logActivityCore(params: {
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const member = await withTenantContext(authority, tx =>
+    const member = await withTenantAuthority(authority, tx =>
       tx.query.user.findFirst({
         where: eq(user.id, memberId),
       })
@@ -87,7 +88,7 @@ export async function logActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantContext(authority, tx => tx.insert(memberActivities).values(newActivity));
+    await withTenantAuthority(authority, tx => tx.insert(memberActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

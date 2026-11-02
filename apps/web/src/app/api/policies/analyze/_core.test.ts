@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { analyzePolicyCore, AnalyzePolicyDeps } from './_core';
 
 const mockDeps: AnalyzePolicyDeps = {
@@ -18,7 +19,8 @@ const mockFile = (name: string, type: string, size = 1000) => {
 };
 
 const mockBuffer = Buffer.from('mock');
-const mockSession = { userId: 'u1', tenantId: 't1' };
+const authority = mintTestTenantAuthority('t1', { userId: 'u1', role: 'member' });
+const mockSession = { userId: 'u1', authority };
 
 describe('analyzePolicyCore', () => {
   it('returns BAD_REQUEST for invalid input file', async () => {
@@ -56,7 +58,7 @@ describe('analyzePolicyCore', () => {
     expect(mockDeps.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 't1' }));
     expect(mockDeps.queuePolicyAnalysis).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 't1',
+        authority,
         userId: 'u1',
         fileUrl: 'mock/path',
         fileName: 'policy.jpg',
@@ -64,6 +66,7 @@ describe('analyzePolicyCore', () => {
         fileSize: 1000,
       })
     );
+    expect(vi.mocked(mockDeps.queuePolicyAnalysis).mock.calls[0]?.[0].authority).toBe(authority);
     expect(mockDeps.emitRequestedRun).toHaveBeenCalledWith({
       runId: 'run-1',
       tenantId: 't1',
@@ -92,10 +95,11 @@ describe('analyzePolicyCore', () => {
     });
 
     expect(mockDeps.markRunDispatchFailed).toHaveBeenCalledWith({
+      authority,
       runId: 'run-1',
-      tenantId: 't1',
       message: 'Inngest unavailable',
     });
+    expect(vi.mocked(mockDeps.markRunDispatchFailed).mock.calls[0]?.[0].authority).toBe(authority);
     expect(result).toEqual({
       ok: false,
       code: 'INTERNAL_ERROR',

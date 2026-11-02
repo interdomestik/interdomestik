@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('web-push', () => {
@@ -62,6 +63,8 @@ vi.mock('@/lib/audit', () => ({
 import webPush from 'web-push';
 import { sendPushToUser } from './push';
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 type WhereResult<T> = Pick<Promise<T>, 'then' | 'catch' | 'finally'> & {
   limit: () => Promise<T>;
 };
@@ -105,7 +108,7 @@ describe('sendPushToUser', () => {
         body: 'b',
         url: '/x',
       },
-      { tenantId: 'tenant_mk' }
+      { authority }
     );
 
     expect(result).toEqual(
@@ -136,7 +139,7 @@ describe('sendPushToUser', () => {
         body: 'b',
         url: '/x',
       },
-      { tenantId: 'tenant_mk' }
+      { authority }
     );
 
     expect(result).toEqual(
@@ -171,16 +174,13 @@ describe('sendPushToUser', () => {
         body: 'b',
         url: '/x',
       },
-      { tenantId: 'tenant_mk' }
+      { authority }
     );
 
     expect(webPushMock.setVapidDetails).toHaveBeenCalled();
     expect(webPushMock.sendNotification).toHaveBeenCalledTimes(2);
     expect(result).toEqual(expect.objectContaining({ success: true, okCount: 2, failCount: 0 }));
-    expect(hoistedMocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_mk' },
-      expect.any(Function)
-    );
+    expect(hoistedMocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('deletes invalid subscriptions on 410', async () => {
@@ -206,7 +206,7 @@ describe('sendPushToUser', () => {
         body: 'b',
         url: '/x',
       },
-      { tenantId: 'tenant_mk' }
+      { authority }
     );
 
     expect(result).toEqual(expect.objectContaining({ success: false, okCount: 0, failCount: 1 }));

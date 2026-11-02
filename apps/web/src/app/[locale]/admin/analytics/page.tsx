@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { MissingTenantError } from '@interdomestik/shared-auth';
 import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
@@ -13,13 +14,18 @@ export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageP
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await import('next/headers').then(m => m.headers()),
-  });
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  try {
+    authorized = await authorizeSessionTenant(await import('next/headers').then(m => m.headers()));
+  } catch (error) {
+    if (error instanceof MissingTenantError) redirect('/login');
+    throw error;
+  }
 
-  if (!session?.user?.tenantId) {
+  if (!authorized) {
     redirect('/login');
   }
+  const { session, authority } = authorized;
 
   // Strict RBAC: Members cannot access admin analytics
   if (session.user.role === 'member') {
@@ -29,7 +35,7 @@ export default async function AdminAnalyticsPage({ params }: AdminAnalyticsPageP
 
   let data;
   try {
-    data = await getAdminAnalyticsDataCore({ user: { tenantId: session.user.tenantId } });
+    data = await getAdminAnalyticsDataCore(authority);
   } catch (err: unknown) {
     const name = err instanceof Error ? err.name : undefined;
     const message = err instanceof Error ? err.message : undefined;

@@ -1,13 +1,15 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
 import { Link } from '@/i18n/routing';
-import { withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // Helper for initials
 function getInitials(name: string) {
@@ -22,8 +24,7 @@ function getInitials(name: string) {
 // Minimal placeholder auth
 async function getAuth() {
   try {
-    const { auth } = await import('@/lib/auth');
-    return await auth.api.getSession({ headers: await headers() });
+    return await authorizeSessionTenant(await headers());
   } catch {
     return null;
   }
@@ -38,11 +39,12 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   await searchParams;
   const t = await getTranslations('agent');
-  const session = await getAuth();
-  if (!session) redirect(`/${locale}/login`);
+  const authorized = await getAuth();
+  if (!authorized) redirect(`/${locale}/login`);
 
-  const tenantId = ensureTenantId(session);
-  const result = await withTenantContext({ tenantId }, tx =>
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
+  const result = await withTenantAuthority(authority, tx =>
     getAgentClaimsCore({
       tenantId,
       userId: session.user.id,

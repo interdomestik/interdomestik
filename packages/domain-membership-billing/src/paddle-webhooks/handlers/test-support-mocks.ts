@@ -2,17 +2,26 @@ import { vi } from 'vitest';
 
 export type MockFunction = ReturnType<typeof vi.fn>;
 export interface PaddleResolutionMocks {
+  /** Producer of the `paddle-webhook` authority; defaults to a test authority for the owner's tenant. */
+  authorizePaddleTenant: MockFunction;
+  /** Billing-scope producer; defaults to a permissive stand-in (tests of the binding override it). */
+  authorizePaddleBillingTenant: MockFunction;
   resolvePaddleSubscriptionOwner: MockFunction;
   resolvePaddleUserOwner: MockFunction;
   resolvePaddleCustomerEmailOwner: MockFunction;
   readVerifiedPaddleTransactionEvidence: MockFunction;
 }
 
+/** Fixed identity producers (credential existence, member-number issuance) from the root. */
+export interface PaddleIdentityMocks {
+  hasTenantMemberCredential: MockFunction;
+  issueTenantMemberNumber: MockFunction;
+}
+
 export interface PaddleHandlerMocks {
   db: {
     query: {
       user: { findFirst: MockFunction };
-      account: { findFirst: MockFunction };
       agentClients: { findFirst: MockFunction };
       membershipPlans: { findFirst: MockFunction };
       subscriptions: { findFirst: MockFunction };
@@ -28,6 +37,7 @@ export interface PaddleHandlerMocks {
   withTenantContext: MockFunction;
   /** Privileged provider-reference resolvers, re-exported from the `@interdomestik/database` root. */
   resolution: PaddleResolutionMocks;
+  identity: PaddleIdentityMocks;
   selectResults: unknown[][];
   and: MockFunction;
   appendEvent: MockFunction;
@@ -52,7 +62,7 @@ export interface PaddleHandlerMocks {
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
-export interface PaddleDatabaseMockModule extends PaddleResolutionMocks {
+export interface PaddleDatabaseMockModule extends PaddleResolutionMocks, PaddleIdentityMocks {
   agentClients: {
     tenantId: string;
     memberId: string;
@@ -84,7 +94,6 @@ export interface MemberNumberMockModule {
 export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
   const query = {
     user: { findFirst: vi.fn() },
-    account: { findFirst: vi.fn() },
     agentClients: { findFirst: vi.fn() },
     membershipPlans: { findFirst: vi.fn() },
     subscriptions: { findFirst: vi.fn() },
@@ -101,10 +110,16 @@ export function createHoistedPaddleHandlerMocks(): PaddleHandlerMocks {
     },
     withTenantContext: vi.fn(),
     resolution: {
+      authorizePaddleTenant: vi.fn(),
+      authorizePaddleBillingTenant: vi.fn(),
       resolvePaddleSubscriptionOwner: vi.fn(),
       resolvePaddleUserOwner: vi.fn(),
       resolvePaddleCustomerEmailOwner: vi.fn(),
       readVerifiedPaddleTransactionEvidence: vi.fn(),
+    },
+    identity: {
+      hasTenantMemberCredential: vi.fn(),
+      issueTenantMemberNumber: vi.fn(),
     },
     selectResults: [] as unknown[][],
     and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
@@ -155,6 +170,7 @@ export function createPaddleDatabaseMockModule(
     webhookEvents: hoisted.webhookEvents,
     withTenantContext: hoisted.withTenantContext,
     ...hoisted.resolution,
+    ...hoisted.identity,
   };
 }
 

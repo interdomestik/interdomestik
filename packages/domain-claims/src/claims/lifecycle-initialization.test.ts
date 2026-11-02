@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -77,6 +78,8 @@ import { appendEvent } from '@interdomestik/database';
 import { createClaimCore } from './create';
 import { submitClaimCore } from './submit';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 function session() {
   return {
     user: { email: 'member@example.com', id: 'member-1', role: 'member', tenantId: 'tenant-1' },
@@ -101,6 +104,7 @@ describe('claim lifecycle state initialization', () => {
 
   it('initializes draft claims with deterministic lifecycle states', async () => {
     await createClaimCore({
+      authority,
       formData: formData(),
       requestHeaders: new Headers(),
       session: session(),
@@ -128,6 +132,7 @@ describe('claim lifecycle state initialization', () => {
 
   it('initializes submitted claims with deterministic lifecycle states', async () => {
     await submitClaimCore({
+      authority,
       data: {
         category: 'travel',
         claimAmount: '650.00',

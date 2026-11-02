@@ -43,6 +43,10 @@ vi.mock('crypto', () => ({
 }));
 
 import { getPublicClaimStatus } from './getPublicClaimStatus';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+// Stands in for the authority the public-token producer mints after resolving the token.
+const tokenAuthority = mintTestTenantAuthority('tenant-ks');
 
 const validTokenRow = [{ id: 'token-1' }];
 
@@ -52,6 +56,7 @@ describe('getPublicClaimStatus', () => {
     hoisted.resolveClaimTrackingTokenTenant.mockResolvedValue({
       tenantId: 'tenant-ks',
       claimId: 'claim-1',
+      authority: tokenAuthority,
     });
     hoisted.tokenLimit.mockResolvedValue(validTokenRow);
     hoisted.tokenWhere.mockReturnValue({ limit: hoisted.tokenLimit });
@@ -105,10 +110,7 @@ describe('getPublicClaimStatus', () => {
     await getPublicClaimStatus('public-token');
 
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-ks' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(tokenAuthority, expect.any(Function));
     expect(hoisted.tokenWhere).toHaveBeenCalledWith({
       op: 'and',
       args: [
@@ -128,10 +130,7 @@ describe('getPublicClaimStatus', () => {
     const result = await getPublicClaimStatus('public-token');
 
     expect(result).toBeNull();
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-ks' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(tokenAuthority, expect.any(Function));
     expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

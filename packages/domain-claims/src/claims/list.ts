@@ -8,9 +8,12 @@ import {
   inArray,
   or,
   user,
-  withTenantContext,
 } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull } from 'drizzle-orm';
@@ -21,13 +24,22 @@ import {
 } from './lifecycle-read-sql';
 import { mapClaimsToResponse } from './list-response';
 import type { ClaimsListResponse, ClaimsScope, ListClaimsParams } from './list-types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type { ClaimItem, ClaimsListResponse, ClaimsScope, ListClaimsParams } from './list-types';
 
 const VALID_STATUSES = CLAIM_STATUSES;
 
 export async function listClaims(params: ListClaimsParams): Promise<ClaimsListResponse> {
-  const { session, scope, status: statusFilter, search: searchQuery, page, perPage } = params;
+  const {
+    authority,
+    session,
+    scope,
+    status: statusFilter,
+    search: searchQuery,
+    page,
+    perPage,
+  } = params;
 
   // 1. Auth & Scope Validation
   const authScope = scopeFilter(session);
@@ -38,7 +50,7 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
   }
 
   const { isPrivileged } = access;
-  const tenantId = authScope.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
   const role = session?.user?.role || 'user';
   const isAgent = role === 'agent';
 
@@ -60,14 +72,14 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     agentClientsJoinOn,
     page,
     perPage,
-    tenantId
+    authority
   );
 
   // 4. Fetch Metadata & Map Response
   const unreadCounts = await fetchUnreadCounts({
+    authority,
     rows,
     scope,
-    tenantId,
   });
 
   return {
@@ -215,9 +227,9 @@ async function executeClaimsQuery(
   agentClientsJoinOn: any,
   page: number,
   perPage: number,
-  tenantId: string
+  authority: TenantAuthority
 ) {
-  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn, tenantId);
+  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn, authority);
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
   const offset = (page - 1) * perPage;
 
@@ -226,7 +238,7 @@ async function executeClaimsQuery(
     agentClientsJoinOn,
     perPage,
     offset,
-    tenantId,
+    authority,
   });
 
   return { totalCount, totalPages, rows };
@@ -235,10 +247,10 @@ async function executeClaimsQuery(
 async function fetchTotalCount(
   whereClause: SQL | undefined,
   agentClientsJoinOn: any,
-  tenantId: string
+  authority: TenantAuthority
 ) {
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  const [countRow] = await withTenantContext({ tenantId }, tx => {
+  const [countRow] = await withTenantAuthority(authority, tx => {
     let countQuery = tx
       .select({ total: count() })
       .from(claims)
@@ -258,12 +270,12 @@ async function fetchClaimRows(params: {
   agentClientsJoinOn: any;
   perPage: number;
   offset: number;
-  tenantId: string;
+  authority: TenantAuthority;
 }) {
-  const { whereClause, agentClientsJoinOn, perPage, offset, tenantId } = params;
+  const { whereClause, agentClientsJoinOn, perPage, offset, authority } = params;
 
   // db-access-guard: tenant-scoped -- reason: tenant predicate built by local helper and consumed by this DB call
-  return withTenantContext({ tenantId }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     let rowsQuery = tx
       .select({
         id: claims.id,
@@ -296,15 +308,16 @@ async function fetchClaimRows(params: {
 }
 
 async function fetchUnreadCounts(params: {
+  authority: TenantAuthority;
   rows: { id: string }[];
   scope: ClaimsScope;
-  tenantId: string;
 }) {
-  const { rows, scope, tenantId } = params;
+  const { authority, rows, scope } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const unreadCounts = new Map<string, number>();
 
   if (scope !== 'member' && rows.length > 0) {
-    const unreadRows = await withTenantContext({ tenantId }, tx =>
+    const unreadRows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           claimId: claimMessages.claimId,

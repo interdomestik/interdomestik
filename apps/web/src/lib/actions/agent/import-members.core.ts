@@ -1,10 +1,11 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ImportMemberRowInput } from './schemas';
 import { importMemberRowSchema } from './schemas';
 import { registerMemberCore } from './register-member.core';
 
 type ImportMembersCoreParams = {
   agent: { id: string; name?: string | null };
-  tenantId: string;
+  authority: TenantAuthority;
   branchId: string | null;
   rows: ImportMemberRowInput[];
 };
@@ -19,7 +20,7 @@ type ImportMemberResult = {
 
 export async function importMembersCore({
   agent,
-  tenantId,
+  authority,
   branchId,
   rows,
 }: ImportMembersCoreParams) {
@@ -58,7 +59,7 @@ export async function importMembersCore({
     formData.set('password', validated.data.password);
     formData.set('planId', validated.data.planId);
 
-    const result = await registerMemberCore(agent, tenantId, branchId, formData, {
+    const result = await registerMemberCore(agent, authority, branchId, formData, {
       membershipMode: 'sponsored',
     });
 

@@ -1,3 +1,4 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { sendPushToUser } from '../push';
 import type { AuditLogger } from '../types';
 
@@ -22,11 +23,11 @@ export type NotificationEvent =
 export type NotificationDeps = {
   sendPushToUser?: typeof sendPushToUser;
   logAuditEvent?: AuditLogger;
-  tenantId: string;
+  authority: TenantAuthority;
 };
 
-// Every notification names the tenant that owns it; the recipient lookup and the in-app row both
-// run inside that tenant's context.
+// Every notification runs under the authority the caller already holds; the recipient lookup and
+// the in-app row both run inside that authority's tenant context.
 export type NotificationChannelOptions = {
-  tenantId: string;
+  authority: TenantAuthority;
 };

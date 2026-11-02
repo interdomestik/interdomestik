@@ -1,4 +1,5 @@
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { parseSecureSaveCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 // prettier-ignore
 import { Bell, Car, ChevronRight, FileText, Handshake, MapPinned, Plane, ShieldAlert, UserRound } from 'lucide-react';
@@ -187,14 +188,14 @@ t={t}
 }
 
 // prettier-ignore
-export async function getDashboardSupplementalData({ memberId, tenantId }: { memberId: string; tenantId: string | null }) {
-  if (!tenantId) {
+export async function getDashboardSupplementalData({ memberId, authority }: { memberId: string; authority: TenantAuthority | null }) {
+  if (!authority) {
     return [null, 0, false] as const;
   }
 
   const [subscriptionResult, documentsCountResult] = await Promise.allSettled([
-    getActiveSubscription(memberId, tenantId),
-    getCachedClaimDocumentCount(memberId, tenantId),
+    getActiveSubscription(memberId, authority),
+    getCachedClaimDocumentCount(memberId, authority),
   ]);
 
   if (subscriptionResult.status === 'rejected') {

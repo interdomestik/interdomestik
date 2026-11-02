@@ -26,6 +26,10 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: mocks.requireSessionOrRedirect,
 }));
 
+vi.mock('@/lib/tenant-authority.server', async () =>
+  (await import('./_core.entry.test-support')).createTenantAuthorityServerMock(mocks)
+);
+
 vi.mock('@/i18n/routing', async () => (await import('./_core.entry.test-support')).routingMock);
 
 vi.mock('@interdomestik/database', async () =>

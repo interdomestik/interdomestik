@@ -1,6 +1,7 @@
 import { E2E_USERS, and, claims, db, desc, eq, user } from '@interdomestik/database';
 import { expect, request as playwrightRequest, test, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 import {
   createSignedUploadCore,
@@ -124,6 +125,13 @@ async function requireClaimNotOwnedBy(actor: SessionUser): Promise<ClaimRecord> 
   return claim;
 }
 
+function requireTenant(userRow: SessionUser): string {
+  if (!userRow.tenantId) {
+    throw new Error(`Expected seeded user ${userRow.id} to carry a tenant`);
+  }
+  return userRow.tenantId;
+}
+
 function sessionFor(userRow: SessionUser) {
   return {
     user: userRow,
@@ -191,6 +199,7 @@ test.describe('upload cross-tenant authorization @security', () => {
 
     const result = await createSignedUploadCore({
       session: sessionFor(actor),
+      authority: mintTestTenantAuthority(requireTenant(actor)),
       input: {
         ...DEFAULT_UPLOAD,
         claimId: foreignClaim.id,
@@ -238,6 +247,7 @@ test.describe('upload cross-tenant authorization @security', () => {
 
     const result = await createSignedUploadCore({
       session: sessionFor({ ...actor, role: 'member' }),
+      authority: mintTestTenantAuthority(requireTenant(actor)),
       input: {
         ...DEFAULT_UPLOAD,
         claimId: otherOwnerClaim.id,
@@ -286,6 +296,7 @@ test.describe('upload cross-tenant authorization @security', () => {
 
     const result = await createSignedUploadCore({
       session: sessionFor(actor),
+      authority: mintTestTenantAuthority(requireTenant(actor)),
       input: {
         ...DEFAULT_UPLOAD,
         fileSize: MAX_FILE_SIZE_BYTES + 1,
@@ -301,6 +312,7 @@ test.describe('upload cross-tenant authorization @security', () => {
 
     const result = await createSignedUploadCore({
       session: sessionFor(actor),
+      authority: mintTestTenantAuthority(requireTenant(actor)),
       input: {
         ...DEFAULT_UPLOAD,
         fileName: 'cross-tenant-proof.exe',

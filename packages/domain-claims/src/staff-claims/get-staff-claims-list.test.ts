@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetStaffClaimsListMocks } from './get-staff-claims-list.test-support';
 const { mocks, modules } = await vi.hoisted(async () => {
@@ -11,6 +12,10 @@ vi.mock('@interdomestik/database/tenant-security', () => modules.tenantSecurity)
 vi.mock('drizzle-orm', () => modules.drizzle);
 
 import { getStaffClaimsList } from './get-staff-claims-list';
+const authorities = {
+  'tenant-ks': mintTestTenantAuthority('tenant-ks'),
+  'tenant-mk': mintTestTenantAuthority('tenant-mk'),
+};
 function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
   expect(mocks.withTenant).toHaveBeenCalledWith(
     args.tenantId,
@@ -50,7 +55,7 @@ describe('getStaffClaimsList', () => {
 
     const result = await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'branch_manager',
@@ -80,7 +85,7 @@ describe('getStaffClaimsList', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: null,
       limit: 20,
       viewerRole: 'branch_manager',
@@ -128,7 +133,7 @@ describe('getStaffClaimsList', () => {
 
     const result = await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'branch_manager',
@@ -146,7 +151,7 @@ describe('getStaffClaimsList', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-1',
       limit: 20,
       viewerRole: 'staff',
@@ -172,12 +177,30 @@ describe('getStaffClaimsList', () => {
     );
   });
 
+  it('reads under the authority it was given and scopes rows to that tenant', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-2',
+      authority: authorities['tenant-mk'],
+      limit: 10,
+    });
+
+    expect(mocks.contexts).toHaveLength(1);
+    expect(mocks.contexts[0]).toBe(authorities['tenant-mk']);
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-mk',
+      mocks.claims.tenantId,
+      expect.anything()
+    );
+  });
+
   it('returns empty when no claims match tenant', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     const result = await getStaffClaimsList({
       staffId: 'staff-2',
-      tenantId: 'tenant-mk',
+      authority: authorities['tenant-mk'],
       branchId: 'branch-2',
       limit: 10,
     });
@@ -190,7 +213,7 @@ describe('getStaffClaimsList', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-3',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: null,
       limit: 10,
     });
@@ -203,7 +226,7 @@ describe('getStaffClaimsList', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-3',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: null,
       limit: 10,
       assignment: 'unassigned',
@@ -252,7 +275,7 @@ describe('getStaffClaimsList', () => {
 
     await getStaffClaimsList({
       staffId: 'staff-4',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       branchId: 'branch-4',
       limit: 10,
     });

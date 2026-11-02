@@ -1,4 +1,9 @@
-import { eq, sql, subscriptions, withTenantContext } from '@interdomestik/database';
+import { eq, sql, subscriptions } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type MembershipLifecycleStatus =
   'active' | 'trialing' | 'active_in_grace' | 'grace_expired' | 'scheduled_cancel' | 'canceled';
@@ -122,12 +127,13 @@ export function summarizeMembershipLifecycle(
 }
 
 export async function getTenantMembershipLifecycleCounts(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   now?: Date;
 }): Promise<MembershipLifecycleCounts> {
   const now = args.now ?? new Date();
   const nowTimestamp = now.toISOString();
-  const [row] = await withTenantContext({ tenantId: args.tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(args.authority);
+  const [row] = await withTenantAuthority(args.authority, tx =>
     tx
       .select({
         total: sql<number>`COUNT(*)::int`,
@@ -140,7 +146,7 @@ export async function getTenantMembershipLifecycleCounts(args: {
         accessActive: sql<number>`COALESCE(SUM(CASE WHEN ${subscriptions.status} IN ('active', 'trialing') OR (${subscriptions.status} = 'past_due' AND ${subscriptions.gracePeriodEndsAt} IS NOT NULL AND ${subscriptions.gracePeriodEndsAt} > ${nowTimestamp}::timestamp) THEN 1 ELSE 0 END), 0)::int`,
       })
       .from(subscriptions)
-      .where(eq(subscriptions.tenantId, args.tenantId))
+      .where(eq(subscriptions.tenantId, tenantId))
   );
 
   return {

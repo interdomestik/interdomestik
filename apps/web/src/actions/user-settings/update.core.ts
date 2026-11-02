@@ -4,6 +4,7 @@ import {
   updateNotificationPreferencesCore as updateNotificationPreferencesDomain,
   updateResidenceCountryCore as updateResidenceCountryDomain,
 } from '@interdomestik/domain-users';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { UserSession } from '@interdomestik/domain-users/types';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -30,6 +31,7 @@ function toUserSession(session: NonNullable<Session> | null): UserSession | null
 
 export async function updateNotificationPreferencesCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   preferences: unknown; // Accept unknown, Zod validates in domain layer
 }): Promise<{ success: true } | { success: false; error: string }> {
@@ -48,6 +50,7 @@ export async function updateNotificationPreferencesCore(params: {
 
   const result = await updateNotificationPreferencesDomain({
     session: params.session as UserSession | null,
+    authority: params.authority,
     preferences: params.preferences,
   });
 
@@ -57,16 +60,18 @@ export async function updateNotificationPreferencesCore(params: {
       params.preferences && typeof params.preferences === 'object'
         ? Object.keys(params.preferences as Record<string, unknown>)
         : [];
-    await logAuditEvent({
-      actorId: params.session?.user?.id ?? null,
-      actorRole: params.session?.user?.role ?? null,
-      tenantId: params.session?.user?.tenantId ?? null,
-      action: 'user.settings_updated',
-      entityType: 'user_settings',
-      entityId: params.session?.user?.id ?? null,
-      metadata: { updatedKeys },
-      headers: params.requestHeaders,
-    });
+    if (params.authority) {
+      await logAuditEvent({
+        actorId: params.session?.user?.id ?? null,
+        actorRole: params.session?.user?.role ?? null,
+        authority: params.authority,
+        action: 'user.settings_updated',
+        entityType: 'user_settings',
+        entityId: params.session?.user?.id ?? null,
+        metadata: { updatedKeys },
+        headers: params.requestHeaders,
+      });
+    }
   }
 
   return result;
@@ -74,6 +79,7 @@ export async function updateNotificationPreferencesCore(params: {
 
 export async function updateResidenceCountryCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   residenceCountry: unknown;
 }) {
@@ -93,6 +99,7 @@ export async function updateResidenceCountryCore(params: {
     {
       residenceCountry: params.residenceCountry,
       session: toUserSession(params.session),
+      authority: params.authority,
     },
     { logAuditEvent }
   );

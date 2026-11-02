@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -13,6 +14,8 @@ import {
   runAdminCrmRoutingRuleAction,
 } from './_routing-core';
 import type { AdminCrmRoutingActionErrorReason } from './_routing-types';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 const adminActor: CrmActorContext = {
   actorId: 'admin-1',
@@ -104,7 +107,10 @@ describe('getAdminCrmRoutingRulesCore', () => {
     });
 
     await expect(
-      getAdminCrmRoutingRulesCore({ actor: adminActor }, { repository: repo })
+      getAdminCrmRoutingRulesCore(
+        { actor: adminActor, authority: TEST_AUTHORITY },
+        { repository: repo }
+      )
     ).resolves.toEqual({
       counts: { active: 1, archived: 0 },
       rules: [
@@ -130,7 +136,10 @@ describe('getAdminCrmRoutingRulesCore', () => {
     });
 
     await expect(
-      getAdminCrmRoutingRulesCore({ actor: adminActor }, { repository: repo })
+      getAdminCrmRoutingRulesCore(
+        { actor: adminActor, authority: TEST_AUTHORITY },
+        { repository: repo }
+      )
     ).resolves.toEqual(expect.objectContaining({ counts: { active: 1, archived: 1 } }));
   });
 
@@ -145,6 +154,7 @@ describe('getAdminCrmRoutingRulesCore', () => {
             scope: { branchId: 'branch-1' },
             tenantId: 'tenant-1',
           },
+          authority: TEST_AUTHORITY,
         },
         { repository: repo }
       )
@@ -154,11 +164,23 @@ describe('getAdminCrmRoutingRulesCore', () => {
 });
 
 describe('runAdminCrmRoutingRuleAction', () => {
+  it('refuses to act without a tenant authority, before parsing or repository access', async () => {
+    const repo = repository();
+    await expect(
+      runAdminCrmRoutingRuleAction(
+        { authority: null, input: baseInput, kind: 'create', session: adminSession },
+        { repository: repo }
+      )
+    ).resolves.toEqual({ reason: 'forbidden', status: 'error' });
+    expect(repo.createRoutingRule).not.toHaveBeenCalled();
+  });
+
   it('authorizes before parsing or repository access', async () => {
     const repo = repository();
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { unknown: Symbol('unparseable') },
           kind: 'create',
           session: { user: { id: 'manager-1', role: 'branch_manager', tenantId: 'tenant-1' } },
@@ -173,7 +195,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     const repo = repository();
     await expect(
       runAdminCrmRoutingRuleAction(
-        { input: baseInput, kind: 'create', session: adminSession },
+        { authority: TEST_AUTHORITY, input: baseInput, kind: 'create', session: adminSession },
         { repository: repo }
       )
     ).resolves.toEqual({ ruleId: 'rule-1', status: 'ok' });
@@ -196,7 +218,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
       const repo = repository();
       await expect(
         runAdminCrmRoutingRuleAction(
-          { input, kind: 'create', session: adminSession },
+          { authority: TEST_AUTHORITY, input, kind: 'create', session: adminSession },
           { repository: repo }
         )
       ).resolves.toEqual(expect.objectContaining({ reason, status: 'error' }));
@@ -213,7 +235,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
 
     await expect(
       runAdminCrmRoutingRuleAction(
-        { input: baseInput, kind: 'create', session: adminSession },
+        { authority: TEST_AUTHORITY, input: baseInput, kind: 'create', session: adminSession },
         { repository: repo }
       )
     ).resolves.toEqual({ field: 'agentIds', reason: 'cross_tenant_agent', status: 'error' });
@@ -230,6 +252,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { ...baseInput, fallbackRuleId: 'fallback-1' },
           kind: 'create',
           session: adminSession,
@@ -247,6 +270,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { ...baseInput, fallbackRuleId: 'fallback-1' },
           kind: 'create',
           session: adminSession,
@@ -262,6 +286,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: {
             ...baseInput,
             agentIds: [],
@@ -283,6 +308,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: {
             ...baseInput,
             expectedUpdatedAt: '2026-05-16T08:00:00.000Z',
@@ -309,6 +335,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: inputWithoutAgentIds,
           kind: 'update',
           session: adminSession,
@@ -334,6 +361,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: {
             ...baseInput,
             expectedUpdatedAt: '2026-05-16T08:00:00.000Z',
@@ -356,6 +384,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { enabled: true, ruleId: 'rule-1' },
           kind: 'set_enabled',
           session: adminSession,
@@ -374,6 +403,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { ruleId: 'rule-1' },
           kind: 'archive',
           session: adminSession,
@@ -390,6 +420,7 @@ describe('runAdminCrmRoutingRuleAction', () => {
     await expect(
       runAdminCrmRoutingRuleAction(
         {
+          authority: TEST_AUTHORITY,
           input: { branchId: null, ruleIds: ['rule-1', 'rule-1'] },
           kind: 'reorder',
           session: adminSession,

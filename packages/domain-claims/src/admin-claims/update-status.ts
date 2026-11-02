@@ -1,11 +1,16 @@
-import { and, claims, eq, user, withTenantContext } from '@interdomestik/database';
+import { and, claims, eq, user } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { activateClaimStatusAuditProjection } from '../claims/audit-projection';
 import { resolveClaimLifecycleCommandProjection } from '../claims/lifecycle-read-model';
 import { transitionClaimStatus, type TransitionClaimStatusResult } from '../claims/transition';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const validStatuses: readonly ClaimStatus[] = CLAIM_STATUSES;
 
@@ -22,7 +27,7 @@ function claimTenantWhere(tenantId: string, claimId: string) {
 
 function notifyClaimOwner(
   deps: ClaimsDeps,
-  tenantId: string,
+  authority: TenantAuthority,
   claim: ClaimOwnerNotificationRow,
   oldStatus: ClaimStatus,
   newStatus: ClaimStatus
@@ -39,7 +44,7 @@ function notifyClaimOwner(
       { id: claim.id, title: claim.title },
       oldStatus,
       newStatus,
-      { tenantId }
+      { authority }
     )
   ).catch((err: Error) => console.error('Failed to send status notification:', err));
 }
@@ -58,6 +63,7 @@ function throwTransitionFailure(
 
 export async function updateClaimStatusCore(
   params: {
+    authority: TenantAuthority | null;
     claimId: string;
     hostId?: string | null;
     newStatus: ClaimStatus;
@@ -66,12 +72,12 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ) {
-  const { claimId, newStatus, session } = params;
+  const { authority, claimId, newStatus, session } = params;
 
   const role = session?.user?.role;
   const isAdminRole = role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
 
-  if (!session || !isAdminRole) {
+  if (!session || !authority || !isAdminRole) {
     throw new Error('Unauthorized');
   }
 
@@ -79,9 +85,10 @@ export async function updateClaimStatusCore(
     throw new Error('Invalid status');
   }
 
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
 
-  const [claimWithUser] = await withTenantContext({ tenantId }, tx =>
+  const [claimWithUser] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         caseLifecycleState: claims.caseLifecycleState,
@@ -109,7 +116,7 @@ export async function updateClaimStatusCore(
     actor: { id: session.user.id, role: session.user.role ?? null },
     claimId,
     hostId: params.hostId,
-    tenantId,
+    authority,
     toStatus: newStatus,
   });
 
@@ -117,7 +124,7 @@ export async function updateClaimStatusCore(
     throwTransitionFailure(result);
   }
 
-  await activateClaimStatusAuditProjection({ deps, tenantId });
+  await activateClaimStatusAuditProjection({ authority, deps });
 
-  notifyClaimOwner(deps, tenantId, claimWithUser, result.fromStatus, result.status);
+  notifyClaimOwner(deps, authority, claimWithUser, result.fromStatus, result.status);
 }

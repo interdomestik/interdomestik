@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
-import { and, eq, withTenantContext, type DomainEventTx } from '@interdomestik/database';
+import { and, eq, type DomainEventTx } from '@interdomestik/database';
 import { auditLog, engagementEmailSends } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { z } from 'zod';
 
 import { RetryablePaddleWebhookError } from '../errors';
@@ -9,9 +13,10 @@ import {
   lockSubscriptionEventOrder,
   type PaddleSubscriptionEventOrder,
 } from './subscription-event-order';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type PastDueEffectScope = {
-  tenantId: string;
+  authority: TenantAuthority;
   subscriptionId: string;
   providerSubscriptionId: string;
   order: PaddleSubscriptionEventOrder;
@@ -33,7 +38,7 @@ function effectKey(scope: PastDueEffectScope): string {
   const digest = createHash('sha256')
     .update(
       JSON.stringify([
-        scope.tenantId,
+        readTenantAuthority(scope.authority).tenantId,
         scope.order.processingScopeKey,
         scope.providerSubscriptionId,
         scope.order.providerEventId,
@@ -55,10 +60,11 @@ export async function persistPastDueEffects(
   }
 ): Promise<void> {
   const key = effectKey(args);
+  const { tenantId } = readTenantAuthority(args.authority);
   // db-access-guard: tenant-scoped -- reason: canonical tenant context and deterministic scoped audit identity share the snapshot transaction.
   await tx.insert(auditLog).values({
     id: key,
-    tenantId: args.tenantId,
+    tenantId,
     actorRole: 'system',
     action: 'subscription.past_due',
     entityType: 'subscription',
@@ -74,7 +80,7 @@ export async function persistPastDueEffects(
   await tx.insert(engagementEmailSends).values({
     id: key,
     dedupeKey: key,
-    tenantId: args.tenantId,
+    tenantId,
     userId: args.userId,
     subscriptionId: args.subscriptionId,
     templateKey: TEMPLATE,
@@ -89,13 +95,20 @@ export async function deliverPastDueEffects(
   deps: PastDueEmailDeps
 ): Promise<void> {
   const key = effectKey(args);
-  await withTenantContext({ tenantId: args.tenantId, role: 'system' }, async tx => {
+  const { tenantId } = readTenantAuthority(args.authority);
+  await withTenantAuthority(args.authority, async tx => {
     // Same lock order as the writer. Keep it through send/ack so a newer lifecycle
     // snapshot cannot commit between the current-event check and notification.
-    const decision = await lockSubscriptionEventOrder(tx, { ...args, requireExactAggregate: true });
+    const decision = await lockSubscriptionEventOrder(tx, {
+      order: args.order,
+      providerSubscriptionId: args.providerSubscriptionId,
+      subscriptionId: args.subscriptionId,
+      tenantId,
+      requireExactAggregate: true,
+    });
     if (decision.kind !== 'replayed') return;
     const scope = and(
-      eq(engagementEmailSends.tenantId, args.tenantId),
+      eq(engagementEmailSends.tenantId, tenantId),
       eq(engagementEmailSends.subscriptionId, args.subscriptionId),
       eq(engagementEmailSends.dedupeKey, key),
       eq(engagementEmailSends.templateKey, TEMPLATE)

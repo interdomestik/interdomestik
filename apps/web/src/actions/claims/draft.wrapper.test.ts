@@ -1,4 +1,5 @@
 import { logAuditEvent } from '@/lib/audit';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import * as domainDraft from '@interdomestik/domain-claims/claims/draft';
 import { revalidatePath } from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +20,7 @@ vi.mock('@/lib/audit', () => ({
 
 describe('claims draft.core', () => {
   const mockSession = { user: { id: 'u1' } };
+  const authority = mintTestTenantAuthority('tenant-1');
   const mockHeaders = new Headers();
 
   beforeEach(() => {
@@ -29,6 +31,7 @@ describe('claims draft.core', () => {
     const data = { category: 'test' } as never;
     const params = {
       session: mockSession as never,
+      authority,
       requestHeaders: mockHeaders,
       claimId: 'c1',
       data,
@@ -43,7 +46,12 @@ describe('claims draft.core', () => {
   });
 
   it('should call domain cancelClaimCore', async () => {
-    const params = { session: mockSession as never, requestHeaders: mockHeaders, claimId: 'c1' };
+    const params = {
+      session: mockSession as never,
+      authority,
+      requestHeaders: mockHeaders,
+      claimId: 'c1',
+    };
 
     await cancelClaimCore(params);
 

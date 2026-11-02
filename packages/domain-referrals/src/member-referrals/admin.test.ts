@@ -1,4 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listMemberReferralRewardsCore, updateMemberReferralRewardStatusCore } from './admin';
@@ -48,6 +49,8 @@ vi.mock('drizzle-orm', async importOriginal => {
   };
 });
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('member referral admin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,7 +77,7 @@ describe('member referral admin', () => {
     ]);
 
     const result = await listMemberReferralRewardsCore({
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -83,7 +86,7 @@ describe('member referral admin', () => {
       expect(result.data[0].id).toBe('reward-1');
       expect(result.data[0].tenantId).toBe('tenant-1');
     }
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(db.query.memberReferralRewards.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: [['tenantId', 'tenant-1']],
@@ -120,7 +123,7 @@ describe('member referral admin', () => {
     });
 
     const result = await updateMemberReferralRewardStatusCore({
-      tenantId: 'tenant-1',
+      authority,
       rewardId: 'reward-1',
       newStatus: 'approved',
     });
@@ -149,7 +152,7 @@ describe('member referral admin', () => {
     });
 
     const result = await updateMemberReferralRewardStatusCore({
-      tenantId: 'tenant-1',
+      authority,
       rewardId: 'reward-1',
       newStatus: 'approved',
     });

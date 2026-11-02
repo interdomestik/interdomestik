@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,7 @@ import sqCatalog from '@/messages/sq/agent-claims.json';
 import srCatalog from '@/messages/sr/agent-claims.json';
 
 const mocks = vi.hoisted(() => ({
+  authorize: vi.fn(),
   locale: 'en',
   getSession: vi.fn(async () => ({
     user: { id: 'manager-1', role: 'branch_manager', tenantId: 'tenant-ks', branchId: 'branch-1' },
@@ -33,6 +35,7 @@ vi.mock('@/i18n/routing', () => ({
   ),
   useRouter: () => ({ push: vi.fn() }),
 }));
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: mocks.getSession,
   requireSessionOrRedirect: (session: unknown) => session,
@@ -93,8 +96,11 @@ vi.mock('next/navigation', () => ({
 
 import StaffClaimsPage from './_core.entry';
 
+const authority = mintTestTenantAuthority('tenant-ks');
+
 describe('staff claim attention', () => {
   beforeEach(() => {
+    mocks.authorize.mockReset().mockResolvedValue({ session: {}, authority });
     mocks.locale = 'en';
     mocks.getSession.mockReset().mockResolvedValue({
       user: {
@@ -195,10 +201,24 @@ describe('staff claim attention', () => {
       );
       expect(mocks.getAttention).toHaveBeenCalledWith(
         expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
+        authority,
         ['claim-member', 'claim-staff', 'claim-no-request']
       );
+      expect((mocks.getAttention.mock.calls[0] as unknown as unknown[])[1]).toBe(authority);
     }
   );
+
+  it('renders not found and reads nothing without an authorized session', async () => {
+    mocks.authorize.mockResolvedValue(null);
+    await expect(
+      StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    ).rejects.toThrow('notFound');
+    expect(mocks.getClaims).not.toHaveBeenCalled();
+    expect(mocks.getAttention).not.toHaveBeenCalled();
+  });
 
   it('propagates an assigned-request read failure instead of showing an empty queue', async () => {
     mocks.getSession.mockResolvedValueOnce({

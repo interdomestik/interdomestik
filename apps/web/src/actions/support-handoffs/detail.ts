@@ -5,9 +5,10 @@ import { getStaffSupportHandoffDetail as getDomainSupportHandoffDetail } from '@
 import { getActionContext } from './context';
 
 export async function getSupportHandoffDetail(handoffId: string) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
 
   if (
+    !authority ||
     !session?.user?.id ||
     !session.user.tenantId ||
     !session.user.branchId ||
@@ -18,9 +19,9 @@ export async function getSupportHandoffDetail(handoffId: string) {
 
   return getDomainSupportHandoffDetail({
     branchId: session.user.branchId,
+    authority,
     handoffId,
     staffId: session.user.id,
-    tenantId: session.user.tenantId,
     viewerRole: session.user.role,
   });
 }

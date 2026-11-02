@@ -1,4 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createMemberReferralRewardCore } from './rewards';
@@ -67,6 +68,8 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('createMemberReferralRewardCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -89,7 +92,7 @@ describe('createMemberReferralRewardCore', () => {
     });
 
     const result = await createMemberReferralRewardCore({
-      tenantId: 'tenant-1',
+      authority,
       subscriptionId: 'sub-1',
       qualifyingEventId: 'evt-1',
       qualifyingEventType: 'first_paid_membership',
@@ -98,7 +101,7 @@ describe('createMemberReferralRewardCore', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     if (result.success && result.data.kind === 'no-op') {
       expect(result.data.kind).toBe('no-op');
       expect(result.data.reason).toBe('no_referral');
@@ -132,7 +135,7 @@ describe('createMemberReferralRewardCore', () => {
     (db.query.memberReferralRewards.findFirst as any).mockResolvedValueOnce(null);
     (db.query.memberReferralRewards.findFirst as any).mockResolvedValueOnce({
       id: 'reward-1',
-      tenantId: 'tenant-1',
+      authority,
       referralId: 'ref-1',
       subscriptionId: 'sub-1',
       referrerMemberId: 'member-a',
@@ -156,7 +159,7 @@ describe('createMemberReferralRewardCore', () => {
     });
 
     const first = await createMemberReferralRewardCore({
-      tenantId: 'tenant-1',
+      authority,
       referralId: 'ref-1',
       subscriptionId: 'sub-1',
       qualifyingEventId: 'evt-1',
@@ -166,7 +169,7 @@ describe('createMemberReferralRewardCore', () => {
     });
 
     const second = await createMemberReferralRewardCore({
-      tenantId: 'tenant-1',
+      authority,
       referralId: 'ref-1',
       subscriptionId: 'sub-1',
       qualifyingEventId: 'evt-1',
@@ -186,11 +189,14 @@ describe('createMemberReferralRewardCore', () => {
       expect(second.data.id).toBe('reward-1');
     }
     expect(db.insert).toHaveBeenCalledTimes(1);
+    for (const [context] of vi.mocked(withTenantContext).mock.calls) {
+      expect(context).toBe(authority);
+    }
   });
 
   it('does not earn a reward on renewal events', async () => {
     const result = await createMemberReferralRewardCore({
-      tenantId: 'tenant-1',
+      authority,
       referralId: 'ref-1',
       subscriptionId: 'sub-1',
       qualifyingEventId: 'evt-2',

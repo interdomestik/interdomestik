@@ -1,6 +1,8 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 export interface SharePackServices {
   createSharePack: (params: {
-    tenantId: string;
+    authority: TenantAuthority;
     userId: string;
     documentIds: string[];
   }) => Promise<{ packId: string; token: string; expiresAt: Date }>;
@@ -8,9 +10,10 @@ export interface SharePackServices {
     pack: Record<string, unknown>;
     docs: Record<string, unknown>[];
     tenantId: string;
+    authority: TenantAuthority;
   } | null>;
   logAuditEvent: (params: {
-    tenantId: string;
+    authority: TenantAuthority;
     ids: string[];
     accessedBy?: string;
     shareToken: string;
@@ -49,14 +52,14 @@ export interface GetSharePackResult {
  * Orchestrates creating a share pack with audition.
  */
 export async function createSharePackCore(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   documentIds: string[];
   ipAddress?: string;
   userAgent?: string;
   services: SharePackServices;
 }): Promise<CreateSharePackResult> {
-  const { tenantId, userId, documentIds, ipAddress, userAgent, services } = params;
+  const { authority, userId, documentIds, ipAddress, userAgent, services } = params;
 
   if (!documentIds || documentIds.length === 0) {
     return { ok: false, error: 'IDs required' };
@@ -64,13 +67,13 @@ export async function createSharePackCore(params: {
 
   try {
     const result = await services.createSharePack({
-      tenantId,
+      authority,
       userId,
       documentIds,
     });
 
     await services.logAuditEvent({
-      tenantId,
+      authority,
       ids: documentIds,
       accessedBy: userId,
       shareToken: result.token,
@@ -116,10 +119,10 @@ export async function getSharePackCore(params: {
     return { ok: false, error: 'Pack not found, expired, or revoked' };
   }
 
-  const { pack, docs, tenantId } = result;
+  const { pack, docs, authority } = result;
 
   await services.logAuditEvent({
-    tenantId,
+    authority,
     ids: docs.map((d: Record<string, unknown>) => d.id as string),
     shareToken: token,
     ipAddress,

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -63,6 +64,8 @@ const session = {
   user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
 };
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveNoFeeEvidenceCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,6 +97,7 @@ describe('saveNoFeeEvidenceCore', () => {
 
     const result = await saveNoFeeEvidenceCore(
       {
+        authority,
         claimId: 'claim-1',
         reason: 'member recovery only',
         reasonCode: 'no_recovery',
@@ -103,10 +107,7 @@ describe('saveNoFeeEvidenceCore', () => {
     );
 
     expect(result).toMatchObject({ success: true, data: { claimId: 'claim-1' } });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.select).toHaveBeenCalled();
     expect(mocks.insert).toHaveBeenCalled();
     const [insertValues, conflict] = mocks.returning.mock.calls[0];
@@ -124,13 +125,15 @@ describe('saveNoFeeEvidenceCore', () => {
       expect.objectContaining({
         action: 'claim.no_fee_evidence_saved',
         entityId: 'claim-1',
-        tenantId: 'tenant-1',
+        authority,
       })
     );
+    expect(logAuditEvent.mock.calls[0]![0].authority).toBe(authority);
   });
 
   it('rejects non-staff callers without touching the database', async () => {
     const result = await saveNoFeeEvidenceCore({
+      authority,
       claimId: 'claim-1',
       reasonCode: 'no_recovery',
       session: { user: { ...session.user, role: 'agent' } },

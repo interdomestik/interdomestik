@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -26,6 +27,8 @@ const agentSession = {
   },
 };
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 function paymentContextWithBranch(branchId: string | null) {
   return {
     scope: {
@@ -33,6 +36,7 @@ function paymentContextWithBranch(branchId: string | null) {
       attributedAgentId: null,
       branchId,
     },
+    authority,
     session: agentSession,
     tenantId: 'tenant-1',
     userRole: 'agent',
@@ -70,7 +74,7 @@ describe('startPaymentAction', () => {
       {
         agentId: 'agent-1',
         branchId: 'branch-1',
-        tenantId: 'tenant-1',
+        authority,
       },
       expect.objectContaining({ leadId: 'lead-1' })
     );

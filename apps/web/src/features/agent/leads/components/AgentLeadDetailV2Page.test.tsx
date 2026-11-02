@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,11 +20,13 @@ const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
   getTranslationsMock: vi.fn(async (_namespace?: string) => (key: string) => key),
   getSessionMock: vi.fn(),
-  ensureTenantIdMock: vi.fn(() => 'tenant-1'),
+  ensureTenantIdMock: vi.fn((_session?: unknown) => 'tenant-1'),
   getAgentLeadDetailsCoreMock: vi.fn(),
   getAgentCrmLeadActivitiesMock: vi.fn(),
   listCrmLeadFollowUpTasksForLeadMock: vi.fn(),
   crmLeadActivityRepository: {},
+  createCrmLeadActivityRepository: vi.fn(),
+  authority: (tenantId: string) => mintTestTenantAuthority(tenantId),
 }));
 
 vi.mock('next/headers', () => ({
@@ -47,8 +50,15 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantIdMock,
+// Mirrors the session producer: it resolves the session, fails closed on a tenant-less session
+// (ensureTenantId) and mints the authority for that tenant.
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: async () => {
+    const session = await hoisted.getSessionMock();
+    if (!session?.user) return null;
+    const tenantId = hoisted.ensureTenantIdMock(session);
+    return { session, authority: hoisted.authority(tenantId) };
+  },
 }));
 
 vi.mock('@/actions/agent-crm-follow-up', () => ({
@@ -57,7 +67,7 @@ vi.mock('@/actions/agent-crm-follow-up', () => ({
 }));
 
 vi.mock('@/adapters/crm/lead-activity-repository', () => ({
-  crmLeadActivityRepository: hoisted.crmLeadActivityRepository,
+  createCrmLeadActivityRepository: hoisted.createCrmLeadActivityRepository,
 }));
 
 vi.mock('@/adapters/crm/lead-follow-up-repository', () => ({
@@ -160,6 +170,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
         }
     );
     hoisted.ensureTenantIdMock.mockReturnValue('tenant-1');
+    hoisted.createCrmLeadActivityRepository.mockReturnValue(hoisted.crmLeadActivityRepository);
     hoisted.getAgentLeadDetailsCoreMock.mockResolvedValue({
       kind: 'ok',
       lead: {
@@ -210,8 +221,10 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     expect(hoisted.setRequestLocaleMock).toHaveBeenCalledWith('en');
     expect(hoisted.getAgentLeadDetailsCoreMock).toHaveBeenCalledWith({
       actor,
+      authority: expect.any(Object),
       leadId: 'lead-1',
     });
+    expect(hoisted.createCrmLeadActivityRepository).toHaveBeenCalledWith(expect.any(Object));
     expect(hoisted.getAgentCrmLeadActivitiesMock).toHaveBeenCalledWith(
       {
         actor,
@@ -221,6 +234,7 @@ describe('AgentLeadDetailV2Page tenant contract', () => {
     );
     expect(hoisted.listCrmLeadFollowUpTasksForLeadMock).toHaveBeenCalledWith({
       actor,
+      authority: expect.any(Object),
       leadId: 'lead-1',
     });
   });

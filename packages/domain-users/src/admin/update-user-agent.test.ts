@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -95,6 +96,8 @@ vi.mock('drizzle-orm', () => ({
 import { updateUserAgentCore } from './update-user-agent';
 
 describe('updateUserAgentCore', () => {
+  const authority = mintTestTenantAuthority('tenant_ks');
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -124,6 +127,7 @@ describe('updateUserAgentCore', () => {
       session: {
         user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' },
       } as never,
+      authority,
       userId: 'member-1',
       agentId: 'agent-2',
     });
@@ -133,10 +137,7 @@ describe('updateUserAgentCore', () => {
       throw new Error(`Expected success result, received error: ${result.error}`);
     }
     expect(result.success).toBe(true);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_ks' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.tx.update).toHaveBeenCalledTimes(2);
     expect(mocks.tx.insert).not.toHaveBeenCalled();
 
@@ -187,6 +188,7 @@ describe('updateUserAgentCore', () => {
       session: {
         user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' },
       } as never,
+      authority,
       userId: 'member-1',
       agentId: null,
     });

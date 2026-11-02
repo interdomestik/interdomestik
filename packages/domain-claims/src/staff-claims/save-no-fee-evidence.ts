@@ -1,4 +1,8 @@
-import { claimRecoveryNoFeeEvidence, claims, withTenantContext } from '@interdomestik/database';
+import { claimRecoveryNoFeeEvidence, claims } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { z } from 'zod';
 import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
 import {
@@ -6,6 +10,7 @@ import {
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const noFeeEvidenceReasonCodes = ['no_recovery', 'not_billable_under_recovery_scope'] as const;
 
@@ -26,14 +31,15 @@ export type NoFeeEvidenceSnapshot = {
 
 export async function saveNoFeeEvidenceCore(
   params: SaveNoFeeEvidenceInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: ClaimsSession | null;
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult<NoFeeEvidenceSnapshot>> {
-  const { session } = params;
+  const { authority, session } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized', data: undefined };
   }
 
@@ -46,13 +52,17 @@ export async function saveNoFeeEvidenceCore(
     };
   }
 
-  const scopeArgs = resolveScopedStaffClaimAccess({ claimId: parsed.data.claimId, session });
+  const { tenantId } = readTenantAuthority(authority);
+  const scopeArgs = {
+    ...resolveScopedStaffClaimAccess({ claimId: parsed.data.claimId, session }),
+    tenantId,
+  };
   const now = new Date();
   const reason = parsed.data.reason?.trim() || null;
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values and where clause.
-    const result = await withTenantContext({ tenantId: scopeArgs.tenantId }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: buildScopedStaffClaimWhere includes tenant, claim, branch, and staff scope.
       const [claim] = await tx
         .select({ id: claims.id })
@@ -103,7 +113,7 @@ export async function saveNoFeeEvidenceCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId: scopeArgs.tenantId,
+        authority,
         action: 'claim.no_fee_evidence_saved',
         entityType: 'claim',
         entityId: parsed.data.claimId,

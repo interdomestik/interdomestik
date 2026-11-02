@@ -1,21 +1,20 @@
+import { getActionContext } from '@/actions/commissions/context';
 import { CommissionSummaryCard } from '@/components/agent/commission-summary-card';
 import { CommissionsList } from '@/components/agent/commissions-list';
 import { ReferralLinkCard } from '@/components/agent/referral-link-card';
-import { auth } from '@/lib/auth';
 import { getMyCommissionsCore } from '@interdomestik/domain-membership-billing/commissions/get-my';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
 
 export default async function AgentCommissionsPage() {
   const t = await getTranslations('agent.commissions');
-  const session = await auth.api.getSession({ headers: await headers() });
+  const { session, authority } = await getActionContext();
 
   const [commissionsResult, summaryResult, referralLinkResult] = await Promise.all([
-    getMyCommissionsCore({ session }),
-    getMyCommissionSummaryCore({ session }),
-    getAgentReferralLinkCore({ session }),
+    getMyCommissionsCore({ session, authority }),
+    getMyCommissionSummaryCore({ session, authority }),
+    getAgentReferralLinkCore({ session, authority }),
   ]);
 
   const commissions = commissionsResult.success ? (commissionsResult.data ?? []) : [];

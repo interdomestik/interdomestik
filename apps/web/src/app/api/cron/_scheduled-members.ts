@@ -1,7 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
+import { listScheduledTenantWork } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { subscriptions, user } from '@interdomestik/database/schema';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 import { and, eq, gte, lte } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type ScheduledSubscriptionMember = {
   userId: string | null;
@@ -17,12 +18,13 @@ export type ScheduledSubscriptionMember = {
  * selects more members than the former single cross-tenant query did.
  */
 export async function selectActiveSubscriptionMembers(args: {
+  ingress: IngressCapability<'cron'>;
   limit: number;
   createdBetween?: { start: Date; end: Date };
 }): Promise<ScheduledSubscriptionMember[]> {
   const members: ScheduledSubscriptionMember[] = [];
 
-  for (const tenantId of await listTenantIdsForScheduledWork()) {
+  for (const { tenantId, authority } of await listScheduledTenantWork(args.ingress)) {
     const remaining = args.limit - members.length;
     if (remaining <= 0) break;
 
@@ -34,7 +36,7 @@ export async function selectActiveSubscriptionMembers(args: {
       );
     }
 
-    const rows = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           userId: subscriptions.userId,

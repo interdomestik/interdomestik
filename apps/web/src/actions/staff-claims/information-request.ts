@@ -19,9 +19,9 @@ function revalidateInformationRequestPaths(claimId: string) {
 }
 
 export async function createClaimInformationRequest(input: unknown) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const parsed = informationRequestInput.safeParse(input);
-  const result = await createInformationRequest(session, input);
+  const result = await createInformationRequest(session, authority, input);
   if (result.success && parsed.success) {
     revalidateInformationRequestPaths(parsed.data.claimId);
   }
@@ -29,9 +29,9 @@ export async function createClaimInformationRequest(input: unknown) {
 }
 
 export async function acknowledgeClaimInformationRequestEvidence(input: unknown) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const parsed = acknowledgeInformationRequestEvidenceInput.safeParse(input);
-  const result = await acknowledgeInformationRequestEvidence(session, input);
+  const result = await acknowledgeInformationRequestEvidence(session, authority, input);
   if (result.success && parsed.success) {
     revalidateInformationRequestPaths(parsed.data.claimId);
   }
@@ -39,9 +39,9 @@ export async function acknowledgeClaimInformationRequestEvidence(input: unknown)
 }
 
 export async function fulfilClaimInformationRequest(input: unknown) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const parsed = fulfilInformationRequestInput.safeParse(input);
-  const result = await fulfilInformationRequest(session, input);
+  const result = await fulfilInformationRequest(session, authority, input);
   if (result.success && parsed.success) {
     revalidateInformationRequestPaths(parsed.data.claimId);
   }

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitSupportHandoffMemberReplyCore } from './reply';
@@ -86,6 +87,7 @@ function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
 
 function submitReply(session: SupportHandoffSession | null = memberSession()) {
   return submitSupportHandoffMemberReplyCore({
+    authority,
     expectedPublicResponseVersion: 2,
     handoffId: 'handoff-1',
     replyText: '  This resolves my request.  ',
@@ -106,6 +108,8 @@ function fallbackRow(overrides = {}) {
     ...overrides,
   };
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('support handoff member reply', () => {
   beforeEach(() => {
@@ -169,6 +173,7 @@ describe('support handoff member reply', () => {
   it('does not accept replies when no current public response exists', async () => {
     await expect(
       submitSupportHandoffMemberReplyCore({
+        authority,
         expectedPublicResponseVersion: 0,
         handoffId: 'handoff-1',
         replyText: 'Trying to reply without a response.',

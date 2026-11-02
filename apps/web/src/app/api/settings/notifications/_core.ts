@@ -1,7 +1,11 @@
-import { withTenantContext } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type NotificationPreferences = {
   emailClaimUpdates: boolean;
@@ -23,15 +27,12 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 
 export async function getNotificationPreferencesCore(args: {
   userId: string;
-  tenantId?: string | null;
+  authority: TenantAuthority;
 }): Promise<NotificationPreferences> {
-  const { userId, tenantId } = args;
-  if (!tenantId) {
-    throw new Error('Missing tenantId for notification preferences');
-  }
-  const resolvedTenantId = tenantId;
+  const { userId, authority } = args;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [preferences] = await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+  const [preferences] = await withTenantAuthority(authority, async tx =>
     tx
       .select()
       .from(userNotificationPreferences)
@@ -58,16 +59,13 @@ export async function getNotificationPreferencesCore(args: {
 
 export async function upsertNotificationPreferencesCore(args: {
   userId: string;
-  tenantId?: string | null;
+  authority: TenantAuthority;
   preferences: NotificationPreferences;
 }): Promise<void> {
-  const { userId, tenantId, preferences } = args;
-  if (!tenantId) {
-    throw new Error('Missing tenantId for notification preferences');
-  }
-  const resolvedTenantId = tenantId;
+  const { userId, authority, preferences } = args;
+  const { tenantId: resolvedTenantId } = readTenantAuthority(authority);
 
-  const [existing] = await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+  const [existing] = await withTenantAuthority(authority, async tx =>
     tx
       .select()
       .from(userNotificationPreferences)
@@ -81,7 +79,7 @@ export async function upsertNotificationPreferencesCore(args: {
   );
 
   if (existing) {
-    await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+    await withTenantAuthority(authority, async tx =>
       tx
         .update(userNotificationPreferences)
         .set({
@@ -100,7 +98,7 @@ export async function upsertNotificationPreferencesCore(args: {
   }
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated route context before preference insert
-  await withTenantContext({ tenantId: resolvedTenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx.insert(userNotificationPreferences).values({
       id: nanoid(),
       tenantId: resolvedTenantId,

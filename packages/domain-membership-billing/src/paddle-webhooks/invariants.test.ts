@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleBillingTenant: vi.fn(),
   transaction: vi.fn(),
   txInsert: vi.fn(),
   invoiceValues: vi.fn(),
@@ -23,17 +24,25 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  authorizePaddleBillingTenant: hoisted.authorizePaddleBillingTenant,
   withTenantContext: hoisted.transaction,
   billingInvoices: hoisted.billingInvoices,
   billingLedgerEntries: hoisted.billingLedgerEntries,
   sql: hoisted.sql,
 }));
 
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeAnyTestPaddleBillingTenant,
+  authorizeTestPaddleOwner,
+  createTestPaddleBillingProducer,
+} from './paddle-authority.test-support';
 import { persistInvoiceAndLedgerInvariants } from './invariants';
 
 describe('persistInvoiceAndLedgerInvariants', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizePaddleBillingTenant.mockImplementation(authorizeAnyTestPaddleBillingTenant);
 
     const tx = {
       insert: hoisted.txInsert,
@@ -71,6 +80,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
   it('skips non-transaction events', async () => {
     const result = await persistInvoiceAndLedgerInvariants({
       headers: new Headers(),
+      delivery: TEST_PADDLE_DELIVERY,
       webhookEventRowId: 'we_1',
       eventType: 'subscription.updated',
       eventId: 'evt_1',
@@ -92,6 +102,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     await expect(
       persistInvoiceAndLedgerInvariants({
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_1',
         eventType: 'transaction.completed',
         eventId: 'evt_1',
@@ -106,6 +117,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     await expect(
       persistInvoiceAndLedgerInvariants({
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_1',
         eventType: 'transaction.completed',
         eventId: 'evt_1',
@@ -121,6 +133,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     await expect(
       persistInvoiceAndLedgerInvariants({
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_1',
         eventType: 'transaction.completed',
         eventId: 'evt_1',
@@ -143,6 +156,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     await expect(
       persistInvoiceAndLedgerInvariants({
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_1',
         eventType: 'transaction.completed',
         eventId: 'evt_1',
@@ -164,6 +178,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
   it('persists tenant/entity-scoped invoice and append-only ledger entry', async () => {
     const result = await persistInvoiceAndLedgerInvariants({
       headers: new Headers(),
+      delivery: TEST_PADDLE_DELIVERY,
       webhookEventRowId: 'we_1',
       eventType: 'transaction.completed',
       eventId: 'evt_1',
@@ -180,8 +195,13 @@ describe('persistInvoiceAndLedgerInvariants', () => {
       },
     });
 
+    // The write runs under the billing authority minted for the delivery's bound tenant.
+    expect(hoisted.authorizePaddleBillingTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      'tenant_ks'
+    );
     expect(hoisted.transaction).toHaveBeenCalledWith(
-      { tenantId: 'tenant_ks' },
+      hoisted.authorizePaddleBillingTenant.mock.results[0]!.value,
       expect.any(Function)
     );
     expect(result).toEqual({
@@ -228,6 +248,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     await persistInvoiceAndLedgerInvariants(
       {
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_1',
         eventType: 'transaction.completed',
         eventId: 'evt_1',
@@ -248,6 +269,7 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     const replay = await persistInvoiceAndLedgerInvariants(
       {
         headers: new Headers(),
+        delivery: TEST_PADDLE_DELIVERY,
         webhookEventRowId: 'we_2',
         eventType: 'transaction.completed',
         eventId: 'evt_2',
@@ -280,5 +302,65 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         }),
       })
     );
+  });
+  describe('billing binding', () => {
+    const input = (overrides: Record<string, unknown> = {}) => ({
+      headers: new Headers(),
+      delivery: TEST_PADDLE_DELIVERY,
+      webhookEventRowId: 'we_1',
+      eventType: 'transaction.completed',
+      eventId: 'evt_1',
+      tenantId: 'tenant_ks',
+      providerTransactionId: 'tx_1',
+      data: { details: { totals: { total: '1000', currencyCode: 'EUR' } } },
+      ...overrides,
+    });
+
+    it('cannot persist invariants on an unbound delivery', async () => {
+      hoisted.authorizePaddleBillingTenant.mockImplementation(
+        createTestPaddleBillingProducer(null)
+      );
+
+      await expect(persistInvoiceAndLedgerInvariants(input())).rejects.toThrow(
+        'billing tenant tenant_ks is not authorized for this delivery: Paddle billing authority requires an entity-bound delivery'
+      );
+
+      expect(hoisted.transaction).not.toHaveBeenCalled();
+      expect(hoisted.txInsert).not.toHaveBeenCalled();
+    });
+
+    it('cannot act for another billing tenant than the delivery binding', async () => {
+      hoisted.authorizePaddleBillingTenant.mockImplementation(
+        createTestPaddleBillingProducer('tenant_mk')
+      );
+
+      await expect(persistInvoiceAndLedgerInvariants(input())).rejects.toThrow(
+        'requires the delivery billing tenant'
+      );
+
+      expect(hoisted.transaction).not.toHaveBeenCalled();
+      expect(hoisted.txInsert).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with no writes when customData names a tenant other than the binding', async () => {
+      hoisted.authorizePaddleBillingTenant.mockImplementation(
+        createTestPaddleBillingProducer('tenant_ks')
+      );
+
+      await expect(
+        persistInvoiceAndLedgerInvariants(
+          input({
+            tenantId: null,
+            data: {
+              customData: { tenantId: 'tenant_mk' },
+              details: { totals: { total: '1000', currencyCode: 'EUR' } },
+            },
+          })
+        )
+      ).rejects.toThrow('requires the delivery billing tenant');
+
+      expect(hoisted.transaction).not.toHaveBeenCalled();
+      expect(hoisted.txInsert).not.toHaveBeenCalled();
+    });
   });
 });

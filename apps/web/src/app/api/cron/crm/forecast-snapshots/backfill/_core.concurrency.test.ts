@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
@@ -9,6 +10,7 @@ import {
 import { runCrmForecastSnapshotBackfillCore } from './_core';
 
 const now = new Date('2026-05-15T10:30:00.000Z');
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 function item(index: number): CrmForecastSnapshotWorkItem {
   return {
@@ -53,7 +55,7 @@ describe('runCrmForecastSnapshotBackfillCore concurrency', () => {
       fromDate: '2026-05-14',
       now,
       sourceRunId: 'run-1',
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -91,7 +93,7 @@ describe('runCrmForecastSnapshotBackfillCore concurrency', () => {
       fromDate: '2026-05-14',
       logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -119,7 +121,7 @@ describe('runCrmForecastSnapshotBackfillCore concurrency', () => {
       ...deps,
       fromDate: '2026-05-13',
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
     await new Promise(resolve => setTimeout(resolve, 0));

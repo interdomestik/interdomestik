@@ -3,19 +3,25 @@ import {
   getOpenClaimsFilter,
   getSlaBreachesFilter,
 } from '@/features/admin/kpis/kpi-definitions';
-import { withTenantContext } from '@interdomestik/database';
+
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { branches, claims, leadPaymentAttempts, user } from '@interdomestik/database/schema';
 import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function fetchKpis(tenantId: string) {
+export async function fetchKpis(authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   // 1. Branch Count
-  const [branchesData] = await withTenantContext({ tenantId }, tx =>
+  const [branchesData] = await withTenantAuthority(authority, tx =>
     tx.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId))
   );
 
   // 2. Agent Count (users with role='agent')
-  const [agentsData] = await withTenantContext({ tenantId }, tx =>
+  const [agentsData] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(user)
@@ -23,10 +29,10 @@ export async function fetchKpis(tenantId: string) {
   );
 
   // 3. Member Count (access-active subscriptions)
-  const lifecycleCounts = await getTenantMembershipLifecycleCounts({ tenantId });
+  const lifecycleCounts = await getTenantMembershipLifecycleCounts({ authority });
 
   // 4. Open Claims
-  const [openClaimsData] = await withTenantContext({ tenantId }, tx =>
+  const [openClaimsData] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(claims)
@@ -34,7 +40,7 @@ export async function fetchKpis(tenantId: string) {
   );
 
   // 5. Cash Pending (Needs verification)
-  const [cashPendingData] = await withTenantContext({ tenantId }, tx =>
+  const [cashPendingData] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(leadPaymentAttempts)
@@ -42,7 +48,7 @@ export async function fetchKpis(tenantId: string) {
   );
 
   // 6. SLA Breaches (claims open > 30 days still in 'submitted')
-  const [slaBreachesData] = await withTenantContext({ tenantId }, tx =>
+  const [slaBreachesData] = await withTenantAuthority(authority, tx =>
     tx
       .select({ count: count() })
       .from(claims)

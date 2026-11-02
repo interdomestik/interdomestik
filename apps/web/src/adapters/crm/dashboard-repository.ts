@@ -3,7 +3,8 @@ import type {
   AgentCrmDashboardRepository,
 } from '@interdomestik/domain-crm/dashboards';
 import { CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE } from '@interdomestik/domain-crm/dashboards';
-import { withTenantContext } from '@interdomestik/database';
+
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   agentCommissions,
   crmActivities,
@@ -14,20 +15,29 @@ import {
 import { and, asc, count, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 
 import type { LeadStage } from '@interdomestik/database/constants';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export const crmDashboardRepository: AgentCrmDashboardRepository = {
-  async readAgentDashboard(params): Promise<AgentCrmDashboardReadModel> {
-    const { actor, limit, now } = params;
-    const dueFollowUpFetchLimit = limit * 2;
-    const branchId = actor.scope.branchId;
-    if (!branchId) {
-      throw new Error('CRM dashboard read requires actor branch scope');
-    }
+export function createCrmDashboardRepository(
+  authority: TenantAuthority
+): AgentCrmDashboardRepository {
+  return {
+    async readAgentDashboard(params): Promise<AgentCrmDashboardReadModel> {
+      const { actor, limit, now } = params;
+      const dueFollowUpFetchLimit = limit * 2;
+      const branchId = actor.scope.branchId;
+      if (!branchId) {
+        throw new Error('CRM dashboard read requires actor branch scope');
+      }
 
-    const [leadCounts, [wonDeals], [totalCommission], legacyDueFollowUpRows, taskDueFollowUpRows] =
-      await Promise.all([
+      const [
+        leadCounts,
+        [wonDeals],
+        [totalCommission],
+        legacyDueFollowUpRows,
+        taskDueFollowUpRows,
+      ] = await Promise.all([
         // db-access-guard: tenant-scoped -- reason: domain CRM dashboard adapter constrains lead counts by actor tenant, agent, and branch scope
-        withTenantContext({ tenantId: actor.tenantId }, async tx =>
+        withTenantAuthority(authority, async tx =>
           tx
             .select({ stage: crmLeads.stage, count: count() })
             .from(crmLeads)
@@ -42,7 +52,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             .groupBy(crmLeads.stage)
         ),
         // db-access-guard: tenant-scoped -- reason: domain CRM dashboard adapter constrains won deals by actor tenant, agent, and durable lead branch scope
-        withTenantContext({ tenantId: actor.tenantId }, async tx =>
+        withTenantAuthority(authority, async tx =>
           tx
             .select({ count: count() })
             .from(crmDeals)
@@ -64,7 +74,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             )
         ),
         // db-access-guard: tenant-scoped -- reason: domain CRM dashboard adapter constrains commission aggregate by actor tenant and agent scope; commissions do not carry branch_id
-        withTenantContext({ tenantId: actor.tenantId }, async tx =>
+        withTenantAuthority(authority, async tx =>
           tx
             .select({ total: sql<number>`sum(${agentCommissions.amount})` })
             .from(agentCommissions)
@@ -77,7 +87,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             )
         ),
         // db-access-guard: tenant-scoped -- reason: domain CRM dashboard adapter constrains due follow-up reads by actor tenant, agent, activity branch, and lead branch scope
-        withTenantContext({ tenantId: actor.tenantId }, async tx =>
+        withTenantAuthority(authority, async tx =>
           tx
             .select({
               activityId: crmActivities.id,
@@ -117,7 +127,7 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
             .limit(dueFollowUpFetchLimit)
         ),
         // db-access-guard: tenant-scoped -- reason: task-backed follow-up reads constrain by actor tenant, assignment, branch, lead visibility, and due status
-        withTenantContext({ tenantId: actor.tenantId }, async tx =>
+        withTenantAuthority(authority, async tx =>
           tx
             .select({
               activityId: crmTasks.id,
@@ -158,25 +168,26 @@ export const crmDashboardRepository: AgentCrmDashboardRepository = {
         ),
       ]);
 
-    return {
-      closedWonDealsCount: wonDeals?.count ?? 0,
-      dueFollowUps: [
-        ...legacyDueFollowUpRows.map(row => ({
-          ...row,
-          expectedLifecycleVersion: null,
-          source: 'legacy_activity' as const,
-        })),
-        ...taskDueFollowUpRows.map(row => ({
-          ...row,
-          agentId: row.agentId ?? actor.actorId,
-          completedAt: null,
-          subject: 'Follow up',
-          source: 'crm_task' as const,
-          type: CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE,
-        })),
-      ],
-      leadCounts,
-      paidCommissionTotal: totalCommission?.total ?? 0,
-    };
-  },
-};
+      return {
+        closedWonDealsCount: wonDeals?.count ?? 0,
+        dueFollowUps: [
+          ...legacyDueFollowUpRows.map(row => ({
+            ...row,
+            expectedLifecycleVersion: null,
+            source: 'legacy_activity' as const,
+          })),
+          ...taskDueFollowUpRows.map(row => ({
+            ...row,
+            agentId: row.agentId ?? actor.actorId,
+            completedAt: null,
+            subject: 'Follow up',
+            source: 'crm_task' as const,
+            type: CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE,
+          })),
+        ],
+        leadCounts,
+        paidCommissionTotal: totalCommission?.total ?? 0,
+      };
+    },
+  };
+}

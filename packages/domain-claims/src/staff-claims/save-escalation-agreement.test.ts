@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -137,6 +138,8 @@ function mockAgreementSaveSelects(options?: {
   mocks.agreementSelectChain.limit.mockResolvedValue(options?.agreements ?? []);
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveClaimEscalationAgreementCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -149,6 +152,7 @@ describe('saveClaimEscalationAgreementCore', () => {
 
   it('rejects unauthorized callers', async () => {
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member reviewed and accepted the negotiation path.',
@@ -168,6 +172,7 @@ describe('saveClaimEscalationAgreementCore', () => {
 
   it('validates the commercial cap against the agreed fee percentage', async () => {
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member approved the recovery path.',
@@ -189,6 +194,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     mockAgreementSaveSelects();
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member accepted commercial terms for negotiation.',
@@ -237,6 +243,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member accepted commercial terms for negotiation.',

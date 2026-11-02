@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { saveSuccessFeeCollectionCore } from './save-success-fee-collection';
@@ -133,6 +134,8 @@ function mockSaveSelects(options?: {
   );
   mocks.subscriptionSelectChain.limit.mockResolvedValue(options?.subscription ?? []);
 }
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveSuccessFeeCollectionCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -147,6 +150,7 @@ describe('saveSuccessFeeCollectionCore', () => {
 
   it('rejects unauthorized callers', async () => {
     const result = await saveSuccessFeeCollectionCore({
+      authority,
       claimId: 'claim-1',
       deductionAllowed: false,
       recoveredAmount: 1000,

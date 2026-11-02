@@ -1,3 +1,8 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => {
   const dbSelect = vi.fn();
@@ -12,6 +17,7 @@ const h = vi.hoisted(() => {
     headers: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
     createTenantSignedDownloadUrl: vi.fn(async () => ({ data: { signedUrl: 'signed' } })),
     mapClaimToOperationalRow: vi.fn(() => ({ id: 'claim-1', docs: [] })),
+    delegateClaimHomeTenantRead: vi.fn(),
     withTenantContext: vi.fn(async (_ctx: unknown, action: (tx: unknown) => unknown) =>
       action({ query: { claims: { findFirst: claimsFindFirst } }, select: dbSelect })
     ),
@@ -43,6 +49,7 @@ vi.mock('@interdomestik/database', () => {
   const historyCols = ['id', 'claimId', 'tenantId', 'note', 'createdAt'];
   return {
     withTenantContext: h.withTenantContext,
+    delegateClaimHomeTenantRead: h.delegateClaimHomeTenantRead,
     and: h.and,
     eq: h.eq,
     desc: vi.fn((field: unknown) => `desc:${String(field)}`),
@@ -67,6 +74,12 @@ function queryFromRows(rows: unknown[]) {
 describe('getOpsClaimDetail divergent document signing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.delegateClaimHomeTenantRead.mockImplementation(async (authority: TenantAuthority) =>
+      mintTestTenantAuthority('tenant_home', {
+        userId: readTenantAuthority(authority).principal?.userId,
+        role: 'admin',
+      })
+    );
     h.getSession.mockResolvedValue({
       user: { id: 'admin-1', accessTenantId: 'tenant_access', role: 'admin' },
     });
@@ -112,12 +125,18 @@ describe('getOpsClaimDetail divergent document signing', () => {
           },
         ])
       );
-    const result = await getOpsClaimDetail('claim-1');
+    const authority = mintTestTenantAuthority('tenant_access', {
+      userId: 'admin-1',
+      role: 'admin',
+    });
+    const result = await getOpsClaimDetail('claim-1', authority);
     expect(result.kind).toBe('ok');
-    expect(h.withTenantContext.mock.calls.map(([ctx]) => ctx)).toEqual([
-      expect.objectContaining({ tenantId: 'tenant_access' }),
-      expect.objectContaining({ tenantId: 'tenant_home' }),
-    ]);
+    expect(h.delegateClaimHomeTenantRead).toHaveBeenCalledWith(authority, 'claim-1');
+    expect(
+      h.withTenantContext.mock.calls.map(
+        ([ctx]) => readTenantAuthority(ctx as TenantAuthority).tenantId
+      )
+    ).toEqual(['tenant_access', 'tenant_home']);
     const eqCalls = h.eq.mock.calls.map(call => call.join(':'));
     expect(h.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
     expect(eqCalls).toEqual(

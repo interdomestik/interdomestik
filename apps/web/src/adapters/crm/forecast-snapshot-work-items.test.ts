@@ -1,10 +1,13 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const listTenantIdsForScheduledWork = vi.hoisted(() => vi.fn<() => Promise<string[]>>());
+const withTenantContext = vi.hoisted(() =>
+  vi.fn<(context: unknown, action: (tx: unknown) => Promise<unknown>) => Promise<unknown>>()
+);
 
 vi.mock('@interdomestik/database', () => ({
-  listTenantIdsForScheduledWork,
+  withTenantContext,
 }));
 
 import {
@@ -20,6 +23,10 @@ type WorkItemRow = {
   pipelineId: string | null;
   tenantId: string;
 };
+
+function authoritiesFor(...tenantIds: string[]) {
+  return tenantIds.map(tenantId => mintTestTenantAuthority(tenantId));
+}
 
 function row(overrides: Partial<WorkItemRow> = {}): WorkItemRow {
   return {
@@ -99,7 +106,10 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
   it('uses a grouped normalized-deal query with the exported work-item cap', async () => {
     const { calls, database } = createDatabaseDouble([[row()]]);
 
-    const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+    const repository = createCrmForecastSnapshotWorkItemRepository(
+      authoritiesFor('tenant-1'),
+      database as never
+    );
     const result = await repository.listWorkItems({
       snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
       snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
@@ -122,7 +132,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     ]);
   });
 
-  describe('scheduler path (no tenantId)', () => {
+  describe('scheduler path (several authorities, no tenantId)', () => {
     const window = {
       snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
       snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
@@ -133,11 +143,10 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     }
 
     beforeEach(() => {
-      listTenantIdsForScheduledWork.mockReset();
+      withTenantContext.mockReset();
     });
 
     it('fetches the true deferred work-item count when the first grouped query overflows', async () => {
-      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-1', 'tenant-2', 'tenant-3']);
       const tenant1 = row({ branchId: null });
       const tenant2 = row({
         branchId: 'branch-2',
@@ -161,7 +170,10 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
         [tenant3],
       ]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const repository = createCrmForecastSnapshotWorkItemRepository(
+        authoritiesFor('tenant-1', 'tenant-2', 'tenant-3'),
+        database as never
+      );
       const result = await repository.listWorkItems({ limit: 1, ...window });
 
       expect(result.workItems).toEqual([
@@ -179,8 +191,7 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       ]);
     });
 
-    it('visits tenants in the listed order with a shared budget and stops once it is spent', async () => {
-      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b', 'tenant-c']);
+    it('visits tenants in the supplied order with a shared budget and stops once it is spent', async () => {
       const a1 = row({ pipelineId: 'pipeline-1', tenantId: 'tenant-a' });
       const a2 = row({ pipelineId: 'pipeline-2', tenantId: 'tenant-a' });
       const a3 = row({ pipelineId: 'pipeline-3', tenantId: 'tenant-a' });
@@ -189,7 +200,10 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       // Deferred-count pass: a (3 rows), b (1 row), c (0 rows) are all visited in order.
       const { calls, database } = createDatabaseDouble([[a1, a2, a3], [a1, a2, a3], [b1], []]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const repository = createCrmForecastSnapshotWorkItemRepository(
+        authoritiesFor('tenant-a', 'tenant-b', 'tenant-c'),
+        database as never
+      );
       const result = await repository.listWorkItems({ limit: 2, ...window });
 
       const huge = 2_147_483_647;
@@ -202,17 +216,18 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       expect(database.select).toHaveBeenCalledTimes(4);
       expect(result.workItems.map(item => item.pipelineId)).toEqual(['pipeline-1', 'pipeline-2']);
       expect(result.workItemsDeferred).toBe(2);
-      expect(listTenantIdsForScheduledWork).toHaveBeenCalledTimes(2);
     });
 
     it('carries each visited tenant predicate into its own grouped query', async () => {
-      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b']);
       const { calls, database } = createDatabaseDouble([
         [row({ tenantId: 'tenant-a' })],
         [row({ tenantId: 'tenant-b' })],
       ]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const repository = createCrmForecastSnapshotWorkItemRepository(
+        authoritiesFor('tenant-a', 'tenant-b'),
+        database as never
+      );
       const result = await repository.listWorkItems(window);
 
       const wheres = calls
@@ -230,27 +245,61 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
       expect(result.workItemsDeferred).toBe(0);
     });
 
-    it('does not enumerate tenants when the caller supplies a tenantId', async () => {
+    it('lets a tenantId filter only narrow the authorities it was given', async () => {
       const { calls, database } = createDatabaseDouble([[row({ tenantId: 'tenant-9' })]]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const repository = createCrmForecastSnapshotWorkItemRepository(
+        authoritiesFor('tenant-1', 'tenant-9'),
+        database as never
+      );
       await repository.listWorkItems({ tenantId: 'tenant-9', ...window });
 
-      expect(listTenantIdsForScheduledWork).not.toHaveBeenCalled();
+      expect(database.select).toHaveBeenCalledTimes(1);
       const where = compiledWhere(calls.find(call => call.method === 'where')?.args ?? []);
       expect(where.params[0]).toBe('tenant-9');
     });
 
-    it('returns no work items when there are no tenants', async () => {
-      listTenantIdsForScheduledWork.mockResolvedValue([]);
+    it('returns no work and runs no query for a tenantId without a supplied authority', async () => {
+      const { database } = createDatabaseDouble([[row({ tenantId: 'tenant-2' })]]);
+
+      const repository = createCrmForecastSnapshotWorkItemRepository(
+        authoritiesFor('tenant-1'),
+        database as never
+      );
+      await expect(repository.listWorkItems({ tenantId: 'tenant-2', ...window })).resolves.toEqual({
+        workItems: [],
+        workItemsDeferred: 0,
+      });
+      expect(database.select).not.toHaveBeenCalled();
+      expect(withTenantContext).not.toHaveBeenCalled();
+    });
+
+    it('returns no work items when there are no authorities', async () => {
       const { database } = createDatabaseDouble([]);
 
-      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const repository = createCrmForecastSnapshotWorkItemRepository([], database as never);
       await expect(repository.listWorkItems(window)).resolves.toEqual({
         workItems: [],
         workItemsDeferred: 0,
       });
       expect(database.select).not.toHaveBeenCalled();
+    });
+
+    it('opens each tenant query through withTenantAuthority with that exact authority when no executor is injected', async () => {
+      const [authorityA, authorityB] = authoritiesFor('tenant-a', 'tenant-b');
+      const { database } = createDatabaseDouble([
+        [row({ tenantId: 'tenant-a' })],
+        [row({ tenantId: 'tenant-b' })],
+      ]);
+      withTenantContext.mockImplementation(async (_context, action) => action(database));
+
+      const repository = createCrmForecastSnapshotWorkItemRepository([authorityA, authorityB]);
+      const result = await repository.listWorkItems(window);
+
+      expect(withTenantContext).toHaveBeenCalledTimes(2);
+      expect(withTenantContext.mock.calls[0][0]).toBe(authorityA);
+      expect(withTenantContext.mock.calls[1][0]).toBe(authorityB);
+      expect(result.workItems.map(item => item.tenantId)).toEqual(['tenant-a', 'tenant-b']);
     });
   });
 });

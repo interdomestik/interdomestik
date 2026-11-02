@@ -1,3 +1,9 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Predicate = { args?: unknown[]; left?: unknown; op: string; right?: unknown };
@@ -6,7 +12,7 @@ const hoisted = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ args, op: 'and' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, op: 'eq', right })),
   gte: vi.fn((left: unknown, right: unknown) => ({ left, op: 'gte', right })),
-  listTenantIdsForScheduledWork: vi.fn<() => Promise<string[]>>(),
+  listScheduledTenantWork: vi.fn(),
   lte: vi.fn((left: unknown, right: unknown) => ({ left, op: 'lte', right })),
   rowsByTenant: {} as Record<string, unknown[]>,
   selectedFields: vi.fn(),
@@ -25,7 +31,7 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
-  listTenantIdsForScheduledWork: hoisted.listTenantIdsForScheduledWork,
+  listScheduledTenantWork: hoisted.listScheduledTenantWork,
 }));
 vi.mock('@interdomestik/database/schema', () => hoisted.tables);
 
@@ -48,6 +54,17 @@ function memberRows(tenantId: string, count: number) {
   }));
 }
 
+// The producer is mocked; this stands in for the cron route's admitted capability.
+const INGRESS = Object.freeze({}) as IngressCapability<'cron'>;
+const authorities: Record<string, TenantAuthority> = {};
+
+function scheduleTenants(tenantIds: string[]) {
+  for (const tenantId of tenantIds) authorities[tenantId] = mintTestTenantAuthority(tenantId);
+  hoisted.listScheduledTenantWork.mockResolvedValue(
+    tenantIds.map(tenantId => ({ tenantId, authority: authorities[tenantId] }))
+  );
+}
+
 function conditions(predicate: Predicate): Predicate[] {
   return (predicate.args ?? []) as Predicate[];
 }
@@ -57,11 +74,11 @@ beforeEach(() => {
   hoisted.rowsByTenant = {};
   hoisted.txCalls.length = 0;
   hoisted.withTenantContext.mockImplementation(
-    async (context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => {
+    async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) => {
       const call = {
         joinOn: undefined as unknown as Predicate,
         limit: -1,
-        tenantId: context.tenantId,
+        tenantId: readTenantAuthority(context).tenantId,
         where: undefined as unknown as Predicate,
       };
       hoisted.txCalls.push(call);
@@ -73,7 +90,7 @@ beforeEach(() => {
         }),
         limit: vi.fn(async (limit: number) => {
           call.limit = limit;
-          return hoisted.rowsByTenant[context.tenantId] ?? [];
+          return hoisted.rowsByTenant[call.tenantId] ?? [];
         }),
         where: vi.fn((where: Predicate) => {
           call.where = where;
@@ -92,45 +109,48 @@ beforeEach(() => {
 
 describe('selectActiveSubscriptionMembers', () => {
   it('returns no members and opens no tenant context when there are no tenants', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue([]);
+    scheduleTenants([]);
 
-    await expect(selectActiveSubscriptionMembers({ limit: 10 })).resolves.toEqual([]);
+    await expect(selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 10 })).resolves.toEqual(
+      []
+    );
 
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('opens exactly one system tenant context per visited tenant, in listed order', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b']);
+    scheduleTenants(['tenant-a', 'tenant-b']);
     hoisted.rowsByTenant = {
       'tenant-a': memberRows('tenant-a', 1),
       'tenant-b': memberRows('tenant-b', 1),
     };
 
-    const members = await selectActiveSubscriptionMembers({ limit: 10 });
+    const members = await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 10 });
 
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
     expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
       1,
-      { tenantId: 'tenant-a', role: 'system' },
+      authorities['tenant-a'],
       expect.any(Function)
     );
     expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
       2,
-      { tenantId: 'tenant-b', role: 'system' },
+      authorities['tenant-b'],
       expect.any(Function)
     );
     expect(members.map(member => member.subId)).toEqual(['tenant-a-sub-0', 'tenant-b-sub-0']);
+    expect(hoisted.listScheduledTenantWork).toHaveBeenCalledWith(INGRESS);
   });
 
   it('shares the run-wide limit as a budget across tenants and stops once it is spent', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b', 'tenant-c']);
+    scheduleTenants(['tenant-a', 'tenant-b', 'tenant-c']);
     hoisted.rowsByTenant = {
       'tenant-a': memberRows('tenant-a', 2),
       'tenant-b': memberRows('tenant-b', 1),
       'tenant-c': memberRows('tenant-c', 1),
     };
 
-    const members = await selectActiveSubscriptionMembers({ limit: 3 });
+    const members = await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 3 });
 
     expect(hoisted.txCalls.map(call => [call.tenantId, call.limit])).toEqual([
       ['tenant-a', 3],
@@ -141,11 +161,15 @@ describe('selectActiveSubscriptionMembers', () => {
   });
 
   it('keeps tenant, active status and the optional createdAt window in the where, and binds the user join to the tenant', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a']);
+    scheduleTenants(['tenant-a']);
     const start = new Date('2026-01-01T00:00:00.000Z');
     const end = new Date('2026-01-01T23:59:59.999Z');
 
-    await selectActiveSubscriptionMembers({ createdBetween: { start, end }, limit: 5 });
+    await selectActiveSubscriptionMembers({
+      ingress: INGRESS,
+      createdBetween: { start, end },
+      limit: 5,
+    });
 
     const [call] = hoisted.txCalls;
     expect(conditions(call.where)).toEqual([
@@ -161,9 +185,9 @@ describe('selectActiveSubscriptionMembers', () => {
   });
 
   it('omits the createdAt window when none is given and selects only the member columns', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a']);
+    scheduleTenants(['tenant-a']);
 
-    await selectActiveSubscriptionMembers({ limit: 5 });
+    await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 5 });
 
     expect(conditions(hoisted.txCalls[0].where)).toEqual([
       { left: 'subscriptions.tenantId', op: 'eq', right: 'tenant-a' },
@@ -181,9 +205,9 @@ describe('selectActiveSubscriptionMembers', () => {
   });
 
   it('binds every tenant visit to its own tenant predicate', async () => {
-    hoisted.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b']);
+    scheduleTenants(['tenant-a', 'tenant-b']);
 
-    await selectActiveSubscriptionMembers({ limit: 5 });
+    await selectActiveSubscriptionMembers({ ingress: INGRESS, limit: 5 });
 
     expect(hoisted.txCalls.map(call => [call.tenantId, conditions(call.where)[0]?.right])).toEqual([
       ['tenant-a', 'tenant-a'],

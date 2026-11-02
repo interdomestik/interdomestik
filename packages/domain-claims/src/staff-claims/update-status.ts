@@ -4,9 +4,12 @@ import {
   eq,
   serviceUsage,
   sql,
-  withTenantContext,
   type TenantTransaction,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
@@ -38,6 +41,7 @@ import {
 } from '../claims/transition';
 import { scheduleStatusChangeNotification } from './update-status-notification';
 import { loadStaffCurrentClaimRecord, type CurrentClaimRecord } from './current-claim-record';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 type StaffScopeWhere = ReturnType<typeof buildScopedStaffClaimWhere>;
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
@@ -49,6 +53,7 @@ const RECOVERY_COLLECTION_PATH_REQUIRED_ERROR =
 const RECOVERY_ALLOWANCE_EXHAUSTED_ERROR =
   'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.';
 type UpdateClaimStatusParams = {
+  authority: TenantAuthority | null;
   claimId: string;
   declineReasonCode?: RecoveryDeclineReasonCode;
   decisionExplanation?: string;
@@ -62,6 +67,7 @@ type UpdateClaimStatusParams = {
 };
 type StatusChangeResult = ActionResult & { afterCommit?: () => Promise<void> };
 type RecoveryStatusChangeParams = {
+  authority: TenantAuthority;
   tx: TenantTransaction;
   claimId: string;
   currentClaim: CurrentClaimRecord;
@@ -80,6 +86,7 @@ async function handleStaffLedRecoveryStatusChange(
   params: RecoveryStatusChangeParams
 ): Promise<StatusChangeResult> {
   const {
+    authority,
     tx,
     claimId,
     currentClaim,
@@ -224,6 +231,7 @@ async function handleStaffLedRecoveryStatusChange(
   }
 
   return finalizeClaimStatusChange({
+    authority,
     tx,
     afterTransitionPersisted: async tx => {
       if (alreadyConsumedForClaim) {
@@ -343,18 +351,18 @@ async function finalizeClaimStatusChange(
     success: true,
     afterCommit: async () => {
       await activateClaimStatusAuditProjection({
+        authority: sideEffectParams.authority,
         deps: sideEffectParams.deps,
-        tenantId: sideEffectParams.tenantId,
       });
 
       if (sideEffectParams.isPublicChange) {
         scheduleStatusChangeNotification({
+          authority: sideEffectParams.authority,
           claimId: sideEffectParams.claimId,
           claimTitle: sideEffectParams.currentTitle,
           deps: sideEffectParams.deps,
           newStatus: sideEffectParams.status,
           oldStatus: sideEffectParams.currentStatus,
-          tenantId: sideEffectParams.tenantId,
           userId: sideEffectParams.currentUserId,
         });
       }
@@ -367,9 +375,9 @@ export async function updateClaimStatusCore(
   params: UpdateClaimStatusParams,
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { claimId, newStatus, note, isPublicChange = true, session } = params;
+  const { authority, claimId, newStatus, note, isPublicChange = true, session } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
   // Validate status
@@ -378,14 +386,14 @@ export async function updateClaimStatusCore(
     return { success: false, error: 'Invalid status' };
   }
   const status = parsed.data.status as ClaimStatus; // NOSONAR
-  const scopeArgs = resolveScopedStaffClaimAccess({ claimId, session });
-  const tenantId = scopeArgs.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
+  const scopeArgs = { ...resolveScopedStaffClaimAccess({ claimId, session }), tenantId };
   const staffScopeWhere = buildScopedStaffClaimWhere(scopeArgs);
   const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
   const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
   try {
-    const result = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       const currentClaimResult = await loadStaffCurrentClaimRecord(tx, staffScopeWhere);
       if (currentClaimResult.status === 'not_found') {
         return { success: false, error: STAFF_SCOPE_ACCESS_DENIED_ERROR };
@@ -408,6 +416,7 @@ export async function updateClaimStatusCore(
 
       if (currentClaim.status !== status && STAFF_LED_RECOVERY_STATUSES.has(status)) {
         return handleStaffLedRecoveryStatusChange({
+          authority,
           tx,
           claimId,
           currentClaim,
@@ -430,6 +439,7 @@ export async function updateClaimStatusCore(
           : trimmedNote;
 
         return finalizeClaimStatusChange({
+          authority,
           tx,
           beforePersistAuthorized: async tx => {
             await upsertRecoveryDecisionRecord({
@@ -460,6 +470,7 @@ export async function updateClaimStatusCore(
       }
 
       return finalizeClaimStatusChange({
+        authority,
         tx,
         claimId,
         currentStatus: currentClaim.status,

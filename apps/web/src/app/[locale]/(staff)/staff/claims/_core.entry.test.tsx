@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +8,7 @@ import sqCatalog from '@/messages/sq/agent-claims.json';
 import srCatalog from '@/messages/sr/agent-claims.json';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeMock: vi.fn(),
   locale: 'en',
   getSessionMock: vi.fn(async () => ({
     user: {
@@ -38,6 +40,10 @@ vi.mock('@/i18n/routing', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeMock,
 }));
 
 vi.mock('@/components/shell/session', () => ({
@@ -119,8 +125,11 @@ vi.mock('next/navigation', () => ({
 
 import StaffClaimsPage from './_core.entry';
 
+const authority = mintTestTenantAuthority('tenant-ks');
+
 describe('StaffClaimsPage', () => {
   beforeEach(() => {
+    hoisted.authorizeMock.mockReset().mockResolvedValue({ session: {}, authority });
     hoisted.locale = 'en';
     hoisted.getSessionMock.mockClear();
     hoisted.getStaffClaimsListMock.mockClear();
@@ -148,9 +157,13 @@ describe('StaffClaimsPage', () => {
       search: 'Acme',
       staffId: 'manager-1',
       status: 'verification',
-      tenantId: 'tenant-ks',
+      authority,
       viewerRole: 'branch_manager',
     });
+    expect(
+      (hoisted.getStaffClaimsListMock.mock.calls[0] as unknown as [{ authority: unknown }])[0]
+        .authority
+    ).toBe(authority);
     expect(screen.getByTestId('staff-page-ready')).toBeInTheDocument();
     expect(hoisted.getAssignedStaffClaimAttentionMock).not.toHaveBeenCalled();
   });

@@ -1,15 +1,19 @@
-import { withTenantContext } from '@interdomestik/database';
 import * as schema from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { captureAudit, logAuditEvent } from './audit';
 import { buildStoragePath, validateTenantOwnership } from './storage';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { softDeleteDocument } from './document-lifecycle';
 
 export interface UploadParams {
-  tenantId: string;
+  authority: TenantAuthority;
   entityType: 'claim' | 'member' | 'policy' | 'thread' | 'share_pack';
   entityId: string;
   fileName: string;
@@ -46,7 +50,7 @@ export interface UploadResult {
  */
 export async function recordUpload(params: UploadParams): Promise<UploadResult> {
   const {
-    tenantId,
+    authority,
     entityType,
     entityId,
     fileName,
@@ -56,6 +60,7 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
     description,
     uploadedBy,
   } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   // Build tenant-isolated storage path
   const storagePath = buildStoragePath({
@@ -74,7 +79,7 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
 
   // Insert document record
   // db-access-guard: tenant-scoped -- reason: tenantId validated before storage path and document insert
-  await withTenantContext({ tenantId }, tx =>
+  await withTenantAuthority(authority, tx =>
     tx.insert(schema.documents).values({
       id: documentId,
       tenantId,
@@ -93,7 +98,7 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
 
   // Log audit event for the upload
   await logAuditEvent({
-    tenantId,
+    authority,
     documentId,
     accessType: 'upload',
     accessedBy: uploadedBy,
@@ -122,14 +127,15 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
  * All queries MUST include tenantId for isolation.
  */
 export async function getDocumentsForEntity(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   entityType: string;
   entityId: string;
 }): Promise<schema.Document[]> {
-  const { tenantId, entityType, entityId } = params;
+  const { authority, entityType, entityId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   // Query MUST include tenantId in WHERE clause
-  const docs = await withTenantContext({ tenantId }, tx =>
+  const docs = await withTenantAuthority(authority, tx =>
     tx
       .select()
       .from(schema.documents)

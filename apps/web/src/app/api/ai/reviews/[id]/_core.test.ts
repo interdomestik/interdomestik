@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const schema = vi.hoisted(() => ({
@@ -82,6 +83,8 @@ vi.mock('@interdomestik/domain-ai', () => ({
 
 import { submitAiReview } from './_core';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('submitAiReview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,7 +114,7 @@ describe('submitAiReview', () => {
 
     const result = await submitAiReview({
       runId: 'run-1',
-      tenantId: 'tenant-1',
+      authority,
       reviewerId: 'staff-1',
       reviewerRole: 'staff',
       action: 'correct',
@@ -126,10 +129,7 @@ describe('submitAiReview', () => {
       },
     });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.txUpdateWhere).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({

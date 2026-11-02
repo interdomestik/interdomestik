@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -61,9 +62,11 @@ vi.mock('drizzle-orm', () => ({
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
-import { crmLeadActivityRepository } from './lead-activity-repository';
+import { createCrmLeadActivityRepository } from './lead-activity-repository';
 import type { AgentCrmLeadActivityLeadRow } from './lead-activity-repository';
 
+const authority = mintTestTenantAuthority('tenant-1');
+const repository = createCrmLeadActivityRepository(authority);
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
@@ -71,7 +74,7 @@ const actor: CrmActorContext = {
   tenantId: 'tenant-1',
 };
 
-describe('crmLeadActivityRepository', () => {
+describe('createCrmLeadActivityRepository', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -79,12 +82,9 @@ describe('crmLeadActivityRepository', () => {
   it('filters parent lead reads by tenant, agent, and durable branch custody', async () => {
     hoisted.findLeadFirst.mockResolvedValueOnce({ id: 'lead-1' });
 
-    await crmLeadActivityRepository.findAgentLead({ actor, leadId: 'lead-1' });
+    await repository.findAgentLead({ actor, leadId: 'lead-1' });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.findLeadFirst).toHaveBeenCalledWith({
       where: {
         and: [
@@ -116,7 +116,7 @@ describe('crmLeadActivityRepository', () => {
       },
     ]);
 
-    const result = await crmLeadActivityRepository.listAgentLeadActivities({
+    const result = await repository.listAgentLeadActivities({
       actor,
       lead: {
         id: 'lead-1',
@@ -180,12 +180,12 @@ describe('crmLeadActivityRepository', () => {
     const branchlessActor = { ...actor, scope: { agentId: 'agent-1', branchId: null } };
 
     await expect(
-      crmLeadActivityRepository.findAgentLead({ actor: branchlessActor, leadId: 'lead-1' })
+      repository.findAgentLead({ actor: branchlessActor, leadId: 'lead-1' })
     ).rejects.toThrow('CRM lead activity read requires actor branch scope');
     expect(hoisted.findLeadFirst).not.toHaveBeenCalled();
 
     await expect(
-      crmLeadActivityRepository.listAgentLeadActivities({
+      repository.listAgentLeadActivities({
         actor: branchlessActor,
         lead: {
           id: 'lead-1',

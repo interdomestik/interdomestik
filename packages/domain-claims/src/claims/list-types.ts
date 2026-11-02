@@ -1,3 +1,4 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SessionWithTenant } from '@interdomestik/shared-auth';
 
 export type ClaimsScope =
@@ -29,6 +30,7 @@ export type ClaimsListResponse = {
 };
 
 export type ListClaimsParams = {
+  authority: TenantAuthority;
   session: SessionWithTenant;
   scope: ClaimsScope;
   status?: string;

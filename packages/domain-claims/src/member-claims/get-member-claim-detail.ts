@@ -1,7 +1,12 @@
-import { and, claims, eq, withTenantContext } from '@interdomestik/database';
+import { and, claims, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type MemberClaimDetail = {
   id: string;
@@ -19,13 +24,14 @@ function normalizeDate(value: Date | string | null | undefined): string | null {
 }
 
 export async function getMemberClaimDetail(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   memberId: string;
   claimId: string;
 }): Promise<MemberClaimDetail | null> {
-  const { tenantId, memberId, claimId } = params;
+  const { authority, memberId, claimId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const [row] = await withTenantContext({ tenantId }, tx =>
+  const [row] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: claims.id,

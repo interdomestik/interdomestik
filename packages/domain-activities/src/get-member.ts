@@ -1,13 +1,4 @@
-import {
-  agentClients,
-  and,
-  db,
-  desc,
-  eq,
-  memberActivities,
-  user,
-  withTenantContext,
-} from '@interdomestik/database';
+import { agentClients, and, db, desc, eq, memberActivities, user } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -15,6 +6,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 import type { ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 let memberActivitiesTableExists: Promise<boolean> | null = null;
 type TenantActivitySession = ActivitySession & {
@@ -59,7 +51,7 @@ function assertReadableSession(
 
 async function findTenantMember(memberId: string, authority: TenantAuthority) {
   const { tenantId } = readTenantAuthority(authority);
-  return withTenantContext(authority, tx =>
+  return withTenantAuthority(authority, tx =>
     tx.query.user.findFirst({
       where: and(eq(user.id, memberId), eq(user.tenantId, tenantId)),
       columns: {
@@ -77,7 +69,7 @@ async function findActiveAgentAssignment(params: {
   authority: TenantAuthority;
 }) {
   const { tenantId } = readTenantAuthority(params.authority);
-  return withTenantContext(params.authority, tx =>
+  return withTenantAuthority(params.authority, tx =>
     tx.query.agentClients.findFirst({
       where: and(
         eq(agentClients.tenantId, tenantId),
@@ -123,7 +115,7 @@ async function assertNonMemberReadAccess(
 
 async function findMemberActivities(memberId: string, authority: TenantAuthority) {
   const { tenantId } = readTenantAuthority(authority);
-  return withTenantContext(authority, tx =>
+  return withTenantAuthority(authority, tx =>
     tx.query.memberActivities.findMany({
       where: and(eq(memberActivities.memberId, memberId), eq(memberActivities.tenantId, tenantId)),
       orderBy: [desc(memberActivities.occurredAt)],

@@ -1,5 +1,11 @@
 'use server';
 
+import { delegateSuperAdminTenant } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
@@ -43,12 +49,30 @@ function resolveTenantForAdminAction(
   return sessionTenantId ?? tenantId;
 }
 
+/**
+ * The authority an admin action runs under. The client-supplied tenant id never chooses the tenant:
+ * a non-super_admin always uses the session authority; a super_admin naming another tenant gets a
+ * delegation minted by the platform directory, and an unknown or inactive tenant fails closed.
+ */
+async function resolveAdminActionAuthority(
+  session: { user?: { role?: string | null } | null },
+  authority: TenantAuthority,
+  clientTenantId?: string | null
+): Promise<TenantAuthority> {
+  const requested = clientTenantId?.trim();
+  if (session.user?.role !== 'super_admin' || !requested) return authority;
+  if (requested === readTenantAuthority(authority).tenantId) return authority;
+  const delegated = await delegateSuperAdminTenant(authority, requested);
+  if (!delegated) throw new Error('Unauthorized');
+  return delegated;
+}
+
 export async function listBranches(params?: {
   tenantId?: string;
   includeInactive?: boolean;
 }): ActionResult<Awaited<ReturnType<typeof listBranchesDomain>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof listBranchesDomain>>>(
-    async ({ session }) => {
+    async ({ session, authority }) => {
       const validation = listBranchesSchema.safeParse(params || {});
       if (!validation.success) {
         throw new Error('Validation failed');
@@ -67,7 +91,7 @@ export async function listBranches(params?: {
       // cast session to compatible UserSession type
       const data = await listBranchesDomain({
         session: session as unknown as UserSession,
-        tenantId: resolvedTenantId,
+        authority: await resolveAdminActionAuthority(session, authority, validation.data.tenantId),
         includeInactive: validation.data.includeInactive,
       });
       return data;
@@ -79,7 +103,7 @@ export async function createBranch(
   data: z.infer<typeof createBranchSchema>
 ): ActionResult<Awaited<ReturnType<typeof createBranchDomain>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof createBranchDomain>>>(
-    async ({ session }) => {
+    async ({ session, authority }) => {
       const validation = createBranchSchema.safeParse(data);
       if (!validation.success) {
         throw new Error(validation.error.message);
@@ -99,7 +123,11 @@ export async function createBranch(
       const result = await createBranchDomain(
         {
           session: session as unknown as UserSession,
-          tenantId: resolvedTenantId,
+          authority: await resolveAdminActionAuthority(
+            session,
+            authority,
+            validation.data.tenantId
+          ),
           name: validation.data.name,
           code: validation.data.code ?? null,
         },
@@ -122,7 +150,7 @@ export async function updateBranch({
   data: Omit<z.infer<typeof updateBranchSchema>, 'branchId'>;
 }): ActionResult<Awaited<ReturnType<typeof updateBranchDomain>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof updateBranchDomain>>>(
-    async ({ session }) => {
+    async ({ session, authority }) => {
       // Validate data before passing to domain
       const fullData = { ...data, branchId };
       const validation = updateBranchSchema.safeParse(fullData);
@@ -141,10 +169,11 @@ export async function updateBranch({
         { requestedTenantId: resolvedTenantId }
       );
 
+      const { tenantId: clientTenantId, ...branchChanges } = validation.data;
       const result = await updateBranchDomain({
         session: session as unknown as UserSession,
-        ...validation.data,
-        tenantId: resolvedTenantId,
+        authority: await resolveAdminActionAuthority(session, authority, clientTenantId),
+        ...branchChanges,
       });
 
       if ('error' in result) {
@@ -157,7 +186,7 @@ export async function updateBranch({
 }
 
 export async function deleteBranch({ branchId }: { branchId: string }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session }) => {
+  return runAuthenticatedAction<void>(async ({ session, authority }) => {
     await requireEffectivePortalAccessOrUnauthorized(session, [
       'admin',
       'tenant_admin',
@@ -165,6 +194,7 @@ export async function deleteBranch({ branchId }: { branchId: string }): ActionRe
     ]);
     const result = await deleteBranchDomain({
       session: session as unknown as UserSession,
+      authority,
       branchId,
     });
 
@@ -182,7 +212,7 @@ export async function listUserRoles({
   tenantId?: string;
 }): ActionResult<Awaited<ReturnType<typeof listUserRolesDomain>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof listUserRolesDomain>>>(
-    async ({ session }) => {
+    async ({ session, authority }) => {
       const resolvedTenantId = resolveTenantForAdminAction(session, tenantId, session.user?.role);
       await requireEffectivePortalAccessOrUnauthorized(
         session,
@@ -191,8 +221,8 @@ export async function listUserRoles({
       );
       const data = await listUserRolesDomain({
         session: session as unknown as UserSession,
+        authority: await resolveAdminActionAuthority(session, authority, tenantId),
         userId,
-        tenantId: resolvedTenantId,
       });
       return data;
     }
@@ -214,7 +244,7 @@ export async function grantUserRole({
   locale?: string;
   allowLegacyTenantWide?: boolean;
 }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session }) => {
+  return runAuthenticatedAction<void>(async ({ session, authority }) => {
     const resolvedTenantId = resolveTenantForAdminAction(session, tenantId, session.user?.role);
     await requireEffectivePortalAccessOrUnauthorized(
       session,
@@ -231,11 +261,11 @@ export async function grantUserRole({
 
     const result = await grantUserRoleDomain({
       session: session as unknown as UserSession,
+      authority: await resolveAdminActionAuthority(session, authority, tenantId),
       userId,
       role,
       branchId,
       allowLegacyTenantWide,
-      tenantId: resolvedTenantId,
     });
 
     if ('error' in result) {
@@ -259,7 +289,7 @@ export async function revokeUserRole({
   tenantId?: string;
   locale?: string;
 }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session }) => {
+  return runAuthenticatedAction<void>(async ({ session, authority }) => {
     const resolvedTenantId = resolveTenantForAdminAction(session, tenantId, session.user?.role);
     await requireEffectivePortalAccessOrUnauthorized(
       session,
@@ -268,10 +298,10 @@ export async function revokeUserRole({
     );
     const result = await revokeUserRoleDomain({
       session: session as unknown as UserSession,
+      authority: await resolveAdminActionAuthority(session, authority, tenantId),
       userId,
       role,
       branchId,
-      tenantId: resolvedTenantId,
     });
 
     if ('error' in result) {

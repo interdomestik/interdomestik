@@ -130,6 +130,10 @@ test.describe('Golden Gate: Critical Path', () => {
     }, testInfo) => {
       const branchManager = isMkProject(testInfo) ? USERS.BM_MK_A : USERS.BM_KS_A;
       await performLocalLogin(page, branchManager, testInfo, 'admin');
+      // The admin layout marker renders before the overview's streamed redirect of a branch
+      // manager to their own branch lands; settle on that landing so it cannot overtake the
+      // navigation below.
+      await expect(page).toHaveURL(/\/admin\/branches\/[^/?#]+/);
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
         marker: 'admin-claims-v2-ready',

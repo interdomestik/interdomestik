@@ -3,12 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useResponsiveSearch } from '@/hooks/use-responsive-search';
 import { useSiblingNavigationCancel } from '@/hooks/use-sibling-navigation-cancel';
 import { NotificationItem } from './notification-item';
-import { deferred } from './notification-test-ui';
+import { deferred } from './notification-ui.test-support';
 
 const { push, searchNavigate } = vi.hoisted(() => ({ push: vi.fn(), searchNavigate: vi.fn() }));
 vi.mock('@/i18n/routing', () => ({ Link: 'a', useRouter: () => ({ push }) }));
 vi.mock('@interdomestik/ui', async () => {
-  const { createNotificationUiMock } = await import('./notification-test-ui');
+  const { createNotificationUiMock } = await import('./notification-ui.test-support');
   return createNotificationUiMock();
 });
 

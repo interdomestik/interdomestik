@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +37,7 @@ vi.mock('drizzle-orm', () => ({ isNull: vi.fn() }));
 import { grantUserRoleCore } from './roles';
 
 const session = { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' } };
+const authority = mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: 'admin' });
 
 describe('authorized role writer', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -77,7 +79,7 @@ describe('authorized role writer', () => {
       grantUserRoleCore(
         {
           session,
-          tenantId: 'tenant_ks',
+          authority,
           userId: 'user-1',
           role: 'agent',
           branchId: 'ks_branch_a',
@@ -93,17 +95,17 @@ describe('authorized role writer', () => {
     expect(mocks.audit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'user.role_granted',
-        tenantId: 'tenant_ks',
+        authority,
         metadata: { role: 'agent', branchId: 'ks_branch_a' },
       })
     );
   });
 
-  it('denies foreign tenant and invalid branch before any role mutation', async () => {
+  it('denies a foreign authority and invalid branch before any role mutation', async () => {
     await expect(
       grantUserRoleCore({
         session,
-        tenantId: 'tenant_mk',
+        authority: mintTestTenantAuthority('tenant_mk', { userId: 'other-admin', role: 'admin' }),
         userId: 'user-1',
         role: 'agent',
         branchId: 'mk_branch_a',
@@ -117,7 +119,7 @@ describe('authorized role writer', () => {
     await expect(
       grantUserRoleCore({
         session,
-        tenantId: 'tenant_ks',
+        authority,
         userId: 'user-1',
         role: 'agent',
         branchId: 'ks_missing',

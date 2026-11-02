@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -36,6 +37,8 @@ import {
 } from './status-transition';
 
 describe('transitionAdminClaimStatus', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.transition.mockResolvedValue({
@@ -54,10 +57,11 @@ describe('transitionAdminClaimStatus', () => {
       expectedRecoveryLifecycleState: 'not_started',
       expectedStatus: 'submitted',
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority,
       toStatus: 'verification',
     });
 
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.transition).toHaveBeenCalledWith(
       { tx: true },
       expect.objectContaining({
@@ -68,6 +72,7 @@ describe('transitionAdminClaimStatus', () => {
             { op: 'eq', left: 'claims.recovery_lifecycle_state', right: 'not_started' },
           ],
         },
+        tenantId: 'tenant-1',
       })
     );
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.status', expect.anything());
@@ -81,7 +86,7 @@ describe('transitionAdminClaimStatus', () => {
       expectedRecoveryLifecycleState: 'not_started',
       expectedStatus: 'submitted',
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority,
       toStatus: 'verification',
     });
 
@@ -107,7 +112,7 @@ describe('transitionAdminClaimStatus', () => {
       expectedRecoveryLifecycleState: 'not_started',
       expectedStatus: 'evaluation',
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority,
       toStatus: 'court',
     });
 

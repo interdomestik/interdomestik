@@ -1,10 +1,8 @@
+import { claimEscalationAgreements, claims, eq, type DomainEventTx } from '@interdomestik/database';
 import {
-  claimEscalationAgreements,
-  claims,
-  eq,
-  type DomainEventTx,
-  withTenantContext,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 
@@ -21,6 +19,7 @@ import {
 } from './scope';
 import type { ActionResult, SaveClaimEscalationAgreementInput } from './types';
 import { ESCALATION_DECISION_NEXT_STATUSES, PAYMENT_AUTHORIZATION_STATES } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const saveClaimEscalationAgreementSchema = z
   .object({
@@ -40,14 +39,15 @@ const saveClaimEscalationAgreementSchema = z
 
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: ClaimsSession | null;
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult<ReturnType<typeof buildEscalationAgreementSnapshot>>> {
-  const { session } = params;
+  const { authority, session } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -59,17 +59,20 @@ export async function saveClaimEscalationAgreementCore(
     };
   }
 
-  const scopeArgs = resolveScopedStaffClaimAccess({
-    claimId: parsed.data.claimId,
-    session,
-  });
-  const tenantId = scopeArgs.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
+  const scopeArgs = {
+    ...resolveScopedStaffClaimAccess({
+      claimId: parsed.data.claimId,
+      session,
+    }),
+    tenantId,
+  };
   const now = new Date();
   const decisionReason = parsed.data.decisionReason.trim();
   const minimumFee = parsed.data.minimumFee.toFixed(2);
 
   try {
-    const result = await withTenantContext({ tenantId }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
@@ -230,7 +233,7 @@ export async function saveClaimEscalationAgreementCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId,
+        authority,
         action: 'claim.commercial_terms_saved',
         entityType: 'claim',
         entityId: parsed.data.claimId,

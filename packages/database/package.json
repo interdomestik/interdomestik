@@ -17,10 +17,13 @@
     "./tenant-security": "./src/tenant-security.ts",
     "./member-number": "./src/member-number.ts",
     "./claim-number": "./src/claim-number.ts",
+    "./ingress": "./src/ingress.ts",
+    "./ingress-registrar": "./src/ingress-registrar.ts",
     "./tenant-authority": "./src/tenant-authority-public.ts",
     "./tenant-authority-registrar": "./src/tenant-authority-registrar.ts",
     "./testing/tenant-authority": "./src/testing/tenant-authority.ts",
-    "./tenant-directory": "./src/tenant-directory.ts"
+    "./tenant-directory": "./src/tenant-directory.ts",
+    "./tenant-authority-context": "./src/tenant-authority-context.ts"
   },
   "scripts": {
     "db:generate": "pnpm run generate",

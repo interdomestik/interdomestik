@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import './claims.test-mocks';
 import { describe, expect, it, vi } from 'vitest';
 import { updateClaimStatus } from './claims';
@@ -8,6 +12,16 @@ import {
   mockWithTenantContext,
   submittedLifecycleCurrentClaim,
 } from './claims.test-support';
+
+function expectTenantContext(
+  withTenantContext: { mock: { calls: unknown[][] } },
+  tenantId: string
+) {
+  expect(withTenantContext.mock.calls.length).toBeGreaterThan(0);
+  for (const [context] of withTenantContext.mock.calls) {
+    expect(readTenantAuthority(context as TenantAuthority).tenantId).toBe(tenantId);
+  }
+}
 
 describe('Claim Actions', () => {
   describe('updateClaimStatus', () => {
@@ -25,7 +39,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'verification');
 
-      expect(mockWithTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+      expectTenantContext(mockWithTenantContext, 'tenant_mk');
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });
@@ -36,7 +50,7 @@ describe('Claim Actions', () => {
       });
       const result = await updateClaimStatus('claim-1', 'verification');
 
-      expect(mockWithTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+      expectTenantContext(mockWithTenantContext, 'tenant_mk');
       expect(mockTxUpdateReturning).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
     });

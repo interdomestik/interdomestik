@@ -1,17 +1,19 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   captureExceptionMock: vi.fn(),
-  getActionContextMock: vi.fn(),
+  authorizeSessionTenantMock: vi.fn(),
   scopeFilterMock: vi.fn(),
-  resolveBranchOwnerMock: vi.fn(),
+  delegateBranchOwnerMock: vi.fn(),
   readTenantCurrencyMock: vi.fn(),
   withTenantContextMock: vi.fn(),
   branchFindFirstMock: vi.fn(),
 }));
 
-vi.mock('@/actions/admin-users/context', () => ({
-  getActionContext: hoisted.getActionContextMock,
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
 }));
 vi.mock('@/features/admin/branches/server/branch-cash-metrics', () => ({
   getBranchCashPendingByAgent: vi.fn(),
@@ -21,7 +23,7 @@ vi.mock('@interdomestik/database/db', () => ({ db: {} }));
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
   withTenantContext: hoisted.withTenantContextMock,
-  resolveBranchOwner: hoisted.resolveBranchOwnerMock,
+  delegateSuperAdminBranchOwner: hoisted.delegateBranchOwnerMock,
 }));
 
 vi.mock('@interdomestik/database/tenant-directory', () => ({
@@ -45,6 +47,15 @@ function compile(where: unknown) {
   const dialect = new PgDialect();
   return dialect.sqlToQuery(where as Parameters<typeof dialect.sqlToQuery>[0]);
 }
+
+// What the session producer returns for a given role and tenant.
+function authorizeAs(user: { role: string; tenantId: string; branchId?: unknown }) {
+  const authority = mintTestTenantAuthority(user.tenantId, { userId: 'user-1', role: user.role });
+  hoisted.authorizeSessionTenantMock.mockResolvedValue({ session: { user }, authority });
+  return authority;
+}
+
+const tenantOf = (ctx: unknown) => readTenantAuthority(ctx as never).tenantId;
 
 function makeTx() {
   const result = [{ count: 0 }];
@@ -70,15 +81,7 @@ describe('getBranchDashboardV2Data branch-manager guard', () => {
   it.each([undefined, null, '', '   ', 'branch-b'])(
     'returns null before database access for an unusable or mismatched assignment (%j)',
     async branchId => {
-      hoisted.getActionContextMock.mockResolvedValue({
-        session: {
-          user: {
-            role: 'branch_manager',
-            branchId,
-            tenantId: 'tenant-a',
-          },
-        },
-      });
+      authorizeAs({ role: 'branch_manager', branchId, tenantId: 'tenant-a' });
 
       await expect(getBranchDashboardV2Data('branch-a')).resolves.toBeNull();
       expect(hoisted.scopeFilterMock).not.toHaveBeenCalled();
@@ -102,30 +105,32 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
   });
 
   function sessionAs(role: string, tenantId = 'tenant-session') {
-    hoisted.getActionContextMock.mockResolvedValue({ session: { user: { role, tenantId } } });
+    return authorizeAs({ role, tenantId });
   }
 
   it.each([[null], [undefined]])(
     'returns null for a super_admin when the branch owner is unresolved (%j) and reads no tenant',
     async owner => {
-      sessionAs('super_admin');
+      const sessionAuthority = sessionAs('super_admin');
       hoisted.scopeFilterMock.mockReturnValue({ tenantId: null, isCrossTenantScope: true });
-      hoisted.resolveBranchOwnerMock.mockResolvedValue(owner);
+      hoisted.delegateBranchOwnerMock.mockResolvedValue(owner);
 
       await expect(getBranchDashboardV2Data('shared-code')).resolves.toBeNull();
 
-      expect(hoisted.resolveBranchOwnerMock).toHaveBeenCalledWith('shared-code');
+      expect(hoisted.delegateBranchOwnerMock).toHaveBeenCalledWith(sessionAuthority, 'shared-code');
       expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
       expect(hoisted.readTenantCurrencyMock).not.toHaveBeenCalled();
     }
   );
 
   it('resolves the owner for a super_admin and reads the branch under that tenant', async () => {
-    sessionAs('super_admin');
+    const sessionAuthority = sessionAs('super_admin');
     hoisted.scopeFilterMock.mockReturnValue({ tenantId: null, isCrossTenantScope: true });
-    hoisted.resolveBranchOwnerMock.mockResolvedValue({
+    const ownerAuthority = mintTestTenantAuthority('tenant-owner');
+    hoisted.delegateBranchOwnerMock.mockResolvedValue({
       branchId: 'branch-id-1',
       tenantId: 'tenant-owner',
+      authority: ownerAuthority,
     });
 
     const data = await getBranchDashboardV2Data('b1');
@@ -139,7 +144,8 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     });
     const contexts = hoisted.withTenantContextMock.mock.calls.map(call => call[0]);
     expect(contexts.length).toBeGreaterThan(0);
-    expect(contexts.every(ctx => ctx.tenantId === 'tenant-owner')).toBe(true);
+    expect(contexts.every(ctx => ctx === ownerAuthority)).toBe(true);
+    expect(hoisted.delegateBranchOwnerMock).toHaveBeenCalledWith(sessionAuthority, 'b1');
     expect(hoisted.readTenantCurrencyMock).toHaveBeenCalledWith('tenant-owner');
 
     const { where } = hoisted.branchFindFirstMock.mock.calls[0][0];
@@ -152,7 +158,7 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
   });
 
   it('never resolves a branch owner for a tenant-scoped role', async () => {
-    sessionAs('tenant_admin');
+    const sessionAuthority = sessionAs('tenant_admin');
     hoisted.scopeFilterMock.mockReturnValue({
       tenantId: 'tenant-session',
       isCrossTenantScope: false,
@@ -161,7 +167,7 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     const data = await getBranchDashboardV2Data('b1');
 
     expect(data?.branch.id).toBe('branch-id-1');
-    expect(hoisted.resolveBranchOwnerMock).not.toHaveBeenCalled();
+    expect(hoisted.delegateBranchOwnerMock).not.toHaveBeenCalled();
     expect(hoisted.readTenantCurrencyMock).toHaveBeenCalledWith('tenant-session');
     const { where } = hoisted.branchFindFirstMock.mock.calls[0][0];
     const compiled = compile(where);
@@ -170,7 +176,8 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     expect(compiled.sql).toContain('"code"');
     expect(compiled.params).toEqual(['tenant-session', 'b1', 'b1']);
     const contexts = hoisted.withTenantContextMock.mock.calls.map(call => call[0]);
-    expect(contexts.every(ctx => ctx.tenantId === 'tenant-session')).toBe(true);
+    expect(contexts.every(ctx => ctx === sessionAuthority)).toBe(true);
+    expect(contexts.every(ctx => tenantOf(ctx) === 'tenant-session')).toBe(true);
   });
 
   it('returns null when the branch is not found inside the tenant context', async () => {
@@ -204,6 +211,25 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
 
     await expect(getBranchDashboardV2Data('b1')).resolves.toBeNull();
     expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
-    expect(hoisted.resolveBranchOwnerMock).not.toHaveBeenCalled();
+    expect(hoisted.delegateBranchOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the role scope names a tenant other than the session authority', async () => {
+    sessionAs('tenant_admin', 'tenant-session');
+    hoisted.scopeFilterMock.mockReturnValue({
+      tenantId: 'tenant-other',
+      isCrossTenantScope: false,
+    });
+
+    await expect(getBranchDashboardV2Data('b1')).resolves.toBeNull();
+    expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null for an unauthenticated request before any tenant read', async () => {
+    hoisted.authorizeSessionTenantMock.mockResolvedValue(null);
+
+    await expect(getBranchDashboardV2Data('b1')).resolves.toBeNull();
+    expect(hoisted.scopeFilterMock).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
   });
 });

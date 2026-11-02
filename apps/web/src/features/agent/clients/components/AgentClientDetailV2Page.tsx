@@ -1,7 +1,8 @@
 import { MemberNotesCard } from '@/components/agent/member-notes-card';
 import { ActivityFeed } from '@/components/crm/activity-feed';
 import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { MissingTenantError } from '@interdomestik/shared-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -18,10 +19,18 @@ import { RecentClaimsCard } from '@/app/[locale]/(agent)/agent/clients/[id]/comp
 export async function AgentClientDetailV2Page({ id, locale }: { id: string; locale: string }) {
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  try {
+    authorized = await authorizeSessionTenant(await headers());
+  } catch (error) {
+    // A session without a tenant cannot view client profiles.
+    if (error instanceof MissingTenantError) return notFound();
+    throw error;
+  }
+  if (!authorized) {
     return notFound();
   }
+  const { session, authority } = authorized;
 
   const role = (session.user as { role?: string | null }).role;
   if (role !== 'agent') {
@@ -40,7 +49,8 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
 
   const result = await getAgentClientProfileCore({
     memberId: id,
-    viewer: { id: session.user.id, role, tenantId: session.user.tenantId },
+    viewer: { id: session.user.id, role },
+    authority,
   });
 
   if (result.kind !== 'ok') {

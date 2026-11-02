@@ -1,8 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForPlatformAggregate } from '@interdomestik/database';
+import { listSuperAdminAggregateWork } from '@interdomestik/database';
 import { claims } from '@interdomestik/database/schema';
 import { eq, sql } from 'drizzle-orm';
 import { assertPlatformAnalyticsActor, type PlatformAnalyticsActor } from '../v2/super-admin';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface ForecastResult {
   trend: 'increasing' | 'stable' | 'decreasing';
@@ -20,8 +20,8 @@ export async function getClaimLoadForecast(actor: PlatformAnalyticsActor): Promi
   // Platform totals: each tenant's window counts are read under its own RLS context and summed.
   let current = 0;
   let previous = 0;
-  for (const tenantId of await listTenantIdsForPlatformAggregate()) {
-    const [row] = await withTenantContext({ tenantId, role: 'super_admin' }, tx =>
+  for (const { tenantId, authority } of await listSuperAdminAggregateWork(actor)) {
+    const [row] = await withTenantAuthority(authority, tx =>
       tx
         .select({
           current: sql<number>`COUNT(*) FILTER (WHERE ${claims.createdAt} >= NOW() - INTERVAL '14 days')`,

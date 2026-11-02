@@ -1,7 +1,11 @@
-import { withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForPlatformAggregate } from '@interdomestik/database';
+import { listSuperAdminAggregateWork } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface SuperAdminKPIs {
   totalTenants: number;
@@ -17,11 +21,12 @@ export interface SuperAdminKPIs {
   };
 }
 
-export type PlatformAnalyticsActor = { role: string | null | undefined };
+/** The actor is the caller's own session authority; its principal role is the one checked. */
+export type PlatformAnalyticsActor = TenantAuthority;
 
 /** Platform analytics are super_admin only; any other actor fails closed before a tenant is read. */
 export function assertPlatformAnalyticsActor(actor: PlatformAnalyticsActor): void {
-  if (actor.role !== 'super_admin') {
+  if (readTenantAuthority(actor).principal?.role !== 'super_admin') {
     throw new Error('Unauthorized: Super Admin access required');
   }
 }
@@ -32,9 +37,9 @@ export function assertPlatformAnalyticsActor(actor: PlatformAnalyticsActor): voi
  */
 export async function getSuperAdminKPIs(actor: PlatformAnalyticsActor): Promise<SuperAdminKPIs> {
   assertPlatformAnalyticsActor(actor);
-  const tenantIds = await listTenantIdsForPlatformAggregate();
+  const work = await listSuperAdminAggregateWork(actor);
   const kpis: SuperAdminKPIs = {
-    totalTenants: tenantIds.length,
+    totalTenants: work.length,
     totalBranches: 0,
     totalStaff: 0,
     totalAgents: 0,
@@ -42,8 +47,8 @@ export async function getSuperAdminKPIs(actor: PlatformAnalyticsActor): Promise<
     claimsMetrics: { total: 0, today: 0, last7d: 0, last30d: 0 },
   };
 
-  for (const tenantId of tenantIds) {
-    const tenant = await withTenantContext({ tenantId, role: 'super_admin' }, async tx => {
+  for (const { tenantId, authority } of work) {
+    const tenant = await withTenantAuthority(authority, async tx => {
       const [branchRow] = await tx
         .select({ count: count() })
         .from(branches)

@@ -5,8 +5,11 @@ import {
   eq,
   subscriptions,
   type DomainEventTx,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   buildRecoverySuccessFeeCollectionSnapshot,
@@ -32,6 +35,7 @@ import {
   resolveScopedStaffClaimAccess,
   STAFF_SCOPE_ACCESS_DENIED_ERROR,
 } from './scope';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
@@ -41,15 +45,16 @@ const saveSuccessFeeCollectionSchema = z.object({
 
 export async function saveSuccessFeeCollectionCore(
   params: SaveSuccessFeeCollectionInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: ClaimsSession | null;
     now?: Date;
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
-  const { session } = params;
+  const { authority, session } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -61,15 +66,18 @@ export async function saveSuccessFeeCollectionCore(
     };
   }
 
-  const scopeArgs = resolveScopedStaffClaimAccess({
-    claimId: parsed.data.claimId,
-    session,
-  });
-  const tenantId = scopeArgs.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
+  const scopeArgs = {
+    ...resolveScopedStaffClaimAccess({
+      claimId: parsed.data.claimId,
+      session,
+    }),
+    tenantId,
+  };
   const now = params.now ?? new Date();
 
   try {
-    const result = await withTenantContext({ tenantId }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
@@ -220,7 +228,7 @@ export async function saveSuccessFeeCollectionCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId,
+        authority,
         action: 'claim.success_fee_collection_saved',
         entityType: 'claim',
         entityId: parsed.data.claimId,

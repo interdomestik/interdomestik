@@ -1,6 +1,7 @@
 'use server';
 
 import * as Sentry from '@sentry/nextjs';
+import { authorizePublicSiteTenant } from '@interdomestik/database';
 import { createLead } from '@interdomestik/domain-leads';
 import { headers } from 'next/headers';
 import { z } from 'zod';
@@ -73,19 +74,30 @@ function serializeLeadNotes(args: {
   });
 }
 
+function intakeUnavailable(): SubmitBusinessMembershipLeadResult {
+  return {
+    success: false,
+    error: 'Business intake is temporarily unavailable. Please contact support directly.',
+    code: 'TENANT_AUTHORITY_REQUIRED',
+  };
+}
+
 export async function submitBusinessMembershipLeadCore(params: {
   idempotencyKey?: string;
   requestHeaders: Headers;
   data: SubmitBusinessMembershipLeadInput;
 }): Promise<SubmitBusinessMembershipLeadResult> {
   try {
-    const tenantId = await resolveTenantIdFromRequest();
+    // Anonymous public intake: the lead belongs to the active tenant this host serves, resolved from
+    // the server request contract and never from the payload. An inactive tenant writes nothing.
+    const authority = await authorizePublicSiteTenant(await resolveTenantIdFromRequest());
+    if (!authority) return intakeUnavailable();
 
     return await runCommercialActionWithIdempotency({
       action: 'business-membership.submit',
       scope: {
         kind: 'tenant',
-        tenantId,
+        authority,
       },
       idempotencyKey: params.idempotencyKey,
       requestFingerprint: params.data,
@@ -118,7 +130,7 @@ export async function submitBusinessMembershipLeadCore(params: {
           };
         }
 
-        const owner = await resolveBusinessLeadOwner(tenantId);
+        const owner = await resolveBusinessLeadOwner(authority);
 
         if (!owner) {
           return {
@@ -130,7 +142,7 @@ export async function submitBusinessMembershipLeadCore(params: {
 
         const { leadId } = await createLead(
           {
-            tenantId,
+            authority,
             agentId: owner.agentId,
             branchId: owner.branchId,
           },

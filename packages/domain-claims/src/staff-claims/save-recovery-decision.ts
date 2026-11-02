@@ -1,4 +1,8 @@
-import { claims, withTenantContext } from '@interdomestik/database';
+import { claims } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -10,17 +14,19 @@ import {
 } from './scope';
 import type { ActionResult, RecoveryDecisionSnapshot, SaveRecoveryDecisionInput } from './types';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function saveRecoveryDecisionCore(
   params: SaveRecoveryDecisionInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: ClaimsSession | null;
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult<RecoveryDecisionSnapshot>> {
-  const { session } = params;
+  const { authority, session } = params;
 
-  if (session?.user?.role !== 'staff') {
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -32,15 +38,18 @@ export async function saveRecoveryDecisionCore(
     };
   }
 
-  const scopeArgs = resolveScopedStaffClaimAccess({
-    claimId: parsed.data.claimId,
-    session,
-  });
-  const tenantId = scopeArgs.tenantId;
+  const { tenantId } = readTenantAuthority(authority);
+  const scopeArgs = {
+    ...resolveScopedStaffClaimAccess({
+      claimId: parsed.data.claimId,
+      session,
+    }),
+    tenantId,
+  };
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    const result = await withTenantContext({ tenantId }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [claim] = await tx
         .select({
@@ -75,7 +84,7 @@ export async function saveRecoveryDecisionCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId,
+        authority,
         action: 'claim.recovery_decision_saved',
         entityType: 'claim',
         entityId: parsed.data.claimId,
@@ -94,7 +103,7 @@ export async function saveRecoveryDecisionCore(
     if (result.success && result.data && notifyRecoveryDecision) {
       void (async () => {
         try {
-          const claim = await withTenantContext({ tenantId }, tx =>
+          const claim = await withTenantAuthority(authority, tx =>
             tx.query.claims.findFirst({
               where: (claimsTable, { eq }) =>
                 withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, parsed.data.claimId)),
@@ -110,7 +119,7 @@ export async function saveRecoveryDecisionCore(
             return;
           }
 
-          const member = await withTenantContext({ tenantId }, tx =>
+          const member = await withTenantAuthority(authority, tx =>
             tx.query.user.findFirst({
               where: (userTable, { eq }) =>
                 withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
@@ -127,7 +136,7 @@ export async function saveRecoveryDecisionCore(
               claim,
               parsed.data.decisionType,
               {
-                tenantId,
+                authority,
               }
             );
           }

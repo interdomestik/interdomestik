@@ -3,6 +3,7 @@ import { dbAdmin } from './db';
 import { user } from './schema/auth';
 import { subscriptions } from './schema/subscriptions';
 import { webhookEvents } from './schema/webhooks';
+import { registerResolvedPaddleOwner } from './paddle-tenant-authority';
 
 // A Paddle webhook names its subject by provider references (subscription id, checkout customData
 // userId, customer email, transaction id) before any tenant is known. These fixed lookups map one
@@ -11,8 +12,9 @@ import { webhookEvents } from './schema/webhooks';
 // subscription/user/tenant/customer cross-checks and must re-read the record inside
 // withTenantContext before any effect. Results are internal to webhook processing.
 
-export type PaddleSubscriptionOwner = { subscriptionId: string; tenantId: string };
-export type PaddleUserOwner = { userId: string; tenantId: string };
+// Owners are frozen and registered, so authorizePaddleTenant can tell them from caller-built objects.
+export type PaddleSubscriptionOwner = Readonly<{ subscriptionId: string; tenantId: string }>;
+export type PaddleUserOwner = Readonly<{ userId: string; tenantId: string }>;
 
 /**
  * Exact subscription reference to its owner. One row's id can equal another row's provider
@@ -33,7 +35,7 @@ export async function resolvePaddleSubscriptionOwner(
     )
     .limit(2);
   if (rows.length > 1) return 'ambiguous';
-  return rows[0] ?? null;
+  return rows[0] ? registerResolvedPaddleOwner(rows[0]) : null;
 }
 
 export async function resolvePaddleUserOwner(userId: string): Promise<PaddleUserOwner | null> {
@@ -45,7 +47,7 @@ export async function resolvePaddleUserOwner(userId: string): Promise<PaddleUser
     .from(user)
     .where(eq(user.id, normalized))
     .limit(2);
-  return rows.length === 1 ? rows[0] : null;
+  return rows.length === 1 ? registerResolvedPaddleOwner(rows[0]) : null;
 }
 
 /**
@@ -63,7 +65,7 @@ export async function resolvePaddleCustomerEmailOwner(
     .where(eq(user.email, email))
     .limit(2);
   if (rows.length > 1) return 'ambiguous';
-  return rows[0] ?? null;
+  return rows[0] ? registerResolvedPaddleOwner(rows[0]) : null;
 }
 
 export type PaddleTransactionEvidence = {

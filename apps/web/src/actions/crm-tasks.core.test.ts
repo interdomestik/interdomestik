@@ -1,11 +1,13 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  createCrmTaskRepository: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock('@/adapters/crm/task-repository', () => ({
-  crmTaskRepository: {},
+  createCrmTaskRepository: hoisted.createCrmTaskRepository,
 }));
 
 vi.mock('next/cache', () => ({
@@ -34,6 +36,7 @@ import {
   updateCrmTaskPriorityCore,
 } from './crm-tasks.core';
 
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 const TEST_NOW = '2026-05-21T10:00:00.000Z';
 const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
 
@@ -143,6 +146,7 @@ describe('CRM task core boundary', () => {
 
     const result = await readCrmTaskCore({
       deps: d,
+      authority: TEST_AUTHORITY,
       session: null,
       taskId: 'task-1',
     });
@@ -150,6 +154,40 @@ describe('CRM task core boundary', () => {
     expect(result).toEqual({ outcome: 'unauthorized', reason: 'missing_session' });
     expect(repo.findTaskById).not.toHaveBeenCalled();
     expect(d.rateLimit).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without a tenant authority before any repository or rate-limit access', async () => {
+    const repo = repository();
+    const d = deps(repo);
+
+    const result = await createCrmTaskCore({
+      authority: null,
+      deps: d,
+      input: createInput(),
+      requestHeaders: new Headers(),
+      session: session(),
+    });
+
+    expect(result).toEqual({ outcome: 'unauthorized', reason: 'missing_session' });
+    expect(d.rateLimit).not.toHaveBeenCalled();
+    expect(repo.validateSubjectReference).not.toHaveBeenCalled();
+    expect(hoisted.createCrmTaskRepository).not.toHaveBeenCalled();
+  });
+
+  it('builds the default repository from the session authority by identity', async () => {
+    const defaultRepo = repository({ findTaskById: vi.fn().mockResolvedValue(null) });
+    hoisted.createCrmTaskRepository.mockReturnValue(defaultRepo);
+
+    const result = await readCrmTaskCore({
+      authority: TEST_AUTHORITY,
+      session: session(),
+      taskId: 'task-1',
+    });
+
+    expect(result).toEqual({ outcome: 'not_found', reason: 'task_not_found' });
+    expect(hoisted.createCrmTaskRepository).toHaveBeenCalledTimes(1);
+    expect(hoisted.createCrmTaskRepository.mock.calls[0][0]).toBe(TEST_AUTHORITY);
+    expect(defaultRepo.findTaskById).toHaveBeenCalled();
   });
 
   it('maps member task mutations to forbidden role scope', async () => {
@@ -160,6 +198,7 @@ describe('CRM task core boundary', () => {
       deps: d,
       input: createInput(),
       requestHeaders: new Headers({ 'user-agent': 'Vitest' }),
+      authority: TEST_AUTHORITY,
       session: session({ role: 'member' }),
     });
 
@@ -179,6 +218,7 @@ describe('CRM task core boundary', () => {
       deps: d,
       input: createInput(),
       requestHeaders: new Headers({ 'x-forwarded-for': '127.0.0.1' }),
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -216,9 +256,9 @@ describe('CRM task core boundary', () => {
           subjectKind: 'lead',
           toStatus: 'pending',
         },
-        tenantId: 'tenant-1',
       })
     );
+    expect(vi.mocked(d.audit).mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
     for (const locale of LOCALES) {
       expect(d.revalidate).toHaveBeenCalledWith(`/${locale}/agent/crm`);
       expect(d.revalidate).toHaveBeenCalledWith(`/${locale}/staff/crm`);
@@ -237,6 +277,7 @@ describe('CRM task core boundary', () => {
     const result = await createCrmTaskCore({
       deps: d,
       input: createInput(),
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -270,6 +311,7 @@ describe('CRM task core boundary', () => {
 
       const result = await readCrmTaskCore({
         deps: deps(repo),
+        authority: TEST_AUTHORITY,
         session: session({ branchId: null, role }),
         taskId: 'task-1',
       });
@@ -302,6 +344,7 @@ describe('CRM task core boundary', () => {
         reasonCode: 'due_date_changed',
         taskId: 'task-1',
       },
+      authority: TEST_AUTHORITY,
       session: session({ branchId: null, role: 'tenant_admin' }),
     });
 
@@ -334,6 +377,7 @@ describe('CRM task core boundary', () => {
     const result = await createCrmTaskCore({
       deps: d,
       input: createInput(),
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -380,11 +424,13 @@ describe('CRM task core boundary', () => {
       const mutate = scenario.mutate as (params: {
         readonly deps: typeof d;
         readonly input: typeof scenario.input;
+        readonly authority: typeof TEST_AUTHORITY;
         readonly session: ReturnType<typeof session>;
       }) => ReturnType<typeof updateCrmTaskDueAtCore>;
       const result = await mutate({
         deps: d,
         input: scenario.input,
+        authority: TEST_AUTHORITY,
         session: session(),
       });
 
@@ -425,6 +471,7 @@ describe('CRM task core boundary', () => {
         reasonCode: 'due_date_changed',
         taskId: 'task-1',
       },
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -481,6 +528,7 @@ describe('CRM task core boundary', () => {
     const result = await updateCrmTaskPriorityCore({
       deps: d,
       input: scenario.input as never,
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -498,6 +546,7 @@ describe('CRM task core boundary', () => {
     await expect(
       readCrmTaskCore({
         deps: deps(repo),
+        authority: TEST_AUTHORITY,
         session: session(),
         taskId: 'task-1',
       })
@@ -525,6 +574,7 @@ describe('CRM task core boundary', () => {
         reasonCode: 'manual_assignment',
         taskId: 'task-1',
       },
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -697,11 +747,13 @@ describe('CRM task core boundary', () => {
     const mutate = scenario.mutate as (params: {
       readonly deps: typeof d;
       readonly input: typeof scenario.input;
+      readonly authority: typeof TEST_AUTHORITY;
       readonly session: ReturnType<typeof session>;
     }) => ReturnType<typeof updateCrmTaskDueAtCore>;
     const result = await mutate({
       deps: d,
       input: scenario.input,
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -753,6 +805,7 @@ describe('CRM task core boundary', () => {
         reasonCode: 'manual_priority_change',
         taskId: 'task-1',
       },
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -766,6 +819,7 @@ describe('CRM task core boundary', () => {
         role: 'agent',
         tenantId: 'tenant-1',
       }),
+      authority: expect.anything(),
       deps: d,
       input: expect.objectContaining({
         expectedLifecycleVersion: 9,
@@ -773,6 +827,7 @@ describe('CRM task core boundary', () => {
       }),
       requestHeaders: expect.any(Headers),
     });
+    expect(guard.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
     expect(repo.findTaskById).not.toHaveBeenCalled();
     expect(repo.saveTask).not.toHaveBeenCalled();
   });
@@ -802,6 +857,7 @@ describe('CRM task core boundary', () => {
         reasonCode: 'follow_up_required',
         taskId: 'task-1',
       },
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 
@@ -815,6 +871,7 @@ describe('CRM task core boundary', () => {
         role: 'agent',
         tenantId: 'tenant-1',
       }),
+      authority: expect.anything(),
       deps: d,
       input: expect.objectContaining({
         expectedLifecycleVersion: 9,
@@ -822,6 +879,7 @@ describe('CRM task core boundary', () => {
       }),
       requestHeaders: expect.any(Headers),
     });
+    expect(guard.mock.calls[0][0].authority).toBe(TEST_AUTHORITY);
     expect(repo.findTaskById).not.toHaveBeenCalled();
     expect(repo.saveTask).not.toHaveBeenCalled();
   });
@@ -918,11 +976,13 @@ describe('CRM task core boundary', () => {
     const mutate = scenario.mutate as (params: {
       readonly deps: typeof d;
       readonly input: typeof scenario.input;
+      readonly authority: typeof TEST_AUTHORITY;
       readonly session: ReturnType<typeof session>;
     }) => ReturnType<typeof updateCrmTaskDueAtCore>;
     const result = await mutate({
       deps: d,
       input: scenario.input,
+      authority: TEST_AUTHORITY,
       session: session(),
     });
 

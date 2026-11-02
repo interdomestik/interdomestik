@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { preflightCommissionPayability } from './payability';
 import { updateCommissionStatusCore } from './update-status';
@@ -58,6 +59,8 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 describe('updateCommissionStatusCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(preflightCommissionPayability).mockResolvedValue({
@@ -93,6 +96,7 @@ describe('updateCommissionStatusCore', () => {
 
     const result = await updateCommissionStatusCore({
       session: mockAdminSession as any,
+      authority,
       commissionId: 'c1',
       newStatus: 'approved',
     });
@@ -114,6 +118,7 @@ describe('updateCommissionStatusCore', () => {
     // Try to move from 'paid' back to 'pending' (invalid)
     const result = await updateCommissionStatusCore({
       session: mockAdminSession as any,
+      authority,
       commissionId: 'c1',
       newStatus: 'pending',
     });
@@ -134,6 +139,7 @@ describe('updateCommissionStatusCore', () => {
 
     const result = await updateCommissionStatusCore({
       session: mockAdminSession as any,
+      authority,
       commissionId: 'c1',
       newStatus: 'approved',
     });
@@ -164,6 +170,7 @@ describe('updateCommissionStatusCore', () => {
 
     const result = await updateCommissionStatusCore({
       session: mockAdminSession as any,
+      authority,
       commissionId: 'c1',
       newStatus: 'approved',
     });

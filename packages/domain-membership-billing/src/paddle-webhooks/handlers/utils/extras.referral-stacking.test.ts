@@ -1,8 +1,11 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 vi.mock('@interdomestik/database', () => ({
   agentClients: { tenantId: 'tenantId', memberId: 'memberId', agentId: 'agentId' },
@@ -66,7 +69,7 @@ describe('new-subscription reward stacking', () => {
         },
       },
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: {

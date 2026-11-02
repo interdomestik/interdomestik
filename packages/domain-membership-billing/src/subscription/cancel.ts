@@ -5,33 +5,37 @@ import {
   desc,
   eq,
   subscriptions,
-  withTenantContext,
   type DomainEventTx,
 } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getPaddle } from '../paddle-server';
 import { buildCancellationTermsSummary } from './cancellation-policy';
 import { resolveProviderSubscriptionHandle } from '../subscription';
 import { recordMembershipSubscriptionChangedEvent } from '../paddle-webhooks/handlers/subscription-event';
 
 import type { CancelSubscriptionResult, SubscriptionDeps, SubscriptionSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function cancelSubscriptionCore(
   params: {
     session: SubscriptionSession | null;
+    authority: TenantAuthority | null;
     subscriptionId: string;
     now?: Date;
   },
   deps: SubscriptionDeps = {}
 ): Promise<CancelSubscriptionResult> {
-  const { session, subscriptionId } = params;
+  const { session, authority, subscriptionId } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     return { error: 'Unauthorized', success: undefined };
   }
 
-  const tenantId = ensureTenantId(session);
-  const sub = await withTenantContext({ tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(authority);
+  const sub = await withTenantAuthority(authority, tx =>
     tx.query.subscriptions.findFirst({
       where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
     })
@@ -43,7 +47,7 @@ export async function cancelSubscriptionCore(
 
   try {
     const providerSubscriptionId = resolveProviderSubscriptionHandle(sub);
-    const acceptedEscalationRows = await withTenantContext({ tenantId }, tx =>
+    const acceptedEscalationRows = await withTenantAuthority(authority, tx =>
       tx
         .select({ acceptedAt: claimEscalationAgreements.acceptedAt })
         .from(claimEscalationAgreements)
@@ -78,7 +82,7 @@ export async function cancelSubscriptionCore(
     let localPersistenceFailed = false;
     try {
       const now = new Date();
-      await withTenantContext({ tenantId }, async tx => {
+      await withTenantAuthority(authority, async tx => {
         // db-access-guard: tenant-scoped -- reason: tenantId constrains local cancellation persistence.
         const updatedRows = await tx
           .update(subscriptions)
@@ -115,7 +119,7 @@ export async function cancelSubscriptionCore(
           action: 'subscription.canceled_scheduled',
           entityType: 'subscription',
           entityId: subscriptionId,
-          tenantId,
+          authority,
           metadata: {
             effectiveFrom: 'next_billing_period',
             refundStatus: cancellationTerms.refundStatus,

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
 import {
+  TEST_PADDLE_DELIVERY,
   createActiveSubscriptionUpdatedEvent,
   mockUserOwner,
   resetPaddleHandlerMocks,
@@ -26,6 +27,7 @@ const CUSTOMER_ID = 'ctm_01hrffh7gvp29kc7xahm8wddwa';
 
 function entitySubscriptionCreated() {
   return {
+    delivery: TEST_PADDLE_DELIVERY,
     eventType: 'subscription.created',
     processingScopeKey: 'entity:ks',
     providerEventId: 'evt_entity_created',

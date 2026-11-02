@@ -1,6 +1,7 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { Info } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
 
@@ -18,6 +19,7 @@ import {
   StageVelocityChartBoundary,
 } from '@/components/crm/charts/reporting-chart-boundary';
 import { getSessionSafe } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import {
   STAFF_CRM_REPORTING_MARKER_PREFIX,
@@ -514,12 +516,16 @@ export default async function StaffCrmPage({
 
   const actor = buildStaffCrmActor(session);
   if (!actor) notFound();
+  const authorized = await authorizeSessionTenant(await headers());
+  if (!authorized) notFound();
+  const { authority } = authorized;
 
   let reporting: StaffCrmReportingDashboard;
   try {
     reporting = await getStaffCrmReportingCore(
       {
         actor,
+        authority,
       },
       {
         labels: {

@@ -5,6 +5,7 @@ import postgres from 'postgres';
 import {
   assertFulfilmentAndEvidenceBoundary,
   assertOpenRequestProjection,
+  withSessionAuthority,
 } from './claim-information-request-fulfilment.proof';
 import {
   applyRlsTestConnectionEnv,
@@ -13,6 +14,7 @@ import {
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
 } from './rls-test-connection';
+import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
 
 test('S4 real request command, concurrency, projection and tenant RLS', async t => {
   if (!process.env.DATABASE_URL) {
@@ -54,12 +56,15 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     url.username = TEST_DB_ROLE;
     url.password = TEST_DB_PASSWORD;
     rls = postgres(url.toString(), { max: 1 });
-    const { createInformationRequest, getInformationRequests } =
-      await import('../../domain-claims/src/claims/information-requests');
-    const { acknowledgeInformationRequestEvidence } =
-      await import('../../domain-claims/src/claims/information-request-evidence');
-    const { fulfilInformationRequest } =
-      await import('../../domain-claims/src/claims/fulfil-information-request');
+    const requests = await import('../../domain-claims/src/claims/information-requests');
+    const evidence = await import('../../domain-claims/src/claims/information-request-evidence');
+    const fulfilment = await import('../../domain-claims/src/claims/fulfil-information-request');
+    const createInformationRequest = withSessionAuthority(requests.createInformationRequest);
+    const getInformationRequests = withSessionAuthority(requests.getInformationRequests);
+    const acknowledgeInformationRequestEvidence = withSessionAuthority(
+      evidence.acknowledgeInformationRequestEvidence
+    );
+    const fulfilInformationRequest = withSessionAuthority(fulfilment.fulfilInformationRequest);
     const { persistClaimDocumentMetadata } =
       await import('../../../apps/web/src/features/claims/upload/server/claim-document-write');
     const actor = (id: string, role = 'staff', tenantId = 'tenant_ks') => ({
@@ -177,6 +182,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       storagePath: `pii/tenants/tenant_ks/claims/${claimId}/${documentId}.pdf`,
       tenantId: 'tenant_ks',
       userId: member,
+      authority: mintTestTenantAuthority('tenant_ks', { userId: member, role: 'member' }),
     });
     assert.equal(
       (

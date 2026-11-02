@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
 import type { UserSession } from '@interdomestik/domain-users/types';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
@@ -21,12 +22,13 @@ type AdminSettingsInput = z.infer<typeof adminSettingsSchema>;
 
 export async function adminUpdateSettingsCore(params: {
   session: Session | null;
+  authority?: TenantAuthority | null;
   requestHeaders?: Headers;
   data: unknown;
 }): Promise<{ success: true } | { success: false; error: string }> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
-  await requireTenantAdminSession(session as unknown as UserSession | null);
+  await requireTenantAdminSession(session as unknown as UserSession | null, authority);
 
   const parsed = adminSettingsSchema.safeParse(data);
   if (!parsed.success) {
@@ -50,14 +52,18 @@ export async function adminUpdateSettingsCore(params: {
 
   // NOTE: This is a stub for future global settings table
 
-  await logAuditEvent({
-    actorId: session?.user?.id ?? null,
-    actorRole: session?.user?.role ?? null,
-    tenantId: session?.user?.tenantId ?? null,
-    action: 'settings.updated',
-    entityType: 'settings',
-    metadata: { keys: Object.keys(settings) },
-  });
+  // The audit row is written under the caller's authority; without one there is no tenant to
+  // record it in, so nothing is written.
+  if (authority) {
+    await logAuditEvent({
+      authority,
+      actorId: session?.user?.id ?? null,
+      actorRole: session?.user?.role ?? null,
+      action: 'settings.updated',
+      entityType: 'settings',
+      metadata: { keys: Object.keys(settings) },
+    });
+  }
 
   return { success: true };
 }

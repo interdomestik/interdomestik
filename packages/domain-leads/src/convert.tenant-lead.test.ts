@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tableRefs = vi.hoisted(() => ({
@@ -33,7 +34,7 @@ const mocks = vi.hoisted(() => ({
     interval: 'membership_plans.interval',
     isActive: 'membership_plans.is_active',
   },
-  generateMemberNumber: vi.fn(),
+  issueTenantMemberNumber: vi.fn(),
   nanoid: vi.fn(),
 }));
 
@@ -43,12 +44,9 @@ vi.mock('@interdomestik/database', () => ({
   asc: mocks.asc,
   db: mocks.db,
   eq: mocks.eq,
+  issueTenantMemberNumber: mocks.issueTenantMemberNumber,
   membershipPlans: mocks.membershipPlans,
   withTenantContext: mocks.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: mocks.generateMemberNumber,
 }));
 
 vi.mock('@interdomestik/database/schema', () => tableRefs);
@@ -61,6 +59,8 @@ vi.mock('nanoid', () => ({
 import { hasTenantLeadForConversion } from './convert';
 
 describe('hasTenantLeadForConversion', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     mocks.db.query.memberLeads.findFirst.mockReset();
     mocks.withTenantContext.mockReset();
@@ -72,7 +72,7 @@ describe('hasTenantLeadForConversion', () => {
   it('returns true when the lead belongs to the tenant', async () => {
     mocks.db.query.memberLeads.findFirst.mockResolvedValue({ id: 'lead-1' });
 
-    const result = await hasTenantLeadForConversion({ tenantId: 'tenant-1' }, { leadId: 'lead-1' });
+    const result = await hasTenantLeadForConversion(authority, { leadId: 'lead-1' });
 
     expect(result).toBe(true);
     expect(mocks.db.query.memberLeads.findFirst).toHaveBeenCalledWith(
@@ -90,19 +90,13 @@ describe('hasTenantLeadForConversion', () => {
     expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.id, 'lead-1');
     expect(mocks.eq).toHaveBeenCalledWith(tableRefs.memberLeads.tenantId, 'tenant-1');
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('returns false without writes when the lead is missing or belongs to another tenant', async () => {
     mocks.db.query.memberLeads.findFirst.mockResolvedValue(null);
 
-    const result = await hasTenantLeadForConversion(
-      { tenantId: 'tenant-1' },
-      { leadId: 'lead-other' }
-    );
+    const result = await hasTenantLeadForConversion(authority, { leadId: 'lead-other' });
 
     expect(result).toBe(false);
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);

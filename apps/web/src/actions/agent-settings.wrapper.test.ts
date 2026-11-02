@@ -1,9 +1,15 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getAgentSettings, updateAgentCommissionRates, updateAgentTier } from './agent-settings';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 vi.mock('./agent-settings/context', () => ({
-  getActionContext: vi.fn(async () => ({ session: { user: { id: 'u1', role: 'admin' } } })),
+  getActionContext: vi.fn(async () => ({
+    session: { user: { id: 'u1', role: 'admin' } },
+    authority,
+  })),
 }));
 
 vi.mock('./agent-settings/get', () => ({
@@ -28,6 +34,7 @@ describe('agent-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getAgentSettingsCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1', role: 'admin' } },
+      authority,
       agentId: 'agent-1',
     });
     expect(result).toEqual({ success: true, data: null });
@@ -44,6 +51,7 @@ describe('agent-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateAgentCommissionRatesCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1', role: 'admin' } },
+      authority,
       agentId: 'agent-1',
       rates: { member: 0.1 },
     });
@@ -59,6 +67,7 @@ describe('agent-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateAgentTierCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1', role: 'admin' } },
+      authority,
       agentId: 'agent-1',
       tier: 'premium',
     });

@@ -1,4 +1,16 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Authorities the mocked public-statistics producer hands out, one per tenant.
+const authorities = new Map<string, TenantAuthority>();
+const authorityFor = (tenantId: string): TenantAuthority => {
+  if (!authorities.has(tenantId)) authorities.set(tenantId, mintTestTenantAuthority(tenantId));
+  return authorities.get(tenantId)!;
+};
 
 const hoisted = vi.hoisted(() => ({
   listTenantIds: vi.fn(),
@@ -17,7 +29,12 @@ vi.mock('@interdomestik/database', () => ({
     claimAmount: 'claims.claimAmount',
     tenantId: 'claims.tenantId',
   },
-  listTenantIdsForPlatformAggregate: hoisted.listTenantIds,
+  listPublicStatisticsWork: vi.fn(async () =>
+    ((await hoisted.listTenantIds()) as string[]).map(tenantId => ({
+      tenantId,
+      authority: authorityFor(tenantId),
+    }))
+  ),
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -53,12 +70,12 @@ describe('getPublicStatsCore', () => {
     hoisted.listTenantIds.mockReset();
     hoisted.withTenantContext.mockReset();
     hoisted.withTenantContext.mockImplementation(
-      async (ctx: { tenantId: string }, cb: (tx: unknown) => unknown) => {
+      async (ctx: TenantAuthority, cb: (tx: unknown) => unknown) => {
         if (hoisted.failure.remaining > 0) {
           hoisted.failure.remaining -= 1;
           throw hoisted.failure.error;
         }
-        const row = hoisted.tenantRows.get(ctx.tenantId);
+        const row = hoisted.tenantRows.get(readTenantAuthority(ctx).tenantId);
         return cb(makeTx(row ? [row as StatsRow] : []));
       }
     );
@@ -98,8 +115,8 @@ describe('getPublicStatsCore', () => {
 
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(2);
     expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
-      { tenantId: 'tenant-a', role: 'system' },
-      { tenantId: 'tenant-b', role: 'system' },
+      authorityFor('tenant-a'),
+      authorityFor('tenant-b'),
     ]);
     expect(hoisted.whereCalls).toEqual([
       { op: 'eq', left: 'claims.tenantId', right: 'tenant-a' },

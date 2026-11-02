@@ -1,3 +1,4 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { screen } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import { hoisted, renderPage } from './page-test-support';
@@ -34,9 +35,10 @@ it('keeps the uncertain save visible in ordered history after a newer public upd
   expect(entries[1]).toHaveTextContent('Original uncertain save');
   expect(entries[2]).toHaveTextContent('submitted');
   expect(screen.getByTestId('staff-status-history')).toHaveAttribute('id', 'staff-status-history');
+  expect(readTenantAuthority(hoisted.current.authority!).tenantId).toBe('tenant-ks');
   expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledWith({
     claimId: 'claim-1',
-    tenantId: 'tenant-ks',
+    authority: hoisted.current.authority,
   });
 });
 

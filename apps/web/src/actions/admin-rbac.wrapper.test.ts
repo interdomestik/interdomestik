@@ -1,4 +1,8 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { auth } from '@/lib/auth';
 
 import {
   createBranch,
@@ -21,6 +25,7 @@ const mockListUserRolesCore = vi.fn();
 const mockGrantUserRoleCore = vi.fn();
 const mockRevokeUserRoleCore = vi.fn();
 const mockRevalidatePath = vi.fn();
+const mockDelegateSuperAdminTenant = vi.fn();
 
 vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +44,10 @@ vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   revokeUserRoleCore: (...args: any[]) => mockRevokeUserRoleCore(...args),
 }));
 
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  delegateSuperAdminTenant: (...args: unknown[]) => mockDelegateSuperAdminTenant(...args),
+}));
 vi.mock('./admin-users/context');
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
@@ -85,9 +94,10 @@ describe('admin-rbac.core', () => {
       expect(mockListBranchesCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
-          tenantId: 'tenant-1',
+          authority: expect.anything(),
         })
       );
+      expect(mockListBranchesCore.mock.calls[0]?.[0]).not.toHaveProperty('tenantId');
       expect(result).toEqual({ success: true, data: mockResult });
     });
   });
@@ -105,6 +115,8 @@ describe('admin-rbac.core', () => {
       expect(mockCreateBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
+          // The session producer's tenant capability reaches the domain function.
+          authority: expect.anything(),
           name: 'Branch 1',
           code: 'B1',
         }),
@@ -141,6 +153,7 @@ describe('admin-rbac.core', () => {
       expect(mockUpdateBranchCore).toHaveBeenCalledWith(
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
+          authority: expect.anything(),
           branchId: MOCK_BRANCH_ID,
           name: 'Updated',
           isActive: true,
@@ -202,7 +215,7 @@ describe('admin-rbac.core', () => {
         expect.objectContaining({
           session: expect.objectContaining({ user: expect.anything() }),
           userId: params.userId,
-          tenantId: params.tenantId,
+          authority: expect.anything(),
         })
       );
       expect(result).toEqual({ success: true, data: mockResult });
@@ -218,7 +231,7 @@ describe('admin-rbac.core', () => {
       });
 
       expect(mockGrantUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
+        expect.objectContaining({ authority: expect.anything() })
       );
       expect(result.success).toBe(true);
     });
@@ -232,7 +245,7 @@ describe('admin-rbac.core', () => {
       });
 
       expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
+        expect.objectContaining({ authority: expect.anything() })
       );
       expect(result.success).toBe(true);
       expect(mockRevalidatePath).toHaveBeenCalledWith(
@@ -251,7 +264,7 @@ describe('admin-rbac.core', () => {
       });
 
       expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
-        expect.objectContaining({ tenantId: 'tenant-1' })
+        expect.objectContaining({ authority: expect.anything() })
       );
       expect(result.success).toBe(true);
     });
@@ -270,6 +283,109 @@ describe('admin-rbac.core', () => {
         expect(result.code).toBe('BRANCH_REQUIRED');
         expect(result.error).toBe('Branch is required for role: agent');
       }
+    });
+  });
+
+  describe('client tenant id never chooses the tenant', () => {
+    const USER_ID = '123e4567-e89b-12d3-a456-426614174000';
+    const BRANCH_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+    const cases = [
+      {
+        name: 'listBranches',
+        domain: mockListBranchesCore,
+        invoke: (tenantId: string) => listBranches({ tenantId }),
+      },
+      {
+        name: 'createBranch',
+        domain: mockCreateBranchCore,
+        invoke: (tenantId: string) => createBranch({ name: 'Branch 1', code: 'B1', tenantId }),
+      },
+      {
+        name: 'updateBranch',
+        domain: mockUpdateBranchCore,
+        invoke: (tenantId: string) =>
+          updateBranch({
+            branchId: BRANCH_ID,
+            data: { name: 'Updated', isActive: true, tenantId },
+          }),
+      },
+      {
+        name: 'listUserRoles',
+        domain: mockListUserRolesCore,
+        invoke: (tenantId: string) => listUserRoles({ userId: USER_ID, tenantId }),
+      },
+      {
+        name: 'grantUserRole',
+        domain: mockGrantUserRoleCore,
+        invoke: (tenantId: string) => grantUserRole({ userId: USER_ID, role: 'member', tenantId }),
+      },
+      {
+        name: 'revokeUserRole',
+        domain: mockRevokeUserRoleCore,
+        invoke: (tenantId: string) => revokeUserRole({ userId: USER_ID, role: 'member', tenantId }),
+      },
+    ];
+
+    function asRole(role: string) {
+      vi.mocked(auth.api.getSession).mockResolvedValue({
+        user: { id: 'admin-1', role, tenantId: 'tenant-1' },
+      } as never);
+    }
+
+    beforeEach(() => {
+      for (const { domain } of cases) domain.mockResolvedValue({ success: true });
+    });
+
+    it.each(cases)('$name ignores the client tenant id for a non-super_admin', async c => {
+      asRole('admin');
+
+      await c.invoke('tenant-foreign');
+
+      expect(mockDelegateSuperAdminTenant).not.toHaveBeenCalled();
+      const input = c.domain.mock.calls[0]?.[0];
+      expect(readTenantAuthority(input.authority).tenantId).toBe('tenant-1');
+      expect(input).not.toHaveProperty('tenantId');
+    });
+
+    it.each(cases)('$name delegates a super_admin to the requested tenant', async c => {
+      asRole('super_admin');
+      const delegated = mintTestTenantAuthority('tenant-foreign');
+      mockDelegateSuperAdminTenant.mockResolvedValue(delegated);
+
+      await c.invoke('tenant-foreign');
+
+      expect(mockDelegateSuperAdminTenant).toHaveBeenCalledTimes(1);
+      const [sessionAuthority, requested] = mockDelegateSuperAdminTenant.mock.calls[0] ?? [];
+      expect(readTenantAuthority(sessionAuthority).tenantId).toBe('tenant-1');
+      expect(requested).toBe('tenant-foreign');
+      const input = c.domain.mock.calls[0]?.[0];
+      expect(input.authority).toBe(delegated);
+      expect(input).not.toHaveProperty('tenantId');
+    });
+
+    it.each(cases)(
+      '$name uses the session authority when a super_admin names its own tenant',
+      async c => {
+        asRole('super_admin');
+
+        await c.invoke('tenant-1');
+
+        expect(mockDelegateSuperAdminTenant).not.toHaveBeenCalled();
+        expect(readTenantAuthority(c.domain.mock.calls[0]?.[0].authority).tenantId).toBe(
+          'tenant-1'
+        );
+      }
+    );
+
+    it.each(cases)('$name fails closed when the delegation is refused', async c => {
+      asRole('super_admin');
+      mockDelegateSuperAdminTenant.mockResolvedValue(null);
+
+      const result = await c.invoke('tenant-unknown');
+
+      expect(result.success).toBe(false);
+      expect(c.domain).not.toHaveBeenCalled();
     });
   });
 });

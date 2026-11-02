@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  authority,
   createAcceptedAgreement,
   expectSavedCollectionResult,
   type MockAgreementRecord,
@@ -211,7 +212,7 @@ describe('saveSuccessFeeCollectionCore', () => {
         entityId: 'claim-1',
         entityType: 'claim',
         headers: requestHeaders,
-        tenantId: 'tenant-1',
+        authority,
         metadata: expect.objectContaining({
           collectionMethod: 'deduction',
           currencyCode: 'EUR',

@@ -1,8 +1,9 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { processBatchedUserCampaign, withRetries } from '../campaign-execution';
 import { sendAnnualReportEmail } from '../email';
 import { sendNotification } from '../notifications/notify';
 
-export async function processAnnualReports() {
+export async function processAnnualReports(ingress: IngressCapability<'cron' | 'inngest'>) {
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
@@ -13,12 +14,12 @@ export async function processAnnualReports() {
   const campaignId = `annual_report_${year}`;
 
   const result = await processBatchedUserCampaign({
+    ingress,
     campaignId,
-    sendToUser: async u => {
+    sendToUser: async (u, authority) => {
       await withRetries(() => sendAnnualReportEmail(u.email!, u.name ?? '', year));
-      const tenantId = u.tenantId;
       // In-app rows are tenant-owned; a user without a tenant only receives the email.
-      if (!tenantId) return;
+      if (!u.tenantId) return;
       await withRetries(() =>
         sendNotification(
           u.id,
@@ -27,7 +28,7 @@ export async function processAnnualReports() {
           {
             title: `Your ${year} Protection Summary is Ready! 🏆`,
             actionUrl: '/dashboard/wrapped',
-            tenantId,
+            authority,
           }
         )
       );

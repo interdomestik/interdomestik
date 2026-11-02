@@ -1,8 +1,14 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints.
+const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
+
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn(),
   resolvePaddleUserOwner: vi.fn(),
-  findSubscriptionByProviderReference: vi.fn(),
+  findPaddleSubscriptionByReference: vi.fn(),
   handlePaddleEvent: vi.fn(),
   insertWebhookEvent: vi.fn(),
   isRetryablePaddleWebhookError: vi.fn(() => false),
@@ -23,10 +29,11 @@ vi.mock('@/lib/email', () => ({
   paddleDunningEmailDeps: {},
 }));
 vi.mock('@interdomestik/database', () => ({
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  findSubscriptionByProviderReference: hoisted.findSubscriptionByProviderReference,
+  findPaddleSubscriptionByReference: hoisted.findPaddleSubscriptionByReference,
 }));
 vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', () => ({
   handlePaddleEvent: hoisted.handlePaddleEvent,
@@ -96,8 +103,12 @@ describe('handlePaddleWebhookCore retry contract', () => {
       },
       signatureValid: true,
       signatureBypassed: false,
+      delivery: TEST_PADDLE_DELIVERY,
     });
-    hoisted.findSubscriptionByProviderReference.mockResolvedValue(null);
+    hoisted.authorizePaddleTenant.mockImplementation(
+      (_delivery: unknown, owner: { tenantId: string }) => mintTestTenantAuthority(owner.tenantId)
+    );
+    hoisted.findPaddleSubscriptionByReference.mockResolvedValue(null);
     hoisted.resolvePaddleUserOwner.mockResolvedValue(null);
     hoisted.insertWebhookEvent.mockResolvedValue(RECEIPT_ADMISSION);
     hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
@@ -108,8 +119,18 @@ describe('handlePaddleWebhookCore retry contract', () => {
   it('forwards the trusted entity processing scope into domain handling', async () => {
     await expect(callCore()).resolves.toEqual({ status: 200, body: { success: true } });
     expect(hoisted.handlePaddleEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ processingScopeKey: 'entity:mk' }),
+      expect.objectContaining({
+        processingScopeKey: 'entity:mk',
+        // The verified delivery reaches the handlers; customData's tenant never becomes an authority.
+        delivery: TEST_PADDLE_DELIVERY,
+        authority: null,
+      }),
       expect.any(Object)
+    );
+    expect(hoisted.authorizePaddleTenant).not.toHaveBeenCalled();
+    // The entity route's verification and its invariant persistence use the same bound delivery.
+    expect(hoisted.verifyPaddleWebhook).toHaveBeenCalledWith(
+      expect.objectContaining({ billingEntity: 'mk' })
     );
   });
 

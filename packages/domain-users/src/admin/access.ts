@@ -1,4 +1,9 @@
-import { and, eq, userRoles, withTenantContext } from '@interdomestik/database';
+import { and, eq, userRoles } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { isNull } from 'drizzle-orm';
 
@@ -7,15 +12,23 @@ import type { UserSession } from '../types';
 
 const GLOBAL_SUPER_ADMIN_ROLE = 'super_admin' as const;
 
+/**
+ * Tenant RBAC grant lookup for the session user, read under that user's own session authority. The
+ * authority must name the same tenant and user as the session, or the lookup fails closed.
+ */
 async function hasTenantRole(params: {
+  authority: TenantAuthority | null | undefined;
   tenantId: string;
   userId: string;
   role: string;
   branchId?: string | null;
 }): Promise<boolean> {
-  const { tenantId, userId, role, branchId } = params;
+  const { authority, tenantId, userId, role, branchId } = params;
+  if (!authority) return false;
+  const descriptor = readTenantAuthority(authority);
+  if (descriptor.tenantId !== tenantId || descriptor.principal?.userId !== userId) return false;
 
-  const rows = await withTenantContext({ tenantId }, tx =>
+  const rows = await withTenantAuthority(authority, tx =>
     tx
       .select({ id: userRoles.id })
       .from(userRoles)
@@ -50,9 +63,13 @@ export function requireAdminSession(session: UserSession | null): UserSession {
  * Tenant-scoped admin guard.
  *
  * Accepts legacy global `session.user.role === 'admin'` for backward compatibility,
- * or an explicit tenant-level RBAC role in `user_roles`.
+ * or an explicit tenant-level RBAC role in `user_roles`. The RBAC grant lookup needs the session's
+ * own tenant authority; without it only the primary role decides.
  */
-export async function requireTenantAdminSession(session: UserSession | null): Promise<UserSession> {
+export async function requireTenantAdminSession(
+  session: UserSession | null,
+  authority?: TenantAuthority | null
+): Promise<UserSession> {
   if (!session?.user) {
     throw new Error('Unauthorized');
   }
@@ -78,7 +95,7 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
   const userId = session.user.id;
 
   for (const role of ['tenant_admin', GLOBAL_SUPER_ADMIN_ROLE]) {
-    if (await hasTenantRole({ tenantId, userId, role })) {
+    if (await hasTenantRole({ authority, tenantId, userId, role })) {
       return session;
     }
   }
@@ -92,7 +109,8 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
  * Branch managers must be branch-scoped (branchId present).
  */
 export async function requireTenantAdminOrBranchManagerSession(
-  session: UserSession | null
+  session: UserSession | null,
+  authority?: TenantAuthority | null
 ): Promise<UserSession> {
   if (!session?.user) {
     throw new Error('Unauthorized');
@@ -112,7 +130,7 @@ export async function requireTenantAdminOrBranchManagerSession(
     session.user.role === 'tenant_admin' ||
     session.user.role === 'admin'
   ) {
-    return requireTenantAdminSession(session);
+    return requireTenantAdminSession(session, authority);
   }
 
   // If branch_manager is granted via tenant RBAC roles, allow only with branch scope.
@@ -120,6 +138,7 @@ export async function requireTenantAdminOrBranchManagerSession(
     session.user.branchId &&
     (await userHasRole({
       session,
+      authority,
       role: 'branch_manager',
       branchId: session.user.branchId,
     }))
@@ -128,17 +147,18 @@ export async function requireTenantAdminOrBranchManagerSession(
   }
 
   // Otherwise fall back to tenant admin.
-  return requireTenantAdminSession(session);
+  return requireTenantAdminSession(session, authority);
 }
 
 export async function userHasRole(params: {
   session: UserSession | null;
+  authority?: TenantAuthority | null;
   role: string;
   branchId?: string | null;
 }): Promise<boolean> {
-  const { session, role, branchId } = params;
+  const { session, authority, role, branchId } = params;
   if (!session?.user) return false;
 
   const tenantId = ensureTenantId(session);
-  return hasTenantRole({ tenantId, userId: session.user.id, role, branchId });
+  return hasTenantRole({ authority, tenantId, userId: session.user.id, role, branchId });
 }

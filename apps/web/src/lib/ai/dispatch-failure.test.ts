@@ -25,10 +25,7 @@ const mocks = vi.hoisted(() => {
     txUpdateSet,
     txUpdateWhere,
     withTenantContext: vi.fn(
-      async (
-        _context: { tenantId: string; role?: string },
-        callback: (tx: { update: typeof txUpdate }) => Promise<unknown>
-      ) =>
+      async (_context: unknown, callback: (tx: { update: typeof txUpdate }) => Promise<unknown>) =>
         callback({
           update: txUpdate,
         })
@@ -60,7 +57,11 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { markAiRunDispatchFailedWithTenantContext } from './dispatch-failure';
+
+const authority = mintTestTenantAuthority('tenant_mk');
 
 describe('markAiRunDispatchFailedWithTenantContext', () => {
   beforeEach(() => {
@@ -81,16 +82,13 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
   ])('updates queued $entityType AI runs inside the given tenant context', async args => {
     await markAiRunDispatchFailedWithTenantContext({
       ...args,
-      tenantId: 'tenant_mk',
+      authority,
       runId: 'run-1',
       message: 'Inngest dispatch failed.',
     });
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_mk', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ __name: 'ai_runs' }));
     expect(mocks.txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,7 +101,7 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
 
   it('binds the update predicate to the tenant, run, entity type and queued status', async () => {
     await markAiRunDispatchFailedWithTenantContext({
-      tenantId: 'tenant_mk',
+      authority,
       entityType: 'policy',
       errorCode: 'policy_extract_dispatch_failed',
       message: 'Inngest dispatch failed.',
@@ -127,7 +125,7 @@ describe('markAiRunDispatchFailedWithTenantContext', () => {
 
   it('performs no read before the update and never uses the ambient database', async () => {
     await markAiRunDispatchFailedWithTenantContext({
-      tenantId: 'tenant_mk',
+      authority,
       entityType: 'claim',
       errorCode: 'claim_ai_dispatch_failed',
       message: 'Inngest dispatch failed.',

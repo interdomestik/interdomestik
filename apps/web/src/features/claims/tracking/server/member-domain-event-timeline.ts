@@ -5,16 +5,20 @@ import {
   domainEvents,
   eq,
   sql,
-  withTenantContext,
   type TenantTransaction,
 } from '@interdomestik/database';
 import type { db } from '@interdomestik/database/db';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
 import {
   type MemberEventPresentationRow,
   presentMemberDomainEvent,
 } from './member-event-presentation-registry';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const GENERIC_EVENT_LABEL = 'claims-tracking.tracking.timeline.generic';
 const REDACTED_EVENT_LABEL = 'claims-tracking.tracking.timeline.redacted';
@@ -86,12 +90,18 @@ export function buildMemberTimelineFromDomainEvents(
 
 export async function getMemberTimelineFromDomainEvents(
   context: AuthorizedClaimTimelineContext,
+  authority: TenantAuthority,
   database?: TenantTransaction | typeof db
 ): Promise<ClaimTimelineEvent[]> {
+  // Fail closed unless the claim context belongs to the tenant the authority grants.
+  if (readTenantAuthority(authority).tenantId !== context.tenantId) {
+    throw new Error('Claim timeline tenant does not match the tenant authority');
+  }
+
   if (!database) {
     // The ambient client carries no tenant context, so run the read inside one.
-    return withTenantContext({ tenantId: context.tenantId }, tx =>
-      getMemberTimelineFromDomainEvents(context, tx)
+    return withTenantAuthority(authority, tx =>
+      getMemberTimelineFromDomainEvents(context, authority, tx)
     );
   }
 

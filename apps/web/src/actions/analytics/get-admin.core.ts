@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getTenantMembershipLifecycleCounts } from '@interdomestik/domain-membership-billing';
 import { and, eq, gte, sql } from 'drizzle-orm';
 
@@ -8,6 +11,7 @@ import { isStaffOrAdmin } from '@/lib/roles.core';
 import type { Session } from './context';
 import type { AdminAnalyticsResult, AnalyticsQueryInput } from './types';
 import { analyticsQuerySchema } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function hasAdminAnalyticsAccess(role: string | null | undefined): boolean {
   return isStaffOrAdmin(role);
@@ -15,9 +19,10 @@ function hasAdminAnalyticsAccess(role: string | null | undefined): boolean {
 
 export async function getAdminAnalyticsCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   query?: Partial<AnalyticsQueryInput>;
 }): Promise<AdminAnalyticsResult> {
-  const { session, query } = params;
+  const { session, authority, query } = params;
 
   try {
     if (!session?.user || !hasAdminAnalyticsAccess(session.user.role)) {
@@ -25,10 +30,10 @@ export async function getAdminAnalyticsCore(params: {
     }
 
     // SECURITY: Validate tenant context
-    const tenantId = session.user.tenantId;
-    if (!tenantId) {
+    if (!session.user.tenantId || !authority) {
       return { success: false, error: 'Missing tenant context', data: undefined };
     }
+    const { tenantId } = readTenantAuthority(authority);
 
     // SECURITY: Validate query parameters
     const parsed = analyticsQuerySchema.safeParse(query ?? {});
@@ -41,7 +46,7 @@ export async function getAdminAnalyticsCore(params: {
     }
     const { daysBack, limit } = parsed.data;
 
-    const activeSubs = await withTenantContext({ tenantId }, async tx =>
+    const activeSubs = await withTenantAuthority(authority, async tx =>
       tx
         .select({
           subId: subscriptions.id,
@@ -70,7 +75,7 @@ export async function getAdminAnalyticsCore(params: {
       }
     }
 
-    const lifecycleCounts = await getTenantMembershipLifecycleCounts({ tenantId });
+    const lifecycleCounts = await getTenantMembershipLifecycleCounts({ authority });
     const totalMembers = lifecycleCounts.total;
     const activeMembers = lifecycleCounts.accessActive;
     const canceledMembers = lifecycleCounts.canceled;
@@ -79,7 +84,7 @@ export async function getAdminAnalyticsCore(params: {
     const lookbackDate = new Date();
     lookbackDate.setDate(lookbackDate.getDate() - daysBack);
 
-    const recentGrowth = await withTenantContext({ tenantId }, async tx =>
+    const recentGrowth = await withTenantAuthority(authority, async tx =>
       tx
         .select({
           date: sql<string>`DATE(${subscriptions.createdAt})`,

@@ -1,5 +1,6 @@
-import { withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database';
+import { listScheduledTenantWork } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { endOfDay, startOfDay, subDays } from 'date-fns';
 import {
   USER_BATCH_SIZE,
@@ -8,8 +9,11 @@ import {
   withRetries,
 } from './campaign-execution';
 import { sendCheckinEmail, sendOnboardingEmail, sendWelcomeEmail } from './email';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function processEmailSequences() {
+type CronIngress = IngressCapability<'cron' | 'inngest'>;
+
+export async function processEmailSequences(ingress: CronIngress) {
   const result = {
     processed: true,
     logs: [] as string[],
@@ -18,9 +22,9 @@ export async function processEmailSequences() {
   };
 
   await Promise.all([
-    runWelcomeCampaign(result),
-    runOnboardingCampaign(result),
-    runCheckinCampaign(result),
+    runWelcomeCampaign(ingress, result),
+    runOnboardingCampaign(ingress, result),
+    runCheckinCampaign(ingress, result),
   ]);
 
   return result;
@@ -29,15 +33,20 @@ export async function processEmailSequences() {
 export { processAnnualReports } from './strategies/annual';
 export { processSeasonalCampaigns } from './strategies/seasonal';
 
-async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+async function runWelcomeCampaign(
+  ingress: CronIngress,
+  context: { logs: string[]; errors: string[]; stats: any }
+) {
   const campaignId = 'welcome_day_0';
   const now = new Date();
 
-  for (const tenantId of await listTenantIdsForScheduledWork()) {
+  for (const { authority } of await listScheduledTenantWork(ingress)) {
+    const { tenantId } = readTenantAuthority(authority);
     await executeCampaign(
       campaignId,
+      authority,
       afterId =>
-        withTenantContext({ tenantId, role: 'system' }, tx =>
+        withTenantAuthority(authority, tx =>
           tx.query.subscriptions.findMany({
             where: (subscriptions, { eq, and, gt }) =>
               and(
@@ -62,24 +71,37 @@ async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; s
   }
 }
 
-async function runOnboardingCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+async function runOnboardingCampaign(
+  ingress: CronIngress,
+  context: { logs: string[]; errors: string[]; stats: any }
+) {
   const campaignId = 'onboarding_day_3';
   const now = new Date();
   const windowStart = startOfDay(subDays(now, 3));
   const windowEnd = endOfDay(subDays(now, 3));
 
-  await processStandardUserCampaign(campaignId, windowStart, windowEnd, context, async u => {
-    if (u.email) await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
-  });
+  await processStandardUserCampaign(
+    ingress,
+    campaignId,
+    windowStart,
+    windowEnd,
+    context,
+    async u => {
+      if (u.email) await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
+    }
+  );
 }
 
-async function runCheckinCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+async function runCheckinCampaign(
+  ingress: CronIngress,
+  context: { logs: string[]; errors: string[]; stats: any }
+) {
   const campaignId = 'checkin_day_14';
   const now = new Date();
   const day14Start = startOfDay(subDays(now, 14));
   const day14End = endOfDay(subDays(now, 14));
 
-  await processStandardUserCampaign(campaignId, day14Start, day14End, context, async u => {
+  await processStandardUserCampaign(ingress, campaignId, day14Start, day14End, context, async u => {
     if (u.email) await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''));
   });
 }

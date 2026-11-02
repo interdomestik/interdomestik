@@ -9,6 +9,11 @@ import { getAgentSession } from './agent/context';
 
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
+  getAgentAuthority: vi.fn(async () =>
+    (await import('@interdomestik/database/testing/tenant-authority')).mintTestTenantAuthority(
+      'tenant_mk'
+    )
+  ),
 }));
 
 vi.mock('./agent/register-member', () => ({
@@ -190,6 +195,9 @@ describe('agent actions', () => {
         summary: { total: 1, imported: 1, failed: 0 },
         results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
       });
+      expect(importMembersCore).toHaveBeenCalledWith(
+        expect.objectContaining({ authority: expect.anything() })
+      );
     });
 
     it('rejects oversized batches before the import core is called', async () => {

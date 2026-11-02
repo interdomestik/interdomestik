@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -83,8 +84,10 @@ vi.mock('drizzle-orm', () => ({
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 
-import { crmDashboardRepository } from './dashboard-repository';
+import { createCrmDashboardRepository } from './dashboard-repository';
 
+const authority = mintTestTenantAuthority('tenant-1');
+const repository = createCrmDashboardRepository(authority);
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
@@ -128,7 +131,7 @@ function createDueFollowUpsChain(result: unknown) {
   };
 }
 
-describe('crmDashboardRepository', () => {
+describe('createCrmDashboardRepository', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -178,7 +181,7 @@ describe('crmDashboardRepository', () => {
         ])
       );
 
-    const readModel = await crmDashboardRepository.readAgentDashboard({
+    const readModel = await repository.readAgentDashboard({
       actor,
       limit: 5,
       now: '2026-05-12T08:00:00.000Z',
@@ -230,7 +233,7 @@ describe('crmDashboardRepository', () => {
 
   it('fails closed before querying when branch scope is missing', async () => {
     await expect(
-      crmDashboardRepository.readAgentDashboard({
+      repository.readAgentDashboard({
         actor: { ...actor, scope: { agentId: 'agent-1', branchId: null } },
         limit: 5,
         now: '2026-05-12T08:00:00.000Z',

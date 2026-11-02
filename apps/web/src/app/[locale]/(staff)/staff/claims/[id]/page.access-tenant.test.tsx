@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hoisted, renderPage } from './page-test-support';
 
@@ -18,24 +19,34 @@ describe('staff claim page effective access tenant', () => {
     hoisted.getSessionMock.mockResolvedValueOnce(session);
     await renderPage();
     expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
+    const authority = hoisted.current.authority!;
     expect(hoisted.getStaffClaimDetailMock).toHaveBeenCalledExactlyOnceWith({
       branchId: 'branch-a',
       claimId: 'claim-1',
       staffId: 'staff-1',
-      tenantId: 'access-b',
+      authority,
     });
+    expect(readTenantAuthority(authority).tenantId).toBe('access-b');
     expect(hoisted.getPublicStatusHistoryCoreMock).toHaveBeenCalledExactlyOnceWith({
       claimId: 'claim-1',
-      tenantId: 'access-b',
+      authority,
     });
     expect(hoisted.getStaffAssignmentOptionsMock).toHaveBeenCalledExactlyOnceWith({
       branchId: 'branch-a',
-      tenantId: 'access-b',
+      authority,
     });
     expect(hoisted.getAssignedStaffClaimDocumentsMock).toHaveBeenCalledExactlyOnceWith({
       claimId: 'claim-1',
       session,
+      authority,
     });
+    expect(
+      (
+        hoisted.getAssignedStaffClaimDocumentsMock.mock.calls[0] as unknown as [
+          { authority: unknown },
+        ]
+      )[0].authority
+    ).toBe(authority);
   });
 
   it('does not load a home-only claim or any children when the access-scoped parent denies', async () => {
@@ -55,7 +66,7 @@ describe('staff claim page effective access tenant', () => {
       branchId: 'branch-a',
       claimId: 'claim-1',
       staffId: 'staff-1',
-      tenantId: 'access-b',
+      authority: hoisted.current.authority!,
     });
     expect(hoisted.getPublicStatusHistoryCoreMock).not.toHaveBeenCalled();
     expect(hoisted.getStaffAssignmentOptionsMock).not.toHaveBeenCalled();

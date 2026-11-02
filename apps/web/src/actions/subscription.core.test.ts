@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -49,6 +50,8 @@ vi.mock('@interdomestik/database', () => ({
 
 import { activateSponsoredMembership } from './subscription.core';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('subscription.core activateSponsoredMembership', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,7 +63,7 @@ describe('subscription.core activateSponsoredMembership', () => {
   });
 
   it('returns Unauthorized when session is missing', async () => {
-    mocks.getActionContext.mockResolvedValue({ session: null });
+    mocks.getActionContext.mockResolvedValue({ session: null, authority: null });
 
     await expect(activateSponsoredMembership('sub-1')).resolves.toEqual({
       error: 'Unauthorized',
@@ -75,6 +78,7 @@ describe('subscription.core activateSponsoredMembership', () => {
           tenantId: 'tenant-1',
         },
       },
+      authority,
     });
     mocks.findSubscriptionFirst.mockResolvedValue({
       id: 'sub-1',
@@ -100,10 +104,7 @@ describe('subscription.core activateSponsoredMembership', () => {
         currentPeriodEnd: expect.any(Date),
       })
     );
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.revalidatePath).toHaveBeenCalled();
   });
 });

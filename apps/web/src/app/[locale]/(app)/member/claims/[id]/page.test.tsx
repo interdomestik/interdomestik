@@ -1,5 +1,6 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@interdomestik/domain-claims', () => ({ getInformationRequests: vi.fn(async () => []) }));
 
 const hoisted = vi.hoisted(() => ({
@@ -12,7 +13,7 @@ const hoisted = vi.hoisted(() => ({
       tenantId: 'tenant-ks',
     },
   })),
-  getMemberClaimDetailMock: vi.fn(async () => ({
+  getMemberClaimDetailMock: vi.fn(async (..._args: unknown[]) => ({
     id: 'claim-1',
     title: 'Member Claim',
     status: 'evaluation',
@@ -57,6 +58,7 @@ const hoisted = vi.hoisted(() => ({
   memberClaimDetailOpsPageMock: vi.fn((props: unknown) => (
     <div data-testid="member-claim-detail-ops-page">{JSON.stringify(props)}</div>
   )),
+  authorizeSessionTenantMock: vi.fn(),
   redirectMock: vi.fn(),
   notFoundMock: vi.fn(() => {
     throw new Error('notFound');
@@ -78,6 +80,14 @@ vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
 }));
 
+vi.mock('next/headers', () => ({
+  headers: vi.fn(async () => new Headers()),
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
+}));
+
 vi.mock('@/features/claims/tracking/server/getMemberClaimDetail', () => ({
   getMemberClaimDetail: hoisted.getMemberClaimDetailMock,
 }));
@@ -90,6 +100,42 @@ import ClaimDetailsPage from './page';
 import { getInformationRequests } from '@interdomestik/domain-claims';
 
 describe('ClaimDetailsPage', () => {
+  const authority = mintTestTenantAuthority('tenant-ks');
+  beforeEach(() => {
+    hoisted.authorizeSessionTenantMock.mockResolvedValue({
+      session: { user: { id: 'member-1' } },
+      authority,
+    });
+  });
+
+  it('loads the claim detail under the request session tenant authority', async () => {
+    render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
+    expect(hoisted.getMemberClaimDetailMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ user: expect.objectContaining({ id: 'member-1' }) }),
+      authority,
+      'claim-1'
+    );
+  });
+
+  it('reads information requests under the same session authority', async () => {
+    vi.mocked(getInformationRequests).mockClear();
+    render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
+    const call = vi.mocked(getInformationRequests).mock.calls.at(-1)!;
+    expect(call[1]).toBe(authority);
+    expect(call[2]).toBe('claim-1');
+  });
+
+  it('passes no authority when the request has no authorized session', async () => {
+    hoisted.authorizeSessionTenantMock.mockResolvedValue(null);
+    vi.mocked(getInformationRequests).mockClear();
+    await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) });
+    expect(hoisted.getMemberClaimDetailMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      null,
+      'claim-1'
+    );
+  });
+
   it('keeps the existing claim detail when its request projection fails', async () => {
     vi.mocked(getInformationRequests).mockRejectedValueOnce(new Error('private DB detail'));
     render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));

@@ -1,3 +1,4 @@
+import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
 import { describe, expect, it } from 'vitest';
@@ -87,9 +88,8 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
-      role: 'member',
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'member-1',
     });
   });
@@ -102,9 +102,8 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
-      role: 'member',
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'member-1',
     });
   });
@@ -117,14 +116,14 @@ describe('member claim upload actions', () => {
     expect(result).toEqual({ success: true });
     // The AI queue now runs on its own tenant context; no ambient transaction remains.
     expect(hoisted.transaction).not.toHaveBeenCalled();
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    // The metadata write and the AI queue both run under the session tenant authority, never a
+    // caller-built { tenantId, role } context.
+    const contexts = hoisted.withTenantContext.mock.calls.map(([context]) => context);
+    expect(contexts.length).toBeGreaterThan(0);
+    for (const context of contexts) {
+      expect(isTenantAuthority(context)).toBe(true);
+      expect(readTenantAuthority(context as never).tenantId).toBe('tenant-1');
+    }
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(

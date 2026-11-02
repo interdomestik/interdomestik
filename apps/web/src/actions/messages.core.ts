@@ -17,8 +17,8 @@ export async function getMessagesForClaim(claimId: string): Promise<{
   messages?: import('./messages/types').MessageWithSender[];
   error?: string;
 }> {
-  const { session } = await getActionContext();
-  return getMessagesForClaimCore({ session, claimId });
+  const { session, authority } = await getActionContext();
+  return getMessagesForClaimCore({ session, authority, claimId });
 }
 
 /**
@@ -35,8 +35,8 @@ export async function sendMessage(
   message?: import('./messages/types').MessageWithSender;
   error?: string;
 }> {
-  const { requestHeaders, session } = await getActionContext();
-  return sendMessageCore({ session, requestHeaders, claimId, content, isInternal });
+  const { requestHeaders, session, authority } = await getActionContext();
+  return sendMessageCore({ session, authority, requestHeaders, claimId, content, isInternal });
 }
 
 /**
@@ -45,6 +45,6 @@ export async function sendMessage(
 export async function markMessagesAsRead(
   messageIds: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const { session, requestHeaders } = await getActionContext();
-  return markMessagesAsReadCore({ session, messageIds, requestHeaders });
+  const { session, authority, requestHeaders } = await getActionContext();
+  return markMessagesAsReadCore({ session, authority, messageIds, requestHeaders });
 }

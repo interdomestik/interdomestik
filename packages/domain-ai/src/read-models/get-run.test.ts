@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -101,7 +102,7 @@ describe('getAiRun', () => {
     ]);
 
     const result = await getAiRun({
-      tenantId: 'tenant-1',
+      authority: mintTestTenantAuthority('tenant-1'),
       runId: 'run-1',
     });
 

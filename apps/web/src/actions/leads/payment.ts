@@ -16,7 +16,7 @@ export async function startPaymentAction(input: unknown) {
       {
         agentId: actorAgentId,
         branchId,
-        tenantId: ctx.tenantId,
+        authority: ctx.authority,
       },
       data
     );

@@ -1,8 +1,9 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { processBatchedUserCampaign, withRetries } from '../campaign-execution';
 import { sendSeasonalEmail } from '../email';
 import { sendNotification } from '../notifications/notify';
 
-export async function processSeasonalCampaigns() {
+export async function processSeasonalCampaigns(ingress: IngressCapability<'cron' | 'inngest'>) {
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
@@ -22,12 +23,12 @@ export async function processSeasonalCampaigns() {
   if (!season) return { processed: false, message: 'No active seasonal campaign' };
 
   const result = await processBatchedUserCampaign({
+    ingress,
     campaignId,
-    sendToUser: async u => {
+    sendToUser: async (u, authority) => {
       await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }));
-      const tenantId = u.tenantId;
       // In-app rows are tenant-owned; a user without a tenant only receives the email.
-      if (!tenantId) return;
+      if (!u.tenantId) return;
       await withRetries(() =>
         sendNotification(
           u.id,
@@ -36,7 +37,7 @@ export async function processSeasonalCampaigns() {
           {
             title: season === 'winter' ? 'Winter Safety Check ❄️' : 'Summer Readiness ☀️',
             actionUrl: '/dashboard',
-            tenantId,
+            authority,
           }
         )
       );

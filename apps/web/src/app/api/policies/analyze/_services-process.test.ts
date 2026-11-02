@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
   const update = vi.fn(() => ({ set: updateSet }));
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     createAdminClient: vi.fn(),
     db: {
       select,
@@ -54,11 +55,8 @@ const mocks = vi.hoisted(() => {
     txUpdateSet,
     txUpdateWhere,
     updateReturning,
-    withTenantContext: vi.fn(
-      async (
-        _context: { tenantId: string; role?: string },
-        callback: (tx: Tx) => Promise<unknown>
-      ) => callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: Tx) => Promise<unknown>) =>
+      callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
     ),
   };
 });
@@ -68,6 +66,7 @@ vi.mock('@/lib/db.server', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
   createAdminClient: mocks.createAdminClient,
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
@@ -104,11 +103,28 @@ vi.mock('nanoid', () => ({
   nanoid: mocks.nanoid,
 }));
 
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { processPolicyAnalysisRunService } from './_services';
+
+const authorities = new Map<string, ReturnType<typeof mintTestTenantAuthority>>();
+function authorityFor(tenantId: string) {
+  let authority = authorities.get(tenantId);
+  if (!authority) {
+    authority = mintTestTenantAuthority(tenantId);
+    authorities.set(tenantId, authority);
+  }
+  return authority;
+}
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 describe('processPolicyAnalysisRunService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockImplementation(
+      async (_ingress: unknown, tenantId: string) => authorityFor(tenantId)
+    );
     mocks.nanoid.mockReturnValueOnce('extraction-1');
     mocks.selectWhere.mockResolvedValue([
       {
@@ -148,6 +164,7 @@ describe('processPolicyAnalysisRunService', () => {
 
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
@@ -167,10 +184,11 @@ describe('processPolicyAnalysisRunService', () => {
       policyId: 'policy-1',
       analysis,
     });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-1');
+    expect(mocks.withTenantContext).toHaveBeenCalled();
+    for (const call of mocks.withTenantContext.mock.calls) {
+      expect(call[0]).toBe(authorityFor('tenant-1'));
+    }
     expect(mocks.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ __name: 'ai_runs' }));
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       1,
@@ -231,6 +249,7 @@ describe('processPolicyAnalysisRunService', () => {
   it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),

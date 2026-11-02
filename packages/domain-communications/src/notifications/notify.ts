@@ -1,5 +1,9 @@
-import { withTenantContext } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, eq, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -37,15 +41,16 @@ export async function sendNotification(
     content?: string;
     notificationId?: string;
     title?: string;
-    tenantId: string;
+    authority: TenantAuthority;
   }
 ) {
   try {
-    const requestedTenantId = options.tenantId;
-    if (!requestedTenantId) {
-      return { success: false, error: 'Missing tenantId for notification' };
+    const { authority } = options;
+    if (!authority) {
+      return { success: false, error: 'Missing tenant authority for notification' };
     }
-    const userRecord = await queryUserById(userId, requestedTenantId);
+    const requestedTenantId = readTenantAuthority(authority).tenantId;
+    const userRecord = await queryUserById(userId, authority);
     const resolvedTenantId = userRecord?.tenantId;
 
     if (!resolvedTenantId) {
@@ -59,7 +64,7 @@ export async function sendNotification(
     const content = resolveNotificationContent(event, payload, options.content);
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantContext({ tenantId: resolvedTenantId }, async tx => {
+    await withTenantAuthority(authority, async tx => {
       const insertNotification = tx.insert(notifications).values({
         id: options.notificationId ?? `ntf_${nanoid()}`,
         tenantId: resolvedTenantId,
@@ -97,10 +102,11 @@ export async function notifySupportHandoffPublicResponse(
   options: {
     actionUrl?: string;
     content?: string;
-    tenantId: string;
+    authority: TenantAuthority;
     title?: string;
   }
 ) {
+  const { tenantId } = readTenantAuthority(options.authority);
   return sendNotification(
     memberId,
     'support_handoff_public_response',
@@ -111,8 +117,8 @@ export async function notifySupportHandoffPublicResponse(
     {
       actionUrl: options.actionUrl ?? '/member/help',
       content: options.content ?? 'A staff update is available on your support request.',
-      notificationId: `ntf_support_handoff_${options.tenantId}_${handoff.id}_${handoff.publicResponseVersion}`,
-      tenantId: options.tenantId,
+      notificationId: `ntf_support_handoff_${tenantId}_${handoff.id}_${handoff.publicResponseVersion}`,
+      authority: options.authority,
       title: options.title ?? 'Staff update available',
     }
   );
@@ -121,20 +127,21 @@ export async function notifySupportHandoffPublicResponse(
 export async function clearSupportHandoffPublicResponseNotifications(
   memberId: string,
   handoff: { id: string },
-  options: { tenantId: string }
+  options: { authority: TenantAuthority }
 ) {
   try {
-    await withTenantContext({ tenantId: options.tenantId }, tx =>
+    const { tenantId } = readTenantAuthority(options.authority);
+    await withTenantAuthority(options.authority, tx =>
       tx
         .delete(notifications)
         .where(
           withTenant(
-            options.tenantId,
+            tenantId,
             notifications.tenantId,
             and(
               eq(notifications.userId, memberId),
               eq(notifications.type, 'support_handoff_public_response'),
-              like(notifications.id, `ntf_support_handoff_${options.tenantId}_${handoff.id}_%`)
+              like(notifications.id, `ntf_support_handoff_${tenantId}_${handoff.id}_%`)
             )
           )
         )
@@ -167,12 +174,12 @@ export async function notifyClaimSubmitted(
     {
       title: 'Claim Submitted',
       actionUrl: `/member/claims/${claim.id}`,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options.tenantId, 'claim submitted', verifiedEmail =>
+    sendVerifiedEmail(userId, options.authority, 'claim submitted', verifiedEmail =>
       sendClaimSubmittedEmail(verifiedEmail, claim)
     );
   }
@@ -201,12 +208,12 @@ export async function notifyClaimAssigned(
     {
       title: 'New Claim Assigned',
       actionUrl: `/staff/claims/${claim.id}`,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, options.tenantId, 'claim assigned', verifiedEmail =>
+    sendVerifiedEmail(agentId, options.authority, 'claim assigned', verifiedEmail =>
       sendClaimAssignedEmail(verifiedEmail, claim, agentName)
     );
   }
@@ -232,7 +239,7 @@ export async function notifyStatusChanged(
   ) =>
     (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
       logAuditEvent: deps.logAuditEvent,
-      tenantId: deps.tenantId,
+      authority: deps.authority,
     });
 
   const result = await sendNotification(
@@ -247,12 +254,12 @@ export async function notifyStatusChanged(
     {
       title: 'Claim Status Updated',
       actionUrl: `/member/claims/${claim.id}`,
-      tenantId: deps.tenantId,
+      authority: deps.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, deps.tenantId, 'status change', verifiedEmail =>
+    sendVerifiedEmail(userId, deps.authority, 'status change', verifiedEmail =>
       sendStatusChangedEmail(verifiedEmail, claim, oldStatus, newStatus)
     );
 
@@ -284,7 +291,7 @@ export async function notifyNewMessage(
   ) =>
     (deps.sendPushToUser ?? sendPushToUser)(userId, channel, payload, {
       logAuditEvent: deps.logAuditEvent,
-      tenantId: deps.tenantId,
+      authority: deps.authority,
     });
 
   const result = await sendNotification(
@@ -299,12 +306,12 @@ export async function notifyNewMessage(
     {
       title: 'New Message',
       actionUrl: `/dashboard/claims/${claim.id}`,
-      tenantId: deps.tenantId,
+      authority: deps.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(recipientId, deps.tenantId, 'new message', verifiedEmail =>
+    sendVerifiedEmail(recipientId, deps.authority, 'new message', verifiedEmail =>
       sendNewMessageEmail(verifiedEmail, claim, senderName, messagePreview)
     );
 
@@ -345,12 +352,12 @@ export async function notifyPaymentVerificationUpdate(
     {
       title: `Payment ${props.status === 'needs_info' ? 'Needs Info' : 'Rejected'}`,
       actionUrl: props.link,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(agentId, options.tenantId, 'payment verification', verifiedEmail =>
+    sendVerifiedEmail(agentId, options.authority, 'payment verification', verifiedEmail =>
       sendPaymentVerificationEmail(verifiedEmail, props)
     );
   }
@@ -380,7 +387,7 @@ export async function notifyClaimPackGenerated(
     {
       title: 'Your Claim Pack is ready',
       actionUrl: '/member/claims',
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 }
@@ -411,12 +418,12 @@ export async function notifyRecoveryDecision(
     {
       title,
       actionUrl,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options.tenantId, 'recovery decision', verifiedEmail =>
+    sendVerifiedEmail(userId, options.authority, 'recovery decision', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title,
         intro,
@@ -448,12 +455,12 @@ export async function notifyDocumentRequested(
     {
       title: 'Documents requested',
       actionUrl,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options.tenantId, 'document request', verifiedEmail =>
+    sendVerifiedEmail(userId, options.authority, 'document request', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Documents requested',
         intro: `Staff requested more documents for ${claim.title}.`,
@@ -484,12 +491,12 @@ export async function notifyTriageComplete(
     {
       title: 'Triage complete',
       actionUrl,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options.tenantId, 'triage complete', verifiedEmail =>
+    sendVerifiedEmail(userId, options.authority, 'triage complete', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Triage complete',
         intro: `Staff triage is complete for ${claim.title}.`,
@@ -519,7 +526,7 @@ export async function notifySlaWarning(
     {
       title: 'SLA warning',
       actionUrl: `/staff/claims/${claim.id}`,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 }
@@ -540,12 +547,12 @@ export async function notifyMembershipRenewal(
     {
       title: 'Membership renewal reminder',
       actionUrl,
-      tenantId: options.tenantId,
+      authority: options.authority,
     }
   );
 
   if (result.success) {
-    sendVerifiedEmail(userId, options.tenantId, 'membership renewal', verifiedEmail =>
+    sendVerifiedEmail(userId, options.authority, 'membership renewal', verifiedEmail =>
       sendLifecycleEmail(verifiedEmail, {
         title: 'Membership renewal reminder',
         intro: `Your Asistenca membership is scheduled to renew on ${renewalDate}.`,

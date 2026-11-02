@@ -1,8 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RetryablePaddleWebhookError } from '../../errors';
 import { processMembershipConfirmation } from './membership-confirmation';
 
 describe('processMembershipConfirmation', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
   const sendThankYouLetter = vi.fn();
   const prepareThankYouLetter = vi.fn();
   const deliveryStore = {
@@ -58,7 +60,7 @@ describe('processMembershipConfirmation', () => {
       providerEventId: 'evt_provider_1',
       webhookPayloadHash: 'payload_hash_1',
       sub: subscription,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user_123',
       internalSubscriptionId: 'subscription_internal_1',
       customData: { locale: 'sr' },
@@ -83,11 +85,15 @@ describe('processMembershipConfirmation', () => {
         idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
       })
     );
+    expect(deliveryStore.claimExisting).toHaveBeenCalledWith(
+      expect.objectContaining({ authority })
+    );
+    expect(deliveryStore.claim).toHaveBeenCalledWith(expect.objectContaining({ authority }));
     expect(deliveryStore.complete).toHaveBeenCalledWith({
       deliveryId: 'delivery_123',
       idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
       providerMessageId: 'email_123',
-      tenantId: 'tenant_mk',
+      authority,
     });
   });
 
@@ -129,7 +135,7 @@ describe('processMembershipConfirmation', () => {
       providerEventId: 'evt_provider_1',
       webhookPayloadHash: 'payload_hash_1',
       sub: subscription,
-      tenantId: 'tenant_mk',
+      authority,
       userId: 'user_123',
       customData: { locale: 'sr' },
       userRecord,
@@ -157,7 +163,7 @@ describe('processMembershipConfirmation', () => {
         providerEventId: 'evt_provider_1',
         webhookPayloadHash: 'payload_hash_1',
         sub: subscription,
-        tenantId: 'tenant_mk',
+        authority,
         userId: 'user_123',
         customData: { locale: 'en' },
         userRecord,
@@ -182,7 +188,7 @@ describe('processMembershipConfirmation', () => {
     await processMembershipConfirmation({
       eventType: 'subscription.updated',
       sub: subscription,
-      tenantId: 'tenant_mk',
+      authority,
       customData: { locale: 'sr' },
       userRecord,
       deps: { sendThankYouLetter },
@@ -195,7 +201,7 @@ describe('processMembershipConfirmation', () => {
     await processMembershipConfirmation({
       eventType: 'subscription.created',
       sub: subscription,
-      tenantId: 'tenant_mk',
+      authority,
       customData: { locale: 'en' },
       userRecord: {
         ...userRecord,
@@ -213,7 +219,7 @@ describe('processMembershipConfirmation', () => {
       await processMembershipConfirmation({
         eventType: 'subscription.created',
         sub: { ...subscription, status },
-        tenantId: 'tenant_mk',
+        authority,
         customData: { locale: 'mk' },
         userRecord,
         deps: { sendThankYouLetter },
@@ -249,7 +255,7 @@ describe('processMembershipConfirmation', () => {
     await processMembershipConfirmation({
       eventType: 'subscription.created',
       sub,
-      tenantId: 'tenant_mk',
+      authority,
       customData,
       userRecord: member,
       deps: { sendThankYouLetter },
@@ -265,7 +271,7 @@ describe('processMembershipConfirmation', () => {
         providerEventId: 'evt_provider_1',
         webhookPayloadHash: 'payload_hash_1',
         sub: subscription,
-        tenantId: 'tenant_mk',
+        authority,
         userId: 'user_123',
         customData: { locale: 'mk' },
         userRecord,
@@ -279,7 +285,7 @@ describe('processMembershipConfirmation', () => {
       processMembershipConfirmation({
         eventType: 'subscription.created',
         sub: subscription,
-        tenantId: 'tenant_mk',
+        authority,
         userId: 'user_123',
         customData: { locale: 'mk' },
         userRecord,

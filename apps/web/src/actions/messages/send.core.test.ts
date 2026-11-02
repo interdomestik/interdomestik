@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -65,6 +66,8 @@ vi.mock('drizzle-orm', () => ({
 import type { Session } from './context';
 import { sendMessageDbCore } from './send.core';
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('sendMessageDbCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -95,6 +98,7 @@ describe('sendMessageDbCore', () => {
 
   it('returns Unauthorized when session missing', async () => {
     const result = await sendMessageDbCore({
+      authority: null,
       session: null,
       requestHeaders: new Headers(),
       claimId: 'claim_1',
@@ -108,6 +112,7 @@ describe('sendMessageDbCore', () => {
 
   it('returns Message cannot be empty for whitespace-only content', async () => {
     const result = await sendMessageDbCore({
+      authority,
       session: {
         user: { id: 'user_1', role: 'user', name: 'U', tenantId: 'tenant_mk' },
       } as NonNullable<Session>,
@@ -132,6 +137,7 @@ describe('sendMessageDbCore', () => {
     mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
 
     const result = await sendMessageDbCore({
+      authority,
       session: {
         user: { id: 'user_1', role: 'staff', name: 'Agent', tenantId: 'tenant_mk' },
       } as NonNullable<Session>,
@@ -181,6 +187,7 @@ describe('sendMessageDbCore', () => {
     });
 
     const result = await sendMessageDbCore({
+      authority,
       session: {
         user: {
           id: 'staff-1',
@@ -211,6 +218,7 @@ describe('sendMessageDbCore', () => {
     });
 
     const result = await sendMessageDbCore({
+      authority,
       session: {
         user: {
           id: 'manager-1',

@@ -1,5 +1,7 @@
 import { vi, type Mock } from 'vitest';
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 type TableColumns = {
   id: string;
   createdAt: string;
@@ -80,6 +82,8 @@ vi.mock('@interdomestik/shared-auth', () => ({
 vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'corr-1') }));
 
 export const session = { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } };
+export const authority: ReturnType<typeof mintTestTenantAuthority> =
+  mintTestTenantAuthority('tenant-1');
 
 export function mockTx(input: {
   activeRecoveryClaims?: unknown[];

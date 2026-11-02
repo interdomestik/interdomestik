@@ -1,4 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, claims, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -8,6 +12,8 @@ export type ClaimAiWorkflow = 'claim_intake_extract' | 'legal_doc_extract';
 
 export type ClaimedClaimAiRun = {
   runId: string;
+  /** In-memory only: the tenant authority this run was claimed under. Never serialized or persisted. */
+  authority: TenantAuthority;
   tenantId: string;
   workflow: ClaimAiWorkflow;
   documentId: string;
@@ -32,14 +38,14 @@ function isClaimAiWorkflow(workflow: unknown): workflow is ClaimAiWorkflow {
 
 export async function claimClaimAiRun(
   runId: string,
-  options: { tenantId: string; retryFailed?: boolean }
+  options: { authority: TenantAuthority; retryFailed?: boolean }
 ): Promise<
   | { status: 'claimed'; run: ClaimedClaimAiRun }
   | { status: 'skipped'; claimId: string; workflow: ClaimAiWorkflow }
 > {
-  const { tenantId } = options;
-  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
-  const [queuedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+  const { authority } = options;
+  const { tenantId } = readTenantAuthority(authority);
+  const [queuedRun] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         runId: aiRuns.id,
@@ -114,7 +120,7 @@ export async function claimClaimAiRun(
       )
     : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [claimedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+  const [claimedRun] = await withTenantAuthority(authority, async tx =>
     tx
       .update(aiRuns)
       .set({
@@ -136,6 +142,7 @@ export async function claimClaimAiRun(
     status: 'claimed',
     run: {
       runId,
+      authority,
       tenantId: queuedRun.tenantId,
       workflow: queuedRun.workflow,
       documentId: queuedRun.documentId,

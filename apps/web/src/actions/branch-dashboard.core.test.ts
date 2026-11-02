@@ -1,4 +1,7 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockDb: any = {
@@ -87,7 +90,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.query.branches.findFirst.mockResolvedValue(null);
 
       const { getBranchById } = await import('./branch-dashboard.core');
-      const result = await getBranchById('non-existent', 'tenant-1');
+      const result = await getBranchById('non-existent', authority);
 
       expect(result).toBeNull();
     });
@@ -103,7 +106,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.query.branches.findFirst.mockResolvedValue(mockBranch);
 
       const { getBranchById } = await import('./branch-dashboard.core');
-      const result = await getBranchById('branch-1', 'tenant-1');
+      const result = await getBranchById('branch-1', authority);
 
       expect(result).toEqual({
         id: 'branch-1',
@@ -118,11 +121,12 @@ describe('Branch Dashboard Core', () => {
       mockDb.query.branches.findFirst.mockResolvedValue(null);
 
       const { getBranchById } = await import('./branch-dashboard.core');
-      await getBranchById('branch-1', 'wrong-tenant');
+      const wrongTenantAuthority = mintTestTenantAuthority('wrong-tenant');
+      await getBranchById('branch-1', wrongTenantAuthority);
 
       expect(mockDb.query.branches.findFirst).toHaveBeenCalled();
       expect(mockWithTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'wrong-tenant' },
+        wrongTenantAuthority,
         expect.any(Function)
       );
     });
@@ -143,7 +147,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.select = mockSelect;
 
       const { getBranchStats } = await import('./branch-dashboard.core');
-      const result = await getBranchStats('branch-1', 'tenant-1', true);
+      const result = await getBranchStats('branch-1', authority, true);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -160,7 +164,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.select = mockSelect;
 
       const { getBranchStats } = await import('./branch-dashboard.core');
-      const result = await getBranchStats('', 'tenant-1', true);
+      const result = await getBranchStats('', authority, true);
 
       expect(result).toEqual({
         ok: false,
@@ -186,7 +190,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.select = mockSelect;
 
       const { getBranchAgents } = await import('./branch-dashboard.core');
-      const result = await getBranchAgents('branch-1', 'tenant-1');
+      const result = await getBranchAgents('branch-1', authority);
 
       expect(result).toEqual([]);
     });
@@ -220,7 +224,7 @@ describe('Branch Dashboard Core', () => {
       mockDb.select = mockSelect;
 
       const { getBranchAgents } = await import('./branch-dashboard.core');
-      const result = await getBranchAgents('branch-1', 'tenant-1');
+      const result = await getBranchAgents('branch-1', authority);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({

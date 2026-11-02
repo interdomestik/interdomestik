@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -39,16 +40,14 @@ describe('document audit', () => {
   });
 
   it('records audit events with nullable metadata normalized', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     await logAuditEvent({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-1',
       accessType: 'upload',
     });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.insert).toHaveBeenCalledWith('documentAccessLog');
     expect(mocks.insertValues).toHaveBeenCalledWith({
       id: 'audit-1',

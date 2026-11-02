@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleTransactionCompleted } from './transaction';
+import { authorityForTenant } from '../paddle-authority.test-support';
 import {
+  TEST_PADDLE_DELIVERY,
   expectProviderSubscriptionReferenceLookup,
   mockSubscriptionOwner,
   mockUserOwner,
@@ -54,13 +56,16 @@ describe('handleTransactionCompleted', () => {
       details: { totals: { total: '1000', currencyCode: 'USD' } },
     };
 
-    await handleTransactionCompleted({ data: validPayload }, { logAuditEvent });
+    await handleTransactionCompleted(
+      { data: validPayload, delivery: TEST_PADDLE_DELIVERY },
+      { logAuditEvent }
+    );
 
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'payment.processed',
         entityId: 'tx_123',
-        tenantId: 'tenant_abc',
+        authority: authorityForTenant('tenant_abc'),
         metadata: expect.objectContaining({ amount: '1000', currency: 'USD' }),
       })
     );
@@ -85,7 +90,10 @@ describe('handleTransactionCompleted', () => {
       details: { totals: { total: '3500', currencyCode: 'EUR' } },
     };
 
-    await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+    await handleTransactionCompleted(
+      { data: payload, delivery: TEST_PADDLE_DELIVERY },
+      { logAuditEvent }
+    );
 
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(hoisted.db.query.user.findFirst).not.toHaveBeenCalled();
@@ -110,11 +118,14 @@ describe('handleTransactionCompleted', () => {
       details: { totals: { total: '2000', currencyCode: 'EUR' } },
     };
 
-    await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+    await handleTransactionCompleted(
+      { data: payload, delivery: TEST_PADDLE_DELIVERY },
+      { logAuditEvent }
+    );
 
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_real',
+        authority: authorityForTenant('tenant_real'),
         metadata: expect.objectContaining({
           agentId: 'agent_canonical',
         }),
@@ -142,11 +153,14 @@ describe('handleTransactionCompleted', () => {
       details: { totals: { total: '1000', currencyCode: 'USD' } },
     };
 
-    await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+    await handleTransactionCompleted(
+      { data: payload, delivery: TEST_PADDLE_DELIVERY },
+      { logAuditEvent }
+    );
 
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_abc',
+        authority: authorityForTenant('tenant_abc'),
         metadata: expect.objectContaining({
           agentId: null,
           userId: 'user_123',
@@ -174,7 +188,10 @@ describe('handleTransactionCompleted', () => {
       details: { totals: { total: '2000', currencyCode: 'EUR' } },
     };
 
-    await handleTransactionCompleted({ data: payload }, { logAuditEvent });
+    await handleTransactionCompleted(
+      { data: payload, delivery: TEST_PADDLE_DELIVERY },
+      { logAuditEvent }
+    );
 
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledWith(
@@ -196,6 +213,7 @@ describe('handleTransactionCompleted', () => {
 
     await handleTransactionCompleted(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         data: {
           id: 'tx_user_conflict',
           status: 'completed',
@@ -225,6 +243,7 @@ describe('handleTransactionCompleted', () => {
 
     await handleTransactionCompleted(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         data: {
           id: 'tx_provider_lookup',
           status: 'completed',
@@ -236,13 +255,19 @@ describe('handleTransactionCompleted', () => {
     );
 
     expectProviderSubscriptionReferenceLookup(hoisted, 'sub_provider_456');
+    const owner = await hoisted.resolution.resolvePaddleSubscriptionOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      owner
+    );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_real' },
+      hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value,
       expect.any(Function)
     );
     expect(logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_real',
+        authority: authorityForTenant('tenant_real'),
       })
     );
   });

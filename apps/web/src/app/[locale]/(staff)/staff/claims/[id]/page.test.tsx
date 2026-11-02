@@ -183,6 +183,7 @@ describe('StaffClaimDetailsPage', () => {
       session: expect.objectContaining({
         user: expect.objectContaining({ id: 'staff-1', role: 'staff', tenantId: 'tenant-ks' }),
       }),
+      authority: hoisted.current.authority!,
     });
   });
 

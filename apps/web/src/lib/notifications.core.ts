@@ -15,12 +15,13 @@ import {
   sendNotification as sendNotificationDomain,
 } from '@interdomestik/domain-communications/notifications';
 import type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { sendPushToUser } from '@/lib/push';
 
 export type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
 
-type TenantNotificationOptions = { tenantId: string };
+type TenantNotificationOptions = { authority: TenantAuthority };
 
 export function sendNotification(
   userId: string,
@@ -29,7 +30,7 @@ export function sendNotification(
   options: {
     actionUrl?: string;
     title?: string;
-    tenantId: string;
+    authority: TenantAuthority;
   }
 ) {
   return sendNotificationDomain(userId, event, payload, options);
@@ -64,7 +65,7 @@ export function notifyStatusChanged(
 ) {
   return notifyStatusChangedDomain(userId, userEmail, claim, oldStatus, newStatus, {
     sendPushToUser,
-    tenantId: options.tenantId,
+    authority: options.authority,
   });
 }
 
@@ -78,7 +79,7 @@ export function notifyNewMessage(
 ) {
   return notifyNewMessageDomain(recipientId, recipientEmail, claim, senderName, messagePreview, {
     sendPushToUser,
-    tenantId: options.tenantId,
+    authority: options.authority,
   });
 }
 
@@ -113,7 +114,7 @@ export function notifySupportHandoffPublicResponse(
   options: {
     actionUrl?: string;
     content?: string;
-    tenantId: string;
+    authority: TenantAuthority;
     title?: string;
   }
 ) {
@@ -123,7 +124,7 @@ export function notifySupportHandoffPublicResponse(
 export function clearSupportHandoffPublicResponseNotifications(
   memberId: string,
   handoff: { id: string },
-  options: { tenantId: string }
+  options: { authority: TenantAuthority }
 ) {
   return clearSupportHandoffPublicResponseNotificationsDomain(memberId, handoff, options);
 }

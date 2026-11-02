@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -124,6 +125,8 @@ function mockQueueRows(rows: unknown[]) {
   return query;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getStaffSupportHandoffQueue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -197,7 +200,7 @@ describe('getStaffSupportHandoffQueue', () => {
         branchId: 'branch-1',
         limit: 30,
         staffId: 'staff-1',
-        tenantId: 'tenant-1',
+        authority,
         viewerRole: 'staff',
       })
     ).resolves.toEqual([

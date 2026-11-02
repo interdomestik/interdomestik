@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberNotes, user as userTable } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { ActionResult, MemberNote, UpdateNoteInput } from '../member-notes.types';
@@ -8,29 +11,32 @@ import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 import { mapNoteRow } from './map';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function updateMemberNoteCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   data: UpdateNoteInput;
 }): Promise<ActionResult<MemberNote>> {
-  const { session, data } = params;
+  const { session, authority, data } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canAccessNotes(session.user.role)) return { success: false, error: 'Access denied' };
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     return { success: false, error: 'Missing tenantId' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
+  const { tenantId } = readTenantAuthority(authority);
 
   const validated = updateNoteSchema.safeParse(data);
   if (!validated.success) return { success: false, error: validated.error.message };
 
   try {
     // SECURITY: Tenant scoping on lookup
-    const [existing] = await withTenantContext({ tenantId }, async tx =>
+    const [existing] = await withTenantAuthority(authority, async tx =>
       tx
         .select()
         .from(memberNotes)
@@ -53,7 +59,7 @@ export async function updateMemberNoteCore(params: {
     if (validated.data.followUpDate !== undefined)
       updateData.followUpDate = validated.data.followUpDate;
 
-    await withTenantContext({ tenantId }, async tx =>
+    await withTenantAuthority(authority, async tx =>
       tx
         .update(memberNotes)
         .set(updateData)
@@ -64,7 +70,7 @@ export async function updateMemberNoteCore(params: {
     await logAuditEvent({
       actorId: session.user.id,
       actorRole: session.user.role,
-      tenantId,
+      authority,
       action: 'member_note.updated',
       entityType: 'member_note',
       entityId: validated.data.id,
@@ -74,7 +80,7 @@ export async function updateMemberNoteCore(params: {
       },
     });
 
-    const [updated] = await withTenantContext({ tenantId }, async tx =>
+    const [updated] = await withTenantAuthority(authority, async tx =>
       tx
         .select({
           id: memberNotes.id,

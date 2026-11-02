@@ -1,20 +1,24 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { UserSession } from '../types';
 import { notificationPreferencesSchema, type NotificationPreferences } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function updateNotificationPreferencesCore(params: {
   session: UserSession | null;
+  authority: TenantAuthority | null;
   preferences: unknown; // Accept unknown and validate with Zod
 }): Promise<{ success: true } | { success: false; error: string }> {
-  const { session, preferences: rawPreferences } = params;
+  const { session, authority, preferences: rawPreferences } = params;
 
-  if (!session?.user) {
+  if (!session?.user || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -30,13 +34,13 @@ export async function updateNotificationPreferencesCore(params: {
 
   let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    tenantId = readTenantAuthority(authority).tenantId;
   } catch {
     return { success: false, error: 'Unauthorized' };
   }
 
   try {
-    const [existing] = await withTenantContext({ tenantId }, async tx =>
+    const [existing] = await withTenantAuthority(authority, async tx =>
       tx
         .select()
         .from(userNotificationPreferences)
@@ -51,7 +55,7 @@ export async function updateNotificationPreferencesCore(params: {
     );
 
     if (existing) {
-      await withTenantContext({ tenantId }, async tx =>
+      await withTenantAuthority(authority, async tx =>
         tx
           .update(userNotificationPreferences)
           .set({
@@ -68,7 +72,7 @@ export async function updateNotificationPreferencesCore(params: {
       );
     } else {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated session before preference insert
-      await withTenantContext({ tenantId }, async tx =>
+      await withTenantAuthority(authority, async tx =>
         tx.insert(userNotificationPreferences).values({
           id: nanoid(),
           tenantId,

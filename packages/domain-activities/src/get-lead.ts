@@ -1,4 +1,4 @@
-import { crmActivities, desc, eq, withTenantContext } from '@interdomestik/database';
+import { crmActivities, desc, eq } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -7,6 +7,7 @@ import { and } from 'drizzle-orm';
 
 import { mapLeadActivitiesToFeedRows } from './map-lead';
 import type { ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const MAX_ACTIVITIES = 100; // Pagination cap
 
@@ -35,7 +36,7 @@ export async function getLeadActivitiesCore(params: {
   const effectiveLimit = Math.min(limit ?? MAX_ACTIVITIES, MAX_ACTIVITIES);
 
   try {
-    const activities = await withTenantContext(authority, tx =>
+    const activities = await withTenantAuthority(authority, tx =>
       tx.query.crmActivities.findMany({
         where: and(eq(crmActivities.leadId, leadId), eq(crmActivities.tenantId, tenantId)),
         columns: {

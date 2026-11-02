@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -136,7 +137,7 @@ describe('membership lifecycle reporting', () => {
     });
 
     const counts = await getTenantMembershipLifecycleCounts({
-      tenantId: 'tenant_ks',
+      authority: mintTestTenantAuthority('tenant_ks'),
       now: new Date('2026-04-21T00:00:00.000Z'),
     });
 

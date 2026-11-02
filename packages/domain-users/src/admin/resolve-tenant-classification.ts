@@ -1,10 +1,12 @@
-import { eq, user, withTenantContext } from '@interdomestik/database';
+import { eq, user } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
-import { resolveTenantId } from './utils';
+import { resolveTenantAuthority, resolveTenantId } from './utils';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type TenantClassificationResolutionMode = 'confirm_current' | 'reassign';
 
@@ -18,17 +20,19 @@ export type ResolveTenantClassificationResult = {
 
 type TenantResolutionContext = {
   currentTenantId: string;
+  currentAuthority: TenantAuthority;
   nextTenantId: string;
   resolutionMode: TenantClassificationResolutionMode;
 };
 
 async function validateResolutionInput(params: {
   session: UserSession | null;
+  authority: TenantAuthority | null;
   userId: string;
   currentTenantId: string;
   targetTenantId?: string | null;
 }): Promise<ActionResult<TenantResolutionContext>> {
-  const { session, userId, currentTenantId, targetTenantId } = params;
+  const { session, authority, userId, currentTenantId, targetTenantId } = params;
   try {
     const adminSession = await requireTenantAdminSession(session);
     const sessionTenantId = ensureTenantId(adminSession);
@@ -52,10 +56,19 @@ async function validateResolutionInput(params: {
       return { error: 'Unauthorized' };
     }
 
+    // The session authority for the caller's own tenant; a super_admin naming another (active)
+    // tenant gets a delegated authority scoped to it. Anything else fails closed as Unauthorized.
+    const currentAuthority = await resolveTenantAuthority(
+      adminSession,
+      authority,
+      normalizedCurrentTenantId
+    );
+
     return {
       success: true,
       data: {
         currentTenantId: normalizedCurrentTenantId,
+        currentAuthority,
         nextTenantId,
         resolutionMode: nextTenantId === normalizedCurrentTenantId ? 'confirm_current' : 'reassign',
       },
@@ -76,9 +89,10 @@ export const TENANT_REASSIGNMENT_UNAVAILABLE_ERROR = 'Tenant reassignment is una
 
 async function confirmCurrentTenant(
   userId: string,
-  currentTenantId: string
+  currentTenantId: string,
+  currentAuthority: TenantAuthority
 ): Promise<{ previousPending: boolean } | null> {
-  return withTenantContext({ tenantId: currentTenantId }, async tx => {
+  return withTenantAuthority(currentAuthority, async tx => {
     const currentUser = await tx.query.user.findFirst({
       where: withTenant(currentTenantId, user.tenantId, eq(user.id, userId)),
       columns: { id: true, tenantClassificationPending: true },
@@ -98,6 +112,7 @@ async function confirmCurrentTenant(
 
 export async function resolveTenantClassificationCore(params: {
   session: UserSession | null;
+  authority: TenantAuthority | null;
   userId: string;
   currentTenantId: string;
   targetTenantId?: string | null;
@@ -111,13 +126,13 @@ export async function resolveTenantClassificationCore(params: {
     return { error: 'Failed to resolve tenant classification' };
   }
 
-  const { currentTenantId, nextTenantId, resolutionMode } = validation.data;
+  const { currentTenantId, currentAuthority, nextTenantId, resolutionMode } = validation.data;
   if (resolutionMode === 'reassign') {
     return { error: TENANT_REASSIGNMENT_UNAVAILABLE_ERROR };
   }
 
   try {
-    const confirmed = await confirmCurrentTenant(params.userId, currentTenantId);
+    const confirmed = await confirmCurrentTenant(params.userId, currentTenantId, currentAuthority);
     if (!confirmed) {
       return { error: 'User not found' };
     }

@@ -97,6 +97,8 @@ test('context resolution takes every field from the authority descriptor', () =>
     accessTenantId: 'tenant-b',
     role: 'staff',
   });
+  const system = mintTenantAuthority({ tenantId: 'tenant-a', purpose: 'scheduled-work' });
+  assert.equal(resolveTenantContext(system).role, 'system');
 });
 
 test('legacy context resolution keeps its validation and access-tenant default', () => {

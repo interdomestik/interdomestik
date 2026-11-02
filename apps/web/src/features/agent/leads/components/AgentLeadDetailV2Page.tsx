@@ -10,9 +10,10 @@ import { ActivityFeed } from '@/components/crm/activity-feed';
 import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import type { AppLocale } from '@/i18n/locales';
 import { Link, redirect } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
-import { crmLeadActivityRepository } from '@/adapters/crm/lead-activity-repository';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { createCrmLeadActivityRepository } from '@/adapters/crm/lead-activity-repository';
 import { listCrmLeadFollowUpTasksForLead } from '@/adapters/crm/lead-follow-up-repository';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { getAgentCrmLeadActivities } from '@interdomestik/domain-crm/lead-activities';
 import {
@@ -20,7 +21,6 @@ import {
   type CrmLeadNextAction,
 } from '@interdomestik/domain-crm/leads/follow-up';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { CheckCircle2, PlusCircle } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -167,16 +167,15 @@ export async function AgentLeadDetailV2Page({
 }: Readonly<{ id: string; locale: AppLocale }>) {
   setRequestLocale(locale);
   const t = await getTranslations('agent.leads_page');
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session?.user) {
+  if (!authorized) {
     redirect({ href: '/login', locale });
     return null;
   }
 
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const agentId = session.user.id;
   const role = session.user.role;
   const branchId = session.user.branchId ?? null;
@@ -199,6 +198,7 @@ export async function AgentLeadDetailV2Page({
   try {
     leadResult = await getAgentLeadDetailsCore({
       actor,
+      authority,
       leadId: id,
     });
   } catch (error) {
@@ -215,7 +215,7 @@ export async function AgentLeadDetailV2Page({
       actor,
       leadId: id,
     },
-    crmLeadActivityRepository
+    createCrmLeadActivityRepository(authority)
   );
 
   if (!activityResult.success) notFound();
@@ -225,6 +225,7 @@ export async function AgentLeadDetailV2Page({
   const activities = activityResult.activities;
   const taskBackedFollowUps = await listCrmLeadFollowUpTasksForLead({
     actor,
+    authority,
     leadId: id,
   });
   const nextAction = deriveCrmLeadNextAction({

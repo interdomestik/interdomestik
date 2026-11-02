@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import React from 'react';
 import { vi } from 'vitest';
 
@@ -30,6 +31,18 @@ export const routingMock = {
     </a>
   ),
 };
+
+/** Mirrors the real session producer for whichever session the page's getSessionSafe returns. */
+export function createTenantAuthorityServerMock(mocks: StaffHandoffMocks) {
+  return {
+    authorizeSessionTenant: async () => {
+      const currentSession = await mocks.getSessionSafe();
+      const tenantId = currentSession?.user?.tenantId;
+      if (!currentSession?.user || !tenantId) return null;
+      return { session: currentSession, authority: mintTestTenantAuthority(tenantId) };
+    },
+  };
+}
 
 export function createDatabaseMock(mocks: StaffHandoffMocks) {
   const db = {

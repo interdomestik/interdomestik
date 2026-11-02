@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ACTIVE_HANDOFF_STATUSES } from './types';
@@ -83,6 +84,8 @@ vi.mock('drizzle-orm', () => ({
   isNotNull: mocks.isNotNull,
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('support handoff public response', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,7 +126,7 @@ describe('support handoff public response', () => {
     const result = await getMemberLatestPublicResponse({
       claimId: 'claim-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result).toEqual({
@@ -176,7 +179,7 @@ describe('support handoff public response', () => {
       claimId: 'claim-1',
       handoffId: 'handoff-1',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result).toEqual({
@@ -215,7 +218,7 @@ describe('support handoff public response', () => {
     const result = await getMemberLatestPublicResponse({
       claimId: 'claim-2',
       memberId: 'member-1',
-      tenantId: 'tenant-1',
+      authority,
     });
 
     expect(result).toEqual({

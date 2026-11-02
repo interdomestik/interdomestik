@@ -1,15 +1,21 @@
 import { getBranchCashPendingByAgent } from '@/features/admin/branches/server/branch-cash-metrics';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
-import { withTenantContext } from '@interdomestik/database';
+
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // Helper: Agent Metrics derivation
-export async function getAgentMetrics(branchId: string, tenantId: string) {
+export async function getAgentMetrics(branchId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   // 1. Get agents in branch
   const [agents, cashPendingByAgent] = await Promise.all([
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx.query.user.findMany({
         where: and(
           eq(user.branchId, branchId),
@@ -19,7 +25,7 @@ export async function getAgentMetrics(branchId: string, tenantId: string) {
         columns: { id: true, name: true },
       })
     ),
-    getBranchCashPendingByAgent({ tenantId, branchId }),
+    getBranchCashPendingByAgent({ authority, branchId }),
   ]);
 
   if (agents.length === 0) return [];
@@ -33,7 +39,7 @@ export async function getAgentMetrics(branchId: string, tenantId: string) {
     agents.map(async agent => {
       const [openClaims, slaBreaches] = await Promise.all([
         // Open Claims linked to agent (via claim.agentId)
-        withTenantContext({ tenantId }, tx =>
+        withTenantAuthority(authority, tx =>
           tx
             .select({ count: count() })
             .from(claims)
@@ -48,7 +54,7 @@ export async function getAgentMetrics(branchId: string, tenantId: string) {
         ),
 
         // SLA Breaches linked to agent
-        withTenantContext({ tenantId }, tx =>
+        withTenantAuthority(authority, tx =>
           tx
             .select({ count: count() })
             .from(claims)
@@ -76,9 +82,10 @@ export async function getAgentMetrics(branchId: string, tenantId: string) {
 
 // Helper: Staff Load derivation
 // "inProgressClaims = claims in statuses ['verification','evaluation','negotiation','court','in_review'] assigned/handled by staff"
-export async function getStaffLoad(branchId: string, tenantId: string) {
+export async function getStaffLoad(branchId: string, authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   // 1. Get staff in tenant (staff are usually tenant-level, sometimes branch-scoped)
-  const staffMembers = await withTenantContext({ tenantId }, tx =>
+  const staffMembers = await withTenantAuthority(authority, tx =>
     tx.query.user.findMany({
       where: and(
         eq(user.tenantId, tenantId),
@@ -105,7 +112,7 @@ export async function getStaffLoad(branchId: string, tenantId: string) {
 
   return Promise.all(
     relevantStaff.map(async staff => {
-      const workload = await withTenantContext({ tenantId }, tx =>
+      const workload = await withTenantAuthority(authority, tx =>
         tx
           .select({ count: count() })
           .from(claims)

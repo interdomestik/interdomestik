@@ -8,7 +8,12 @@ import {
   resolveClaimLifecycleReadProjection,
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
-import { withTenantContext, ERASURE_REDACTED_VALUE } from '@interdomestik/database';
+import { ERASURE_REDACTED_VALUE } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import {
   claimDocuments,
   claimEscalationAgreements,
@@ -28,9 +33,11 @@ import {
   verifiedRecoveryDecisionAt,
 } from './member-recovery-timeline';
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getMemberClaimDetail(
   session: ClaimsSession | null,
+  authority: TenantAuthority | null,
   claimId: string
 ): Promise<ClaimTrackingDetailDto | null> {
   return Sentry.withServerActionInstrumentation(
@@ -39,6 +46,11 @@ export async function getMemberClaimDetail(
     async () => {
       const access = ensureClaimsAccess(session);
       const { tenantId, userId, role, branchId } = access;
+
+      // Fail closed unless the session's tenant is the tenant the authority grants.
+      if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+        throw new UnauthorizedError();
+      }
 
       Sentry.setTag('tenantId', tenantId);
       Sentry.setTag('claimId', claimId);
@@ -50,7 +62,7 @@ export async function getMemberClaimDetail(
         branchId,
       });
 
-      return withTenantContext({ tenantId, role }, async db => {
+      return withTenantAuthority(authority, async db => {
         const whereClause = and(eq(claims.id, claimId), visibilityCondition);
 
         // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before member claim detail lookup
@@ -113,16 +125,17 @@ export async function getMemberClaimDetail(
               piiStatus,
               updatedAt: claim.updatedAt,
             },
+            authority,
             db
           ),
           getMemberVaultConsentDisplay(
             {
-              tenantId,
               memberId,
               claimId: claim.id,
               claimCategory: claim.category ?? '',
               piiStatus,
             },
+            authority,
             db
           ),
         ]);

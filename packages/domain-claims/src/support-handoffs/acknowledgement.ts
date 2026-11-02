@@ -1,4 +1,8 @@
-import { and, eq, sql, supportHandoffs, withTenantContext } from '@interdomestik/database';
+import { and, eq, sql, supportHandoffs } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { inArray, isNotNull } from 'drizzle-orm';
 
@@ -16,6 +20,7 @@ import type {
   SupportHandoffSession,
 } from './types';
 import { ACTIVE_HANDOFF_STATUSES } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const STALE_RESPONSE_ERROR =
   'The support team updated this response. Please review the latest update.';
@@ -30,23 +35,26 @@ function failure(
 
 export async function acknowledgeSupportHandoffPublicResponseCore(
   params: AcknowledgeSupportHandoffPublicResponseInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<AcknowledgeSupportHandoffPublicResponseResult>> {
   const memberSession = requireSupportHandoffMemberSession(params.session);
-  if (!memberSession) {
+  const authority = params.authority;
+  if (!memberSession || !authority) {
     return failure('Unauthorized', 'UNAUTHORIZED');
   }
 
+  const { tenantId } = readTenantAuthority(authority);
   const memberId = memberSession.user.id;
   const expectedVersion = Number.isFinite(params.expectedPublicResponseVersion)
     ? params.expectedPublicResponseVersion
     : -1;
   const now = new Date();
 
-  const updated = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+  const updated = await withTenantAuthority(authority, tx =>
     tx
       .update(supportHandoffs)
       .set({
@@ -57,7 +65,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
       })
       .where(
         withTenant(
-          memberSession.tenantId,
+          tenantId,
           supportHandoffs.tenantId,
           and(
             eq(supportHandoffs.id, params.handoffId),
@@ -82,7 +90,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
       await deps.logAuditEvent({
         actorId: memberId,
         actorRole: memberSession.user.role,
-        tenantId: memberSession.tenantId,
+        authority,
         action: 'support_handoff.public_response_acknowledged',
         entityType: 'support_handoff',
         entityId: params.handoffId,
@@ -103,7 +111,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
     };
   }
 
-  const existing = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+  const existing = await withTenantAuthority(authority, tx =>
     tx
       .select({
         acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
@@ -116,7 +124,7 @@ export async function acknowledgeSupportHandoffPublicResponseCore(
       .from(supportHandoffs)
       .where(
         withTenant(
-          memberSession.tenantId,
+          tenantId,
           supportHandoffs.tenantId,
           and(eq(supportHandoffs.id, params.handoffId), eq(supportHandoffs.memberId, memberId))
         )

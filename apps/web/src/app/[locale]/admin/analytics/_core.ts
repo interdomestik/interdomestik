@@ -1,6 +1,11 @@
-import { claims, withTenantContext } from '@interdomestik/database';
+import { claims } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AdminAnalyticsStatusDistributionItem = {
   status: string | null;
@@ -47,12 +52,12 @@ export function normalizeTotalsRow(row?: {
   };
 }
 
-export async function getAdminAnalyticsDataCore(session: {
-  user: { tenantId: string };
-}): Promise<AdminAnalyticsModel> {
-  const { tenantId } = session.user;
+export async function getAdminAnalyticsDataCore(
+  authority: TenantAuthority
+): Promise<AdminAnalyticsModel> {
+  const { tenantId } = readTenantAuthority(authority);
 
-  const [totalsResult] = await withTenantContext({ tenantId }, tx =>
+  const [totalsResult] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
@@ -66,7 +71,7 @@ export async function getAdminAnalyticsDataCore(session: {
   const totals = normalizeTotalsRow(totalsResult);
   const lifecycleStatus = claimLifecycleStatusSql();
 
-  const statusDistributionRaw = await withTenantContext({ tenantId }, tx =>
+  const statusDistributionRaw = await withTenantAuthority(authority, tx =>
     tx
       .select({
         status: lifecycleStatus,
@@ -77,7 +82,7 @@ export async function getAdminAnalyticsDataCore(session: {
       .groupBy(lifecycleStatus)
   );
 
-  const categoryDistributionRaw = await withTenantContext({ tenantId }, tx =>
+  const categoryDistributionRaw = await withTenantAuthority(authority, tx =>
     tx
       .select({
         category: claims.category,
@@ -88,7 +93,7 @@ export async function getAdminAnalyticsDataCore(session: {
       .groupBy(claims.category)
   );
 
-  const [activeClaimantsRow] = await withTenantContext({ tenantId }, tx =>
+  const [activeClaimantsRow] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         count: sql<number>`COUNT(DISTINCT ${claims.userId})`,

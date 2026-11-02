@@ -1,5 +1,7 @@
 import { updateSupportHandoffPublicResponseCore as updateDomainPublicResponse } from '@interdomestik/domain-claims/support-handoffs/response';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { notifySupportHandoffPublicResponse } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -46,6 +48,7 @@ function revalidateMemberHelpPaths() {
 }
 
 export async function updateSupportHandoffPublicResponseCore(params: {
+  authority: TenantAuthority | null;
   expectedVersion?: number;
   handoffId: string;
   requestHeaders?: Headers;
@@ -56,6 +59,7 @@ export async function updateSupportHandoffPublicResponseCore(params: {
 
   if (result.success) {
     try {
+      if (!params.authority) throw new Error('Missing tenant authority');
       const locale = resolveSupportHandoffActionLocale(params.requestHeaders);
       const notificationCopy = SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY[locale];
       const notificationResult = await notifySupportHandoffPublicResponse(
@@ -67,7 +71,7 @@ export async function updateSupportHandoffPublicResponseCore(params: {
         {
           actionUrl: `/${locale}/member/help?handoffId=${encodeURIComponent(result.data.handoffId)}`,
           content: notificationCopy.content,
-          tenantId: result.data.tenantId,
+          authority: params.authority,
           title: notificationCopy.title,
         }
       );

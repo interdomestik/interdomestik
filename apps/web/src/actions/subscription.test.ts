@@ -55,6 +55,18 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: vi.fn(),
 }));
 
+vi.mock('@/lib/tenant-authority.server', async () => {
+  const { auth: mockedAuth } = await import('@/lib/auth');
+  const { mintTestTenantAuthority } =
+    await import('@interdomestik/database/testing/tenant-authority');
+  return {
+    authorizeSessionTenant: async (requestHeaders?: Headers) => {
+      const session = await mockedAuth.api.getSession({ headers: requestHeaders ?? new Headers() });
+      return session ? { session, authority: mintTestTenantAuthority('tenant_mk') } : null;
+    },
+  };
+});
+
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));

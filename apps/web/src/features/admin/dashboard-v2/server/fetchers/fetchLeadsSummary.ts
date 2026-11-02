@@ -1,9 +1,14 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { memberLeads } from '@interdomestik/database/schema';
 import { count, desc, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function fetchLeadsSummary(tenantId: string) {
-  const [leadsStats] = await withTenantContext({ tenantId }, tx =>
+export async function fetchLeadsSummary(authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  const [leadsStats] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         total: count(),
@@ -13,7 +18,7 @@ export async function fetchLeadsSummary(tenantId: string) {
       .where(eq(memberLeads.tenantId, tenantId))
   );
 
-  const recentLeads = await withTenantContext({ tenantId }, tx =>
+  const recentLeads = await withTenantAuthority(authority, tx =>
     tx
       .select()
       .from(memberLeads)

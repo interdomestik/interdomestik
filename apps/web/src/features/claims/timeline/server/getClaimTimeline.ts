@@ -6,19 +6,23 @@
  * Uses claimStageHistory as the single source of truth.
  */
 
-import { withTenantContext } from '@interdomestik/database';
 import { claimStageHistory } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { mapHistoryToTimeline, type RawHistoryRow } from '../mappers';
 import type { ClaimTimelineResponse } from '../types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type TimelineViewerRole = 'admin' | 'staff' | 'member' | 'agent';
 
 export interface GetClaimTimelineParams {
   claimId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   viewerRole: TimelineViewerRole;
 }
 
@@ -40,10 +44,11 @@ function canSeeInternalEntries(role: TimelineViewerRole): boolean {
 export async function getClaimTimeline(
   params: GetClaimTimelineParams
 ): Promise<ClaimTimelineResponse> {
-  const { claimId, tenantId, viewerRole } = params;
+  const { claimId, authority, viewerRole } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           id: claimStageHistory.id,

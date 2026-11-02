@@ -7,12 +7,14 @@ import {
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
 
 export type { SendMessageDbCoreResult };
 
 export async function sendMessageDbCore(params: {
   session: NonNullable<Session> | null;
+  authority: TenantAuthority | null;
   requestHeaders: Headers;
   claimId: string;
   content: string;

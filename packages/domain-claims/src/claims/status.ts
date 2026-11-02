@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -9,6 +12,7 @@ import type { TransitionClaimStatusResult } from './transition';
 import { claimStatusSchema } from '../validators/claims';
 import { activateClaimStatusAuditProjection } from './audit-projection';
 import { transitionClaimStatus } from './transition';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function isStaffOrAdmin(role: string | null | undefined): boolean {
   return role === 'staff' || role === 'admin';
@@ -35,24 +39,25 @@ function transitionFailureResult(result: FailedTransition): ActionResult {
 async function runStatusTransition(args: {
   actorId: string;
   actorRole: string | null | undefined;
+  authority: TenantAuthority;
   claimId: string;
   hostId?: string | null;
   status: ClaimStatus;
-  tenantId: string;
 }): Promise<TransitionClaimStatusResult> {
-  const { actorId, actorRole, claimId, hostId, status, tenantId } = args;
+  const { actorId, actorRole, authority, claimId, hostId, status } = args;
 
   return transitionClaimStatus({
     actor: { id: actorId, role: actorRole ?? null },
+    authority,
     claimId,
     hostId,
-    tenantId,
     toStatus: status,
   });
 }
 
 export async function updateClaimStatusCore(
   params: {
+    authority: TenantAuthority | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
     claimId: string;
@@ -61,9 +66,9 @@ export async function updateClaimStatusCore(
   },
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
-  const { session, claimId, newStatus } = params;
+  const { authority, session, claimId, newStatus } = params;
 
-  if (!session || !isStaffOrAdmin(session.user.role ?? null)) {
+  if (!session || !authority || !isStaffOrAdmin(session.user.role ?? null)) {
     return { success: false, error: 'Unauthorized', data: undefined };
   }
 
@@ -75,10 +80,11 @@ export async function updateClaimStatusCore(
   // validated by safeParse above
   const { status } = parsed.data;
 
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
-    const claim = await withTenantContext({ tenantId }, tx =>
+    const claim = await withTenantAuthority(authority, tx =>
       tx.query.claims.findFirst({
         where: (claimsTable, { eq }) =>
           withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
@@ -92,10 +98,10 @@ export async function updateClaimStatusCore(
     const transitionResult = await runStatusTransition({
       actorId: session.user.id,
       actorRole: session.user.role,
+      authority,
       claimId,
       hostId: params.hostId,
       status,
-      tenantId,
     });
 
     if (!transitionResult.success) {
@@ -105,11 +111,11 @@ export async function updateClaimStatusCore(
     const oldStatus = transitionResult.fromStatus;
     const persistedStatus = transitionResult.status;
 
-    await activateClaimStatusAuditProjection({ deps, tenantId });
+    await activateClaimStatusAuditProjection({ authority, deps });
 
     if (claim.userId && oldStatus !== persistedStatus && deps.notifyStatusChanged) {
       const claimOwnerId = claim.userId;
-      const member = await withTenantContext({ tenantId }, tx =>
+      const member = await withTenantAuthority(authority, tx =>
         tx.query.user.findFirst({
           where: (userTable, { eq }) =>
             withTenant(tenantId, userTable.tenantId, eq(userTable.id, claimOwnerId)),
@@ -124,7 +130,7 @@ export async function updateClaimStatusCore(
             { id: claimId, title: claim.title },
             oldStatus,
             persistedStatus,
-            { tenantId }
+            { authority }
           )
         ).catch((err: Error) => console.error('Failed to send status change notification:', err));
       }

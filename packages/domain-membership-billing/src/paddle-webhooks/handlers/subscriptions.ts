@@ -1,3 +1,6 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { RetryablePaddleWebhookError } from '../errors';
 import { subscriptionEventDataSchema } from '../schemas';
 
@@ -5,7 +8,7 @@ import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 import { resolveSubscriptionEventOrder } from './subscription-event-order';
 import { resolveSubscriptionForUpsert, type UpsertSubscriptionResult } from './subscription-upsert';
 import { writeSubscriptionSnapshot } from './subscription-snapshot';
-import { resolveSubscriptionContext } from './utils/context';
+import { authorizeReconciledCheckoutUser, resolveSubscriptionContext } from './utils/context';
 import { handleNewSubscriptionExtras } from './utils/extras';
 import {
   deliverMembershipConfirmation,
@@ -19,7 +22,10 @@ import { resolveEntityCheckoutTransactionAuthority } from './utils/checkout-tran
 type SubscriptionChangedParams = {
   eventType: string;
   data: unknown;
-  tenantId?: string | null;
+  /** Verified-delivery capability from signature verification; every tenant authority derives from it. */
+  delivery: IngressCapability<'paddle-delivery'>;
+  /** Authority of the tenant the core resolved from a subscription or user owner, when it did. */
+  authority?: TenantAuthority | null;
   processingScopeKey?: string;
   providerEventId?: string;
   /** Signed top-level Paddle `occurred_at`, validated before any side effect. */
@@ -37,7 +43,7 @@ type SubscriptionChangedDeps = Pick<
 > &
   PaddleWebhookAuditDeps;
 
-type SubscriptionEventData = Parameters<typeof resolveSubscriptionContext>[0];
+type SubscriptionEventData = Parameters<typeof resolveSubscriptionContext>[1];
 
 export async function handleSubscriptionChanged(
   params: SubscriptionChangedParams,
@@ -61,7 +67,7 @@ export async function handleSubscriptionChanged(
   // 1. Resolve Context (User, Tenant, Branch)
   const context = await resolveAuthoritativeSubscriptionContext(params, sub, deps);
 
-  const { userId, tenantId, branchId, customData, userRecord, existingSub } = context;
+  const { userId, authority, branchId, customData, userRecord, existingSub } = context;
   const canonicalUserRecord = userRecord ?? null;
   const resolvedAgentId = resolveSubscriptionAgentId({
     userRecord: canonicalUserRecord,
@@ -69,7 +75,7 @@ export async function handleSubscriptionChanged(
   });
   const subscriptionForUpsert = await resolveSubscriptionForUpsert({
     existingSub,
-    tenantId,
+    authority,
     userId,
   });
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
@@ -78,7 +84,7 @@ export async function handleSubscriptionChanged(
       eventType: params.eventType,
       providerEventId: params.providerEventId,
       sub,
-      tenantId,
+      authority,
       userId,
       agentId: resolvedAgentId,
       branchId,
@@ -112,7 +118,7 @@ export async function handleSubscriptionChanged(
             subscriptionUpsert?.subscriptionId ?? subscriptionForUpsert?.id ?? sub.id,
           sub,
           userId,
-          tenantId,
+          authority,
           customData,
           userRecord: canonicalUserRecord,
           deps,
@@ -136,7 +142,7 @@ export async function handleSubscriptionChanged(
       internalSubscriptionId: storedSubscriptionId,
       sub,
       userId,
-      tenantId,
+      authority,
       customData,
       priceId,
       userRecord: canonicalUserRecord,
@@ -154,11 +160,24 @@ async function resolveAuthoritativeSubscriptionContext(
   sub: SubscriptionEventData,
   deps: SubscriptionChangedDeps
 ) {
-  let context = await resolveSubscriptionContext(sub);
+  let context = await resolveSubscriptionContext(params.delivery, sub);
   let checkoutAuthorityVerified = false;
 
   if (!context && params.eventType === 'subscription.created' && canReconcileCheckoutUser(sub)) {
-    context = await reconcileCheckoutUser(sub, deps, params.processingScopeKey ?? '');
+    const reconciled = await reconcileCheckoutUser(
+      params.delivery,
+      sub,
+      deps,
+      params.processingScopeKey ?? ''
+    );
+    // The reconciled tenant comes from verified checkout evidence; the authority comes from the
+    // resolver owner of the persisted user and must name that same tenant.
+    context = reconciled
+      ? {
+          ...reconciled,
+          authority: await authorizeReconciledCheckoutUser(params.delivery, reconciled, sub.id),
+        }
+      : null;
     checkoutAuthorityVerified = Boolean(
       context && params.processingScopeKey?.startsWith('entity:')
     );
@@ -204,7 +223,7 @@ async function deliverStoredMembershipConfirmationRetry(
 ): Promise<boolean> {
   if (params.eventType !== 'subscription.created') return false;
   const preparation = await prepareStoredMembershipConfirmationRetry({
-    tenantId: params.tenantId,
+    authority: params.authority,
     providerEventId: params.providerEventId,
     webhookPayloadHash: params.webhookPayloadHash,
     providerReference,

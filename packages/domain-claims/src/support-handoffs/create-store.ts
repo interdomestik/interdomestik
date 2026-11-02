@@ -1,4 +1,9 @@
-import { supportHandoffs, withTenantContext } from '@interdomestik/database';
+import { supportHandoffs } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 import { deriveSupportHandoffSignals } from './derivation';
 import {
@@ -21,26 +26,26 @@ function deriveSource(args: {
 }
 
 export async function persistMemberSupportHandoff(params: {
+  authority: TenantAuthority;
   contactPreference: SupportHandoffContactPreference;
   handoffId: string;
   memberBranchId?: string | null;
   memberId: string;
-  memberRole: string;
   message: string;
   now: Date;
   requestedClaimId: string | null;
   sourceClaimId: string;
   sourceHint: string | null;
   subject: string;
-  tenantId: string;
 }) {
-  return withTenantContext({ tenantId: params.tenantId, role: params.memberRole }, async tx => {
+  const { tenantId } = readTenantAuthority(params.authority);
+  return withTenantAuthority(params.authority, async tx => {
     const claimContext = params.requestedClaimId
       ? await getOwnedClaimContext({
           database: tx,
           claimId: params.requestedClaimId,
           memberId: params.memberId,
-          tenantId: params.tenantId,
+          tenantId,
         })
       : null;
 
@@ -53,7 +58,7 @@ export async function persistMemberSupportHandoff(params: {
       params.memberBranchId ??
       (await getMemberSubscriptionBranch(tx, {
         memberId: params.memberId,
-        tenantId: params.tenantId,
+        tenantId,
       }));
     if (!branchId)
       return { success: false as const, error: 'Branch is required for support routing' };
@@ -65,10 +70,9 @@ export async function persistMemberSupportHandoff(params: {
       sourceHint: params.sourceHint,
     });
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated member session before support handoff insert
     await tx.insert(supportHandoffs).values({
       id: params.handoffId,
-      tenantId: params.tenantId,
+      tenantId,
       memberId: params.memberId,
       branchId,
       claimId: claimContext?.id ?? null,

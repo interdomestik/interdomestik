@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -33,28 +37,41 @@ type StoredDeliveryRow = {
 };
 
 export type MembershipConfirmationDeliveryRepository = {
-  insertPending: (row: PendingDeliveryRow) => Promise<{ id: string } | null>;
-  find: (tenantId: string, dedupeKey: string) => Promise<StoredDeliveryRow | null>;
-  reclaimError: (tenantId: string, dedupeKey: string) => Promise<boolean>;
+  insertPending: (
+    authority: TenantAuthority,
+    row: PendingDeliveryRow
+  ) => Promise<{ id: string } | null>;
+  find: (authority: TenantAuthority, dedupeKey: string) => Promise<StoredDeliveryRow | null>;
+  reclaimError: (authority: TenantAuthority, dedupeKey: string) => Promise<boolean>;
   markReady: (
-    tenantId: string,
+    authority: TenantAuthority,
     deliveryId: string,
     dedupeKey: string,
     subscriptionId: string
   ) => Promise<boolean>;
   markSent: (
-    tenantId: string,
+    authority: TenantAuthority,
     deliveryId: string,
     dedupeKey: string,
     providerMessageId: string
   ) => Promise<boolean>;
   markError: (
-    tenantId: string,
+    authority: TenantAuthority,
     deliveryId: string,
     dedupeKey: string,
     error: string
   ) => Promise<boolean>;
 };
+
+/** A claim, snapshot or evidence for another tenant than the delivery's authority is never served. */
+function assertAuthorityTenant(authority: TenantAuthority, tenantId: string): void {
+  const authorityTenantId = readTenantAuthority(authority).tenantId;
+  if (authorityTenantId !== tenantId) {
+    throw new Error(
+      `Membership confirmation tenant conflict: delivery=${tenantId} authority=${authorityTenantId}`
+    );
+  }
+}
 
 const snapshotSchema = z.object({
   email: z.string().min(1),
@@ -116,11 +133,14 @@ function sameRetryEvidence(
 
 async function claimReadyRetry(
   repository: MembershipConfirmationDeliveryRepository,
+  authority: TenantAuthority,
   idempotencyKey: string,
   evidence: MembershipConfirmationRetryEvidence
 ): Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }> {
+  assertAuthorityTenant(authority, evidence.tenantId);
   return claimStoredDelivery({
     repository,
+    authority,
     idempotencyKey,
     tenantId: evidence.tenantId,
     evidenceMatches: (existing, stored) =>
@@ -134,11 +154,14 @@ async function claimReadyRetry(
 
 async function claimExistingDelivery(
   repository: MembershipConfirmationDeliveryRepository,
+  authority: TenantAuthority,
   idempotencyKey: string,
   evidence: MembershipConfirmationEvidence
 ): Promise<MembershipConfirmationClaim | { kind: 'not_found' }> {
+  assertAuthorityTenant(authority, evidence.tenantId);
   const result = await claimStoredDelivery({
     repository,
+    authority,
     idempotencyKey,
     tenantId: evidence.tenantId,
     evidenceMatches: (existing, stored) =>
@@ -155,6 +178,7 @@ async function claimExistingDelivery(
 
 async function claimStoredDelivery(args: {
   repository: MembershipConfirmationDeliveryRepository;
+  authority: TenantAuthority;
   idempotencyKey: string;
   tenantId: string;
   evidenceMatches: (existing: StoredDeliveryRow, stored: MembershipConfirmationSnapshot) => boolean;
@@ -163,8 +187,10 @@ async function claimStoredDelivery(args: {
     stored: MembershipConfirmationSnapshot
   ) => Extract<MembershipConfirmationClaim, { kind: 'claimed' }> | { kind: 'requires_context' };
 }): Promise<MembershipConfirmationClaim | { kind: 'not_found' } | { kind: 'requires_context' }> {
-  const existing = await args.repository.find(args.tenantId, args.idempotencyKey);
+  const existing = await args.repository.find(args.authority, args.idempotencyKey);
   if (!existing) return { kind: 'not_found' };
+  // A stored row outside the delivery's tenant is a conflict; it is never claimed or reclaimed.
+  if (existing.tenantId !== args.tenantId) return { kind: 'conflict' };
 
   const parsed = metadataSchema.safeParse(existing.metadata);
   if (!parsed.success || !args.evidenceMatches(existing, parsed.data.snapshot)) {
@@ -179,7 +205,7 @@ async function claimStoredDelivery(args: {
   }
   if (existing.status !== 'error') return { kind: 'conflict' };
 
-  const reclaimed = await args.repository.reclaimError(args.tenantId, args.idempotencyKey);
+  const reclaimed = await args.repository.reclaimError(args.authority, args.idempotencyKey);
   return reclaimed ? readyDeliveryClaim(existing, parsed.data.snapshot) : { kind: 'in_progress' };
 }
 
@@ -200,17 +226,18 @@ export function createMembershipConfirmationDeliveryStore(
   generateId: () => string = nanoid
 ): MembershipConfirmationDeliveryStore {
   return {
-    async claimReadyRetry({ evidence, idempotencyKey }) {
-      return claimReadyRetry(repository, idempotencyKey, evidence);
+    async claimReadyRetry({ authority, evidence, idempotencyKey }) {
+      return claimReadyRetry(repository, authority, idempotencyKey, evidence);
     },
 
-    async claimExisting({ evidence, idempotencyKey }) {
-      return claimExistingDelivery(repository, idempotencyKey, evidence);
+    async claimExisting({ authority, evidence, idempotencyKey }) {
+      return claimExistingDelivery(repository, authority, idempotencyKey, evidence);
     },
 
-    async claim({ idempotencyKey, snapshot }) {
+    async claim({ authority, idempotencyKey, snapshot }) {
+      assertAuthorityTenant(authority, snapshot.tenantId);
       const metadata = { kind: 'membership_confirmation' as const, version: 1 as const, snapshot };
-      const inserted = await repository.insertPending({
+      const inserted = await repository.insertPending(authority, {
         id: generateId(),
         tenantId: snapshot.tenantId,
         userId: snapshot.userId,
@@ -222,19 +249,24 @@ export function createMembershipConfirmationDeliveryStore(
       if (inserted) {
         return { kind: 'claimed', deliveryId: inserted.id, requiresEffects: true, snapshot };
       }
-      const existingClaim = await claimExistingDelivery(repository, idempotencyKey, snapshot);
+      const existingClaim = await claimExistingDelivery(
+        repository,
+        authority,
+        idempotencyKey,
+        snapshot
+      );
       return existingClaim.kind === 'not_found' ? { kind: 'conflict' } : existingClaim;
     },
 
-    async ready({ deliveryId, idempotencyKey, subscriptionId, tenantId }) {
+    async ready({ authority, deliveryId, idempotencyKey, subscriptionId }) {
       const updated = await repository.markReady(
-        tenantId,
+        authority,
         deliveryId,
         idempotencyKey,
         subscriptionId
       );
       if (updated) return;
-      const existing = await repository.find(tenantId, idempotencyKey);
+      const existing = await repository.find(authority, idempotencyKey);
       if (
         existing?.id === deliveryId &&
         existing.subscriptionId === subscriptionId &&
@@ -245,15 +277,15 @@ export function createMembershipConfirmationDeliveryStore(
       throw new Error('Membership confirmation delivery readiness lost its claim');
     },
 
-    async complete({ deliveryId, idempotencyKey, providerMessageId, tenantId }) {
+    async complete({ authority, deliveryId, idempotencyKey, providerMessageId }) {
       const updated = await repository.markSent(
-        tenantId,
+        authority,
         deliveryId,
         idempotencyKey,
         providerMessageId
       );
       if (updated) return;
-      const existing = await repository.find(tenantId, idempotencyKey);
+      const existing = await repository.find(authority, idempotencyKey);
       if (
         existing?.id === deliveryId &&
         existing.status === 'sent' &&
@@ -264,9 +296,9 @@ export function createMembershipConfirmationDeliveryStore(
       throw new Error('Membership confirmation delivery completion lost its claim');
     },
 
-    async fail({ deliveryId, error, idempotencyKey, tenantId }) {
+    async fail({ authority, deliveryId, error, idempotencyKey }) {
       const updated = await repository.markError(
-        tenantId,
+        authority,
         deliveryId,
         idempotencyKey,
         error.slice(0, 2000)

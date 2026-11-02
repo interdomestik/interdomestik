@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -42,6 +43,7 @@ vi.mock('./transition', () => ({
 
 import { cancelClaimCore } from './draft';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const memberSession = { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } } as never;
 
@@ -66,7 +68,10 @@ function mockClaim(status = 'draft') {
 }
 
 function runCancel(deps = {}) {
-  return cancelClaimCore({ claimId: 'claim-1', requestHeaders, session: memberSession }, deps);
+  return cancelClaimCore(
+    { authority, claimId: 'claim-1', requestHeaders, session: memberSession },
+    deps
+  );
 }
 
 function sideEffectDeps() {
@@ -94,15 +99,12 @@ describe('cancelClaimCore', () => {
     const result = await runCancel(deps);
 
     expect(result).toEqual({ success: true });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'member-1', role: 'member' },
+      authority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'rejected',
     });
     expect(deps.logAuditEvent).toHaveBeenCalledWith(
@@ -112,7 +114,7 @@ describe('cancelClaimCore', () => {
         entityId: 'claim-1',
         headers: requestHeaders,
         metadata: { oldStatus: 'draft', newStatus: 'rejected' },
-        tenantId: 'tenant-1',
+        authority,
       })
     );
     expect(deps.revalidatePath).toHaveBeenCalledWith('/member/claims');
@@ -132,8 +134,8 @@ describe('cancelClaimCore', () => {
     expect(result).toEqual({ success: false, error: 'Invalid status transition' });
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'member-1', role: 'member' },
+      authority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'rejected',
     });
     expect(mocks.dbUpdate).not.toHaveBeenCalled();

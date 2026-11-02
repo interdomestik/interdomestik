@@ -1,6 +1,7 @@
 'use server';
 
-import { withTenantContext } from '@interdomestik/database';
+import { authorizePublicSiteTenant } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { leads } from '@interdomestik/database/schema';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
@@ -21,9 +22,12 @@ export async function submitLead(data: z.infer<typeof createLeadSchema>) {
     // Public intake: the tenant comes from the server request contract (host first), never from
     // the client payload. Same contract as the business membership lead intake.
     const tenantId = await resolveTenantIdFromRequest();
+    const authority = await authorizePublicSiteTenant(tenantId);
+    if (!authority) {
+      return { success: false, error: 'Failed to submit request' };
+    }
 
-    // db-access-guard: tenant-scoped -- reason: tenantId resolved server-side from the request host contract
-    await withTenantContext({ tenantId }, tx =>
+    await withTenantAuthority(authority, tx =>
       tx.insert(leads).values({
         id: randomUUID(),
         name: validated.name,

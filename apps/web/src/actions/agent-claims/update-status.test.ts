@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -56,6 +57,8 @@ vi.mock('next/cache', () => ({
 
 import { updateClaimStatusCore } from './update-status';
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,6 +77,7 @@ describe('updateClaimStatusCore', () => {
     ]);
 
     const result = await updateClaimStatusCore({
+      authority,
       claimId: 'claim-1',
       newStatus: 'resolved',
       session: {
@@ -84,7 +88,7 @@ describe('updateClaimStatusCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
 
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();

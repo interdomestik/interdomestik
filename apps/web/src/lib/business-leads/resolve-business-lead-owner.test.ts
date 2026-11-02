@@ -1,4 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveBusinessLeadOwner } from './resolve-business-lead-owner';
 
@@ -43,6 +44,8 @@ const mockDbResponse = (returnValue: unknown) => {
 };
 
 describe('resolveBusinessLeadOwner', () => {
+  const authority = mintTestTenantAuthority('tenant_ks');
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(db.query.tenantSettings.findFirst).mockReset();
@@ -65,11 +68,11 @@ describe('resolveBusinessLeadOwner', () => {
       mockDbResponse({ id: 'agent_system', branchId: 'branch_agent' }) as never
     );
 
-    await expect(resolveBusinessLeadOwner('tenant_ks')).resolves.toEqual({
+    await expect(resolveBusinessLeadOwner(authority)).resolves.toEqual({
       agentId: 'agent_system',
       branchId: 'branch_sales',
     });
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_ks' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('falls back to the configured default branch when sales settings omit branchId', async () => {
@@ -93,7 +96,7 @@ describe('resolveBusinessLeadOwner', () => {
       mockDbResponse({ id: 'agent_system', branchId: null }) as never
     );
 
-    await expect(resolveBusinessLeadOwner('tenant_ks')).resolves.toEqual({
+    await expect(resolveBusinessLeadOwner(authority)).resolves.toEqual({
       agentId: 'agent_system',
       branchId: 'branch_default',
     });
@@ -114,7 +117,7 @@ describe('resolveBusinessLeadOwner', () => {
       mockDbResponse({ id: 'agent_system', branchId: 'branch_agent' }) as never
     );
 
-    await expect(resolveBusinessLeadOwner('tenant_ks')).resolves.toEqual({
+    await expect(resolveBusinessLeadOwner(authority)).resolves.toEqual({
       agentId: 'agent_system',
       branchId: 'branch_agent',
     });
@@ -125,7 +128,7 @@ describe('resolveBusinessLeadOwner', () => {
       mockDbResponse(undefined) as never
     );
 
-    await expect(resolveBusinessLeadOwner('tenant_ks')).resolves.toBeNull();
+    await expect(resolveBusinessLeadOwner(authority)).resolves.toBeNull();
     expect(db.query.user.findFirst).not.toHaveBeenCalled();
   });
 
@@ -148,6 +151,6 @@ describe('resolveBusinessLeadOwner', () => {
 
     vi.mocked(db.query.user.findFirst).mockImplementation(mockDbResponse(undefined) as never);
 
-    await expect(resolveBusinessLeadOwner('tenant_ks')).resolves.toBeNull();
+    await expect(resolveBusinessLeadOwner(authority)).resolves.toBeNull();
   });
 });

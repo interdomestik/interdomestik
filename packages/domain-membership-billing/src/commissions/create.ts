@@ -1,9 +1,13 @@
-import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ActionResult, CommissionType } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const VALID_CURRENCIES = ['EUR', 'USD', 'CHF', 'GBP'] as const;
 
@@ -14,7 +18,7 @@ type CreateCommissionInput = {
   type: CommissionType;
   amount: number;
   currency?: string;
-  tenantId: string;
+  authority: TenantAuthority;
   metadata?: Record<string, unknown>;
 };
 
@@ -44,7 +48,8 @@ export async function createCommissionWithDispositionCore(
       return { success: false, error: 'Amount must be positive' };
     }
 
-    const tenantId = data.tenantId.trim();
+    const { authority } = data;
+    const { tenantId } = readTenantAuthority(authority);
     if (!tenantId) {
       return { success: false, error: 'Missing tenantId for commission' };
     }
@@ -52,7 +57,7 @@ export async function createCommissionWithDispositionCore(
     // IDEMPOTENCY CHECK: If subscriptionId is provided, check for existing commission
     if (data.subscriptionId) {
       const subscriptionId = data.subscriptionId;
-      const [existing] = await withTenantContext({ tenantId }, async tx =>
+      const [existing] = await withTenantAuthority(authority, async tx =>
         tx
           .select({ id: agentCommissions.id })
           .from(agentCommissions)
@@ -76,7 +81,7 @@ export async function createCommissionWithDispositionCore(
 
     const id = nanoid();
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await withTenantContext({ tenantId }, async tx =>
+    await withTenantAuthority(authority, async tx =>
       tx.insert(agentCommissions).values({
         id,
         tenantId,

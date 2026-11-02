@@ -1,9 +1,14 @@
 import { type ClaimStatus } from '@interdomestik/database/constants';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
-import { withTenantContext } from '@interdomestik/database';
+
 import { claims, user } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface DashboardStats {
   totalClaims: number;
@@ -13,36 +18,37 @@ export interface DashboardStats {
   totalClaimVolume: number;
 }
 
-export async function getAdminDashboardStats(tenantId: string): Promise<DashboardStats> {
+export async function getAdminDashboardStats(authority: TenantAuthority): Promise<DashboardStats> {
+  const { tenantId } = readTenantAuthority(authority);
   const NEW_STATUS: ClaimStatus = 'submitted';
   const RESOLVED_STATUS: ClaimStatus = 'resolved';
 
-  const [totalClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+  const [totalClaimsRes] = await withTenantAuthority(authority, async tx =>
     tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
   );
 
-  const [newClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+  const [newClaimsRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(claims)
       .where(and(claimLifecycleStatusIs(NEW_STATUS), eq(claims.tenantId, tenantId)))
   );
 
-  const [resolvedClaimsRes] = await withTenantContext({ tenantId }, async tx =>
+  const [resolvedClaimsRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(claims)
       .where(and(claimLifecycleStatusIs(RESOLVED_STATUS), eq(claims.tenantId, tenantId)))
   );
 
-  const [totalUsersRes] = await withTenantContext({ tenantId }, async tx =>
+  const [totalUsersRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(user)
       .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)))
   );
 
-  const [volumeRes] = await withTenantContext({ tenantId }, async tx =>
+  const [volumeRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({
         sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
@@ -60,8 +66,9 @@ export async function getAdminDashboardStats(tenantId: string): Promise<Dashboar
   };
 }
 
-export async function getRecentClaims(tenantId: string, limit = 5) {
-  const recentClaims = await withTenantContext({ tenantId }, async tx =>
+export async function getRecentClaims(authority: TenantAuthority, limit = 5) {
+  const { tenantId } = readTenantAuthority(authority);
+  const recentClaims = await withTenantAuthority(authority, async tx =>
     tx.query.claims.findMany({
       where: (claims, { eq }) => eq(claims.tenantId, tenantId),
       with: {
@@ -78,8 +85,9 @@ export async function getRecentClaims(tenantId: string, limit = 5) {
   }));
 }
 
-export async function getUnassignedClaims(tenantId: string, limit = 5) {
-  return await withTenantContext({ tenantId }, async tx =>
+export async function getUnassignedClaims(authority: TenantAuthority, limit = 5) {
+  const { tenantId } = readTenantAuthority(authority);
+  return await withTenantAuthority(authority, async tx =>
     tx.query.claims.findMany({
       with: {
         user: true,

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CrmForecastSnapshotWorkItem } from '@/adapters/crm/forecast-snapshot-work-items';
@@ -18,6 +19,7 @@ import {
 } from '../_core.test-helpers';
 
 const now = new Date('2026-05-15T10:30:00.000Z');
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 const workItem: CrmForecastSnapshotWorkItem = crmForecastSnapshotTestWorkItem;
 const weightedRow = createCrmForecastSnapshotWeightedRow;
 const createDeps = createCrmForecastSnapshotTestDeps;
@@ -58,7 +60,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       maxWorkItemsPerDate: 1,
       now,
       sourceRunId: 'run-1',
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -122,7 +124,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       dryRun: true,
       fromDate: '2026-05-14',
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -146,7 +148,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       fromDate: '2026-05-14',
       logger,
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -173,7 +175,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       ...deps,
       fromDate: '2026-05-14',
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -193,7 +195,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       ...deps,
       fromDate: '2026-05-14',
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -227,7 +229,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       now,
       nowMs,
       targetDurationMs: 60_000,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -261,7 +263,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       now,
       nowMs,
       targetDurationMs: 60_000,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 
@@ -286,7 +288,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       fromDate: '2026-05-14',
       logger,
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
       workItemSoftTimeoutMs: 1,
     });
@@ -312,7 +314,7 @@ describe('runCrmForecastSnapshotBackfillCore', () => {
       fromDate: '2026-05-14',
       logger,
       now,
-      tenantId: 'tenant-1',
+      authority: TEST_AUTHORITY,
       toDate: '2026-05-14',
     });
 

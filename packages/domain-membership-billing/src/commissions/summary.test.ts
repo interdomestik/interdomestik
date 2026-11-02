@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGlobalCommissionSummaryCore } from './admin/summary';
@@ -32,10 +32,6 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: vi.fn(() => 'tenant-1'),
-}));
-
 vi.mock('drizzle-orm', () => ({
   and: vi.fn((...clauses) => ({ op: 'and', clauses })),
   eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
@@ -51,14 +47,15 @@ describe('getMyCommissionSummaryCore', () => {
   });
 
   it('scopes agent commission summaries to the session tenant and agent', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     await getMyCommissionSummaryCore({
+      authority,
       session: {
         user: { id: 'agent-1', role: 'agent', email: 'agent@example.com', tenantId: 'tenant-1' },
       } as any,
     });
 
-    expect(ensureTenantId).toHaveBeenCalled();
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'and',
       clauses: [
@@ -78,14 +75,15 @@ describe('getGlobalCommissionSummaryCore', () => {
   });
 
   it('scopes admin commission summaries to the session tenant', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     await getGlobalCommissionSummaryCore({
+      authority,
       session: {
         user: { id: 'admin-1', role: 'admin', email: 'admin@example.com', tenantId: 'tenant-1' },
       },
     });
 
-    expect(ensureTenantId).toHaveBeenCalled();
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.queryChain.where).toHaveBeenCalledWith({
       op: 'eq',
       left: 'agentCommissions.tenantId',

@@ -2,7 +2,6 @@ import { FileText, Plus, Shield } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
   Card,
@@ -13,7 +12,7 @@ import {
 } from '@interdomestik/ui';
 
 import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import { getPoliciesWithDocumentLinksCore } from '@/app/[locale]/(app)/member/policies/_core';
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
@@ -23,17 +22,15 @@ interface MemberPoliciesV2PageProps {
 }
 
 export async function MemberPoliciesV2Page({ locale }: MemberPoliciesV2PageProps) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session?.user) {
+  if (!authorized) {
     redirect(`/${locale}/login`);
   }
 
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
   const policiesWithDocumentLinks = await getPoliciesWithDocumentLinksCore({
-    tenantId,
+    authority,
     userId: session.user.id,
   });
 

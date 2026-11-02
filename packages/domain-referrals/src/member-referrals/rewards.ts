@@ -1,5 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -11,6 +14,7 @@ import type {
   MemberReferralRewardResult,
   MemberReferralRewardType,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function resolveRewardCents(args: {
   rewardType: MemberReferralRewardType;
@@ -52,15 +56,16 @@ function toResult(
 }
 
 async function findExistingReward(args: {
-  tenantId: string;
+  authority: TenantAuthority;
   subscriptionId: string;
   qualifyingEventType: string;
   qualifyingEventId: string;
 }): Promise<MemberReferralRewardRecord | null> {
-  const row = await withTenantContext({ tenantId: args.tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(args.authority);
+  const row = await withTenantAuthority(args.authority, tx =>
     tx.query.memberReferralRewards.findFirst({
       where: and(
-        eq(memberReferralRewards.tenantId, args.tenantId),
+        eq(memberReferralRewards.tenantId, tenantId),
         eq(memberReferralRewards.subscriptionId, args.subscriptionId),
         eq(memberReferralRewards.qualifyingEventType, args.qualifyingEventType),
         eq(memberReferralRewards.qualifyingEventId, args.qualifyingEventId)
@@ -74,9 +79,10 @@ async function findExistingReward(args: {
 export async function createMemberReferralRewardCore(
   params: MemberReferralRewardInput
 ): Promise<ActionResult<MemberReferralRewardResult>> {
-  const { tenantId, referralId, subscriptionId, qualifyingEventId, qualifyingEventType } = params;
+  const { authority, referralId, subscriptionId, qualifyingEventId, qualifyingEventType } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const settingsResult = await getMemberReferralProgramSettingsCore({ tenantId });
+  const settingsResult = await getMemberReferralProgramSettingsCore({ authority });
   if (!settingsResult.success) {
     return { success: false, error: settingsResult.error };
   }
@@ -115,7 +121,7 @@ export async function createMemberReferralRewardCore(
     };
   }
 
-  const referralRow = await withTenantContext({ tenantId }, tx =>
+  const referralRow = await withTenantAuthority(authority, tx =>
     tx.query.referrals.findFirst({
       where: and(eq(referrals.id, referralId), eq(referrals.tenantId, tenantId)),
     })
@@ -132,7 +138,7 @@ export async function createMemberReferralRewardCore(
   }
 
   const existing = await findExistingReward({
-    tenantId,
+    authority,
     subscriptionId,
     qualifyingEventType,
     qualifyingEventId,
@@ -164,7 +170,7 @@ export async function createMemberReferralRewardCore(
 
   const rewardId = nanoid();
   // db-access-guard: tenant-scoped -- reason: tenantId from resolved referral row before reward insert
-  const rows = await withTenantContext({ tenantId }, tx =>
+  const rows = await withTenantAuthority(authority, tx =>
     tx
       .insert(memberReferralRewards)
       .values({
@@ -213,7 +219,7 @@ export async function createMemberReferralRewardCore(
   const row = rows[0];
   if (!row) {
     const replay = await findExistingReward({
-      tenantId,
+      authority,
       subscriptionId,
       qualifyingEventType,
       qualifyingEventId,

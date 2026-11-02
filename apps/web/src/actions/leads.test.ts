@@ -1,3 +1,5 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock variables
@@ -5,10 +7,12 @@ const mocks = vi.hoisted(() => ({
   dbInsert: vi.fn(),
   withTenantContext: vi.fn(),
   resolveTenantIdFromRequest: vi.fn(),
+  authorizePublicSiteTenant: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
+  authorizePublicSiteTenant: mocks.authorizePublicSiteTenant,
 }));
 
 vi.mock('@/lib/tenant/tenant-request', () => ({
@@ -31,6 +35,9 @@ describe('Leads Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveTenantIdFromRequest.mockResolvedValue('tenant_mk');
+    mocks.authorizePublicSiteTenant.mockImplementation(async (tenantId: string) =>
+      mintTestTenantAuthority(tenantId)
+    );
     mocks.withTenantContext.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => unknown) =>
         callback({ insert: () => ({ values: mocks.dbInsert }) })
@@ -91,9 +98,9 @@ describe('Leads Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mocks.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant_mk' },
-        expect.any(Function)
+      expect(mocks.authorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_mk');
+      expect(readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0]).tenantId).toBe(
+        'tenant_mk'
       );
       expect(mocks.dbInsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -116,13 +123,26 @@ describe('Leads Actions', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mocks.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant_ks' },
-        expect.any(Function)
+      expect(mocks.authorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_ks');
+      expect(readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0]).tenantId).toBe(
+        'tenant_ks'
       );
       expect(mocks.dbInsert).toHaveBeenCalledWith(
         expect.objectContaining({ tenantId: 'tenant_ks' })
       );
+    });
+
+    it('writes nothing when the host tenant is not active', async () => {
+      mocks.authorizePublicSiteTenant.mockResolvedValueOnce(null);
+
+      const result = await submitLead({
+        name: 'John Doe',
+        phone: '+383491234567',
+        category: 'auto',
+      });
+
+      expect(result).toEqual({ success: false, error: 'Failed to submit request' });
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
     it('rejects a client-supplied tenantId without writing', async () => {

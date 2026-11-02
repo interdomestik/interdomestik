@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as nextCache from 'next/cache';
 
@@ -27,6 +28,8 @@ vi.mock('next/cache', () => ({
 
 import { updateClaimStatusCore } from './update-status';
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('updateClaimStatusCore', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
 
@@ -47,6 +50,7 @@ describe('updateClaimStatusCore', () => {
     ]);
 
     const result = await updateClaimStatusCore({
+      authority,
       claimId: 'claim-1',
       newStatus: 'submitted' as unknown as import('./types').ClaimStatus,
       session: {

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
@@ -31,6 +32,13 @@ vi.mock('next-intl/server', () => ({
     getNamespacedTranslation(options)
   ),
   setRequestLocale: vi.fn(),
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: vi.fn(async () => ({
+    session: { user: { id: 'member-1', tenantId: 'tenant-ks' } },
+    authority: mintTestTenantAuthority('tenant-ks'),
+  })),
 }));
 
 vi.mock('@/components/shell/session', () => ({

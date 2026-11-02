@@ -1,7 +1,11 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { hoisted } from './persist.fixture';
 import { insertWebhookEvent, persistInvalidSignatureAttempt } from './persist';
 import { receiptLease, subscriptionCreatedReceipt } from './persist.test-support';
+
+const ksAuthority = mintTestTenantAuthority('tenant_ks');
 
 describe('webhook persistence idempotency', () => {
   it('persists invalid signature attempts as tenant-less evidence in the caller scope', async () => {
@@ -71,6 +75,7 @@ describe('webhook persistence idempotency', () => {
       signatureValid: true,
       signatureBypassed: false,
       tenantId: 'tenant_ks',
+      authority: ksAuthority,
       providerTransactionId: 'txn_1',
     };
 
@@ -99,14 +104,18 @@ describe('webhook persistence idempotency', () => {
     });
     expect(replay).toEqual({ inserted: false, webhookEventRowId: null });
     expect(
-      deps.logAuditEvent.mock.calls.map(([audit]) => [audit.action, audit.entityId, audit.tenantId])
+      deps.logAuditEvent.mock.calls.map(([audit]) => [
+        audit.action,
+        audit.entityId,
+        readTenantAuthority(audit.authority).tenantId,
+      ])
     ).toEqual([
       ['webhook.received', 'we_tx_1', 'tenant_ks'],
       ['webhook.duplicate', undefined, 'tenant_ks'],
     ]);
   });
 
-  it('preserves duplicate webhook audit behavior when tenantId is nullable', async () => {
+  it('records no tenant-scoped audit for a duplicate when no tenant authority was resolved', async () => {
     hoisted.admitVerifiedReceipt.mockResolvedValueOnce({ outcome: 'duplicate' });
     const deps = { logAuditEvent: vi.fn() };
 
@@ -132,16 +141,8 @@ describe('webhook persistence idempotency', () => {
     expect(hoisted.admitVerifiedReceipt).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: null, providerTransactionId: 'txn_dup' })
     );
-    expect(deps.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'webhook.duplicate',
-        tenantId: undefined,
-        metadata: expect.objectContaining({
-          processingScopeKey: 'entity:unknown',
-          providerTransactionId: 'txn_dup',
-        }),
-      })
-    );
+    // No tenant was resolved, so there is no tenant to record the audit row in.
+    expect(deps.logAuditEvent).not.toHaveBeenCalled();
   });
 
   it('admits bypassed signatures but never an unverified receipt', async () => {

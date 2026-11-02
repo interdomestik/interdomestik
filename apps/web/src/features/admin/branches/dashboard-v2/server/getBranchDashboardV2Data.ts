@@ -1,9 +1,12 @@
-import { getActionContext } from '@/actions/admin-users/context';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getBranchCashPendingCount } from '@/features/admin/branches/server/branch-cash-metrics';
 import { computeHealthScore } from '@/features/admin/health/health-model';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
-import { withTenantContext } from '@interdomestik/database';
-import { resolveBranchOwner } from '@interdomestik/database';
+import { delegateSuperAdminBranchOwner } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { readTenantCurrency } from '@interdomestik/database/tenant-directory';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
@@ -13,6 +16,7 @@ import { and, count, eq, inArray, or } from 'drizzle-orm';
 
 import { getAgentMetrics, getStaffLoad } from './branch-dashboard-v2-metrics';
 import type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
 
@@ -24,8 +28,9 @@ export async function getBranchDashboardV2Data(
     { recordResponse: true },
     async () => {
       try {
-        const { session } = await getActionContext();
-        if (!session?.user) throw new Error('Unauthorized');
+        const authorized = await authorizeSessionTenant();
+        if (!authorized) throw new Error('Unauthorized');
+        const { session, authority: sessionAuthority } = authorized;
 
         // RBAC Checks
         const userRole = session.user.role;
@@ -45,28 +50,28 @@ export async function getBranchDashboardV2Data(
 
         // Tenant Scoping
         const scope = scopeFilter(session);
-        let tenantId = scope.tenantId;
+        let authority: TenantAuthority = sessionAuthority;
 
         // Super_admin (cross-tenant) first resolves the branch's owning tenant from its id or
         // code; every scope then reads the branch inside one tenant context. Support lookup by
         // either ID (UUID) or code (e.g., branch_mk_b).
         let resolvedOwnerBranchId: string | null = null;
         if (scope.isCrossTenantScope) {
-          const owner = await resolveBranchOwner(branchId);
+          const owner = await delegateSuperAdminBranchOwner(sessionAuthority, branchId);
           if (!owner) {
             return null; // Unknown or ambiguous across tenants: allow the 404 handler to take over
           }
-          tenantId = owner.tenantId;
+          authority = owner.authority;
           resolvedOwnerBranchId = owner.branchId;
+        } else if (readTenantAuthority(sessionAuthority).tenantId !== scope.tenantId) {
+          // The session authority and the role scope must name the same tenant; fail closed.
+          throw new Error('Forbidden: Tenant Scope');
         }
-        if (!tenantId) {
-          throw new Error('Forbidden: Missing Tenant');
-        }
-        const scopedTenantId = tenantId;
-        const branchResult = await withTenantContext({ tenantId: scopedTenantId }, tx =>
+        const { tenantId } = readTenantAuthority(authority);
+        const branchResult = await withTenantAuthority(authority, tx =>
           tx.query.branches.findFirst({
             where: and(
-              eq(branches.tenantId, scopedTenantId),
+              eq(branches.tenantId, tenantId),
               // A resolved owner binds the exact row; tenant scopes match id or code in-tenant.
               resolvedOwnerBranchId
                 ? eq(branches.id, resolvedOwnerBranchId)
@@ -93,7 +98,7 @@ export async function getBranchDashboardV2Data(
           agentsData,
           staffData,
         ] = await Promise.all([
-          withTenantContext({ tenantId }, tx =>
+          withTenantAuthority(authority, tx =>
             tx
               .select({ count: count() })
               .from(claims)
@@ -106,9 +111,9 @@ export async function getBranchDashboardV2Data(
               )
           ),
 
-          getBranchCashPendingCount({ tenantId, branchId: resolvedBranchId }),
+          getBranchCashPendingCount({ authority, branchId: resolvedBranchId }),
 
-          withTenantContext({ tenantId }, tx =>
+          withTenantAuthority(authority, tx =>
             tx
               .select({ count: count() })
               .from(claims)
@@ -121,7 +126,7 @@ export async function getBranchDashboardV2Data(
               )
           ),
 
-          withTenantContext({ tenantId }, tx =>
+          withTenantAuthority(authority, tx =>
             tx
               .select({ count: count() })
               .from(user)
@@ -134,7 +139,7 @@ export async function getBranchDashboardV2Data(
               )
           ),
 
-          withTenantContext({ tenantId }, tx =>
+          withTenantAuthority(authority, tx =>
             tx
               .select({ count: count() })
               .from(user)
@@ -147,7 +152,7 @@ export async function getBranchDashboardV2Data(
               )
           ),
 
-          withTenantContext({ tenantId }, tx =>
+          withTenantAuthority(authority, tx =>
             tx
               .select({ status: lifecycleSql.claimLifecycleStatusSql(), count: count() })
               .from(claims)
@@ -155,9 +160,9 @@ export async function getBranchDashboardV2Data(
               .groupBy(lifecycleSql.claimLifecycleStatusSql())
           ),
 
-          getAgentMetrics(resolvedBranchId, tenantId),
+          getAgentMetrics(resolvedBranchId, authority),
 
-          getStaffLoad(resolvedBranchId, tenantId),
+          getStaffLoad(resolvedBranchId, authority),
         ]);
 
         // Compute Branch Health

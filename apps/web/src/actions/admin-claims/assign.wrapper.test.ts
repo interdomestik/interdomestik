@@ -2,6 +2,7 @@ import * as audit from '@/lib/audit';
 import * as notifications from '@/lib/notifications';
 import * as domainAssign from '@interdomestik/domain-claims/agent-claims/assign';
 import * as nextCache from 'next/cache';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { assignClaimCore } from './assign.core';
 
@@ -62,6 +63,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   const mockHeaders = new Headers();
+  const authority = mintTestTenantAuthority('tenant1');
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,6 +80,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     };
 
@@ -90,10 +93,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         notifyClaimAssigned: notifications.notifyClaimAssigned,
       })
     );
-    expect(dbMocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant1' },
-      expect.any(Function)
-    );
+    expect(dbMocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
   });
 
   it('should revalidate paths', async () => {
@@ -110,6 +110,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -136,6 +137,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -151,6 +153,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         claimId: 'claim1',
         staffId: 'staff1',
         session: mockSession,
+        authority,
         requestHeaders: mockHeaders,
       })
     ).rejects.toThrow('Domain Error');
@@ -163,6 +166,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -179,6 +183,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         ...mockSession,
         user: { ...mockSession.user, role: 'member' },
       },
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -196,6 +201,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
         ...mockSession,
         user: { ...mockSession.user, role: 'staff', id: 'staff1' },
       },
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -223,6 +229,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 
@@ -245,6 +252,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       claimId: 'claim1',
       staffId: 'staff1',
       session: mockSession,
+      authority,
       requestHeaders: mockHeaders,
     });
 

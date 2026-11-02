@@ -1,10 +1,13 @@
 import { getSessionSafe } from '@/components/shell/session';
-import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { and, eq, subscriptions } from '@interdomestik/database';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { MembershipCard } from './membership-card';
 import { toMemberCardSubscription } from './membership-card-subscription';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export default async function MemberCardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -18,14 +21,16 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
 
   const t = await getTranslations('membership.card');
 
-  const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
+  const hasTenant = !!(session.user as { tenantId?: string | null }).tenantId;
 
-  const subscription = tenantId
-    ? await withTenantContext({ tenantId }, tx =>
+  const authorized = hasTenant ? await authorizeSessionTenant() : null;
+
+  const subscription = authorized
+    ? await withTenantAuthority(authorized.authority, tx =>
         tx.query.subscriptions.findFirst({
           where: and(
             eq(subscriptions.userId, session.user.id),
-            eq(subscriptions.tenantId, tenantId)
+            eq(subscriptions.tenantId, readTenantAuthority(authorized.authority).tenantId)
           ),
         })
       )

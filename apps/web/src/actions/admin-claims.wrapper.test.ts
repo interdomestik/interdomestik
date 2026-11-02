@@ -1,10 +1,14 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { updateClaimStatus } from './admin-claims';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 vi.mock('./admin-claims/context', () => ({
   getActionContext: vi.fn(async () => ({
     session: { user: { id: 'admin-1', role: 'admin' } },
+    authority,
     requestHeaders: new Headers(),
   })),
 }));
@@ -29,6 +33,7 @@ describe('admin-claims action wrapper', () => {
     expect(updateClaimStatusCore).toHaveBeenCalledWith({
       formData,
       session: { user: { id: 'admin-1', role: 'admin' } },
+      authority,
       requestHeaders: expect.any(Headers),
     });
   });

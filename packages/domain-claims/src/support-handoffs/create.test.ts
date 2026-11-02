@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportHandoffSession } from './types';
@@ -22,7 +23,8 @@ const mocks = vi.hoisted(() => {
       createdAt: 'claims.created_at',
       id: 'claims.id',
       staffId: 'claims.staff_id',
-      caseLifecycleState: 'claims.case_lifecycle_state', recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+      caseLifecycleState: 'claims.case_lifecycle_state',
+      recoveryLifecycleState: 'claims.recovery_lifecycle_state',
       statusUpdatedAt: 'claims.status_updated_at',
       tenantId: 'claims.tenant_id',
       updatedAt: 'claims.updated_at',
@@ -33,7 +35,6 @@ const mocks = vi.hoisted(() => {
       select: vi.fn(() => selectChain),
     },
     desc: vi.fn(column => ({ column, op: 'desc' })),
-    ensureTenantId: vi.fn(() => 'tenant-1'),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
     insertChain,
     insertValues,
@@ -68,11 +69,10 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: mocks.ensureTenantId,
+vi.mock('drizzle-orm', () => ({
+  and: mocks.and,
+  sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })),
 }));
-
-vi.mock('drizzle-orm', () => ({ and: mocks.and, sql: vi.fn((strings, ...values) => ({ op: 'sql', strings, values })) }));
 
 function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   return {
@@ -85,6 +85,8 @@ function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
     },
   } as SupportHandoffSession;
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 const ownedClaimContext = {
   branchId: 'branch-claim',
@@ -109,6 +111,7 @@ describe('createMemberSupportHandoffCore', () => {
 
   it('rejects caller-supplied ownership and lifecycle fields before persistence', async () => {
     const result = await createMemberSupportHandoffCore({
+      authority,
       input: {
         branchId: 'branch-client',
         message: 'Please call me about this claim.',
@@ -121,10 +124,34 @@ describe('createMemberSupportHandoffCore', () => {
     expect(mocks.db.insert).not.toHaveBeenCalled();
   });
 
+  it('refuses without a session authority before any data access', async () => {
+    const result = await createMemberSupportHandoffCore({
+      authority: null,
+      input: { message: 'Please call me about this claim.', subject: 'Need help' },
+      session: memberSession(),
+    });
+
+    expect(result).toEqual({ error: 'Unauthorized', success: false });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.db.insert).not.toHaveBeenCalled();
+  });
+
+  it('refuses non-member roles before any data access', async () => {
+    const result = await createMemberSupportHandoffCore({
+      authority,
+      input: { message: 'Please call me about this claim.', subject: 'Need help' },
+      session: memberSession({ role: 'staff' }),
+    });
+
+    expect(result).toEqual({ error: 'Unauthorized', success: false });
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+  });
+
   it('rejects linked claims that are not owned by the member in the tenant', async () => {
     mocks.selectChain.limit.mockResolvedValueOnce([]);
 
     const result = await createMemberSupportHandoffCore({
+      authority,
       input: {
         claimId: 'claim-foreign',
         message: 'Please review this claim with me.',
@@ -142,6 +169,7 @@ describe('createMemberSupportHandoffCore', () => {
     mocks.selectChain.limit.mockResolvedValueOnce([]);
 
     const result = await createMemberSupportHandoffCore({
+      authority,
       input: {
         message: 'Please route this support request to staff.',
         subject: 'Routing support',
@@ -202,6 +230,7 @@ describe('createMemberSupportHandoffCore', () => {
 
     const result = await createMemberSupportHandoffCore(
       {
+        authority,
         input: {
           message: 'Please help me understand the next support step.',
           subject: 'Source tracking',
@@ -234,6 +263,7 @@ describe('createMemberSupportHandoffCore', () => {
 
     const result = await createMemberSupportHandoffCore(
       {
+        authority,
         input: {
           claimId: 'claim-1',
           contactPreference: 'phone',
@@ -249,6 +279,7 @@ describe('createMemberSupportHandoffCore', () => {
       data: { id: 'support_handoff_handoff-uuid' },
       success: true,
     });
+    expect(mocks.withTenantContext.mock.calls[0][0]).toBe(authority);
     expect(mocks.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         branchId: 'branch-claim',

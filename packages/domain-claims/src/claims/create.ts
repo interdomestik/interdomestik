@@ -1,5 +1,10 @@
-import { claims, withTenantContext } from '@interdomestik/database';
+import { claims } from '@interdomestik/database';
 import { generateClaimNumber } from '@interdomestik/database/claim-number';
+import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -11,6 +16,7 @@ import { resolveClaimIncidentCountry } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { recordCaseCreatedEvent } from './case-created-event';
 import type { ClaimsDeps, ClaimsSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const claimSchema = z.object({
   title: z.string().min(3).max(100),
@@ -28,6 +34,7 @@ const claimSchema = z.object({
 
 export async function createClaimCore(
   params: {
+    authority: TenantAuthority | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
     hostId?: string | null;
@@ -35,14 +42,15 @@ export async function createClaimCore(
   },
   deps: ClaimsDeps = {}
 ) {
-  const { session, requestHeaders, formData } = params;
+  const { authority, session, requestHeaders, formData } = params;
 
-  if (!session) {
+  if (!session || !authority) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = ensureTenantId(session);
-  const subscription = await getActiveSubscription(session.user.id, tenantId);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
+  const subscription = await getActiveSubscription(session.user.id, authority);
   if (!subscription) {
     return { success: false, error: 'Membership required to create a claim.' };
   }
@@ -51,7 +59,7 @@ export async function createClaimCore(
     ? undefined
     : extractBranchIdFromSetting(
         (
-          await withTenantContext({ tenantId }, tx =>
+          await withTenantAuthority(authority, tx =>
             tx.query.tenantSettings.findFirst({
               where: (ts, { and, eq }) =>
                 withTenant(
@@ -81,8 +89,15 @@ export async function createClaimCore(
   const now = new Date();
 
   try {
+    // The tenant directory is deny-all to the runtime RLS role, so the authoritative tenant code is
+    // prepared on its own connection before the persistence transaction opens, never inside it.
+    const tenantCode = (await readTenantLocaleMetadata(tenantId))?.code?.trim();
+    if (!tenantCode) {
+      throw new Error(`Tenant code not found for tenantId: ${tenantId}`);
+    }
+
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await withTenantContext({ tenantId }, async tx => {
+    await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       await tx.insert(claims).values({
         id: claimId,
@@ -103,11 +118,15 @@ export async function createClaimCore(
         updatedAt: now,
       });
 
-      await generateClaimNumber(tx, {
-        tenantId,
-        claimId,
-        createdAt: now,
-      });
+      await generateClaimNumber(
+        tx,
+        {
+          tenantId,
+          claimId,
+          createdAt: now,
+        },
+        { tenantId, code: tenantCode }
+      );
 
       await recordCaseCreatedEvent(tx, {
         actor: { id: session.user.id, role: session.user.role ?? 'member' },
@@ -124,7 +143,7 @@ export async function createClaimCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
-        tenantId,
+        authority,
         action: 'claim.created',
         entityType: 'claim',
         entityId: claimId,

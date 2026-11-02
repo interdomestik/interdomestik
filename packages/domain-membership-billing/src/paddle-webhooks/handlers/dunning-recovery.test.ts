@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { deps, hoisted, seed } from './dunning-order.fixture';
-import { pastDue, T1, T2 } from './dunning-order.test-support';
+import { KS_AUTHORITY, pastDue, T1, T2 } from './dunning-order.test-support';
 import { handleSubscriptionPastDue } from './dunning';
 
 describe('ordered past-due effect recovery', () => {
@@ -140,9 +140,6 @@ describe('ordered past-due effect recovery', () => {
     hoisted.store.deliveries[0].tenantId = 'tenant_mk';
     await handleSubscriptionPastDue(pastDue(T2, 'evt_due'), deps);
     expect(deps.sendPreparedPastDueEmail).not.toHaveBeenCalled();
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_ks', role: 'system' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(KS_AUTHORITY, expect.any(Function));
   });
 });

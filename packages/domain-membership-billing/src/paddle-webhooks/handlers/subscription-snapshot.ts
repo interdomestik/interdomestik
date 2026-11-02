@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
 import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus } from '../subscription-status';
@@ -15,7 +17,7 @@ export async function writeSubscriptionSnapshot(args: {
   eventType: string;
   providerEventId?: string;
   sub: SubscriptionEventData;
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   agentId: string | null;
   branchId?: string;
@@ -25,13 +27,13 @@ export async function writeSubscriptionSnapshot(args: {
   deps: PaddleWebhookAuditDeps;
 }): Promise<UpsertSubscriptionResult> {
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId: args.tenantId,
+    authority: args.authority,
     planId: args.priceId,
   });
   const mappedStatus = mapPaddleStatus(args.sub.status);
   const result = await upsertSubscription({
     sub: args.sub,
-    tenantId: args.tenantId,
+    authority: args.authority,
     userId: args.userId,
     agentId: args.agentId,
     branchId: args.branchId,
@@ -48,7 +50,7 @@ export async function writeSubscriptionSnapshot(args: {
         action: 'subscription.updated',
         entityType: 'subscription',
         entityId: args.sub.id,
-        tenantId: args.tenantId,
+        authority: args.authority,
         metadata: {
           eventType: args.eventType,
           status: mappedStatus,

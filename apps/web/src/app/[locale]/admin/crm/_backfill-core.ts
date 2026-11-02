@@ -1,3 +1,5 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { z } from 'zod';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
@@ -103,13 +105,18 @@ export interface RunAdminCrmForecastBackfillOperatorCoreDeps {
 
 export async function runAdminCrmForecastBackfillOperatorCore(
   args: {
+    /** The session tenant authority the backfill runs under; the form's tenantId never selects one. */
+    authority: TenantAuthority | null;
     input: unknown;
     session: AdminCrmForecastBackfillOperatorSession | null;
   },
   deps: RunAdminCrmForecastBackfillOperatorCoreDeps = {}
 ): Promise<AdminCrmForecastBackfillOperatorActionResult> {
   const actor = resolveAdminActor(args.session);
-  if (!actor) return errorResult('unauthorized');
+  if (!actor || !args.authority) return errorResult('unauthorized');
+  if (readTenantAuthority(args.authority).tenantId !== actor.tenantId) {
+    return errorResult('unauthorized');
+  }
 
   const parsed = actionInputSchema.safeParse(args.input);
   if (!parsed.success) return errorResult(validationErrorCode(parsed.error));
@@ -142,6 +149,7 @@ export async function runAdminCrmForecastBackfillOperatorCore(
   try {
     return await runAndProjectBackfill({
       actorId: actor.actorId,
+      authority: args.authority,
       confirmationStore,
       consumedTokenId: confirmation.tokenId,
       logger: deps.logger ?? console,
@@ -254,6 +262,7 @@ function consumeWriteConfirmation(args: {
 
 async function runAndProjectBackfill(args: {
   actorId: string;
+  authority: TenantAuthority;
   confirmationStore: AdminCrmForecastBackfillConfirmationStore;
   consumedTokenId: string | null;
   logger: Pick<Console, 'error' | 'info' | 'warn'>;
@@ -264,11 +273,11 @@ async function runAndProjectBackfill(args: {
   tuple: AdminCrmForecastBackfillConfirmationTuple;
 }): Promise<AdminCrmForecastBackfillOperatorActionResult> {
   const coreResult = await args.runBackfillCore({
+    authority: args.authority,
     dryRun: args.mode === 'dry_run',
     fromDate: args.request.fromDate,
     maxWorkItemsPerDate: args.request.maxWorkItemsPerDate,
     now: args.now,
-    tenantId: args.request.tenantId,
     toDate: args.request.toDate,
   });
   const projected = projectBackfillResult({

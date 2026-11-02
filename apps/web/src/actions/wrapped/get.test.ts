@@ -4,6 +4,8 @@ import { getWrappedStatsCore } from './get';
 
 describe('actions/wrapped getWrappedStatsCore', () => {
   it('throws Unauthorized when not authenticated', async () => {
-    await expect(getWrappedStatsCore({ session: null })).rejects.toThrow('Unauthorized');
+    await expect(getWrappedStatsCore({ session: null, authority: null })).rejects.toThrow(
+      'Unauthorized'
+    );
   });
 });

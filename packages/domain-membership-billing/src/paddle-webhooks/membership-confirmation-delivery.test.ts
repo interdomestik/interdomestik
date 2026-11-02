@@ -1,3 +1,8 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it } from 'vitest';
 
 import type { MembershipConfirmationEvidence, MembershipConfirmationSnapshot } from './types';
@@ -18,10 +23,13 @@ type Row = {
   metadata: Record<string, unknown> | null;
 };
 
+const authority = mintTestTenantAuthority('tenant_mk');
+const tenantOf = (value: TenantAuthority) => readTenantAuthority(value).tenantId;
+
 function createRepository() {
   const rows = new Map<string, Row>();
   const repository: MembershipConfirmationDeliveryRepository = {
-    async insertPending(row) {
+    async insertPending(_authority, row) {
       if (rows.has(row.dedupeKey)) return null;
       rows.set(row.dedupeKey, {
         ...row,
@@ -30,22 +38,22 @@ function createRepository() {
       });
       return { id: row.id };
     },
-    async find(tenantId, dedupeKey) {
+    async find(value, dedupeKey) {
       const row = rows.get(dedupeKey);
-      return row?.tenantId === tenantId ? row : null;
+      return row?.tenantId === tenantOf(value) ? row : null;
     },
-    async reclaimError(tenantId, dedupeKey) {
+    async reclaimError(value, dedupeKey) {
       const row = rows.get(dedupeKey);
-      if (!row || row.tenantId !== tenantId || row.status !== 'error') return false;
+      if (!row || row.tenantId !== tenantOf(value) || row.status !== 'error') return false;
       row.status = 'pending';
       row.error = null;
       return true;
     },
-    async markReady(tenantId, deliveryId, dedupeKey, subscriptionId) {
+    async markReady(value, deliveryId, dedupeKey, subscriptionId) {
       const row = rows.get(dedupeKey);
       if (
         !row ||
-        row.tenantId !== tenantId ||
+        row.tenantId !== tenantOf(value) ||
         row.id !== deliveryId ||
         row.status !== 'authorized'
       ) {
@@ -55,18 +63,28 @@ function createRepository() {
       row.subscriptionId = subscriptionId;
       return true;
     },
-    async markSent(tenantId, deliveryId, dedupeKey, providerMessageId) {
+    async markSent(value, deliveryId, dedupeKey, providerMessageId) {
       const row = rows.get(dedupeKey);
-      if (!row || row.tenantId !== tenantId || row.id !== deliveryId || row.status !== 'pending') {
+      if (
+        !row ||
+        row.tenantId !== tenantOf(value) ||
+        row.id !== deliveryId ||
+        row.status !== 'pending'
+      ) {
         return false;
       }
       row.status = 'sent';
       row.providerMessageId = providerMessageId;
       return true;
     },
-    async markError(tenantId, deliveryId, dedupeKey, error) {
+    async markError(value, deliveryId, dedupeKey, error) {
       const row = rows.get(dedupeKey);
-      if (!row || row.tenantId !== tenantId || row.id !== deliveryId || row.status !== 'pending') {
+      if (
+        !row ||
+        row.tenantId !== tenantOf(value) ||
+        row.id !== deliveryId ||
+        row.status !== 'pending'
+      ) {
         return false;
       }
       row.status = 'error';
@@ -125,6 +143,7 @@ async function expectStoredSnapshotRetry(
 ) {
   await expect(
     store.claimExisting({
+      authority,
       evidence,
       idempotencyKey,
     })
@@ -141,29 +160,29 @@ describe('membership confirmation delivery store', () => {
     const { repository, rows } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
 
-    await expect(store.claimExisting({ evidence, idempotencyKey })).resolves.toEqual({
+    await expect(store.claimExisting({ authority, evidence, idempotencyKey })).resolves.toEqual({
       kind: 'not_found',
     });
-    await expect(store.claim({ idempotencyKey, snapshot })).resolves.toEqual({
+    await expect(store.claim({ authority, idempotencyKey, snapshot })).resolves.toEqual({
       kind: 'claimed',
       deliveryId: 'delivery_123',
       requiresEffects: true,
       snapshot,
     });
     await expect(
-      store.claimReadyRetry!({ idempotencyKey, evidence: retryEvidence })
+      store.claimReadyRetry!({ authority, idempotencyKey, evidence: retryEvidence })
     ).resolves.toEqual({ kind: 'requires_context' });
     await store.ready({
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       subscriptionId: 'subscription_internal_1',
-      tenantId: 'tenant_mk',
     });
     await store.complete({
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       providerMessageId: 'email_123',
-      tenantId: 'tenant_mk',
     });
 
     expect(rows.get(idempotencyKey)).toEqual(
@@ -173,7 +192,7 @@ describe('membership confirmation delivery store', () => {
         metadata: { kind: 'membership_confirmation', version: 1, snapshot },
       })
     );
-    await expect(store.claim({ idempotencyKey, snapshot })).resolves.toEqual({
+    await expect(store.claim({ authority, idempotencyKey, snapshot })).resolves.toEqual({
       kind: 'already_sent',
     });
   });
@@ -181,46 +200,47 @@ describe('membership confirmation delivery store', () => {
   it('reclaims a failed same-event delivery with the original snapshot', async () => {
     const { repository } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
-    const claimed = await store.claim({ idempotencyKey, snapshot });
+    const claimed = await store.claim({ authority, idempotencyKey, snapshot });
     expect(claimed.kind).toBe('claimed');
     await store.ready({
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       subscriptionId: 'subscription_internal_1',
-      tenantId: 'tenant_mk',
     });
     await store.fail({
+      authority,
       deliveryId: 'delivery_123',
       error: 'temporary provider failure',
       idempotencyKey,
-      tenantId: 'tenant_mk',
     });
 
     await expectStoredSnapshotRetry(store);
     await expect(
-      store.claimReadyRetry!({ idempotencyKey, evidence: retryEvidence })
+      store.claimReadyRetry!({ authority, idempotencyKey, evidence: retryEvidence })
     ).resolves.toMatchObject({ kind: 'claimed', requiresEffects: false, snapshot });
   });
 
   it('rejects contradictory provider evidence for the same subscription', async () => {
     const { repository } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
-    await store.claim({ idempotencyKey, snapshot });
+    await store.claim({ authority, idempotencyKey, snapshot });
     await store.ready({
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       subscriptionId: 'subscription_internal_1',
-      tenantId: 'tenant_mk',
     });
     await store.fail({
+      authority,
       deliveryId: 'delivery_123',
       error: 'temporary provider failure',
       idempotencyKey,
-      tenantId: 'tenant_mk',
     });
 
     await expect(
       store.claim({
+        authority,
         idempotencyKey,
         snapshot: {
           ...snapshot,
@@ -231,6 +251,7 @@ describe('membership confirmation delivery store', () => {
     ).resolves.toEqual({ kind: 'conflict' });
     await expect(
       store.claimReadyRetry!({
+        authority,
         idempotencyKey,
         evidence: { ...retryEvidence, providerEventId: 'evt_provider_2' },
       })
@@ -241,14 +262,14 @@ describe('membership confirmation delivery store', () => {
     const { repository } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
 
-    await expect(store.claim({ idempotencyKey, snapshot })).resolves.toMatchObject({
+    await expect(store.claim({ authority, idempotencyKey, snapshot })).resolves.toMatchObject({
       kind: 'claimed',
     });
     await store.ready({
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       subscriptionId: 'subscription_internal_1',
-      tenantId: 'tenant_mk',
     });
     await expectStoredSnapshotRetry(store);
   });
@@ -257,23 +278,77 @@ describe('membership confirmation delivery store', () => {
     const { repository } = createRepository();
     const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
 
-    await store.claim({ idempotencyKey, snapshot });
+    await store.claim({ authority, idempotencyKey, snapshot });
     const readiness = {
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       subscriptionId: 'subscription_internal_1',
-      tenantId: 'tenant_mk',
     };
     await store.ready(readiness);
     await expect(store.ready(readiness)).resolves.toBeUndefined();
 
     const completion = {
+      authority,
       deliveryId: 'delivery_123',
       idempotencyKey,
       providerMessageId: 'email_123',
-      tenantId: 'tenant_mk',
     };
     await store.complete(completion);
     await expect(store.complete(completion)).resolves.toBeUndefined();
+  });
+  it('refuses a claim whose snapshot names another tenant than the delivery authority', async () => {
+    const { repository, rows } = createRepository();
+    const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
+    const otherAuthority = mintTestTenantAuthority('tenant_ks');
+
+    await expect(
+      store.claim({ authority: otherAuthority, idempotencyKey, snapshot })
+    ).rejects.toThrow('tenant conflict');
+    await expect(
+      store.claimExisting({ authority: otherAuthority, evidence, idempotencyKey })
+    ).rejects.toThrow('tenant conflict');
+    await expect(
+      store.claimReadyRetry!({ authority: otherAuthority, idempotencyKey, evidence: retryEvidence })
+    ).rejects.toThrow('tenant conflict');
+    expect(rows.size).toBe(0);
+  });
+
+  it('treats a stored row from another tenant as a conflict without reclaiming or writing', async () => {
+    const { repository, rows } = createRepository();
+    const store = createMembershipConfirmationDeliveryStore(repository, () => 'delivery_123');
+    await store.claim({ authority, idempotencyKey, snapshot });
+    await store.ready({
+      authority,
+      deliveryId: 'delivery_123',
+      idempotencyKey,
+      subscriptionId: 'subscription_internal_1',
+    });
+    await store.fail({
+      authority,
+      deliveryId: 'delivery_123',
+      error: 'temporary provider failure',
+      idempotencyKey,
+    });
+    const before = structuredClone(rows.get(idempotencyKey));
+
+    // A repository that returned a row outside the delivery's tenant must never be reclaimed.
+    const leakyRepository: MembershipConfirmationDeliveryRepository = {
+      ...repository,
+      find: async (_value, dedupeKey) => rows.get(dedupeKey) ?? null,
+      reclaimError: async () => {
+        throw new Error('reclaim must not run for a row of another tenant');
+      },
+    };
+    const leakyStore = createMembershipConfirmationDeliveryStore(leakyRepository);
+    rows.get(idempotencyKey)!.tenantId = 'tenant_ks';
+
+    await expect(
+      leakyStore.claimExisting({ authority, evidence, idempotencyKey })
+    ).resolves.toEqual({ kind: 'conflict' });
+    await expect(
+      leakyStore.claimReadyRetry!({ authority, idempotencyKey, evidence: retryEvidence })
+    ).resolves.toEqual({ kind: 'conflict' });
+    expect(rows.get(idempotencyKey)).toEqual({ ...before, tenantId: 'tenant_ks' });
   });
 });

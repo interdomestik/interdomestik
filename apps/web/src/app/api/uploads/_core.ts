@@ -1,5 +1,8 @@
-import { and, claims, eq, withTenantContext } from '@interdomestik/database';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import { and, claims, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
@@ -10,6 +13,7 @@ import {
   assertEvidenceStoragePath,
   buildEvidenceStoragePath,
 } from '@/features/claims/upload/server/storage-path';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type SessionUser = {
   id: string;
@@ -46,10 +50,11 @@ type EvidenceUploadPathResult = { ok: true; path: string } | { ok: false; result
 
 export async function createSignedUploadCore(args: {
   session: Session;
+  authority: TenantAuthority;
   input: UploadRequest;
   bucket: string;
 }): Promise<UploadResult> {
-  const { session, input, bucket } = args;
+  const { session, authority, input, bucket } = args;
 
   const { fileName, fileType, fileSize, claimId } = input;
 
@@ -59,10 +64,10 @@ export async function createSignedUploadCore(args: {
 
   if (fileSize > MAX_FILE_SIZE_BYTES) return { ok: false, status: 413, error: 'File too large' };
 
-  const tenantId = ensureAccessTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
   let storageTenantId = tenantId;
   if (claimId) {
-    const claim = await withTenantContext({ tenantId, role: session.user.role ?? null }, async tx =>
+    const claim = await withTenantAuthority(authority, async tx =>
       tx.query.claims.findFirst({
         where: and(eq(claims.id, claimId), matchesAccessTenant(claims, tenantId)),
         columns: {

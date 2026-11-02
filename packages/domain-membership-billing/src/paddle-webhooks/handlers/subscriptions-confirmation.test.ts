@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleSubscriptionChanged } from './subscriptions';
-import { mockSubscriptionOwner, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
+import {
+  TEST_PADDLE_DELIVERY,
+  mockSubscriptionOwner,
+  mockUserOwner,
+  resetPaddleHandlerMocks,
+} from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -57,6 +62,7 @@ describe('subscription confirmation dispatch', () => {
   it('preserves exact active values from a raw Paddle payload', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         providerEventId: 'evt_provider_1',
         webhookPayloadHash: 'payload_hash_1',
@@ -105,6 +111,7 @@ describe('subscription confirmation dispatch', () => {
   it('does not confirm an out-of-order active subscription.updated event with no existing row', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: 'sub_provider_updated_first',
@@ -153,6 +160,7 @@ describe('subscription confirmation dispatch', () => {
     await expect(
       handleSubscriptionChanged(
         {
+          delivery: TEST_PADDLE_DELIVERY,
           eventType: 'subscription.created',
           data: {
             id: 'sub_existing',

@@ -4,14 +4,19 @@
  * Minimal audit mechanism for document operations.
  * All uploads, downloads, shares, and deletes are logged.
  */
-import { withTenantContext } from '@interdomestik/database';
+
 import * as schema from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AuditEventType = 'upload' | 'view' | 'download' | 'share' | 'delete';
 
 export interface AuditEventParams {
-  tenantId: string;
+  authority: TenantAuthority;
   documentId: string;
   accessType: AuditEventType;
   accessedBy?: string;
@@ -25,10 +30,12 @@ export interface AuditEventParams {
  * This is an append-only log that cannot be modified or deleted.
  */
 export async function logAuditEvent(params: AuditEventParams): Promise<void> {
-  const { tenantId, documentId, accessType, accessedBy, ipAddress, userAgent, shareToken } = params;
+  const { authority, documentId, accessType, accessedBy, ipAddress, userAgent, shareToken } =
+    params;
+  const { tenantId } = readTenantAuthority(authority);
 
   // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  await withTenantContext({ tenantId }, tx =>
+  await withTenantAuthority(authority, tx =>
     tx.insert(schema.documentAccessLog).values({
       id: nanoid(),
       tenantId,

@@ -1,8 +1,11 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { db, withTenantContext } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemberReferralRewardCore } from '../../../../../domain-referrals/src';
 import { createCommissionWithDispositionCore } from '../../../commissions/create';
 import { handleNewSubscriptionExtras } from './extras';
+
+const authority = mintTestTenantAuthority('tenant_1');
 
 vi.mock('@interdomestik/database', () => ({
   agentClients: {
@@ -114,7 +117,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: mockUserRecord,
@@ -122,8 +125,10 @@ describe('handleNewSubscriptionExtras', () => {
     });
 
     expect(db.query.agentSettings.findFirst).toHaveBeenCalled();
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(createCommissionWithDispositionCore).toHaveBeenCalledWith(
       expect.objectContaining({
+        authority,
         agentId: 'agent_1',
         amount: 4, // 20% of 20.00 EUR default
         memberId: 'user_1',
@@ -152,7 +157,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: mockUserRecord,
@@ -170,7 +175,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_stale' },
       priceId: 'price_1',
       userRecord: {
@@ -195,7 +200,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_stale' },
       priceId: 'price_1',
       userRecord: {
@@ -207,12 +212,12 @@ describe('handleNewSubscriptionExtras', () => {
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
     // The only tenant context left is the read-only referral lookup: no write statement ran.
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(tx.insert).not.toHaveBeenCalled();
     expect(tx.update).not.toHaveBeenCalled();
     expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_1',
+        authority,
         subscriptionId: 'sub_123',
       })
     );
@@ -222,7 +227,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { locale: 'en' },
       priceId: 'price_1',
       userRecord: mockUserRecord,
@@ -231,7 +236,7 @@ describe('handleNewSubscriptionExtras', () => {
 
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
     // The only tenant context left is the read-only referral lookup: no write statement ran.
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(tx.insert).not.toHaveBeenCalled();
     expect(tx.update).not.toHaveBeenCalled();
   });
@@ -240,7 +245,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { agentId: 'agent_1' },
       priceId: 'price_1',
       userRecord: mockUserRecord,
@@ -272,7 +277,7 @@ describe('handleNewSubscriptionExtras', () => {
     await handleCreatedSubscriptionExtras({
       sub: mockSub,
       userId: 'user_1',
-      tenantId: 'tenant_1',
+      authority,
       customData: { locale: 'en' },
       priceId: 'price_1',
       userRecord: mockUserRecord,
@@ -282,7 +287,7 @@ describe('handleNewSubscriptionExtras', () => {
     expect(createCommissionWithDispositionCore).not.toHaveBeenCalled();
     expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_1',
+        authority,
         referralId: 'ref_1',
         subscriptionId: 'sub_123',
         qualifyingEventType: 'first_paid_membership',

@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { preflightCommissionPayability } from './payability';
@@ -41,6 +42,7 @@ vi.mock('./payability', () => ({
 }));
 
 describe('bulkApproveCommissionsCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
   const adminSession = {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1', email: 'admin@example.com' },
   };
@@ -67,12 +69,13 @@ describe('bulkApproveCommissionsCore', () => {
   it('runs enterprise-control preflight before bulk approving pending commissions', async () => {
     const result = await bulkApproveCommissionsCore({
       session: adminSession,
+      authority,
       ids: ['comm-ok'],
     });
 
     expect(result).toEqual({ success: true, data: { count: 1 } });
     expect(preflightCommissionPayability).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
+      authority,
       ids: ['comm-ok'],
     });
     expect(db.update).toHaveBeenCalled();
@@ -88,6 +91,7 @@ describe('bulkApproveCommissionsCore', () => {
           email: 'tenant-admin@example.com',
         },
       },
+      authority,
       ids: ['comm-ok'],
     });
 
@@ -110,6 +114,7 @@ describe('bulkApproveCommissionsCore', () => {
 
     const result = await bulkApproveCommissionsCore({
       session: adminSession,
+      authority,
       ids: ['comm-ok', 'comm-bad-a', 'comm-bad-b'],
     });
 

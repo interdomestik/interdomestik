@@ -1,10 +1,15 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { memberLeads, user } from '@interdomestik/database/schema';
 import { and, count, desc, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function fetchAgentPerformance(tenantId: string) {
+export async function fetchAgentPerformance(authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
   // Find top agents by converted leads
-  const topAgents = await withTenantContext({ tenantId }, tx =>
+  const topAgents = await withTenantAuthority(authority, tx =>
     tx
       .select({
         agentId: memberLeads.agentId,
@@ -20,13 +25,13 @@ export async function fetchAgentPerformance(tenantId: string) {
   const data = await Promise.all(
     topAgents.map(async stat => {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [agentUser] = await withTenantContext({ tenantId }, tx =>
+      const [agentUser] = await withTenantAuthority(authority, tx =>
         tx.select().from(user).where(eq(user.id, stat.agentId))
       );
 
       // Get actively working leads for this agent
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [activeLeads] = await withTenantContext({ tenantId }, tx =>
+      const [activeLeads] = await withTenantAuthority(authority, tx =>
         tx
           .select({ count: count() })
           .from(memberLeads)

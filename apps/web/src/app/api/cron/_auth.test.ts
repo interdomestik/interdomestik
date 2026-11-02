@@ -14,34 +14,38 @@ describe('authorizeCronRequest', () => {
   afterEach(() => {
     errorSpy.mockRestore();
     warnSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 
-  it('returns false when CRON_SECRET is missing', () => {
-    const result = authorizeCronRequest({ authorizationHeader: null, cronSecret: undefined });
+  it('returns null when CRON_SECRET is missing', () => {
+    vi.stubEnv('CRON_SECRET', '');
+    const result = authorizeCronRequest({ authorizationHeader: 'Bearer ' });
 
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     expect(errorSpy).toHaveBeenCalledWith('CRON_SECRET is not configured');
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('returns false when authorization header is invalid', () => {
-    const result = authorizeCronRequest({
-      authorizationHeader: 'Bearer wrong',
-      cronSecret: 'secret',
-    });
+  it('returns null when authorization header is invalid', () => {
+    vi.stubEnv('CRON_SECRET', 'secret');
+    const result = authorizeCronRequest({ authorizationHeader: 'Bearer wrong' });
 
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledWith('Unauthorized cron request attempt detected');
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('returns true when authorization header matches', () => {
-    const result = authorizeCronRequest({
-      authorizationHeader: 'Bearer secret',
-      cronSecret: 'secret',
-    });
+  it('returns null when the header is absent', () => {
+    vi.stubEnv('CRON_SECRET', 'secret');
+    expect(authorizeCronRequest({ authorizationHeader: null })).toBeNull();
+  });
 
-    expect(result).toBe(true);
+  it('returns an ingress capability when authorization header matches', () => {
+    vi.stubEnv('CRON_SECRET', 'secret');
+    const result = authorizeCronRequest({ authorizationHeader: 'Bearer secret' });
+
+    expect(result).not.toBeNull();
+    expect(Object.isFrozen(result)).toBe(true);
     expect(errorSpy).not.toHaveBeenCalled();
     expect(warnSpy).not.toHaveBeenCalled();
   });

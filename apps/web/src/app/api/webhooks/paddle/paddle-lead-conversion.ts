@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { getPaddleLeadId } from './paddle-lead-id';
 import {
   getPaddleCustomData,
@@ -27,10 +31,13 @@ function hasLeadConversionProviderConflict(params: {
 export async function reconcilePaddleLeadConversion(params: {
   eventType: string | undefined;
   data: unknown;
-  tenantId: string | null;
+  /** The webhook's tenant authority, minted from a resolver-owned subscription or user. */
+  authority: TenantAuthority | null;
   subscription: WebhookSubscription | null;
 }): Promise<void> {
-  if (params.eventType !== 'transaction.completed' || !params.tenantId) return;
+  if (params.eventType !== 'transaction.completed' || !params.authority) return;
+  const { authority } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
   const leadId = getPaddleLeadId(params.data);
   if (!leadId) return;
@@ -38,7 +45,7 @@ export async function reconcilePaddleLeadConversion(params: {
   if (
     hasLeadConversionProviderConflict({
       data: params.data,
-      tenantId: params.tenantId,
+      tenantId,
       subscription: params.subscription,
     })
   ) {
@@ -48,11 +55,8 @@ export async function reconcilePaddleLeadConversion(params: {
   const { convertLeadToMember, hasTenantLeadForConversion } =
     await import('@interdomestik/domain-leads');
 
-  const leadBelongsToTenant = await hasTenantLeadForConversion(
-    { tenantId: params.tenantId },
-    { leadId }
-  );
+  const leadBelongsToTenant = await hasTenantLeadForConversion(authority, { leadId });
   if (!leadBelongsToTenant) return;
 
-  await convertLeadToMember({ tenantId: params.tenantId }, { leadId });
+  await convertLeadToMember(authority, { leadId });
 }

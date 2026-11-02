@@ -1,7 +1,7 @@
-import { claims, withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForPlatformAggregate } from '@interdomestik/database';
+import { claims, listPublicStatisticsWork } from '@interdomestik/database';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { count, eq, sql } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type PublicStats = {
   totalClaims: number;
@@ -35,8 +35,8 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
       let totalRecovered = 0;
       // Fixed public aggregate: no actor input, no per-tenant figure or tenant list leaves this
       // function. Each tenant's counts are read under its own RLS context and summed.
-      for (const tenantId of await listTenantIdsForPlatformAggregate()) {
-        const [statsRow] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+      for (const { tenantId, authority } of await listPublicStatisticsWork()) {
+        const [statsRow] = await withTenantAuthority(authority, tx =>
           tx
             .select({
               totalClaims: count(),

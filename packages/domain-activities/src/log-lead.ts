@@ -1,4 +1,4 @@
-import { crmActivities, crmLeads, withTenantContext } from '@interdomestik/database';
+import { crmActivities, crmLeads } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 export type { LogLeadActivityInput } from './schema';
 
 // NOSONAR
@@ -48,7 +49,7 @@ export async function logLeadActivityCore(params: {
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const lead = await withTenantContext(authority, tx =>
+    const lead = await withTenantAuthority(authority, tx =>
       tx.query.crmLeads.findFirst({
         where: eq(crmLeads.id, leadId),
       })
@@ -75,7 +76,7 @@ export async function logLeadActivityCore(params: {
     };
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantContext(authority, tx => tx.insert(crmActivities).values(newActivity));
+    await withTenantAuthority(authority, tx => tx.insert(crmActivities).values(newActivity));
 
     return { success: true, error: undefined };
   } catch (error) {

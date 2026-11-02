@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type StagedWrite = { table: string; values: Record<string, unknown> };
@@ -52,12 +53,14 @@ vi.mock('@interdomestik/database', () => ({
 
 import {
   ClaimDocumentActorRoleError,
+  ClaimDocumentTenantAuthorityError,
   InformationRequestUploadConflictError,
   persistClaimDocumentMetadata,
 } from './claim-document-write';
 
 type PersistParams = Parameters<typeof persistClaimDocumentMetadata>[0];
 
+const authority = mintTestTenantAuthority('tenant-1');
 const REQUEST_ID = '00000000-0000-4000-8000-000000000001';
 const STORAGE_PATH = 'pii/tenants/tenant-1/claims/claim-1/doc-1.pdf';
 const CONSENT = {
@@ -82,6 +85,7 @@ const DOCUMENT_VALUES = {
 
 function params(overrides: Partial<PersistParams> = {}): PersistParams {
   return {
+    authority,
     category: 'evidence',
     claimId: 'claim-1',
     fileId: 'doc-1',
@@ -153,7 +157,8 @@ describe('persistClaimDocumentMetadata ordinary tenant context', () => {
     const created = await persistClaimDocumentMetadata(params({ actorRole: 'member' }));
 
     expect(created).toBe(true);
-    expect(hoisted.contexts).toEqual([{ tenantId: 'tenant-1', role: 'member' }]);
+    expect(hoisted.contexts).toHaveLength(1);
+    expect(hoisted.contexts[0]).toBe(authority);
     expect(hoisted.globalTransaction).not.toHaveBeenCalled();
     expect(hoisted.committed).toEqual([{ table: 'claim_documents', values: DOCUMENT_VALUES }]);
   });
@@ -164,7 +169,8 @@ describe('persistClaimDocumentMetadata ordinary tenant context', () => {
     );
 
     expect(created).toBe(true);
-    expect(hoisted.contexts).toEqual([{ tenantId: 'tenant-1', role: 'admin' }]);
+    expect(hoisted.contexts).toHaveLength(1);
+    expect(hoisted.contexts[0]).toBe(authority);
     expect(hoisted.committed).toEqual([
       { table: 'claim_documents', values: { ...DOCUMENT_VALUES, uploadedBy: 'admin-1' } },
     ]);
@@ -204,6 +210,16 @@ describe('persistClaimDocumentMetadata ordinary tenant context', () => {
     }
   );
 
+  it('fails closed before any transaction when the authority is for another tenant', async () => {
+    await expect(
+      persistClaimDocumentMetadata(
+        params({ actorRole: 'member', authority: mintTestTenantAuthority('tenant-2') })
+      )
+    ).rejects.toBeInstanceOf(ClaimDocumentTenantAuthorityError);
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.committed).toEqual([]);
+  });
+
   it('fails closed before any transaction without a trusted ordinary role', async () => {
     await expect(persistClaimDocumentMetadata(params())).rejects.toBeInstanceOf(
       ClaimDocumentActorRoleError
@@ -222,7 +238,8 @@ describe('persistClaimDocumentMetadata request-linked path', () => {
     const created = await persistClaimDocumentMetadata(params(linked));
 
     expect(created).toBe(true);
-    expect(hoisted.contexts).toEqual([{ tenantId: 'tenant-1', role: 'member' }]);
+    expect(hoisted.contexts).toHaveLength(1);
+    expect(hoisted.contexts[0]).toBe(authority);
     expect(hoisted.committed.map(write => write.table)).toEqual([
       'claim_documents',
       'claim_information_request_evidence',

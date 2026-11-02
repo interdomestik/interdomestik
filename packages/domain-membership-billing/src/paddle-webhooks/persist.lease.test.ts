@@ -1,7 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 import { hoisted } from './persist.fixture';
 import { insertWebhookEvent, markWebhookFailed, markWebhookProcessed } from './persist';
 import { receiptLease, subscriptionCreatedReceipt } from './persist.test-support';
+
+const authority = mintTestTenantAuthority('tenant_mk');
 
 describe('webhook persistence idempotency', () => {
   it('atomically reclaims the exact verified retryable failure', async () => {
@@ -18,6 +21,7 @@ describe('webhook persistence idempotency', () => {
         processingScopeKey: 'entity:mk',
         dedupeKey: 'paddle:entity:mk:event:evt_retry',
         tenantId: null,
+        authority,
       },
       { logAuditEvent }
     );
@@ -58,6 +62,7 @@ describe('webhook persistence idempotency', () => {
             ...subscriptionCreatedReceipt('active'),
             eventType,
             processingScopeKey: 'entity:mk',
+            authority,
           },
           { logAuditEvent }
         )
@@ -114,6 +119,7 @@ describe('webhook persistence idempotency', () => {
           eventType: 'subscription.created',
           eventId: 'evt_ok',
           tenantId: 'tenant_mk',
+          authority,
         },
         { logAuditEvent }
       )
@@ -124,7 +130,7 @@ describe('webhook persistence idempotency', () => {
       expect.objectContaining({
         action: 'webhook.processed',
         entityId: 'we_ok',
-        tenantId: 'tenant_mk',
+        authority,
       })
     );
   });
@@ -142,6 +148,7 @@ describe('webhook persistence idempotency', () => {
           eventType: 'subscription.created',
           eventId: 'evt_stale',
           tenantId: 'tenant_mk',
+          authority,
         },
         { logAuditEvent }
       )
@@ -170,6 +177,7 @@ describe('webhook persistence idempotency', () => {
           error: new Error('boom'),
           retryable: true,
           tenantId: 'tenant_mk',
+          authority,
         },
         { logAuditEvent }
       )
@@ -178,5 +186,34 @@ describe('webhook persistence idempotency', () => {
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+  it('records no tenant-scoped audit for a receipt whose tenant was never resolved', async () => {
+    hoisted.admitVerifiedReceipt.mockResolvedValueOnce({
+      outcome: 'admitted',
+      lease: receiptLease('we_untenanted'),
+      reclaimed: false,
+    });
+    const logAuditEvent = vi.fn();
+
+    await expect(
+      insertWebhookEvent(
+        { ...subscriptionCreatedReceipt('untenanted'), tenantId: null },
+        { logAuditEvent }
+      )
+    ).resolves.toMatchObject({ inserted: true, webhookEventRowId: 'we_untenanted' });
+    await expect(
+      markWebhookProcessed(
+        {
+          headers: new Headers(),
+          receiptLease: receiptLease('we_untenanted'),
+          eventType: 'subscription.created',
+          eventId: 'evt_untenanted',
+          tenantId: null,
+        },
+        { logAuditEvent }
+      )
+    ).resolves.toBe(true);
+
+    expect(logAuditEvent).not.toHaveBeenCalled();
   });
 });

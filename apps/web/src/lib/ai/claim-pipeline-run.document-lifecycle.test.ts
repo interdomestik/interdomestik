@@ -77,7 +77,11 @@ vi.mock('drizzle-orm', () => ({
   isNull: mocks.isNull,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { claimClaimAiRun } from './claim-pipeline-run';
+
+const authority = mintTestTenantAuthority('tenant_mk');
 
 const activeRun = (
   status: 'queued' | 'processing' | 'completed' | 'failed',
@@ -102,7 +106,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   });
 
   it('requires an active document row before claiming queued AI work', async () => {
-    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).rejects.toThrow(
+    await expect(claimClaimAiRun('run-1', { authority })).rejects.toThrow(
       'Queued claim AI run run-1 was not found.'
     );
 
@@ -118,8 +122,10 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(Function),
-      { tenantId: 'tenant_mk' }
+      { authority }
     );
+    expect(mocks.failDeletedDocumentClaimAiRun.mock.calls[0]?.[2].authority).toBe(authority);
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
   });
 
   it('does not apply the deleted-document fallback to malformed active rows', async () => {
@@ -134,7 +140,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       },
     ]);
 
-    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).rejects.toThrow(
+    await expect(claimClaimAiRun('run-1', { authority })).rejects.toThrow(
       'Queued claim AI run run-1 was not found.'
     );
     expect(mocks.select).toHaveBeenCalledTimes(1);
@@ -148,9 +154,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       workflow: 'claim_intake_extract',
     });
 
-    await expect(
-      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-    ).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
@@ -158,19 +162,19 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(Function),
-      { tenantId: 'tenant_mk', retryFailed: true }
+      { authority, retryFailed: true }
     );
   });
 
   it('reclaims only an explicitly retried generic processing failure', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
 
-    await expect(
-      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-    ).resolves.toMatchObject({
-      status: 'claimed',
-      run: { runId: 'run-1', claimId: 'claim-1' },
-    });
+    await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toMatchObject(
+      {
+        status: 'claimed',
+        run: { runId: 'run-1', claimId: 'claim-1' },
+      }
+    );
 
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'processing', completedAt: null, errorCode: null })
@@ -188,9 +192,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('does not claim queued work when invoked in retry mode', async () => {
     mocks.where.mockResolvedValue([activeRun('queued')]);
 
-    await expect(
-      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-    ).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
@@ -202,7 +204,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('does not reclaim a generic failure without explicit retry intent', async () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
 
-    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { authority })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
@@ -216,9 +218,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     async errorCode => {
       mocks.where.mockResolvedValue([activeRun('failed', errorCode)]);
 
-      await expect(
-        claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-      ).resolves.toEqual({
+      await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toEqual({
         status: 'skipped',
         claimId: 'claim-1',
         workflow: 'claim_intake_extract',
@@ -231,9 +231,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('does not reclaim completed work on a retry attempt', async () => {
     mocks.where.mockResolvedValue([activeRun('completed')]);
 
-    await expect(
-      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-    ).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
@@ -246,9 +244,7 @@ describe('claimClaimAiRun document lifecycle guard', () => {
     mocks.where.mockResolvedValue([activeRun('failed', 'claim_ai_processing_failed')]);
     mocks.updateReturning.mockResolvedValue([]);
 
-    await expect(
-      claimClaimAiRun('run-1', { tenantId: 'tenant_mk', retryFailed: true })
-    ).resolves.toEqual({
+    await expect(claimClaimAiRun('run-1', { authority, retryFailed: true })).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',

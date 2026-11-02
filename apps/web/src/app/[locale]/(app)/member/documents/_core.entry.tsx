@@ -2,13 +2,15 @@ import { DocumentList } from '@/components/documents/document-list';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
 import { Link } from '@/i18n/routing';
-import { claimDocuments, claims, desc, eq, withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { claimDocuments, claims, desc, eq } from '@interdomestik/database';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
 import { and } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type DocumentRow = {
   id: string;
@@ -22,11 +24,12 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   const session = await getSessionSafe('MemberDocumentsPage');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
-  const tenantId = ensureTenantId(sessionNonNull);
+  const { authority } = requireSessionOrRedirect(await authorizeSessionTenant(), locale);
+  const { tenantId } = readTenantAuthority(authority);
 
   const tDocs = await getTranslations('documents');
 
-  const userClaims = await withTenantContext({ tenantId }, tx =>
+  const userClaims = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: claims.id,
@@ -37,7 +40,7 @@ export default async function DocumentsPage({ params }: { params: Promise<{ loca
       .orderBy(desc(claims.createdAt))
   );
 
-  const documents = await withTenantContext({ tenantId }, tx =>
+  const documents = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: claimDocuments.id,

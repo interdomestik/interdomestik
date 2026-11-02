@@ -1,4 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberReferralLinkCore } from './link';
 
@@ -41,6 +42,8 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('getMemberReferralLinkCore', () => {
+  const authority = mintTestTenantAuthority('tenant_1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.update.mockReturnValue({ set: mocks.set });
@@ -56,10 +59,11 @@ describe('getMemberReferralLinkCore', () => {
 
     const result = await getMemberReferralLinkCore({
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     if (result.success) {
       expect(result.data.code).toBe('EXISTING-123');
     }
@@ -72,6 +76,7 @@ describe('getMemberReferralLinkCore', () => {
 
     const result = await getMemberReferralLinkCore({
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -82,7 +87,7 @@ describe('getMemberReferralLinkCore', () => {
   });
 
   it('handles unauthorized', async () => {
-    const result = await getMemberReferralLinkCore({ session: null });
+    const result = await getMemberReferralLinkCore({ session: null, authority: null });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe('Unauthorized');
@@ -92,6 +97,7 @@ describe('getMemberReferralLinkCore', () => {
   it('handles missing tenant context', async () => {
     const result = await getMemberReferralLinkCore({
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: null } } as any,
+      authority: null,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -106,6 +112,7 @@ describe('getMemberReferralLinkCore', () => {
 
     const result = await getMemberReferralLinkCore({
       session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);

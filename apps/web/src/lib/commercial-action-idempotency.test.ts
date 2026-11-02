@@ -108,7 +108,7 @@ describe('runCommercialActionWithIdempotency', () => {
     const execute = vi.fn().mockResolvedValue({ success: true });
 
     const result = await runCommercialActionWithIdempotency(
-      claimParams({ scope: tenantScope('user-1', '   '), execute })
+      claimParams({ scope: tenantScope('user-1', null), execute })
     );
 
     expect(result).toEqual({

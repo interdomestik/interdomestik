@@ -1,4 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -109,13 +110,15 @@ describe('getMemberClaimRedirect', () => {
 });
 
 describe('getMemberClaimDetailsCore', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
+
   it('returns not_found when claim missing', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce(null);
 
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
       viewerUserId: 'u1',
-      viewerTenantId: 'tenant_mk',
+      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -130,7 +133,7 @@ describe('getMemberClaimDetailsCore', () => {
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
       viewerUserId: 'u1',
-      viewerTenantId: 'tenant_mk',
+      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -141,7 +144,7 @@ describe('getMemberClaimDetailsCore', () => {
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
       viewerUserId: 'u1',
-      viewerTenantId: 'tenant_mk',
+      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -180,10 +183,10 @@ describe('getMemberClaimDetailsCore', () => {
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
       viewerUserId: 'u1',
-      viewerTenantId: 'tenant_mk',
+      authority,
     });
 
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 

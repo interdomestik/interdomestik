@@ -10,17 +10,17 @@ import { isSuperAdmin, isTenantAdmin } from '@interdomestik/shared-auth'; // Try
 
 // 1. Super Admin: Global Forecast
 export async function getClaimLoadForecastAction() {
-  return runAuthenticatedAction(async ({ userRole }) => {
+  return runAuthenticatedAction(async ({ userRole, authority }) => {
     if (!isSuperAdmin(userRole)) {
       throw new Error('Unauthorized');
     }
-    return await getClaimLoadForecast({ role: userRole });
+    return await getClaimLoadForecast(authority);
   });
 }
 
 // 2. Tenant Admin: Branch Stress Map (for a specific branch)
 export async function getBranchStressAction(branchId: string) {
-  return runAuthenticatedAction(async ({ userRole, tenantId }) => {
+  return runAuthenticatedAction(async ({ userRole, authority }) => {
     // Tenant Admins and Staff can check stress of branches in their tenant
     // Branch Managers should also be able to see their own stress?
     // Let's stick to Tenant Admin / Staff for V3 dashboards per requirements.
@@ -31,17 +31,17 @@ export async function getBranchStressAction(branchId: string) {
 
     // Note: In real app we check if branchId belongs to tenantId,
     // but the domain query implicitly filters by tenantId so it's safe (will return 0/empty if mismatch).
-    return await getBranchStressIndex(tenantId, branchId);
+    return await getBranchStressIndex(authority, branchId);
   });
 }
 
 // 3. Tenant Admin: Agent Capacity
 export async function getAgentCapacityAction(agentId: string) {
-  return runAuthenticatedAction(async ({ userRole, tenantId }) => {
+  return runAuthenticatedAction(async ({ userRole, authority }) => {
     if (!isSuperAdmin(userRole) && !isTenantAdmin(userRole) && userRole !== 'staff') {
       throw new Error('Unauthorized');
     }
     // Bound to the session tenant: an agent outside it contributes no rows.
-    return await getAgentCapacitySignal(tenantId, agentId);
+    return await getAgentCapacitySignal(authority, agentId);
   });
 }

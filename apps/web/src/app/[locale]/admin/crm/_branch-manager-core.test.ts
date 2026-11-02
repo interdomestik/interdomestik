@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -15,6 +16,8 @@ import {
   sourceBreakdownReportingRow,
   weightedReportingRow,
 } from './_reporting-test-fixtures';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 const actor: CrmActorContext = {
   actorId: 'manager-1',
@@ -88,7 +91,7 @@ describe('branch-manager CRM reporting core', () => {
     const now = '2026-05-14T12:00:00.000Z';
 
     const dashboard = await getBranchManagerCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         branchLabel: 'Prishtina',
         forecastSnapshotRepository,
@@ -147,7 +150,7 @@ describe('branch-manager CRM reporting core', () => {
     ]);
 
     const dashboard = await getBranchManagerCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         forecastSnapshotRepository,
         now: () => '2026-05-14T12:00:00.000Z',
@@ -175,7 +178,7 @@ describe('branch-manager CRM reporting core', () => {
 
     await expect(
       getBranchManagerCrmReportingCore(
-        { actor: { ...actor, scope: {} } },
+        { authority: TEST_AUTHORITY, actor: { ...actor, scope: {} } },
         { forecastSnapshotRepository, reportingRepository }
       )
     ).rejects.toMatchObject({
@@ -203,7 +206,7 @@ describe('branch-manager CRM reporting core', () => {
     ]);
 
     const dashboard = await getBranchManagerCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         forecastSnapshotRepository,
         now: () => '2026-05-14T12:00:00.000Z',
@@ -228,7 +231,7 @@ describe('branch-manager CRM reporting core', () => {
     );
 
     const dashboard = await getBranchManagerCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         forecastSnapshotRepository,
         logger,
@@ -249,7 +252,7 @@ describe('branch-manager CRM reporting core', () => {
   it('keeps branch-manager widget row shapes aggregate-only and PII-free', async () => {
     const { forecastSnapshotRepository, reportingRepository } = createRepositories();
     const dashboard = await getBranchManagerCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { forecastSnapshotRepository, now: () => '2026-05-14T12:00:00.000Z', reportingRepository }
     );
 

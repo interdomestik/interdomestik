@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { updateClaimStatusCore } from './update-status';
@@ -61,6 +62,7 @@ vi.mock('../admin-claims/payment-authorization', () => ({
   getPaymentAuthorizationState: mocks.getPaymentAuthorizationState,
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const staffSession = { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as never;
 
@@ -80,6 +82,7 @@ function mockClaim(status: string) {
 function runStatusUpdate(deps = {}, newStatus = 'verification') {
   return updateClaimStatusCore(
     {
+      authority,
       claimId: 'claim-1',
       newStatus,
       requestHeaders,
@@ -115,14 +118,14 @@ describe('agent updateClaimStatusCore', () => {
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.transitionClaimStatus).toHaveBeenCalledWith({
       actor: { id: 'staff-1', role: 'staff' },
+      authority,
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
       toStatus: 'negotiation',
     });
     expect(logAuditEvent).not.toHaveBeenCalled();
     expect(projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
     await vi.waitFor(() =>
       expect(notifyStatusChanged).toHaveBeenCalledWith(
@@ -131,7 +134,7 @@ describe('agent updateClaimStatusCore', () => {
         { id: 'claim-1', title: 'Claim' },
         'submitted',
         'negotiation',
-        { tenantId: 'tenant-1' }
+        { authority }
       )
     );
   });

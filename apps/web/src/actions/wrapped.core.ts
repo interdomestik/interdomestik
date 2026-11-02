@@ -4,6 +4,6 @@ import { getActionContext } from './wrapped/context';
 import { getWrappedStatsCore } from './wrapped/get';
 
 export async function getWrappedStats() {
-  const { session } = await getActionContext();
-  return getWrappedStatsCore({ session });
+  const { session, authority } = await getActionContext();
+  return getWrappedStatsCore({ session, authority });
 }

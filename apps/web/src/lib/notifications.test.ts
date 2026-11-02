@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the environment variable
@@ -48,6 +49,9 @@ import {
   sendNotification,
 } from './notifications';
 
+const authorityMk = mintTestTenantAuthority('tenant_mk');
+const authorityKs = mintTestTenantAuthority('tenant_ks');
+
 describe('Notifications Service', () => {
   const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -73,7 +77,7 @@ describe('Notifications Service', () => {
           claimTitle: 'Test Claim',
           category: 'consumer',
         },
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);
@@ -84,7 +88,7 @@ describe('Notifications Service', () => {
         'user-123',
         'claim_submitted',
         { claimId: 'claim-1' },
-        { tenantId: 'tenant_ks' }
+        { authority: authorityKs }
       );
 
       expect(result).toEqual({ success: false, error: 'Tenant mismatch for notification' });
@@ -101,7 +105,7 @@ describe('Notifications Service', () => {
         'user-123',
         'claim_submitted',
         { claimId: 'claim-1' },
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(false);
@@ -119,7 +123,7 @@ describe('Notifications Service', () => {
           title: 'My Claim',
           category: 'consumer',
         },
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);
@@ -133,7 +137,7 @@ describe('Notifications Service', () => {
         'agent@example.com',
         { id: 'claim-1', title: 'Member Claim' },
         'Agent Smith',
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);
@@ -148,7 +152,7 @@ describe('Notifications Service', () => {
         { id: 'claim-1', title: 'My Claim' },
         'submitted',
         'verification',
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);
@@ -163,7 +167,7 @@ describe('Notifications Service', () => {
         { id: 'claim-1', title: 'My Claim' },
         'Agent Smith',
         'Hello...',
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);
@@ -175,7 +179,7 @@ describe('Notifications Service', () => {
       const result = await notifySupportHandoffPublicResponse(
         'member-1',
         { id: 'handoff-1', publicResponseVersion: 2 },
-        { tenantId: 'tenant_mk' }
+        { authority: authorityMk }
       );
 
       expect(result.success).toBe(true);

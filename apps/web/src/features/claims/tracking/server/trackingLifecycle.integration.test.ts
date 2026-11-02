@@ -80,10 +80,8 @@ vi.mock('@interdomestik/database', () => {
   };
   return {
     db,
-    withTenantContext: (
-      _context: { tenantId: string },
-      action: (tx: typeof db) => Promise<unknown>
-    ) => action(db),
+    withTenantContext: (_context: unknown, action: (tx: typeof db) => Promise<unknown>) =>
+      action(db),
     resolveClaimTrackingTokenTenant: vi.fn(async (rawToken: string, now: Date) => {
       const rows = hoisted.store.tokens.filter(
         token =>
@@ -92,7 +90,14 @@ vi.mock('@interdomestik/database', () => {
           token.expiresAt.getTime() > now.getTime() &&
           token.revokedAt === null
       );
-      return rows.length === 1 ? { tenantId: rows[0].tenantId, claimId: rows[0].claimId } : null;
+      if (rows.length !== 1) return null;
+      const { mintTestTenantAuthority } =
+        await import('@interdomestik/database/testing/tenant-authority');
+      return {
+        tenantId: rows[0].tenantId,
+        claimId: rows[0].claimId,
+        authority: mintTestTenantAuthority(rows[0].tenantId!),
+      };
     }),
   };
 });
@@ -178,8 +183,10 @@ describe('tracking link lifecycle', () => {
       })
     );
 
+    const { mintTestTenantAuthority } =
+      await import('@interdomestik/database/testing/tenant-authority');
     const result = await createPublicTrackingLink('claim-1', {
-      tenantId: 'tenant-ks',
+      authority: mintTestTenantAuthority('tenant-ks'),
       actorUserId: 'staff-1',
       role: 'staff',
       branchId: null,

@@ -14,18 +14,18 @@ import {
 } from './user-settings/update';
 
 export async function getNotificationPreferences() {
-  const { session } = await getActionContext();
-  return getNotificationPreferencesCore({ session });
+  const { session, authority } = await getActionContext();
+  return getNotificationPreferencesCore({ session, authority });
 }
 
 export async function updateNotificationPreferences(preferences: NotificationPreferences) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const requestHeaders = await headers();
-  return updateNotificationPreferencesCore({ session, requestHeaders, preferences });
+  return updateNotificationPreferencesCore({ session, authority, requestHeaders, preferences });
 }
 
 export async function updateResidenceCountry(residenceCountry: string) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const requestHeaders = await headers();
-  return updateResidenceCountryCore({ session, requestHeaders, residenceCountry });
+  return updateResidenceCountryCore({ session, authority, requestHeaders, residenceCountry });
 }

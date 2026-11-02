@@ -1,6 +1,7 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { CircleCheck, CircleSlash, Clock3, TriangleAlert } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
 
@@ -10,6 +11,7 @@ import {
 } from '@/components/crm/charts/chart-projections';
 import { PipelineAmountChartBoundary } from '@/components/crm/charts/reporting-chart-boundary';
 import { getSessionSafe } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import { BranchManagerCrmDashboard } from './_branch-manager-dashboard';
 import {
@@ -990,12 +992,15 @@ export default async function AdminCrmPage({
 
   const resolvedActor = buildAdminCrmActor(session);
   if (!resolvedActor) notFound();
+  const authorized = await authorizeSessionTenant(await headers());
+  if (!authorized) notFound();
+  const { authority } = authorized;
 
   if (resolvedActor.kind === 'branch_manager') {
     let reporting: BranchManagerCrmReportingDashboard;
     try {
       reporting = await getBranchManagerCrmReportingCore(
-        { actor: resolvedActor.actor },
+        { actor: resolvedActor.actor, authority },
         { branchLabel: resolvedActor.branchLabel }
       );
     } catch (error) {
@@ -1020,10 +1025,10 @@ export default async function AdminCrmPage({
   try {
     [reporting, routing] = await Promise.all([
       getAdminCrmReportingCore(
-        { actor: resolvedActor.actor },
+        { actor: resolvedActor.actor, authority },
         { labels: { noBranch: t('labels.noBranch') } }
       ),
-      getAdminCrmRoutingRulesCore({ actor: resolvedActor.actor }),
+      getAdminCrmRoutingRulesCore({ actor: resolvedActor.actor, authority }),
     ]);
   } catch (error) {
     if (

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -107,6 +108,8 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('staff assignClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,6 +134,7 @@ describe('staff assignClaimCore', () => {
 
     const result = await assignClaimCore(
       {
+        authority,
         claimId: 'claim-1',
         requestHeaders: new Headers(),
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -149,6 +153,7 @@ describe('staff assignClaimCore', () => {
     ]);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       staffId: 'staff-9',
@@ -163,6 +168,7 @@ describe('staff assignClaimCore', () => {
     mocks.selectChain.limit.mockResolvedValue([]);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       session: createSession({ userId: 'staff-1', branchId: null }),
     });
@@ -186,6 +192,7 @@ describe('staff assignClaimCore', () => {
 
     const result = await assignClaimCore(
       {
+        authority,
         claimId: 'claim-1',
         requestHeaders: new Headers(),
         session: createSession({ userId: 'staff-1', branchId: null }),
@@ -212,6 +219,7 @@ describe('staff assignClaimCore', () => {
 
     const result = await assignClaimCore(
       {
+        authority,
         claimId: 'claim-1',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
         staffId: 'staff-9',

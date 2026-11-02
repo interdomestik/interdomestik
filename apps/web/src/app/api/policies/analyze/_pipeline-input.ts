@@ -1,5 +1,9 @@
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -14,6 +18,8 @@ export type PolicyExtractionDeps = {
 
 export type ClaimedPolicyRun = {
   runId: string;
+  /** In-memory only: the tenant authority this run was claimed under. Never serialized or persisted. */
+  authority: TenantAuthority;
   tenantId: string;
   documentId: string;
   policyId: string;
@@ -23,10 +29,10 @@ export type ClaimedPolicyRun = {
 
 export async function claimPolicyExtractionRun(
   runId: string,
-  tenantId: string
+  authority: TenantAuthority
 ): Promise<{ status: 'claimed'; run: ClaimedPolicyRun } | { status: 'skipped'; policyId: string }> {
-  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
-  const [queuedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+  const { tenantId } = readTenantAuthority(authority);
+  const [queuedRun] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         runId: aiRuns.id,
@@ -57,8 +63,9 @@ export async function claimPolicyExtractionRun(
   );
 
   if (!queuedRun?.documentId || !queuedRun.policyId) {
-    // db-access-guard: tenant-scoped -- reason: fallback resolves an already-failed deleted policy AI run inside the producer tenant after the active-document join intentionally returns no row
-    const [deletedRun] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    // Fallback resolves an already-failed deleted policy AI run inside the producer tenant after the
+    // active-document join intentionally returns no row.
+    const [deletedRun] = await withTenantAuthority(authority, tx =>
       tx
         .select({
           errorCode: aiRuns.errorCode,
@@ -89,7 +96,7 @@ export async function claimPolicyExtractionRun(
     return { status: 'skipped', policyId: queuedRun.policyId };
   }
 
-  const [claimedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+  const [claimedRun] = await withTenantAuthority(authority, async tx =>
     tx
       .update(aiRuns)
       .set({ status: 'processing', startedAt: new Date(), errorCode: null, errorMessage: null })
@@ -103,6 +110,7 @@ export async function claimPolicyExtractionRun(
     status: 'claimed',
     run: {
       runId,
+      authority,
       tenantId: queuedRun.tenantId,
       documentId: queuedRun.documentId,
       policyId: queuedRun.policyId,

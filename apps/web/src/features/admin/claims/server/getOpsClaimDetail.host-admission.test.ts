@@ -4,12 +4,20 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   hoisted,
   mockSelectChains,
+  opsAuthority,
+  readContexts,
   resetOpsClaimDetailMocks,
 } from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 
 const ENV_KEYS = ['IDA_HOST', 'NEXT_PUBLIC_APP_URL', 'BETTER_AUTH_URL', 'VERCEL_URL'] as const;
 const originalHostEnv = new Map<string, string | undefined>();
+let signedIn = { id: 'admin-1', role: 'admin' };
+
+/** Loads the claim with the signed-in user's own session authority. */
+function loadClaim() {
+  return getOpsClaimDetail('claim-1', opsAuthority(signedIn));
+}
 
 function requestFrom(host: string, forwardedHost?: string): void {
   const entries: Array<[string, string]> = [['host', host]];
@@ -18,6 +26,7 @@ function requestFrom(host: string, forwardedHost?: string): void {
 }
 
 function signInAs(user: { role: string; branchId?: string }): void {
+  signedIn = { id: `${user.role}-1`, role: user.role };
   hoisted.getSession.mockResolvedValueOnce({
     user: { id: `${user.role}-1`, tenantId: 'tenant_ks', ...user },
   });
@@ -30,16 +39,14 @@ function expectDeniedBeforeSql(result: unknown): void {
 }
 
 function expectAccessThenHomeTenantReads(): void {
-  expect(hoisted.withTenantContext.mock.calls.map(call => call[0])).toEqual([
-    expect.objectContaining({ tenantId: 'tenant_ks' }),
-    expect.objectContaining({ tenantId: 'tenant_home' }),
-  ]);
+  expect(readContexts().map(context => context.tenantId)).toEqual(['tenant_ks', 'tenant_home']);
   expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_ks');
 }
 
 describe('getOpsClaimDetail host admission', () => {
   beforeEach(() => {
     resetOpsClaimDetailMocks();
+    signedIn = { id: 'admin-1', role: 'admin' };
     for (const key of ENV_KEYS) {
       originalHostEnv.set(key, process.env[key]);
       Reflect.deleteProperty(process.env, key);
@@ -58,7 +65,7 @@ describe('getOpsClaimDetail host admission', () => {
   it('denies the staging host before SQL when IDA_HOST is not configured', async () => {
     requestFrom('staging.interdomestik.com');
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it('admits the configured IDA_HOST without deployment URL envs', async () => {
@@ -66,7 +73,7 @@ describe('getOpsClaimDetail host admission', () => {
     requestFrom('staging.interdomestik.com');
     mockSelectChains();
 
-    const result = await getOpsClaimDetail('claim-1');
+    const result = await loadClaim();
 
     expect(result.kind).toBe('ok');
     expectAccessThenHomeTenantReads();
@@ -80,7 +87,7 @@ describe('getOpsClaimDetail host admission', () => {
     requestFrom(host);
     mockSelectChains();
 
-    const result = await getOpsClaimDetail('claim-1');
+    const result = await loadClaim();
 
     expect(result.kind).toBe('ok');
     expectAccessThenHomeTenantReads();
@@ -92,7 +99,7 @@ describe('getOpsClaimDetail host admission', () => {
       requestFrom(host);
       mockSelectChains();
 
-      const result = await getOpsClaimDetail('claim-1');
+      const result = await loadClaim();
 
       expect(result.kind).toBe('ok');
       expectAccessThenHomeTenantReads();
@@ -114,7 +121,7 @@ describe('getOpsClaimDetail host admission', () => {
       requestFrom(host);
       mockSelectChains();
 
-      const result = await getOpsClaimDetail('claim-1');
+      const result = await loadClaim();
 
       expect(result.kind).toBe('ok');
       expectAccessThenHomeTenantReads();
@@ -125,7 +132,7 @@ describe('getOpsClaimDetail host admission', () => {
     process.env.IDA_HOST = 'staging.interdomestik.com';
     requestFrom('attacker.invalid');
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it.each(['example.test', 'ida.attacker.invalid', 'ida.interdomestik.com.attacker.invalid'])(
@@ -135,35 +142,35 @@ describe('getOpsClaimDetail host admission', () => {
       process.env.VERCEL_URL = 'interdomestik-preview-123.vercel.app';
       requestFrom(host);
 
-      expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+      expectDeniedBeforeSql(await loadClaim());
     }
   );
 
   it('keeps forwarded-host priority over an IDA host header', async () => {
     requestFrom('ida.interdomestik.com', 'attacker.invalid');
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it('keeps recognized country mismatch denial ahead of IDA admission', async () => {
     process.env.IDA_HOST = 'mk.localhost';
     requestFrom('mk.localhost:3000');
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it('keeps recognized country mismatch denial ahead of a same-country VERCEL_URL', async () => {
     process.env.VERCEL_URL = 'mk.localhost';
     requestFrom('mk.localhost:3000');
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it('fails closed in SQL for a foreign claim on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
     hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
 
-    const result = await getOpsClaimDetail('claim-1');
+    const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
@@ -176,7 +183,7 @@ describe('getOpsClaimDetail host admission', () => {
     signInAs({ role: 'branch_manager', branchId: 'branch-1' });
     mockSelectChains();
 
-    const result = await getOpsClaimDetail('claim-1');
+    const result = await loadClaim();
 
     expect(result.kind).toBe('ok');
     expect(hoisted.eq).toHaveBeenCalledWith('claims.branchId', 'branch-1');
@@ -187,7 +194,7 @@ describe('getOpsClaimDetail host admission', () => {
     signInAs({ role: 'branch_manager', branchId: 'branch-2' });
     hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
 
-    const result = await getOpsClaimDetail('claim-1');
+    const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
@@ -198,7 +205,7 @@ describe('getOpsClaimDetail host admission', () => {
     requestFrom('ida.interdomestik.com');
     signInAs({ role: 'branch_manager' });
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 
   it.each(['member', 'staff', 'agent'])(
@@ -207,7 +214,7 @@ describe('getOpsClaimDetail host admission', () => {
       requestFrom('ida.interdomestik.com');
       signInAs({ role });
 
-      expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+      expectDeniedBeforeSql(await loadClaim());
     }
   );
 
@@ -215,6 +222,6 @@ describe('getOpsClaimDetail host admission', () => {
     requestFrom('ida.interdomestik.com');
     hoisted.getSession.mockResolvedValueOnce(null);
 
-    expectDeniedBeforeSql(await getOpsClaimDetail('claim-1'));
+    expectDeniedBeforeSql(await loadClaim());
   });
 });

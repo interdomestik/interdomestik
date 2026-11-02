@@ -49,7 +49,12 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { failDeletedDocumentClaimAiRun } from './claim-pipeline-document-lifecycle';
+
+const authority = mintTestTenantAuthority('tenant_mk');
+const otherAuthority = mintTestTenantAuthority('tenant_other');
 
 function isWorkflow(workflow: unknown): workflow is 'claim_intake_extract' | 'legal_doc_extract' {
   return workflow === 'claim_intake_extract' || workflow === 'legal_doc_extract';
@@ -74,16 +79,13 @@ describe('failDeletedDocumentClaimAiRun', () => {
     ]);
 
     await expect(
-      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { tenantId: 'tenant_mk' })
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { authority })
     ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
       workflow: 'claim_intake_extract',
     });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_mk', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'failed',
@@ -109,7 +111,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
     ]);
 
     await expect(
-      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { tenantId: 'tenant_mk' })
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { authority })
     ).resolves.toEqual({
       status: 'skipped',
       claimId: 'claim-1',
@@ -133,7 +135,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
 
     await expect(
       failDeletedDocumentClaimAiRun('run-1', isWorkflow, {
-        tenantId: 'tenant_mk',
+        authority,
         retryFailed: true,
       })
     ).resolves.toEqual({
@@ -155,19 +157,19 @@ describe('failDeletedDocumentClaimAiRun', () => {
   });
 
   it.each([
-    ['without retry intent', 'failed', 'claim_ai_processing_failed', { tenantId: 'tenant_mk' }],
+    ['without retry intent', 'failed', 'claim_ai_processing_failed', { authority }],
     [
       'while processing',
       'processing',
       'claim_ai_processing_failed',
-      { tenantId: 'tenant_mk', retryFailed: true },
+      { authority, retryFailed: true },
     ],
-    ['after completion', 'completed', null, { tenantId: 'tenant_mk', retryFailed: true }],
+    ['after completion', 'completed', null, { authority, retryFailed: true }],
     [
       'for a permanent failure',
       'failed',
       'claim_intake_extract_validation_failed',
-      { tenantId: 'tenant_mk', retryFailed: true },
+      { authority, retryFailed: true },
     ],
   ])('does not overwrite deleted-document runs %s', async (_case, status, errorCode, options) => {
     mocks.where.mockResolvedValue([
@@ -201,7 +203,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
 
     await expect(
       failDeletedDocumentClaimAiRun('run-1', isWorkflow, {
-        tenantId: 'tenant_mk',
+        authority,
         retryFailed: true,
       })
     ).resolves.toBeNull();
@@ -221,7 +223,7 @@ describe('failDeletedDocumentClaimAiRun', () => {
     mocks.updateReturning.mockResolvedValue([]);
 
     await expect(
-      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { tenantId: 'tenant_mk' })
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { authority })
     ).resolves.toBeNull();
   });
 
@@ -237,11 +239,11 @@ describe('failDeletedDocumentClaimAiRun', () => {
       },
     ]);
 
-    await failDeletedDocumentClaimAiRun('run-1', isWorkflow, { tenantId: 'tenant_mk' });
+    await failDeletedDocumentClaimAiRun('run-1', isWorkflow, { authority });
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
     for (const call of mocks.withTenantContext.mock.calls) {
-      expect(call[0]).toEqual({ tenantId: 'tenant_mk', role: 'system' });
+      expect(call[0]).toBe(authority);
     }
     expect(mocks.db.select).not.toHaveBeenCalled();
     expect(mocks.where).toHaveBeenCalledWith(
@@ -267,14 +269,11 @@ describe('failDeletedDocumentClaimAiRun', () => {
     mocks.where.mockResolvedValue([]);
 
     await expect(
-      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { tenantId: 'tenant_other' })
+      failDeletedDocumentClaimAiRun('run-1', isWorkflow, { authority: otherAuthority })
     ).resolves.toBeNull();
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_other', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(otherAuthority);
     expect(mocks.update).not.toHaveBeenCalled();
   });
 });

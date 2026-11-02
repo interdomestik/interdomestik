@@ -1,9 +1,12 @@
 import {
+  authorizePaddleBillingTenant,
   billingInvoices,
   billingLedgerEntries,
   sql,
-  withTenantContext,
 } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 
 import type { BillingEntity } from '../paddle-server';
@@ -60,6 +63,8 @@ export type PersistInvoiceAndLedgerInvariantsResult =
 export async function persistInvoiceAndLedgerInvariants(
   params: {
     headers: Headers;
+    /** Verified-delivery capability; the billing tenant authority derives from its entity binding. */
+    delivery: IngressCapability<'paddle-delivery'>;
     webhookEventRowId: string;
     eventType: string | undefined;
     eventId: string | undefined;
@@ -87,6 +92,7 @@ export async function persistInvoiceAndLedgerInvariants(
 
   const payload = (params.data ?? {}) as TransactionInvariantPayload;
   const { tenantId, billingEntity } = await resolveInvariantScope({
+    delivery: params.delivery,
     data: payload,
     tenantId: params.tenantId,
     billingEntity: params.billingEntity,
@@ -111,8 +117,23 @@ export async function persistInvoiceAndLedgerInvariants(
   // already-resolved internal row may satisfy the billing invoice foreign key.
   const subscriptionId = normalizeText(params.storedSubscriptionId);
 
+  // The invoice lands in the billing (legal) tenant, which can differ from the subscription owner's
+  // tenant, so it is authorized as a billing-scope effect: only the billing tenant the verified
+  // entity route bound may be written. An unbound delivery or any other tenant fails closed here,
+  // before any write, and the failure is recorded on the receipt like every other error path.
+  let billingAuthority: TenantAuthority;
+  try {
+    billingAuthority = authorizePaddleBillingTenant(params.delivery, tenantId);
+  } catch (error) {
+    throw new Error(
+      `Cannot persist invoice/ledger invariants for ${providerTransactionId}; billing tenant ${tenantId} is not authorized for this delivery: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  const result = await withTenantContext({ tenantId }, async tx => {
+  const result = await withTenantAuthority(billingAuthority, async tx => {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const invoiceRows = await tx
       .insert(billingInvoices)
@@ -192,7 +213,7 @@ export async function persistInvoiceAndLedgerInvariants(
       action: result.replayed ? 'billing.invoice.replay_ignored' : 'billing.invoice.posted',
       entityType: 'invoice',
       entityId: result.invoiceId,
-      tenantId,
+      authority: billingAuthority,
       metadata: {
         billingEntity,
         provider: 'paddle',

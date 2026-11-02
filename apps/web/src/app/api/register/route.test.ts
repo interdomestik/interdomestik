@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
@@ -6,6 +7,7 @@ const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   registerUserApiCore: vi.fn(),
   registerMemberCore: vi.fn(),
+  authorizeSessionTenant: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -14,6 +16,10 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSession,
     },
   },
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -55,6 +61,10 @@ describe('POST /api/register', () => {
         tenantId: 'tenant_mk',
         branchId: 'branch-mk',
       },
+    });
+    hoisted.authorizeSessionTenant.mockImplementation(async () => {
+      const session = await hoisted.getSession();
+      return session ? { session, authority: mintTestTenantAuthority('tenant_mk') } : null;
     });
     hoisted.registerMemberCore.mockResolvedValue({ ok: true });
     hoisted.registerUserApiCore.mockResolvedValue({
@@ -105,7 +115,7 @@ describe('POST /api/register', () => {
     await servicesArg.registerMemberFn({ id: 'actor-1', name: 'Actor One' }, 'tenant_mk', formData);
     expect(hoisted.registerMemberCore).toHaveBeenCalledWith(
       { id: 'actor-1', name: 'Actor One' },
-      'tenant_mk',
+      (await hoisted.authorizeSessionTenant.mock.results[0].value).authority,
       'branch-mk',
       formData
     );

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleBillingTenant: vi.fn(),
+  authorizePaddleTenant: vi.fn(),
   billingInvoices: {
     billingEntity: 'invoice_billing_entity_col',
     id: 'invoice_id_col',
@@ -31,8 +33,16 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.transaction,
   sql: hoisted.sql,
   resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
+  authorizePaddleBillingTenant: hoisted.authorizePaddleBillingTenant,
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
 }));
 
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeAnyTestPaddleBillingTenant,
+  authorizeTestPaddleOwner,
+  createTestPaddleBillingProducer,
+} from './paddle-authority.test-support';
 import { persistInvoiceAndLedgerInvariants } from './invariants';
 
 function transactionInput(customData?: Record<string, string>) {
@@ -46,6 +56,7 @@ function transactionInput(customData?: Record<string, string>) {
     eventId: 'evt_1',
     eventType: 'transaction.completed',
     headers: new Headers(),
+    delivery: TEST_PADDLE_DELIVERY,
     providerTransactionId: 'tx_1',
     storedSubscriptionId: 'sub_1',
     tenantId: 'tenant_ks',
@@ -56,6 +67,9 @@ function transactionInput(customData?: Record<string, string>) {
 describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
+    // The billing tenant of the entity route that received the delivery.
+    hoisted.authorizePaddleBillingTenant.mockImplementation(authorizeAnyTestPaddleBillingTenant);
     // Unknown provider references resolve to no owner unless a test names one.
     hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
     const tx = {
@@ -104,6 +118,61 @@ describe('persistInvoiceAndLedgerInvariants snapshot scope', () => {
     expect(hoisted.ledgerValues).toHaveBeenCalledWith(
       expect.objectContaining({ billingEntity: 'mk', tenantId: 'tenant_mk' })
     );
+  });
+
+  it('refuses a stored legal tenant that is not the billing tenant the delivery is bound to', async () => {
+    hoisted.authorizePaddleBillingTenant.mockImplementation(
+      createTestPaddleBillingProducer('tenant_ks')
+    );
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue({
+      subscriptionId: 'sub_1',
+      tenantId: 'tenant_ks',
+    });
+    hoisted.subscriptionFindFirst.mockResolvedValue({
+      billingEntity: 'mk',
+      id: 'sub_1',
+      legalTenantId: 'tenant_mk',
+      tenantId: 'tenant_ks',
+    });
+
+    await expect(persistInvoiceAndLedgerInvariants(transactionInput())).rejects.toThrow(
+      'requires the delivery billing tenant'
+    );
+
+    // Only the owner-scoped subscription read ran; the invoice and ledger were never written.
+    expect(hoisted.transaction).toHaveBeenCalledTimes(1);
+    expect(hoisted.transaction).toHaveBeenCalledWith(
+      hoisted.authorizePaddleTenant.mock.results[0]!.value,
+      expect.any(Function)
+    );
+    expect(hoisted.txInsert).not.toHaveBeenCalled();
+    expect(hoisted.invoiceValues).not.toHaveBeenCalled();
+  });
+
+  it('uses the owner-scoped subscription read, then the billing authority for the write', async () => {
+    hoisted.authorizePaddleBillingTenant.mockImplementation(
+      createTestPaddleBillingProducer('tenant_mk')
+    );
+    const owner = { subscriptionId: 'sub_1', tenantId: 'tenant_ks' };
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue(owner);
+    hoisted.subscriptionFindFirst.mockResolvedValue({
+      billingEntity: 'mk',
+      id: 'sub_1',
+      legalTenantId: 'tenant_mk',
+      tenantId: 'tenant_ks',
+    });
+
+    await persistInvoiceAndLedgerInvariants(transactionInput());
+
+    expect(hoisted.authorizePaddleTenant).toHaveBeenCalledWith(TEST_PADDLE_DELIVERY, owner);
+    expect(hoisted.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
+    expect(hoisted.authorizePaddleBillingTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      'tenant_mk'
+    );
+    const [readContext, writeContext] = hoisted.transaction.mock.calls.map(call => call[0]);
+    expect(readContext).toBe(hoisted.authorizePaddleTenant.mock.results[0]!.value);
+    expect(writeContext).toBe(hoisted.authorizePaddleBillingTenant.mock.results[0]!.value);
   });
 
   it('does not link an invoice to an out-of-order provider subscription id', async () => {

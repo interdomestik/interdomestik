@@ -8,8 +8,11 @@ import {
   subscriptions,
   supportHandoffs,
   user,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasSupportHandoffCurrentCycleMemberReply } from '@interdomestik/domain-crm/support-handoffs';
 import { aliasedTable, type SQL } from 'drizzle-orm';
@@ -29,6 +32,7 @@ import {
   buildStaffSupportHandoffQueueScope,
   type SupportHandoffClaimLinkFilter,
 } from './queue-scope';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { buildStaffSupportHandoffQueueScope } from './queue-scope';
 export type { SupportHandoffClaimLinkFilter } from './queue-scope';
@@ -55,6 +59,7 @@ function normalizeContactPreference(
 }
 
 export async function getStaffSupportHandoffQueue(params: {
+  authority: TenantAuthority;
   assignment?: SupportHandoffQueueAssignmentFilter;
   attention?: SupportHandoffQueueAttentionFilter;
   branchId?: string | null;
@@ -63,13 +68,13 @@ export async function getStaffSupportHandoffQueue(params: {
   search?: string;
   staffId: string;
   status?: SupportHandoffStatus | 'all';
-  tenantId: string;
   urgency?: SupportHandoffUrgency | 'all';
   viewerRole?: string | null;
 }): Promise<SupportHandoffQueueItem[]> {
+  const { tenantId } = readTenantAuthority(params.authority);
   const staffUser = aliasedTable(user, 'support_handoff_staff');
   const agentUser = aliasedTable(user, 'support_handoff_agent');
-  const rows = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const rows = await withTenantAuthority(params.authority, tx =>
     tx
       .select({
         id: supportHandoffs.id,
@@ -101,39 +106,30 @@ export async function getStaffSupportHandoffQueue(params: {
         agentName: agentUser.name,
       })
       .from(supportHandoffs)
-      .leftJoin(
-        user,
-        and(eq(supportHandoffs.memberId, user.id), eq(user.tenantId, params.tenantId))
-      )
+      .leftJoin(user, and(eq(supportHandoffs.memberId, user.id), eq(user.tenantId, tenantId)))
       .leftJoin(
         staffUser,
-        and(eq(supportHandoffs.staffId, staffUser.id), eq(staffUser.tenantId, params.tenantId))
+        and(eq(supportHandoffs.staffId, staffUser.id), eq(staffUser.tenantId, tenantId))
       )
-      .leftJoin(
-        claims,
-        and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, params.tenantId))
-      )
+      .leftJoin(claims, and(eq(supportHandoffs.claimId, claims.id), eq(claims.tenantId, tenantId)))
       .leftJoin(
         branches,
-        and(eq(supportHandoffs.branchId, branches.id), eq(branches.tenantId, params.tenantId))
+        and(eq(supportHandoffs.branchId, branches.id), eq(branches.tenantId, tenantId))
       )
       .leftJoin(
         subscriptions,
         and(
           eq(supportHandoffs.memberId, subscriptions.userId),
-          eq(subscriptions.tenantId, params.tenantId)
+          eq(subscriptions.tenantId, tenantId)
         )
       )
       .leftJoin(
         membershipPlans,
-        and(
-          eq(subscriptions.planKey, membershipPlans.id),
-          eq(membershipPlans.tenantId, params.tenantId)
-        )
+        and(eq(subscriptions.planKey, membershipPlans.id), eq(membershipPlans.tenantId, tenantId))
       )
       .leftJoin(
         agentUser,
-        and(eq(subscriptions.agentId, agentUser.id), eq(agentUser.tenantId, params.tenantId))
+        and(eq(subscriptions.agentId, agentUser.id), eq(agentUser.tenantId, tenantId))
       )
       .where(
         buildStaffSupportHandoffQueueScope({
@@ -144,7 +140,7 @@ export async function getStaffSupportHandoffQueue(params: {
           search: params.search,
           staffId: params.staffId,
           status: params.status ?? 'open',
-          tenantId: params.tenantId,
+          tenantId,
           urgency: params.urgency ?? 'all',
           viewerRole: params.viewerRole,
         })
@@ -197,12 +193,13 @@ export async function getStaffSupportHandoffQueue(params: {
 }
 
 export async function getStaffSupportHandoffDetail(params: {
+  authority: TenantAuthority;
   branchId?: string | null;
   handoffId: string;
   staffId: string;
-  tenantId: string;
   viewerRole?: string | null;
 }): Promise<SupportHandoffStaffDetail | null> {
+  const { tenantId } = readTenantAuthority(params.authority);
   const acceptedByUser = aliasedTable(user, 'support_handoff_accepted_by');
   const reassignedByUser = aliasedTable(user, 'support_handoff_reassigned_by');
   const closedByUser = aliasedTable(user, 'support_handoff_closed_by');
@@ -220,7 +217,7 @@ export async function getStaffSupportHandoffDetail(params: {
     conditions.push(buildOwnOrUnassignedStaffScope(params.staffId));
   }
 
-  const rows = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const rows = await withTenantAuthority(params.authority, tx =>
     tx
       .select({
         contactPreference: supportHandoffs.contactPreference,
@@ -249,24 +246,21 @@ export async function getStaffSupportHandoffDetail(params: {
         acceptedByUser,
         and(
           eq(supportHandoffs.acceptedById, acceptedByUser.id),
-          eq(acceptedByUser.tenantId, params.tenantId)
+          eq(acceptedByUser.tenantId, tenantId)
         )
       )
       .leftJoin(
         reassignedByUser,
         and(
           eq(supportHandoffs.reassignedById, reassignedByUser.id),
-          eq(reassignedByUser.tenantId, params.tenantId)
+          eq(reassignedByUser.tenantId, tenantId)
         )
       )
       .leftJoin(
         closedByUser,
-        and(
-          eq(supportHandoffs.closedById, closedByUser.id),
-          eq(closedByUser.tenantId, params.tenantId)
-        )
+        and(eq(supportHandoffs.closedById, closedByUser.id), eq(closedByUser.tenantId, tenantId))
       )
-      .where(withTenant(params.tenantId, supportHandoffs.tenantId, and(...conditions)))
+      .where(withTenant(tenantId, supportHandoffs.tenantId, and(...conditions)))
       .limit(1)
   );
 

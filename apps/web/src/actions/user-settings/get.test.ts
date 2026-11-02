@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -41,7 +42,9 @@ describe('getNotificationPreferencesCore', () => {
   });
 
   it('returns defaults when no preferences exist', async () => {
+    const authority = mintTestTenantAuthority('tenant-1');
     const result = await getNotificationPreferencesCore({
+      authority,
       session: {
         user: { id: 'user-1', role: 'user', tenantId: 'tenant-1' },
       } as unknown as NonNullable<import('./context').Session>,
@@ -52,7 +55,7 @@ describe('getNotificationPreferencesCore', () => {
       preferences: DEFAULT_NOTIFICATION_PREFERENCES,
       error: undefined,
     });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
     expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.limit).toHaveBeenCalledWith(1);
   });

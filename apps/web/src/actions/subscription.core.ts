@@ -3,25 +3,26 @@
 import { logAuditEvent } from '@/lib/audit';
 import { getSponsoredMembershipState } from '@/components/ops/adapters/membership';
 import { revalidatePath } from 'next/cache';
-import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
+import { and, eq, subscriptions } from '@interdomestik/database';
 import { createActiveAnnualMembershipFulfillment } from '@interdomestik/domain-membership-billing';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { cancelSubscriptionCore } from './subscription/cancel';
 import { getActionContext } from './subscription/context';
 import { getPaymentUpdateUrlCore } from './subscription/get-payment-update-url';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const MEMBER_MEMBERSHIP_PATH = '/[locale]/(app)/member/membership';
 const MEMBER_CARD_PATH = '/[locale]/(app)/member/membership/card';
 
 export async function getPaymentUpdateUrl(subscriptionId: string) {
-  const { session } = await getActionContext();
-  return getPaymentUpdateUrlCore({ session, subscriptionId });
+  const { session, authority } = await getActionContext();
+  return getPaymentUpdateUrlCore({ session, authority, subscriptionId });
 }
 
 export async function cancelSubscription(subscriptionId: string, idempotencyKey?: string) {
-  const { session } = await getActionContext();
+  const { session, authority } = await getActionContext();
   const result = await cancelSubscriptionCore(
-    { session, subscriptionId, idempotencyKey },
+    { session, authority, subscriptionId, idempotencyKey },
     { logAuditEvent }
   );
 
@@ -33,19 +34,14 @@ export async function cancelSubscription(subscriptionId: string, idempotencyKey?
 }
 
 export async function activateSponsoredMembership(subscriptionId: string) {
-  const { session } = await getActionContext();
-  if (!session) {
+  const { session, authority } = await getActionContext();
+  if (!session || !authority) {
     return { error: 'Unauthorized' as const };
   }
 
-  let tenantId: string;
-  try {
-    tenantId = ensureTenantId(session);
-  } catch {
-    return { error: 'Missing tenantId' as const };
-  }
+  const { tenantId } = readTenantAuthority(authority);
 
-  const subscription = await withTenantContext({ tenantId }, async tx =>
+  const subscription = await withTenantAuthority(authority, async tx =>
     tx.query.subscriptions.findFirst({
       where: and(
         eq(subscriptions.id, subscriptionId),
@@ -70,7 +66,7 @@ export async function activateSponsoredMembership(subscriptionId: string) {
     subscription.planKey
   );
 
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .update(subscriptions)
       .set({

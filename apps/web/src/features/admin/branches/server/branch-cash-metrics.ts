@@ -1,11 +1,15 @@
-import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, count, eq, inArray } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export const BRANCH_CASH_OPEN_STATUSES = ['pending', 'needs_info'] as const;
 
 interface BranchCashScope {
-  tenantId: string;
+  authority: TenantAuthority;
   branchId: string;
 }
 
@@ -19,12 +23,13 @@ function getTenantCashTruthFilter(tenantId: string) {
 }
 
 function getBranchCashTruthFilter(scope: BranchCashScope) {
-  return and(getTenantCashTruthFilter(scope.tenantId), eq(memberLeads.branchId, scope.branchId));
+  const { tenantId } = readTenantAuthority(scope.authority);
+  return and(getTenantCashTruthFilter(tenantId), eq(memberLeads.branchId, scope.branchId));
 }
 
 export async function getBranchCashPendingCount(scope: BranchCashScope): Promise<number> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const [result] = await withTenantContext({ tenantId: scope.tenantId }, tx =>
+  const [result] = await withTenantAuthority(scope.authority, tx =>
     tx
       .select({ count: count() })
       .from(leadPaymentAttempts)
@@ -35,9 +40,12 @@ export async function getBranchCashPendingCount(scope: BranchCashScope): Promise
   return result?.count ?? 0;
 }
 
-export async function getBranchCashPendingByBranch(tenantId: string): Promise<Map<string, number>> {
+export async function getBranchCashPendingByBranch(
+  authority: TenantAuthority
+): Promise<Map<string, number>> {
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const rows = await withTenantContext({ tenantId }, tx =>
+  const rows = await withTenantAuthority(authority, tx =>
     tx
       .select({
         branchId: memberLeads.branchId,
@@ -56,7 +64,7 @@ export async function getBranchCashPendingByAgent(
   scope: BranchCashScope
 ): Promise<Map<string, number>> {
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const rows = await withTenantContext({ tenantId: scope.tenantId }, tx =>
+  const rows = await withTenantAuthority(scope.authority, tx =>
     tx
       .select({
         agentId: memberLeads.agentId,

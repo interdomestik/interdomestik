@@ -1,6 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions, user as userTable } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, desc, eq } from 'drizzle-orm';
 
 import type {
@@ -10,22 +12,25 @@ import type {
   CommissionStatus,
   CommissionType,
 } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /** Get commissions for the current agent */
 export async function getMyCommissionsCore(params: {
   session: CommissionSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<Commission[]>> {
-  const { session } = params;
+  const { session, authority } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!['agent', 'staff', 'admin'].includes(session.user.role)) {
     return { success: false, error: 'Access denied' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
 
   try {
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
 
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           id: agentCommissions.id,
@@ -54,7 +59,7 @@ export async function getMyCommissionsCore(params: {
     const commissions: Commission[] = await Promise.all(
       rows.map(async row => {
         const member = row.memberId
-          ? await withTenantContext({ tenantId }, tx =>
+          ? await withTenantAuthority(authority, tx =>
               tx.query.user.findFirst({
                 where: and(eq(userTable.id, row.memberId!), eq(userTable.tenantId, tenantId)),
               })

@@ -13,6 +13,11 @@ const dbMock = db as unknown as {
 };
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
+  getAgentAuthority: vi.fn(async () =>
+    (await import('@interdomestik/database/testing/tenant-authority')).mintTestTenantAuthority(
+      'tenant_mk'
+    )
+  ),
 }));
 
 vi.mock('./agent/register-member', () => ({

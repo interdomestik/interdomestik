@@ -24,6 +24,9 @@ vi.mock('@interdomestik/domain-claims', () => ({
 }));
 
 import { extractClaimAiCandidate } from './claim-pipeline-input';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+const authority = mintTestTenantAuthority('tenant-1');
 import { claimIntakeAiCallContext } from '@/test/ai-call-context';
 
 describe('extractClaimAiCandidate', () => {
@@ -50,6 +53,7 @@ describe('extractClaimAiCandidate', () => {
   it('normalizes malformed claim snapshots before extraction', async () => {
     await extractClaimAiCandidate({
       runId: 'run-1',
+      authority,
       tenantId: 'tenant-1',
       workflow: 'claim_intake_extract',
       documentId: 'doc-1',
@@ -86,6 +90,7 @@ describe('extractClaimAiCandidate', () => {
     await expect(
       extractClaimAiCandidate({
         runId: 'run-1',
+        authority,
         tenantId: 'tenant-1',
         workflow: 'claim_intake_extract',
         documentId: 'doc-1',
@@ -109,10 +114,7 @@ describe('extractClaimAiCandidate', () => {
       })
     ).rejects.toThrow(/consent_missing/);
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.mintClaimDocumentAiCallContext).not.toHaveBeenCalled();
     expect(mocks.extractClaimIntake).not.toHaveBeenCalled();
   });

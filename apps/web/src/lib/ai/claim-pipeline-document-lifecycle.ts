@@ -1,4 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -27,11 +31,11 @@ export function throwDeletedClaimDocumentError(): never {
 export async function failDeletedDocumentClaimAiRun(
   runId: string,
   isWorkflow: (workflow: unknown) => workflow is ClaimAiWorkflow,
-  options: { tenantId: string; retryFailed?: boolean }
+  options: { authority: TenantAuthority; retryFailed?: boolean }
 ): Promise<SkippedRun | null> {
-  const { tenantId } = options;
-  // db-access-guard: tenant-scoped -- reason: tenantId is carried from the tenant-scoped producer and bound to the run row
-  const [run] = await withTenantContext({ tenantId, role: 'system' }, tx =>
+  const { authority } = options;
+  const { tenantId } = readTenantAuthority(authority);
+  const [run] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         tenantId: aiRuns.tenantId,
@@ -78,7 +82,7 @@ export async function failDeletedDocumentClaimAiRun(
       )
     : and(eq(aiRuns.id, runId), eq(aiRuns.tenantId, tenantId), eq(aiRuns.status, 'queued'));
 
-  const [failedRun] = await withTenantContext({ tenantId, role: 'system' }, async tx =>
+  const [failedRun] = await withTenantAuthority(authority, async tx =>
     tx
       .update(aiRuns)
       .set(buildDeletedClaimRunFailure(new Date()))

@@ -6,7 +6,7 @@ import {
   renderSuccessPage,
   resetSuccessHarness,
   successMocks,
-} from './success-page.test-harness';
+} from './success-page.test-support';
 
 const hoisted = successMocks();
 

@@ -1,10 +1,11 @@
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
-import { auth } from '@/lib/auth';
-import { withTenantContext } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAgentWorkspaceClaimsCore } from './_core';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type SearchParams = {
   claimId?: string | string[];
@@ -30,19 +31,18 @@ function resolveRequestedClaimId(searchParams: SearchParams): string | undefined
 
 export default async function AgentWorkspaceClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session) {
+  if (!authorized) {
     redirect(`/${locale}/login`);
   }
 
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const resolvedSearchParams = await searchParams;
   const selectedClaimId = resolveRequestedClaimId(resolvedSearchParams);
 
-  const { claims } = await withTenantContext({ tenantId }, tx =>
+  const { claims } = await withTenantAuthority(authority, tx =>
     getAgentWorkspaceClaimsCore({
       tenantId,
       userId: session.user.id,

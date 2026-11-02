@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getMemberClaimDetail } from './get-member-claim-detail';
 
 const mocks = vi.hoisted(() => {
@@ -53,6 +54,8 @@ vi.mock('../staff-claims/get-claim-status', () => ({
 }));
 
 describe('getMemberClaimDetail', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.db.select.mockReturnValue(mocks.selectChain);
@@ -74,12 +77,12 @@ describe('getMemberClaimDetail', () => {
     ]);
 
     const result = await getMemberClaimDetail({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       claimId: 'claim-1',
     });
 
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result?.status).toBe('evaluation');
     expect(mocks.getClaimStatus).not.toHaveBeenCalled();
     expect(mocks.getClaimTimeline).not.toHaveBeenCalled();
@@ -99,7 +102,7 @@ describe('getMemberClaimDetail', () => {
     ]);
 
     const result = await getMemberClaimDetail({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       claimId: 'claim-1',
     });
@@ -121,7 +124,7 @@ describe('getMemberClaimDetail', () => {
     ]);
 
     const result = await getMemberClaimDetail({
-      tenantId: 'tenant-1',
+      authority,
       memberId: 'member-1',
       claimId: 'claim-1',
     });

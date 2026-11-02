@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import * as domainSave from '@interdomestik/domain-claims/staff-claims/save-escalation-agreement';
 import * as nextCache from 'next/cache';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,6 +22,8 @@ const REVALIDATED_LOCALE_PATHS = [
   ...LOCALES.map(locale => `/${locale}/staff/claims/claim-1`),
   ...LOCALES.map(locale => `/${locale}/staff/claims`),
 ];
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveClaimEscalationAgreementCore', () => {
   it('revalidates locale-scoped staff claim paths after a successful save', async () => {
@@ -48,6 +51,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member accepted negotiation as the next recovery path.',
@@ -80,7 +84,7 @@ describe('saveClaimEscalationAgreementCore', () => {
         scope: {
           kind: 'tenant',
           actorUserId: 'staff-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         idempotencyKey: 'agreement-1',
       })
@@ -93,6 +97,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     vi.clearAllMocks();
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member accepted negotiation as the next recovery path.',

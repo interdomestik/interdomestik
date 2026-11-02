@@ -1,3 +1,4 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth';
 import {
   CRM_ACTOR_ROLES,
@@ -34,7 +35,7 @@ import {
 import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 
-import { crmTaskRepository } from '@/adapters/crm/task-repository';
+import { createCrmTaskRepository } from '@/adapters/crm/task-repository';
 import { LOCALES } from '@/i18n/locales';
 import { logAuditEvent, type AuditEvent } from '@/lib/audit';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
@@ -140,6 +141,8 @@ type CrmTaskCoreDeps = {
 };
 
 type CoreParams = {
+  /** The session tenant authority; every repository this action builds runs under it. */
+  readonly authority: TenantAuthority | null;
   readonly deps?: CrmTaskCoreDeps;
   readonly requestHeaders?: Headers;
   readonly session: SessionWithTenant;
@@ -148,6 +151,7 @@ type CoreParams = {
 type MutationContext =
   | {
       readonly actor: CrmActorContext;
+      readonly authority: TenantAuthority;
       readonly deps: Required<CrmTaskCoreDeps>;
       readonly requestHeaders: Headers;
     }
@@ -155,6 +159,7 @@ type MutationContext =
 
 export type CrmTaskExistingMutationGuard = (params: {
   readonly actor: CrmActorContext;
+  readonly authority: TenantAuthority;
   readonly deps: Required<CrmTaskCoreDeps>;
   readonly input: { readonly expectedLifecycleVersion: number; readonly taskId: string };
   readonly requestHeaders: Headers;
@@ -164,17 +169,19 @@ const MUTATION_LIMIT = 30;
 const MUTATION_WINDOW_SECONDS = 60;
 const CRM_TASK_REVALIDATION_PATHS = ['/agent/crm', '/staff/crm', '/admin/crm'] as const;
 
-const defaultDeps: Required<CrmTaskCoreDeps> = {
+const defaultDeps: Omit<Required<CrmTaskCoreDeps>, 'repository'> = {
   audit: logAuditEvent,
   now: () => new Date().toISOString(),
   rateLimit: enforceRateLimitForAction,
-  repository: crmTaskRepository,
   revalidate: revalidatePath,
   taskId: nanoid,
 };
 
-function mergeDeps(deps?: CrmTaskCoreDeps): Required<CrmTaskCoreDeps> {
-  return { ...defaultDeps, ...deps };
+function mergeDeps(
+  deps: CrmTaskCoreDeps | undefined,
+  authority: TenantAuthority
+): Required<CrmTaskCoreDeps> {
+  return { ...defaultDeps, repository: createCrmTaskRepository(authority), ...deps };
 }
 
 function failure(
@@ -263,8 +270,9 @@ function mapRateLimit(limit: RateLimitResult): CrmTaskBoundaryResult | null {
 async function createMutationContext(params: CoreParams): Promise<MutationContext> {
   const actor = createActorContext(params.session);
   if ('outcome' in actor) return actor;
+  if (!params.authority) return failure('unauthorized', 'missing_session');
 
-  const deps = mergeDeps(params.deps);
+  const deps = mergeDeps(params.deps, params.authority);
   const requestHeaders = params.requestHeaders ?? new Headers();
   const limit = await deps.rateLimit({
     headers: requestHeaders,
@@ -277,7 +285,7 @@ async function createMutationContext(params: CoreParams): Promise<MutationContex
   const rateLimited = mapRateLimit(limit);
   if (rateLimited) return rateLimited;
 
-  return { actor, deps, requestHeaders };
+  return { actor, authority: params.authority, deps, requestHeaders };
 }
 
 function revalidateCrmTaskPaths(deps: Required<CrmTaskCoreDeps>): void {
@@ -307,6 +315,7 @@ function findTaskHistoryTransition(
 
 async function auditTaskMutation(params: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   deps: Required<CrmTaskCoreDeps>;
   replay: boolean;
   requestHeaders: Headers;
@@ -332,12 +341,13 @@ async function auditTaskMutation(params: {
       subjectKind: params.task.subjectReference.kind,
       toStatus: transition?.toStatus ?? params.task.status,
     },
-    tenantId: params.actor.tenantId,
+    authority: params.authority,
   });
 }
 
 async function persistMutation(params: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   deps: Required<CrmTaskCoreDeps>;
   expectedLifecycleVersion: number;
   fallbackEvent: CrmTaskTransition['event'];
@@ -349,6 +359,7 @@ async function persistMutation(params: {
   if (params.result.idempotent) {
     await auditTaskMutation({
       actor: params.actor,
+      authority: params.authority,
       deps: params.deps,
       fallbackEvent: params.fallbackEvent,
       replay: true,
@@ -367,6 +378,7 @@ async function persistMutation(params: {
     });
     await auditTaskMutation({
       actor: params.actor,
+      authority: params.authority,
       deps: params.deps,
       fallbackEvent: params.fallbackEvent,
       replay: false,
@@ -400,6 +412,7 @@ async function runExistingTaskMutation(
     const guardResult = params.guard
       ? await params.guard({
           actor: context.actor,
+          authority: context.authority,
           deps: context.deps,
           input: params.input,
           requestHeaders: context.requestHeaders,
@@ -416,6 +429,7 @@ async function runExistingTaskMutation(
     const result = params.mutate(task, context.actor, context.deps);
     return persistMutation({
       actor: context.actor,
+      authority: context.authority,
       deps: context.deps,
       expectedLifecycleVersion: params.input.expectedLifecycleVersion,
       fallbackEvent: params.fallbackEvent,
@@ -432,8 +446,9 @@ export async function readCrmTaskCore(
 ): Promise<CrmTaskBoundaryResult> {
   const actor = createActorContext(params.session);
   if ('outcome' in actor) return actor;
+  if (!params.authority) return failure('unauthorized', 'missing_session');
 
-  const deps = mergeDeps(params.deps);
+  const deps = mergeDeps(params.deps, params.authority);
   try {
     const task = await deps.repository.findTaskById({ actor, taskId: params.taskId });
     if (!task) return failure('not_found', 'task_not_found');
@@ -449,7 +464,7 @@ export async function createCrmTaskCore(
   const context = await createMutationContext(params);
   if (isBoundaryResult(context)) return context;
 
-  const { actor, deps, requestHeaders } = context;
+  const { actor, authority, deps, requestHeaders } = context;
   const { input } = params;
 
   if (!deps.repository.validateSubjectReference) {
@@ -493,6 +508,7 @@ export async function createCrmTaskCore(
     if (result.idempotent) {
       await auditTaskMutation({
         actor,
+        authority,
         deps,
         fallbackEvent: 'created',
         replay: true,
@@ -507,6 +523,7 @@ export async function createCrmTaskCore(
     const replay = task.taskId !== result.task.taskId;
     await auditTaskMutation({
       actor,
+      authority,
       deps,
       fallbackEvent: 'created',
       replay,

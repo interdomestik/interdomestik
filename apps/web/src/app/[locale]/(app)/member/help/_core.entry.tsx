@@ -1,6 +1,7 @@
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link } from '@/i18n/routing';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -43,14 +44,15 @@ export default async function HelpPage({ params, searchParams }: Props) {
   const requestedHandoffId = getSingleParam(resolvedSearchParams.handoffId);
   const requestedClaimId = getSingleParam(resolvedSearchParams.claimId);
   const sourceHint = getSingleParam(resolvedSearchParams.source);
-  const claimOptions =
-    session.user.tenantId && session.user.id
-      ? await getMemberClaimOptions({
-          memberId: session.user.id,
-          requestedClaimId,
-          tenantId: session.user.tenantId,
-        })
-      : [];
+  const authorized =
+    session.user.tenantId && session.user.id ? await authorizeSessionTenant() : null;
+  const claimOptions = authorized
+    ? await getMemberClaimOptions({
+        memberId: session.user.id,
+        requestedClaimId,
+        authority: authorized.authority,
+      })
+    : [];
   const selectedClaim = requestedClaimId
     ? (claimOptions.find(claim => claim.id === requestedClaimId) ?? null)
     : null;
@@ -147,19 +149,19 @@ export default async function HelpPage({ params, searchParams }: Props) {
                 </div>
               </div>
             ) : null}
-            {session.user.tenantId && session.user.id ? (
+            {authorized ? (
               <>
                 <PublicResponseBanner
+                  authority={authorized.authority}
                   handoffId={requestedHandoffId ?? null}
                   locale={locale}
                   memberId={session.user.id}
                   selectedClaim={selectedClaim}
-                  tenantId={session.user.tenantId}
                 />
                 <AdvisoryBanner
+                  authority={authorized.authority}
                   memberId={session.user.id}
                   selectedClaim={selectedClaim}
-                  tenantId={session.user.tenantId}
                 />
               </>
             ) : null}

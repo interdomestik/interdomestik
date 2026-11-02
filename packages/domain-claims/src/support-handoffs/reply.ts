@@ -1,4 +1,8 @@
-import { and, eq, sql, supportHandoffs, withTenantContext } from '@interdomestik/database';
+import { and, eq, sql, supportHandoffs } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   hasSupportHandoffCurrentCycleMemberReply,
@@ -20,6 +24,7 @@ import type {
   SupportHandoffSession,
 } from './types';
 import { ACTIVE_HANDOFF_STATUSES, MAX_MEMBER_REPLY_LENGTH } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const STALE_RESPONSE_ERROR =
   'The support team updated this response. Please review the latest update.';
@@ -42,16 +47,19 @@ function normalizeReplyText(value: string | null | undefined) {
 
 export async function submitSupportHandoffMemberReplyCore(
   params: SubmitSupportHandoffMemberReplyInput & {
+    authority: TenantAuthority | null;
     requestHeaders?: Headers;
     session: SupportHandoffSession | null;
   },
   deps: SupportHandoffDeps = {}
 ): Promise<SupportHandoffActionResult<SubmitSupportHandoffMemberReplyResult>> {
   const memberSession = requireSupportHandoffMemberSession(params.session);
-  if (!memberSession) {
+  const authority = params.authority;
+  if (!memberSession || !authority) {
     return failure('Unauthorized', 'UNAUTHORIZED');
   }
 
+  const { tenantId } = readTenantAuthority(authority);
   const memberId = memberSession.user.id;
   const expectedVersion = Number.isFinite(params.expectedPublicResponseVersion)
     ? params.expectedPublicResponseVersion
@@ -70,7 +78,7 @@ export async function submitSupportHandoffMemberReplyCore(
   }
 
   const now = new Date();
-  const updated = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+  const updated = await withTenantAuthority(authority, tx =>
     tx
       .update(supportHandoffs)
       .set({
@@ -81,7 +89,7 @@ export async function submitSupportHandoffMemberReplyCore(
       })
       .where(
         withTenant(
-          memberSession.tenantId,
+          tenantId,
           supportHandoffs.tenantId,
           and(
             eq(supportHandoffs.id, params.handoffId),
@@ -110,13 +118,13 @@ export async function submitSupportHandoffMemberReplyCore(
       await deps.logAuditEvent({
         actorId: memberId,
         actorRole: memberSession.user.role,
-        tenantId: memberSession.tenantId,
+        authority,
         action: 'support_handoff.member_reply_submitted',
         entityType: 'support_handoff',
         entityId: params.handoffId,
         metadata: {
           handoffId: params.handoffId,
-          tenantId: memberSession.tenantId,
+          tenantId,
           memberId,
           replyResponseVersion: expectedVersion,
           replyAt: normalizeNullableDate(row.memberReplyAt) ?? now.toISOString(),
@@ -135,7 +143,7 @@ export async function submitSupportHandoffMemberReplyCore(
     };
   }
 
-  const existing = await withTenantContext({ tenantId: memberSession.tenantId }, tx =>
+  const existing = await withTenantAuthority(authority, tx =>
     tx
       .select({
         acknowledgedAt: supportHandoffs.publicResponseAcknowledgedAt,
@@ -150,7 +158,7 @@ export async function submitSupportHandoffMemberReplyCore(
       .from(supportHandoffs)
       .where(
         withTenant(
-          memberSession.tenantId,
+          tenantId,
           supportHandoffs.tenantId,
           and(eq(supportHandoffs.id, params.handoffId), eq(supportHandoffs.memberId, memberId))
         )

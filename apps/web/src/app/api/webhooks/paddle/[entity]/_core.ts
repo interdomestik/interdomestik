@@ -29,12 +29,13 @@ async function preflightEntityMismatchCheck(args: {
       secret: args.secret,
       signature: args.signature,
       parsedPayload,
+      billingEntity: args.expectedEntity,
     });
 
     const eventData = (verified.eventData ?? {}) as { data?: unknown };
     if (!eventData.data) return 'pass';
 
-    const mismatch = await isEntityMismatch(args.expectedEntity, eventData.data);
+    const mismatch = await isEntityMismatch(verified.delivery, args.expectedEntity, eventData.data);
     return mismatch ? 'mismatch' : 'pass';
   } catch {
     return 'signature-invalid';

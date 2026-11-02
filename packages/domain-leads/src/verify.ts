@@ -1,8 +1,12 @@
-import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { convertLeadToMember } from './convert';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export const verifyCashSchema = z.object({
   leadId: z.string(),
@@ -13,18 +17,20 @@ export const verifyCashSchema = z.object({
 export type VerifyCashInput = z.infer<typeof verifyCashSchema>;
 
 export async function verifyCashPayment(
-  ctx: { tenantId: string; userId: string }, // Verified by this user
+  ctx: { authority: TenantAuthority; userId: string }, // Verified by this user
   input: VerifyCashInput
 ) {
   const { leadId, paymentAttemptId, decision } = input;
+  const { authority } = ctx;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const attempt = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+  const attempt = await withTenantAuthority(authority, tx =>
     tx.query.leadPaymentAttempts.findFirst({
       where: (pa, { eq, and }) =>
         and(
           eq(pa.id, paymentAttemptId),
           eq(pa.leadId, leadId),
-          eq(pa.tenantId, ctx.tenantId),
+          eq(pa.tenantId, tenantId),
           eq(pa.method, 'cash'),
           eq(pa.status, 'pending')
         ),
@@ -35,7 +41,7 @@ export async function verifyCashPayment(
 
   if (decision === 'reject') {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    await withTenantAuthority(authority, tx =>
       tx
         .update(leadPaymentAttempts)
         .set({
@@ -50,7 +56,7 @@ export async function verifyCashPayment(
     // Move lead back to 'new' or keep 'payment_pending'? 'new' seems appropriate or 'disqualified' if hard reject.
     // Let's set back to 'new' to allow retry.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+    await withTenantAuthority(authority, tx =>
       tx.update(memberLeads).set({ status: 'new' }).where(eq(memberLeads.id, leadId))
     );
 
@@ -59,7 +65,7 @@ export async function verifyCashPayment(
 
   // APPROVE
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await withTenantContext({ tenantId: ctx.tenantId }, async tx => {
+  await withTenantAuthority(authority, async tx => {
     // 1. Mark payment as succeeded
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx
@@ -82,7 +88,7 @@ export async function verifyCashPayment(
   // We should refactor convert to accept a 'tx' or just do it here.
   // For simplicity of MVP, we call it here. Robustness improvement: make convert accept tx.
 
-  await convertLeadToMember(ctx, { leadId });
+  await convertLeadToMember(authority, { leadId });
 
   return { success: true, outcome: 'approved' };
 }

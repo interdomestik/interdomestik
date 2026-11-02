@@ -1,10 +1,18 @@
-import { auditLog, withTenantContext } from '@interdomestik/database';
+import { auditLog } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 
+// An audit row is written inside the tenant that owns it, under the authority the caller already
+// holds. The event carries no tenant id of its own, so a payload or metadata value can never choose
+// the tenant of an audit row.
 export type AuditEvent = {
+  authority: TenantAuthority;
   actorId?: string | null;
   actorRole?: string | null;
-  tenantId?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
@@ -12,7 +20,7 @@ export type AuditEvent = {
   headers?: Headers;
 };
 
-function extractRequestMetadata(requestHeaders?: Headers) {
+export function extractRequestMetadata(requestHeaders?: Headers) {
   if (!requestHeaders) return {};
 
   const forwardedFor = requestHeaders.get('x-forwarded-for');
@@ -26,9 +34,9 @@ function extractRequestMetadata(requestHeaders?: Headers) {
 }
 
 export async function logAuditEvent({
+  authority,
   actorId,
   actorRole,
-  tenantId,
   action,
   entityType,
   entityId,
@@ -42,10 +50,8 @@ export async function logAuditEvent({
       ...requestMetadata,
     };
 
-    const resolvedTenantId = tenantId || (combinedMetadata.tenantId as string | undefined) || null;
-
-    if (!resolvedTenantId) {
-      const errorMsg = `Audit log failed: Missing tenantId for action: ${action}`;
+    if (!authority) {
+      const errorMsg = `Audit log failed: Missing tenant authority for action: ${action}`;
       console.error(errorMsg, { action, entityType, entityId });
 
       if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
@@ -54,11 +60,13 @@ export async function logAuditEvent({
       return;
     }
 
+    const { tenantId } = readTenantAuthority(authority);
+
     // The runtime role only accepts audit rows inside the tenant context that owns them.
-    await withTenantContext({ tenantId: resolvedTenantId }, tx =>
+    await withTenantAuthority(authority, tx =>
       tx.insert(auditLog).values({
         id: nanoid(),
-        tenantId: resolvedTenantId,
+        tenantId,
         actorId: actorId || null,
         actorRole: actorRole || null,
         action,

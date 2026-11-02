@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscriptionCore } from './cancel';
 import type { SubscriptionSession } from './types';
@@ -44,6 +45,7 @@ vi.mock('../paddle-server', () => ({
 }));
 
 describe('cancelSubscriptionCore row guard', () => {
+  const authority = mintTestTenantAuthority('tenant_abc');
   const logAuditEvent = vi.fn();
   const session: SubscriptionSession = { user: { id: 'user_123' } };
 
@@ -80,6 +82,7 @@ describe('cancelSubscriptionCore row guard', () => {
       const result = await cancelSubscriptionCore(
         {
           session,
+          authority,
           subscriptionId: 'sub_123',
           now: new Date('2026-03-12T00:00:00.000Z'),
         },

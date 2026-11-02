@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => {
@@ -61,6 +62,7 @@ const context = {
   ownerUserId: 'member-1',
   tenantId: 'tenant_ks',
 };
+const authority = mintTestTenantAuthority('tenant_ks');
 const session = {
   user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks', email: 'm@example.com' },
 };
@@ -71,7 +73,12 @@ describe('lookupSavedDraftClaim', () => {
     h.contexts.length = 0;
     h.runAuthenticated.mockImplementation(async callback => ({
       success: true,
-      data: await callback({ session, tenantId: 'tenant_ks', requestHeaders: new Headers() }),
+      data: await callback({
+        session,
+        authority,
+        tenantId: 'tenant_ks',
+        requestHeaders: new Headers(),
+      }),
     }));
     h.resolveSession.mockResolvedValue({ ok: true, context });
     h.limit.mockResolvedValue([{ id: claimId, claimNumber: 'CLM-KS-2026-000001' }]);
@@ -90,7 +97,8 @@ describe('lookupSavedDraftClaim', () => {
     expect(h.resumeDraft).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.rateLimit).not.toHaveBeenCalled();
-    expect(h.contexts).toEqual([{ tenantId: 'tenant_ks' }]);
+    expect(h.contexts).toHaveLength(1);
+    expect(h.contexts[0]).toBe(authority);
     expect(h.txSelect).toHaveBeenCalledTimes(1);
     expect(h.select).not.toHaveBeenCalled();
   });
@@ -142,7 +150,12 @@ describe('lookupSavedDraftClaim', () => {
   it('collapses session/action tenant mismatch and database errors', async () => {
     h.runAuthenticated.mockImplementationOnce(async callback => ({
       success: true,
-      data: await callback({ session, tenantId: 'tenant_mk', requestHeaders: new Headers() }),
+      data: await callback({
+        session,
+        authority,
+        tenantId: 'tenant_mk',
+        requestHeaders: new Headers(),
+      }),
     }));
     await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
     h.limit.mockRejectedValue(new Error('database unavailable'));

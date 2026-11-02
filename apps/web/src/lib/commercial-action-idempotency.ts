@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import {
   completeCommercialActionReservation,
   findExistingReservation,
@@ -12,7 +14,7 @@ import type { ActionError } from './safe-action';
 
 export type CommercialActionIdempotencyScope = {
   kind: 'tenant';
-  tenantId?: string | null;
+  authority: TenantAuthority | null;
   actorUserId?: string | null;
 };
 
@@ -86,14 +88,14 @@ function resolveIdempotencyScope(
   scope: CommercialActionIdempotencyScope
 ): ResolvedCommercialActionIdempotencyScope | ActionError {
   // Fail closed on anything that is not an explicit tenant scope, including a legacy public scope.
-  const tenantId = scope.kind === 'tenant' ? scope.tenantId?.trim() : undefined;
-  if (!tenantId) {
+  const authority = scope.kind === 'tenant' ? scope.authority : null;
+  if (!authority) {
     return buildMissingTenantScopeError();
   }
 
   return {
     kind: 'tenant',
-    tenantId,
+    authority,
     actorUserId: scope.actorUserId ?? null,
   };
 }

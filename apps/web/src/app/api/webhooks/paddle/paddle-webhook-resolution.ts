@@ -1,5 +1,13 @@
-import { resolvePaddleUserOwner } from '@interdomestik/database';
-import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
+import { authorizePaddleTenant, resolvePaddleUserOwner } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import {
+  findPaddleSubscriptionByReference,
+  type PaddleSubscriptionLookup,
+} from '@interdomestik/domain-membership-billing/subscription';
 import { isPaddleSubscriptionReferenceAmbiguousError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 
 type PaddleWebhookData = {
@@ -34,45 +42,66 @@ export function getPaddleSubscriptionReferences(data: unknown): string[] {
   );
 }
 
-export type WebhookSubscription = NonNullable<
-  Awaited<ReturnType<typeof findSubscriptionByProviderReference>>
->;
+export type WebhookSubscription = PaddleSubscriptionLookup['subscription'];
 
-export type WebhookSubscriptionResolution = WebhookSubscription | 'ambiguous' | null;
+/** A resolved subscription together with the authority it was read under. */
+export type WebhookSubscriptionLookup = PaddleSubscriptionLookup;
+
+export type WebhookSubscriptionResolution = WebhookSubscriptionLookup | 'ambiguous' | null;
+
+export type WebhookTenantResolution = {
+  tenantId: string;
+  /** `paddle-webhook` authority minted from the resolver owner that named this tenant. */
+  authority: TenantAuthority;
+};
 
 export async function resolveWebhookSubscription(
+  delivery: IngressCapability<'paddle-delivery'>,
   data: unknown
 ): Promise<WebhookSubscriptionResolution> {
   for (const subscriptionReference of getPaddleSubscriptionReferences(data)) {
-    let subscription: Awaited<ReturnType<typeof findSubscriptionByProviderReference>>;
+    let lookup: PaddleSubscriptionLookup | null;
     try {
-      subscription = await findSubscriptionByProviderReference(subscriptionReference);
+      lookup = await findPaddleSubscriptionByReference(subscriptionReference, delivery);
     } catch (error) {
       // The receipt is still admitted (tenant unresolved) so processing records the terminal
       // conflict; no later reference or customData may stand in for an ambiguous one.
       if (isPaddleSubscriptionReferenceAmbiguousError(error)) return 'ambiguous';
       throw error;
     }
-    if (subscription?.tenantId) return subscription;
+    if (lookup?.subscription.tenantId) return lookup;
   }
 
   return null;
 }
 
-export async function resolveWebhookTenantId(
+export async function resolveWebhookTenant(
+  delivery: IngressCapability<'paddle-delivery'>,
   data: unknown,
   subscription: WebhookSubscriptionResolution
-): Promise<string | null> {
+): Promise<WebhookTenantResolution | null> {
   if (subscription === 'ambiguous') return null;
   const customData = getPaddleCustomData(data);
 
-  if (subscription?.tenantId) return subscription.tenantId;
+  if (subscription?.subscription.tenantId) {
+    const tenantId = subscription.subscription.tenantId;
+    // The subscription row was read under this authority; a row naming another tenant fails closed.
+    const authorityTenantId = readTenantAuthority(subscription.authority).tenantId;
+    if (authorityTenantId !== tenantId) {
+      throw new Error(
+        `Paddle webhook subscription tenant conflict: record=${tenantId} authority=${authorityTenantId}`
+      );
+    }
+    return { tenantId, authority: subscription.authority };
+  }
 
   const userId = normalizeText(customData?.userId);
   if (userId) {
     // Fallback after canonical subscription lookup: exact user id to owning tenant only.
     const owner = await resolvePaddleUserOwner(userId);
-    if (owner) return owner.tenantId;
+    if (owner) {
+      return { tenantId: owner.tenantId, authority: authorizePaddleTenant(delivery, owner) };
+    }
   }
 
   return null;

@@ -9,12 +9,11 @@ import {
   type CrmTaskWorkQueueItem,
 } from '@interdomestik/domain-crm/tasks';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { db } from '@interdomestik/database/db';
 import { crmLeads, crmTasks } from '@interdomestik/database/schema';
-import { runInCrmTenantContext } from './tenant-runner';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
-type AgentCrmTaskWorkQueueDb = typeof db;
 type AgentCrmTaskQueueLeadRow = {
   assignedActorId: string | null;
   branchId: string | null;
@@ -88,7 +87,8 @@ function toLeadQueueInput(row: AgentCrmTaskQueueLeadRow) {
 }
 
 export function createAgentCrmTaskWorkQueueRepository(
-  database: AgentCrmTaskWorkQueueDb = db
+  authority: TenantAuthority,
+  executor?: CrmTenantExecutor
 ): AgentCrmTaskWorkQueueRepository {
   return {
     async readAgentCompletedTaskQueue(input) {
@@ -101,37 +101,34 @@ export function createAgentCrmTaskWorkQueueRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: CRM32 completed task queue constrains by actor tenant, branch, assignment, completed status, and joined lead visibility before deriving queue DTOs.
-      const rows = await runInCrmTenantContext(
-        database,
-        { tenantId: actor.tenantId },
-        async scoped =>
-          scoped
-            .select({
-              assignedActorId: crmTasks.assignedActorId,
-              branchId: crmTasks.branchId,
-              companyName: crmLeads.companyName,
-              completedAt: crmTasks.completedAt,
-              completionReasonCode: crmTasks.completionReasonCode,
-              dueAt: crmTasks.dueAt,
-              fullName: crmLeads.fullName,
-              leadId: crmTasks.subjectId,
-              lifecycleVersion: crmTasks.lifecycleVersion,
-              priority: crmTasks.priority,
-              status: crmTasks.status,
-              taskId: crmTasks.id,
-              tenantId: crmTasks.tenantId,
-            })
-            .from(crmTasks)
-            .innerJoin(crmLeads, leadVisibilityJoin(actor, branchId))
-            .where(
-              and(
-                ...assignedLeadTaskConditions(actor, branchId),
-                eq(crmTasks.status, 'completed'),
-                isNotNull(crmTasks.completedAt)
-              )
+      const rows = await runInCrmTenantContext(executor, authority, async scoped =>
+        scoped
+          .select({
+            assignedActorId: crmTasks.assignedActorId,
+            branchId: crmTasks.branchId,
+            companyName: crmLeads.companyName,
+            completedAt: crmTasks.completedAt,
+            completionReasonCode: crmTasks.completionReasonCode,
+            dueAt: crmTasks.dueAt,
+            fullName: crmLeads.fullName,
+            leadId: crmTasks.subjectId,
+            lifecycleVersion: crmTasks.lifecycleVersion,
+            priority: crmTasks.priority,
+            status: crmTasks.status,
+            taskId: crmTasks.id,
+            tenantId: crmTasks.tenantId,
+          })
+          .from(crmTasks)
+          .innerJoin(crmLeads, leadVisibilityJoin(actor, branchId))
+          .where(
+            and(
+              ...assignedLeadTaskConditions(actor, branchId),
+              eq(crmTasks.status, 'completed'),
+              isNotNull(crmTasks.completedAt)
             )
-            .orderBy(desc(crmTasks.completedAt), asc(crmTasks.id))
-            .limit(limit * 2)
+          )
+          .orderBy(desc(crmTasks.completedAt), asc(crmTasks.id))
+          .limit(limit * 2)
       );
 
       const queueRows: CrmTaskCompletedQueueInputRow[] = rows.map(row => ({
@@ -161,40 +158,37 @@ export function createAgentCrmTaskWorkQueueRepository(
       }
 
       // db-access-guard: tenant-scoped -- reason: CRM28 task queue constrains by actor tenant, branch, assignment, and joined lead visibility before deriving queue DTOs.
-      const rows = await runInCrmTenantContext(
-        database,
-        { tenantId: actor.tenantId },
-        async scoped =>
-          scoped
-            .select({
-              assignedActorId: crmTasks.assignedActorId,
-              branchId: crmTasks.branchId,
-              companyName: crmLeads.companyName,
-              createReasonCode: crmTasks.createReasonCode,
-              dueAt: crmTasks.dueAt,
-              fullName: crmLeads.fullName,
-              leadId: crmTasks.subjectId,
-              lifecycleVersion: crmTasks.lifecycleVersion,
-              priority: crmTasks.priority,
-              status: crmTasks.status,
-              taskId: crmTasks.id,
-              tenantId: crmTasks.tenantId,
-            })
-            .from(crmTasks)
-            .innerJoin(crmLeads, leadVisibilityJoin(actor, branchId))
-            .where(
-              and(
-                ...assignedLeadTaskConditions(actor, branchId),
-                inArray(crmTasks.status, ['pending', 'in_progress'])
-              )
+      const rows = await runInCrmTenantContext(executor, authority, async scoped =>
+        scoped
+          .select({
+            assignedActorId: crmTasks.assignedActorId,
+            branchId: crmTasks.branchId,
+            companyName: crmLeads.companyName,
+            createReasonCode: crmTasks.createReasonCode,
+            dueAt: crmTasks.dueAt,
+            fullName: crmLeads.fullName,
+            leadId: crmTasks.subjectId,
+            lifecycleVersion: crmTasks.lifecycleVersion,
+            priority: crmTasks.priority,
+            status: crmTasks.status,
+            taskId: crmTasks.id,
+            tenantId: crmTasks.tenantId,
+          })
+          .from(crmTasks)
+          .innerJoin(crmLeads, leadVisibilityJoin(actor, branchId))
+          .where(
+            and(
+              ...assignedLeadTaskConditions(actor, branchId),
+              inArray(crmTasks.status, ['pending', 'in_progress'])
             )
-            .orderBy(
-              sql`case when ${crmTasks.dueAt} is null then 1 else 0 end`,
-              asc(crmTasks.dueAt),
-              sql`case ${crmTasks.priority} when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end`,
-              asc(crmTasks.id)
-            )
-            .limit(limit * 2)
+          )
+          .orderBy(
+            sql`case when ${crmTasks.dueAt} is null then 1 else 0 end`,
+            asc(crmTasks.dueAt),
+            sql`case ${crmTasks.priority} when 'urgent' then 0 when 'high' then 1 when 'normal' then 2 else 3 end`,
+            asc(crmTasks.id)
+          )
+          .limit(limit * 2)
       );
 
       const queueRows: CrmTaskWorkQueueInputRow[] = rows.map(row => ({
@@ -215,5 +209,3 @@ export function createAgentCrmTaskWorkQueueRepository(
     },
   };
 }
-
-export const agentCrmTaskWorkQueueRepository = createAgentCrmTaskWorkQueueRepository();

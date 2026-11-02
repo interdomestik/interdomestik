@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   setRequestLocaleMock: vi.fn(),
   getSessionMock: vi.fn(async () => ({
-    user: { tenantId: 'tenant-1', role: 'admin' },
+    user: { id: 'admin-1', tenantId: 'tenant-1', role: 'admin' },
   })),
   getAdminAnalyticsDataCoreMock: vi.fn(async () => ({
     totals: { count: 0, sum: 0, avg: 0 },
@@ -54,6 +54,7 @@ describe('AdminAnalyticsPage', () => {
     expect(hoisted.setRequestLocaleMock.mock.invocationCallOrder[0]).toBeLessThan(
       hoisted.getSessionMock.mock.invocationCallOrder[0]
     );
+    expect(hoisted.getAdminAnalyticsDataCoreMock).toHaveBeenCalledWith(expect.any(Object));
     expect(hoisted.analyticsDashboardMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,9 +3,10 @@ import {
   type CrmLeadMutationResult,
 } from '@interdomestik/domain-crm/leads/mutations';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { nanoid } from 'nanoid';
 import { createLeadSchema } from './schemas';
-import { crmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
+import { createCrmLeadMutationRepository } from '@/adapters/crm/lead-mutation-repository';
 
 function getString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -22,7 +23,11 @@ function mapMutationError(result: Extract<CrmLeadMutationResult, { success: fals
   return 'Failed to create lead';
 }
 
-export async function createLeadCore(actor: CrmActorContext, formData: FormData) {
+export async function createLeadCore(
+  actor: CrmActorContext,
+  authority: TenantAuthority,
+  formData: FormData
+) {
   const rawData = {
     type: formData.get('type'),
     stage: formData.get('stage'),
@@ -53,7 +58,7 @@ export async function createLeadCore(actor: CrmActorContext, formData: FormData)
         tenantId: actor.tenantId,
         ...validated.data,
       },
-      crmLeadMutationRepository
+      createCrmLeadMutationRepository(authority)
     );
 
     if (!result.success) {

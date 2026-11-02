@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionPastDue } from './dunning';
 import {
+  TEST_PADDLE_DELIVERY,
   mockRacedSubscriptionInsert,
   mockSubscriptionOwner,
   mockUserOwner,
@@ -49,6 +50,7 @@ describe('handleSubscriptionPastDue', () => {
     });
 
     await handleSubscriptionPastDue({
+      delivery: TEST_PADDLE_DELIVERY,
       data: {
         id: 'sub_paddle_456',
         status: 'past_due',
@@ -93,6 +95,7 @@ describe('handleSubscriptionPastDue', () => {
     });
 
     await handleSubscriptionPastDue({
+      delivery: TEST_PADDLE_DELIVERY,
       data: {
         id: 'sub_paddle_456',
         status: 'past_due',
@@ -106,10 +109,18 @@ describe('handleSubscriptionPastDue', () => {
       },
     });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_abc' },
-      expect.any(Function)
+    // Every tenant-scoped statement runs under the authority minted from the user's resolver owner.
+    const userOwner = await hoisted.resolution.resolvePaddleUserOwner.mock.results[0]!.value;
+    expect(hoisted.resolution.authorizePaddleTenant).toHaveBeenCalledWith(
+      TEST_PADDLE_DELIVERY,
+      userOwner
     );
+    expect(hoisted.resolution.authorizePaddleTenant.mock.calls[0]![1]).toBe(userOwner);
+    const authority = hoisted.resolution.authorizePaddleTenant.mock.results[0]!.value;
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    for (const call of hoisted.withTenantContext.mock.calls) {
+      expect(call[0]).toBe(authority);
+    }
     expect(hoisted.db.insert).toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -137,6 +148,7 @@ describe('handleSubscriptionPastDue', () => {
     hoisted.selectResults.push([], [{ id: 'mk-family-plan', tier: 'family' }]);
 
     await handleSubscriptionPastDue({
+      delivery: TEST_PADDLE_DELIVERY,
       data: {
         id: 'sub_paddle_annual',
         status: 'past_due',

@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -117,6 +121,11 @@ describe('AdminClaimDetailV2Page staff assignment data', () => {
 
     expect(screen.getByTestId('next-actions-card')).toBeInTheDocument();
     expect(lastCardProps()).toMatchObject({ allStaff: [], canAssign: true });
+    const authority = mocks.getOpsClaimDetail.mock.calls[0]?.[1] as TenantAuthority;
+    expect(readTenantAuthority(authority)).toMatchObject({
+      tenantId: 'tenant-1',
+      principal: { userId: 'actor-1', role: 'admin' },
+    });
   });
 
   it('offers only staff-role targets while the header keeps every staff row', async () => {

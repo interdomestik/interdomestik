@@ -1,4 +1,6 @@
 import { user } from '@interdomestik/database/schema';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { and, eq, type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,10 +37,18 @@ const COUNTS = { total: 0, open: 0, resolved: 0, rejected: 0 };
 function load(role: string | null, branchId: string | null, tenantId: string | null = 't1') {
   return getAdminUserProfileCore({
     userId: 'u1',
-    tenantId,
+    authority: tenantId ? mintTestTenantAuthority(tenantId, { userId: 'actor-1', role }) : null,
     actor: { role, branchId },
     recentClaimsLimit: 6,
   });
+}
+
+// The transaction opens under the authority minted for the actor: its tenant and its role.
+function expectTransactionUnder(tenantId: string, role: string | null): void {
+  expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
+  const descriptor = readTenantAuthority(mocks.withTenantContext.mock.calls[0]?.[0] as never);
+  expect(descriptor.tenantId).toBe(tenantId);
+  expect(descriptor.principal?.role).toBe(role);
 }
 
 function memberLookup(): { params: unknown[]; sql: string; with: unknown } {
@@ -81,10 +91,7 @@ describe('getAdminUserProfileCore member-read access', () => {
         recentClaims: [],
         membershipStatus: 'none',
       });
-      expect(mocks.withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 't1', role },
-        expect.any(Function)
-      );
+      expectTransactionUnder('t1', role);
       const lookup = memberLookup();
       expect(lookup).toMatchObject(
         dialect.sqlToQuery(and(eq(user.id, 'u1'), eq(user.tenantId, 't1'))!)
@@ -103,10 +110,7 @@ describe('getAdminUserProfileCore member-read access', () => {
 
   it('keeps the caller-resolved selected tenant for a super admin', async () => {
     await load('super_admin', null, 't-selected');
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 't-selected', role: 'super_admin' },
-      expect.any(Function)
-    );
+    expectTransactionUnder('t-selected', 'super_admin');
     expect(memberLookup().params).toEqual(['u1', 't-selected']);
     expect(mocks.getAdminUserClaimSummary).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -120,10 +124,7 @@ describe('getAdminUserProfileCore member-read access', () => {
   it('reads an own-branch member for a branch manager and only then loads dependents', async () => {
     const result = await load('branch_manager', 'b-A');
     expect(result.kind).toBe('ok');
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 't1', role: 'branch_manager' },
-      expect.any(Function)
-    );
+    expectTransactionUnder('t1', 'branch_manager');
     expect(memberLookup()).toMatchObject(
       dialect.sqlToQuery(and(eq(user.id, 'u1'), eq(user.tenantId, 't1'), eq(user.branchId, 'b-A'))!)
     );
@@ -164,7 +165,7 @@ describe('getAdminUserProfileCore member-read access', () => {
     }
   );
 
-  it('returns not_found without a transaction when the tenant is missing', async () => {
+  it('returns not_found without a transaction when there is no tenant authority', async () => {
     expect(await load('super_admin', null, null)).toEqual({ kind: 'not_found' });
     expectNoTransaction();
   });

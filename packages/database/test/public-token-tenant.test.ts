@@ -6,7 +6,9 @@ import { dbAdmin } from '../src/db';
 import {
   resolveClaimTrackingTokenTenant,
   resolveNpsSurveyTokenTenant,
+  resolveSharePackTenant,
 } from '../src/public-token-tenant';
+import { readTenantAuthority } from '../src/tenant-authority';
 
 type Captured = { columns: unknown; where: unknown; limit: unknown };
 
@@ -46,7 +48,14 @@ test('claim tracking resolver queries by hash only, selects bounded columns and 
 
   const result = await resolveClaimTrackingTokenTenant(rawToken, NOW);
 
-  assert.deepEqual(result, { tenantId: 'tenant-ks', claimId: 'claim-1' });
+  assert.equal(result?.tenantId, 'tenant-ks');
+  assert.equal(result?.claimId, 'claim-1');
+  assert.deepEqual(Object.keys(result ?? {}).sort(), ['authority', 'claimId', 'tenantId']);
+  const descriptor = readTenantAuthority(result!.authority);
+  assert.equal(descriptor.tenantId, 'tenant-ks');
+  assert.equal(descriptor.accessTenantId, 'tenant-ks');
+  assert.equal(descriptor.purpose, 'public-token');
+  assert.equal(descriptor.principal, null);
   assert.equal(calls.length, 1);
   assert.deepEqual(Object.keys(calls[0].columns as object).sort(), [
     'claimId',
@@ -115,7 +124,9 @@ test('NPS resolver selects only the tenant, matches the exact token and limits t
 
   const result = await resolveNpsSurveyTokenTenant(rawToken);
 
-  assert.deepEqual(result, { tenantId: 'tenant-mk' });
+  assert.equal(result?.tenantId, 'tenant-mk');
+  assert.equal(readTenantAuthority(result!.authority).tenantId, 'tenant-mk');
+  assert.equal(readTenantAuthority(result!.authority).purpose, 'public-token');
   assert.equal(calls.length, 1);
   assert.deepEqual(Object.keys(calls[0].columns as object), ['tenantId']);
   assert.equal(calls[0].limit, 2);
@@ -138,4 +149,50 @@ test('NPS resolver returns null for an empty token without querying', async t =>
 
   assert.equal(await resolveNpsSurveyTokenTenant(''), null);
   assert.equal(method.mock.callCount(), 0);
+});
+
+test('share pack resolver binds the signed pack id and mints a principal-less public-token authority', async t => {
+  const { calls } = mockSelect(t, [{ tenantId: 'tenant-ks', ...ACTIVE }]);
+
+  const result = await resolveSharePackTenant('pack-1', 'tenant-ks', NOW);
+
+  assert.deepEqual(Object.keys(result ?? {}).sort(), ['authority', 'tenantId']);
+  const descriptor = readTenantAuthority(result!.authority);
+  assert.equal(descriptor.tenantId, 'tenant-ks');
+  assert.equal(descriptor.purpose, 'public-token');
+  assert.equal(descriptor.principal, null);
+  assert.deepEqual(Object.keys(calls[0].columns as object).sort(), [
+    'expiresAt',
+    'revokedAt',
+    'tenantId',
+  ]);
+  assert.equal(calls[0].limit, 2);
+  const compiled = compile(calls[0].where);
+  assert.equal(compiled.sql, '"share_packs"."id" = $1');
+  assert.deepEqual(compiled.params, ['pack-1']);
+});
+
+test('share pack resolver fails closed on a foreign token tenant, ambiguity, revocation or expiry', async t => {
+  const cases: Array<[string, unknown[]]> = [
+    ['foreign tenant claim', [{ tenantId: 'tenant-mk', ...ACTIVE }]],
+    ['missing pack', []],
+    [
+      'ambiguous pack',
+      [
+        { tenantId: 'tenant-ks', ...ACTIVE },
+        { tenantId: 'tenant-ks', ...ACTIVE },
+      ],
+    ],
+    ['revoked pack', [{ tenantId: 'tenant-ks', ...ACTIVE, revokedAt: NOW }]],
+    ['expired pack', [{ tenantId: 'tenant-ks', ...ACTIVE, expiresAt: NOW }]],
+  ];
+  for (const [name, rows] of cases) {
+    const mocked = mockSelect(t, rows);
+    assert.equal(await resolveSharePackTenant('pack-1', 'tenant-ks', NOW), null, name);
+    mocked.method.mock.restore();
+  }
+  const untouched = mockSelect(t, []);
+  assert.equal(await resolveSharePackTenant('', 'tenant-ks', NOW), null);
+  assert.equal(await resolveSharePackTenant('pack-1', '', NOW), null);
+  assert.equal(untouched.calls.length, 0, 'empty claims never query');
 });

@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { notFound, redirect } from 'next/navigation';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeSessionTenant: vi.fn(),
   getAgentTier: vi.fn(),
   getGroupDashboardSummary: vi.fn(),
   getSession: vi.fn(),
@@ -15,6 +17,10 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSession,
     },
   },
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('@/app/[locale]/(agent)/agent/_layout.core', () => ({
@@ -58,8 +64,11 @@ describe('AgentImportPage', () => {
   });
 
   it('hides the page from non-office agents', async () => {
-    hoisted.getSession.mockResolvedValueOnce({
-      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
+    const session = { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } };
+    hoisted.getSession.mockResolvedValueOnce(session);
+    hoisted.authorizeSessionTenant.mockResolvedValueOnce({
+      session,
+      authority: mintTestTenantAuthority('tenant-1'),
     });
     hoisted.getAgentTier.mockResolvedValueOnce('pro');
 
@@ -72,9 +81,10 @@ describe('AgentImportPage', () => {
   });
 
   it('renders the aggregate dashboard and uploader for office agents', async () => {
-    hoisted.getSession.mockResolvedValueOnce({
-      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' },
-    });
+    const session = { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } };
+    const authority = mintTestTenantAuthority('tenant-1');
+    hoisted.getSession.mockResolvedValueOnce(session);
+    hoisted.authorizeSessionTenant.mockResolvedValueOnce({ session, authority });
     hoisted.getAgentTier.mockResolvedValueOnce('office');
     hoisted.getGroupDashboardSummary.mockResolvedValueOnce({
       activatedMembersCount: 7,
@@ -89,9 +99,10 @@ describe('AgentImportPage', () => {
     expect(screen.getByText('Sponsored Member Import')).toBeInTheDocument();
     expect(screen.getByText('Group summary 7 / 43')).toBeInTheDocument();
     expect(screen.getByText('Mock CSV Uploader')).toBeInTheDocument();
+    expect(hoisted.getAgentTier).toHaveBeenCalledWith({ agentId: 'agent-1', authority });
     expect(hoisted.getGroupDashboardSummary).toHaveBeenCalledWith({
       agentId: 'agent-1',
-      tenantId: 'tenant-1',
+      authority,
     });
   });
 });

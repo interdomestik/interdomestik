@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -46,6 +47,7 @@ describe('authorized referral-code writers', () => {
       const code = `${name.toUpperCase()}-ABC123`;
       const result = await writer({
         session: { user: { id, name, role, tenantId } },
+        authority: mintTestTenantAuthority(tenantId),
         referralCode: 'ATTACKER',
       } as never);
       expect(result).toMatchObject({ success: true, data: { code } });

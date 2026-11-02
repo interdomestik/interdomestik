@@ -5,9 +5,12 @@ import {
   claimInformationRequests,
   claims,
   eq,
-  withTenantContext,
 } from '@interdomestik/database';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -29,21 +32,19 @@ export type FulfilInformationRequestResult =
 /** Close only the exact open request whose linked upload the current assignee reviewed. */
 export async function fulfilInformationRequest(
   session: ClaimsSession | null,
+  authority: TenantAuthority | null,
   input: unknown
 ): Promise<FulfilInformationRequestResult> {
-  if (session?.user.role !== 'staff') return { success: false, error: 'access_denied' };
-  let tenantId: string;
-  try {
-    tenantId = ensureAccessTenantId(session);
-  } catch {
+  if (session?.user.role !== 'staff' || !authority) {
     return { success: false, error: 'access_denied' };
   }
+  const { tenantId } = readTenantAuthority(authority);
   const parsed = fulfilInformationRequestInput.safeParse(input);
   if (!parsed.success) return { success: false, error: 'invalid_input' };
 
   const data = parsed.data;
   const actorId = session.user.id;
-  return withTenantContext({ tenantId, role: 'staff' }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     const [claim] = await tx
       .select({ staffId: claims.staffId })
       .from(claims)

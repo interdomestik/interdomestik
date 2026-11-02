@@ -1,6 +1,8 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  createCrmLeadFollowUpRepository: vi.fn(),
   completeFollowUpActivity: vi.fn(),
   completeCrmTaskCore: vi.fn(),
   createCrmTaskCore: vi.fn(),
@@ -12,11 +14,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/adapters/crm/lead-follow-up-repository', () => ({
-  crmLeadFollowUpRepository: {
-    completeFollowUpActivity: mocks.completeFollowUpActivity,
-    createFollowUpActivity: mocks.createFollowUpActivity,
-    findById: mocks.findById,
-  },
+  createCrmLeadFollowUpRepository: mocks.createCrmLeadFollowUpRepository,
   listCrmLeadFollowUpActivitiesForLead: mocks.listCrmLeadFollowUpActivitiesForLead,
   listCrmLeadFollowUpTasksForLead: mocks.listCrmLeadFollowUpTasksForLead,
 }));
@@ -38,6 +36,8 @@ import {
   completeAgentLeadFollowUpCore,
   scheduleAgentLeadFollowUpCore,
 } from './agent-crm-follow-up.core';
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 function session(overrides: Record<string, unknown> = {}) {
   return {
@@ -84,6 +84,11 @@ function activity(overrides: Record<string, unknown> = {}) {
 describe('agent CRM follow-up actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.createCrmLeadFollowUpRepository.mockReturnValue({
+      completeFollowUpActivity: mocks.completeFollowUpActivity,
+      createFollowUpActivity: mocks.createFollowUpActivity,
+      findById: mocks.findById,
+    });
     mocks.findById.mockResolvedValue(lead());
     mocks.createFollowUpActivity.mockImplementation(async ({ activity: created }) =>
       activity({ ...created, agentId: 'agent-1' })
@@ -165,11 +170,15 @@ describe('agent CRM follow-up actions', () => {
       leadId: 'lead-1',
       scheduledAt: '2026-05-10T09:00:00.000Z',
       session: session(),
+      authority,
       subject: 'Follow up',
     });
 
     expect(result.success).toBe(true);
+    expect(mocks.createCrmLeadFollowUpRepository).toHaveBeenCalledWith(authority);
+    expect(mocks.createCrmTaskCore.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mocks.createCrmTaskCore).toHaveBeenCalledWith({
+      authority,
       input: expect.objectContaining({
         assignedTo: {
           actorId: 'agent-1',
@@ -194,11 +203,28 @@ describe('agent CRM follow-up actions', () => {
         scope: { agentId: 'agent-1', branchId: 'branch-1' },
         tenantId: 'tenant-1',
       }),
+      authority,
       leadId: 'lead-1',
     });
     expect(mocks.createFollowUpActivity).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/crm');
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/en/agent/leads/lead-1');
+  });
+
+  it('rejects a missing tenant authority before any repository access', async () => {
+    await expect(
+      scheduleAgentLeadFollowUpCore({
+        leadId: 'lead-1',
+        scheduledAt: '2026-05-10T09:00:00.000Z',
+        session: session(),
+        authority: null,
+        subject: 'Follow up',
+      })
+    ).resolves.toEqual({ success: false, error: 'unauthorized' });
+
+    expect(mocks.createCrmLeadFollowUpRepository).not.toHaveBeenCalled();
+    expect(mocks.findById).not.toHaveBeenCalled();
+    expect(mocks.createCrmTaskCore).not.toHaveBeenCalled();
   });
 
   it('rejects missing branch scope before repository writes', async () => {
@@ -207,6 +233,7 @@ describe('agent CRM follow-up actions', () => {
         leadId: 'lead-1',
         scheduledAt: '2026-05-10T09:00:00.000Z',
         session: session({ branchId: null }),
+        authority,
         subject: 'Follow up',
       })
     ).resolves.toEqual({ success: false, error: 'missing_branch_scope' });
@@ -230,6 +257,7 @@ describe('agent CRM follow-up actions', () => {
         activityId: 'follow-up-1',
         leadId: 'lead-1',
         session: session(),
+        authority,
       });
 
       expect(result.success).toBe(false);
@@ -247,6 +275,7 @@ describe('agent CRM follow-up actions', () => {
       leadId: 'lead-1',
       scheduledAt: '2026-05-10T09:00:00.000Z',
       session: session(),
+      authority,
       subject: 'Sensitive free text must not enter task material',
     });
 
@@ -260,6 +289,7 @@ describe('agent CRM follow-up actions', () => {
       activityId: 'follow-up-1',
       leadId: 'lead-1',
       session: session(),
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -279,6 +309,7 @@ describe('agent CRM follow-up actions', () => {
       expectedLifecycleVersion: 1,
       leadId: 'lead-1',
       session: session(),
+      authority,
       source: 'crm_task',
     });
 
@@ -289,9 +320,12 @@ describe('agent CRM follow-up actions', () => {
         scope: { agentId: 'agent-1', branchId: 'branch-1' },
         tenantId: 'tenant-1',
       }),
+      authority,
       leadId: 'lead-1',
     });
+    expect(mocks.completeCrmTaskCore.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mocks.completeCrmTaskCore).toHaveBeenCalledWith({
+      authority,
       input: {
         expectedLifecycleVersion: 1,
         reasonCode: 'resolved',
@@ -312,6 +346,7 @@ describe('agent CRM follow-up actions', () => {
       expectedLifecycleVersion: 1,
       leadId: 'lead-1',
       session: session(),
+      authority,
       source: 'crm_task',
     });
 
@@ -327,6 +362,7 @@ describe('agent CRM follow-up actions', () => {
       expectedLifecycleVersion: 2,
       leadId: 'lead-1',
       session: session(),
+      authority,
       source: 'crm_task',
     });
 
@@ -346,6 +382,7 @@ describe('agent CRM follow-up actions', () => {
       expectedLifecycleVersion: 1,
       leadId: 'lead-1',
       session: session(),
+      authority,
       source: 'crm_task',
     });
 

@@ -1,4 +1,5 @@
 import { claims } from '@interdomestik/database/schema';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
@@ -6,6 +7,13 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getAdminUserClaimSummary, type AdminUserClaimSummaryScope } from './_claim-summary';
+
+const tenantContext = vi.hoisted(() => ({ withTenantContext: vi.fn() }));
+
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  withTenantContext: tenantContext.withTenantContext,
+}));
 
 const dialect = new PgDialect();
 
@@ -211,5 +219,26 @@ describe('getAdminUserClaimSummary actor scope', () => {
     const failure = counts instanceof Error ? counts : recent;
     const { pending } = run({ role: 'admin', branchId: null }, counts, recent);
     await expect(pending).rejects.toBe(failure);
+  });
+});
+
+describe('getAdminUserClaimSummary without a caller-supplied executor', () => {
+  it('opens its transaction under the session tenant authority and scopes by its tenant', async () => {
+    const authority = mintTestTenantAuthority('t1');
+    const { db, calls } = createDb([{ status: 'open', total: 1 }], [CLAIM_A]);
+    tenantContext.withTenantContext.mockImplementationOnce(
+      async (_context: unknown, callback: (tx: never) => unknown) => callback(db)
+    );
+
+    const result = await getAdminUserClaimSummary({
+      authority,
+      recentClaimsLimit: 6,
+      scope: { role: 'admin', branchId: null },
+      userId: 'u1',
+    });
+
+    expect(tenantContext.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    expect(compile(calls[0].where)).toEqual(expectedWhere());
+    expect(result.counts).toEqual({ total: 1, open: 1, resolved: 0, rejected: 0 });
   });
 });

@@ -1,9 +1,10 @@
 import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { headers } from 'next/headers';
 
 export type Session = Awaited<ReturnType<typeof auth.api.getSession>>;
 
 export async function getActionContext() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return { session };
+  const authorized = await authorizeSessionTenant(await headers());
+  return { session: authorized?.session ?? null, authority: authorized?.authority ?? null };
 }

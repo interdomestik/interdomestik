@@ -16,7 +16,11 @@ import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { uploadTenantObject } from '@/lib/storage/service-role';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 import { randomUUID } from 'node:crypto';
 
@@ -36,11 +40,12 @@ async function validateClaimAccess(params: {
   branchId?: string | null;
   claimId: string;
   role: string | null | undefined;
+  authority: TenantAuthority;
   tenantId: string;
   host: string;
   userId: string;
 }): Promise<ClaimAccess> {
-  const { claimId, role, tenantId, host, userId } = params;
+  const { claimId, role, authority, tenantId, host, userId } = params;
   const isAdminSurface = isAdminUploadRole(role) && resolveTenantFromHost(host) === tenantId;
 
   if (isAdminSurface) {
@@ -48,7 +53,7 @@ async function validateClaimAccess(params: {
       branchId: params.branchId ?? null,
       claimId,
       role,
-      tenantId,
+      authority,
       userId,
     });
 
@@ -57,7 +62,7 @@ async function validateClaimAccess(params: {
 
   const claim = await findOwnedMemberUploadClaim({
     claimId,
-    tenantId,
+    authority,
     userId,
   });
 
@@ -68,11 +73,19 @@ async function validateClaimAccess(params: {
   return { success: true, isAdminSurface };
 }
 
-function resolveTenantId(
-  session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
-): ResponseResult<string> {
+async function resolveTenantAuthority(
+  requestHeaders: Headers
+): Promise<ResponseResult<{ authority: TenantAuthority; tenantId: string }>> {
   try {
-    return { success: true, data: ensureTenantId(session) };
+    const authorized = await authorizeSessionTenant(requestHeaders);
+    if (!authorized) return { success: false, response: jsonError('Unauthorized', 401) };
+    return {
+      success: true,
+      data: {
+        authority: authorized.authority,
+        tenantId: readTenantAuthority(authorized.authority).tenantId,
+      },
+    };
   } catch {
     return { success: false, response: jsonError('Unauthorized', 401) };
   }
@@ -182,7 +195,7 @@ export async function POST(request: Request) {
   const form = await parseEvidenceUploadForm(request);
   if (!form.success) return form.response;
 
-  const tenant = resolveTenantId(session);
+  const tenant = await resolveTenantAuthority(request.headers);
   if (!tenant.success) return tenant.response;
 
   const evidenceBucket = resolveEvidenceBucket();
@@ -190,7 +203,7 @@ export async function POST(request: Request) {
 
   const { aiExtractionConsentGranted, category, claimId, file, informationRequestId, locale } =
     form.data;
-  const tenantId = tenant.data;
+  const { authority, tenantId } = tenant.data;
   const bucket = evidenceBucket.data;
   const role = session.user.role ?? null;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
@@ -198,6 +211,7 @@ export async function POST(request: Request) {
     branchId: session.user.branchId ?? null,
     claimId,
     role,
+    authority,
     tenantId,
     host,
     userId: session.user.id,
@@ -219,7 +233,7 @@ export async function POST(request: Request) {
     !(await findOwnedMemberInformationRequest({
       claimId,
       informationRequestId,
-      tenantId,
+      authority,
       userId: session.user.id,
     }))
   ) {

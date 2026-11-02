@@ -1,10 +1,14 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns } from '@interdomestik/database/schema';
 import { and, eq, type SQL } from 'drizzle-orm';
 
 type MarkAiRunDispatchFailedArgs = {
-  /** Tenant of the tenant-scoped producer that queued the run. */
-  tenantId: string;
+  /** The authority of the tenant-scoped producer that queued the run. */
+  authority: TenantAuthority;
   entityType: string;
   errorCode: string;
   message: string;
@@ -23,8 +27,8 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
     predicates.splice(1, 0, eq(aiRuns.workflow, args.workflow));
   }
 
-  // db-access-guard: tenant-scoped -- reason: tenantId comes from the tenant-scoped producer that queued this run
-  await withTenantContext({ tenantId: args.tenantId, role: 'system' }, async tx => {
+  const { tenantId } = readTenantAuthority(args.authority);
+  await withTenantAuthority(args.authority, async tx => {
     await tx
       .update(aiRuns)
       .set({
@@ -33,6 +37,6 @@ export async function markAiRunDispatchFailedWithTenantContext(args: MarkAiRunDi
         errorCode: args.errorCode,
         errorMessage: args.message,
       })
-      .where(and(eq(aiRuns.tenantId, args.tenantId), ...predicates));
+      .where(and(eq(aiRuns.tenantId, tenantId), ...predicates));
   });
 }

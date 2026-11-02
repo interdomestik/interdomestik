@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportHandoffSession } from './types';
@@ -86,6 +87,8 @@ function staffSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   } as SupportHandoffSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('support handoff lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -106,6 +109,7 @@ describe('support handoff lifecycle', () => {
   it('accepts only open handoffs at the expected lifecycle version', async () => {
     const result = await acceptSupportHandoffCore(
       {
+        authority,
         expectedVersion: 4,
         handoffId: 'handoff-1',
         session: staffSession(),
@@ -133,6 +137,7 @@ describe('support handoff lifecycle', () => {
     mocks.updateReturning.mockResolvedValueOnce([]);
 
     const result = await acceptSupportHandoffCore({
+      authority,
       expectedVersion: 7,
       handoffId: 'handoff-1',
       session: staffSession(),
@@ -147,6 +152,7 @@ describe('support handoff lifecycle', () => {
 
   it('denies branch managers from mutating lifecycle state', async () => {
     const result = await acceptSupportHandoffCore({
+      authority,
       handoffId: 'handoff-1',
       session: staffSession({ role: 'branch_manager' }),
     });
@@ -157,6 +163,7 @@ describe('support handoff lifecycle', () => {
 
   it('fails closed when staff support lifecycle has no branch scope', async () => {
     const result = await acceptSupportHandoffCore({
+      authority,
       handoffId: 'handoff-1',
       session: staffSession({ branchId: null }),
     });
@@ -167,6 +174,7 @@ describe('support handoff lifecycle', () => {
 
   it('requires scoped target staff and a reason before reassignment', async () => {
     const missingReason = await reassignSupportHandoffCore({
+      authority,
       expectedVersion: 1,
       handoffId: 'handoff-1',
       nextStaffId: 'staff-2',
@@ -182,6 +190,7 @@ describe('support handoff lifecycle', () => {
 
     mocks.db.query.user.findFirst.mockResolvedValueOnce(null);
     const outOfScope = await reassignSupportHandoffCore({
+      authority,
       expectedVersion: 1,
       handoffId: 'handoff-1',
       nextStaffId: 'staff-9',
@@ -198,6 +207,7 @@ describe('support handoff lifecycle', () => {
 
   it('reassigns only handoffs owned by the acting staff member', async () => {
     const result = await reassignSupportHandoffCore({
+      authority,
       expectedVersion: 5,
       handoffId: 'handoff-1',
       nextStaffId: 'staff-2',
@@ -213,6 +223,7 @@ describe('support handoff lifecycle', () => {
 
   it('closes only handoffs owned by the acting staff member', async () => {
     const result = await closeSupportHandoffCore({
+      authority,
       expectedVersion: 3,
       handoffId: 'handoff-1',
       reason: 'Resolved by phone',

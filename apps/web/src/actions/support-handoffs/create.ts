@@ -20,12 +20,13 @@ function getSupportedLocale(value: unknown): AppLocale {
 }
 
 async function executeCreateMemberSupportHandoff(formData: FormData) {
-  const { session, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders } = await getActionContext();
   const input = formDataToInput(formData);
   const locale = getSupportedLocale(input.locale);
   delete input.locale;
 
   const result = await createMemberSupportHandoffCore({
+    authority,
     input,
     requestHeaders,
     session,

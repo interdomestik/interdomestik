@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from './claims/types';
@@ -43,6 +44,7 @@ vi.mock('./claims/transition', () => ({
   transitionClaimStatusInTransaction: mocks.transition,
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
 const ok = { success: true, error: undefined };
 const failure = (error: string) => ({ success: false, error, data: undefined });
 
@@ -59,6 +61,7 @@ function session(options: { branchId?: string | null; role?: string } = {}): Cla
 
 function call(overrides: Partial<Parameters<typeof updateClaimStatus>[0]> = {}) {
   return updateClaimStatus({
+    authority,
     claimId: 'claim-1',
     newStatus: 'evaluation',
     session: session({ branchId: 'branch-1' }),
@@ -90,10 +93,7 @@ describe('updateClaimStatus', () => {
 
   it('keeps branch scope and delegates success to the transition command', async () => {
     await expect(call({ note: 'picked for review' })).resolves.toEqual(ok);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
     expect(mocks.transition).toHaveBeenCalledWith(
       mocks.tx,

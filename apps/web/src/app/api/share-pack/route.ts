@@ -10,6 +10,8 @@ import {
   logAuditEvent,
 } from '@/features/share-pack/share-pack.service';
 import { auth } from '@/lib/auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { createSharePackCore, getSharePackCore } from './_core';
 
@@ -41,6 +43,16 @@ export async function POST(request: NextRequest) {
       return tenant.response;
     }
 
+    const authorized = await authorizeSessionTenant(request.headers);
+    // The authority must describe the same user and tenant the boundary just validated.
+    if (
+      !authorized ||
+      authorized.session.user.id !== session.user.id ||
+      readTenantAuthority(authorized.authority).tenantId !== tenant.tenantId
+    ) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const parsed = await safeJson(request, createSharePackRequestSchema, {
       invalidRequestResponse: () => NextResponse.json({ error: 'IDs required' }, { status: 400 }),
     });
@@ -50,7 +62,7 @@ export async function POST(request: NextRequest) {
     const requestedDocumentIds = parsed.data[DOCUMENT_IDS_FIELD];
 
     const coreInput = {
-      tenantId: tenant.tenantId,
+      authority: authorized.authority,
       userId: session.user.id,
       ipAddress: clientMetadata.ipAddress ?? undefined,
       userAgent: clientMetadata.userAgent ?? undefined,

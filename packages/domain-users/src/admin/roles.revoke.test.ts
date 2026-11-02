@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -70,6 +71,7 @@ describe('revokeUserRoleCore', () => {
   const session = {
     user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_ks' },
   };
+  const authority = mintTestTenantAuthority('tenant_ks', { userId: 'admin-1', role: 'admin' });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -87,9 +89,9 @@ describe('revokeUserRoleCore', () => {
 
     const result = await revokeUserRoleCore({
       session,
+      authority,
       userId: 'user-1',
       role: 'agent',
-      tenantId: 'tenant_ks',
     });
 
     expect(result).toEqual({ success: true });
@@ -114,9 +116,9 @@ describe('revokeUserRoleCore', () => {
 
     const result = await revokeUserRoleCore({
       session,
+      authority,
       userId: 'user-1',
       role: 'agent',
-      tenantId: 'tenant_ks',
       branchId: 'ks_branch_a',
     });
 

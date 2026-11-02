@@ -1,7 +1,14 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { TEST_PADDLE_DELIVERY } from '../paddle-authority.test-support';
+
 export const T1 = '2026-09-26T10:00:00.100Z';
 export const T2 = '2026-09-26T10:00:00.200Z';
 
-export function pastDue(occurredAt: string | undefined, eventId: string) {
+export const KS_AUTHORITY: TenantAuthority = mintTestTenantAuthority('tenant_ks');
+
+function pastDueBody(occurredAt: string | undefined, eventId: string) {
   return {
     data: {
       id: 'sub_1',
@@ -13,9 +20,22 @@ export function pastDue(occurredAt: string | undefined, eventId: string) {
         endsAt: '2027-09-01T00:00:00Z',
       },
     },
-    tenantId: 'tenant_ks',
     processingScopeKey: 'entity:ks',
     providerEventId: eventId,
     providerEventOccurredAt: occurredAt,
+  };
+}
+
+export function pastDue(
+  occurredAt: string | undefined,
+  eventId: string
+): ReturnType<typeof pastDueBody> & {
+  delivery: IngressCapability<'paddle-delivery'>;
+  authority: TenantAuthority;
+} {
+  return {
+    ...pastDueBody(occurredAt, eventId),
+    delivery: TEST_PADDLE_DELIVERY,
+    authority: KS_AUTHORITY,
   };
 }

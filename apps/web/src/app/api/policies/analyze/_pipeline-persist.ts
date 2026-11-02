@@ -1,5 +1,5 @@
 import { ExtractionPipelineError, type ExtractionCritique } from '@/lib/ai/extraction-pipeline';
-import { withTenantContext } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documentExtractions, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import type { PolicyExtract } from '@interdomestik/domain-ai/schemas/policy-extract';
@@ -24,7 +24,7 @@ export async function persistPolicyExtraction(args: {
 }) {
   const completedAt = new Date();
 
-  await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+  await withTenantAuthority(args.run.authority, async tx => {
     const [activeDocument] = await lockActiveDocument(tx, {
       documentId: args.run.documentId,
       tenantId: args.run.tenantId,
@@ -106,7 +106,7 @@ export async function markPolicyExtractionRunFailed(args: {
     typeof pipelineError.errorCode === 'string' ? pipelineError.errorCode : 'policy_extract_failed';
   const message = args.error instanceof Error ? args.error.message : 'Policy extraction failed.';
 
-  await withTenantContext({ tenantId: args.run.tenantId, role: 'system' }, async tx => {
+  await withTenantAuthority(args.run.authority, async tx => {
     await tx
       .update(aiRuns)
       .set({

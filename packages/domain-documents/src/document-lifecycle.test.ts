@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -78,17 +79,16 @@ describe('softDeleteDocument', () => {
   it('soft-deletes the document and clears AI-derived data for the tenant document', async () => {
     mocks.updateReturning.mockResolvedValue([{ entityType: 'policy', entityId: 'policy-1' }]);
 
+    const authority = mintTestTenantAuthority('tenant-1');
+
     await softDeleteDocument({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-1',
       deletedBy: 'admin-1',
     });
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.update).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -138,7 +138,7 @@ describe('softDeleteDocument', () => {
       policyNumber: null,
     });
     expect(mocks.logAuditEvent).toHaveBeenCalledWith({
-      tenantId: 'tenant-1',
+      authority,
       documentId: 'doc-1',
       accessType: 'delete',
       accessedBy: 'admin-1',

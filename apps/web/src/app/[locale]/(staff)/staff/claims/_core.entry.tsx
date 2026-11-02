@@ -1,4 +1,5 @@
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import {
   ACTIONABLE_CLAIM_STATUSES,
   getAssignedStaffClaimAttention,
@@ -99,6 +100,15 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     return notFound();
   }
 
+  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
+  try {
+    authorized = await authorizeSessionTenant();
+  } catch {
+    return notFound();
+  }
+  if (!authorized) return notFound();
+  const { authority } = authorized;
+
   const resolvedSearchParams = await searchParams;
   const currentStatus = parseStaffStatusFilter(resolvedSearchParams.status);
   const currentSearch = parseSearchTerm(resolvedSearchParams.search);
@@ -116,7 +126,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     limit: 20,
     search: currentSearch,
     status: currentStatus,
-    tenantId: session.user.tenantId,
+    authority,
     viewerRole: session.user.role,
   });
 
@@ -124,6 +134,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     session.user.role === 'staff'
       ? await getAssignedStaffClaimAttention(
           session,
+          authority,
           claims.filter(claim => claim.staffId === session.user.id).map(claim => claim.id)
         )
       : {};

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -16,6 +17,8 @@ import {
 } from './audit-projection';
 
 describe('claim status audit projection activation', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.withTenantContext.mockImplementation(async (_context, callback) => callback('tx'));
@@ -28,18 +31,13 @@ describe('claim status audit projection activation', () => {
   });
 
   it('runs the claim status audit projection through a relay transaction', async () => {
-    await expect(
-      projectClaimStatusAuditProjection({ tenantId: 'tenant-1' })
-    ).resolves.toMatchObject({
+    await expect(projectClaimStatusAuditProjection({ authority })).resolves.toMatchObject({
       deliveryRecordsCreated: 1,
       selected: 1,
     });
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.relayClaimStatusAuditProjectionEvents).toHaveBeenCalledWith('tx', {
       limit: 10,
       tenantId: 'tenant-1',
@@ -50,13 +48,13 @@ describe('claim status audit projection activation', () => {
     const projectClaimStatusAuditProjection = vi.fn().mockResolvedValue(undefined);
 
     await activateClaimStatusAuditProjection({
+      authority,
       deps: { projectClaimStatusAuditProjection },
-      tenantId: 'tenant-1',
     });
 
     expect(projectClaimStatusAuditProjection).toHaveBeenCalledWith({
+      authority,
       limit: 10,
-      tenantId: 'tenant-1',
     });
     expect(mocks.withTenantContext).not.toHaveBeenCalled();
   });
@@ -67,8 +65,8 @@ describe('claim status audit projection activation', () => {
 
     await expect(
       activateClaimStatusAuditProjection({
+        authority,
         deps: { projectClaimStatusAuditProjection: vi.fn().mockRejectedValue(error) },
-        tenantId: 'tenant-1',
       })
     ).resolves.toBeUndefined();
 

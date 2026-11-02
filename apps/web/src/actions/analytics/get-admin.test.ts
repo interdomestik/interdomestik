@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 
@@ -75,6 +76,8 @@ vi.mock('@/lib/roles.core', () => ({
   isStaffOrAdmin: vi.fn(role => role === 'admin' || role === 'staff'),
 }));
 
+const authority = mintTestTenantAuthority('tenant_mk');
+
 describe('actions/analytics getAdminAnalyticsCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +86,7 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
   it('returns Unauthorized for non-staff/admin users', async () => {
     const result = await getAdminAnalyticsCore({
       session: { user: { id: 'u1', role: 'user' } } as never as NonNullable<Session>,
+      authority,
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
@@ -93,6 +97,7 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
       session: {
         user: { id: 'admin-1', role: 'admin', tenantId: null },
       } as never as NonNullable<Session>,
+      authority,
     });
 
     expect(result).toEqual({ success: false, error: 'Missing tenant context' });
@@ -103,6 +108,7 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
       session: {
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       } as never as NonNullable<Session>,
+      authority,
       query: { limit: 1000 }, // Over max 365
     });
 
@@ -117,6 +123,7 @@ describe('actions/analytics getAdminAnalyticsCore', () => {
       session: {
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       } as never as NonNullable<Session>,
+      authority,
     });
 
     expect(result.success).toBe(true);

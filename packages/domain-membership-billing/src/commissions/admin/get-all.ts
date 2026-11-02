@@ -1,29 +1,34 @@
-import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions, user as userTable } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { ActionResult, Commission, CommissionSession } from '../types';
 import { ensureAdminOrStaff } from './access';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const MAX_RESULTS = 100;
 
 /** Get all commissions (admin/staff only, tenant-scoped) */
 export async function getAllCommissionsCore(params: {
   session: CommissionSession | null;
+  authority: TenantAuthority | null;
   limit?: number;
   offset?: number;
 }): Promise<ActionResult<Commission[]>> {
   const authError = ensureAdminOrStaff(params.session);
   if (authError) return authError;
 
-  if (!params.session) return { success: false, error: 'Unauthorized' };
+  if (!params.session || !params.authority) return { success: false, error: 'Unauthorized' };
+  const { authority } = params;
   try {
-    const tenantId = ensureTenantId(params.session);
+    const { tenantId } = readTenantAuthority(authority);
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS); // Cap at 100
     const offset = params.offset ?? 0;
 
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           id: agentCommissions.id,
@@ -47,7 +52,7 @@ export async function getAllCommissionsCore(params: {
 
     const userIds = [...new Set(rows.flatMap(r => [r.agentId, r.memberId].filter(Boolean)))];
     const users = userIds.length
-      ? await withTenantContext({ tenantId }, tx =>
+      ? await withTenantAuthority(authority, tx =>
           tx
             .select()
             .from(userTable)

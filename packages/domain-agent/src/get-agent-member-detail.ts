@@ -1,6 +1,11 @@
-import { agentClients, and, claims, desc, eq, withTenantContext } from '@interdomestik/database';
+import { agentClients, and, claims, desc, eq } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type AgentMemberDetail = {
   member: {
@@ -29,12 +34,13 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 export async function getAgentMemberDetail(params: {
   agentId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   memberId: string;
 }): Promise<AgentMemberDetail | null> {
-  const { agentId, tenantId, memberId } = params;
+  const { agentId, authority, memberId } = params;
+  const { tenantId } = readTenantAuthority(authority);
 
-  const assignment = await withTenantContext({ tenantId }, tx =>
+  const assignment = await withTenantAuthority(authority, tx =>
     tx.query.agentClients.findFirst({
       where: and(
         eq(agentClients.tenantId, tenantId),
@@ -55,7 +61,7 @@ export async function getAgentMemberDetail(params: {
     return null;
   }
 
-  const rawClaims = await withTenantContext({ tenantId }, tx =>
+  const rawClaims = await withTenantAuthority(authority, tx =>
     tx.query.claims.findMany({
       where: and(eq(claims.tenantId, tenantId), eq(claims.userId, memberId)),
       orderBy: [desc(claims.updatedAt)],

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationCenter } from './notification-center';
-import { deferred } from './notification-test-ui';
+import { deferred } from './notification-ui.test-support';
 
 const mocks = vi.hoisted(() => ({
   getNotifications: vi.fn<() => Promise<unknown[]>>(),
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { createNotificationTranslationsMock } = await import('./notification-test-ui');
+  const { createNotificationTranslationsMock } = await import('./notification-ui.test-support');
   return createNotificationTranslationsMock();
 });
 vi.mock('@/actions/notifications', () => mocks);

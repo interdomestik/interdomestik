@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { RetryablePaddleWebhookError } from '../../errors';
 import type {
   CheckoutCustomData,
@@ -32,7 +36,7 @@ type MembershipConfirmationArgs = {
   providerEventId?: string;
   webhookPayloadHash?: string;
   sub: any;
-  tenantId: string;
+  authority: TenantAuthority;
   userId?: string;
   internalSubscriptionId?: string;
   customData: CheckoutCustomData | undefined;
@@ -51,7 +55,7 @@ export async function prepareMembershipConfirmation(
     providerEventId,
     webhookPayloadHash,
     sub,
-    tenantId,
+    authority,
     userId,
     internalSubscriptionId,
     customData,
@@ -80,6 +84,7 @@ export async function prepareMembershipConfirmation(
     );
   }
 
+  const { tenantId } = readTenantAuthority(authority);
   const idempotencyKey = `membership-confirmation:v1:${tenantId}:${sub.id}`;
   const evidence: MembershipConfirmationEvidence = {
     tenantId,
@@ -92,6 +97,7 @@ export async function prepareMembershipConfirmation(
   let existingClaim;
   try {
     existingClaim = await deps.membershipConfirmationDelivery.claimExisting({
+      authority,
       evidence,
       idempotencyKey,
     });
@@ -106,6 +112,7 @@ export async function prepareMembershipConfirmation(
     return {
       kind: 'job',
       job: toMembershipConfirmationJob({
+        authority,
         claim: existingClaim,
         idempotencyKey,
         send: deps.sendThankYouLetter,
@@ -164,7 +171,11 @@ export async function prepareMembershipConfirmation(
   };
   let claim;
   try {
-    claim = await deps.membershipConfirmationDelivery.claim({ idempotencyKey, snapshot });
+    claim = await deps.membershipConfirmationDelivery.claim({
+      authority,
+      idempotencyKey,
+      snapshot,
+    });
   } catch (error) {
     console.error('[Webhook] Failed to persist membership confirmation claim:', error);
     throw new RetryablePaddleWebhookError(
@@ -182,6 +193,7 @@ export async function prepareMembershipConfirmation(
   return {
     kind: 'job',
     job: toMembershipConfirmationJob({
+      authority,
       claim,
       idempotencyKey,
       send: deps.sendThankYouLetter,
@@ -199,10 +211,10 @@ export async function readyMembershipConfirmation(
   }
   try {
     await job.store.ready({
+      authority: job.authority,
       deliveryId: job.deliveryId,
       idempotencyKey: job.idempotencyKey,
       subscriptionId,
-      tenantId: job.snapshot.tenantId,
     });
   } catch (error) {
     console.error('[Webhook] Failed to mark membership confirmation ready:', error);
@@ -223,10 +235,10 @@ export async function deliverMembershipConfirmation(job: MembershipConfirmationJ
     if (!delivery.success) {
       await recordDeliveryFailure({
         store: job.store,
+        authority: job.authority,
         deliveryId: job.deliveryId,
         error: delivery.error,
         idempotencyKey: job.idempotencyKey,
-        tenantId: job.snapshot.tenantId,
       });
       console.error(
         `[Webhook] Membership confirmation delivery failed for subscription ${job.snapshot.providerReference}: ${delivery.error}`
@@ -236,10 +248,10 @@ export async function deliverMembershipConfirmation(job: MembershipConfirmationJ
       );
     }
     await job.store.complete({
+      authority: job.authority,
       deliveryId: job.deliveryId,
       idempotencyKey: job.idempotencyKey,
       providerMessageId: delivery.id,
-      tenantId: job.snapshot.tenantId,
     });
     console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(job.snapshot.email)}`);
   } catch (emailError) {
@@ -247,10 +259,10 @@ export async function deliverMembershipConfirmation(job: MembershipConfirmationJ
     const message = emailError instanceof Error ? emailError.message : 'Unknown delivery failure';
     await recordDeliveryFailure({
       store: job.store,
+      authority: job.authority,
       deliveryId: job.deliveryId,
       error: message,
       idempotencyKey: job.idempotencyKey,
-      tenantId: job.snapshot.tenantId,
     });
     console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
     throw new RetryablePaddleWebhookError(
@@ -273,17 +285,17 @@ export async function processMembershipConfirmation(
 
 async function recordDeliveryFailure(args: {
   store: NonNullable<PaddleWebhookDeps['membershipConfirmationDelivery']>;
+  authority: TenantAuthority;
   deliveryId: string;
   error: string;
   idempotencyKey: string;
-  tenantId: string;
 }) {
   try {
     await args.store.fail({
+      authority: args.authority,
       deliveryId: args.deliveryId,
       error: args.error,
       idempotencyKey: args.idempotencyKey,
-      tenantId: args.tenantId,
     });
   } catch (recordingError) {
     console.error(

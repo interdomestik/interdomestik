@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen, within } from '@testing-library/react';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 import enMessages from '@/messages/en/dashboard.json';
@@ -408,16 +409,19 @@ describe('MemberDashboardView assistance dashboard', () => {
   });
 
   it('fails draft continuation closed when subscription resolution is unavailable', async () => {
+    const MEMBER_AUTHORITY = mintTestTenantAuthority('tenant-ks', { userId: 'member-fulfilled' });
     await expect(
-      getDashboardSupplementalData({ memberId: 'member-missing', tenantId: null })
+      getDashboardSupplementalData({ memberId: 'member-missing', authority: null })
     ).resolves.toEqual([null, 0, false]);
     h.active.mockResolvedValueOnce(null);
     await expect(
-      getDashboardSupplementalData({ memberId: 'member-fulfilled', tenantId: 'tenant-ks' })
+      getDashboardSupplementalData({ memberId: 'member-fulfilled', authority: MEMBER_AUTHORITY })
     ).resolves.toEqual([null, 0, true]);
+    expect(h.active.mock.calls.at(-1)?.[1]).toBe(MEMBER_AUTHORITY);
+    expect(h.withTenant.mock.calls.at(-1)?.[0]).toBe(MEMBER_AUTHORITY);
     h.active.mockRejectedValueOnce(new Error('subscription unavailable'));
     await expect(
-      getDashboardSupplementalData({ memberId: 'member-rejected', tenantId: 'tenant-ks' })
+      getDashboardSupplementalData({ memberId: 'member-rejected', authority: MEMBER_AUTHORITY })
     ).resolves.toEqual([null, 0, false]);
   });
 

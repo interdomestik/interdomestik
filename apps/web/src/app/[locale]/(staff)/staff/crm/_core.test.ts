@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -17,6 +18,8 @@ import {
   createStaffCrmReportingWindow,
   getStaffCrmReportingCore,
 } from './_core';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 const actor: CrmActorContext = {
   actorId: 'staff-1',
@@ -106,7 +109,7 @@ describe('staff CRM reporting core', () => {
     const now = '2026-05-14T12:00:00.000Z';
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         labels: { noBranch: 'No branch label' },
         now: () => now,
@@ -157,7 +160,10 @@ describe('staff CRM reporting core', () => {
       const repository = createRepository();
 
       await expect(
-        getStaffCrmReportingCore({ actor: deniedActor }, { reportingRepository: repository })
+        getStaffCrmReportingCore(
+          { authority: TEST_AUTHORITY, actor: deniedActor },
+          { reportingRepository: repository }
+        )
       ).rejects.toMatchObject({
         name: 'StaffCrmReportingAccessDeniedError',
       } satisfies Partial<StaffCrmReportingAccessDeniedError>);
@@ -196,7 +202,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         labels: { noBranch: 'No branch' },
         now: () => '2026-05-14T12:00:00.000Z',
@@ -239,7 +245,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 
@@ -267,7 +273,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 
@@ -298,7 +304,7 @@ describe('staff CRM reporting core', () => {
     ]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 
@@ -318,7 +324,7 @@ describe('staff CRM reporting core', () => {
     repository.listStageVelocityRows.mockResolvedValue([]);
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 
@@ -338,7 +344,7 @@ describe('staff CRM reporting core', () => {
     );
 
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         logger,
         now: () => '2026-05-14T12:00:00.000Z',
@@ -364,7 +370,7 @@ describe('staff CRM reporting core', () => {
   it('keeps output row shapes aggregate-only and PII-free', async () => {
     const repository = createRepository();
     const dashboard = await getStaffCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { now: () => '2026-05-14T12:00:00.000Z', reportingRepository: repository }
     );
 

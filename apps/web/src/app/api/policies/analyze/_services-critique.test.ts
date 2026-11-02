@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
   }));
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     db: { select },
     selectWhere,
     txInsert,
@@ -31,7 +32,10 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('@/lib/db.server', () => ({ db: mocks.db }));
-vi.mock('@interdomestik/database', () => ({ withTenantContext: mocks.withTenantContext }));
+vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
+  withTenantContext: mocks.withTenantContext,
+}));
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs', id: { __name: 'ai_runs.id' }, status: {} },
   documentExtractions: { __name: 'document_extractions', sourceRunId: {} },
@@ -44,11 +48,28 @@ vi.mock('drizzle-orm', () => ({
   isNull: vi.fn((field: unknown) => ({ field })),
 }));
 
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { processPolicyAnalysisRunService } from './_services';
+
+const authorities = new Map<string, ReturnType<typeof mintTestTenantAuthority>>();
+function authorityFor(tenantId: string) {
+  let authority = authorities.get(tenantId);
+  if (!authority) {
+    authority = mintTestTenantAuthority(tenantId);
+    authorities.set(tenantId, authority);
+  }
+  return authority;
+}
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 describe('processPolicyAnalysisRunService critique gate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockImplementation(
+      async (_ingress: unknown, tenantId: string) => authorityFor(tenantId)
+    );
     mocks.selectWhere.mockResolvedValue([
       {
         runId: 'run-1',
@@ -78,6 +99,7 @@ describe('processPolicyAnalysisRunService critique gate', () => {
   it('marks the run failed and skips extraction persistence for failed critique', async () => {
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.alloc(0)),

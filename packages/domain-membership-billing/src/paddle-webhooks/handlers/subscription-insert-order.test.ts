@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { projectReceiptLedgerOrder } from './provider-event-order.test-support';
@@ -82,11 +83,12 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
   webhookEvents: hoisted.webhookEvents,
 }));
-vi.mock('../../subscription', () => ({ findSubscriptionByProviderReference: vi.fn() }));
+vi.mock('../../subscription', () => ({ findPaddleSubscriptionInTenant: vi.fn() }));
 
 import { PaddleEventOrderingError } from '../errors';
 import { upsertSubscription } from './subscription-upsert';
 
+const tenantKsAuthority = mintTestTenantAuthority('tenant_ks');
 const T1 = '2026-09-26T10:00:00.100Z';
 const T2 = '2026-09-26T10:00:00.200Z';
 const domainEventId = 'paddle:tenant_ks:evt_created:subscription-changed';
@@ -98,7 +100,7 @@ function insertInitialSubscription(occurredAt = T1) {
     planState: { planId: 'standard', planKey: null },
     providerEventId: 'evt_created',
     sub: { id: 'sub_1', customerId: 'ctm_1', status: 'active' },
-    tenantId: 'tenant_ks',
+    authority: tenantKsAuthority,
     userId: 'user_1',
   });
 }

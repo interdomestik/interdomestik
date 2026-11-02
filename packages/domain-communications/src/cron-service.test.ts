@@ -1,8 +1,23 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { evaluateWhere, findClause, pageRowsByTenant } from './tenant-campaign-test-support';
 
-type TenantContext = { tenantId: string; role: string };
+// The producer is mocked; this stands in for the cron or Inngest entry's admitted capability.
+const INGRESS = Object.freeze({}) as IngressCapability<'inngest'>;
+const authorities: Record<string, TenantAuthority> = {};
+
+function scheduleTenants(tenantIds: string[]) {
+  for (const tenantId of tenantIds) authorities[tenantId] = mintTestTenantAuthority(tenantId);
+  h.listScheduledTenantWork.mockResolvedValue(
+    tenantIds.map(tenantId => ({ tenantId, authority: authorities[tenantId] }))
+  );
+}
 type FakeSubscription = {
   id: string;
   tenantId: string;
@@ -15,7 +30,7 @@ const h = vi.hoisted(() => ({
   findManySubscriptions: vi.fn(),
   findManyUsers: vi.fn(),
   insertValues: vi.fn(),
-  listTenantIdsForScheduledWork: vi.fn<() => Promise<string[]>>(),
+  listScheduledTenantWork: vi.fn(),
   sendCheckinEmail: vi.fn(),
   sendOnboardingEmail: vi.fn(),
   sendWelcomeEmail: vi.fn(),
@@ -25,7 +40,7 @@ const h = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   inArray: (left: unknown, right: unknown[]) => ({ left, op: 'inArray', right }),
   withTenantContext: h.withTenantContext,
-  listTenantIdsForScheduledWork: h.listTenantIdsForScheduledWork,
+  listScheduledTenantWork: h.listScheduledTenantWork,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -62,23 +77,26 @@ function subscription(id: string, tenantId: string): FakeSubscription {
 
 describe('processEmailSequences welcome campaign', () => {
   const welcomeEvents: string[] = [];
+  const welcomeAuthorities: TenantAuthority[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
     welcomeEvents.length = 0;
+    welcomeAuthorities.length = 0;
     h.findManyLogs.mockResolvedValue([]);
     h.findManyUsers.mockResolvedValue([]);
     h.insertValues.mockResolvedValue(undefined);
     h.sendWelcomeEmail.mockResolvedValue(undefined);
     h.withTenantContext.mockImplementation(
-      async (context: TenantContext, action: (tx: unknown) => Promise<unknown>) =>
+      async (context: TenantAuthority, action: (tx: unknown) => Promise<unknown>) =>
         action({
           insert: () => ({ values: h.insertValues }),
           query: {
             emailCampaignLogs: { findMany: h.findManyLogs },
             subscriptions: {
               findMany: (options: unknown) => {
-                welcomeEvents.push(`ctx:${context.tenantId}:${context.role}`);
+                welcomeEvents.push(`ctx:${readTenantAuthority(context).tenantId}`);
+                welcomeAuthorities.push(context);
                 return h.findManySubscriptions(options);
               },
             },
@@ -89,7 +107,7 @@ describe('processEmailSequences welcome campaign', () => {
   });
 
   it('fetches subscriptions once per tenant, inside that tenant context, with independent cursors', async () => {
-    h.listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b']);
+    scheduleTenants(['tenant-a', 'tenant-b']);
     const rowsByTenant = {
       'tenant-a': [subscription('a1', 'tenant-a'), subscription('a2', 'tenant-a')],
       'tenant-b': [subscription('b1', 'tenant-b')],
@@ -107,7 +125,7 @@ describe('processEmailSequences welcome campaign', () => {
       }
     );
 
-    const result = await processEmailSequences();
+    const result = await processEmailSequences(INGRESS);
 
     expect(pages).toEqual([
       ['tenant-a', null],
@@ -117,12 +135,20 @@ describe('processEmailSequences welcome campaign', () => {
       ['tenant-b', 'b1'],
     ]);
     expect(welcomeEvents).toEqual([
-      'ctx:tenant-a:system',
-      'ctx:tenant-a:system',
-      'ctx:tenant-a:system',
-      'ctx:tenant-b:system',
-      'ctx:tenant-b:system',
+      'ctx:tenant-a',
+      'ctx:tenant-a',
+      'ctx:tenant-a',
+      'ctx:tenant-b',
+      'ctx:tenant-b',
     ]);
+    // Each subscription fetch ran under the exact token the producer minted for that tenant.
+    expect(welcomeAuthorities).toHaveLength(5);
+    for (const authority of welcomeAuthorities) {
+      expect(authority).toBe(authorities[readTenantAuthority(authority).tenantId]);
+    }
+    // Welcome, onboarding and check-in each ask the producer, always with the entry's capability.
+    expect(h.listScheduledTenantWork).toHaveBeenCalledTimes(3);
+    for (const call of h.listScheduledTenantWork.mock.calls) expect(call[0]).toBe(INGRESS);
     expect(h.sendWelcomeEmail.mock.calls.map(call => call[0])).toEqual([
       'a1@example.com',
       'a2@example.com',
@@ -132,9 +158,9 @@ describe('processEmailSequences welcome campaign', () => {
   });
 
   it('does not query subscriptions when there are no tenants', async () => {
-    h.listTenantIdsForScheduledWork.mockResolvedValue([]);
+    scheduleTenants([]);
 
-    const result = await processEmailSequences();
+    const result = await processEmailSequences(INGRESS);
 
     expect(h.withTenantContext).not.toHaveBeenCalled();
     expect(h.findManySubscriptions).not.toHaveBeenCalled();

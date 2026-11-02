@@ -37,16 +37,22 @@ vi.mock('./access', () => ({
 }));
 
 import { withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getAgentsCore } from './get-agents';
 
 describe('getAgentsCore', () => {
   it('uses withTenant to scope agent list', async () => {
     mocks.findMany.mockResolvedValue([]);
 
-    const result = await getAgentsCore({ session: { user: { id: 'admin-1' } } as never });
+    const authority = mintTestTenantAuthority('tenant-1');
+
+    const result = await getAgentsCore({
+      session: { user: { id: 'admin-1' } } as never,
+      authority,
+    });
 
     expect(result).toEqual([]);
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.withTenant).toHaveBeenCalledWith('tenant-1', 'user.tenant_id', expect.any(Object));
   });
 });

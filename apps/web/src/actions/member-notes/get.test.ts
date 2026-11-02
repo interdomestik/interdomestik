@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMemberNotesCore } from './get.core';
 
@@ -58,6 +59,8 @@ vi.mock('./map', () => ({
   mapNoteRow: vi.fn(row => row),
 }));
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getMemberNotesCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,6 +84,7 @@ describe('getMemberNotesCore', () => {
 
     const result = await getMemberNotesCore({
       session: mockAdminSession as never,
+      authority,
       memberId: 'some-member',
     });
 

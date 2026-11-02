@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const input = {
   documentId: 'document-1',
 };
 const staffSession = { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } };
+const authority = mintTestTenantAuthority('tenant-1');
 const acknowledgedAt = new Date('2026-09-17T10:00:00.000Z');
 
 function query(rows: unknown[]) {
@@ -53,17 +55,20 @@ describe('information request evidence acknowledgement', () => {
     null,
     { user: { ...staffSession.user, role: 'member' } },
     { user: { ...staffSession.user, role: 'branch_manager' } },
-    { user: { ...staffSession.user, tenantId: null } },
   ])('denies unauthorized actors before database access', async session => {
-    await expect(acknowledgeInformationRequestEvidence(session, input)).resolves.toEqual({
-      success: false,
-      error: 'access_denied',
-    });
+    await expect(acknowledgeInformationRequestEvidence(session, authority, input)).resolves.toEqual(
+      {
+        success: false,
+        error: 'access_denied',
+      }
+    );
     expect(h.transaction).not.toHaveBeenCalled();
   });
 
   it('records acknowledgement and a durable audit row for the assigned staff member', async () => {
-    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+    await expect(
+      acknowledgeInformationRequestEvidence(staffSession, authority, input)
+    ).resolves.toEqual({
       success: true,
       acknowledgedAt: acknowledgedAt.toISOString(),
     });
@@ -84,7 +89,9 @@ describe('information request evidence acknowledgement', () => {
     h.updateRows = [[]];
     h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'open' }], [{ acknowledgedAt }]];
 
-    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+    await expect(
+      acknowledgeInformationRequestEvidence(staffSession, authority, input)
+    ).resolves.toEqual({
       success: true,
       acknowledgedAt: acknowledgedAt.toISOString(),
     });
@@ -94,7 +101,9 @@ describe('information request evidence acknowledgement', () => {
   it('denies a staff member who is not the current assignee', async () => {
     h.selectRows = [[{ staffId: 'staff-2' }]];
 
-    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+    await expect(
+      acknowledgeInformationRequestEvidence(staffSession, authority, input)
+    ).resolves.toEqual({
       success: false,
       error: 'access_denied',
     });
@@ -105,7 +114,9 @@ describe('information request evidence acknowledgement', () => {
     h.updateRows = [[]];
     h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'open' }], []];
 
-    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+    await expect(
+      acknowledgeInformationRequestEvidence(staffSession, authority, input)
+    ).resolves.toEqual({
       success: false,
       error: 'conflict',
     });
@@ -114,7 +125,9 @@ describe('information request evidence acknowledgement', () => {
 
   it('does not acknowledge new evidence after the request was fulfilled', async () => {
     h.selectRows = [[{ staffId: 'staff-1' }], [{ status: 'fulfilled' }]];
-    await expect(acknowledgeInformationRequestEvidence(staffSession, input)).resolves.toEqual({
+    await expect(
+      acknowledgeInformationRequestEvidence(staffSession, authority, input)
+    ).resolves.toEqual({
       success: false,
       error: 'conflict',
     });
@@ -122,28 +135,20 @@ describe('information request evidence acknowledgement', () => {
   });
 });
 
-it.each([
-  { tenantId: 'tenant-home', accessTenantId: 'tenant-access' },
-  { tenantId: null, accessTenantId: 'tenant-access' },
-])('uses the verified access tenant for assigned-staff writes %j', async tenant => {
-  const actor = { user: { ...staffSession.user, ...tenant } };
-  const result = await acknowledgeInformationRequestEvidence(actor, input);
+it('denies a missing authority before any transaction', async () => {
+  await expect(acknowledgeInformationRequestEvidence(staffSession, null, input)).resolves.toEqual({
+    success: false,
+    error: 'access_denied',
+  });
+  expect(h.transaction).not.toHaveBeenCalled();
+});
+
+it('runs and stamps the audit row under the session authority', async () => {
+  const other = mintTestTenantAuthority('tenant-access');
+  const result = await acknowledgeInformationRequestEvidence(staffSession, other, input);
   expect(result.success).toBe(true);
-  expect(h.transaction).toHaveBeenCalledWith(
-    { tenantId: 'tenant-access', role: 'staff' },
-    expect.any(Function)
-  );
+  expect(h.transaction.mock.calls[0][0]).toBe(other);
   expect(h.auditValues).toHaveBeenCalledWith(
     expect.objectContaining({ tenantId: 'tenant-access' })
   );
-});
-
-it('denies whitespace-only tenant scope before any transaction', async () => {
-  await expect(
-    acknowledgeInformationRequestEvidence(
-      { user: { ...staffSession.user, tenantId: ' ', accessTenantId: ' ' } },
-      input
-    )
-  ).resolves.toEqual({ success: false, error: 'access_denied' });
-  expect(h.transaction).not.toHaveBeenCalled();
 });

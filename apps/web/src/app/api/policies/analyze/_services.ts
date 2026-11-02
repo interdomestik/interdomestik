@@ -15,7 +15,13 @@ import { inngest } from '@/lib/inngest/client';
 import { throwTransientRetryFailure, withTransientRetry } from '@/lib/reliability/transient-retry';
 import { uploadTenantObject } from '@/lib/storage/service-role';
 import { POLICIES_BUCKET, buildPolicyStoragePath } from '@/lib/storage/tenant-prefix';
-import { withTenantContext } from '@interdomestik/database';
+import { authorizeInngestEventTenant } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents, policies } from '@interdomestik/database/schema';
 import { getResponsesWorkflowConfig } from '@interdomestik/domain-ai/models';
 import { policyExtractSchema } from '@interdomestik/domain-ai/schemas/policy-extract';
@@ -31,6 +37,8 @@ const POLICY_EXTRACT_WORKFLOW = 'policy_extract' as const;
 const POLICY_EXTRACT_CONFIG = getResponsesWorkflowConfig(POLICY_EXTRACT_WORKFLOW);
 
 function buildPolicyInputHash(args: {
+  tenantId: string;
+  userId: string;
   fileUrl: string;
   fileName: string;
   mimeType: string;
@@ -40,7 +48,7 @@ function buildPolicyInputHash(args: {
 }
 
 type QueuePolicyAnalysisArgs = {
-  tenantId: string;
+  authority: TenantAuthority;
   userId: string;
   fileUrl: string;
   fileName: string;
@@ -104,7 +112,8 @@ export async function analyzePdfService(buffer: Buffer): Promise<string> {
 export async function queuePolicyAnalysisService(
   data: QueuePolicyAnalysisArgs
 ): Promise<{ policyId: string; runId: string }> {
-  return withTenantContext({ tenantId: data.tenantId, role: 'system' }, async tx => {
+  const { tenantId } = readTenantAuthority(data.authority);
+  return withTenantAuthority(data.authority, async tx => {
     const policyId = nanoid();
     const documentId = nanoid();
     const runId = nanoid();
@@ -114,7 +123,7 @@ export async function queuePolicyAnalysisService(
       .insert(policies)
       .values({
         id: policyId,
-        tenantId: data.tenantId,
+        tenantId,
         userId: data.userId,
         provider: null,
         policyNumber: null,
@@ -125,7 +134,7 @@ export async function queuePolicyAnalysisService(
 
     await tx.insert(documents).values({
       id: documentId,
-      tenantId: data.tenantId,
+      tenantId,
       entityType: 'policy',
       entityId: policyId,
       fileName: data.fileName,
@@ -140,7 +149,7 @@ export async function queuePolicyAnalysisService(
 
     await tx.insert(aiRuns).values({
       id: runId,
-      tenantId: data.tenantId,
+      tenantId,
       workflow: POLICY_EXTRACT_WORKFLOW,
       status: 'queued',
       documentId,
@@ -150,7 +159,14 @@ export async function queuePolicyAnalysisService(
       model: POLICY_EXTRACT_CONFIG.model,
       modelSnapshot: POLICY_EXTRACT_CONFIG.model,
       promptVersion: POLICY_EXTRACT_CONFIG.promptVersion,
-      inputHash: buildPolicyInputHash(data),
+      inputHash: buildPolicyInputHash({
+        tenantId,
+        userId: data.userId,
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        mimeType: data.mimeType,
+        fileSize: data.fileSize,
+      }),
       requestJson: {
         fileUrl: data.fileUrl,
         fileName: data.fileName,
@@ -182,12 +198,12 @@ export async function emitPolicyExtractionRequestedService(args: PolicyExtractRe
 }
 
 export async function markPolicyAnalysisRunDispatchFailedService(args: {
+  authority: TenantAuthority;
   runId: string;
-  tenantId: string;
   message: string;
 }) {
   await markAiRunDispatchFailedWithTenantContext({
-    tenantId: args.tenantId,
+    authority: args.authority,
     entityType: 'policy',
     errorCode: 'policy_extract_dispatch_failed',
     message: args.message,
@@ -204,8 +220,13 @@ async function downloadPolicyFileService(filePath: string, tenantId: string): Pr
   });
 }
 
+/**
+ * Runs one queued policy analysis for the tenant its Inngest event names. The tenant authority is
+ * derived here from the invocation's ingress capability, never accepted from the event payload.
+ */
 export async function processPolicyAnalysisRunService(args: {
   runId: string;
+  ingress: IngressCapability<'inngest'>;
   tenantId: string;
   deps?: ProcessPolicyAnalysisDeps;
 }): Promise<{
@@ -223,7 +244,8 @@ export async function processPolicyAnalysisRunService(args: {
     analyzeText: args.deps?.analyzeText ?? analyzePolicyText,
   };
 
-  const claimed = await claimPolicyExtractionRun(runId, args.tenantId);
+  const authority = await authorizeInngestEventTenant(args.ingress, args.tenantId);
+  const claimed = await claimPolicyExtractionRun(runId, authority);
   if (claimed.status === 'skipped') return { status: 'skipped', runId, policyId: claimed.policyId };
 
   try {

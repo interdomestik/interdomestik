@@ -1,4 +1,10 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { appendCaseGrantDocumentAudit } from '@interdomestik/database';
 import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import type { TenantStorageFamily } from '@/lib/storage/tenant-prefix';
 import {
   getFinalDisposition,
@@ -26,6 +32,20 @@ export type {
   DocumentTenantContextRunner,
 } from './document-access-model';
 
+// Document access audits are written under the request session's own tenant authority (its access
+// tenant), resolved from the request headers and bound to the session the route already holds.
+async function documentAuditAuthority(
+  headers: Headers,
+  session: SessionDTO
+): Promise<TenantAuthority | null> {
+  try {
+    const authorized = await authorizeSessionTenant(headers);
+    return authorized?.session.user.id === session.user.id ? authorized.authority : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function logDeniedDocumentAccess(args: {
   access: Extract<DocumentAccessResult, { ok: false }>;
   documentId: string;
@@ -37,11 +57,16 @@ export async function logDeniedDocumentAccess(args: {
   if (args.access.code !== 'FORBIDDEN') {
     return;
   }
+  const authority = await documentAuditAuthority(args.headers, args.session);
+  if (!authority) {
+    console.error('[Audit] document.forbidden not recorded: no session tenant authority');
+    return;
+  }
 
   await args.logAuditEvent({
+    authority,
     actorId: args.session.user.id,
     actorRole: args.session.user.role || null,
-    tenantId: ensureAccessTenantId(args.session),
     action: 'document.forbidden',
     entityType: 'claim_document',
     entityId: args.documentId,
@@ -57,10 +82,38 @@ export async function logAllowedDocumentAccess(args: {
   session: SessionDTO;
   tenantId?: string | null;
 }): Promise<void> {
+  const authority = await documentAuditAuthority(args.headers, args.session);
+  if (!authority) {
+    console.error(`[Audit] ${args.access.audit.action} not recorded: no session tenant authority`);
+    return;
+  }
+  // A document read through a cross-tenant case grant belongs to its home tenant, which records
+  // the read; the fixed append confirms the reader's grant for the document's case first.
+  if (args.access.tenantId !== readTenantAuthority(authority).tenantId) {
+    try {
+      const recorded = await appendCaseGrantDocumentAudit(authority, {
+        homeTenantId: args.access.tenantId,
+        documentId: args.access.audit.entityId,
+        // The read's own result names its table: a claim_documents row always carries its claim,
+        // a polymorphic documents row is built without one.
+        source: args.access.document.claimId === null ? 'documents' : 'claim_documents',
+        action: args.access.audit.action,
+        entityType: args.access.audit.entityType,
+        metadata: args.access.audit.metadata,
+      });
+      if (!recorded) {
+        console.error(`[Audit] ${args.access.audit.action} not recorded: case grant not confirmed`);
+      }
+    } catch (error) {
+      console.error(`[Audit] ${args.access.audit.action} not recorded:`, error);
+    }
+    return;
+  }
+
   await args.logAuditEvent({
+    authority,
     actorId: args.session.user.id,
     actorRole: args.access.audit.actorRole,
-    tenantId: args.access.tenantId,
     action: args.access.audit.action,
     entityType: args.access.audit.entityType,
     entityId: args.access.audit.entityId,

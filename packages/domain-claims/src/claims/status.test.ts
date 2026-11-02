@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -37,6 +38,7 @@ vi.mock('./transition', () => ({ transitionClaimStatus: mocks.transitionClaimSta
 
 import { updateClaimStatusCore } from './status';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 const staffSession = { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as never;
 const persistedNegotiation = {
@@ -63,7 +65,13 @@ function mockClaim(status: string) {
 }
 
 function runStatusUpdate(deps = {}, newStatus = 'submitted') {
-  const params = { session: staffSession, requestHeaders, claimId: 'claim-1', newStatus };
+  const params = {
+    authority,
+    session: staffSession,
+    requestHeaders,
+    claimId: 'claim-1',
+    newStatus,
+  };
   return updateClaimStatusCore(params, deps);
 }
 
@@ -76,7 +84,7 @@ function sideEffectDeps() {
   };
 }
 
-const projectionCall = { limit: 10, tenantId: 'tenant-1' };
+const projectionCall = { authority, limit: 10 };
 
 describe('updateClaimStatusCore', () => {
   beforeEach(() => {
@@ -103,6 +111,7 @@ describe('updateClaimStatusCore', () => {
     });
     expect(
       await updateClaimStatusCore({
+        authority,
         session: { user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' } } as never,
         requestHeaders,
         claimId: 'claim-1',
@@ -122,6 +131,7 @@ describe('updateClaimStatusCore', () => {
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.transitionClaimStatus.mock.calls[0]?.[0]).toMatchObject({
       actor: { id: 'staff-1' },
+      authority,
       toStatus: 'negotiation',
     });
     expect(deps.logAuditEvent).not.toHaveBeenCalled();
@@ -132,7 +142,7 @@ describe('updateClaimStatusCore', () => {
       { id: 'claim-1', title: 'Test Claim' },
       'draft',
       'negotiation',
-      { tenantId: 'tenant-1' }
+      { authority }
     );
     expect(deps.revalidatePath).toHaveBeenCalledWith('/admin/claims');
   });

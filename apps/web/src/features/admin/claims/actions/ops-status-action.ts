@@ -1,4 +1,5 @@
-import { withTenantContext } from '@interdomestik/database';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { transitionAdminClaimStatusInTransaction } from '@interdomestik/domain-claims/admin-claims/status-transition';
@@ -38,11 +39,13 @@ export async function updateStatusAction(
     if (!ctx) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
     // Runtime input from the client is untrusted even though the parameter is typed.
     if (!isClaimStatus(newStatus)) return { success: false, error: INVALID_STATUS_ERROR };
+    const authorized = await authorizeSessionTenant();
+    if (!authorized) return { success: false, error: OPS_ACTION_UNAUTHORIZED_ERROR };
 
     // One tenant transaction: initial read, lifecycle/payment/evidence checks, CAS transition,
     // stage history, domain events and the operational audit commit or roll back together.
-    const outcome = await withTenantContext<StatusTransactionOutcome>(
-      { tenantId: ctx.tenantId, role: ctx.actorRole },
+    const outcome = await withTenantAuthority<StatusTransactionOutcome>(
+      authorized.authority,
       async tx => {
         const claim = await getClaimForMutation(claimId, ctx.tenantId, tx);
         const currentLifecycle = resolveClaimLifecycleReadProjection(claim);

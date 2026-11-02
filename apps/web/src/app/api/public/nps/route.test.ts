@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET, POST } from './route';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
+// Authorities the mocked public-token producer hands out, one per resolved tenant.
+const tokenAuthorities = new Map<string, TenantAuthority>();
+const resolvedToken = (tenantId: string) => {
+  if (!tokenAuthorities.has(tenantId))
+    tokenAuthorities.set(tenantId, mintTestTenantAuthority(tenantId));
+  return { tenantId, authority: tokenAuthorities.get(tenantId)! };
+};
 
 // prettier-ignore
 const m = vi.hoisted(() => {
@@ -50,7 +60,7 @@ function resetMocks() {
   m.dbSelect.mockReturnValue(m.select); m.dbUpdate.mockReturnValue(m.update); m.dbInsert.mockReturnValue(m.insert);
   m.txSelect.mockReturnValue(m.select); m.txUpdate.mockReturnValue(m.update); m.txInsert.mockReturnValue(m.insert);
   m.withTenantContext.mockImplementation(async (_context: { tenantId: string }, action: (tx: unknown) => Promise<unknown>) => await action({ insert: m.txInsert, select: m.txSelect, update: m.txUpdate }));
-  m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-1' });
+  m.resolveNpsSurveyTokenTenant.mockResolvedValue(resolvedToken('tenant-1'));
 }
 
 function post(body: unknown, headers?: HeadersInit) {
@@ -94,12 +104,12 @@ describe('POST /api/public/nps', () => {
   });
 
   it('binds the token lookup and the one-use update to the resolved tenant', async () => {
-    m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-resolved' });
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue(resolvedToken('tenant-resolved'));
     m.select.limit.mockReturnValue([tokenRow({ tenantId: 'tenant-resolved' })]); m.update.returning.mockResolvedValue([{ id: 'tok-1' }]);
     const response = await post({ token: 'valid-token-12345', score: 8 });
     expect(response.status).toBe(200);
     expect(m.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-resolved' }, expect.any(Function));
+    expect(m.withTenantContext).toHaveBeenCalledWith(resolvedToken('tenant-resolved').authority, expect.any(Function));
     expect(m.select.where).toHaveBeenCalledWith({ op: 'and', args: [{ op: 'eq', left: 'token', right: 'valid-token-12345' }, { op: 'eq', left: 'tenantId', right: 'tenant-resolved' }] });
     expect(m.update.where).toHaveBeenCalledWith({ op: 'and', args: [{ op: 'eq', left: 'id', right: 'tok-1' }, { op: 'eq', left: 'tenantId', right: 'tenant-resolved' }, { op: 'isNull', value: 'usedAt' }] });
     expect(m.insert.values).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 'tenant-resolved', tokenId: 'tok-1' }));
@@ -120,7 +130,7 @@ describe('POST /api/public/nps', () => {
     const response = await post({ token: 'valid-token-12345', score: 9, comment: 'Great' }, { 'user-agent': 'vitest' });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
-    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(m.withTenantContext).toHaveBeenCalledWith(resolvedToken('tenant-1').authority, expect.any(Function));
     expect(m.dbUpdate).not.toHaveBeenCalled(); expect(m.dbInsert).not.toHaveBeenCalled();
     expect(m.txUpdate).toHaveBeenCalledWith(expect.anything()); expect(m.txInsert).toHaveBeenCalledWith(expect.anything());
     expect(m.insert.values).toHaveBeenCalledWith(expect.objectContaining({ comment: 'Great', score: 9, subscriptionId: 'sub-1', tenantId: 'tenant-1', tokenId: 'tok-1', userId: 'user-1' }));
@@ -131,7 +141,7 @@ describe('POST /api/public/nps', () => {
     const response = await post({ token: 'valid-token-12345', score: 6 });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true, alreadySubmitted: true });
-    expect(m.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(m.withTenantContext).toHaveBeenCalledWith(resolvedToken('tenant-1').authority, expect.any(Function));
     expect(m.txUpdate).toHaveBeenCalledWith(expect.anything());
     expect(m.txInsert).not.toHaveBeenCalled(); expect(m.insert.values).not.toHaveBeenCalled();
   });
@@ -171,7 +181,7 @@ describe('GET /api/public/nps', () => {
   });
 
   it('returns valid:true for fresh token and binds the lookup to the resolved tenant', async () => {
-    m.resolveNpsSurveyTokenTenant.mockResolvedValue({ tenantId: 'tenant-resolved' });
+    m.resolveNpsSurveyTokenTenant.mockResolvedValue(resolvedToken('tenant-resolved'));
     m.select.limit.mockReturnValue([tokenRow()]);
 
     const response = await GET(new Request('http://localhost:3000/api/public/nps?token=ok'));
@@ -179,7 +189,7 @@ describe('GET /api/public/nps', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ valid: true, alreadySubmitted: false });
     expect(m.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-resolved' },
+      resolvedToken('tenant-resolved').authority,
       expect.any(Function)
     );
     expect(m.select.where).toHaveBeenCalledWith({

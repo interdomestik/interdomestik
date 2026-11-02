@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { expect } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -59,12 +61,15 @@ export function createAcceptedAgreement(
     ...overrides,
   };
 }
+export const authority: TenantAuthority = mintTestTenantAuthority('tenant-1');
+
 export async function runSaveSuccessFeeCollection(
   overrides: Partial<Parameters<typeof saveSuccessFeeCollectionCore>[0]> = {},
   deps?: Parameters<typeof saveSuccessFeeCollectionCore>[1]
 ) {
   return saveSuccessFeeCollectionCore(
     {
+      authority,
       claimId: 'claim-1',
       deductionAllowed: false,
       recoveredAmount: 1000,

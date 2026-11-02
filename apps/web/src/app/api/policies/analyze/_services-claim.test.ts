@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
   const update = vi.fn(() => ({ set: updateSet }));
 
   return {
+    authorizeInngestEventTenant: vi.fn(),
     createAdminClient: vi.fn(),
     db: {
       select,
@@ -54,11 +55,8 @@ const mocks = vi.hoisted(() => {
     txUpdateSet,
     txUpdateWhere,
     updateReturning,
-    withTenantContext: vi.fn(
-      async (
-        _context: { tenantId: string; role?: string },
-        callback: (tx: Tx) => Promise<unknown>
-      ) => callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: Tx) => Promise<unknown>) =>
+      callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
     ),
   };
 });
@@ -68,6 +66,7 @@ vi.mock('@/lib/db.server', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  authorizeInngestEventTenant: mocks.authorizeInngestEventTenant,
   createAdminClient: mocks.createAdminClient,
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
   withTenantContext: mocks.withTenantContext,
@@ -104,11 +103,28 @@ vi.mock('nanoid', () => ({
   nanoid: mocks.nanoid,
 }));
 
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { processPolicyAnalysisRunService } from './_services';
+
+const authorities = new Map<string, ReturnType<typeof mintTestTenantAuthority>>();
+function authorityFor(tenantId: string) {
+  let authority = authorities.get(tenantId);
+  if (!authority) {
+    authority = mintTestTenantAuthority(tenantId);
+    authorities.set(tenantId, authority);
+  }
+  return authority;
+}
+const ingress = Object.freeze({}) as unknown as IngressCapability<'inngest'>;
 
 describe('processPolicyAnalysisRunService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authorizeInngestEventTenant.mockImplementation(
+      async (_ingress: unknown, tenantId: string) => authorityFor(tenantId)
+    );
     mocks.nanoid.mockReturnValueOnce('extraction-1');
     mocks.selectWhere.mockResolvedValue([
       {
@@ -138,6 +154,7 @@ describe('processPolicyAnalysisRunService', () => {
 
     const result = await processPolicyAnalysisRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn(),
@@ -158,6 +175,7 @@ describe('processPolicyAnalysisRunService', () => {
   it('binds the run lookup and claim update to the event tenant', async () => {
     await processPolicyAnalysisRunService({
       runId: 'run-1',
+      ingress,
       tenantId: 'tenant-1',
       deps: {
         downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
@@ -186,17 +204,12 @@ describe('processPolicyAnalysisRunService', () => {
       left: { __name: 'ai_runs.tenant_id' },
       right: 'tenant-1',
     };
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
-      tenantId: 'tenant-1',
-      role: 'system',
-    });
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-1');
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authorityFor('tenant-1'));
     expect(mocks.selectWhere.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({ args: expect.arrayContaining([tenantPredicate]) })
     );
-    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toEqual({
-      tenantId: 'tenant-1',
-      role: 'system',
-    });
+    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toBe(authorityFor('tenant-1'));
     expect(mocks.txUpdateWhere.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({ args: expect.arrayContaining([tenantPredicate]) })
     );
@@ -209,6 +222,7 @@ describe('processPolicyAnalysisRunService', () => {
     await expect(
       processPolicyAnalysisRunService({
         runId: 'run-1',
+        ingress,
         tenantId: 'tenant-other',
         deps: {
           downloadFile: vi.fn(),
@@ -221,8 +235,33 @@ describe('processPolicyAnalysisRunService', () => {
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
     for (const call of mocks.withTenantContext.mock.calls) {
-      expect(call[0]).toEqual({ tenantId: 'tenant-other', role: 'system' });
+      expect(call[0]).toBe(authorityFor('tenant-other'));
     }
     expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without any read or write when the event tenant is not authorized', async () => {
+    mocks.authorizeInngestEventTenant.mockRejectedValue(
+      new Error('Inngest tenant authority requires an existing tenant')
+    );
+
+    await expect(
+      processPolicyAnalysisRunService({
+        runId: 'run-1',
+        ingress,
+        tenantId: 'tenant-ghost',
+        deps: {
+          downloadFile: vi.fn(),
+          analyzeImage: vi.fn(),
+          analyzePdf: vi.fn(),
+          analyzeText: vi.fn(),
+        },
+      })
+    ).rejects.toThrow('Inngest tenant authority requires an existing tenant');
+
+    expect(mocks.authorizeInngestEventTenant).toHaveBeenCalledWith(ingress, 'tenant-ghost');
+    expect(mocks.withTenantContext).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@
 
 import { activateAgentUserProfile } from '@/features/agent/activation/server/activate-agent-profile';
 import { auth } from '@/lib/auth';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { randomBytes } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -37,7 +37,10 @@ export async function activateAgentProfile() {
   const code = `${baseName}-${suffix}`;
 
   try {
-    const tenantId = ensureTenantId(session);
+    const authorized = await authorizeSessionTenant(await headers());
+    if (!authorized) {
+      return { success: false, error: 'Unauthorized' };
+    }
     // Transactional safety: In a real scenario with high concurrency,
     // we might want a loop to handle code collision (unique constraint),
     // but with 4 chars hex suffix (65k combinations per name), collision is rare enough for now.
@@ -45,7 +48,7 @@ export async function activateAgentProfile() {
     await activateAgentUserProfile({
       currentRole: session.user.role,
       referralCode: code,
-      tenantId,
+      authority: authorized.authority,
       userId: session.user.id,
     });
 

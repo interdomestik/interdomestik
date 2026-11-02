@@ -1,20 +1,26 @@
-import { claimEscalationAgreements, eq, withTenantContext } from '@interdomestik/database';
+import { claimEscalationAgreements, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 
 import type { PaymentAuthorizationState } from '../staff-claims/types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const paymentGatedStatuses = new Set<string>(['negotiation', 'court']);
 
 export async function getPaymentAuthorizationState(params: {
   claimId: string;
   status: string;
-  tenantId: string;
+  authority: TenantAuthority;
 }): Promise<PaymentAuthorizationState | null | undefined> {
   if (!paymentGatedStatuses.has(params.status)) {
     return undefined;
   }
 
-  const [agreement] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const { tenantId } = readTenantAuthority(params.authority);
+  const [agreement] = await withTenantAuthority(params.authority, tx =>
     tx
       .select({
         paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
@@ -22,7 +28,7 @@ export async function getPaymentAuthorizationState(params: {
       .from(claimEscalationAgreements)
       .where(
         withTenant(
-          params.tenantId,
+          tenantId,
           claimEscalationAgreements.tenantId,
           eq(claimEscalationAgreements.claimId, params.claimId)
         )

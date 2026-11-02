@@ -1,4 +1,9 @@
-import { and, branches, eq, user, userRoles, withTenantContext } from '@interdomestik/database';
+import { and, branches, eq, user, userRoles } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { isNull } from 'drizzle-orm';
@@ -7,19 +12,20 @@ import { createRoleAssignmentId } from './role-id';
 import { resolveRoleMutationContext } from './role-mutation-context';
 import { canManageAssignedRole, isBranchRequiredRole } from './role-rules';
 import { lockRoleMutationTarget } from './role-target';
-import { resolveTenantId } from './utils';
+import { resolveTenantAuthority } from './utils';
 
 export async function listUserRolesCore(params: {
   session: UserSession | null;
-  tenantId?: string;
+  authority: TenantAuthority | null;
   userId?: string;
 }) {
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
+  const authority = await resolveTenantAuthority(session, params.authority);
+  const { tenantId } = readTenantAuthority(authority);
 
-  return withTenantContext({ tenantId, role: session.user.role }, async tx => {
+  return withTenantAuthority(authority, async tx => {
     if (params.userId) {
       const explicitRoles = await tx.query.userRoles.findMany({
         where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
@@ -68,7 +74,7 @@ export async function listUserRolesCore(params: {
 export async function grantUserRoleCore(
   params: {
     session: UserSession | null;
-    tenantId?: string;
+    authority: TenantAuthority | null;
     userId: string;
     role: string;
     branchId?: string | null;
@@ -76,14 +82,14 @@ export async function grantUserRoleCore(
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
-  const context = resolveRoleMutationContext(params, 'granted');
+  const context = await resolveRoleMutationContext(params, 'granted');
   if ('error' in context) return context;
-  const { session, tenantId, role } = context;
+  const { session, authority, tenantId, role } = context;
 
   let branchId = params.branchId ?? null;
   if (branchId) {
     const branchIdForLookup = branchId;
-    const branch = await withTenantContext({ tenantId, role: session.user.role }, tx =>
+    const branch = await withTenantAuthority(authority, tx =>
       tx.query.branches.findFirst({
         where: withTenant(tenantId, branches.tenantId, eq(branches.id, branchIdForLookup)),
       })
@@ -102,7 +108,7 @@ export async function grantUserRoleCore(
     branchId = null;
   }
 
-  const granted = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+  const granted = await withTenantAuthority(authority, async tx => {
     if (!(await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role))) {
       return false;
     }
@@ -157,7 +163,7 @@ export async function grantUserRoleCore(
       action: 'user.role_granted',
       entityType: 'user',
       entityId: params.userId,
-      tenantId,
+      authority,
       metadata: { role, branchId },
     });
   }
@@ -168,19 +174,19 @@ export async function grantUserRoleCore(
 export async function revokeUserRoleCore(
   params: {
     session: UserSession | null;
-    tenantId?: string;
+    authority: TenantAuthority | null;
     userId: string;
     role: string;
     branchId?: string | null;
   },
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
-  const context = resolveRoleMutationContext(params, 'revoked');
+  const context = await resolveRoleMutationContext(params, 'revoked');
   if ('error' in context) return context;
-  const { session, tenantId, role } = context;
+  const { session, authority, tenantId, role } = context;
 
   const branchId = params.branchId ?? null;
-  const revokeResult = await withTenantContext({ tenantId, role: session.user.role }, async tx => {
+  const revokeResult = await withTenantAuthority(authority, async tx => {
     const target = await lockRoleMutationTarget(tx, tenantId, params.userId, session.user.role);
     if (!target) return { denied: true, deleted: [] };
 
@@ -244,7 +250,7 @@ export async function revokeUserRoleCore(
       action: 'user.role_revoked',
       entityType: 'user',
       entityId: params.userId,
-      tenantId,
+      authority,
       metadata: { role, branchId },
     });
   }

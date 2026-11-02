@@ -1,4 +1,8 @@
-import { and, claims, eq, sql, withTenantContext } from '@interdomestik/database';
+import { and, claims, eq, sql } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
 import { loadTransitionReadContext } from './transition-read-context';
@@ -14,6 +18,7 @@ import {
   type TransitionClaimStatusResult,
   type TransitionTx,
 } from './transition-side-effects';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export * from './transition-side-effects';
 
@@ -153,10 +158,12 @@ export async function transitionClaimStatusInTransaction(
 }
 
 export async function transitionClaimStatus(
-  params: TransitionClaimStatusParams
+  params: Omit<TransitionClaimStatusParams, 'tenantId'> & { authority: TenantAuthority }
 ): Promise<TransitionClaimStatusResult> {
+  const { authority, ...transitionParams } = params;
+  const { tenantId } = readTenantAuthority(authority);
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transition by values and where clause
-  return withTenantContext({ tenantId: params.tenantId }, tx =>
-    transitionClaimStatusInTransaction(tx, params)
+  return withTenantAuthority(authority, tx =>
+    transitionClaimStatusInTransaction(tx, { ...transitionParams, tenantId })
   );
 }

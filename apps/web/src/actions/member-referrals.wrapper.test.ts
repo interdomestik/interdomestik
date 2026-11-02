@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -11,10 +12,13 @@ import {
   updateMemberReferralRewardStatus,
 } from './member-referrals';
 
+const authority = mintTestTenantAuthority('tenant_1');
+
 vi.mock('./member-referrals/context', () => ({
   getActionContext: vi.fn(async () => ({
     requestHeaders: new Headers(),
     session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+    authority,
   })),
 }));
 
@@ -108,6 +112,7 @@ describe('member-referrals action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralLinkCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(result).toEqual({
       success: true,
@@ -124,6 +129,7 @@ describe('member-referrals action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralStatsCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(result).toEqual({
       success: true,
@@ -150,12 +156,15 @@ describe('member-referrals action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralLinkCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(getMemberReferralStatsCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(getMemberReferralProgramPreviewCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(result).toEqual({
       success: true,
@@ -196,6 +205,7 @@ describe('member-referrals action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralProgramSettingsCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(result.success).toBe(true);
   });
@@ -210,6 +220,7 @@ describe('member-referrals action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralProgramPreviewCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
     });
     expect(result.success).toBe(true);
   });
@@ -226,6 +237,7 @@ describe('member-referrals action wrapper', () => {
 
     expect(updateMemberReferralProgramSettingsCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
       requestHeaders: expect.any(Headers),
       data: {
         enabled: true,
@@ -243,6 +255,7 @@ describe('member-referrals action wrapper', () => {
 
     expect(listMemberReferralRewardsAdminCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
       filters: { limit: 10, offset: 20 },
     });
     expect(result).toEqual({ success: true, data: [{ id: 'reward-1', status: 'pending' }] });
@@ -256,6 +269,7 @@ describe('member-referrals action wrapper', () => {
 
     expect(updateMemberReferralRewardStatusAdminCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+      authority,
       requestHeaders: expect.any(Headers),
       rewardId: 'reward-1',
       newStatus: 'approved',

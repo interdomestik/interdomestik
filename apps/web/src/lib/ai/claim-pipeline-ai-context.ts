@@ -3,13 +3,13 @@ import {
   resolveClaimDocumentAiExtractionConsent,
 } from '@interdomestik/domain-claims';
 
-import { withTenantContext } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 import { ExtractionPipelineError } from './extraction-pipeline';
 import type { ClaimedClaimAiRun } from './claim-pipeline-run';
 
 export async function readClaimPipelineAiCallContext(run: ClaimedClaimAiRun) {
-  const consent = await withTenantContext({ tenantId: run.tenantId, role: 'system' }, async tx =>
+  const consent = await withTenantAuthority(run.authority, async tx =>
     resolveClaimDocumentAiExtractionConsent({
       tx,
       tenantId: run.tenantId,

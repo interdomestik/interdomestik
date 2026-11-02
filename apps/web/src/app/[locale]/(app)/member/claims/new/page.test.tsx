@@ -1,3 +1,5 @@
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -5,6 +7,7 @@ const h = vi.hoisted(() => ({
   // prettier-ignore
   intake: vi.fn((props: Record<string, unknown>) => <div data-testid="claim-draft-intake-props">{JSON.stringify(props)}<button data-testid="claim-draft-submit-disabled" type="button" disabled>Dormant submit</button></div>),
   session: vi.fn(),
+  authority: vi.fn(),
   member: vi.fn(),
   tenant: vi.fn(() => 'tenant_ks'),
   msg: vi.fn(async () => ({ freeStart: { marker: 'page-scoped' } })),
@@ -24,6 +27,7 @@ vi.mock('@/components/claims/claim-draft-intake', () => ({
   ClaimDraftIntake: (props: Record<string, unknown>) => h.intake(props),
 }));
 vi.mock('@/components/shell/session', () => ({ getSessionSafe: h.session }));
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionUserTenant: h.authority }));
 vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: h.msg }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   hasActiveMembership: h.member,
@@ -56,6 +60,9 @@ describe('NewClaimPage dormant draft intake', () => {
     // prettier-ignore
     h.session.mockResolvedValue({ user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks' } });
     h.member.mockResolvedValue(true);
+    h.authority.mockImplementation(async (userId: string) =>
+      mintTestTenantAuthority(h.tenant.getMockImplementation()?.() ?? 'tenant_ks', { userId })
+    );
   });
 
   it('normalizes the accepted diaspora handoff only', () => {
@@ -86,7 +93,9 @@ describe('NewClaimPage dormant draft intake', () => {
     render(tree);
     expect(h.session).toHaveBeenCalledWith('MemberNewClaimPage');
     expect(h.t).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
-    expect(h.member).toHaveBeenCalledWith('member-1', 'tenant_ks');
+    expect(h.authority).toHaveBeenCalledWith('member-1');
+    expect(h.member).toHaveBeenCalledWith('member-1', expect.anything());
+    expect(readTenantAuthority(h.member.mock.calls[0]?.[1]).tenantId).toBe('tenant_ks');
     // prettier-ignore
     expect(h.intake).toHaveBeenCalledWith({ draftAccount: { emailVerified: false, expectedContext: { ownerUserId: 'member-1', tenantId: 'tenant_ks' } }, freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'front-door.localhost:3000', tenantId: 'tenant_ks' });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
@@ -146,5 +155,12 @@ describe('NewClaimPage dormant draft intake', () => {
 
     h.member.mockRejectedValueOnce(new Error('member unavailable'));
     await expect(loadPage({ mode: 'drafts' })).rejects.toThrow('member unavailable');
+  });
+
+  it('reads no membership and grants no access without a session authority', async () => {
+    h.authority.mockResolvedValueOnce(null);
+    render(await loadPage({}));
+    expect(h.member).not.toHaveBeenCalled();
+    expect(h.intake).not.toHaveBeenCalled();
   });
 });

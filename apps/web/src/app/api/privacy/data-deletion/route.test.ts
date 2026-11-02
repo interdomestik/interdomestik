@@ -77,12 +77,22 @@ describe('POST /api/privacy/data-deletion', () => {
     expect(response.status).toBe(202);
     expect(hoisted.requestDataDeletionCore).toHaveBeenCalledWith({
       userId: 'user-1',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       actorRole: 'member',
       reason: ' Delete me ',
       ipAddress: '203.0.113.10',
       userAgent: 'privacy-agent',
     });
+  });
+
+  it('hands the core no authority for a session without a tenant', async () => {
+    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'member' } });
+
+    await POST(request('{}'));
+
+    expect(hoisted.requestDataDeletionCore).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', authority: null })
+    );
   });
 
   it('preserves already-pending 202 semantics from the core', async () => {

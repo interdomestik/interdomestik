@@ -1,8 +1,9 @@
 import { AdminUserDetailV2Page } from '@/features/admin/users/components/AdminUserDetailV2Page';
 import { getSessionSafe } from '@/components/shell/session';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getTenantClassificationOptions } from './tenant-classification';
 import { redirect } from 'next/navigation';
-import { resolveAdminTenantContext } from './tenant-context';
+import { resolveAdminTenantAuthority } from './tenant-context';
 
 export default async function MemberProfilePage({
   params,
@@ -17,7 +18,15 @@ export default async function MemberProfilePage({
   if (!session) {
     redirect(`/${locale}/login`);
   }
-  const tenantId = await resolveAdminTenantContext({ session, searchParams: sp });
+  // The authority must belong to the session user this page renders for; anything else reads nothing.
+  const authorized = await authorizeSessionTenant().catch(() => null);
+  const sessionAuthority =
+    authorized && authorized.session.user.id === session.user?.id ? authorized.authority : null;
+  const authority = await resolveAdminTenantAuthority({
+    authority: sessionAuthority,
+    role: session.user?.role ?? null,
+    searchParams: sp,
+  });
   const tenantClassificationOptions = getTenantClassificationOptions();
 
   return (
@@ -25,7 +34,7 @@ export default async function MemberProfilePage({
       id={id}
       locale={locale}
       searchParams={sp}
-      tenantId={tenantId}
+      authority={authority}
       actorRole={session.user?.role ?? null}
       actorBranchId={session.user?.branchId ?? null}
       tenantClassificationOptions={tenantClassificationOptions}

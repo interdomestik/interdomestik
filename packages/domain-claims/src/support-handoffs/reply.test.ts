@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitSupportHandoffMemberReplyCore } from './reply';
@@ -87,6 +88,7 @@ function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
 
 function submitReply(session: SupportHandoffSession | null = memberSession()) {
   return submitSupportHandoffMemberReplyCore({
+    authority,
     expectedPublicResponseVersion: 2,
     handoffId: 'handoff-1',
     replyText: '  This resolves my request.  ',
@@ -111,6 +113,8 @@ function fallbackRow(overrides = {}) {
 function findSqlCallWithValue(value: unknown) {
   return mocks.sql.mock.calls.find(call => call.slice(1).includes(value));
 }
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('support handoff member reply', () => {
   beforeEach(() => {
@@ -156,6 +160,7 @@ describe('support handoff member reply', () => {
   it('submits a trimmed reply only for the member-owned active acknowledged response version', async () => {
     const result = await submitSupportHandoffMemberReplyCore(
       {
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         replyText: '  This resolves my request.  ',
@@ -216,6 +221,7 @@ describe('support handoff member reply', () => {
   it('rejects blank and overlong direct-domain replies as validation failures', async () => {
     await expect(
       submitSupportHandoffMemberReplyCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         replyText: '   ',
@@ -229,6 +235,7 @@ describe('support handoff member reply', () => {
 
     await expect(
       submitSupportHandoffMemberReplyCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         replyText: 'a'.repeat(MAX_MEMBER_REPLY_LENGTH + 1),

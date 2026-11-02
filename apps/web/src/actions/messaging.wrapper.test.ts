@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const hoisted = vi.hoisted(() => ({ authority: Object.freeze({}) }));
+
 import { getClaimMessages, sendMessage } from './messaging';
 
 vi.mock('./messages/context', () => ({
   getActionContext: vi.fn(async () => ({
     requestHeaders: new Headers(),
     session: { user: { id: 'user-1', role: 'user' } },
+    authority: hoisted.authority,
   })),
 }));
 
@@ -28,7 +31,9 @@ describe('messaging action wrapper', () => {
     expect(getMessagesForClaimCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
       session: { user: { id: 'user-1', role: 'user' } },
+      authority: hoisted.authority,
     });
+    expect(vi.mocked(getMessagesForClaimCore).mock.calls[0]?.[0].authority).toBe(hoisted.authority);
     expect(result).toEqual({ success: true, data: [] });
   });
 
@@ -45,7 +50,9 @@ describe('messaging action wrapper', () => {
       isInternal: true,
       session: { user: { id: 'user-1', role: 'user' } },
       requestHeaders: expect.any(Headers),
+      authority: hoisted.authority,
     });
+    expect(vi.mocked(sendMessageCore).mock.calls[0]?.[0].authority).toBe(hoisted.authority);
     expect(result).toEqual({ success: true });
   });
 });

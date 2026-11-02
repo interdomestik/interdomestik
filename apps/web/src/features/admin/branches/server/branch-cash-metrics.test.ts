@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -72,6 +73,8 @@ import {
 } from './branch-cash-metrics';
 
 describe('branch cash metrics', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.queryPlans.length = 0;
@@ -80,14 +83,9 @@ describe('branch cash metrics', () => {
   it('counts unresolved cash verification load for one tenant branch', async () => {
     mocks.queryPlans.push({ terminal: 'where', result: [{ count: 2 }] });
 
-    await expect(
-      getBranchCashPendingCount({ tenantId: 'tenant-1', branchId: 'branch-1' })
-    ).resolves.toBe(2);
+    await expect(getBranchCashPendingCount({ authority, branchId: 'branch-1' })).resolves.toBe(2);
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('lead_payment_attempts.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.branch_id', 'branch-1');
@@ -106,7 +104,7 @@ describe('branch cash metrics', () => {
       ],
     });
 
-    const result = await getBranchCashPendingByBranch('tenant-1');
+    const result = await getBranchCashPendingByBranch(authority);
 
     expect(result).toEqual(
       new Map([
@@ -114,10 +112,7 @@ describe('branch cash metrics', () => {
         ['branch-2', 1],
       ])
     );
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.eq).toHaveBeenCalledWith('lead_payment_attempts.tenant_id', 'tenant-1');
     expect(mocks.eq).toHaveBeenCalledWith('member_leads.tenant_id', 'tenant-1');
   });
@@ -132,7 +127,7 @@ describe('branch cash metrics', () => {
     });
 
     const result = await getBranchCashPendingByAgent({
-      tenantId: 'tenant-1',
+      authority,
       branchId: 'branch-1',
     });
 

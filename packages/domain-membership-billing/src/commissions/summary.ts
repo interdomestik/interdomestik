@@ -1,25 +1,30 @@
-import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq, sql } from 'drizzle-orm';
 
 import type { ActionResult, CommissionSession, CommissionSummary } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /** Get commission summary for current agent */
 export async function getMyCommissionSummaryCore(params: {
   session: CommissionSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<CommissionSummary>> {
-  const { session } = params;
+  const { session, authority } = params;
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!['agent', 'staff', 'admin'].includes(session.user.role)) {
     return { success: false, error: 'Access denied' };
   }
+  if (!authority) return { success: false, error: 'Unauthorized' };
 
   try {
-    const tenantId = ensureTenantId(session);
+    const { tenantId } = readTenantAuthority(authority);
 
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           status: agentCommissions.status,

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => ({
   acknowledge: vi.fn(),
@@ -24,6 +25,7 @@ import {
   createClaimInformationRequest,
   fulfilClaimInformationRequest,
 } from './information-request';
+const authority = mintTestTenantAuthority('tenant-1');
 beforeEach(() => {
   vi.clearAllMocks();
   h.parseCreate.mockImplementation(input => ({ success: true, data: input }));
@@ -33,10 +35,11 @@ beforeEach(() => {
 it('obtains the session server-side and refreshes both mounted routes in four locales', async () => {
   const session = { user: { id: 'staff' } };
   const input = { claimId: 'claim-1' };
-  h.context.mockResolvedValue({ session });
+  h.context.mockResolvedValue({ session, authority });
   h.create.mockResolvedValue({ success: true, requestId: 'request-1' });
   await createClaimInformationRequest(input);
-  expect(h.create).toHaveBeenCalledWith(session, input);
+  expect(h.create).toHaveBeenCalledWith(session, authority, input);
+  expect(h.create.mock.calls[0][1]).toBe(authority);
   expect(h.revalidate.mock.calls.map(([path]) => path).sort()).toEqual(
     ['en', 'mk', 'sq', 'sr']
       .flatMap(locale => [`/${locale}/member/claims/claim-1`, `/${locale}/staff/claims/claim-1`])
@@ -44,7 +47,7 @@ it('obtains the session server-side and refreshes both mounted routes in four lo
   );
 });
 it('returns a denied result without cache mutation', async () => {
-  h.context.mockResolvedValue({ session: null });
+  h.context.mockResolvedValue({ session: null, authority: null });
   h.create.mockResolvedValue({ success: false, error: 'access_denied' });
   expect(await createClaimInformationRequest({})).toEqual({
     success: false,
@@ -56,12 +59,13 @@ it('returns a denied result without cache mutation', async () => {
 it('refreshes both mounted routes after assigned staff acknowledges evidence', async () => {
   const session = { user: { id: 'staff' } };
   const input = { claimId: 'claim-1', evidenceId: 'evidence-1' };
-  h.context.mockResolvedValue({ session });
+  h.context.mockResolvedValue({ session, authority });
   h.acknowledge.mockResolvedValue({ success: true, acknowledgedAt: new Date() });
 
   await acknowledgeClaimInformationRequestEvidence(input);
 
-  expect(h.acknowledge).toHaveBeenCalledWith(session, input);
+  expect(h.acknowledge).toHaveBeenCalledWith(session, authority, input);
+  expect(h.acknowledge.mock.calls[0][1]).toBe(authority);
   expect(h.revalidate).toHaveBeenCalledTimes(8);
 });
 
@@ -73,7 +77,7 @@ it('refreshes member and staff views only after fulfilment succeeds', async () =
     documentId: 'document-1',
     reviewed: true,
   };
-  h.context.mockResolvedValue({ session });
+  h.context.mockResolvedValue({ session, authority });
   h.fulfil.mockResolvedValueOnce({ success: false, error: 'conflict' });
   await expect(fulfilClaimInformationRequest(input)).resolves.toEqual({
     success: false,
@@ -82,6 +86,7 @@ it('refreshes member and staff views only after fulfilment succeeds', async () =
   expect(h.revalidate).not.toHaveBeenCalled();
   h.fulfil.mockResolvedValueOnce({ success: true, fulfilledAt: '2026-09-17T11:00:00.000Z' });
   await fulfilClaimInformationRequest(input);
-  expect(h.fulfil).toHaveBeenCalledWith(session, input);
+  expect(h.fulfil).toHaveBeenCalledWith(session, authority, input);
+  expect(h.fulfil.mock.calls[0][1]).toBe(authority);
   expect(h.revalidate).toHaveBeenCalledTimes(8);
 });

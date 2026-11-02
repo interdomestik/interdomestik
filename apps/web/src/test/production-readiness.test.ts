@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockTenantTransaction } = vi.hoisted(() => {
@@ -13,6 +14,8 @@ vi.mock('@interdomestik/database', () => ({
 import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 
 describe('Production Readiness Tests', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockTenantTransaction.mockReset();
@@ -38,15 +41,12 @@ describe('Production Readiness Tests', () => {
           return { success: true, data: 'test-result' };
         },
         {},
-        { tenantId: 'tenant_mk' }
+        { authority }
       );
 
       // Assert: the tenant transaction ran twice (first failed with deadlock, second succeeded)
       expect(mockTenantTransaction).toHaveBeenCalledTimes(2);
-      expect(mockTenantTransaction).toHaveBeenCalledWith(
-        { tenantId: 'tenant_mk' },
-        expect.any(Function)
-      );
+      expect(mockTenantTransaction).toHaveBeenCalledWith(authority, expect.any(Function));
       expect(result).toEqual({ success: true, data: 'test-result' });
     });
 
@@ -59,7 +59,7 @@ describe('Production Readiness Tests', () => {
             return { success: true };
           },
           {},
-          { tenantId: 'tenant_mk' }
+          { authority }
         )
       ).rejects.toThrow('permission denied');
 

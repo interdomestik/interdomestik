@@ -1,4 +1,5 @@
 import { getMemberLatestPublicResponse } from '@interdomestik/domain-claims/support-handoffs/response';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { MessageSquareText } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
@@ -10,27 +11,27 @@ type SelectedClaim = {
 } | null;
 
 type PublicResponseBannerProps = {
+  authority: TenantAuthority;
   handoffId?: string | null;
   locale: string;
   memberId: string;
   selectedClaim: SelectedClaim;
-  tenantId: string;
 };
 
 export async function PublicResponseBanner({
+  authority,
   handoffId,
   locale,
   memberId,
   selectedClaim,
-  tenantId,
 }: Readonly<PublicResponseBannerProps>) {
   let response: Awaited<ReturnType<typeof getMemberLatestPublicResponse>>;
   try {
     response = await getMemberLatestPublicResponse({
+      authority,
       claimId: selectedClaim?.id ?? null,
       handoffId: handoffId ?? null,
       memberId,
-      tenantId,
     });
   } catch (error) {
     console.error('Member support handoff public response lookup failed', error);

@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
 type MockFunction = ReturnType<typeof vi.fn>;
@@ -91,6 +93,8 @@ vi.mock('../claims/transition', () => ({
 export const adminSession = {
   user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant-1' },
 } as never;
+
+export const adminAuthority: TenantAuthority = mintTestTenantAuthority('tenant-1');
 
 export const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 

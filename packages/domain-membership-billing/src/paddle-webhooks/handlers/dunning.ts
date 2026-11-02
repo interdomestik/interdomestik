@@ -1,4 +1,9 @@
-import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
+import { and, eq, subscriptions } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { resolveCanonicalMembershipPlanState } from '../../annual-membership';
 
 import { RetryablePaddleWebhookError } from '../errors';
@@ -18,6 +23,7 @@ import {
 } from './dunning-state';
 import { handleOrderedPastDue } from './dunning-ordered-handler';
 import { resolveSubscriptionEventOrder } from './subscription-event-order';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
@@ -30,7 +36,10 @@ const redactEmail = (email?: string | null) => {
 export async function handleSubscriptionPastDue(
   params: {
     data: unknown;
-    tenantId?: string | null;
+    /** Verified-delivery capability from signature verification; every tenant authority derives from it. */
+    delivery: IngressCapability<'paddle-delivery'>;
+    /** Authority of the tenant the core resolved from a subscription or user owner, when it did. */
+    authority?: TenantAuthority | null;
     processingScopeKey?: string;
     providerEventId?: string;
     providerEventOccurredAt?: string | null;
@@ -53,8 +62,9 @@ export async function handleSubscriptionPastDue(
   });
 
   const context = await resolvePastDueContext(sub, {
+    delivery: params.delivery,
     requireExactProviderRow: Boolean(order),
-    tenantId: params.tenantId,
+    authority: params.authority,
   });
   if (!context) {
     return;
@@ -62,7 +72,7 @@ export async function handleSubscriptionPastDue(
 
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId: context.userRecord.tenantId,
+    authority: context.authority,
     planId: priceId,
   });
   const now = new Date();
@@ -82,7 +92,7 @@ export async function handleSubscriptionPastDue(
       order,
       providerSubscriptionId: sub.id,
       subscriptionId: context.existingSub.id,
-      tenantId: context.userRecord.tenantId,
+      authority: context.authority,
       user: context.userRecord,
       planName: sub.items?.[0]?.price?.description || 'Membership',
       buildState,
@@ -98,7 +108,7 @@ export async function handleSubscriptionPastDue(
     await persistPastDueSubscription({
       subscriptionId: sub.id,
       userId: context.userRecord.id,
-      tenantId: context.userRecord.tenantId,
+      authority: context.authority,
       existingSub: context.existingSub,
       values: pastDueState.values,
     });
@@ -112,7 +122,7 @@ export async function handleSubscriptionPastDue(
   await logPastDueAuditEvent({
     deps,
     subscriptionId: sub.id,
-    tenantId: context.userRecord.tenantId,
+    authority: context.authority,
     newDunningCount: pastDueState.newDunningCount,
     gracePeriodEnd: pastDueState.gracePeriodEnd,
   });
@@ -129,25 +139,34 @@ export async function handleSubscriptionPastDue(
 async function persistPastDueSubscription(args: {
   subscriptionId: string;
   userId: string;
-  tenantId: string;
+  authority: TenantAuthority;
   existingSub: ExistingSubscriptionRecord;
   values: PastDueValues;
 }) {
+  const { tenantId } = readTenantAuthority(args.authority);
+  if (
+    args.values.tenantId !== tenantId ||
+    (args.existingSub && args.existingSub.tenantId !== tenantId)
+  ) {
+    throw new Error(
+      `Paddle subscription ${args.subscriptionId} past_due tenant conflict: authority=${tenantId} values=${args.values.tenantId} existing=${args.existingSub?.tenantId ?? 'none'}`
+    );
+  }
   if (args.existingSub) {
     const existingSubId = args.existingSub.id;
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user/subscription context constrains dunning update
-    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    await withTenantAuthority(args.authority, async tx =>
       tx
         .update(subscriptions)
         .set(args.values)
-        .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, args.tenantId)))
+        .where(and(eq(subscriptions.id, existingSubId), eq(subscriptions.tenantId, tenantId)))
     );
     return;
   }
 
   try {
     // db-access-guard: tenant-scoped -- reason: tenantId from canonical user context is included in dunning insert values
-    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    await withTenantAuthority(args.authority, async tx =>
       tx.insert(subscriptions).values({
         id: args.subscriptionId,
         ...args.values,
@@ -158,21 +177,21 @@ async function persistPastDueSubscription(args: {
       throw error;
     }
 
-    const racedSubscription = await findExistingPastDueSubscriptionForUser({
+    const racedSubscription = await findExistingPastDueSubscriptionForUser(args.authority, {
       id: args.userId,
-      tenantId: args.tenantId,
+      tenantId,
     });
     if (!racedSubscription) {
       throw error;
     }
 
     // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-    await withTenantContext({ tenantId: args.tenantId }, async tx =>
+    await withTenantAuthority(args.authority, async tx =>
       tx
         .update(subscriptions)
         .set(args.values)
         .where(
-          and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, args.tenantId))
+          and(eq(subscriptions.id, racedSubscription.id), eq(subscriptions.tenantId, tenantId))
         )
     );
   }
@@ -181,7 +200,7 @@ async function persistPastDueSubscription(args: {
 async function logPastDueAuditEvent(args: {
   deps: PaddleWebhookAuditDeps;
   subscriptionId: string;
-  tenantId: string | null;
+  authority: TenantAuthority;
   newDunningCount: number;
   gracePeriodEnd: Date;
 }) {
@@ -194,7 +213,7 @@ async function logPastDueAuditEvent(args: {
     action: 'subscription.past_due',
     entityType: 'subscription',
     entityId: args.subscriptionId,
-    tenantId: args.tenantId,
+    authority: args.authority,
     metadata: {
       dunningAttempt: args.newDunningCount,
       gracePeriodEnd: args.gracePeriodEnd.toISOString(),

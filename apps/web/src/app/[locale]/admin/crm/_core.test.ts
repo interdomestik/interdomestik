@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -19,6 +20,8 @@ import {
   sourceBreakdownReportingRow,
   weightedReportingRow,
 } from './_reporting-test-fixtures';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 const actor: CrmActorContext = {
   actorId: 'admin-1',
@@ -107,7 +110,7 @@ describe('admin CRM reporting core', () => {
     const now = '2026-05-14T12:00:00.000Z';
 
     const dashboard = await getAdminCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         ...repositories,
         now: () => now,
@@ -196,7 +199,7 @@ describe('admin CRM reporting core', () => {
     ]);
 
     const dashboard = await getAdminCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 
@@ -214,7 +217,7 @@ describe('admin CRM reporting core', () => {
     forecastSnapshotRepository.listLatestPipelineSnapshots.mockResolvedValue([]);
 
     const dashboard = await getAdminCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 
@@ -236,7 +239,10 @@ describe('admin CRM reporting core', () => {
 
     await expect(
       getAdminCrmReportingCore(
-        { actor: { ...actor, role: 'branch_manager', scope: { branchId: 'branch-1' } } },
+        {
+          authority: TEST_AUTHORITY,
+          actor: { ...actor, role: 'branch_manager', scope: { branchId: 'branch-1' } },
+        },
         repositories
       )
     ).rejects.toMatchObject({
@@ -257,7 +263,7 @@ describe('admin CRM reporting core', () => {
     );
 
     const dashboard = await getAdminCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       {
         ...repositories,
         logger,
@@ -499,7 +505,7 @@ describe('admin CRM reporting core', () => {
   it('keeps widget row shapes aggregate-only and PII-free', async () => {
     const repositories = createRepositories();
     const dashboard = await getAdminCrmReportingCore(
-      { actor },
+      { authority: TEST_AUTHORITY, actor },
       { ...repositories, now: () => '2026-05-14T12:00:00.000Z' }
     );
 

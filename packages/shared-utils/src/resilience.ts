@@ -1,5 +1,6 @@
-import { withTenantContext } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { CircuitBreaker } from './circuit-breaker';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -68,10 +69,10 @@ export async function withRetry<T>(
 
 export interface TransactionRetryOptions {
   /**
-   * Every attempt runs inside `withTenantContext({ tenantId }, ...)` so RLS applies. The tenant must
-   * come from the session or a tenant-verified record.
+   * Every attempt runs inside `withTenantContext(authority, ...)` so RLS applies. The authority is
+   * supplied by the caller from its own authenticated ingress; this helper never mints one.
    */
-  tenantId: string;
+  authority: TenantAuthority;
 }
 
 export async function withTransactionRetry<T>(
@@ -80,7 +81,7 @@ export async function withTransactionRetry<T>(
   options: TransactionRetryOptions
 ): Promise<T> {
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  return withRetry(() => withTenantContext({ tenantId: options.tenantId }, operation), {
+  return withRetry(() => withTenantAuthority(options.authority, operation), {
     ...config,
     retryableErrors: [
       ...(config.retryableErrors || []),

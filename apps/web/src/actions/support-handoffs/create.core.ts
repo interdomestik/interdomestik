@@ -1,4 +1,5 @@
 import { createMemberSupportHandoffCore as createDomainSupportHandoff } from '@interdomestik/domain-claims/support-handoffs/create';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SupportHandoffContactPreference } from '@interdomestik/domain-claims/support-handoffs/types';
 
 import { logAuditEvent } from '@/lib/audit';
@@ -23,6 +24,7 @@ function revalidatePathForAllLocales(path: string) {
 }
 
 export async function createMemberSupportHandoffCore(params: {
+  authority: TenantAuthority | null;
   input: Record<string, unknown>;
   requestHeaders?: Headers;
   session: NonNullable<Session> | null;

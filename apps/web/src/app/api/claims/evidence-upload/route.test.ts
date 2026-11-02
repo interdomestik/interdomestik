@@ -133,7 +133,7 @@ describe('POST /api/claims/evidence-upload', () => {
     expect(data).toEqual({ error: 'Claim not found' });
     expect(hoisted.findOwnedMemberUploadClaim).toHaveBeenCalledWith({
       claimId: 'claim-1',
-      tenantId: 'tenant-1',
+      authority: expect.any(Object),
       userId: 'member-2',
     });
     expect(hoisted.upload).not.toHaveBeenCalled();

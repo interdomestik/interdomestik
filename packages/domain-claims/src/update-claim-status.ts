@@ -1,5 +1,9 @@
-import { and, claims, eq, withTenantContext } from '@interdomestik/database';
+import { and, claims, eq } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -10,17 +14,19 @@ import {
 } from './claims/transition';
 import type { ActionResult, ClaimsSession } from './claims/types';
 import { claimStatusSchema } from './validators/claims';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
 
 export async function updateClaimStatus(params: {
+  authority: TenantAuthority | null;
   claimId: string;
   newStatus: string;
   note?: string;
   session: ClaimsSession | null;
 }): Promise<ActionResult> {
-  const { claimId, newStatus, note, session } = params;
-  if (session?.user?.role !== 'staff') {
+  const { authority, claimId, newStatus, note, session } = params;
+  if (!authority || session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized', data: undefined };
   }
 
@@ -30,7 +36,8 @@ export async function updateClaimStatus(params: {
   }
 
   const user = session.user as StaffUser;
-  const tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+  const { tenantId } = readTenantAuthority(authority);
   const branchId = user.branchId ?? null;
   const scope =
     branchId != null
@@ -39,7 +46,7 @@ export async function updateClaimStatus(params: {
   const scopedWhere = withTenant(tenantId, claims.tenantId, scope);
   try {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-    return await withTenantContext({ tenantId }, async tx => {
+    return await withTenantAuthority(authority, async tx => {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
       const [existingClaim] = await tx
         .select({

@@ -5,17 +5,16 @@ import type {
 } from '@interdomestik/domain-crm/pipelines/repository';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmPipelines, crmPipelineStages } from '@interdomestik/database/schema';
 
-import { runInCrmTenantContext } from './tenant-runner';
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 
 type CrmPipelineRow = typeof crmPipelines.$inferSelect;
 type CrmPipelineStageRow = typeof crmPipelineStages.$inferSelect;
 type CrmPipelineWithStagesRow = CrmPipelineRow & {
   stages?: readonly CrmPipelineStageRow[];
 };
-type CrmPipelineDb = typeof db;
 
 function toDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -82,11 +81,14 @@ function stageValues(stage: CrmPipelineStage) {
   };
 }
 
-export function createCrmPipelineRepository(database: CrmPipelineDb = db): CrmPipelineRepository {
+export function createCrmPipelineRepository(
+  authority: TenantAuthority,
+  executor?: CrmTenantExecutor
+): CrmPipelineRepository {
   return {
     async createPipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline create writes explicit tenantId from the authorized domain mutation output
-      await runInCrmTenantContext(database, { tenantId: params.pipeline.tenantId }, async scoped =>
+      await runInCrmTenantContext(executor, authority, async scoped =>
         scoped.transaction(async tx => {
           await tx.insert(crmPipelines).values(pipelineValues(params.pipeline));
           if (params.pipeline.stages.length > 0) {
@@ -99,30 +101,27 @@ export function createCrmPipelineRepository(database: CrmPipelineDb = db): CrmPi
 
     async findPipelineById(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline lookup constrains by explicit tenantId and hides archived rows by default
-      const row = await runInCrmTenantContext(
-        database,
-        { tenantId: params.tenantId },
-        async scoped =>
-          scoped.query.crmPipelines.findFirst({
-            where: and(
-              eq(crmPipelines.id, params.pipelineId),
-              eq(crmPipelines.tenantId, params.tenantId),
-              isNull(crmPipelines.archivedAt)
-            ),
-            with: {
-              stages: {
-                where: isNull(crmPipelineStages.archivedAt),
-                orderBy: [asc(crmPipelineStages.order)],
-              },
+      const row = await runInCrmTenantContext(executor, authority, async scoped =>
+        scoped.query.crmPipelines.findFirst({
+          where: and(
+            eq(crmPipelines.id, params.pipelineId),
+            eq(crmPipelines.tenantId, params.tenantId),
+            isNull(crmPipelines.archivedAt)
+          ),
+          with: {
+            stages: {
+              where: isNull(crmPipelineStages.archivedAt),
+              orderBy: [asc(crmPipelineStages.order)],
             },
-          })
+          },
+        })
       );
       return row ? mapPipeline(row) : null;
     },
 
     async updatePipeline(params) {
       // db-access-guard: tenant-scoped -- reason: CRM pipeline update constrains by pipeline id plus explicit tenantId from domain mutation output
-      await runInCrmTenantContext(database, { tenantId: params.pipeline.tenantId }, async scoped =>
+      await runInCrmTenantContext(executor, authority, async scoped =>
         scoped.transaction(async tx => {
           await tx
             .update(crmPipelines)
@@ -149,5 +148,3 @@ export function createCrmPipelineRepository(database: CrmPipelineDb = db): CrmPi
     },
   };
 }
-
-export const crmPipelineRepository = createCrmPipelineRepository();

@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import * as Sentry from '@sentry/nextjs';
 import { fetchAgentPerformance } from './fetchers/fetchAgentPerformance';
 import { fetchBranchesSnapshot } from './fetchers/fetchBranchesSnapshot';
@@ -20,7 +24,10 @@ export type DashboardV2Data = {
   agentPerformance: Awaited<ReturnType<typeof fetchAgentPerformance>>;
 };
 
-export async function getTenantAdminDashboardV2Data(tenantId: string): Promise<DashboardV2Data> {
+export async function getTenantAdminDashboardV2Data(
+  authority: TenantAuthority
+): Promise<DashboardV2Data> {
+  const { tenantId } = readTenantAuthority(authority);
   return Sentry.withServerActionInstrumentation(
     'getTenantAdminDashboardV2Data',
     { recordResponse: true },
@@ -28,11 +35,11 @@ export async function getTenantAdminDashboardV2Data(tenantId: string): Promise<D
       try {
         const [kpis, branchesSnapshot, claimsPipeline, leadsSummary, agentPerformance] =
           await Promise.all([
-            fetchKpis(tenantId),
-            fetchBranchesSnapshot(tenantId),
-            fetchClaimsPipeline(tenantId),
-            fetchLeadsSummary(tenantId),
-            fetchAgentPerformance(tenantId),
+            fetchKpis(authority),
+            fetchBranchesSnapshot(authority),
+            fetchClaimsPipeline(authority),
+            fetchLeadsSummary(authority),
+            fetchAgentPerformance(authority),
           ]);
 
         return {

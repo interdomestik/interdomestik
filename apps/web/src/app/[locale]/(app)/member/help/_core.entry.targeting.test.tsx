@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -38,6 +39,13 @@ vi.mock('@/actions/support-handoffs/create', () => ({
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: mocks.getSessionSafe,
   requireSessionOrRedirect: mocks.requireSessionOrRedirect,
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: vi.fn(async () => ({
+    session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+    authority: mintTestTenantAuthority('tenant-1'),
+  })),
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -108,7 +116,7 @@ vi.mock('./_advisory-banner', () => ({
   AdvisoryBanner: (props: {
     memberId: string;
     selectedClaim: { id: string } | null;
-    tenantId: string;
+    authority: unknown;
   }) => {
     mocks.advisoryBanner(props);
     return (
@@ -126,7 +134,7 @@ vi.mock('./_public-response-banner', () => ({
     locale: string;
     memberId: string;
     selectedClaim: { id: string } | null;
-    tenantId: string;
+    authority: unknown;
   }) => {
     mocks.publicResponseBanner(props);
     return (

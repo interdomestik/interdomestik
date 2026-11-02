@@ -1,8 +1,12 @@
-import { withTenantContext } from '@interdomestik/database';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq, ne } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 // We might need to import paddle helper if we generate a transaction server-side
 // import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 
@@ -16,16 +20,18 @@ export const startPaymentSchema = z.object({
 export type StartPaymentInput = z.infer<typeof startPaymentSchema>;
 
 type StartPaymentContext =
-  { tenantId: string } | { tenantId: string; agentId: string; branchId: string };
+  | { authority: TenantAuthority }
+  | { authority: TenantAuthority; agentId: string; branchId: string };
 
 function buildLeadPaymentScope(ctx: StartPaymentContext, leadId: string) {
+  const { tenantId } = readTenantAuthority(ctx.authority);
   const agentScopeConditions =
     'agentId' in ctx
       ? [eq(memberLeads.agentId, ctx.agentId), eq(memberLeads.branchId, ctx.branchId)]
       : [];
   const conditions = [
     eq(memberLeads.id, leadId),
-    eq(memberLeads.tenantId, ctx.tenantId),
+    eq(memberLeads.tenantId, tenantId),
     ...agentScopeConditions,
   ];
 
@@ -43,8 +49,9 @@ async function markLeadPaymentPending(
   attemptId: string,
   scopedWhere: NonNullable<ReturnType<typeof buildLeadPaymentScope>>
 ) {
+  const { tenantId } = readTenantAuthority(ctx.authority);
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-  await withTenantContext({ tenantId: ctx.tenantId }, async tx => {
+  await withTenantAuthority(ctx.authority, async tx => {
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const updatedRows = await tx
       .update(memberLeads)
@@ -59,7 +66,7 @@ async function markLeadPaymentPending(
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     await tx.insert(leadPaymentAttempts).values({
       id: attemptId,
-      tenantId: ctx.tenantId,
+      tenantId,
       leadId: input.leadId,
       method: input.method,
       status: 'pending',
@@ -75,7 +82,7 @@ export async function startPayment(ctx: StartPaymentContext, input: StartPayment
 
   // 1. Validate Lead
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const lead = await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+  const lead = await withTenantAuthority(ctx.authority, tx =>
     tx.query.memberLeads.findFirst({
       where: scopedWhere,
     })

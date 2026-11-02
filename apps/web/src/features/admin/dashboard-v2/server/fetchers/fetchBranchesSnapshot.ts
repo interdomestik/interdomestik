@@ -1,16 +1,21 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { branches, user } from '@interdomestik/database/schema';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function fetchBranchesSnapshot(tenantId: string) {
-  const allBranches = await withTenantContext({ tenantId }, tx =>
+export async function fetchBranchesSnapshot(authority: TenantAuthority) {
+  const { tenantId } = readTenantAuthority(authority);
+  const allBranches = await withTenantAuthority(authority, tx =>
     tx.select().from(branches).where(eq(branches.tenantId, tenantId)).limit(5)
   );
 
   const branchesData = await Promise.all(
     allBranches.map(async b => {
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [active] = await withTenantContext({ tenantId }, tx =>
+      const [active] = await withTenantAuthority(authority, tx =>
         tx
           .select({ count: count() })
           .from(user)
@@ -23,7 +28,7 @@ export async function fetchBranchesSnapshot(tenantId: string) {
       );
 
       // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      const [total] = await withTenantContext({ tenantId }, tx =>
+      const [total] = await withTenantAuthority(authority, tx =>
         tx.select({ count: count() }).from(user).where(eq(user.branchId, b.id))
       );
 

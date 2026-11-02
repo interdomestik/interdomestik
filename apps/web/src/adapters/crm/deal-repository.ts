@@ -5,7 +5,7 @@ import type {
 import { CrmDealRepositoryFailure } from '@interdomestik/domain-crm/deals/repository';
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { db } from '@interdomestik/database/db';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { crmDeals, crmDealStageHistory, crmPipelineStages } from '@interdomestik/database/schema';
 
 import {
@@ -17,12 +17,10 @@ import {
   type CrmPipelineStageRow,
 } from './deal-row-mapping';
 import { createCrmPipelineRepository } from './pipeline-repository';
-import { runInCrmTenantContext } from './tenant-runner';
-
-type CrmDealDb = typeof db;
+import { runInCrmTenantContext, type CrmTenantExecutor } from './tenant-runner';
 
 async function findStage(
-  database: Pick<CrmDealDb, 'query'>,
+  database: Pick<CrmTenantExecutor, 'query'>,
   params: { stageId: string; tenantId: string }
 ): Promise<CrmPipelineStageRow> {
   // db-access-guard: tenant-scoped -- reason: CRM deal adapter constrains stage lookup by explicit deal tenant before writing mirrors/history
@@ -39,51 +37,48 @@ async function findStage(
   return stage;
 }
 
-export function createCrmDealRepository(database: CrmDealDb = db): CrmDealRepository {
-  const pipelines = createCrmPipelineRepository(database);
+export function createCrmDealRepository(
+  authority: TenantAuthority,
+  executor?: CrmTenantExecutor
+): CrmDealRepository {
+  const pipelines = createCrmPipelineRepository(authority, executor);
 
   return {
     async createDealWithStageHistory(params): Promise<CrmDealWithStageHistory> {
-      const stage = await runInCrmTenantContext(
-        database,
-        { tenantId: params.deal.tenantId },
-        scoped =>
-          findStage(scoped, {
-            stageId: params.deal.currentStageId,
-            tenantId: params.deal.tenantId,
-          })
+      const stage = await runInCrmTenantContext(executor, authority, scoped =>
+        findStage(scoped, {
+          stageId: params.deal.currentStageId,
+          tenantId: params.deal.tenantId,
+        })
       );
       const mirror = legacyMirrorForStage(stage, params.deal);
 
       // db-access-guard: tenant-scoped -- reason: CRM deal create writes explicit tenantId from domain mutation output and appends same-tenant history in one transaction
-      const [created] = await runInCrmTenantContext(
-        database,
-        { tenantId: params.deal.tenantId },
-        scoped =>
-          scoped.transaction(async tx => {
-            const [row] = await tx
-              .insert(crmDeals)
-              .values({
-                ...normalizedDealValues(params.deal),
-                closedAt: mirror.closedAt,
-                createdAt: new Date(params.deal.createdAt),
-                leadId: null,
-                stage: mirror.stage,
-                status: mirror.status,
-                valueCents: mirror.valueCents,
-              })
-              .returning();
+      const [created] = await runInCrmTenantContext(executor, authority, scoped =>
+        scoped.transaction(async tx => {
+          const [row] = await tx
+            .insert(crmDeals)
+            .values({
+              ...normalizedDealValues(params.deal),
+              closedAt: mirror.closedAt,
+              createdAt: new Date(params.deal.createdAt),
+              leadId: null,
+              stage: mirror.stage,
+              status: mirror.status,
+              valueCents: mirror.valueCents,
+            })
+            .returning();
 
-            await tx.insert(crmDealStageHistory).values(
-              stageHistoryValues({
-                deal: params.deal,
-                history: params.history,
-                kind: 'created',
-              })
-            );
+          await tx.insert(crmDealStageHistory).values(
+            stageHistoryValues({
+              deal: params.deal,
+              history: params.history,
+              kind: 'created',
+            })
+          );
 
-            return [row];
-          })
+          return [row];
+        })
       );
 
       const deal = requireNormalizedDeal(created);
@@ -93,7 +88,7 @@ export function createCrmDealRepository(database: CrmDealDb = db): CrmDealReposi
 
     async findDealById(params) {
       // db-access-guard: tenant-scoped -- reason: CRM deal lookup constrains by explicit tenantId and hides archived rows by default
-      const row = await runInCrmTenantContext(database, { tenantId: params.tenantId }, scoped =>
+      const row = await runInCrmTenantContext(executor, authority, scoped =>
         scoped.query.crmDeals.findFirst({
           where: and(
             eq(crmDeals.id, params.dealId),
@@ -117,17 +112,12 @@ export function createCrmDealRepository(database: CrmDealDb = db): CrmDealReposi
 
     async updateDeal(params) {
       // db-access-guard: tenant-scoped -- reason: CRM deal update constrains by deal id and explicit tenantId from domain mutation output
-      const [updated] = await runInCrmTenantContext(
-        database,
-        { tenantId: params.deal.tenantId },
-        scoped =>
-          scoped
-            .update(crmDeals)
-            .set(normalizedDealValues(params.deal))
-            .where(
-              and(eq(crmDeals.id, params.deal.id), eq(crmDeals.tenantId, params.deal.tenantId))
-            )
-            .returning()
+      const [updated] = await runInCrmTenantContext(executor, authority, scoped =>
+        scoped
+          .update(crmDeals)
+          .set(normalizedDealValues(params.deal))
+          .where(and(eq(crmDeals.id, params.deal.id), eq(crmDeals.tenantId, params.deal.tenantId)))
+          .returning()
       );
 
       const deal = updated ? requireNormalizedDeal(updated) : params.deal;
@@ -136,14 +126,11 @@ export function createCrmDealRepository(database: CrmDealDb = db): CrmDealReposi
     },
 
     async updateDealWithStageHistory(params): Promise<CrmDealWithStageHistory> {
-      const stage = await runInCrmTenantContext(
-        database,
-        { tenantId: params.deal.tenantId },
-        scoped =>
-          findStage(scoped, {
-            stageId: params.deal.currentStageId,
-            tenantId: params.deal.tenantId,
-          })
+      const stage = await runInCrmTenantContext(executor, authority, scoped =>
+        findStage(scoped, {
+          stageId: params.deal.currentStageId,
+          tenantId: params.deal.tenantId,
+        })
       );
       const mirror = legacyMirrorForStage(stage, params.deal);
       const expectedStage = params.history.fromStageId
@@ -151,44 +138,41 @@ export function createCrmDealRepository(database: CrmDealDb = db): CrmDealReposi
         : isNull(crmDeals.currentStageId);
 
       // db-access-guard: tenant-scoped -- reason: CRM deal stage update constrains by tenant and expected current stage before same-transaction history append
-      const [updated] = await runInCrmTenantContext(
-        database,
-        { tenantId: params.deal.tenantId },
-        scoped =>
-          scoped.transaction(async tx => {
-            const [row] = await tx
-              .update(crmDeals)
-              .set({
-                ...normalizedDealValues(params.deal),
-                closedAt: mirror.closedAt,
-                stage: mirror.stage,
-                status: mirror.status,
-                valueCents: mirror.valueCents,
-              })
-              .where(
-                and(
-                  eq(crmDeals.id, params.deal.id),
-                  eq(crmDeals.tenantId, params.deal.tenantId),
-                  expectedStage,
-                  isNull(crmDeals.archivedAt)
-                )
+      const [updated] = await runInCrmTenantContext(executor, authority, scoped =>
+        scoped.transaction(async tx => {
+          const [row] = await tx
+            .update(crmDeals)
+            .set({
+              ...normalizedDealValues(params.deal),
+              closedAt: mirror.closedAt,
+              stage: mirror.stage,
+              status: mirror.status,
+              valueCents: mirror.valueCents,
+            })
+            .where(
+              and(
+                eq(crmDeals.id, params.deal.id),
+                eq(crmDeals.tenantId, params.deal.tenantId),
+                expectedStage,
+                isNull(crmDeals.archivedAt)
               )
-              .returning();
+            )
+            .returning();
 
-            if (!row) {
-              throw new CrmDealRepositoryFailure('stage_drift');
-            }
+          if (!row) {
+            throw new CrmDealRepositoryFailure('stage_drift');
+          }
 
-            await tx.insert(crmDealStageHistory).values(
-              stageHistoryValues({
-                deal: params.deal,
-                history: params.history,
-                kind: stageHistoryKind(stage, params.history),
-              })
-            );
+          await tx.insert(crmDealStageHistory).values(
+            stageHistoryValues({
+              deal: params.deal,
+              history: params.history,
+              kind: stageHistoryKind(stage, params.history),
+            })
+          );
 
-            return [row];
-          })
+          return [row];
+        })
       );
 
       const deal = requireNormalizedDeal(updated);
@@ -197,5 +181,3 @@ export function createCrmDealRepository(database: CrmDealDb = db): CrmDealReposi
     },
   };
 }
-
-export const crmDealRepository = createCrmDealRepository();

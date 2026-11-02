@@ -7,10 +7,12 @@ import {
   inArray,
   subscriptions,
   user,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 
 import type { UserDomainDeps, UserSession } from '../types';
@@ -21,6 +23,7 @@ import {
   residenceCountryChangeSchema,
   type ResidenceChangeDecision,
 } from './residence-country-policy';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 // T-507 defines active recovery as non-terminal recovery work already in negotiation or court.
 const ACTIVE_RECOVERY_STATES = ['negotiation', 'court'] as const;
@@ -34,11 +37,15 @@ function isMemberRole(role: string | null | undefined): boolean {
 }
 
 export async function updateResidenceCountryCore(
-  params: { residenceCountry: unknown; session: UserSession | null },
+  params: {
+    residenceCountry: unknown;
+    session: UserSession | null;
+    authority: TenantAuthority | null;
+  },
   deps: UserDomainDeps = {}
 ): Promise<ResidenceChangeResult> {
-  const session = params.session;
-  if (!session?.user) return { success: false, error: 'Unauthorized' };
+  const { session, authority } = params;
+  if (!session?.user || !authority) return { success: false, error: 'Unauthorized' };
   if (!isMemberRole(session.user.role)) return { success: false, error: 'Forbidden' };
 
   const parsed = residenceCountryChangeSchema.safeParse({
@@ -53,13 +60,13 @@ export async function updateResidenceCountryCore(
 
   let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    tenantId = readTenantAuthority(authority).tenantId;
   } catch {
     return { success: false, error: 'Unauthorized' };
   }
 
   try {
-    const result = await withTenantContext({ tenantId }, async tx => {
+    const result = await withTenantAuthority(authority, async tx => {
       const [userRow] = await tx
         .select({ residenceCountry: user.residenceCountry })
         .from(user)
@@ -133,7 +140,7 @@ export async function updateResidenceCountryCore(
           entityId: session.user.id,
           entityType: 'member',
           metadata: result.decision,
-          tenantId,
+          authority,
         });
       } catch (auditError) {
         console.error('Failed to log residence-country audit event:', auditError);

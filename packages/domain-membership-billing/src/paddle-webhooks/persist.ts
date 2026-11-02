@@ -5,6 +5,8 @@ import {
   type PaddleReceiptLease,
 } from '@interdomestik/database';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { RetryablePaddleWebhookError } from './errors';
 import type { PaddleWebhookAuditDeps } from './types';
 
@@ -27,7 +29,9 @@ export async function persistInvalidSignatureAttempt(
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
   },
-  deps: PaddleWebhookAuditDeps = {}
+  // Accepted for call-site compatibility. The delivery failed verification before any tenant was
+  // known, so there is no tenant to record an audit row in; the receipt evidence is the record.
+  _deps: PaddleWebhookAuditDeps = {}
 ) {
   await appendPaddleInvalidSignatureEvidence({
     processingScopeKey: params.processingScopeKey,
@@ -38,21 +42,6 @@ export async function persistInvalidSignatureAttempt(
     payloadHash: params.payloadHash,
     payload: params.parsedPayload,
   });
-
-  if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorRole: 'system',
-      action: 'webhook.invalid_signature',
-      entityType: 'webhook_event',
-      metadata: {
-        provider: 'paddle',
-        eventType: params.eventType,
-        eventId: params.eventId,
-        payloadHash: params.payloadHash,
-      },
-      headers: params.headers,
-    });
-  }
 }
 
 export async function insertWebhookEvent(
@@ -69,6 +58,8 @@ export async function insertWebhookEvent(
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
     tenantId?: string | null;
+    /** Authority of the tenant the receipt belongs to, when one was resolved. */
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
@@ -90,13 +81,13 @@ export async function insertWebhookEvent(
 
   if (admission.outcome === 'admitted' && admission.reclaimed) {
     const receiptLease = admission.lease;
-    if (deps.logAuditEvent) {
+    if (deps.logAuditEvent && params.authority) {
       await deps.logAuditEvent({
         actorRole: 'system',
         action: 'webhook.retry_received',
         entityType: 'webhook_event',
         entityId: receiptLease.id,
-        tenantId: params.tenantId ?? undefined,
+        authority: params.authority,
         metadata: {
           provider: 'paddle',
           dedupeKey: params.dedupeKey,
@@ -112,13 +103,13 @@ export async function insertWebhookEvent(
   }
 
   if (admission.outcome === 'in_progress') {
-    if (deps.logAuditEvent) {
+    if (deps.logAuditEvent && params.authority) {
       await deps.logAuditEvent({
         actorRole: 'system',
         action: 'webhook.retry_deferred',
         entityType: 'webhook_event',
         entityId: admission.receiptId,
-        tenantId: params.tenantId ?? undefined,
+        authority: params.authority,
         metadata: {
           provider: 'paddle',
           dedupeKey: params.dedupeKey,
@@ -135,12 +126,12 @@ export async function insertWebhookEvent(
   }
 
   if (admission.outcome === 'duplicate') {
-    if (deps.logAuditEvent) {
+    if (deps.logAuditEvent && params.authority) {
       await deps.logAuditEvent({
         actorRole: 'system',
         action: 'webhook.duplicate',
         entityType: 'webhook_event',
-        tenantId: params.tenantId ?? undefined,
+        authority: params.authority,
         metadata: {
           provider: 'paddle',
           dedupeKey: params.dedupeKey,
@@ -160,13 +151,13 @@ export async function insertWebhookEvent(
   const receiptLease = admission.lease;
   const webhookEventRowId = receiptLease.id;
 
-  if (deps.logAuditEvent) {
+  if (deps.logAuditEvent && params.authority) {
     await deps.logAuditEvent({
       actorRole: 'system',
       action: 'webhook.received',
       entityType: 'webhook_event',
       entityId: webhookEventRowId,
-      tenantId: params.tenantId ?? undefined,
+      authority: params.authority,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,
@@ -190,6 +181,7 @@ export async function markWebhookProcessed(
     eventType: string | undefined;
     eventId: string | undefined;
     tenantId?: string | null;
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ): Promise<boolean> {
@@ -199,13 +191,13 @@ export async function markWebhookProcessed(
     return false;
   }
 
-  if (deps.logAuditEvent) {
+  if (deps.logAuditEvent && params.authority) {
     await deps.logAuditEvent({
       actorRole: 'system',
       action: 'webhook.processed',
       entityType: 'webhook_event',
       entityId: params.receiptLease.id,
-      tenantId: params.tenantId || undefined,
+      authority: params.authority,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,
@@ -227,6 +219,7 @@ export async function markWebhookFailed(
     error: unknown;
     retryable?: boolean;
     tenantId?: string | null;
+    authority?: TenantAuthority | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ): Promise<boolean> {
@@ -241,13 +234,13 @@ export async function markWebhookFailed(
     return false;
   }
 
-  if (deps.logAuditEvent) {
+  if (deps.logAuditEvent && params.authority) {
     await deps.logAuditEvent({
       actorRole: 'system',
       action: 'webhook.failed',
       entityType: 'webhook_event',
       entityId: params.receiptLease.id,
-      tenantId: params.tenantId || undefined,
+      authority: params.authority,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,

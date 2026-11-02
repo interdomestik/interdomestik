@@ -1,7 +1,8 @@
-import { logAuditEvent } from '@/lib/audit';
+import { extractRequestMetadata } from '@/lib/audit.core';
 import { auth } from '@/lib/auth';
 import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { appendAnonymousTenantAuditEvent } from '@interdomestik/database';
 import { toNextJsHandler } from 'better-auth/next-js';
 import {
   enforcePostAuthRateLimit,
@@ -20,6 +21,19 @@ import {
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
 import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tenant-guard';
+
+// Anonymous request headers are attacker-controlled: bound them so an oversized value cannot push
+// a security event past the audit append's 2 KiB metadata cap and suppress it. Only printable ASCII
+// is kept, so each kept character serializes to at most two JSON bytes (2 × (64 + 512) plus the
+// fixed route and reason labels stays under the cap).
+function boundedHeaderValue(value: string | null | undefined, maxChars: number) {
+  return value?.replace(/[^\x20-\x7e]/g, '?').slice(0, maxChars);
+}
+
+function anonymousRequestMetadata(headers: Headers): { ip?: string; userAgent?: string } {
+  const { ip, userAgent } = extractRequestMetadata(headers);
+  return { ip: boundedHeaderValue(ip, 64), userAgent: boundedHeaderValue(userAgent, 512) };
+}
 
 const handler = toNextJsHandler(auth);
 export async function GET(req: Request) {
@@ -91,14 +105,20 @@ export async function POST(req: Request) {
     if (tenantGuard?.decision === 'deny') {
       if (tenantGuard.reason === 'tenant_mismatch') {
         try {
-          const route = new URL(req.url).pathname;
-          await logAuditEvent({
-            action: 'auth.signin_denied_wrong_tenant',
-            entityType: 'auth',
-            tenantId: tenantGuard.resolvedTenantId,
-            metadata: { route, reason: tenantGuard.reason },
-            headers: req.headers,
-          });
+          if (tenantGuard.resolvedTenantId) {
+            await appendAnonymousTenantAuditEvent({
+              action: 'auth.signin_denied_wrong_tenant',
+              entityType: 'auth',
+              tenantId: tenantGuard.resolvedTenantId,
+              metadata: {
+                // A fixed label: the request path is attacker-controlled (any prefix ending in the
+                // sign-in suffix reaches this branch) and could push the event past the cap.
+                route: '/api/auth/sign-in/email',
+                reason: tenantGuard.reason,
+                ...anonymousRequestMetadata(req.headers),
+              },
+            });
+          }
         } catch {
           // Ignore audit failures
         }
@@ -127,13 +147,14 @@ export async function POST(req: Request) {
   if (audit) {
     try {
       const tenantId = resolveTenantIdForPasswordResetAudit(req.url, req.headers);
-      await logAuditEvent({
-        action: audit.action,
-        entityType: audit.entityType,
-        tenantId,
-        metadata: audit.metadata,
-        headers: req.headers,
-      });
+      if (tenantId) {
+        await appendAnonymousTenantAuditEvent({
+          action: audit.action,
+          entityType: 'auth',
+          tenantId,
+          metadata: { ...audit.metadata, ...anonymousRequestMetadata(req.headers) },
+        });
+      }
     } catch {
       // Ignore audit failures
     }

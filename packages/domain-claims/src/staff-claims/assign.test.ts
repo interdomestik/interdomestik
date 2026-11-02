@@ -1,5 +1,7 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { withTenantContext } from '@interdomestik/database';
 import type { ClaimsSession } from '../claims/types';
 import { assignClaimCore } from './assign';
 
@@ -107,6 +109,8 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('staff assignClaimCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -128,6 +132,7 @@ describe('staff assignClaimCore', () => {
     mocks.selectChain.limit.mockResolvedValue([]);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       session: createSession({ userId: 'staff-1', tenantId: 'tenant-1', branchId: 'branch-1' }),
     });
@@ -140,6 +145,7 @@ describe('staff assignClaimCore', () => {
     mocks.selectChain.limit.mockResolvedValue([]);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
@@ -151,6 +157,7 @@ describe('staff assignClaimCore', () => {
 
   it('rejects invalid assignee input fail-closed with no mutation', async () => {
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: { bad: true } as never,
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -179,6 +186,7 @@ describe('staff assignClaimCore', () => {
 
     const result = await assignClaimCore(
       {
+        authority,
         claimId: 'claim-1',
         requestHeaders: new Headers(),
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -188,6 +196,7 @@ describe('staff assignClaimCore', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.updateChain.set).toHaveBeenCalledWith(
@@ -207,6 +216,7 @@ describe('staff assignClaimCore', () => {
 
     const result = await assignClaimCore(
       {
+        authority,
         claimId: 'claim-1',
         requestHeaders: new Headers(),
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
@@ -227,6 +237,7 @@ describe('staff assignClaimCore', () => {
     mocks.userFindFirst.mockResolvedValueOnce(null);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       staffId: 'staff-9',

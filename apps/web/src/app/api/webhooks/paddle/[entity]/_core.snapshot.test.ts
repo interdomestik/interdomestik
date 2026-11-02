@@ -1,7 +1,11 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizePaddleTenant: vi.fn(),
   dbSubscriptionFindFirst: vi.fn(),
+  withTenantContext: vi.fn(),
   resolvePaddleSubscriptionOwner: vi.fn(),
   resolvePaddleUserOwner: vi.fn(),
   handlePaddleWebhookCore: vi.fn(),
@@ -25,7 +29,8 @@ vi.mock('@interdomestik/database', () => {
   const db = { query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } };
   return {
     db,
-    withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db),
+    withTenantContext: hoisted.withTenantContext,
+    authorizePaddleTenant: hoisted.authorizePaddleTenant,
     resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
     resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
   };
@@ -33,9 +38,19 @@ vi.mock('@interdomestik/database', () => {
 
 import { handlePaddleWebhookEntityCore } from './_core';
 
+// Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints.
+const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
+
 describe('handlePaddleWebhookEntityCore billing snapshots', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizePaddleTenant.mockImplementation(
+      (_delivery: unknown, owner: { tenantId: string }) => mintTestTenantAuthority(owner.tenantId)
+    );
+    hoisted.withTenantContext.mockImplementation(
+      async (_ctx: unknown, cb: (tx: unknown) => unknown) =>
+        cb({ query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } })
+    );
     hoisted.handlePaddleWebhookCore.mockResolvedValue({ status: 200, body: { success: true } });
     hoisted.parsePaddleWebhookBody.mockReturnValue({
       eventIdFromPayload: 'evt_mk',
@@ -56,6 +71,7 @@ describe('handlePaddleWebhookEntityCore billing snapshots', () => {
         eventType: 'transaction.completed',
       },
       signatureBypassed: false,
+      delivery: TEST_PADDLE_DELIVERY,
       signatureValid: true,
     });
     hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue({
@@ -80,6 +96,14 @@ describe('handlePaddleWebhookEntityCore billing snapshots', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_paddle_mk');
+    // The preflight reads the stored snapshot under the authority minted for the verified delivery.
+    const owner = await hoisted.resolvePaddleSubscriptionOwner.mock.results[0]!.value;
+    expect(hoisted.authorizePaddleTenant).toHaveBeenCalledWith(TEST_PADDLE_DELIVERY, owner);
+    expect(hoisted.authorizePaddleTenant.mock.calls[0]![1]).toBe(owner);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
+      hoisted.authorizePaddleTenant.mock.results[0]!.value,
+      expect.any(Function)
+    );
     expect(hoisted.dbSubscriptionFindFirst).toHaveBeenCalledTimes(1);
     expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(

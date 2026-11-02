@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -137,6 +138,8 @@ function mockAgreementSaveSelects(options?: {
   mocks.agreementSelectChain.limit.mockResolvedValue(options?.agreements ?? []);
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveClaimEscalationAgreementCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -167,6 +170,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Member approved the accepted negotiation path.',
@@ -197,6 +201,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'negotiation',
       decisionReason: 'Attempted to move a guidance-only matter into success-fee handling.',

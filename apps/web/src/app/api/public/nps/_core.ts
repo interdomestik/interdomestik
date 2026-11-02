@@ -1,8 +1,8 @@
-import { withTenantContext } from '@interdomestik/database';
 import { resolveNpsSurveyTokenTenant } from '@interdomestik/database';
 import { npsSurveyResponses, npsSurveyTokens } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type SubmitNpsResult =
   | { status: 200; body: { success: true; alreadySubmitted?: true } }
@@ -25,10 +25,10 @@ export async function submitNpsCore(args: {
   if (!resolved) {
     return { status: 404, body: { error: 'Invalid token' } };
   }
-  const { tenantId } = resolved;
+  const { tenantId, authority } = resolved;
 
   try {
-    return await withTenantContext({ tenantId }, async (tx): Promise<SubmitNpsResult> => {
+    return await withTenantAuthority(authority, async (tx): Promise<SubmitNpsResult> => {
       const [tokenRow] = await tx
         .select({
           id: npsSurveyTokens.id,
@@ -111,9 +111,9 @@ export async function getNpsTokenStatusCore(args: {
   if (!resolved) {
     return { status: 404, body: { error: 'Invalid token' } };
   }
-  const { tenantId } = resolved;
+  const { tenantId, authority } = resolved;
 
-  const [row] = await withTenantContext({ tenantId }, tx =>
+  const [row] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         expiresAt: npsSurveyTokens.expiresAt,

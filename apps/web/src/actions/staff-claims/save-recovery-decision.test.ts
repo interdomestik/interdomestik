@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import * as domainSave from '@interdomestik/domain-claims';
 import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +29,8 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
+
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('saveRecoveryDecisionCore', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
@@ -63,6 +66,7 @@ describe('saveRecoveryDecisionCore', () => {
     });
 
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'declined',
       declineReasonCode: 'insufficient_evidence',
@@ -82,7 +86,7 @@ describe('saveRecoveryDecisionCore', () => {
         scope: {
           kind: 'tenant',
           actorUserId: 'staff-1',
-          tenantId: 'tenant-1',
+          authority,
         },
         idempotencyKey: 'decision-1',
         requestFingerprint: {
@@ -110,6 +114,7 @@ describe('saveRecoveryDecisionCore', () => {
 
   it('preserves Unauthorized for missing staff session before idempotency', async () => {
     const result = await saveRecoveryDecisionCore({
+      authority,
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Evidence is sufficient for staff-led recovery.',

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 
@@ -89,9 +90,12 @@ vi.mock('./matter-allowance', () => ({
 
 import { updateClaimStatusCore } from './update-status';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 const run = () =>
   updateClaimStatusCore(
     {
+      authority,
       claimId: 'claim-1',
       newStatus: 'negotiation',
       isPublicChange: false,
@@ -134,7 +138,7 @@ describe('staff status transaction boundary', () => {
     });
     expect(await run()).toEqual({ success: true, error: undefined });
     expect(mocks.withTenantContext).toHaveBeenCalledExactlyOnceWith(
-      { tenantId: 'tenant-1', role: 'staff' },
+      authority,
       expect.any(Function)
     );
     expect(mocks.load).toHaveBeenCalledWith(mocks.tx, { scoped: true });
@@ -181,6 +185,7 @@ describe('staff status transaction boundary', () => {
     });
 
     const result = await updateClaimStatusCore({
+      authority,
       claimId: 'claim-1',
       newStatus: 'rejected',
       declineReasonCode: 'conflict_or_integrity_concern',

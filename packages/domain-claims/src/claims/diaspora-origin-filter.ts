@@ -5,9 +5,14 @@ import {
   eq,
   inArray,
   or,
-  withTenantContext,
+  type TenantTransaction,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import type { SQL } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type DiasporaOriginFilter = 'all' | 'diaspora';
 
@@ -44,11 +49,33 @@ export function buildDiasporaOriginClaimIdsSubquery(tenantId: string) {
     );
 }
 
+/**
+ * The same subquery for a caller that already holds a tenant authority: it is built from that
+ * caller's own tenant transaction, so it never touches the ambient client and the tenant is the
+ * authority's.
+ */
+export function buildDiasporaOriginClaimIdsSubqueryIn(
+  tx: TenantTransaction,
+  authority: TenantAuthority
+) {
+  const { tenantId } = readTenantAuthority(authority);
+  return tx
+    .select({ claimId: claimStageHistory.claimId })
+    .from(claimStageHistory)
+    .where(
+      and(
+        eq(claimStageHistory.tenantId, tenantId),
+        buildDiasporaOriginNoteCondition(claimStageHistory.note)
+      )
+    );
+}
+
 export async function listDiasporaOriginClaimIds(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   claimIds?: string[];
 }): Promise<string[]> {
-  const { tenantId, claimIds } = params;
+  const { authority, claimIds } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const conditions = [
     eq(claimStageHistory.tenantId, tenantId),
     buildDiasporaOriginNoteCondition(claimStageHistory.note),
@@ -59,7 +86,7 @@ export async function listDiasporaOriginClaimIds(params: {
   }
 
   // db-access-guard: tenant-scoped -- reason: validated tenant at boundary
-  const rows = await withTenantContext({ tenantId }, tx =>
+  const rows = await withTenantAuthority(authority, tx =>
     tx
       .select({ claimId: claimStageHistory.claimId })
       .from(claimStageHistory)

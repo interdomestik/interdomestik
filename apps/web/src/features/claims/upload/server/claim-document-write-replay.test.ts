@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { getReplayFixture } from './claim-document-write-replay-fixture';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -10,6 +11,7 @@ const fake = getReplayFixture();
 
 type PersistParams = Parameters<typeof persistClaimDocumentMetadata>[0];
 
+const authority = mintTestTenantAuthority('tenant-1');
 const REQUEST_ID = '00000000-0000-4000-8000-000000000001';
 const PATH = 'pii/tenants/tenant-1/claims/claim-1';
 const CONSENT = {
@@ -27,6 +29,7 @@ const NEWER = {
 
 function params(overrides: Partial<PersistParams> = {}): PersistParams {
   return {
+    authority,
     actorRole: 'member',
     aiExtractionConsent: CONSENT,
     category: 'evidence',
@@ -70,7 +73,8 @@ describe('persistClaimDocumentMetadata uncertain-response replay', () => {
     expect(rowsOf('claim_documents')[0]).toEqual(
       expect.objectContaining({ name: 'evidence.pdf', uploadedBy: 'member-1' })
     );
-    expect(fake.state.contexts).toEqual(Array(3).fill({ tenantId: 'tenant-1', role: 'member' }));
+    expect(fake.state.contexts).toHaveLength(3);
+    for (const context of fake.state.contexts) expect(context).toBe(authority);
   });
 
   it('commits a retry after the first transaction aborted before commit', async () => {
@@ -100,7 +104,8 @@ describe('persistClaimDocumentMetadata uncertain-response replay', () => {
 
     expect(await persistClaimDocumentMetadata(admin)).toBe(true);
     expect(await persistClaimDocumentMetadata(admin)).toBe(false);
-    expect(fake.state.contexts).toEqual(Array(2).fill({ tenantId: 'tenant-1', role: 'admin' }));
+    expect(fake.state.contexts).toHaveLength(2);
+    for (const context of fake.state.contexts) expect(context).toBe(authority);
     expect(rowsOf('claim_documents')).toHaveLength(1);
   });
 });
@@ -185,6 +190,7 @@ describe('persistClaimDocumentMetadata request-linked replay', () => {
     expect(rowsOf('claim_information_request_evidence')).toHaveLength(1);
     expect(rowsOf('audit_log')).toHaveLength(1);
     expect(consentDocumentIds()).toEqual(['doc-1']);
-    expect(fake.state.contexts).toEqual(Array(2).fill({ tenantId: 'tenant-1', role: 'member' }));
+    expect(fake.state.contexts).toHaveLength(2);
+    for (const context of fake.state.contexts) expect(context).toBe(authority);
   });
 });

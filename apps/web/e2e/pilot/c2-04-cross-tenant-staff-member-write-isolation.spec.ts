@@ -9,6 +9,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { cancelClaimCore, updateDraftClaimCore } from '@interdomestik/domain-claims/claims/draft';
 import { assignClaimCore as assignStaffClaimCore } from '@interdomestik/domain-claims/staff-claims/assign';
 import { updateClaimStatusCore as updateStaffClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
@@ -108,7 +109,11 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
     throw new Error(`Expected baseline KS claim ${targetClaim.id}`);
   }
 
+  const staffAuthority = mintTestTenantAuthority(mkStaff.tenantId);
+  const memberAuthority = mintTestTenantAuthority(mkMember.tenantId);
+
   const assignResult = await assignStaffClaimCore({
+    authority: staffAuthority,
     claimId: targetClaim.id,
     session: staffSession,
     requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
@@ -121,6 +126,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   const statusProbeNote = `C2-04 cross-tenant staff status probe ${Date.now()}`;
   const staffStatusResult = await updateStaffClaimStatusCore({
+    authority: staffAuthority,
     claimId: targetClaim.id,
     newStatus: 'verification',
     note: statusProbeNote,
@@ -136,6 +142,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
   expect(staffStatusResult.error).toBe('Claim not found');
 
   const memberCancelResult = await cancelClaimCore({
+    authority: memberAuthority,
     session: memberSession,
     requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
     claimId: targetClaim.id,
@@ -146,6 +153,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   const draftProbeFileName = `c2-04-draft-probe-${Date.now()}.pdf`;
   const memberDraftResult = await updateDraftClaimCore({
+    authority: memberAuthority,
     session: memberSession,
     requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
     claimId: targetClaim.id,

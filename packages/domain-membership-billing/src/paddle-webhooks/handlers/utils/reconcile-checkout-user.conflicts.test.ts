@@ -4,7 +4,6 @@ const hoisted = vi.hoisted(() => ({
   db: {
     query: {
       user: { findFirst: vi.fn() },
-      account: { findFirst: vi.fn() },
       tenantSettings: { findFirst: vi.fn() },
     },
     transaction: vi.fn(),
@@ -15,11 +14,14 @@ const hoisted = vi.hoisted(() => ({
     query: {} as Record<string, unknown>,
   },
   withTenantContext: vi.fn(),
+  authorizePaddleBillingTenant: vi.fn(),
+  authorizePaddleTenant: vi.fn(),
   resolvePaddleCustomerEmailOwner: vi.fn(),
   readVerifiedPaddleTransactionEvidence: vi.fn(),
   insertedUserValues: vi.fn(),
   updatedUserValues: vi.fn(),
-  generateMemberNumber: vi.fn(),
+  issueTenantMemberNumber: vi.fn(),
+  hasTenantMemberCredential: vi.fn(),
   nanoid: vi.fn(),
 }));
 
@@ -31,30 +33,39 @@ vi.mock('@interdomestik/database', () => ({
   },
   and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
   db: hoisted.db,
+  hasTenantMemberCredential: hoisted.hasTenantMemberCredential,
+  issueTenantMemberNumber: hoisted.issueTenantMemberNumber,
   eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
   withTenantContext: hoisted.withTenantContext,
+  authorizePaddleBillingTenant: hoisted.authorizePaddleBillingTenant,
+  authorizePaddleTenant: hoisted.authorizePaddleTenant,
   resolvePaddleCustomerEmailOwner: hoisted.resolvePaddleCustomerEmailOwner,
   readVerifiedPaddleTransactionEvidence: hoisted.readVerifiedPaddleTransactionEvidence,
-}));
-
-vi.mock('@interdomestik/database/member-number', () => ({
-  generateMemberNumber: hoisted.generateMemberNumber,
 }));
 
 vi.mock('nanoid', () => ({
   nanoid: hoisted.nanoid,
 }));
 
+import {
+  TEST_PADDLE_DELIVERY,
+  authorizeAnyTestPaddleBillingTenant,
+  authorizeTestPaddleOwner,
+} from '../../paddle-authority.test-support';
 import { reconcileCheckoutUser } from './reconcile-checkout-user';
 
 describe('reconcileCheckoutUser', () => {
   const requestPasswordResetOnboarding = vi.fn();
 
   beforeEach(() => {
+    hoisted.authorizePaddleBillingTenant.mockReset();
+    hoisted.authorizePaddleBillingTenant.mockImplementation(authorizeAnyTestPaddleBillingTenant);
+    hoisted.authorizePaddleTenant.mockReset();
+    hoisted.authorizePaddleTenant.mockImplementation(authorizeTestPaddleOwner);
     vi.clearAllMocks();
     hoisted.db.query.user.findFirst.mockReset();
-    hoisted.db.query.account.findFirst.mockReset();
+    hoisted.hasTenantMemberCredential.mockReset().mockResolvedValue(false);
     hoisted.readVerifiedPaddleTransactionEvidence.mockReset();
     hoisted.resolvePaddleCustomerEmailOwner.mockReset().mockResolvedValue(null);
     hoisted.db.query.tenantSettings.findFirst.mockReset();
@@ -63,11 +74,11 @@ describe('reconcileCheckoutUser', () => {
     hoisted.tx.update.mockReset();
     hoisted.insertedUserValues.mockReset();
     hoisted.updatedUserValues.mockReset();
-    hoisted.generateMemberNumber.mockReset();
+    hoisted.issueTenantMemberNumber.mockReset();
     hoisted.nanoid.mockReset();
 
     hoisted.nanoid.mockReturnValue('user_new');
-    hoisted.generateMemberNumber.mockResolvedValue({
+    hoisted.issueTenantMemberNumber.mockResolvedValue({
       memberNumber: 'MEM-2026-000123',
       isNew: true,
     });
@@ -124,6 +135,7 @@ describe('reconcileCheckoutUser', () => {
     });
 
     const result = await reconcileCheckoutUser(
+      TEST_PADDLE_DELIVERY,
       {
         id: 'sub_wrong',
         transactionId: 'txn_wrong',
@@ -158,6 +170,7 @@ describe('reconcileCheckoutUser', () => {
     });
 
     const result = await reconcileCheckoutUser(
+      TEST_PADDLE_DELIVERY,
       {
         id: 'sub_conflict',
         transactionId: 'txn_conflict',
@@ -208,6 +221,7 @@ describe('reconcileCheckoutUser', () => {
     });
 
     const result = await reconcileCheckoutUser(
+      TEST_PADDLE_DELIVERY,
       {
         id: 'sub_user_conflict',
         transactionId: 'txn_user_conflict',
@@ -245,6 +259,7 @@ describe('reconcileCheckoutUser', () => {
     hoisted.db.query.user.findFirst.mockResolvedValue(null);
 
     const result = await reconcileCheckoutUser(
+      TEST_PADDLE_DELIVERY,
       {
         id: 'sub_missing_user',
         transactionId: 'txn_missing_user',

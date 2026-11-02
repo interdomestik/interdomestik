@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deps, hoisted, seed } from './dunning-order.fixture';
-import { pastDue, T1, T2 } from './dunning-order.test-support';
+import { KS_AUTHORITY, pastDue, T1, T2 } from './dunning-order.test-support';
 import { handleSubscriptionPastDue } from './dunning';
 import { PaddleEventOrderingError, RetryablePaddleWebhookError } from '../errors';
 
@@ -39,9 +39,8 @@ describe('handleSubscriptionPastDue entity-scoped provider event order', () => {
     expect(hoisted.store.row?.pastDueAt).toBeInstanceOf(Date);
     expect(hoisted.store.audits).toHaveLength(1);
     expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledTimes(1);
-    expect(hoisted.findSubscriptionByProviderReference).toHaveBeenCalledWith('sub_1', {
-      tenantId: 'tenant_ks',
-    });
+    expect(hoisted.findPaddleSubscriptionInTenant).toHaveBeenCalledWith('sub_1', KS_AUTHORITY);
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(KS_AUTHORITY, expect.any(Function));
   });
 
   it('does not increment, audit or email again on exact replay', async () => {
@@ -77,7 +76,7 @@ describe('handleSubscriptionPastDue entity-scoped provider event order', () => {
       await expect(
         handleSubscriptionPastDue(pastDue(occurredAt, 'evt_past_due'), deps)
       ).rejects.toThrow(PaddleEventOrderingError);
-      expect(hoisted.findSubscriptionByProviderReference).not.toHaveBeenCalled();
+      expect(hoisted.findPaddleSubscriptionInTenant).not.toHaveBeenCalled();
       expect(hoisted.db.transaction).not.toHaveBeenCalled();
     }
   );
@@ -109,5 +108,38 @@ describe('handleSubscriptionPastDue entity-scoped provider event order', () => {
     });
     expect(hoisted.store.audits).toHaveLength(1);
     expect(deps.sendPreparedPastDueEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed before any lookup when an entity past_due has no canonical tenant authority', async () => {
+    seed('active', T1, 'evt_older');
+
+    await expect(
+      handleSubscriptionPastDue({ ...pastDue(T2, 'evt_past_due'), authority: null }, deps)
+    ).rejects.toThrow(RetryablePaddleWebhookError);
+    expect(hoisted.findPaddleSubscriptionInTenant).not.toHaveBeenCalled();
+    expect(hoisted.findPaddleSubscriptionByReference).not.toHaveBeenCalled();
+    expect(hoisted.db.transaction).not.toHaveBeenCalled();
+    expect(deps.sendPreparedPastDueEmail).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without writes when the user belongs to another tenant than the webhook authority', async () => {
+    hoisted.store.row = null;
+    seed('active', T1, 'evt_older');
+    hoisted.db.query.user.findFirst.mockResolvedValue({
+      id: 'user_1',
+      email: 'member@example.com',
+      name: 'Member',
+      tenantId: 'tenant_mk',
+    });
+    hoisted.resolvePaddleUserOwner.mockImplementation(async (userId: string) => ({
+      userId,
+      tenantId: 'tenant_mk',
+    }));
+
+    await handleSubscriptionPastDue(pastDue(T2, 'evt_past_due'), deps);
+
+    expect(hoisted.store.row).toMatchObject({ status: 'active', dunningAttemptCount: 0 });
+    expect(hoisted.store.audits).toHaveLength(0);
+    expect(deps.sendPreparedPastDueEmail).not.toHaveBeenCalled();
   });
 });

@@ -1,12 +1,17 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { claimLifecycleStatusNotIn } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { agentClients, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq, inArray } from 'drizzle-orm';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import 'server-only';
 import { ensureClaimsAccess, type ClaimsSession } from '../../../../server/domains/claims/guards';
 import { buildClaimVisibilityWhere } from '../utils';
 import { mapAgentMemberClaimGroups } from './agentMemberClaimGroups';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface AgentMemberClaimsDto {
   memberId: string;
@@ -23,7 +28,8 @@ export interface AgentMemberClaimsDto {
 }
 
 export async function getAgentMemberClaims(
-  session: ClaimsSession | null
+  session: ClaimsSession | null,
+  authority: TenantAuthority | null
 ): Promise<AgentMemberClaimsDto[]> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.agent',
@@ -32,6 +38,11 @@ export async function getAgentMemberClaims(
       // 1. Auth & Context
       const access = ensureClaimsAccess(session);
       const { tenantId, userId, role } = access;
+
+      // Fail closed unless the session's tenant is the tenant the authority grants.
+      if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+        throw new UnauthorizedError();
+      }
 
       Sentry.setTag('tenantId', tenantId);
 
@@ -46,7 +57,7 @@ export async function getAgentMemberClaims(
         // allowing broader roles for flexibility if they visit the page.
       }
 
-      const activeAgentClientRows = await withTenantContext({ tenantId }, tx =>
+      const activeAgentClientRows = await withTenantAuthority(authority, tx =>
         tx
           .select({ memberId: agentClients.memberId })
           .from(agentClients)
@@ -71,7 +82,7 @@ export async function getAgentMemberClaims(
         return [];
       }
 
-      const members = await withTenantContext({ tenantId }, tx =>
+      const members = await withTenantAuthority(authority, tx =>
         tx.query.user.findMany({
           where: and(eq(user.tenantId, tenantId), inArray(user.id, memberIds)),
           columns: {
@@ -100,7 +111,7 @@ export async function getAgentMemberClaims(
       });
 
       // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before agent member claims lookup
-      const memberClaims = await withTenantContext({ tenantId }, tx =>
+      const memberClaims = await withTenantAuthority(authority, tx =>
         tx.query.claims.findMany({
           where: and(
             visibilityCondition,

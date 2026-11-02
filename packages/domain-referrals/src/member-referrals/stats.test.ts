@@ -1,4 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMemberReferralStatsCore } from './stats';
@@ -57,6 +58,8 @@ vi.mock('./settings', () => ({
 }));
 
 describe('getMemberReferralStatsCore', () => {
+  const authority = mintTestTenantAuthority('tenant-1');
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -93,6 +96,7 @@ describe('getMemberReferralStatsCore', () => {
 
     const result = await getMemberReferralStatsCore({
       session: { user: { id: 'member-a', role: 'user', tenantId: 'tenant-1' } } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);
@@ -107,7 +111,8 @@ describe('getMemberReferralStatsCore', () => {
       });
     }
 
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    expect(getMemberReferralProgramSettingsCore).toHaveBeenCalledWith({ authority });
     expect(db.query.referrals.findMany).not.toHaveBeenCalled();
     expect(db.select).toHaveBeenCalledWith({ count: 'count()' });
     expect(referralCountFrom).toHaveBeenCalledTimes(1);
@@ -147,6 +152,7 @@ describe('getMemberReferralStatsCore', () => {
 
     const result = await getMemberReferralStatsCore({
       session: { user: { id: 'member-a', role: 'user', tenantId: 'tenant-1' } } as any,
+      authority,
     });
 
     expect(result.success).toBe(true);

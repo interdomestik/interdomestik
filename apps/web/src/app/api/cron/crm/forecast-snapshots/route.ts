@@ -19,17 +19,16 @@ export async function GET(request: NextRequest) {
   });
   if (limited) return limited;
 
-  if (
-    !authorizeCronRequest({
-      authorizationHeader: request.headers.get('authorization'),
-      cronSecret: process.env.CRON_SECRET,
-    })
-  ) {
+  const ingress = authorizeCronRequest({
+    authorizationHeader: request.headers.get('authorization'),
+  });
+  if (!ingress) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const result = await runCrmForecastSnapshotSchedulerCore({
+      ingress,
       now: new Date(),
       requestedDate: request.nextUrl.searchParams.get('date'),
     });

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { importMembersCore } from './import-members.core';
 
@@ -34,7 +35,7 @@ vi.mock('./register-member.core', () => ({
 
 describe('importMembersCore', () => {
   const agent = { id: 'agent-1', name: 'Agent Smith' };
-  const tenantId = 'tenant-1';
+  const authority = mintTestTenantAuthority('tenant-1');
   const branchId = 'branch-1';
 
   beforeEach(() => {
@@ -48,7 +49,7 @@ describe('importMembersCore', () => {
 
     const result = await importMembersCore({
       agent,
-      tenantId,
+      authority,
       branchId,
       rows: [
         buildImportRow(),
@@ -86,7 +87,7 @@ describe('importMembersCore', () => {
   it('rejects an empty batch before calling member registration', async () => {
     const result = await importMembersCore({
       agent,
-      tenantId,
+      authority,
       branchId,
       rows: [],
     });
@@ -108,14 +109,14 @@ describe('importMembersCore', () => {
 
     await importMembersCore({
       agent,
-      tenantId,
+      authority,
       branchId,
       rows: [buildImportRow()],
     });
 
     expect(mocks.registerMemberCore).toHaveBeenCalledWith(
       agent,
-      tenantId,
+      authority,
       branchId,
       expect.any(FormData),
       { membershipMode: 'sponsored' }

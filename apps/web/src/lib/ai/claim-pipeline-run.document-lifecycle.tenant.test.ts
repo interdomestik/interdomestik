@@ -77,7 +77,12 @@ vi.mock('drizzle-orm', () => ({
   isNull: mocks.isNull,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { claimClaimAiRun } from './claim-pipeline-run';
+
+const authority = mintTestTenantAuthority('tenant_mk');
+const otherAuthority = mintTestTenantAuthority('tenant_other');
 
 const activeRun = (
   status: 'queued' | 'processing' | 'completed' | 'failed',
@@ -104,12 +109,9 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('runs the run lookup inside the event tenant context with a tenant predicate', async () => {
     mocks.where.mockResolvedValue([activeRun('queued')]);
 
-    await claimClaimAiRun('run-1', { tenantId: 'tenant_mk' });
+    await claimClaimAiRun('run-1', { authority });
 
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
-      tenantId: 'tenant_mk',
-      role: 'system',
-    });
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.select).toHaveBeenCalledTimes(1);
     expect(mocks.db.select).not.toHaveBeenCalled();
     expect(mocks.where).toHaveBeenCalledWith(
@@ -125,15 +127,14 @@ describe('claimClaimAiRun document lifecycle guard', () => {
   it('claims the run in the event tenant context with a tenant-bound update predicate', async () => {
     mocks.where.mockResolvedValue([activeRun('queued')]);
 
-    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_mk' })).resolves.toMatchObject({
-      status: 'claimed',
-    });
+    const claimed = await claimClaimAiRun('run-1', { authority });
+
+    expect(claimed.status).toBe('claimed');
+    if (claimed.status !== 'claimed') throw new Error('expected a claimed run');
+    expect(claimed.run.authority).toBe(authority);
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(2);
-    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toEqual({
-      tenantId: 'tenant_mk',
-      role: 'system',
-    });
+    expect(mocks.withTenantContext.mock.calls[1]?.[0]).toBe(authority);
     expect(mocks.updateWhere).toHaveBeenCalledWith(
       expect.objectContaining({
         args: expect.arrayContaining([
@@ -154,27 +155,25 @@ describe('claimClaimAiRun document lifecycle guard', () => {
       workflow: 'claim_intake_extract',
     });
 
-    await claimClaimAiRun('run-1', { tenantId: 'tenant_other' });
+    await claimClaimAiRun('run-1', { authority: otherAuthority });
 
     expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.updateSet).not.toHaveBeenCalled();
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toEqual({
-      tenantId: 'tenant_other',
-      role: 'system',
-    });
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(otherAuthority);
     expect(mocks.failDeletedDocumentClaimAiRun).toHaveBeenCalledWith(
       'run-1',
       expect.any(Function),
-      { tenantId: 'tenant_other' }
+      { authority: otherAuthority }
     );
+    expect(mocks.failDeletedDocumentClaimAiRun.mock.calls[0]?.[2].authority).toBe(otherAuthority);
   });
 
   it('throws not found without updating when no row exists in the tenant and the fallback finds none', async () => {
     mocks.where.mockResolvedValue([]);
     mocks.failDeletedDocumentClaimAiRun.mockResolvedValue(null);
 
-    await expect(claimClaimAiRun('run-1', { tenantId: 'tenant_other' })).rejects.toThrow(
+    await expect(claimClaimAiRun('run-1', { authority: otherAuthority })).rejects.toThrow(
       'Queued claim AI run run-1 was not found.'
     );
 

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -59,11 +61,8 @@ const mocks = vi.hoisted(() => {
     txUpdateSet,
     txUpdateWhere,
     updateReturning,
-    withTenantContext: vi.fn(
-      async (
-        _context: { tenantId: string; role?: string },
-        callback: (tx: Tx) => Promise<unknown>
-      ) => callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
+    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: Tx) => Promise<unknown>) =>
+      callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
     ),
   };
 });
@@ -109,7 +108,11 @@ vi.mock('nanoid', () => ({
   nanoid: mocks.nanoid,
 }));
 
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+
 import { queuePolicyAnalysisService } from './_services';
+
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'user-1', role: 'member' });
 
 describe('queuePolicyAnalysisService', () => {
   beforeEach(() => {
@@ -131,7 +134,7 @@ describe('queuePolicyAnalysisService', () => {
 
   it('persists a placeholder policy, document, and queued ai run in one transaction', async () => {
     const result = await queuePolicyAnalysisService({
-      tenantId: 'tenant-1',
+      authority,
       userId: 'user-1',
       fileUrl: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
       fileName: 'file.pdf',
@@ -140,10 +143,7 @@ describe('queuePolicyAnalysisService', () => {
     });
 
     expect(result).toEqual({ policyId: 'policy-1', runId: 'run-1' });
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'system' },
-      expect.any(Function)
-    );
+    expect(mocks.withTenantContext.mock.calls[0]?.[0]).toBe(authority);
     expect(mocks.transaction).not.toHaveBeenCalled();
     expect(mocks.txInsert).toHaveBeenCalledTimes(3);
 
@@ -214,6 +214,22 @@ describe('queuePolicyAnalysisService', () => {
     );
     expect(
       (mocks.txInsertValues as unknown as { mock: { calls: unknown[][] } }).mock.calls[2]?.[0]
-    ).toEqual(expect.objectContaining({ inputHash: expect.any(String) }));
+    ).toEqual(
+      expect.objectContaining({
+        // The hash keeps covering the tenant and uploader as it did before the authority change.
+        inputHash: createHash('sha256')
+          .update(
+            JSON.stringify({
+              tenantId: 'tenant-1',
+              userId: 'user-1',
+              fileUrl: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
+              fileName: 'file.pdf',
+              mimeType: 'application/pdf',
+              fileSize: 2048,
+            })
+          )
+          .digest('hex'),
+      })
+    );
   });
 });

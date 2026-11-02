@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 export interface MemberReferralLink {
   code: string;
   link: string;
@@ -61,7 +63,7 @@ export interface MemberReferralAdminRewardRow extends MemberReferralRewardRecord
 }
 
 export interface MemberReferralRewardInput {
-  tenantId: string;
+  authority: TenantAuthority;
   referralId?: string | null;
   subscriptionId: string;
   qualifyingEventId: string;
@@ -72,10 +74,7 @@ export interface MemberReferralRewardInput {
 }
 
 export type MemberReferralRewardNoopReason =
-  | 'program_disabled'
-  | 'non_qualifying_event'
-  | 'no_referral'
-  | 'zero_reward';
+  'program_disabled' | 'non_qualifying_event' | 'no_referral' | 'zero_reward';
 
 export type MemberReferralRewardResult =
   | {

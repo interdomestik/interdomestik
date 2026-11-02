@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,7 +27,8 @@ const hoisted = vi.hoisted(() => ({
   getFormatterMock: vi.fn(async () => ({
     number: vi.fn((val: number) => String(val)),
   })),
-  ensureTenantIdMock: vi.fn(() => 'tenant-1'),
+  ensureTenantIdMock: vi.fn((_session?: unknown) => 'tenant-1'),
+  authority: (tenantId: string) => mintTestTenantAuthority(tenantId),
   getAgentCrmCompletedTaskQueueCoreMock: vi.fn(),
   getAgentCrmStatsCoreMock: vi.fn(),
   getAgentCrmTaskQueueCoreMock: vi.fn(),
@@ -71,8 +73,15 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantIdMock,
+// Mirrors the session producer: it resolves the session, fails closed on a tenant-less session
+// (ensureTenantId) and mints the authority for that tenant.
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: async () => {
+    const session = await hoisted.getSessionMock();
+    if (!session?.user) return null;
+    const tenantId = hoisted.ensureTenantIdMock(session);
+    return { session, authority: hoisted.authority(tenantId) };
+  },
 }));
 
 vi.mock('./_core', () => ({
@@ -266,6 +275,7 @@ describe('CRMPage auth redirect', () => {
         },
         tenantId: 'tenant-1',
       },
+      authority: expect.any(Object),
     });
     expect(hoisted.getAgentCrmReportingCoreMock).toHaveBeenCalledWith({
       actor: {
@@ -277,6 +287,7 @@ describe('CRMPage auth redirect', () => {
         },
         tenantId: 'tenant-1',
       },
+      authority: expect.any(Object),
     });
     expect(hoisted.getAgentCrmTaskQueueCoreMock).toHaveBeenCalledWith({
       actor: {
@@ -288,6 +299,7 @@ describe('CRMPage auth redirect', () => {
         },
         tenantId: 'tenant-1',
       },
+      authority: expect.any(Object),
     });
     expect(hoisted.getAgentCrmCompletedTaskQueueCoreMock).toHaveBeenCalledWith({
       actor: {
@@ -299,7 +311,15 @@ describe('CRMPage auth redirect', () => {
         },
         tenantId: 'tenant-1',
       },
+      authority: expect.any(Object),
     });
+    const authorities = [
+      hoisted.getAgentCrmStatsCoreMock,
+      hoisted.getAgentCrmReportingCoreMock,
+      hoisted.getAgentCrmTaskQueueCoreMock,
+      hoisted.getAgentCrmCompletedTaskQueueCoreMock,
+    ].map(core => core.mock.calls[0][0].authority);
+    for (const authority of authorities) expect(authority).toBe(authorities[0]);
   });
 
   it('fails closed when the CRM stats core denies dashboard access', async () => {

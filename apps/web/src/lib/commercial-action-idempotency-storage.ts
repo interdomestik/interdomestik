@@ -1,10 +1,9 @@
+import { and, commercialActionIdempotency, eq, isNull } from '@interdomestik/database';
 import {
-  and,
-  commercialActionIdempotency,
-  eq,
-  isNull,
-  withTenantContext,
-} from '@interdomestik/database';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type StoredActionResult = Record<string, unknown>;
 
@@ -15,7 +14,7 @@ export type StoredActionResult = Record<string, unknown>;
  */
 export type ResolvedCommercialActionIdempotencyScope = {
   kind: 'tenant';
-  tenantId: string;
+  authority: TenantAuthority;
   actorUserId: string | null;
 };
 
@@ -28,13 +27,13 @@ export type ExistingReservation = {
 
 /**
  * Every tenant-scoped reservation statement runs inside its own short
- * withTenantContext transaction so the RLS tenant/access-tenant settings exist
+ * withTenantAuthority transaction so the RLS tenant/access-tenant settings exist
  * for the statement. Each transaction closes before the caller runs the
  * commercial action, because the serverless runtime allows one connection.
  */
 function buildScopePredicates(scope: ResolvedCommercialActionIdempotencyScope) {
   return [
-    eq(commercialActionIdempotency.tenantId, scope.tenantId),
+    eq(commercialActionIdempotency.tenantId, readTenantAuthority(scope.authority).tenantId),
     scope.actorUserId
       ? eq(commercialActionIdempotency.actorUserId, scope.actorUserId)
       : isNull(commercialActionIdempotency.actorUserId),
@@ -48,9 +47,10 @@ export async function reserveCommercialAction(params: {
   scope: ResolvedCommercialActionIdempotencyScope;
 }): Promise<{ id: string } | null> {
   const { scope } = params;
+  const { tenantId } = readTenantAuthority(scope.authority);
   const values = {
     id: crypto.randomUUID(),
-    tenantId: scope.tenantId,
+    tenantId,
     actorUserId: scope.actorUserId,
     action: params.action,
     idempotencyKey: params.idempotencyKey,
@@ -59,8 +59,8 @@ export async function reserveCommercialAction(params: {
     status: 'pending',
   };
 
-  const [inserted] = await withTenantContext(
-    { tenantId: scope.tenantId },
+  const [inserted] = await withTenantAuthority(
+    scope.authority,
     async tx =>
       await tx
         .insert(commercialActionIdempotency)
@@ -88,8 +88,8 @@ export async function findExistingReservation(
     ...buildScopePredicates(scope)
   );
 
-  const [existing] = await withTenantContext(
-    { tenantId: scope.tenantId },
+  const [existing] = await withTenantAuthority(
+    scope.authority,
     async tx => await tx.select(columns).from(commercialActionIdempotency).where(where).limit(1)
   );
   return existing ?? null;
@@ -108,8 +108,8 @@ export async function completeCommercialActionReservation(params: {
   };
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
-  await withTenantContext(
-    { tenantId: scope.tenantId },
+  await withTenantAuthority(
+    scope.authority,
     async tx => await tx.update(commercialActionIdempotency).set(values).where(where)
   );
 }
@@ -121,8 +121,8 @@ export async function releaseCommercialActionReservation(params: {
   const { scope } = params;
   const where = eq(commercialActionIdempotency.id, params.reservationId);
 
-  await withTenantContext(
-    { tenantId: scope.tenantId },
+  await withTenantAuthority(
+    scope.authority,
     async tx => await tx.delete(commercialActionIdempotency).where(where)
   );
 }

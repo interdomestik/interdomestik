@@ -17,6 +17,7 @@ describe('member-referrals admin core', () => {
     await expect(
       listMemberReferralRewardsAdminCore({
         session: { user: { id: 'u1', role: 'user' } } as unknown as NonNullable<Session>,
+        authority: null,
       })
     ).rejects.toThrow('Unauthorized');
   });
@@ -25,6 +26,7 @@ describe('member-referrals admin core', () => {
     await expect(
       updateMemberReferralRewardStatusAdminCore({
         session: { user: { id: 'u1', role: 'user' } } as unknown as NonNullable<Session>,
+        authority: null,
         requestHeaders: new Headers(),
         rewardId: 'reward-1',
         newStatus: 'approved',

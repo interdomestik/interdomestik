@@ -1,8 +1,10 @@
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
-import { subscriptions, user, withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database';
+import { listScheduledTenantWork, subscriptions, user } from '@interdomestik/database';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, eq, gt } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type DunningCronStats = {
   checked: number;
@@ -14,10 +16,11 @@ export type DunningCronStats = {
 type SubscriptionRecord = typeof subscriptions.$inferSelect;
 
 export async function runDunningCronCore(args: {
+  ingress: IngressCapability<'cron'>;
   now: Date;
   headers: Headers;
 }): Promise<{ stats: DunningCronStats }> {
-  const { now, headers } = args;
+  const { ingress, now, headers } = args;
 
   const stats: DunningCronStats = {
     checked: 0,
@@ -27,7 +30,7 @@ export async function runDunningCronCore(args: {
   };
 
   // Per-tenant cursor: each tenant's past-due subscriptions are paged under its own RLS context.
-  for (const tenantId of await listTenantIdsForScheduledWork()) {
+  for (const { tenantId, authority } of await listScheduledTenantWork(ingress)) {
     let afterId: string | null = null;
 
     while (true) {
@@ -40,7 +43,7 @@ export async function runDunningCronCore(args: {
         conditions.push(gt(subscriptions.id, afterId));
       }
 
-      const pastDueSubscriptions = await withTenantContext({ tenantId, role: 'system' }, tx =>
+      const pastDueSubscriptions = await withTenantAuthority(authority, tx =>
         tx.query.subscriptions.findMany({
           where: and(...conditions),
           orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
@@ -53,6 +56,7 @@ export async function runDunningCronCore(args: {
       stats.checked += pastDueSubscriptions.length;
 
       await processBatch({
+        authority,
         subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
           gracePeriodEndsAt: Date;
           pastDueAt: Date;
@@ -70,36 +74,39 @@ export async function runDunningCronCore(args: {
 }
 
 async function processBatch(params: {
+  authority: TenantAuthority;
   subscriptions: (SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date })[];
   now: Date;
   headers: Headers;
   stats: DunningCronStats;
 }) {
-  const { subscriptions, now, headers, stats } = params;
+  const { authority, subscriptions, now, headers, stats } = params;
   for (const sub of subscriptions) {
     if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
     try {
-      await processDunningSubscription({ sub, now, headers, stats });
+      await processDunningSubscription({ authority, sub, now, headers, stats });
     } catch {
       stats.errors++;
     }
   }
 }
 
+// `sub` was selected under `authority` with a tenant predicate, so it belongs to that tenant.
 async function processDunningSubscription(params: {
+  authority: TenantAuthority;
   sub: SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date };
   now: Date;
   headers: Headers;
   stats: DunningCronStats;
 }) {
-  const { sub, now, headers, stats } = params;
+  const { authority, sub, now, headers, stats } = params;
   const daysRemaining = calculateDaysDiff(sub.gracePeriodEndsAt, now);
   const daysSinceFailed = calculateDaysDiff(now, sub.pastDueAt);
 
   const emailType = determineDunningEmailType(daysRemaining, daysSinceFailed);
   if (!emailType) return;
 
-  const userRecord = await withTenantContext({ tenantId: sub.tenantId, role: 'system' }, tx =>
+  const userRecord = await withTenantAuthority(authority, tx =>
     tx.query.user.findFirst({
       where: and(eq(user.id, sub.userId), eq(user.tenantId, sub.tenantId)),
     })
@@ -118,7 +125,7 @@ async function processDunningSubscription(params: {
   if (emailType === 'day7') stats.day7Sent++;
   else if (emailType === 'day13') stats.day13Sent++;
 
-  await withTenantContext({ tenantId: sub.tenantId, role: 'system' }, async tx => {
+  await withTenantAuthority(authority, async tx => {
     await tx
       .update(subscriptions)
       .set({ lastDunningAt: now })
@@ -128,7 +135,7 @@ async function processDunningSubscription(params: {
   await logAuditEvent({
     actorId: null,
     actorRole: 'system',
-    tenantId: sub.tenantId,
+    authority,
     action: emailType === 'day7' ? 'email.dunning.reminder' : 'email.dunning.final_warning',
     entityType: 'subscription',
     entityId: sub.id,

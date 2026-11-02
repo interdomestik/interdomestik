@@ -1,3 +1,5 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { EventName } from '@paddle/paddle-node-sdk';
 import { handleSubscriptionPastDue } from './handlers/dunning';
 import { handleSubscriptionChanged } from './handlers/subscriptions';
@@ -9,7 +11,10 @@ export async function handlePaddleEvent(
   params: {
     eventType: string | undefined;
     data: unknown;
-    tenantId?: string | null;
+    /** Verified-delivery capability from `verifyPaddleWebhook`; every tenant authority derives from it. */
+    delivery: IngressCapability<'paddle-delivery'>;
+    /** Authority of the tenant the core resolved from a subscription or user owner, when it did. */
+    authority?: TenantAuthority | null;
     processingScopeKey?: string;
     providerEventId?: string;
     providerEventOccurredAt?: string | null;
@@ -34,7 +39,8 @@ export async function handlePaddleEvent(
         {
           eventType,
           data: params.data,
-          tenantId: params.tenantId,
+          delivery: params.delivery,
+          authority: params.authority,
           processingScopeKey: params.processingScopeKey,
           providerEventId: params.providerEventId,
           providerEventOccurredAt: params.providerEventOccurredAt,
@@ -49,7 +55,8 @@ export async function handlePaddleEvent(
       await handleSubscriptionPastDue(
         {
           data: params.data,
-          tenantId: params.tenantId,
+          delivery: params.delivery,
+          authority: params.authority,
           processingScopeKey: params.processingScopeKey,
           providerEventId: params.providerEventId,
           providerEventOccurredAt: params.providerEventOccurredAt,
@@ -60,7 +67,7 @@ export async function handlePaddleEvent(
     }
 
     case EventName.TransactionCompleted: {
-      await handleTransactionCompleted({ data: params.data }, deps);
+      await handleTransactionCompleted({ data: params.data, delivery: params.delivery }, deps);
       break;
     }
 

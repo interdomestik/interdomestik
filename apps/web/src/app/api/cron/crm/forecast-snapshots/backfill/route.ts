@@ -1,3 +1,4 @@
+import { listScheduledTenantWork } from '@interdomestik/database';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -52,12 +53,10 @@ export async function POST(request: NextRequest) {
   });
   if (limited) return normalizeRateLimitResponse(limited);
 
-  if (
-    !authorizeCronRequest({
-      authorizationHeader: request.headers.get('authorization'),
-      cronSecret: process.env.CRON_SECRET,
-    })
-  ) {
+  const ingress = authorizeCronRequest({
+    authorizationHeader: request.headers.get('authorization'),
+  });
+  if (!ingress) {
     return errorResponse('Unauthorized', 'unauthorized', 401);
   }
 
@@ -74,12 +73,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // The request names a tenant, but only the cron-admitted enumeration can grant authority: an
+    // id outside it is rejected rather than turned into a tenant scope.
+    const scheduled = await listScheduledTenantWork(ingress);
+    const tenantWork = scheduled.find(entry => entry.tenantId === parsed.data.tenantId);
+    if (!tenantWork) return errorResponse('Invalid tenant', 'invalid_tenant', 400);
+
     const result = await runCrmForecastSnapshotBackfillCore({
+      authority: tenantWork.authority,
       dryRun: parsed.data.dryRun,
       fromDate: parsed.data.fromDate,
       maxWorkItemsPerDate: parsed.data.maxWorkItemsPerDate,
       now: new Date(),
-      tenantId: parsed.data.tenantId,
       toDate: parsed.data.toDate,
     });
     assertNoCrmForecastSnapshotBackfillPiiKeys(result);

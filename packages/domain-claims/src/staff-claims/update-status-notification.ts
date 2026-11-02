@@ -1,18 +1,23 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import type { ClaimsDeps } from '../claims/types';
 import type { ClaimStatus } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export function scheduleStatusChangeNotification(params: {
+  authority: TenantAuthority;
   claimId: string;
   claimTitle: string;
   deps: ClaimsDeps;
   newStatus: ClaimStatus;
   oldStatus: ClaimStatus | null;
-  tenantId: string;
   userId: string;
 }) {
-  const { claimId, claimTitle, deps, newStatus, oldStatus, tenantId, userId } = params;
+  const { authority, claimId, claimTitle, deps, newStatus, oldStatus, userId } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const notifyStatusChanged = deps.notifyStatusChanged;
 
   if (!notifyStatusChanged || !oldStatus || oldStatus === newStatus) {
@@ -21,7 +26,7 @@ export function scheduleStatusChangeNotification(params: {
 
   void (async () => {
     try {
-      const member = await withTenantContext({ tenantId }, tx =>
+      const member = await withTenantAuthority(authority, tx =>
         tx.query.user.findFirst({
           where: (userTable, { eq }) =>
             withTenant(tenantId, userTable.tenantId, eq(userTable.id, userId)),
@@ -41,7 +46,7 @@ export function scheduleStatusChangeNotification(params: {
         { id: claimId, title: claimTitle },
         oldStatus,
         newStatus,
-        { tenantId }
+        { authority }
       );
     } catch (error) {
       console.error('Failed to send status change notification:', error);

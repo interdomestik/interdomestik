@@ -1,4 +1,5 @@
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computeSuccessRate, getAdminAnalyticsDataCore, normalizeTotalsRow } from './_core';
 
@@ -74,11 +75,9 @@ describe('admin analytics _core', () => {
         )
         .mockImplementationOnce((cb: (rows: { count: number }[]) => unknown) => cb([{ count: 1 }]));
 
-      const result = await getAdminAnalyticsDataCore({ user: { tenantId: 'tenant-1' } });
-      expect(withTenantContext).toHaveBeenCalledWith(
-        { tenantId: 'tenant-1' },
-        expect.any(Function)
-      );
+      const authority = mintTestTenantAuthority('tenant-1');
+      const result = await getAdminAnalyticsDataCore(authority);
+      expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
       expect(result.totals.count).toBe(2);
       expect(result.successRate).toBe(50);
     });

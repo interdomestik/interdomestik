@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportHandoffSession } from './types';
@@ -96,6 +97,9 @@ function staffSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   } as SupportHandoffSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+const tenantTwoAuthority = mintTestTenantAuthority('tenant-2');
+
 describe('support handoff public response', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,6 +124,7 @@ describe('support handoff public response', () => {
   it('rejects unauthorized and branch-manager response writes', async () => {
     await expect(
       updateSupportHandoffPublicResponseCore({
+        authority,
         handoffId: 'handoff-1',
         response: 'Member-visible update',
         session: null,
@@ -128,6 +133,7 @@ describe('support handoff public response', () => {
 
     await expect(
       updateSupportHandoffPublicResponseCore({
+        authority,
         handoffId: 'handoff-1',
         response: 'Member-visible update',
         session: staffSession({ role: 'branch_manager' }),
@@ -139,6 +145,7 @@ describe('support handoff public response', () => {
 
   it('requires non-empty response text', async () => {
     const result = await updateSupportHandoffPublicResponseCore({
+      authority,
       handoffId: 'handoff-1',
       response: '   ',
       session: staffSession(),
@@ -151,6 +158,7 @@ describe('support handoff public response', () => {
   it('updates only accepted handoffs owned by the current staff with public response version CAS', async () => {
     const result = await updateSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedVersion: 4,
         handoffId: 'handoff-1',
         response: '  We reviewed your request and will follow up here.  ',
@@ -194,6 +202,7 @@ describe('support handoff public response', () => {
     const overlong = ` ${'a'.repeat(MAX_PUBLIC_RESPONSE_LENGTH + 50)} `;
 
     await updateSupportHandoffPublicResponseCore({
+      authority,
       handoffId: 'handoff-1',
       response: overlong,
       session: staffSession(),
@@ -211,6 +220,7 @@ describe('support handoff public response', () => {
 
     const result = await updateSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedVersion: 9,
         handoffId: 'handoff-1',
         response: 'Fresh response',
@@ -230,13 +240,14 @@ describe('support handoff public response', () => {
     mocks.updateReturning.mockResolvedValue([]);
     mocks.ensureTenantId.mockReturnValueOnce('tenant-2');
 
-    for (const scopedSession of [
-      staffSession({ tenantId: 'tenant-2' }),
-      staffSession({ branchId: 'branch-2' }),
-      staffSession({ id: 'staff-2' }),
-    ]) {
+    for (const [scopedSession, scopedAuthority] of [
+      [staffSession({ tenantId: 'tenant-2' }), tenantTwoAuthority],
+      [staffSession({ branchId: 'branch-2' }), authority],
+      [staffSession({ id: 'staff-2' }), authority],
+    ] as const) {
       const result = await updateSupportHandoffPublicResponseCore(
         {
+          authority: scopedAuthority,
           expectedVersion: 4,
           handoffId: 'handoff-1',
           response: 'Scoped response miss',

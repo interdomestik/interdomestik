@@ -14,8 +14,15 @@ import {
   type EngagementCadence,
 } from '@/lib/cron/engagement-schedule';
 
-import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
+import {
+  authorityForTenant,
+  createPendingEngagementSend,
+  loadScheduledAuthorities,
+  updateEngagementSend,
+} from '../_engagement-email-sends';
 import { selectActiveSubscriptionMembers } from '../_scheduled-members';
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 export type EngagementCronResults = {
   day7: number;
@@ -38,10 +45,11 @@ type EngagementMember = {
 };
 
 export async function runEngagementCronCore(args: {
+  ingress: IngressCapability<'cron'>;
   now: Date;
   headers: Headers;
 }): Promise<EngagementCronResults> {
-  const { now, headers } = args;
+  const { ingress, now, headers } = args;
 
   const results: EngagementCronResults = {
     day7: 0,
@@ -55,23 +63,18 @@ export async function runEngagementCronCore(args: {
     errors: 0,
   };
 
-  await processLifecycleEngagement(now, headers, results);
-  await processSeasonalEngagement(now, headers, results);
+  // Each member is processed under the scheduled-work authority of its own tenant.
+  const authorities = await loadScheduledAuthorities(ingress);
 
-  await logAuditEvent({
-    actorId: null,
-    actorRole: 'system',
-    action: 'cron.engagement.run',
-    entityType: 'cron',
-    entityId: 'engagement',
-    metadata: results,
-    headers,
-  });
+  await processLifecycleEngagement(ingress, authorities, now, headers, results);
+  await processSeasonalEngagement(ingress, authorities, now, headers, results);
 
   return results;
 }
 
 async function processLifecycleEngagement(
+  ingress: IngressCapability<'cron'>,
+  authorities: ReadonlyMap<string, TenantAuthority>,
   now: Date,
   headers: Headers,
   results: EngagementCronResults
@@ -80,18 +83,26 @@ async function processLifecycleEngagement(
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
     const members = await selectActiveSubscriptionMembers({
+      ingress,
       limit: 200,
       createdBetween: { start, end },
     });
 
     for (const member of members) {
-      await processMemberEngagement(member, cadence, results, headers);
+      await processMemberEngagement(
+        member,
+        authorityForTenant(authorities, member.tenantId),
+        cadence,
+        results,
+        headers
+      );
     }
   }
 }
 
 async function processMemberEngagement(
   member: EngagementMember,
+  authority: TenantAuthority | null,
   cadence: EngagementCadence,
   results: EngagementCronResults,
   headers: Headers
@@ -99,15 +110,14 @@ async function processMemberEngagement(
   const templateKey = cadence.templateKey;
   const dedupeKey = `engagement:${member.subId}:${templateKey}`;
 
-  if (!member.tenantId || !member.userId) {
+  if (!authority || !member.userId) {
     results.skipped++;
     return;
   }
-  const tenantId = member.tenantId;
   const userId = member.userId;
 
   const inserted = await createPendingEngagementSend({
-    tenantId,
+    authority,
     userId,
     subscriptionId: member.subId,
     templateKey,
@@ -120,17 +130,25 @@ async function processMemberEngagement(
   if (inserted.length === 0) return;
 
   if (!member.email || !member.name) {
-    await markAsSkipped(dedupeKey, member.tenantId, 'Missing recipient email or name');
+    await markAsSkipped(dedupeKey, authority, 'Missing recipient email or name');
     results.skipped++;
     return;
   }
 
   try {
     const sendResult = await sendEngagementEmail(templateKey, member);
-    await handleLifecycleSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
+    await handleLifecycleSendResult(
+      sendResult,
+      dedupeKey,
+      member,
+      authority,
+      templateKey,
+      results,
+      headers
+    );
   } catch {
     results.errors++;
-    await markAsError(dedupeKey, member.tenantId, 'Unhandled exception during send');
+    await markAsError(dedupeKey, authority, 'Unhandled exception during send');
   }
 }
 
@@ -145,6 +163,8 @@ async function sendEngagementEmail(templateKey: string, member: EngagementMember
 }
 
 async function processSeasonalEngagement(
+  ingress: IngressCapability<'cron'>,
+  authorities: ReadonlyMap<string, TenantAuthority>,
   now: Date,
   headers: Headers,
   results: EngagementCronResults
@@ -159,15 +179,24 @@ async function processSeasonalEngagement(
   if (!season) return;
 
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
-  const seasonalMembers = await selectActiveSubscriptionMembers({ limit: 100 });
+  const seasonalMembers = await selectActiveSubscriptionMembers({ ingress, limit: 100 });
 
   for (const member of seasonalMembers) {
-    await processSeasonalMember(member, season, templateKey, now, results, headers);
+    await processSeasonalMember(
+      member,
+      authorityForTenant(authorities, member.tenantId),
+      season,
+      templateKey,
+      now,
+      results,
+      headers
+    );
   }
 }
 
 async function processSeasonalMember(
   member: EngagementMember,
+  authority: TenantAuthority | null,
   season: string,
   templateKey: string,
   now: Date,
@@ -176,15 +205,14 @@ async function processSeasonalMember(
 ) {
   const dedupeKey = `engagement:${member.subId}:${templateKey}`;
 
-  if (!member.tenantId || !member.userId) {
+  if (!authority || !member.userId) {
     results.skipped++;
     return;
   }
-  const tenantId = member.tenantId;
   const userId = member.userId;
 
   const inserted = await createPendingEngagementSend({
-    tenantId,
+    authority,
     userId,
     subscriptionId: member.subId,
     templateKey,
@@ -198,7 +226,7 @@ async function processSeasonalMember(
   if (inserted.length === 0) return;
 
   if (!member.email || !member.name) {
-    await markAsSkipped(dedupeKey, member.tenantId, 'Missing recipient email or name');
+    await markAsSkipped(dedupeKey, authority, 'Missing recipient email or name');
     results.skipped++;
     return;
   }
@@ -208,10 +236,18 @@ async function processSeasonalMember(
       season: season as 'winter' | 'summer',
       name: member.name,
     });
-    await handleSeasonalSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
+    await handleSeasonalSendResult(
+      sendResult,
+      dedupeKey,
+      member,
+      authority,
+      templateKey,
+      results,
+      headers
+    );
   } catch {
     results.errors++;
-    await markAsError(dedupeKey, member.tenantId, 'Unhandled exception during send');
+    await markAsError(dedupeKey, authority, 'Unhandled exception during send');
   }
 }
 
@@ -219,15 +255,24 @@ async function handleLifecycleSendResult(
   sendResult: { success: boolean; id?: string; error?: string },
   dedupeKey: string,
   member: EngagementMember,
+  authority: TenantAuthority,
   templateKey: string,
   results: EngagementCronResults,
   headers: Headers
 ) {
   if (sendResult.success) {
-    await handleSuccess(dedupeKey, member, templateKey, headers, sendResult.id);
+    await handleSuccess(dedupeKey, member, authority, templateKey, headers, sendResult.id);
     updateLifecycleStats(results, templateKey);
   } else {
-    await handleFailure(dedupeKey, member, templateKey, results, headers, sendResult.error);
+    await handleFailure(
+      dedupeKey,
+      member,
+      authority,
+      templateKey,
+      results,
+      headers,
+      sendResult.error
+    );
   }
 }
 
@@ -235,28 +280,36 @@ async function handleSeasonalSendResult(
   sendResult: { success: boolean; id?: string; error?: string },
   dedupeKey: string,
   member: EngagementMember,
+  authority: TenantAuthority,
   templateKey: string,
   results: EngagementCronResults,
   headers: Headers
 ) {
   if (sendResult.success) {
-    await handleSuccess(dedupeKey, member, templateKey, headers, sendResult.id);
+    await handleSuccess(dedupeKey, member, authority, templateKey, headers, sendResult.id);
     results.seasonal++;
   } else {
-    await handleFailure(dedupeKey, member, templateKey, results, headers, sendResult.error);
+    await handleFailure(
+      dedupeKey,
+      member,
+      authority,
+      templateKey,
+      results,
+      headers,
+      sendResult.error
+    );
   }
 }
 
 async function handleSuccess(
   dedupeKey: string,
   member: EngagementMember,
+  authority: TenantAuthority,
   templateKey: string,
   headers: Headers,
   providerMessageId?: string
 ) {
-  if (!member.tenantId) return;
-
-  await updateEngagementSend(member.tenantId, dedupeKey, {
+  await updateEngagementSend(authority, dedupeKey, {
     status: 'sent',
     providerMessageId: providerMessageId || null,
     sentAt: new Date(),
@@ -265,7 +318,7 @@ async function handleSuccess(
   await logAuditEvent({
     actorId: null,
     actorRole: 'system',
-    tenantId: member.tenantId,
+    authority,
     action: 'email.engagement.sent',
     entityType: 'subscription',
     entityId: member.subId,
@@ -289,6 +342,7 @@ function updateLifecycleStats(results: EngagementCronResults, templateKey: strin
 async function handleFailure(
   dedupeKey: string,
   member: EngagementMember,
+  authority: TenantAuthority,
   templateKey: string,
   results: EngagementCronResults,
   headers: Headers,
@@ -296,13 +350,7 @@ async function handleFailure(
 ) {
   const status = error === 'Resend not configured' ? 'skipped' : 'error';
 
-  if (!member.tenantId) {
-    if (status === 'skipped') results.skipped++;
-    else results.errors++;
-    return;
-  }
-
-  await updateEngagementSend(member.tenantId, dedupeKey, { status, error });
+  await updateEngagementSend(authority, dedupeKey, { status, error });
 
   if (status === 'skipped') results.skipped++;
   else results.errors++;
@@ -310,7 +358,7 @@ async function handleFailure(
   await logAuditEvent({
     actorId: null,
     actorRole: 'system',
-    tenantId: member.tenantId,
+    authority,
     action: 'email.engagement.failed',
     entityType: 'subscription',
     entityId: member.subId,
@@ -319,10 +367,10 @@ async function handleFailure(
   });
 }
 
-async function markAsSkipped(dedupeKey: string, tenantId: string, reason: string) {
-  await updateEngagementSend(tenantId, dedupeKey, { status: 'skipped', error: reason });
+async function markAsSkipped(dedupeKey: string, authority: TenantAuthority, reason: string) {
+  await updateEngagementSend(authority, dedupeKey, { status: 'skipped', error: reason });
 }
 
-async function markAsError(dedupeKey: string, tenantId: string, reason: string) {
-  await updateEngagementSend(tenantId, dedupeKey, { status: 'error', error: reason });
+async function markAsError(dedupeKey: string, authority: TenantAuthority, reason: string) {
+  await updateEngagementSend(authority, dedupeKey, { status: 'error', error: reason });
 }

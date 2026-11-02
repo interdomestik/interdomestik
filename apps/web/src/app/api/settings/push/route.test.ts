@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -51,13 +55,13 @@ const mockTenantTx = {
   delete: () => mockDeleteChain,
 };
 const mockWithTenantContext = vi.fn(
-  async (_context: { tenantId: string }, action: (tx: typeof mockTenantTx) => Promise<unknown>) =>
+  async (_context: TenantAuthority, action: (tx: typeof mockTenantTx) => Promise<unknown>) =>
     action(mockTenantTx)
 );
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: (
-    context: { tenantId: string },
+    context: TenantAuthority,
     action: (tx: typeof mockTenantTx) => Promise<unknown>
   ) => mockWithTenantContext(context, action),
 }));
@@ -198,6 +202,7 @@ describe('POST /api/settings/push', () => {
     const response = await POST(postRequest());
 
     await expectJsonResponse(response, 200, { success: true });
+    expect(readTenantAuthority(mockWithTenantContext.mock.calls[0][0]).tenantId).toBe('tenant_mk');
     expect(mockInsertChain.values).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'test-id-123',

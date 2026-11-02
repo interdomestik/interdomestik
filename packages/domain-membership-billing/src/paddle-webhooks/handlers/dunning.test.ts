@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionPastDue } from './dunning';
 import {
+  TEST_PADDLE_DELIVERY,
   createPastDueSubscriptionEvent,
   mockSubscriptionOwner,
   mockUserOwner,
@@ -104,6 +105,7 @@ describe('handleSubscriptionPastDue', () => {
 
     await handleSubscriptionPastDue(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         data: {
           id: 'sub_paddle_456',
           status: 'past_due',
@@ -146,6 +148,7 @@ describe('handleSubscriptionPastDue', () => {
 
     await handleSubscriptionPastDue(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         data: {
           id: 'sub_paddle_456',
           status: 'past_due',

@@ -1,17 +1,25 @@
 import { isStaffOrAdmin } from '@/lib/roles';
-import { claims, eq, withTenantContext } from '@interdomestik/database';
+import { claims, eq } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import {
   claimLifecycleStatusIn,
   claimLifecycleStatusIs,
 } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, count, desc, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export async function getAgentDashboardDataCore(params: { session: Session | null }) {
-  const { session } = params;
+export async function getAgentDashboardDataCore(params: {
+  session: Session | null;
+  authority: TenantAuthority | null;
+}) {
+  const { session, authority } = params;
 
   if (!session?.user) {
     throw new Error('Unauthorized');
@@ -28,12 +36,15 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
     throw new Error('Unauthorized');
   }
 
-  let tenantId: string;
   try {
-    tenantId = ensureTenantId(session);
+    ensureTenantId(session);
   } catch {
     throw new Error('Missing tenantId');
   }
+  if (!authority) {
+    throw new Error('Unauthorized');
+  }
+  const { tenantId } = readTenantAuthority(authority);
 
   const completedStatuses: readonly ClaimStatus[] = ['resolved', 'rejected'];
   const newStatus: ClaimStatus = 'submitted';
@@ -41,10 +52,10 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
     status => status !== 'draft' && status !== newStatus && !completedStatuses.includes(status)
   );
 
-  const [totalRes] = await withTenantContext({ tenantId }, async tx =>
+  const [totalRes] = await withTenantAuthority(authority, async tx =>
     tx.select({ count: count() }).from(claims).where(eq(claims.tenantId, tenantId))
   );
-  const [newRes] = await withTenantContext({ tenantId }, async tx =>
+  const [newRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(claims)
@@ -54,20 +65,20 @@ export async function getAgentDashboardDataCore(params: { session: Session | nul
   const inProgressCondition =
     inProgressStatuses.length > 0 ? claimLifecycleStatusIn(inProgressStatuses) : sql`false`;
 
-  const [inProgressRes] = await withTenantContext({ tenantId }, async tx =>
+  const [inProgressRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(claims)
       .where(and(eq(claims.tenantId, tenantId), inProgressCondition))
   );
-  const [completedRes] = await withTenantContext({ tenantId }, async tx =>
+  const [completedRes] = await withTenantAuthority(authority, async tx =>
     tx
       .select({ count: count() })
       .from(claims)
       .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIn(completedStatuses)))
   );
 
-  const recentClaims = await withTenantContext({ tenantId }, async tx =>
+  const recentClaims = await withTenantAuthority(authority, async tx =>
     tx.query.claims.findMany({
       where: eq(claims.tenantId, tenantId),
       orderBy: [desc(claims.updatedAt)],

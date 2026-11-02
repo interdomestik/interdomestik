@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   submitBusinessMembershipLeadCore,
@@ -10,6 +11,8 @@ const mockRunCommercialActionWithIdempotency = vi.fn();
 const mockResolveTenantIdFromRequest = vi.fn();
 const mockResolveBusinessLeadOwner = vi.fn();
 const mockCreateLead = vi.fn();
+const mockAuthorizePublicSiteTenant = vi.fn();
+const authority = mintTestTenantAuthority('tenant_ks');
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
@@ -32,6 +35,10 @@ vi.mock('@interdomestik/domain-leads', () => ({
   createLead: (...args: unknown[]) => mockCreateLead(...args),
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  authorizePublicSiteTenant: (...args: unknown[]) => mockAuthorizePublicSiteTenant(...args),
+}));
+
 vi.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
 }));
@@ -52,6 +59,7 @@ describe('submitBusinessMembershipLeadCore', () => {
     vi.clearAllMocks();
     mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
     mockResolveTenantIdFromRequest.mockResolvedValue('tenant_ks');
+    mockAuthorizePublicSiteTenant.mockResolvedValue(authority);
     mockResolveBusinessLeadOwner.mockResolvedValue({
       agentId: 'agent_system',
       branchId: 'branch_default',
@@ -77,10 +85,10 @@ describe('submitBusinessMembershipLeadCore', () => {
       },
     });
     expect(mockResolveTenantIdFromRequest).toHaveBeenCalled();
-    expect(mockResolveBusinessLeadOwner).toHaveBeenCalledWith('tenant_ks');
+    expect(mockResolveBusinessLeadOwner.mock.calls[0]?.[0]).toBe(authority);
     expect(mockCreateLead).toHaveBeenCalledWith(
       {
-        tenantId: 'tenant_ks',
+        authority,
         agentId: 'agent_system',
         branchId: 'branch_default',
       },
@@ -92,6 +100,7 @@ describe('submitBusinessMembershipLeadCore', () => {
         notes: expect.stringContaining('"companyName":"Interdomestik Fleet"'),
       })
     );
+    expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmSource":"google"');
     expect(mockCreateLead.mock.calls[0]?.[1]?.notes).toContain('"utmCampaign":"fleet"');
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
@@ -99,7 +108,7 @@ describe('submitBusinessMembershipLeadCore', () => {
         action: 'business-membership.submit',
         scope: {
           kind: 'tenant',
-          tenantId: 'tenant_ks',
+          authority,
         },
         idempotencyKey: 'biz-1',
         requestFingerprint: validInput,
@@ -121,10 +130,39 @@ describe('submitBusinessMembershipLeadCore', () => {
       expect.objectContaining({
         scope: {
           kind: 'tenant',
-          tenantId: 'tenant_ks',
+          authority,
         },
       })
     );
+  });
+
+  it('mints the public-site authority for the host tenant, never from the payload', async () => {
+    await submitBusinessMembershipLeadCore({
+      requestHeaders: new Headers(),
+      data: { ...validInput, tenantId: 'tenant_mk' } as SubmitBusinessMembershipLeadInput,
+    });
+
+    expect(mockAuthorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_ks');
+    expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
+  });
+
+  it('writes nothing when the host tenant is not active', async () => {
+    mockAuthorizePublicSiteTenant.mockResolvedValueOnce(null);
+
+    const result = await submitBusinessMembershipLeadCore({
+      idempotencyKey: 'biz-no-authority',
+      requestHeaders: new Headers(),
+      data: validInput,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Business intake is temporarily unavailable. Please contact support directly.',
+      code: 'TENANT_AUTHORITY_REQUIRED',
+    });
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+    expect(mockResolveBusinessLeadOwner).not.toHaveBeenCalled();
+    expect(mockCreateLead).not.toHaveBeenCalled();
   });
 
   it('ignores malformed referer values instead of failing the action', async () => {

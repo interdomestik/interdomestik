@@ -1,3 +1,4 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,6 +30,9 @@ vi.mock('./_core', async importOriginal => {
 
 import { GET } from './route';
 
+// Stands in for the capability the route's cron admission returns.
+const INGRESS = Object.freeze({}) as IngressCapability<'cron'>;
+
 const result = {
   completedAt: '2026-05-14T05:15:01.000Z',
   failedWorkItems: 0,
@@ -46,7 +50,7 @@ describe('GET /api/cron/crm/forecast-snapshots', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
-    hoisted.authorizeCronRequest.mockReturnValue(true);
+    hoisted.authorizeCronRequest.mockReturnValue(INGRESS);
     hoisted.getCrmForecastSnapshotSchedulerStatus.mockReturnValue(200);
     hoisted.runCrmForecastSnapshotSchedulerCore.mockResolvedValue(result);
   });
@@ -62,7 +66,7 @@ describe('GET /api/cron/crm/forecast-snapshots', () => {
   });
 
   it('returns 401 and performs no scheduler work when unauthorized', async () => {
-    hoisted.authorizeCronRequest.mockReturnValue(false);
+    hoisted.authorizeCronRequest.mockReturnValue(null);
 
     const req = new NextRequest('http://localhost:3000/api/cron/crm/forecast-snapshots');
     const res = await GET(req);
@@ -82,9 +86,11 @@ describe('GET /api/cron/crm/forecast-snapshots', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ result, success: true });
     expect(hoisted.runCrmForecastSnapshotSchedulerCore).toHaveBeenCalledWith({
+      ingress: INGRESS,
       now: expect.any(Date),
       requestedDate: '2026-05-13',
     });
+    expect(hoisted.runCrmForecastSnapshotSchedulerCore.mock.calls[0][0].ingress).toBe(INGRESS);
     expect(hoisted.logCrmForecastSnapshotSchedulerResult).toHaveBeenCalledWith(result, 200);
   });
 

@@ -1,5 +1,6 @@
 import { ExtractionPipelineError } from '@/lib/ai/extraction-pipeline';
-import { withTenantContext } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { aiRuns, documents } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 
@@ -10,6 +11,7 @@ export type DeletedDocumentFailure = {
 
 type ProcessingRunDocument = {
   runId: string;
+  authority: TenantAuthority;
   tenantId: string;
   documentId: string;
 };
@@ -34,26 +36,24 @@ export async function assertProcessingRunHasActiveDocument(
   run: ProcessingRunDocument,
   failure: DeletedDocumentFailure
 ) {
-  // db-access-guard: tenant-scoped -- reason: pre-download liveness check is constrained by exact runId, tenantId, and documentId before AI document processing
-  const [activeRun] = await withTenantContext(
-    { tenantId: run.tenantId, role: 'system' },
-    async tx =>
-      tx
-        .select({ id: aiRuns.id })
-        .from(aiRuns)
-        .innerJoin(
-          documents,
-          and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+  // Pre-download liveness check, constrained by exact runId, tenantId, and documentId.
+  const [activeRun] = await withTenantAuthority(run.authority, async tx =>
+    tx
+      .select({ id: aiRuns.id })
+      .from(aiRuns)
+      .innerJoin(
+        documents,
+        and(eq(documents.id, aiRuns.documentId), eq(documents.tenantId, aiRuns.tenantId))
+      )
+      .where(
+        and(
+          eq(aiRuns.id, run.runId),
+          eq(aiRuns.status, 'processing'),
+          eq(documents.id, run.documentId),
+          eq(documents.tenantId, run.tenantId),
+          isNull(documents.deletedAt)
         )
-        .where(
-          and(
-            eq(aiRuns.id, run.runId),
-            eq(aiRuns.status, 'processing'),
-            eq(documents.id, run.documentId),
-            eq(documents.tenantId, run.tenantId),
-            isNull(documents.deletedAt)
-          )
-        )
+      )
   );
 
   if (!activeRun) throwDeletedDocumentError(failure);

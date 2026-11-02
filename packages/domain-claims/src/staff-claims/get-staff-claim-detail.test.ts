@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 import { createClaimRow } from './get-staff-claim-detail.test-support';
@@ -52,6 +53,11 @@ vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 
+const authorities = {
+  'tenant-ks': mintTestTenantAuthority('tenant-ks'),
+  'tenant-mk': mintTestTenantAuthority('tenant-mk'),
+};
+
 describe('getStaffClaimDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -100,7 +106,7 @@ describe('getStaffClaimDetail', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
@@ -162,7 +168,7 @@ describe('getStaffClaimDetail', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
@@ -208,7 +214,7 @@ describe('getStaffClaimDetail', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
@@ -228,7 +234,7 @@ describe('getStaffClaimDetail', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-9',
-      tenantId: 'tenant-mk',
+      authority: authorities['tenant-mk'],
       claimId: 'claim-9',
     });
 
@@ -240,7 +246,7 @@ describe('getStaffClaimDetail', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-9',
-      tenantId: 'tenant-mk',
+      authority: authorities['tenant-mk'],
       claimId: 'claim-9',
     });
 
@@ -254,7 +260,7 @@ describe('getStaffClaimDetail', () => {
     const result = await getStaffClaimDetail({
       branchId: 'branch-2',
       staffId: 'staff-9',
-      tenantId: 'tenant-mk',
+      authority: authorities['tenant-mk'],
       claimId: 'claim-9',
     });
 

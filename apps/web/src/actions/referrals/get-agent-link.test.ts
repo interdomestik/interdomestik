@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Session } from './context';
@@ -39,6 +40,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 describe('actions/referrals getAgentReferralLinkCore', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -52,6 +54,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
       session: {
         user: { id: 'u1', role: 'user', name: 'Member', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<Session>,
+      authority,
     });
 
     expect(result).toEqual({ success: false, error: 'Access denied' });
@@ -62,6 +65,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
       session: {
         user: { id: 'u1', role: 'agent', name: 'Agent', tenantId: null },
       } as unknown as NonNullable<Session>,
+      authority: null,
     });
 
     expect(result).toEqual({ success: false, error: 'Missing tenant context' });
@@ -70,6 +74,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
   it('denies access when session is null', async () => {
     const result = await getAgentReferralLinkCore({
       session: null,
+      authority: null,
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
@@ -80,9 +85,10 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
       session: {
         user: { id: 'agent-1', role: 'agent', name: 'Agent Smith', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<Session>,
+      authority,
     });
 
-    expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.code).toBe('EXISTING-CODE');
@@ -98,6 +104,7 @@ describe('actions/referrals getAgentReferralLinkCore', () => {
       session: {
         user: { id: 'agent-1', role: 'agent', name: 'Agent Smith', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<Session>,
+      authority,
     });
 
     expect(result.success).toBe(true);

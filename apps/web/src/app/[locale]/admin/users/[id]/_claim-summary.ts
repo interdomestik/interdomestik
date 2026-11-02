@@ -1,6 +1,9 @@
-import { withTenantContext } from '@interdomestik/database';
 import type { db as defaultDb } from '@interdomestik/database/db';
 import { claims } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claimLifecycleStatusSql } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { and, count, desc, eq } from 'drizzle-orm';
@@ -11,6 +14,7 @@ import {
 } from '@/features/admin/claims/server/claimVisibility';
 
 import type { AdminUserClaimCounts } from './_core';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type DbClient = Pick<typeof defaultDb, 'select'>;
 
@@ -29,25 +33,36 @@ function computeClaimCounts(rows: Array<{ status: string | null; total: unknown 
   return counts;
 }
 
-type AdminUserClaimSummaryArgs = {
-  db?: DbClient;
+type AdminUserClaimSummaryBase = {
   recentClaimsLimit: number;
   scope: AdminUserClaimSummaryScope;
-  tenantId: string;
   userId: string;
 };
 
+type AdminUserClaimSummaryArgs = AdminUserClaimSummaryBase &
+  // The caller already runs inside its own tenant transaction.
+  (
+    | { db: DbClient; tenantId: string; authority?: undefined }
+    // No executor: a tenant transaction is opened under the session's tenant authority.
+    | { db?: undefined; authority: TenantAuthority; tenantId?: undefined }
+  );
+
 export async function getAdminUserClaimSummary(args: AdminUserClaimSummaryArgs) {
-  const { db: executor } = args;
-  if (executor) return summarizeAdminUserClaims(executor, args);
+  if (args.db) {
+    return summarizeAdminUserClaims(args.db, { ...args, tenantId: args.tenantId });
+  }
 
   // No caller-supplied executor: the ambient client has no tenant context, so open one.
-  return withTenantContext({ tenantId: args.tenantId, role: args.scope.role }, tx =>
-    summarizeAdminUserClaims(tx, args)
+  const { tenantId } = readTenantAuthority(args.authority);
+  return withTenantAuthority(args.authority, tx =>
+    summarizeAdminUserClaims(tx, { ...args, tenantId })
   );
 }
 
-async function summarizeAdminUserClaims(db: DbClient, args: AdminUserClaimSummaryArgs) {
+async function summarizeAdminUserClaims(
+  db: DbClient,
+  args: AdminUserClaimSummaryBase & { tenantId: string }
+) {
   const where = and(
     eq(claims.userId, args.userId),
     eq(claims.tenantId, args.tenantId),

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -41,6 +42,8 @@ vi.mock('@interdomestik/shared-auth', () => ({
 
 import { assignClaimCore } from './assign';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 const baseSession = {
   user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
 };
@@ -62,6 +65,7 @@ describe('assignClaimCore', () => {
     );
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: null,
       session: baseSession as never,
@@ -79,6 +83,7 @@ describe('assignClaimCore', () => {
 
   it('prevents staff from assigning other staff', async () => {
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: 'other-staff-id',
       session: baseSession as never, // Role is staff
@@ -99,6 +104,7 @@ describe('assignClaimCore', () => {
     });
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: 'other-staff-id',
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
@@ -112,6 +118,7 @@ describe('assignClaimCore', () => {
     mocks.findFirst.mockResolvedValueOnce(null);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: 'staff-2',
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
@@ -124,6 +131,7 @@ describe('assignClaimCore', () => {
 
   it('rejects invalid assignee input fail-closed with no mutation', async () => {
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       staffId: { bad: true } as any,
@@ -142,6 +150,7 @@ describe('assignClaimCore', () => {
     (userQueries.findFirst as any).mockResolvedValueOnce(null);
 
     const result = await assignClaimCore({
+      authority,
       claimId: 'claim-1',
       staffId: 'missing-staff',
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,

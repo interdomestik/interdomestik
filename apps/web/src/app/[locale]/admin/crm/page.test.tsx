@@ -1,7 +1,9 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  authorizeSessionTenantMock: vi.fn(),
   getAdminCrmReportingCoreMock: vi.fn(),
   getAdminCrmRoutingRulesCoreMock: vi.fn(),
   getBranchManagerCrmReportingCoreMock: vi.fn(),
@@ -33,6 +35,14 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@/components/shell/session', () => ({
   getSessionSafe: hoisted.getSessionSafeMock,
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn(async () => new Headers()),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -89,9 +99,12 @@ vi.mock('./_backfill-operator', () => ({
 
 import AdminCrmPage from './page';
 
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
+
 describe('AdminCrmPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.authorizeSessionTenantMock.mockResolvedValue({ authority: TEST_AUTHORITY });
     hoisted.getSessionSafeMock.mockResolvedValue({
       user: {
         branchId: null,
@@ -326,6 +339,7 @@ describe('AdminCrmPage', () => {
           scope: { branchId: null },
           tenantId: 'tenant-1',
         },
+        authority: TEST_AUTHORITY,
       },
       { labels: { noBranch: 'labels.noBranch' } }
     );
@@ -336,6 +350,7 @@ describe('AdminCrmPage', () => {
         scope: { branchId: null },
         tenantId: 'tenant-1',
       },
+      authority: TEST_AUTHORITY,
     });
     expect(screen.getByTestId('admin-crm-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('admin-crm-reporting-snapshot')).toBeInTheDocument();
@@ -381,6 +396,7 @@ describe('AdminCrmPage', () => {
             scope: { branchId: 'branch-1' },
             tenantId: 'tenant-1',
           },
+          authority: TEST_AUTHORITY,
         },
         { labels: { noBranch: 'labels.noBranch' } }
       );
@@ -414,6 +430,7 @@ describe('AdminCrmPage', () => {
           scope: { branchId: 'branch-1' },
           tenantId: 'tenant-1',
         },
+        authority: TEST_AUTHORITY,
       },
       { branchLabel: 'branch-1' }
     );

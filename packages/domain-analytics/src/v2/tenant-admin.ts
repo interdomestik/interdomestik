@@ -1,7 +1,11 @@
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import { claimLifecycleStatusIn, claimLifecycleStatusIs } from '@interdomestik/domain-claims';
 import { and, count, eq } from 'drizzle-orm';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface TenantAdminKPIs {
   totalBranches: number;
@@ -16,7 +20,8 @@ export interface TenantAdminKPIs {
   };
 }
 
-export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminKPIs> {
+export async function getTenantAdminKPIs(authority: TenantAuthority): Promise<TenantAdminKPIs> {
+  const { tenantId } = readTenantAuthority(authority);
   const [
     branchCount,
     agentCount,
@@ -27,34 +32,34 @@ export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminK
     approvedClaims,
     rejectedClaims,
   ] = await Promise.all([
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx.select({ count: count() }).from(branches).where(eq(branches.tenantId, tenantId))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(user)
         .where(and(eq(user.tenantId, tenantId), eq(user.role, 'agent')))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(user)
         .where(and(eq(user.tenantId, tenantId), eq(user.role, 'member')))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(claims)
         .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('draft')))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(claims)
         .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('submitted')))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(claims)
@@ -65,13 +70,13 @@ export async function getTenantAdminKPIs(tenantId: string): Promise<TenantAdminK
           )
         )
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(claims)
         .where(and(eq(claims.tenantId, tenantId), claimLifecycleStatusIs('resolved')))
     ),
-    withTenantContext({ tenantId }, tx =>
+    withTenantAuthority(authority, tx =>
       tx
         .select({ count: count() })
         .from(claims)

@@ -1,11 +1,15 @@
-import { withTenantContext } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { customAlphabet } from 'nanoid';
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
 import type { ActionResult, MemberReferralLink, MemberReferralSession } from './types';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 function getPublicAppUrl() {
   return (
@@ -18,22 +22,23 @@ function getPublicAppUrl() {
 
 export async function getMemberReferralLinkCore(params: {
   session: MemberReferralSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<MemberReferralLink>> {
-  const { session } = params;
+  const { session, authority } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // SECURITY: Tenant scoping
-  const tenantId = session.user.tenantId;
-  if (!tenantId) {
+  // SECURITY: Tenant scoping comes from the request's tenant authority
+  if (!authority) {
     return { success: false, error: 'Missing tenant context' };
   }
+  const { tenantId } = readTenantAuthority(authority);
 
   try {
     // SECURITY: Query scoped to tenant + user
-    const member = await withTenantContext({ tenantId }, tx =>
+    const member = await withTenantAuthority(authority, tx =>
       tx.query.user.findFirst({
         where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
         columns: {
@@ -58,7 +63,7 @@ export async function getMemberReferralLinkCore(params: {
       code = `${namePart}-${randomPart}`;
 
       // SECURITY: Update scoped to tenant + user
-      await withTenantContext({ tenantId }, tx =>
+      await withTenantAuthority(authority, tx =>
         tx
           .update(user)
           .set({ referralCode: code })

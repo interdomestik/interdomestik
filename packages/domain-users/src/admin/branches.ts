@@ -1,24 +1,30 @@
-import { branches, eq, withTenantContext } from '@interdomestik/database';
+import { branches, eq } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
 import { randomUUID } from 'node:crypto'; // NOSONAR
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { branchSlugFromName } from './branch-slug';
-import { resolveTenantId } from './utils';
+import { resolveTenantAuthority } from './utils';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function listBranchesCore(params: {
   session: UserSession | null;
-  tenantId?: string;
+  authority: TenantAuthority | null;
   includeInactive?: boolean;
 }) {
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
+  const authority = await resolveTenantAuthority(session, params.authority);
+  const { tenantId } = readTenantAuthority(authority);
 
   const baseConditions = params.includeInactive ? undefined : eq(branches.isActive, true);
 
-  return withTenantContext({ tenantId }, async tx =>
+  return withTenantAuthority(authority, async tx =>
     tx.query.branches.findMany({
       where: withTenant(tenantId, branches.tenantId, baseConditions),
       orderBy: (b, { asc }) => [asc(b.name)],
@@ -29,7 +35,7 @@ export async function listBranchesCore(params: {
 export async function createBranchCore(
   params: {
     session: UserSession | null;
-    tenantId?: string;
+    authority: TenantAuthority | null;
     name: string;
     code?: string | null;
   },
@@ -38,7 +44,8 @@ export async function createBranchCore(
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
+  const authority = await resolveTenantAuthority(session, params.authority);
+  const { tenantId } = readTenantAuthority(authority);
 
   const name = params.name.trim();
   if (!name) {
@@ -52,7 +59,7 @@ export async function createBranchCore(
   }
 
   // Uniqueness Check
-  const existing = await withTenantContext({ tenantId }, async tx =>
+  const existing = await withTenantAuthority(authority, async tx =>
     tx.query.branches.findFirst({
       where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
     })
@@ -62,7 +69,7 @@ export async function createBranchCore(
   }
 
   if (params.code) {
-    const existingCode = await withTenantContext({ tenantId }, async tx =>
+    const existingCode = await withTenantAuthority(authority, async tx =>
       tx.query.branches.findFirst({
         where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code!)),
       })
@@ -76,7 +83,7 @@ export async function createBranchCore(
   const code = params.code?.trim() || null;
 
   // db-access-guard: tenant-scoped -- reason: tenantId from validated admin session before branch insert
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx.insert(branches).values({
       id: branchId,
       tenantId,
@@ -96,7 +103,7 @@ export async function createBranchCore(
       action: 'branch.created',
       entityType: 'branch',
       entityId: branchId,
-      tenantId,
+      authority,
       metadata: { name, code, slug },
     });
   }
@@ -107,7 +114,7 @@ export async function createBranchCore(
 export async function updateBranchCore(
   params: {
     session: UserSession | null;
-    tenantId?: string;
+    authority: TenantAuthority | null;
     branchId: string;
     name: string;
     code?: string | null;
@@ -118,7 +125,8 @@ export async function updateBranchCore(
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
-  const tenantId = resolveTenantId(session, params.tenantId);
+  const authority = await resolveTenantAuthority(session, params.authority);
+  const { tenantId } = readTenantAuthority(authority);
 
   const name = params.name.trim();
   if (!name) {
@@ -127,7 +135,7 @@ export async function updateBranchCore(
 
   const slug = branchSlugFromName(name);
 
-  const existing = await withTenantContext({ tenantId }, async tx =>
+  const existing = await withTenantAuthority(authority, async tx =>
     tx.query.branches.findFirst({
       where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),
     })
@@ -137,7 +145,7 @@ export async function updateBranchCore(
   }
 
   if (params.code) {
-    const existingCode = await withTenantContext({ tenantId }, async tx =>
+    const existingCode = await withTenantAuthority(authority, async tx =>
       tx.query.branches.findFirst({
         where: withTenant(tenantId, branches.tenantId, eq(branches.code, params.code!)),
       })
@@ -147,7 +155,7 @@ export async function updateBranchCore(
     }
   }
 
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .update(branches)
       .set({
@@ -167,7 +175,7 @@ export async function updateBranchCore(
       action: 'branch.updated',
       entityType: 'branch',
       entityId: params.branchId,
-      tenantId,
+      authority,
       metadata: { name, code: params.code, isActive: params.isActive },
     });
   }
@@ -178,7 +186,7 @@ export async function updateBranchCore(
 export async function deleteBranchCore(
   params: {
     session: UserSession | null;
-    tenantId?: string;
+    authority: TenantAuthority | null;
     branchId: string;
   },
   deps: UserDomainDeps = {}
@@ -186,9 +194,10 @@ export async function deleteBranchCore(
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
-  const tenantId = resolveTenantId(session!, params.tenantId);
+  const authority = await resolveTenantAuthority(session, params.authority);
+  const { tenantId } = readTenantAuthority(authority);
 
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .update(branches)
       .set({
@@ -205,7 +214,7 @@ export async function deleteBranchCore(
       action: 'branch.deleted', // or branch.deactivated since it's soft delete
       entityType: 'branch',
       entityId: params.branchId,
-      tenantId,
+      authority,
     });
   }
 

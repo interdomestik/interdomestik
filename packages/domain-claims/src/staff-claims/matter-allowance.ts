@@ -5,9 +5,13 @@ import {
   sql,
   subscriptions,
   type TenantTransaction,
-  withTenantContext,
 } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export const FAMILY_MATTER_ALLOWANCE = 5;
 export const STANDARD_MATTER_ALLOWANCE = 2;
@@ -35,12 +39,25 @@ export type MatterAllowanceSubscriptionContext = {
   subscriptionId: string;
 };
 
+// A caller either runs inside a tenant transaction it already opened (tx plus the tenant it
+// scopes predicates to), or hands over the request's tenant authority so the read opens its own.
+export type MatterAllowanceScope =
+  | { authority?: undefined; tenantId: string; tx: TenantTransaction }
+  | { authority: TenantAuthority; tenantId?: undefined; tx?: undefined };
+
+function scopeTenantId(scope: MatterAllowanceScope): string {
+  return scope.tx ? scope.tenantId : readTenantAuthority(scope.authority).tenantId;
+}
+
+function pickScope(scope: MatterAllowanceScope): MatterAllowanceScope {
+  return scope.tx ? { tenantId: scope.tenantId, tx: scope.tx } : { authority: scope.authority };
+}
+
 function withTenantExecutor<T>(
-  tx: TenantTransaction | undefined,
-  tenantId: string,
+  scope: MatterAllowanceScope,
   action: (executor: TenantTransaction) => Promise<T>
 ): Promise<T> {
-  return tx ? action(tx) : withTenantContext({ tenantId }, action);
+  return scope.tx ? action(scope.tx) : withTenantAuthority(scope.authority, action);
 }
 
 function normalizeDate(value: NormalizableDate) {
@@ -86,19 +103,20 @@ export function getRecoveryMatterServiceCode(claimId: string) {
   return `${RECOVERY_MATTER_SERVICE_CODE_PREFIX}${claimId}`;
 }
 
-export async function hasRecoveryMatterUsageForClaim(params: {
-  tx?: TenantTransaction;
-  claimId: string;
-  subscriptionId: string;
-  tenantId: string;
-}) {
-  const [existingUsage] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+export async function hasRecoveryMatterUsageForClaim(
+  params: MatterAllowanceScope & {
+    claimId: string;
+    subscriptionId: string;
+  }
+) {
+  const tenantId = scopeTenantId(params);
+  const [existingUsage] = await withTenantExecutor(params, executor =>
     executor
       .select({ id: serviceUsage.id })
       .from(serviceUsage)
       .where(
         withTenant(
-          params.tenantId,
+          tenantId,
           serviceUsage.tenantId,
           and(
             eq(serviceUsage.subscriptionId, params.subscriptionId),
@@ -112,27 +130,28 @@ export async function hasRecoveryMatterUsageForClaim(params: {
   return !!existingUsage;
 }
 
-export async function countRecoveryMatterUsageInWindow(params: {
-  lockUsage?: boolean;
-  tx?: TenantTransaction;
-  end: Date;
-  start: Date;
-  subscriptionId: string;
-  tenantId: string;
-}) {
+export async function countRecoveryMatterUsageInWindow(
+  params: MatterAllowanceScope & {
+    lockUsage?: boolean;
+    end: Date;
+    start: Date;
+    subscriptionId: string;
+  }
+) {
+  const tenantId = scopeTenantId(params);
   if (params.lockUsage !== false)
     await params.tx?.execute(
-      sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify(['recovery', params.tenantId, params.subscriptionId])}, 0))`
+      sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify(['recovery', tenantId, params.subscriptionId])}, 0))`
     );
   const endBoundary = params.end.toISOString();
   const startBoundary = params.start.toISOString();
-  const [usageCount] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+  const [usageCount] = await withTenantExecutor(params, executor =>
     executor
       .select({ count: sql<number>`count(*)` })
       .from(serviceUsage)
       .where(
         withTenant(
-          params.tenantId,
+          tenantId,
           serviceUsage.tenantId,
           and(
             eq(serviceUsage.subscriptionId, params.subscriptionId),
@@ -148,12 +167,13 @@ export async function countRecoveryMatterUsageInWindow(params: {
   return Number(usageCount?.count ?? 0);
 }
 
-export async function getMatterAllowanceSubscriptionContextForUser(params: {
-  tx?: TenantTransaction;
-  tenantId: string;
-  userId: string;
-}): Promise<MatterAllowanceSubscriptionContext | null> {
-  const [subscription] = await withTenantExecutor(params.tx, params.tenantId, executor =>
+export async function getMatterAllowanceSubscriptionContextForUser(
+  params: MatterAllowanceScope & {
+    userId: string;
+  }
+): Promise<MatterAllowanceSubscriptionContext | null> {
+  const tenantId = scopeTenantId(params);
+  const [subscription] = await withTenantExecutor(params, executor =>
     executor
       .select({
         id: subscriptions.id,
@@ -162,9 +182,7 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
         planId: subscriptions.planId,
       })
       .from(subscriptions)
-      .where(
-        withTenant(params.tenantId, subscriptions.tenantId, eq(subscriptions.userId, params.userId))
-      )
+      .where(withTenant(tenantId, subscriptions.tenantId, eq(subscriptions.userId, params.userId)))
       .limit(1)
   );
 
@@ -174,13 +192,13 @@ export async function getMatterAllowanceSubscriptionContextForUser(params: {
   return { subscriptionId, ...context };
 }
 
-export async function getMatterAllowanceContextForSubscription(params: {
-  lockUsage?: boolean;
-  tx?: TenantTransaction;
-  now?: Date;
-  subscription: MatterAllowanceSubscriptionContext;
-  tenantId: string;
-}): Promise<MatterAllowanceContext> {
+export async function getMatterAllowanceContextForSubscription(
+  params: MatterAllowanceScope & {
+    lockUsage?: boolean;
+    now?: Date;
+    subscription: MatterAllowanceSubscriptionContext;
+  }
+): Promise<MatterAllowanceContext> {
   const { subscription } = params;
 
   const allowanceWindow = buildMatterAllowanceWindow({
@@ -190,12 +208,11 @@ export async function getMatterAllowanceContextForSubscription(params: {
   });
   const allowanceTotal = resolveMatterAllowance(subscription.planId);
   const consumedCount = await countRecoveryMatterUsageInWindow({
+    ...pickScope(params),
     lockUsage: params.lockUsage,
-    tx: params.tx,
     end: allowanceWindow.end,
     start: allowanceWindow.start,
     subscriptionId: subscription.subscriptionId,
-    tenantId: params.tenantId,
   });
 
   return {
@@ -208,34 +225,41 @@ export async function getMatterAllowanceContextForSubscription(params: {
   };
 }
 
-export async function getMatterAllowanceContextForUser(params: {
-  lockUsage?: boolean;
-  tx?: TenantTransaction;
-  tenantId: string;
-  userId: string;
-  now?: Date;
-}): Promise<MatterAllowanceContext | null> {
-  const subscription = await getMatterAllowanceSubscriptionContextForUser(params);
+export async function getMatterAllowanceContextForUser(
+  params: MatterAllowanceScope & {
+    lockUsage?: boolean;
+    userId: string;
+    now?: Date;
+  }
+): Promise<MatterAllowanceContext | null> {
+  const subscription = await getMatterAllowanceSubscriptionContextForUser({
+    ...pickScope(params),
+    userId: params.userId,
+  });
 
   if (!subscription) return null;
 
   return getMatterAllowanceContextForSubscription({
+    ...pickScope(params),
     lockUsage: params.lockUsage,
-    tx: params.tx,
     now: params.now,
     subscription,
-    tenantId: params.tenantId,
   });
 }
 
-export async function getMatterAllowanceVisibilityForUser(params: {
-  tx?: TenantTransaction;
-  tenantId: string;
-  userId: string;
-  now?: Date;
-}): Promise<MatterAllowanceVisibility | null> {
+export async function getMatterAllowanceVisibilityForUser(
+  params: MatterAllowanceScope & {
+    userId: string;
+    now?: Date;
+  }
+): Promise<MatterAllowanceVisibility | null> {
   // Visibility is advisory; only allowance-consuming workflows need the write lock.
-  const context = await getMatterAllowanceContextForUser({ ...params, lockUsage: false });
+  const context = await getMatterAllowanceContextForUser({
+    ...pickScope(params),
+    lockUsage: false,
+    now: params.now,
+    userId: params.userId,
+  });
 
   if (!context) return null;
 

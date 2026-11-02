@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createAdminCrmForecastBackfillConfirmationStore } from './_backfill-confirmation';
@@ -7,6 +8,8 @@ import {
 } from './_backfill-core';
 import type { CrmForecastSnapshotBackfillResult } from '../../../api/cron/crm/forecast-snapshots/backfill/_core';
 import type { AdminCrmForecastBackfillOperatorActionInput } from './_backfill-types';
+
+const TEST_AUTHORITY = mintTestTenantAuthority('tenant-1');
 
 function adminSession(role = 'admin') {
   return {
@@ -77,6 +80,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
     const result = await runAdminCrmForecastBackfillOperatorCore(
       {
         input: { request: { tenantId: '' } },
+        authority: TEST_AUTHORITY,
         session: adminSession('branch_manager'),
       },
       { runBackfillCore }
@@ -95,7 +99,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
       const runBackfillCore = vi.fn(async () => coreResult());
 
       const result = await runAdminCrmForecastBackfillOperatorCore(
-        { input: dryRunInput(), session: adminSession(role) },
+        { input: dryRunInput(), authority: TEST_AUTHORITY, session: adminSession(role) },
         {
           confirmationStore,
           now: () => new Date('2026-05-15T10:00:00.000Z'),
@@ -110,10 +114,12 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
         expect.objectContaining({
           dryRun: true,
           fromDate: '2026-05-14',
-          tenantId: 'tenant-1',
           toDate: '2026-05-14',
         })
       );
+      const [coreArgs] = (runBackfillCore.mock.calls as unknown as [Record<string, unknown>][])[0];
+      expect(coreArgs.authority).toBe(TEST_AUTHORITY);
+      expect(coreArgs).not.toHaveProperty('tenantId');
     }
   );
 
@@ -121,11 +127,43 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
     const runBackfillCore = vi.fn();
 
     const result = await runAdminCrmForecastBackfillOperatorCore(
-      { input: dryRunInput({ tenantId: 'tenant-2' }), session: adminSession() },
+      {
+        input: dryRunInput({ tenantId: 'tenant-2' }),
+        authority: TEST_AUTHORITY,
+        session: adminSession(),
+      },
       { runBackfillCore }
     );
 
     expect(result).toEqual({ errorCode: 'invalid_tenant', result: null, success: false });
+    expect(runBackfillCore).not.toHaveBeenCalled();
+  });
+
+  it('fails closed without a tenant authority, however the session reads', async () => {
+    const runBackfillCore = vi.fn();
+
+    const result = await runAdminCrmForecastBackfillOperatorCore(
+      { authority: null, input: dryRunInput(), session: adminSession() },
+      { runBackfillCore }
+    );
+
+    expect(result).toEqual({ errorCode: 'unauthorized', result: null, success: false });
+    expect(runBackfillCore).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the authority belongs to a different tenant than the session', async () => {
+    const runBackfillCore = vi.fn();
+
+    const result = await runAdminCrmForecastBackfillOperatorCore(
+      {
+        authority: mintTestTenantAuthority('tenant-2'),
+        input: dryRunInput(),
+        session: adminSession(),
+      },
+      { runBackfillCore }
+    );
+
+    expect(result).toEqual({ errorCode: 'unauthorized', result: null, success: false });
     expect(runBackfillCore).not.toHaveBeenCalled();
   });
 
@@ -134,6 +172,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
 
     const result = await runAdminCrmForecastBackfillOperatorCore(
       {
+        authority: TEST_AUTHORITY,
         input: dryRunInput(),
         session: {
           user: {
@@ -160,7 +199,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
     const runBackfillCore = vi.fn();
 
     const result = await runAdminCrmForecastBackfillOperatorCore(
-      { input: dryRunInput(), session: adminSession() },
+      { input: dryRunInput(), authority: TEST_AUTHORITY, session: adminSession() },
       { rateLimit, runBackfillCore }
     );
 
@@ -202,7 +241,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
       );
 
     const dryRun = await runAdminCrmForecastBackfillOperatorCore(
-      { input: dryRunInput(), session: adminSession() },
+      { input: dryRunInput(), authority: TEST_AUTHORITY, session: adminSession() },
       {
         confirmationStore,
         now: () => new Date('2026-05-15T10:00:00.000Z'),
@@ -218,6 +257,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
           mode: 'write',
           request: dryRunInput().request,
         },
+        authority: TEST_AUTHORITY,
         session: adminSession(),
       },
       {
@@ -238,6 +278,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
           mode: 'write',
           request: dryRunInput().request,
         },
+        authority: TEST_AUTHORITY,
         session: adminSession(),
       },
       { confirmationStore, runBackfillCore }
@@ -277,7 +318,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
     };
 
     const first = runAdminCrmForecastBackfillOperatorCore(
-      { input, session: adminSession() },
+      { input, authority: TEST_AUTHORITY, session: adminSession() },
       {
         confirmationStore,
         now: () => new Date('2026-05-15T10:01:00.000Z'),
@@ -285,7 +326,7 @@ describe('runAdminCrmForecastBackfillOperatorCore', () => {
       }
     );
     const second = await runAdminCrmForecastBackfillOperatorCore(
-      { input, session: adminSession() },
+      { input, authority: TEST_AUTHORITY, session: adminSession() },
       {
         confirmationStore,
         now: () => new Date('2026-05-15T10:01:01.000Z'),

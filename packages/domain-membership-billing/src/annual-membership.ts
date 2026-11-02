@@ -1,4 +1,9 @@
-import { and, asc, eq, membershipPlans, withTenantContext } from '@interdomestik/database';
+import { and, asc, eq, membershipPlans } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export function createActiveAnnualMembershipState(now: Date): {
   status: 'active';
@@ -16,13 +21,19 @@ export function createActiveAnnualMembershipState(now: Date): {
   };
 }
 
+/**
+ * Resolves the canonical plan for a provider or tier identifier. Every lookup runs under the
+ * caller's tenant authority and is scoped to its tenant.
+ */
 export async function resolveCanonicalMembershipPlanState(params: {
-  tenantId: string;
+  authority: TenantAuthority;
   planId: string;
 }): Promise<{
   planId: string;
   planKey: string | null;
 }> {
+  const { authority } = params;
+  const { tenantId } = readTenantAuthority(authority);
   const rawPlanId = params.planId.trim();
   if (!rawPlanId) {
     return {
@@ -34,14 +45,14 @@ export async function resolveCanonicalMembershipPlanState(params: {
     rawPlanId === 'standard' || rawPlanId === 'family' || rawPlanId === 'business'
       ? rawPlanId
       : null;
-  const [planById] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const [planById] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: membershipPlans.id,
         tier: membershipPlans.tier,
       })
       .from(membershipPlans)
-      .where(and(eq(membershipPlans.tenantId, params.tenantId), eq(membershipPlans.id, rawPlanId)))
+      .where(and(eq(membershipPlans.tenantId, tenantId), eq(membershipPlans.id, rawPlanId)))
       .limit(1)
   );
 
@@ -52,7 +63,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByProviderId] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const [planByProviderId] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: membershipPlans.id,
@@ -60,10 +71,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
       })
       .from(membershipPlans)
       .where(
-        and(
-          eq(membershipPlans.tenantId, params.tenantId),
-          eq(membershipPlans.paddlePriceId, rawPlanId)
-        )
+        and(eq(membershipPlans.tenantId, tenantId), eq(membershipPlans.paddlePriceId, rawPlanId))
       )
       .limit(1)
   );
@@ -82,7 +90,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
     };
   }
 
-  const [planByTier] = await withTenantContext({ tenantId: params.tenantId }, tx =>
+  const [planByTier] = await withTenantAuthority(authority, tx =>
     tx
       .select({
         id: membershipPlans.id,
@@ -91,7 +99,7 @@ export async function resolveCanonicalMembershipPlanState(params: {
       .from(membershipPlans)
       .where(
         and(
-          eq(membershipPlans.tenantId, params.tenantId),
+          eq(membershipPlans.tenantId, tenantId),
           eq(membershipPlans.tier, canonicalTier),
           eq(membershipPlans.interval, 'year'),
           eq(membershipPlans.isActive, true)

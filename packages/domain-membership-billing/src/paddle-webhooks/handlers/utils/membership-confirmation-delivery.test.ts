@@ -1,8 +1,10 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RetryablePaddleWebhookError } from '../../errors';
 import { processMembershipConfirmation } from './membership-confirmation';
 
 describe('membership confirmation delivery failures', () => {
+  const authority = mintTestTenantAuthority('tenant_mk');
   const sendThankYouLetter = vi.fn();
   const prepareThankYouLetter = vi.fn(({ email }) => ({
     to: email,
@@ -44,7 +46,7 @@ describe('membership confirmation delivery failures', () => {
     providerEventId: 'evt_provider_1',
     webhookPayloadHash: 'payload_hash_1',
     sub: subscription,
-    tenantId: 'tenant_mk',
+    authority,
     userId: 'user_123',
     customData: { locale: 'en' as const },
     userRecord,
@@ -140,7 +142,7 @@ describe('membership confirmation delivery failures', () => {
       deliveryId: 'delivery_123',
       error: 'Provider rejected email',
       idempotencyKey: 'membership-confirmation:v1:tenant_mk:sub_provider_1',
-      tenantId: 'tenant_mk',
+      authority,
     });
     error.mockRestore();
     success.mockRestore();

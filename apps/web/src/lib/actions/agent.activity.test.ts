@@ -13,6 +13,11 @@ const dbMock = db as unknown as {
 };
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
+  getAgentAuthority: vi.fn(async () =>
+    (await import('@interdomestik/database/testing/tenant-authority')).mintTestTenantAuthority(
+      'tenant_mk'
+    )
+  ),
 }));
 
 vi.mock('./agent/register-member', () => ({
@@ -232,6 +237,12 @@ describe('agent actions', () => {
       const result = await registerMember(null, formData);
 
       expect(result).toBeUndefined();
+      expect(registerMemberCore).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'agent1' }),
+        expect.anything(),
+        'b1',
+        formData
+      );
       expect(redirect).toHaveBeenCalledWith('/en/agent/clients');
     });
   });

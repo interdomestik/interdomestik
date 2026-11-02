@@ -2,6 +2,7 @@ import { registerMemberCore } from '@/lib/actions/agent/register-member';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { ROLE_AGENT } from '@/lib/roles.core';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import {
   hasHostSessionTenantMismatch,
   TENANT_COOKIE_NAME,
@@ -83,6 +84,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const authorized = await authorizeSessionTenant(req.headers);
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const result = await registerUserApiCore(
       {
         body,
@@ -90,8 +96,8 @@ export async function POST(req: NextRequest) {
         tenantId,
       },
       {
-        registerMemberFn: (actor, tenantId, formData) =>
-          registerMemberCore(actor, tenantId, actorBranchId, formData),
+        registerMemberFn: (actor, _tenantId, formData) =>
+          registerMemberCore(actor, authorized.authority, actorBranchId, formData),
       }
     );
 

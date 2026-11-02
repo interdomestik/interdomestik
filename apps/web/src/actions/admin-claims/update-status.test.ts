@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -47,6 +48,7 @@ const session = {
   user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_mk' },
   session: { id: 'session-1' },
 } as unknown as NonNullable<import('./context').Session>;
+const authority = mintTestTenantAuthority('tenant_mk');
 const state = (caseLifecycleState: string, recoveryLifecycleState: string) => ({
   id: 'claim-1',
   caseLifecycleState,
@@ -71,6 +73,7 @@ describe('updateClaimStatusCore', () => {
       updateClaimStatusCore({
         formData,
         session,
+        authority,
         requestHeaders: new Headers(),
       })
     ).rejects.toThrow('Invalid status');
@@ -91,18 +94,16 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders,
     });
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(1, '/en/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(2, '/en/admin/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(3, '/en/member/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenCalledTimes(3);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant_mk' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.domainUpdateStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ hostId: 'tenant_mk', requestHeaders }),
+      expect.objectContaining({ hostId: 'tenant_mk', authority, requestHeaders }),
       expect.any(Object)
     );
   });
@@ -118,6 +119,7 @@ describe('updateClaimStatusCore', () => {
       updateClaimStatusCore({
         formData,
         session,
+        authority,
         requestHeaders: new Headers(),
       })
     ).rejects.toThrow('Claim not found');
@@ -136,6 +138,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 
@@ -156,6 +159,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 
@@ -176,6 +180,7 @@ describe('updateClaimStatusCore', () => {
     await updateClaimStatusCore({
       formData,
       session,
+      authority,
       requestHeaders: new Headers(),
     });
 

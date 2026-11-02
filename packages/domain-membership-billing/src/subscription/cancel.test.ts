@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscriptionCore } from './cancel';
 import type { SubscriptionSession } from './types';
@@ -48,6 +49,7 @@ vi.mock('../paddle-server', () => ({
 }));
 
 describe('cancelSubscriptionCore', () => {
+  const authority = mintTestTenantAuthority('tenant_abc');
   const logAuditEvent = vi.fn();
 
   function mockCancellationContext(params?: {
@@ -90,6 +92,7 @@ describe('cancelSubscriptionCore', () => {
     const result = await cancelSubscriptionCore(
       {
         session,
+        authority,
         subscriptionId: 'sub_123',
         now: new Date('2026-03-12T00:00:00.000Z'),
       },
@@ -123,7 +126,7 @@ describe('cancelSubscriptionCore', () => {
       expect.objectContaining({
         action: 'subscription.canceled_scheduled',
         entityId: 'sub_123',
-        tenantId: 'tenant_abc',
+        authority,
         actorId: 'user_123',
         actorRole: 'member',
       })
@@ -140,6 +143,7 @@ describe('cancelSubscriptionCore', () => {
     const result = await cancelSubscriptionCore(
       {
         session,
+        authority,
         subscriptionId: 'sub_123',
         now: new Date('2026-03-12T00:00:00.000Z'),
       },
@@ -164,6 +168,7 @@ describe('cancelSubscriptionCore', () => {
     const result = await cancelSubscriptionCore(
       {
         session,
+        authority,
         subscriptionId: 'sub_123',
         now: new Date('2026-03-12T00:00:00.000Z'),
       },
@@ -190,6 +195,7 @@ describe('cancelSubscriptionCore', () => {
       const result = await cancelSubscriptionCore(
         {
           session,
+          authority,
           subscriptionId: 'sub_123',
           now: new Date('2026-03-12T00:00:00.000Z'),
         },
@@ -224,7 +230,7 @@ describe('cancelSubscriptionCore', () => {
     });
 
     const result = await cancelSubscriptionCore(
-      { session, subscriptionId: 'sub_123' },
+      { session, authority, subscriptionId: 'sub_123' },
       { logAuditEvent }
     );
 
@@ -249,6 +255,7 @@ describe('cancelSubscriptionCore', () => {
     await cancelSubscriptionCore(
       {
         session,
+        authority,
         subscriptionId: 'mock_sub_internal',
         now: new Date('2026-03-12T00:00:00.000Z'),
       },

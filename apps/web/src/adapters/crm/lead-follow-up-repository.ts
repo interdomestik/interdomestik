@@ -8,9 +8,13 @@ import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import type { CrmLead, CrmLeadActivity } from '@interdomestik/domain-crm/leads/types';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
-import { withTenantContext } from '@interdomestik/database';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { crmActivities, crmLeads, crmTasks } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 type CrmLeadRow = typeof crmLeads.$inferSelect;
 type CrmActivityRow = typeof crmActivities.$inferSelect;
@@ -76,36 +80,47 @@ function mapActivityCompat(row: CrmActivityCompatRow): CrmLeadActivity {
   };
 }
 
-export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
-  async findById(params: { actor: CrmActorContext; leadId: string }) {
-    // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before follow-up authorization
-    const lead = await withTenantContext({ tenantId: params.actor.tenantId }, async tx =>
-      tx.query.crmLeads.findFirst({
-        where: withTenant(params.actor.tenantId, crmLeads.tenantId, eq(crmLeads.id, params.leadId)),
-      })
-    );
-    if (!lead) return null;
-    return mapLead(lead);
-  },
+export function createCrmLeadFollowUpRepository(
+  authority: TenantAuthority
+): CrmLeadFollowUpRepository {
+  return {
+    async findById(params: { actor: CrmActorContext; leadId: string }) {
+      // db-access-guard: tenant-scoped -- reason: tenantId comes from explicit authorized CRM actor context before follow-up authorization
+      const lead = await withTenantAuthority(authority, async tx =>
+        tx.query.crmLeads.findFirst({
+          where: withTenant(
+            params.actor.tenantId,
+            crmLeads.tenantId,
+            eq(crmLeads.id, params.leadId)
+          ),
+        })
+      );
+      if (!lead) return null;
+      return mapLead(lead);
+    },
 
-  async createFollowUpActivity(params: {
-    activity: CreateCrmLeadFollowUpActivity;
-    actor: CrmActorContext;
-  }) {
-    const branchId = params.actor.scope.branchId;
-    if (!branchId) {
-      throw new Error('CRM follow-up activity creation requires actor branch scope');
-    }
+    async createFollowUpActivity(params: {
+      activity: CreateCrmLeadFollowUpActivity;
+      actor: CrmActorContext;
+    }) {
+      const branchId = params.actor.scope.branchId;
+      if (!branchId) {
+        throw new Error('CRM follow-up activity creation requires actor branch scope');
+      }
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from authorized agent context is included in follow-up insert values
-    const rows = await withTenantContext({ tenantId: params.actor.tenantId }, async tx =>
-      tx.execute(sql`
+      // The row tenant is the authority's; an activity or actor naming another tenant writes nothing.
+      const { tenantId } = readTenantAuthority(authority);
+      if (params.activity.tenantId !== tenantId || params.actor.tenantId !== tenantId) {
+        throw new Error('CRM follow-up activity tenant does not match the tenant authority');
+      }
+      const rows = await withTenantAuthority(authority, async tx =>
+        tx.execute(sql`
       insert into "crm_activities"
         ("id", "tenant_id", "lead_id", "agent_id", "branch_id", "type", "summary", "scheduled_at", "completed_at", "created_at")
       values
         (
           ${params.activity.id},
-          ${params.activity.tenantId},
+          ${tenantId},
           ${params.activity.leadId},
           ${params.actor.actorId},
           ${branchId},
@@ -127,26 +142,29 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "completed_at" as "completedAt",
         "created_at" as "createdAt"
     `)
-    );
-    const [created] = rows as unknown as CrmActivityCompatRow[];
+      );
+      const [created] = rows as unknown as CrmActivityCompatRow[];
 
-    return mapActivityCompat(created);
-  },
+      return mapActivityCompat(created);
+    },
 
-  async completeFollowUpActivity(params: {
-    activityId: string;
-    actor: CrmActorContext;
-    completedAt: string;
-    leadId: string;
-  }) {
-    // db-access-guard: tenant-scoped -- reason: tenantId from authorized agent context constrains follow-up completion update
-    const rows = await withTenantContext({ tenantId: params.actor.tenantId }, async tx =>
-      tx.execute(sql`
+    async completeFollowUpActivity(params: {
+      activityId: string;
+      actor: CrmActorContext;
+      completedAt: string;
+      leadId: string;
+    }) {
+      const { tenantId } = readTenantAuthority(authority);
+      if (params.actor.tenantId !== tenantId) {
+        throw new Error('CRM follow-up actor tenant does not match the tenant authority');
+      }
+      const rows = await withTenantAuthority(authority, async tx =>
+        tx.execute(sql`
       update "crm_activities"
       set "completed_at" = ${params.completedAt}
       where "id" = ${params.activityId}
         and "lead_id" = ${params.leadId}
-        and "tenant_id" = ${params.actor.tenantId}
+        and "tenant_id" = ${tenantId}
         and "agent_id" = ${params.actor.actorId}
         and "type" = ${CRM_LEAD_FOLLOW_UP_ACTIVITY_TYPE}
         and "completed_at" is null
@@ -162,15 +180,17 @@ export const crmLeadFollowUpRepository: CrmLeadFollowUpRepository = {
         "completed_at" as "completedAt",
         "created_at" as "createdAt"
     `)
-    );
-    const [updated] = rows as unknown as CrmActivityCompatRow[];
+      );
+      const [updated] = rows as unknown as CrmActivityCompatRow[];
 
-    return updated ? mapActivityCompat(updated) : null;
-  },
-};
+      return updated ? mapActivityCompat(updated) : null;
+    },
+  };
+}
 
 export async function listCrmLeadFollowUpActivitiesForLead(params: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   leadId: string;
   limit?: number;
 }): Promise<CrmLeadActivity[]> {
@@ -178,7 +198,7 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
   if (!branchId) return [];
 
   // db-access-guard: tenant-scoped -- reason: tenant, branch, assigned actor, and lead visibility constrain legacy follow-up reads
-  const rows = await withTenantContext({ tenantId: params.actor.tenantId }, async tx =>
+  const rows = await withTenantAuthority(params.authority, async tx =>
     tx
       .select({
         agentId: crmActivities.agentId,
@@ -232,6 +252,7 @@ export async function listCrmLeadFollowUpActivitiesForLead(params: {
 
 export async function listCrmLeadFollowUpTasksForLead(params: {
   actor: CrmActorContext;
+  authority: TenantAuthority;
   leadId: string;
   limit?: number;
 }): Promise<CrmLeadFollowUpActivityLike[]> {
@@ -239,7 +260,7 @@ export async function listCrmLeadFollowUpTasksForLead(params: {
   if (!branchId) return [];
 
   // db-access-guard: tenant-scoped -- reason: tenant, branch, assigned actor, and lead visibility constrain task-backed follow-up reads
-  const rows = await withTenantContext({ tenantId: params.actor.tenantId }, async tx =>
+  const rows = await withTenantAuthority(params.authority, async tx =>
     tx
       .select({
         agentId: crmTasks.assignedActorId,

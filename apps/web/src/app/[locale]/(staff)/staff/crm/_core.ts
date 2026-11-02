@@ -1,4 +1,5 @@
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import {
   authorizeCrmReportingRead,
   CRM_REPORTING_MAX_WINDOW_DAYS,
@@ -12,7 +13,7 @@ import {
 } from '@interdomestik/domain-crm/reporting';
 import type { CrmReportingRepository } from '@interdomestik/domain-crm/reporting/repository';
 
-import { crmReportingRepository } from '@/adapters/crm/reporting-repository';
+import { createCrmReportingRepository } from '@/adapters/crm/reporting-repository';
 
 export const STAFF_CRM_REPORTING_WINDOW_DAYS = 90;
 export const STAFF_CRM_PIPELINE_MAX_ROWS = 10;
@@ -447,7 +448,7 @@ async function readStageVelocityWidget(args: {
 }
 
 export async function getStaffCrmReportingCore(
-  args: { actor: CrmActorContext },
+  args: { actor: CrmActorContext; authority: TenantAuthority },
   options: StaffCrmReportingCoreOptions = {}
 ): Promise<StaffCrmReportingDashboard> {
   if (!args.actor.tenantId) {
@@ -467,7 +468,7 @@ export async function getStaffCrmReportingCore(
     throw new StaffCrmReportingAccessDeniedError(denied);
   }
 
-  const repository = options.reportingRepository ?? crmReportingRepository;
+  const repository = options.reportingRepository ?? createCrmReportingRepository(args.authority);
   const labels = {
     noBranch: options.labels?.noBranch ?? 'No branch',
   };

@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { acknowledgeSupportHandoffPublicResponseCore } from './acknowledgement';
@@ -83,6 +84,8 @@ function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
   } as SupportHandoffSession;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('support handoff public response acknowledgement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,6 +108,7 @@ describe('support handoff public response acknowledgement', () => {
   it('rejects unauthenticated, staff, and branch-manager acknowledgement writes', async () => {
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: null,
@@ -113,6 +117,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession({ role: 'staff' }),
@@ -121,6 +126,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession({ role: 'branch_manager' }),
@@ -133,6 +139,7 @@ describe('support handoff public response acknowledgement', () => {
   it('acknowledges only the member-owned active current response version', async () => {
     const result = await acknowledgeSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -183,6 +190,7 @@ describe('support handoff public response acknowledgement', () => {
 
     const result = await acknowledgeSupportHandoffPublicResponseCore(
       {
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -215,6 +223,7 @@ describe('support handoff public response acknowledgement', () => {
     ]);
 
     const result = await acknowledgeSupportHandoffPublicResponseCore({
+      authority,
       expectedPublicResponseVersion: 2,
       handoffId: 'handoff-1',
       session: memberSession(),
@@ -234,6 +243,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -257,6 +267,7 @@ describe('support handoff public response acknowledgement', () => {
 
     await expect(
       acknowledgeSupportHandoffPublicResponseCore({
+        authority,
         expectedPublicResponseVersion: 2,
         handoffId: 'handoff-1',
         session: memberSession(),
@@ -282,6 +293,7 @@ describe('support handoff public response acknowledgement', () => {
     ]);
 
     const result = await acknowledgeSupportHandoffPublicResponseCore({
+      authority,
       expectedPublicResponseVersion: 2,
       handoffId: 'handoff-1',
       session: memberSession(),

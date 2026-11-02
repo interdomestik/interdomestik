@@ -1,5 +1,15 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
+
+/** The audit row was written under the session authority of this tenant. */
+const auditTenant = (tenantId: string) =>
+  expect.toSatisfy(
+    (authority: TenantAuthority) => readTenantAuthority(authority).tenantId === tenantId
+  );
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -152,7 +162,7 @@ describe('GET /api/documents/[id]/download', () => {
     expect(data).toEqual({ error: 'Forbidden' });
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_mk',
+        authority: auditTenant('tenant_mk'),
         action: 'document.forbidden',
         entityType: 'claim_document',
         entityId: 'doc-1',
@@ -225,7 +235,7 @@ describe('GET /api/documents/[id]/download', () => {
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_mk',
+        authority: auditTenant('tenant_mk'),
         action: 'document.download',
         entityType: 'claim_document',
         entityId: 'doc-1',
@@ -269,7 +279,7 @@ describe('GET /api/documents/[id]/download', () => {
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 'tenant_mk',
+        authority: auditTenant('tenant_mk'),
         action: 'document.view',
         entityType: 'claim_document',
         entityId: 'doc-1',

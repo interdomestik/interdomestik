@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 
 import { getSessionSafe } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import { runAdminCrmForecastBackfillOperatorCore } from './_backfill-core';
 import type {
@@ -17,8 +18,9 @@ export async function triggerCrmForecastSnapshotBackfill(
 ): Promise<AdminCrmForecastBackfillOperatorActionResult> {
   const session = await getSessionSafe('AdminCrmForecastBackfillOperatorAction');
   const requestHeaders = await headers();
+  const authority = await resolveSessionAuthority();
   const result = await runAdminCrmForecastBackfillOperatorCore(
-    { input, session },
+    { authority, input, session },
     { headers: requestHeaders }
   );
 
@@ -31,6 +33,16 @@ export async function triggerCrmForecastSnapshotBackfill(
   }
 
   return result;
+}
+
+async function resolveSessionAuthority() {
+  try {
+    return (await authorizeSessionTenant(await headers()))?.authority ?? null;
+  } catch (error) {
+    // A session without a tenant grants no authority, as it granted no actor before.
+    if ((error as { name?: unknown } | null)?.name !== 'MissingTenantError') throw error;
+    return null;
+  }
 }
 
 function revalidateAdminCrmForAllLocales(): void {

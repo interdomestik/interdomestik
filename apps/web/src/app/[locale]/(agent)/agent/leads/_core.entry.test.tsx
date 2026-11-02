@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
   }),
   getSessionMock: vi.fn<() => Promise<unknown>>(async () => null),
   ensureTenantIdMock: vi.fn(),
+  authorizeSessionTenantMock: vi.fn(),
   findAgentSettingsMock: vi.fn(),
   getAgentLeadsCoreMock: vi.fn(),
   withTenantContextMock: vi.fn(),
@@ -30,6 +32,10 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSessionMock,
     },
   },
+}));
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
@@ -58,8 +64,12 @@ vi.mock('./_core', () => ({
 
 import AgentLeadsEntry from './_core.entry';
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 function mockEntrySession(user: Record<string, string | undefined> | null) {
-  hoisted.getSessionMock.mockResolvedValue(user ? { user } : null);
+  const session = user ? { user } : null;
+  hoisted.getSessionMock.mockResolvedValue(session);
+  hoisted.authorizeSessionTenantMock.mockResolvedValue(session ? { session, authority } : null);
 }
 
 function expectEntryNotFound() {
@@ -82,6 +92,7 @@ describe('AgentLeadsEntry auth redirect', () => {
     hoisted.redirectMock.mockClear();
     hoisted.notFoundMock.mockClear();
     hoisted.getSessionMock.mockReset();
+    hoisted.authorizeSessionTenantMock.mockReset();
     hoisted.ensureTenantIdMock.mockReset();
     hoisted.findAgentSettingsMock.mockReset();
     hoisted.getAgentLeadsCoreMock.mockReset();
@@ -121,7 +132,6 @@ describe('AgentLeadsEntry auth redirect', () => {
       tenantId: 'tenant-1',
       branchId: 'branch-1',
     });
-    hoisted.ensureTenantIdMock.mockReturnValue('tenant-1');
     hoisted.findAgentSettingsMock.mockResolvedValue({ tier: 'standard' });
 
     await expectEntryNotFound();
@@ -147,7 +157,6 @@ describe('AgentLeadsEntry auth redirect', () => {
       tenantId: 'tenant-1',
       branchId: 'branch-1',
     });
-    hoisted.ensureTenantIdMock.mockReturnValue('tenant-1');
     hoisted.findAgentSettingsMock.mockResolvedValue({ tier: 'pro' });
     hoisted.getAgentLeadsCoreMock.mockResolvedValue([{ id: 'lead-1' }]);
 
@@ -157,10 +166,7 @@ describe('AgentLeadsEntry auth redirect', () => {
       })
     ).resolves.toBeDefined();
 
-    expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContextMock).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.getAgentLeadsCoreMock).toHaveBeenCalledWith(
       { tenantId: 'tenant-1', agentId: 'agent-1', branchId: 'branch-1' },
       expect.any(Object)

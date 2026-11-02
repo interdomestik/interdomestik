@@ -1,15 +1,16 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
-import { subscriptions, withTenantContext } from '@interdomestik/database';
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { subscriptions } from '@interdomestik/database';
 import {
   createActiveAnnualMembershipFulfillment,
   resolveCanonicalMembershipPlanState,
 } from '@interdomestik/domain-membership-billing/annual-membership';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /**
  * DEVELOPMENT/E2E ONLY: Mock subscription activation.
@@ -20,18 +21,17 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
     throw new Error('Unauthorized: Billing test mode not enabled');
   }
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const authorized = await authorizeSessionTenant(await headers());
 
-  if (!session) {
+  if (!authorized) {
     throw new Error('Unauthorized');
   }
 
-  const tenantId = ensureTenantId(session);
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const now = new Date();
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({
-    tenantId,
+    authority,
     planId: priceId || planId,
   });
   const activeAnnualMembershipState = createActiveAnnualMembershipFulfillment(
@@ -42,7 +42,7 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
 
   // Create or update mock subscription
   // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  await withTenantContext({ tenantId }, async tx =>
+  await withTenantAuthority(authority, async tx =>
     tx
       .insert(subscriptions)
       .values({

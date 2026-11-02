@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
 import {
+  TEST_PADDLE_DELIVERY,
   createActiveSubscriptionUpdatedEvent,
   mockRacedSubscriptionInsert,
   mockUserOwner,
@@ -99,6 +100,7 @@ describe('handleSubscriptionChanged', () => {
 
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.updated',
         data: {
           id: subscriptionId,

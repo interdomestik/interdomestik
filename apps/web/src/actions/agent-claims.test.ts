@@ -1,3 +1,7 @@
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -130,6 +134,16 @@ vi.mock('next/headers', () => ({
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { assignClaim, updateClaimStatus } from './agent-claims';
 
+function expectTenantContext(
+  withTenantContext: { mock: { calls: unknown[][] } },
+  tenantId: string
+) {
+  expect(withTenantContext.mock.calls.length).toBeGreaterThan(0);
+  for (const [context] of withTenantContext.mock.calls) {
+    expect(readTenantAuthority(context as TenantAuthority).tenantId).toBe(tenantId);
+  }
+}
+
 describe('Staff Claims Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -167,7 +181,7 @@ describe('Staff Claims Actions', () => {
 
       await updateClaimStatus('claim-1', 'verification');
 
-      expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
 
@@ -189,7 +203,7 @@ describe('Staff Claims Actions', () => {
 
       await updateClaimStatus('claim-1', 'verification');
 
-      expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.txUpdateReturning).toHaveBeenCalled();
     });
   });
@@ -255,14 +269,17 @@ describe('Staff Claims Actions', () => {
 
       await assignClaim('claim-1', 'staff-2');
 
-      expect(mocks.withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant_mk' });
+      expectTenantContext(mocks.withTenantContext, 'tenant_mk');
       expect(mocks.dbUpdate).toHaveBeenCalled();
       expect(notifyClaimAssigned).toHaveBeenCalledWith(
         'staff-2',
         'staff@test.com',
         { id: 'claim-1', title: 'Test Claim' },
         'Staff Smith',
-        { tenantId: 'tenant_mk' }
+        { authority: mocks.withTenantContext.mock.calls[0]![0] }
+      );
+      expect(vi.mocked(notifyClaimAssigned).mock.calls[0]![4].authority).toBe(
+        mocks.withTenantContext.mock.calls[0]![0]
       );
     });
   });

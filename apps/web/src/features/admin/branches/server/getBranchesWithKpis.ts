@@ -2,12 +2,14 @@
 
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
-import { withTenantContext } from '@interdomestik/database';
+
 import { branches, claims } from '@interdomestik/database/schema';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { ROLES } from '@interdomestik/shared-auth';
 import * as Sentry from '@sentry/nextjs';
 import { and, count, eq } from 'drizzle-orm';
 import { getBranchCashPendingByBranch } from './branch-cash-metrics';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface BranchWithKpis {
   id: string;
@@ -22,7 +24,7 @@ export interface BranchWithKpis {
 }
 
 export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
-  return runAuthenticatedAction<BranchWithKpis[]>(async ({ session }) => {
+  return runAuthenticatedAction<BranchWithKpis[]>(async ({ session, authority }) => {
     return Sentry.withServerActionInstrumentation(
       'getBranchesWithKpis',
       { recordResponse: true },
@@ -38,7 +40,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           throw new Error('Unauthorized');
         }
 
-        const { tenantId } = session.user;
+        const { tenantId } = readTenantAuthority(authority);
         if (!tenantId) {
           throw new Error('Tenant context required');
         }
@@ -49,7 +51,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         // 2. Mock Return for Debugging (REMOVED)
 
         // 2. Fetch all branches for this tenant (base list)
-        const tenantBranches = await withTenantContext({ tenantId }, tx =>
+        const tenantBranches = await withTenantAuthority(authority, tx =>
           tx
             .select({
               id: branches.id,
@@ -67,7 +69,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         }
 
         // 3. Aggregate Open Claims by Branch
-        const openClaimsRaw = await withTenantContext({ tenantId }, tx =>
+        const openClaimsRaw = await withTenantAuthority(authority, tx =>
           tx
             .select({
               branchId: claims.branchId,
@@ -79,7 +81,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         );
 
         // 4. Aggregate SLA Breaches by Branch
-        const slaBreachesRaw = await withTenantContext({ tenantId }, tx =>
+        const slaBreachesRaw = await withTenantAuthority(authority, tx =>
           tx
             .select({
               branchId: claims.branchId,
@@ -91,7 +93,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         );
 
         // 5. Aggregate unresolved cash verification load by branch
-        const cashPendingMap = await getBranchCashPendingByBranch(tenantId);
+        const cashPendingMap = await getBranchCashPendingByBranch(authority);
 
         // 6. Merge Metrics
         const openClaimsMap = new Map(openClaimsRaw.map(r => [r.branchId, r.count]));

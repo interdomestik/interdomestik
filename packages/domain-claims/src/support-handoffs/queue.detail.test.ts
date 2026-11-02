@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -123,6 +124,8 @@ function mockSelectRows(rows: unknown[]) {
   return query;
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('getStaffSupportHandoffDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -158,7 +161,7 @@ describe('getStaffSupportHandoffDetail', () => {
       branchId: 'branch-1',
       handoffId: 'handoff-1',
       staffId: 'staff-1',
-      tenantId: 'tenant-1',
+      authority,
       viewerRole: 'staff',
     });
 
@@ -219,7 +222,7 @@ describe('getStaffSupportHandoffDetail', () => {
       branchId: 'branch-1',
       handoffId: 'handoff-1',
       staffId: 'manager-1',
-      tenantId: 'tenant-1',
+      authority,
       viewerRole: 'branch_manager',
     });
 
@@ -235,7 +238,7 @@ describe('getStaffSupportHandoffDetail', () => {
         branchId: 'branch-1',
         handoffId: 'missing',
         staffId: 'staff-1',
-        tenantId: 'tenant-1',
+        authority,
         viewerRole: 'staff',
       })
     ).resolves.toBeNull();

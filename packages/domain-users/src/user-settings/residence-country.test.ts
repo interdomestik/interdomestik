@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { lastEventPayload, mockTx, mocks, session } from './residence-country.test-helper';
+import {
+  authority,
+  lastEventPayload,
+  mockTx,
+  mocks,
+  session,
+} from './residence-country.test-helper';
 import { updateResidenceCountryCore } from './residence-country';
 
 describe('updateResidenceCountryCore', () => {
@@ -10,17 +16,28 @@ describe('updateResidenceCountryCore', () => {
 
   it('rejects unauthenticated and malformed residence-country updates', async () => {
     await expect(
-      updateResidenceCountryCore({ residenceCountry: 'AT', session: null })
+      updateResidenceCountryCore({ residenceCountry: 'AT', session: null, authority })
     ).resolves.toEqual({
       success: false,
       error: 'Unauthorized',
     });
 
     await expect(
-      updateResidenceCountryCore({ residenceCountry: 'Austria', session })
+      updateResidenceCountryCore({ residenceCountry: 'Austria', session, authority })
     ).resolves.toMatchObject({
       success: false,
       error: expect.stringContaining('Validation failed'),
+    });
+
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects residence-country updates without a tenant authority', async () => {
+    await expect(
+      updateResidenceCountryCore({ residenceCountry: 'AT', session, authority: null })
+    ).resolves.toEqual({
+      success: false,
+      error: 'Unauthorized',
     });
 
     expect(mocks.transaction).not.toHaveBeenCalled();
@@ -31,6 +48,7 @@ describe('updateResidenceCountryCore', () => {
       updateResidenceCountryCore({
         residenceCountry: 'AT',
         session: { user: { ...session.user, id: 'staff-1', role: 'staff' } },
+        authority,
       })
     ).resolves.toEqual({
       success: false,
@@ -44,7 +62,7 @@ describe('updateResidenceCountryCore', () => {
     const { updateSet } = mockTx({ activeRecoveryClaims: [], currentResidence: 'DE' });
 
     const result = await updateResidenceCountryCore(
-      { residenceCountry: 'at', session },
+      { residenceCountry: 'at', session, authority },
       { logAuditEvent: mocks.logAuditEvent }
     );
 
@@ -62,7 +80,7 @@ describe('updateResidenceCountryCore', () => {
       termsAction: 'require_reacceptance_before_renewal',
     });
     expect(mocks.logAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'member.residence_country_changed', tenantId: 'tenant-1' })
+      expect.objectContaining({ action: 'member.residence_country_changed', authority })
     );
   });
 
@@ -73,7 +91,7 @@ describe('updateResidenceCountryCore', () => {
       termsVersionAccepted: null,
     });
 
-    await updateResidenceCountryCore({ residenceCountry: 'AT', session });
+    await updateResidenceCountryCore({ residenceCountry: 'AT', session, authority });
 
     expect(lastEventPayload()).toMatchObject({
       activeRecoveryClaimCount: 1,
@@ -89,7 +107,7 @@ describe('updateResidenceCountryCore', () => {
     const { tx } = mockTx({ currentResidence: 'AT' });
 
     const result = await updateResidenceCountryCore(
-      { residenceCountry: 'AT', session },
+      { residenceCountry: 'AT', session, authority },
       { logAuditEvent: mocks.logAuditEvent }
     );
 
@@ -102,7 +120,9 @@ describe('updateResidenceCountryCore', () => {
   it('surfaces event failure as a failed transactional residence change', async () => {
     mockTx({ appendEventFails: true, currentResidence: 'DE' });
 
-    await expect(updateResidenceCountryCore({ residenceCountry: 'AT', session })).resolves.toEqual({
+    await expect(
+      updateResidenceCountryCore({ residenceCountry: 'AT', session, authority })
+    ).resolves.toEqual({
       success: false,
       error: 'Failed to update residence country',
     });
@@ -114,7 +134,7 @@ describe('updateResidenceCountryCore', () => {
 
     await expect(
       updateResidenceCountryCore(
-        { residenceCountry: 'AT', session },
+        { residenceCountry: 'AT', session, authority },
         { logAuditEvent: mocks.logAuditEvent }
       )
     ).resolves.toMatchObject({ success: true, eventId: 'event-1' });

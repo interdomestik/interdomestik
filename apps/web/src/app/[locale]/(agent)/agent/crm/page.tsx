@@ -1,7 +1,8 @@
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth'; // server-side auth
+import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ArrowRight } from 'lucide-react';
 import { getFormatter, getTranslations, setRequestLocale } from 'next-intl/server';
@@ -530,7 +531,12 @@ export default async function CRMPage({
     notFound();
   }
 
-  const tenantId = ensureTenantId(session);
+  const authorized = await authorizeSessionTenant(await headers());
+  if (!authorized) {
+    redirect(`/${locale}/login`);
+  }
+  const { authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const actor = {
     actorId: agentId,
     role,
@@ -547,10 +553,10 @@ export default async function CRMPage({
   let completedTaskQueue;
   try {
     [stats, reporting, taskQueue, completedTaskQueue] = await Promise.all([
-      getAgentCrmStatsCore({ actor }),
-      getAgentCrmReportingCore({ actor }),
-      getAgentCrmTaskQueueCore({ actor }),
-      getAgentCrmCompletedTaskQueueCore({ actor }),
+      getAgentCrmStatsCore({ actor, authority }),
+      getAgentCrmReportingCore({ actor, authority }),
+      getAgentCrmTaskQueueCore({ actor, authority }),
+      getAgentCrmCompletedTaskQueueCore({ actor, authority }),
     ]);
   } catch (error) {
     if (

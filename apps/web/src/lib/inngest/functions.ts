@@ -1,3 +1,5 @@
+import type { IngressCapability } from '@interdomestik/database/ingress';
+import { mintIngressCapability } from '@interdomestik/database/ingress-registrar';
 import {
   processAnnualReports,
   processEmailSequences,
@@ -26,9 +28,14 @@ function requireRunEvent(data: unknown): { runId: string; tenantId: string } {
   return { runId: event.runId, tenantId: event.tenantId };
 }
 
-async function processClaimAiStep(runId: string, tenantId: string, retryFailed: boolean) {
+async function processClaimAiStep(
+  ingress: IngressCapability<'inngest'>,
+  runId: string,
+  tenantId: string,
+  retryFailed: boolean
+) {
   try {
-    return await processClaimDocumentWorkflowRunService({ runId, tenantId, retryFailed });
+    return await processClaimDocumentWorkflowRunService({ runId, ingress, tenantId, retryFailed });
   } catch (error) {
     if (error instanceof PersistedClaimAiRetryableError) throw error;
     throw new NonRetriableError('Claim AI run failed before retry eligibility was persisted.', {
@@ -47,13 +54,16 @@ export const dailyEmailSequences = inngest.createFunction(
   { cron: '0 8 * * *' }, // Every day at 8:00 AM UTC
   async ({ step }) => {
     // Step 1: Process standard email sequences (welcome, onboarding, checkin)
+    // Invoked only through the signed Inngest serve endpoint; each step mints its own capability so a retry gets a fresh one.
     const emailResult = await step.run('process-email-sequences', async () => {
-      return await processEmailSequences();
+      const ingress = mintIngressCapability('inngest');
+      return await processEmailSequences(ingress);
     });
 
     // Step 2: Process annual reports (e.g., year-end summary)
     const annualResult = await step.run('process-annual-reports', async () => {
-      return await processAnnualReports();
+      const ingress = mintIngressCapability('inngest');
+      return await processAnnualReports(ingress);
     });
 
     return {
@@ -72,8 +82,10 @@ export const seasonalCampaigns = inngest.createFunction(
   { id: 'seasonal-campaigns' },
   { cron: '0 9 1 * *' }, // 1st of every month at 9:00 AM UTC
   async ({ step }) => {
+    // Invoked only through the signed Inngest serve endpoint.
     const result = await step.run('process-seasonal', async () => {
-      return await processSeasonalCampaigns();
+      const ingress = mintIngressCapability('inngest');
+      return await processSeasonalCampaigns(ingress);
     });
 
     return result;
@@ -86,7 +98,9 @@ export const policyExtractionRequested = inngest.createFunction(
   async ({ event, step }) => {
     const { runId, tenantId } = requireRunEvent(event.data);
     return step.run('process-policy-extraction', async () => {
-      return processPolicyAnalysisRunService({ runId, tenantId });
+      // Invoked only through the signed Inngest serve endpoint; the service derives the tenant authority.
+      const ingress = mintIngressCapability('inngest');
+      return processPolicyAnalysisRunService({ runId, ingress, tenantId });
     });
   }
 );
@@ -97,7 +111,8 @@ export const claimIntakeExtractionRequested = inngest.createFunction(
   async ({ event, step, attempt }) => {
     const { runId, tenantId } = requireRunEvent(event.data);
     return step.run('process-claim-intake-extraction', async () => {
-      return processClaimAiStep(runId, tenantId, attempt === 1);
+      const ingress = mintIngressCapability('inngest');
+      return processClaimAiStep(ingress, runId, tenantId, attempt === 1);
     });
   }
 );
@@ -108,7 +123,8 @@ export const legalDocumentExtractionRequested = inngest.createFunction(
   async ({ event, step, attempt }) => {
     const { runId, tenantId } = requireRunEvent(event.data);
     return step.run('process-legal-document-extraction', async () => {
-      return processClaimAiStep(runId, tenantId, attempt === 1);
+      const ingress = mintIngressCapability('inngest');
+      return processClaimAiStep(ingress, runId, tenantId, attempt === 1);
     });
   }
 );

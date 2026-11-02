@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleSubscriptionChanged } from './subscriptions';
-import { mockUserOwner, resetPaddleHandlerMocks } from './test-support';
+import { TEST_PADDLE_DELIVERY, mockUserOwner, resetPaddleHandlerMocks } from './test-support';
 
 const hoisted = await vi.hoisted(async () => {
   const { createHoistedPaddleHandlerMocks } = await import('./test-support');
@@ -37,6 +37,7 @@ describe('subscription locale isolation', () => {
   it('persists a paid subscription but withholds confirmation for an unsupported locale', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         data: {
           id: 'sub_unsupported_locale',
@@ -70,6 +71,7 @@ describe('subscription locale isolation', () => {
   it('persists a paid subscription but withholds confirmation for a null provider price name', async () => {
     await handleSubscriptionChanged(
       {
+        delivery: TEST_PADDLE_DELIVERY,
         eventType: 'subscription.created',
         data: {
           id: 'sub_null_price_name',

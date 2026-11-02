@@ -45,6 +45,7 @@ vi.mock('node:crypto', async importOriginal => {
 import { persistClaimDocumentAndQueueWorkflows } from './claim-document-persistence';
 import { ClaimDocumentUploadConflictError } from './claim-document-write';
 import { db, withTenantContext } from '@interdomestik/database';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 const CONSENT = {
   granted: true,
@@ -66,8 +67,11 @@ const EXISTING_ROW = {
   uploadedBy: 'member-1',
 };
 
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+
 function baseParams() {
   return {
+    authority,
     actorRole: 'member' as const,
     category: 'evidence' as const,
     claimId: 'claim-1',
@@ -109,13 +113,40 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
       expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', userId: 'member-1' })
     );
     expect(hoisted.emit).not.toHaveBeenCalled();
-    // Metadata runs on the member tenant context; the AI queue runs on its own tenant context.
-    expect(withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-1', role: 'member' },
-      expect.any(Function)
-    );
-    expect(withTenantContext).toHaveBeenCalledWith({ tenantId: 'tenant-1' }, expect.any(Function));
+    // Metadata and the AI queue each run in their own transaction under the session authority.
+    expect(vi.mocked(withTenantContext).mock.calls.map(([context]) => context)).toEqual([
+      authority,
+      authority,
+    ]);
+    for (const [context] of vi.mocked(withTenantContext).mock.calls)
+      expect(context).toBe(authority);
     expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('marks a queued run failed under the session authority when its dispatch fails', async () => {
+    hoisted.queue.mockResolvedValue([
+      {
+        runId: 'run-1',
+        tenantId: 'tenant-1',
+        workflow: 'claim_intake_extract',
+        claimId: 'claim-1',
+        documentId: 'doc-1',
+      },
+    ]);
+    hoisted.emit.mockRejectedValue(new Error('Inngest unavailable'));
+
+    await persistClaimDocumentAndQueueWorkflows({
+      ...baseParams(),
+      aiExtractionConsent: CONSENT,
+    });
+
+    expect(hoisted.markDispatchFailed).toHaveBeenCalledTimes(1);
+    const args = hoisted.markDispatchFailed.mock.calls[0]?.[0];
+    expect(args).toEqual(
+      expect.objectContaining({ runId: 'run-1', message: 'Inngest unavailable' })
+    );
+    expect(args).not.toHaveProperty('tenantId');
+    expect(args.authority).toBe(authority);
   });
 
   it('persists scoped consent row only for explicit member opt-in', async () => {

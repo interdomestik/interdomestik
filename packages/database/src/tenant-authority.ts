@@ -9,8 +9,12 @@ export type TenantAuthorityPurpose =
   | 'session'
   | 'scheduled-work'
   | 'paddle-webhook'
+  | 'paddle-billing'
   | 'public-token'
+  | 'public-site'
+  | 'claim-home-read'
   | 'platform-aggregate'
+  | 'super-admin-delegation'
   | 'seed'
   | 'test';
 
@@ -47,8 +51,12 @@ const LIFETIME_MS: Record<TenantAuthorityPurpose, number> = {
   session: 10 * 60_000,
   'scheduled-work': 60 * 60_000,
   'paddle-webhook': 10 * 60_000,
+  'paddle-billing': 10 * 60_000,
   'public-token': 10 * 60_000,
+  'public-site': 5 * 60_000,
+  'claim-home-read': 5 * 60_000,
   'platform-aggregate': 10 * 60_000,
+  'super-admin-delegation': 10 * 60_000,
   seed: 60 * 60_000,
   test: 60 * 60_000,
 };

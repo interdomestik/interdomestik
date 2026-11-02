@@ -1,5 +1,9 @@
-import { withTenantContext } from '@interdomestik/database';
 import { memberLeads } from '@interdomestik/database/schema';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -15,7 +19,7 @@ export type CreateLeadInput = z.infer<typeof createLeadSchema>;
 
 export async function createLead(
   ctx: {
-    tenantId: string;
+    authority: TenantAuthority;
     agentId: string; // The agent creating the lead
     branchId: string; // The branch the agent belongs to
   },
@@ -23,14 +27,15 @@ export async function createLead(
 ) {
   // Validation handled by caller or here? Let's validate here too.
   const data = createLeadSchema.parse(input);
+  const { tenantId } = readTenantAuthority(ctx.authority);
 
   const leadId = `lead_${nanoid()}`;
 
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  await withTenantContext({ tenantId: ctx.tenantId }, tx =>
+  // db-access-guard: tenant-scoped -- reason: tenantId from the authority is inserted
+  await withTenantAuthority(ctx.authority, tx =>
     tx.insert(memberLeads).values({
       id: leadId,
-      tenantId: ctx.tenantId,
+      tenantId,
       branchId: ctx.branchId,
       agentId: ctx.agentId,
       firstName: data.firstName,

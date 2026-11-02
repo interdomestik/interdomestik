@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type QueryChain = {
@@ -11,8 +12,6 @@ type QueryChain = {
 type StaffUser = {
   id: string;
   role: string | null;
-  tenantId: string | null;
-  accessTenantId?: string | null;
 };
 
 const hoisted = vi.hoisted(() => ({
@@ -83,12 +82,18 @@ const tx = {
 };
 
 function staff(overrides: Partial<StaffUser> = {}) {
-  const user: StaffUser = { id: 'staff-1', role: 'staff', tenantId: 'tenant-a', ...overrides };
+  const user: StaffUser = { id: 'staff-1', role: 'staff', ...overrides };
   return { user };
 }
 
-function read(session = staff()) {
-  return getAssignedStaffClaimDocuments({ claimId: 'claim-1', session });
+const authority = mintTestTenantAuthority('tenant-a');
+
+function read(session = staff(), sessionAuthority: typeof authority | null = authority) {
+  return getAssignedStaffClaimDocuments({
+    claimId: 'claim-1',
+    session,
+    authority: sessionAuthority,
+  });
 }
 
 beforeEach(() => {
@@ -125,10 +130,8 @@ describe('getAssignedStaffClaimDocuments', () => {
       },
     ]);
     expect(JSON.stringify(documents)).not.toContain('pii/');
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-a', role: 'staff' },
-      expect.any(Function)
-    );
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.withTenantContext.mock.calls[0]![0]).toBe(authority);
     expect(hoisted.froms).toEqual([
       expect.objectContaining({ id: 'claims.id' }),
       expect.objectContaining({ id: 'claim_documents.id' }),
@@ -222,34 +225,19 @@ describe('getAssignedStaffClaimDocuments', () => {
     }
   );
 
-  it('returns no documents without a trusted session tenant', async () => {
-    await expect(read(staff({ tenantId: ' ' }))).resolves.toEqual([]);
+  it('returns no documents and opens no context without a session authority', async () => {
+    await expect(read(staff(), null)).resolves.toEqual([]);
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(tx.select).not.toHaveBeenCalled();
   });
 
-  it('does not read home-tenant evidence when explicit access belongs elsewhere', async () => {
-    hoisted.limit.mockResolvedValueOnce([]);
-    await expect(read(staff({ accessTenantId: 'tenant-b' }))).resolves.toEqual([]);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-b', role: 'staff' },
-      expect.any(Function)
-    );
-    expect(hoisted.wheres[0]).toEqual(
-      expect.objectContaining({
-        args: expect.arrayContaining([{ op: 'eq', left: 'claims.tenant_id', right: 'tenant-b' }]),
-      })
-    );
-    expect(hoisted.orderBy).not.toHaveBeenCalled();
-  });
-
-  it('reads assigned access-local evidence using explicit access rather than the home tenant', async () => {
+  it('reads under the authority it is given, never a tenant carried by the session object', async () => {
+    const other = mintTestTenantAuthority('tenant-b');
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
     hoisted.orderBy.mockResolvedValueOnce([
       { id: 'doc-b', name: 'access.pdf', fileType: 'application/pdf', fileSize: 2 },
     ]);
-    await expect(
-      read(staff({ tenantId: 'tenant-home', accessTenantId: 'tenant-b' }))
-    ).resolves.toEqual([
+    await expect(read(staff(), other)).resolves.toEqual([
       {
         id: 'doc-b',
         name: 'access.pdf',
@@ -258,9 +246,11 @@ describe('getAssignedStaffClaimDocuments', () => {
         url: '/api/documents/doc-b/download',
       },
     ]);
-    expect(hoisted.withTenantContext).toHaveBeenCalledWith(
-      { tenantId: 'tenant-b', role: 'staff' },
-      expect.any(Function)
+    expect(hoisted.withTenantContext.mock.calls[0]![0]).toBe(other);
+    expect(hoisted.wheres[0]).toEqual(
+      expect.objectContaining({
+        args: expect.arrayContaining([{ op: 'eq', left: 'claims.tenant_id', right: 'tenant-b' }]),
+      })
     );
     expect(hoisted.wheres[1]).toEqual(
       expect.objectContaining({

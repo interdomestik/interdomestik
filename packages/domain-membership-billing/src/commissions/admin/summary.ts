@@ -1,22 +1,28 @@
-import { withTenantContext } from '@interdomestik/database';
 import { agentCommissions } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { eq, sql } from 'drizzle-orm';
 
 import type { ActionResult, CommissionSession, CommissionSummary } from '../types';
 import { ensureAdmin } from './access';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 /** Get global commission summary (admin only) */
 export async function getGlobalCommissionSummaryCore(params: {
   session: CommissionSession | null;
+  authority: TenantAuthority | null;
 }): Promise<ActionResult<CommissionSummary>> {
   const authError = ensureAdmin(params.session);
   if (authError) return authError;
+  const { authority } = params;
+  if (!authority) return { success: false, error: 'Unauthorized' };
 
   try {
-    const tenantId = ensureTenantId(params.session);
+    const { tenantId } = readTenantAuthority(authority);
 
-    const rows = await withTenantContext({ tenantId }, tx =>
+    const rows = await withTenantAuthority(authority, tx =>
       tx
         .select({
           status: agentCommissions.status,

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 import { createClaimRow } from './get-staff-claim-detail.test-support';
 
@@ -46,6 +47,11 @@ vi.mock('./matter-allowance', mocks.matterAllowanceMock);
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 
+const authorities = {
+  'tenant-ks': mintTestTenantAuthority('tenant-ks'),
+  'tenant-mk': mintTestTenantAuthority('tenant-mk'),
+};
+
 describe('getStaffClaimDetail tenant context', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,12 +72,12 @@ describe('getStaffClaimDetail tenant context', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
     expect(result?.member.id).toBe('member-1');
-    expect(mocks.capturedContext).toEqual({ tenantId: 'tenant-ks' });
+    expect(mocks.capturedContext).toBe(authorities['tenant-ks']);
     expect(mocks.rawDbSelect).not.toHaveBeenCalled();
     expect(mocks.tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.eq).toHaveBeenCalledWith(mocks.claims.userId, mocks.user.id);
@@ -83,7 +89,7 @@ describe('getStaffClaimDetail tenant context', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
@@ -103,12 +109,12 @@ describe('getStaffClaimDetail tenant context', () => {
     const result = await getStaffClaimDetail({
       branchId: 'branch-2',
       staffId: 'staff-9',
-      tenantId: 'tenant-mk',
+      authority: authorities['tenant-mk'],
       claimId: 'claim-9',
     });
 
     expect(result).toBeNull();
-    expect(mocks.capturedContext).toEqual({ tenantId: 'tenant-mk' });
+    expect(mocks.capturedContext).toBe(authorities['tenant-mk']);
     expect(mocks.eq).toHaveBeenCalledWith(mocks.claims.branchId, 'branch-2');
     expect(mocks.eq).toHaveBeenCalledWith(mocks.claims.id, 'claim-9');
     expect(mocks.withTenant).toHaveBeenCalledWith(
@@ -127,7 +133,7 @@ describe('getStaffClaimDetail tenant context', () => {
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
-      tenantId: 'tenant-ks',
+      authority: authorities['tenant-ks'],
       claimId: 'claim-1',
     });
 
@@ -141,7 +147,11 @@ describe('getStaffClaimDetail tenant context', () => {
     mocks.claimChain.limit.mockRejectedValue(new Error('connection reset'));
 
     await expect(
-      getStaffClaimDetail({ staffId: 'staff-1', tenantId: 'tenant-ks', claimId: 'claim-1' })
+      getStaffClaimDetail({
+        staffId: 'staff-1',
+        authority: authorities['tenant-ks'],
+        claimId: 'claim-1',
+      })
     ).rejects.toThrow('connection reset');
     expect(mocks.rawDbSelect).not.toHaveBeenCalled();
   });

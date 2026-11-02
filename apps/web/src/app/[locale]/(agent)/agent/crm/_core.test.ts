@@ -1,13 +1,17 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   getAgentCrmDashboard: vi.fn(),
   crmDashboardRepository: { readAgentDashboard: vi.fn() },
+  createCrmDashboardRepository: vi.fn(),
+  createCrmReportingRepository: vi.fn(),
   crmReportingRepository: {
     listSourceBreakdownRows: vi.fn(),
     listWeightedPipelineRows: vi.fn(),
     listWinRateRows: vi.fn(),
   },
+  createAgentCrmTaskWorkQueueRepository: vi.fn(),
   agentCrmTaskWorkQueueRepository: {
     readAgentCompletedTaskQueue: vi.fn(),
     readAgentTaskWorkQueue: vi.fn(),
@@ -19,15 +23,15 @@ vi.mock('@interdomestik/domain-crm/dashboards', () => ({
 }));
 
 vi.mock('@/adapters/crm/dashboard-repository', () => ({
-  crmDashboardRepository: hoisted.crmDashboardRepository,
+  createCrmDashboardRepository: hoisted.createCrmDashboardRepository,
 }));
 
 vi.mock('@/adapters/crm/reporting-repository', () => ({
-  crmReportingRepository: hoisted.crmReportingRepository,
+  createCrmReportingRepository: hoisted.createCrmReportingRepository,
 }));
 
 vi.mock('@/adapters/crm/task-work-queue-repository', () => ({
-  agentCrmTaskWorkQueueRepository: hoisted.agentCrmTaskWorkQueueRepository,
+  createAgentCrmTaskWorkQueueRepository: hoisted.createAgentCrmTaskWorkQueueRepository,
 }));
 
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
@@ -47,6 +51,7 @@ import {
   getAgentCrmTaskQueueCore,
 } from './_core';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const actor: CrmActorContext = {
   actorId: 'agent-1',
   role: 'agent',
@@ -88,6 +93,11 @@ const winRateRow: CrmWinRateRow = {
 describe('getAgentCrmStatsCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.createCrmDashboardRepository.mockReturnValue(hoisted.crmDashboardRepository);
+    hoisted.createCrmReportingRepository.mockReturnValue(hoisted.crmReportingRepository);
+    hoisted.createAgentCrmTaskWorkQueueRepository.mockReturnValue(
+      hoisted.agentCrmTaskWorkQueueRepository
+    );
     hoisted.getAgentCrmDashboard.mockResolvedValue({
       success: true,
       dashboard: {
@@ -106,7 +116,7 @@ describe('getAgentCrmStatsCore', () => {
   });
 
   it('delegates dashboard reads to the domain CRM dashboard API with actor context', async () => {
-    const stats = await getAgentCrmStatsCore({ actor });
+    const stats = await getAgentCrmStatsCore({ actor, authority });
 
     expect(stats).toEqual({
       closedWonDealsCount: 0,
@@ -115,6 +125,7 @@ describe('getAgentCrmStatsCore', () => {
       newLeadsCount: 0,
       paidCommissionTotal: 0,
     });
+    expect(hoisted.createCrmDashboardRepository).toHaveBeenCalledWith(authority);
     expect(hoisted.getAgentCrmDashboard).toHaveBeenCalledWith(
       { actor },
       hoisted.crmDashboardRepository,
@@ -130,7 +141,7 @@ describe('getAgentCrmStatsCore', () => {
     });
 
     try {
-      await getAgentCrmStatsCore({ actor });
+      await getAgentCrmStatsCore({ actor, authority });
       throw new Error('Expected getAgentCrmStatsCore to reject');
     } catch (error) {
       expect(error).toBeInstanceOf(AgentCrmStatsAccessDeniedError);
@@ -144,10 +155,12 @@ describe('getAgentCrmStatsCore', () => {
   it('builds CRM12 reporting widgets from the reporting repository and CRM05 derivations', async () => {
     const reporting = await getAgentCrmReportingCore({
       actor,
+      authority,
       now: () => '2026-05-14T12:00:00.000Z',
     });
 
     const expectedWindow = createAgentCrmReportingWindow('2026-05-14T12:00:00.000Z');
+    expect(hoisted.createCrmReportingRepository.mock.calls[0][0]).toBe(authority);
     expect(hoisted.crmReportingRepository.listWeightedPipelineRows).toHaveBeenCalledWith({
       actor,
       window: expectedWindow,
@@ -217,9 +230,11 @@ describe('getAgentCrmStatsCore', () => {
 
     const queue = await getAgentCrmTaskQueueCore({
       actor,
+      authority,
       now: () => '2026-05-22T08:00:00.000Z',
     });
 
+    expect(hoisted.createAgentCrmTaskWorkQueueRepository.mock.calls[0][0]).toBe(authority);
     expect(hoisted.agentCrmTaskWorkQueueRepository.readAgentTaskWorkQueue).toHaveBeenCalledWith({
       actor,
       now: '2026-05-22T08:00:00.000Z',
@@ -249,6 +264,7 @@ describe('getAgentCrmStatsCore', () => {
 
     const queue = await getAgentCrmCompletedTaskQueueCore({
       actor,
+      authority,
       now: () => '2026-05-22T15:00:00.000Z',
     });
 
@@ -270,6 +286,7 @@ describe('getAgentCrmStatsCore', () => {
   it('fails closed before reporting repository reads when reporting scope is invalid', async () => {
     await expect(
       getAgentCrmReportingCore({
+        authority,
         actor: {
           ...actor,
           scope: { agentId: 'other-agent', branchId: 'branch-1' },

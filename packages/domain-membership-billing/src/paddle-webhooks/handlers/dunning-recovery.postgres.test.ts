@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import postgres from 'postgres';
 import { expect, it, vi } from 'vitest';
 
@@ -21,8 +22,9 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
     const userId = `s6_user_${suffix}`;
     const subscriptionId = `s6_sub_${suffix}`;
     const tenantId = 'tenant_ks';
+    const authority = mintTestTenantAuthority(tenantId);
     const scope = {
-      tenantId,
+      authority,
       subscriptionId,
       providerSubscriptionId: subscriptionId,
       order: {
@@ -65,7 +67,7 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         newDunningCount: (row.dunningAttemptCount ?? 0) + 1,
         gracePeriodEnd: new Date('2026-10-11T10:00:00Z'),
       });
-      await withTenantContext({ tenantId, role: 'system' }, async tx => {
+      await withTenantContext(authority, async tx => {
         const [posture] = await tx.execute(
           sql`select current_user as role, rolbypassrls, rolsuper from pg_roles where rolname = current_user`
         );
@@ -199,10 +201,11 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
       expect(
         await admin`select status from engagement_email_sends where subscription_id = ${subscriptionId}`
       ).toMatchObject([{ status: 'sent' }]);
+      const otherAuthority = mintTestTenantAuthority('tenant_mk');
       await expect(
-        deliverPastDueEffects({ ...scope, tenantId: 'tenant_mk' }, deps)
+        deliverPastDueEffects({ ...scope, authority: otherAuthority }, deps)
       ).rejects.toThrow('no tenant-scoped row');
-      await withTenantContext({ tenantId: 'tenant_mk', role: 'system' }, async tx => {
+      await withTenantContext(otherAuthority, async tx => {
         expect(
           await tx.execute(
             sql`select id from engagement_email_sends where subscription_id = ${subscriptionId}`

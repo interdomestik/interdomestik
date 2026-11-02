@@ -1,5 +1,7 @@
 import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/staff-claims/assign';
 
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+
 import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
@@ -14,6 +16,7 @@ function revalidatePathForAllLocales(path: string) {
 }
 
 export async function assignClaimCore(params: {
+  authority: TenantAuthority | null;
   claimId: string;
   session: NonNullable<Session> | null;
   requestHeaders?: Headers;

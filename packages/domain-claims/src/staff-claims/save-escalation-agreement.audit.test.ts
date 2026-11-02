@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
@@ -137,6 +138,8 @@ function mockAgreementSaveSelects(options?: {
   mocks.agreementSelectChain.limit.mockResolvedValue(options?.agreements ?? []);
 }
 
+const authority = mintTestTenantAuthority('tenant-1');
+
 describe('saveClaimEscalationAgreementCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -154,6 +157,7 @@ describe('saveClaimEscalationAgreementCore', () => {
 
     const result = await saveClaimEscalationAgreementCore(
       {
+        authority,
         claimId: 'claim-1',
         decisionNextStatus: 'negotiation',
         decisionReason: 'Member accepted commercial terms for negotiation.',
@@ -177,7 +181,7 @@ describe('saveClaimEscalationAgreementCore', () => {
         entityId: 'claim-1',
         entityType: 'claim',
         headers: requestHeaders,
-        tenantId: 'tenant-1',
+        authority,
         metadata: expect.objectContaining({
           decisionNextStatus: 'negotiation',
           decisionReason: 'Member accepted commercial terms for negotiation.',
@@ -212,6 +216,7 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
 
     const result = await saveClaimEscalationAgreementCore({
+      authority,
       claimId: 'claim-1',
       decisionNextStatus: 'court',
       decisionReason: 'Member requested escalation directly into the court path.',

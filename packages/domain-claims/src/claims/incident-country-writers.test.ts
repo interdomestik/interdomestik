@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const h = vi.hoisted(() => {
   const draftClaim = {
@@ -70,6 +71,7 @@ import { buildClaimStartPublicNote, resolveClaimIncidentCountryUpdate } from './
 import { submitClaimCore } from './submit';
 import type { CreateClaimValues } from '../validators/claims';
 
+const authority = mintTestTenantAuthority('tenant-1');
 const session = {
   user: { email: 'm@example.test', id: 'member-1', role: 'member', tenantId: 'tenant-1' },
 };
@@ -102,13 +104,19 @@ describe('claim incident-country writers', () => {
   });
 
   it('persists explicit draft creation incident country values', async () => {
-    await createClaimCore({ formData: claimForm('de'), requestHeaders: new Headers(), session });
+    await createClaimCore({
+      authority,
+      formData: claimForm('de'),
+      requestHeaders: new Headers(),
+      session,
+    });
 
     expect(h.values).toHaveBeenNthCalledWith(1, expectedIncidentCountry('DE'));
   });
 
   it('does not promote diaspora handoff context into submitted incident-country authority', async () => {
     await submitClaimCore({
+      authority,
       data: claimData(),
       handoffContext: { country: 'IT', incidentLocation: 'abroad', source: 'diaspora-green-card' },
       requestHeaders: new Headers(),
@@ -123,6 +131,7 @@ describe('claim incident-country writers', () => {
 
   it('persists explicit submitted incident country ahead of diaspora provenance', async () => {
     await submitClaimCore({
+      authority,
       data: claimData({ incidentCountryCode: 'ch' }),
       handoffContext: { country: 'IT', incidentLocation: 'abroad', source: 'diaspora-green-card' },
       requestHeaders: new Headers(),
@@ -143,6 +152,7 @@ describe('claim incident-country writers', () => {
 
   it('keeps draft updates nullable for ambiguous country input', async () => {
     await updateDraftClaimCore({
+      authority,
       claimId: 'claim-1',
       data: claimData({ incidentCountryCode: 'Germany' }),
       requestHeaders: new Headers(),

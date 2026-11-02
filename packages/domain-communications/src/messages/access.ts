@@ -1,10 +1,4 @@
-import {
-  agentClients,
-  claims,
-  db,
-  withTenantContext,
-  type TenantTransaction,
-} from '@interdomestik/database';
+import { agentClients, claims, type TenantTransaction } from '@interdomestik/database';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
@@ -91,21 +85,17 @@ export async function hasAgentClaimAccess(args: {
   agentId: string;
   memberId: string;
   tenantId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }): Promise<boolean> {
-  const findLinkedClient = (executor: TenantTransaction) =>
-    executor.query.agentClients.findFirst({
-      where: (table, { and, eq }) =>
-        and(
-          eq(table.tenantId, args.tenantId),
-          eq(table.agentId, args.agentId),
-          eq(table.memberId, args.memberId),
-          eq(table.status, 'active')
-        ),
-    });
-  const linkedClient = args.tx
-    ? await findLinkedClient(args.tx)
-    : await withTenantContext({ tenantId: args.tenantId }, findLinkedClient);
+  const linkedClient = await args.tx.query.agentClients.findFirst({
+    where: (table, { and, eq }) =>
+      and(
+        eq(table.tenantId, args.tenantId),
+        eq(table.agentId, args.agentId),
+        eq(table.memberId, args.memberId),
+        eq(table.status, 'active')
+      ),
+  });
 
   return linkedClient != null;
 }
@@ -115,10 +105,10 @@ export function buildAccessibleClaimIdsSubquery(args: {
   role: string | null | undefined;
   tenantId: string;
   userId: string;
-  tx?: TenantTransaction;
+  tx: TenantTransaction;
 }) {
-  // db-access-guard: tenant-scoped -- reason: query-builder only; the subquery is embedded in a caller's tenant transaction and never executed on the ambient client
-  const database = args.tx ?? db;
+  // The subquery builder comes from the caller's tenant transaction; it is never built on the ambient client.
+  const database = args.tx;
   const branchId = args.branchId ?? null;
 
   if (args.role === 'staff' || args.role === 'branch_manager') {

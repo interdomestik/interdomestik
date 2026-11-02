@@ -5,14 +5,22 @@ import { buildRateLimitKey } from '@/lib/rate-limit-upstash';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
-  logAuditEvent: vi.fn(),
+  appendAnonymousTenantAuditEvent: vi.fn(),
   handlerGET: vi.fn(),
   handlerPOST: vi.fn(),
   lookupUserTenantByEmail: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: hoisted.enforceRateLimit }));
-vi.mock('@/lib/audit', () => ({ logAuditEvent: hoisted.logAuditEvent }));
+vi.mock('@interdomestik/database', () => ({
+  appendAnonymousTenantAuditEvent: hoisted.appendAnonymousTenantAuditEvent,
+}));
+vi.mock('@/lib/audit.core', () => ({
+  extractRequestMetadata: (headers: Headers) => ({
+    ip: headers.get('x-forwarded-for') ?? undefined,
+    userAgent: headers.get('user-agent') ?? undefined,
+  }),
+}));
 vi.mock('@/lib/auth', () => ({ auth: {} }));
 vi.mock('@/lib/auth/tenant-lookup', () => ({
   lookupUserTenantByEmail: hoisted.lookupUserTenantByEmail,
@@ -53,7 +61,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.handlerPOST.mockResolvedValue(new Response('ok', { status: 200 }));
-    hoisted.logAuditEvent.mockResolvedValue(undefined);
+    hoisted.appendAnonymousTenantAuditEvent.mockResolvedValue(true);
     hoisted.lookupUserTenantByEmail.mockResolvedValue('tenant_mk');
   });
 
@@ -65,7 +73,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     expect(res.status).toBe(200);
     expect(hoisted.handlerPOST).toHaveBeenCalledExactlyOnceWith(req);
     expect(hoisted.lookupUserTenantByEmail).not.toHaveBeenCalled();
-    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
   });
 
   it('returns the provider generic credential failure unchanged', async () => {
@@ -165,7 +173,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     }
     expect(hoisted.handlerPOST).toHaveBeenCalledTimes(20);
     expect(hoisted.lookupUserTenantByEmail).not.toHaveBeenCalled();
-    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
   });
 
   it('denies a conflicting tenant hint before reaching the provider', async () => {
@@ -187,7 +195,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     });
     expect(hoisted.handlerPOST).not.toHaveBeenCalled();
     expect(hoisted.lookupUserTenantByEmail).not.toHaveBeenCalled();
-    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
   });
 
   it('keeps the audited account mismatch denial for an explicit tenant hint', async () => {
@@ -200,7 +208,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     expect(res.status).toBe(401);
     expect(hoisted.handlerPOST).not.toHaveBeenCalled();
     expect(hoisted.lookupUserTenantByEmail).toHaveBeenCalledExactlyOnceWith(MEMBER_EMAIL);
-    expect(hoisted.logAuditEvent).toHaveBeenCalledExactlyOnceWith(
+    expect(hoisted.appendAnonymousTenantAuditEvent).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         action: 'auth.signin_denied_wrong_tenant',
         entityType: 'auth',
@@ -208,6 +216,29 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
         metadata: { route: '/api/auth/sign-in/email', reason: 'tenant_mismatch' },
       })
     );
+  });
+
+  it('keeps the account mismatch audit within the append cap for hostile paths and headers', async () => {
+    hoisted.lookupUserTenantByEmail.mockResolvedValue('tenant_mk');
+
+    const res = await POST(
+      buildSignInRequest({
+        host: 'ida.localhost:3000',
+        path: `/api/auth/${'p'.repeat(4_000)}/api/auth/sign-in/email`,
+        headers: {
+          'x-tenant-id': 'tenant_ks',
+          'user-agent': `"\\\u0001\u00e9`.repeat(1_000),
+          'x-forwarded-for': '\u0001'.repeat(500),
+        },
+      })
+    );
+
+    expect(res.status).toBe(401);
+    const [event] = hoisted.appendAnonymousTenantAuditEvent.mock.calls[0];
+    expect(event.metadata.route).toBe('/api/auth/sign-in/email');
+    expect(event.metadata.userAgent).toHaveLength(512);
+    expect(event.metadata.ip).toBe('?'.repeat(64));
+    expect(Buffer.byteLength(JSON.stringify(event.metadata), 'utf8')).toBeLessThanOrEqual(2_048);
   });
 
   it('terminates a comma-spliced forwarded host before the provider handler', async () => {
@@ -228,7 +259,7 @@ describe('POST /api/auth/[...all] neutral single-entry sign-in', () => {
     // The account tenant matches the cookie, so a legacy fall-through would have authenticated.
     expect(hoisted.handlerPOST).not.toHaveBeenCalled();
     expect(hoisted.lookupUserTenantByEmail).not.toHaveBeenCalled();
-    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.appendAnonymousTenantAuditEvent).not.toHaveBeenCalled();
   });
 
   it('forwards a matching explicit tenant hint on a canonical neutral host to the provider', async () => {
