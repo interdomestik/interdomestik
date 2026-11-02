@@ -103,10 +103,13 @@ export function openPullRequest(mutate = () => {}, { base = 'main', force = [] }
 
 export function route(pr, { source = main, overrides = {}, extraEnv = {} } = {}) {
   const tree = git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
+  const COMMIT_PIN = /^source_commit='[0-9a-f]{40}'$/mu;
+  const TREE_PIN = /^source_tree='[0-9a-f]{40}'$/mu;
+  assert.match(step.run, COMMIT_PIN, 'the source commit pin line must exist');
+  assert.match(step.run, TREE_PIN, 'the source tree pin line must exist');
   const script = step.run
-    .replace(/^source_commit='[0-9a-f]{40}'$/mu, `source_commit='${source}'`)
-    .replace(/^source_tree='[0-9a-f]{40}'$/mu, `source_tree='${tree}'`);
-  assert.notEqual(script, step.run, 'the source pin lines must exist');
+    .replace(COMMIT_PIN, `source_commit='${source}'`)
+    .replace(TREE_PIN, `source_tree='${tree}'`);
   const env = {
     PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`,
     GITHUB_WORKSPACE: pr.ws,
