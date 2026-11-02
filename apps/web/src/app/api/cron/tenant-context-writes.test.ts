@@ -17,6 +17,8 @@ const hoisted = vi.hoisted(() => ({
     returning: vi.fn(),
     values: vi.fn().mockReturnThis(),
   },
+  ambientSelect: vi.fn(),
+  listTenantIdsForScheduledWork: vi.fn(),
   logAuditEvent: vi.fn(),
   lte: vi.fn((left: unknown, right: unknown) => ({ op: 'lte', left, right })),
   select: {
@@ -55,8 +57,12 @@ vi.mock('@/lib/email', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  db: { select: vi.fn(() => hoisted.select) },
+  db: { select: hoisted.ambientSelect },
   withTenantContext: hoisted.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
+  listTenantIdsForScheduledWork: hoisted.listTenantIdsForScheduledWork,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -77,6 +83,8 @@ vi.mock('nanoid', () => ({ nanoid: (size?: number) => (size ? 'survey-token' : '
 
 function setupTenantContextHarness() {
   vi.clearAllMocks();
+  hoisted.listTenantIdsForScheduledWork.mockResolvedValue([member.tenantId]);
+  hoisted.ambientSelect.mockImplementation(() => hoisted.select);
   hoisted.select.from.mockReturnThis();
   hoisted.select.innerJoin.mockReturnThis();
   hoisted.select.where.mockReturnThis();
@@ -98,7 +106,10 @@ function setupTenantContextHarness() {
     ) =>
       await action({
         insert: hoisted.txInsert,
-        select: vi.fn(() => hoisted.txSelect),
+        // The member enumeration selects `subId`; the NPS token lookup selects only `token`.
+        select: vi.fn((fields: Record<string, unknown>) =>
+          'subId' in fields ? hoisted.select : hoisted.txSelect
+        ),
         update: hoisted.txUpdate,
       })
   );
@@ -128,6 +139,9 @@ describe('cron tenant-context writes', () => {
       { tenantId: member.tenantId, role: 'system' },
       expect.any(Function)
     );
+    expect(hoisted.ambientSelect).not.toHaveBeenCalled();
+    expect(hoisted.eq).toHaveBeenCalledWith('tenantId', member.tenantId);
+    expect(hoisted.select.limit).toHaveBeenCalledWith(200);
     expect(hoisted.txInsert).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.txUpdate).toHaveBeenCalledWith(expect.anything());
     expect(hoisted.insert.values).toHaveBeenCalledWith(
@@ -150,6 +164,9 @@ describe('cron tenant-context writes', () => {
     });
 
     expect(results.sent).toBe(1);
+    expect(hoisted.ambientSelect).not.toHaveBeenCalled();
+    expect(hoisted.eq).toHaveBeenCalledWith('tenantId', member.tenantId);
+    expect(hoisted.select.limit).toHaveBeenCalledWith(200);
     expect(hoisted.withTenantContext).toHaveBeenNthCalledWith(
       1,
       { tenantId: member.tenantId, role: 'system' },

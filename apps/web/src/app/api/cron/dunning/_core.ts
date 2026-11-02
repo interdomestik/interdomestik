@@ -1,6 +1,7 @@
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
-import { db, subscriptions, user, withTenantContext } from '@interdomestik/database';
+import { subscriptions, user, withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
 import { and, eq, gt } from 'drizzle-orm';
 
 export type DunningCronStats = {
@@ -10,7 +11,7 @@ export type DunningCronStats = {
   errors: number;
 };
 
-type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findMany>>[number];
+type SubscriptionRecord = typeof subscriptions.$inferSelect;
 
 export async function runDunningCronCore(args: {
   now: Date;
@@ -25,40 +26,44 @@ export async function runDunningCronCore(args: {
     errors: 0,
   };
 
-  let afterId: string | null = null;
+  // Per-tenant cursor: each tenant's past-due subscriptions are paged under its own RLS context.
+  for (const tenantId of await listTenantIdsForScheduledWork()) {
+    let afterId: string | null = null;
 
-  while (true) {
-    const conditions = [
-      eq(subscriptions.status, 'past_due'),
-      gt(subscriptions.gracePeriodEndsAt, now),
-    ];
-    if (afterId) {
-      conditions.push(gt(subscriptions.id, afterId));
+    while (true) {
+      const conditions = [
+        eq(subscriptions.tenantId, tenantId),
+        eq(subscriptions.status, 'past_due'),
+        gt(subscriptions.gracePeriodEndsAt, now),
+      ];
+      if (afterId) {
+        conditions.push(gt(subscriptions.id, afterId));
+      }
+
+      const pastDueSubscriptions = await withTenantContext({ tenantId, role: 'system' }, tx =>
+        tx.query.subscriptions.findMany({
+          where: and(...conditions),
+          orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+          limit: 200,
+        })
+      );
+
+      if (pastDueSubscriptions.length === 0) break;
+
+      stats.checked += pastDueSubscriptions.length;
+
+      await processBatch({
+        subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
+          gracePeriodEndsAt: Date;
+          pastDueAt: Date;
+        })[],
+        now,
+        headers,
+        stats,
+      });
+
+      afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
     }
-
-    // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
-    // db-access-guard: system-exempt -- reason: dunning cron enumerates tenants before per-row scoped writes
-    const pastDueSubscriptions = await db.query.subscriptions.findMany({
-      where: and(...conditions),
-      orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
-      limit: 200,
-    });
-
-    if (pastDueSubscriptions.length === 0) break;
-
-    stats.checked += pastDueSubscriptions.length;
-
-    await processBatch({
-      subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
-        gracePeriodEndsAt: Date;
-        pastDueAt: Date;
-      })[],
-      now,
-      headers,
-      stats,
-    });
-
-    afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
   }
 
   return { stats };

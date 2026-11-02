@@ -1,4 +1,5 @@
-import { db, inArray, withTenantContext } from '@interdomestik/database';
+import { inArray, withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -108,25 +109,28 @@ export async function getAlreadySentUserIdSet(args: {
 }
 
 export async function getUsersBatch(args: {
+  tenantId: string;
   afterId: string | null;
   limit?: number;
 }): Promise<UserMini[]> {
   const limit = args.limit ?? USER_BATCH_SIZE;
+  const { tenantId, afterId } = args;
 
-  // Cursor pagination by primary key keeps memory stable and avoids huge offsets.
-  // BLOCKED(rc31-u2): cross-tenant by design: campaign cursor enumerates users across all tenants; needs privileged manifest entry or per-tenant loop
-  // db-access-guard: system-exempt -- reason: campaign job enumerates tenants before per-row checks
-  const users = await db.query.user.findMany({
-    where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
-    orderBy: (user, { asc }) => [asc(user.id)],
-    limit,
-    columns: {
-      id: true,
-      email: true,
-      name: true,
-      tenantId: true,
-    },
-  });
+  // Cursor pagination by primary key keeps memory stable and avoids huge offsets; one tenant per cursor.
+  const users = await withTenantContext({ tenantId, role: 'system' }, tx =>
+    tx.query.user.findMany({
+      where: (user, { and, eq, gt }) =>
+        and(eq(user.tenantId, tenantId), afterId ? gt(user.id, afterId) : undefined),
+      orderBy: (user, { asc }) => [asc(user.id)],
+      limit,
+      columns: {
+        id: true,
+        email: true,
+        name: true,
+        tenantId: true,
+      },
+    })
+  );
 
   return users.map(u => ({ id: u.id, email: u.email, name: u.name, tenantId: u.tenantId }));
 }
@@ -225,19 +229,21 @@ export async function processBatchedUserCampaign(args: {
   const errors: string[] = [];
   const stats = { attempted: 0, sent: 0, skipped: 0 };
 
-  await forEachBatchedUsers({
-    fetchBatch: afterId => getUsersBatch({ afterId, limit: USER_BATCH_SIZE }),
-    onBatch: async batch => {
-      const alreadySentSet = await getAlreadySentUserIdSet({
-        campaignId: args.campaignId,
-        users: batch,
-      });
+  for (const tenantId of await listTenantIdsForScheduledWork()) {
+    await forEachBatchedUsers({
+      fetchBatch: afterId => getUsersBatch({ tenantId, afterId, limit: USER_BATCH_SIZE }),
+      onBatch: async batch => {
+        const alreadySentSet = await getAlreadySentUserIdSet({
+          campaignId: args.campaignId,
+          users: batch,
+        });
 
-      for (const u of batch) {
-        await processCampaignUser(u, args, alreadySentSet, stats, logs, errors);
-      }
-    },
-  });
+        for (const u of batch) {
+          await processCampaignUser(u, args, alreadySentSet, stats, logs, errors);
+        }
+      },
+    });
+  }
 
   return {
     logs,
@@ -341,25 +347,28 @@ export async function processStandardUserCampaign(
   context: { logs: string[]; errors: string[]; stats: any },
   sendFn: (u: UserMini) => Promise<void>
 ) {
-  await executeCampaign(
-    campaignId,
-    async afterId => {
-      // BLOCKED(rc31-u2): cross-tenant by design: campaign cron enumerates users across all tenants; needs privileged manifest entry or per-tenant loop
-      // db-access-guard: system-exempt -- reason: campaign lifecycle job enumerates tenants before per-row checks
-      const users = await db.query.user.findMany({
-        where: (user, { between, and, gt }) =>
-          and(
-            between(user.createdAt, windowStart, windowEnd),
-            afterId ? gt(user.id, afterId) : undefined
-          ),
-        orderBy: (user, { asc }) => [asc(user.id)],
-        limit: USER_BATCH_SIZE,
-      });
-      return users.map(u => ({ ...u, userId: u.id }));
-    },
-    async u => {
-      await sendFn(u);
-    },
-    context
-  );
+  for (const tenantId of await listTenantIdsForScheduledWork()) {
+    await executeCampaign(
+      campaignId,
+      async afterId => {
+        const users = await withTenantContext({ tenantId, role: 'system' }, tx =>
+          tx.query.user.findMany({
+            where: (user, { between, and, eq, gt }) =>
+              and(
+                eq(user.tenantId, tenantId),
+                between(user.createdAt, windowStart, windowEnd),
+                afterId ? gt(user.id, afterId) : undefined
+              ),
+            orderBy: (user, { asc }) => [asc(user.id)],
+            limit: USER_BATCH_SIZE,
+          })
+        );
+        return users.map(u => ({ ...u, userId: u.id }));
+      },
+      async u => {
+        await sendFn(u);
+      },
+      context
+    );
+  }
 }

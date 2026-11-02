@@ -3,6 +3,8 @@ import { and, asc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm';
 import { db } from '@interdomestik/database/db';
 import { crmDeals, crmPipelines, crmPipelineStages } from '@interdomestik/database/schema';
 
+import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+
 import { runInCrmTenantContext } from './tenant-runner';
 
 export const CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN = 1000;
@@ -95,15 +97,26 @@ async function runWorkItemQuery(
   params: WorkItemQueryParams,
   limit: number
 ): Promise<WorkItemRow[]> {
-  if (!params.tenantId) {
-    // BLOCKED(rc31-u2): cross-tenant by design. The protected scheduler enumerates work items across
-    // all tenants, so there is no single canonical tenant to scope. Needs a privileged manifest entry
-    // or a per-tenant loop before this ambient-db read can run under the restricted role.
-    return buildWorkItemQuery(database, params).limit(limit);
+  const { tenantId } = params;
+  if (tenantId) {
+    return runInCrmTenantContext(database, { tenantId }, async scoped =>
+      buildWorkItemQuery(scoped, { ...params, tenantId }).limit(limit)
+    );
   }
-  return runInCrmTenantContext(database, { tenantId: params.tenantId }, async scoped =>
-    buildWorkItemQuery(scoped, params).limit(limit)
-  );
+
+  // Scheduler run: visit tenants in id order (the query's leading sort key) with a shared row
+  // budget, so the concatenation equals the former single cross-tenant ordered result.
+  const rows: WorkItemRow[] = [];
+  for (const scheduledTenantId of await listTenantIdsForScheduledWork()) {
+    const remaining = limit - rows.length;
+    if (remaining <= 0) break;
+    rows.push(
+      ...(await runInCrmTenantContext(database, { tenantId: scheduledTenantId }, async scoped =>
+        buildWorkItemQuery(scoped, { ...params, tenantId: scheduledTenantId }).limit(remaining)
+      ))
+    );
+  }
+  return rows;
 }
 
 function buildWorkItemQuery(
@@ -111,7 +124,7 @@ function buildWorkItemQuery(
   params: {
     snapshotDateStartInclusive: Date;
     snapshotDateEndExclusive: Date;
-    tenantId?: string;
+    tenantId: string;
   }
 ) {
   const basePredicates = [
@@ -146,22 +159,9 @@ function buildWorkItemQuery(
       )
     );
 
-  if (params.tenantId) {
-    // db-access-guard: tenant-predicate -- reason: admin forecast observability discovers expected work items for exactly the authorized admin tenant
-    return query
-      .where(and(eq(crmDeals.tenantId, params.tenantId), ...basePredicates))
-      .groupBy(crmDeals.tenantId, crmDeals.pipelineId, crmDeals.branchId, crmDeals.currencyCode)
-      .orderBy(
-        asc(crmDeals.tenantId),
-        asc(crmDeals.pipelineId),
-        asc(crmDeals.branchId),
-        asc(crmDeals.currencyCode)
-      );
-  }
-
-  // db-access-guard: system-exempt -- reason: protected CRM forecast snapshot scheduler enumerates aggregate work items across tenants and carries tenant ids into each append-only snapshot write
+  // db-access-guard: tenant-predicate -- reason: work items for exactly one tenant (the authorized admin tenant or the scheduler-visited tenant)
   return query
-    .where(and(...basePredicates))
+    .where(and(eq(crmDeals.tenantId, params.tenantId), ...basePredicates))
     .groupBy(crmDeals.tenantId, crmDeals.pipelineId, crmDeals.branchId, crmDeals.currencyCode)
     .orderBy(
       asc(crmDeals.tenantId),

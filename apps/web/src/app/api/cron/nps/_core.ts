@@ -1,12 +1,13 @@
 import { logAuditEvent } from '@/lib/audit';
 import { getDayWindow } from '@/lib/cron/engagement-schedule';
 import { sendNpsSurveyEmail } from '@/lib/email';
-import { db, withTenantContext } from '@interdomestik/database';
-import { npsSurveyTokens, subscriptions, user } from '@interdomestik/database/schema';
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { withTenantContext } from '@interdomestik/database';
+import { npsSurveyTokens } from '@interdomestik/database/schema';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
+import { selectActiveSubscriptionMembers } from '../_scheduled-members';
 
 const NPS_TEMPLATE_KEY = 'nps_v1';
 const NPS_DAYS_SINCE_SUB_CREATED = 45;
@@ -32,26 +33,10 @@ export async function runNpsCronCore(args: {
 
   const { start, end } = getDayWindow(now, NPS_DAYS_SINCE_SUB_CREATED);
 
-  // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
-  // db-access-guard: system-exempt -- reason: NPS cron enumerates tenants before per-row scoped writes
-  const members = await db
-    .select({
-      userId: subscriptions.userId,
-      subId: subscriptions.id,
-      tenantId: subscriptions.tenantId,
-      name: user.name,
-      email: user.email,
-    })
-    .from(subscriptions)
-    .innerJoin(user, eq(subscriptions.userId, user.id))
-    .where(
-      and(
-        eq(subscriptions.status, 'active'),
-        gte(subscriptions.createdAt, start),
-        lte(subscriptions.createdAt, end)
-      )
-    )
-    .limit(200);
+  const members = await selectActiveSubscriptionMembers({
+    limit: 200,
+    createdBetween: { start, end },
+  });
 
   // Process members in parallel chunks or sequential loop
   for (const member of members) {

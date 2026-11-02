@@ -1,4 +1,5 @@
-import { db } from '@interdomestik/database';
+import { withTenantContext } from '@interdomestik/database';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
 import { endOfDay, startOfDay, subDays } from 'date-fns';
 import {
   USER_BATCH_SIZE,
@@ -32,30 +33,33 @@ async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; s
   const campaignId = 'welcome_day_0';
   const now = new Date();
 
-  await executeCampaign(
-    campaignId,
-    afterId =>
-      // BLOCKED(rc31-u2): cross-tenant by design: welcome cron enumerates subscriptions across all tenants; needs privileged manifest entry or per-tenant loop
-      // db-access-guard: system-exempt -- reason: welcome campaign enumerates tenants before per-row checks
-      db.query.subscriptions.findMany({
-        where: (subscriptions, { eq, and, gt }) =>
-          and(
-            eq(subscriptions.status, 'active'),
-            gt(subscriptions.createdAt, subDays(now, 1)),
-            afterId ? gt(subscriptions.id, afterId) : undefined
-          ),
-        orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
-        limit: USER_BATCH_SIZE,
-        with: { user: true },
-      }),
-    async sub => {
-      if (sub.user?.email && sub.user?.name) {
-        const { email, name } = sub.user;
-        await withRetries(() => sendWelcomeEmail(email, name));
-      }
-    },
-    context
-  );
+  for (const tenantId of await listTenantIdsForScheduledWork()) {
+    await executeCampaign(
+      campaignId,
+      afterId =>
+        withTenantContext({ tenantId, role: 'system' }, tx =>
+          tx.query.subscriptions.findMany({
+            where: (subscriptions, { eq, and, gt }) =>
+              and(
+                eq(subscriptions.tenantId, tenantId),
+                eq(subscriptions.status, 'active'),
+                gt(subscriptions.createdAt, subDays(now, 1)),
+                afterId ? gt(subscriptions.id, afterId) : undefined
+              ),
+            orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+            limit: USER_BATCH_SIZE,
+            with: { user: true },
+          })
+        ),
+      async sub => {
+        if (sub.user?.email && sub.user?.name) {
+          const { email, name } = sub.user;
+          await withRetries(() => sendWelcomeEmail(email, name));
+        }
+      },
+      context
+    );
+  }
 }
 
 async function runOnboardingCampaign(context: { logs: string[]; errors: string[]; stats: any }) {

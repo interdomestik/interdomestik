@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const listTenantIdsForScheduledWork = vi.hoisted(() => vi.fn<() => Promise<string[]>>());
+
+vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
+  listTenantIdsForScheduledWork,
+}));
 
 import {
   CRM_FORECAST_SNAPSHOT_MAX_WORK_ITEMS_PER_RUN,
@@ -115,46 +122,135 @@ describe('crmForecastSnapshotWorkItemRepository', () => {
     ]);
   });
 
-  it('fetches the true deferred work-item count when the first grouped query overflows', async () => {
-    const firstRows = [
-      row({ branchId: null }),
-      row({
+  describe('scheduler path (no tenantId)', () => {
+    const window = {
+      snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
+      snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
+    };
+
+    function compiledWhere(args: unknown[]) {
+      return new PgDialect().sqlToQuery(args[0] as Parameters<PgDialect['sqlToQuery']>[0]);
+    }
+
+    beforeEach(() => {
+      listTenantIdsForScheduledWork.mockReset();
+    });
+
+    it('fetches the true deferred work-item count when the first grouped query overflows', async () => {
+      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-1', 'tenant-2', 'tenant-3']);
+      const tenant1 = row({ branchId: null });
+      const tenant2 = row({
         branchId: 'branch-2',
         currencyCode: 'USD',
         pipelineId: 'pipeline-2',
         tenantId: 'tenant-2',
-      }),
-    ];
-    const allRows = [
-      ...firstRows,
-      row({
+      });
+      const tenant3 = row({
         branchId: 'branch-3',
         currencyCode: 'GBP',
         pipelineId: 'pipeline-3',
         tenantId: 'tenant-3',
-      }),
-    ];
-    const { calls, database } = createDatabaseDouble([firstRows, allRows]);
+      });
+      // First pass (budget 2): tenant-1 -> 1 row, tenant-2 -> 1 row, tenant-3 never visited.
+      // Second pass (huge budget): every tenant is visited.
+      const { calls, database } = createDatabaseDouble([
+        [tenant1],
+        [tenant2],
+        [tenant1],
+        [tenant2],
+        [tenant3],
+      ]);
 
-    const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
-    const result = await repository.listWorkItems({
-      limit: 1,
-      snapshotDateEndExclusive: new Date('2026-05-14T00:00:00.000Z'),
-      snapshotDateStartInclusive: new Date('2025-04-09T00:00:00.000Z'),
+      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const result = await repository.listWorkItems({ limit: 1, ...window });
+
+      expect(result.workItems).toEqual([
+        {
+          branchId: null,
+          currencyCode: 'EUR',
+          pipelineId: 'pipeline-1',
+          tenantId: 'tenant-1',
+        },
+      ]);
+      expect(result.workItemsDeferred).toBe(2);
+      expect(database.select).toHaveBeenCalledTimes(5);
+      expect(calls.filter(call => call.method === 'limit').map(call => call.args[0])).toEqual([
+        2, 1, 2_147_483_647, 2_147_483_646, 2_147_483_645,
+      ]);
     });
 
-    expect(result.workItems).toEqual([
-      {
-        branchId: null,
-        currencyCode: 'EUR',
-        pipelineId: 'pipeline-1',
-        tenantId: 'tenant-1',
-      },
-    ]);
-    expect(result.workItemsDeferred).toBe(2);
-    expect(database.select).toHaveBeenCalledTimes(2);
-    expect(calls.filter(call => call.method === 'limit').map(call => call.args[0])).toEqual([
-      2, 2_147_483_647,
-    ]);
+    it('visits tenants in the listed order with a shared budget and stops once it is spent', async () => {
+      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b', 'tenant-c']);
+      const a1 = row({ pipelineId: 'pipeline-1', tenantId: 'tenant-a' });
+      const a2 = row({ pipelineId: 'pipeline-2', tenantId: 'tenant-a' });
+      const a3 = row({ pipelineId: 'pipeline-3', tenantId: 'tenant-a' });
+      const b1 = row({ tenantId: 'tenant-b' });
+      // First pass (budget 3): tenant-a spends it all, so b and c are never visited.
+      // Deferred-count pass: a (3 rows), b (1 row), c (0 rows) are all visited in order.
+      const { calls, database } = createDatabaseDouble([[a1, a2, a3], [a1, a2, a3], [b1], []]);
+
+      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const result = await repository.listWorkItems({ limit: 2, ...window });
+
+      const huge = 2_147_483_647;
+      expect(calls.filter(call => call.method === 'limit').map(call => call.args[0])).toEqual([
+        3,
+        huge,
+        huge - 3,
+        huge - 4,
+      ]);
+      expect(database.select).toHaveBeenCalledTimes(4);
+      expect(result.workItems.map(item => item.pipelineId)).toEqual(['pipeline-1', 'pipeline-2']);
+      expect(result.workItemsDeferred).toBe(2);
+      expect(listTenantIdsForScheduledWork).toHaveBeenCalledTimes(2);
+    });
+
+    it('carries each visited tenant predicate into its own grouped query', async () => {
+      listTenantIdsForScheduledWork.mockResolvedValue(['tenant-a', 'tenant-b']);
+      const { calls, database } = createDatabaseDouble([
+        [row({ tenantId: 'tenant-a' })],
+        [row({ tenantId: 'tenant-b' })],
+      ]);
+
+      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      const result = await repository.listWorkItems(window);
+
+      const wheres = calls
+        .filter(call => call.method === 'where')
+        .map(call => compiledWhere(call.args));
+      expect(wheres).toHaveLength(2);
+      for (const [index, tenantId] of ['tenant-a', 'tenant-b'].entries()) {
+        expect(wheres[index].sql).toContain('"crm_deals"."tenant_id" = $1');
+        expect(wheres[index].params[0]).toBe(tenantId);
+        expect(wheres[index].params).not.toContain(
+          tenantId === 'tenant-a' ? 'tenant-b' : 'tenant-a'
+        );
+      }
+      expect(result.workItems.map(item => item.tenantId)).toEqual(['tenant-a', 'tenant-b']);
+      expect(result.workItemsDeferred).toBe(0);
+    });
+
+    it('does not enumerate tenants when the caller supplies a tenantId', async () => {
+      const { calls, database } = createDatabaseDouble([[row({ tenantId: 'tenant-9' })]]);
+
+      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      await repository.listWorkItems({ tenantId: 'tenant-9', ...window });
+
+      expect(listTenantIdsForScheduledWork).not.toHaveBeenCalled();
+      const where = compiledWhere(calls.find(call => call.method === 'where')?.args ?? []);
+      expect(where.params[0]).toBe('tenant-9');
+    });
+
+    it('returns no work items when there are no tenants', async () => {
+      listTenantIdsForScheduledWork.mockResolvedValue([]);
+      const { database } = createDatabaseDouble([]);
+
+      const repository = createCrmForecastSnapshotWorkItemRepository(database as never);
+      await expect(repository.listWorkItems(window)).resolves.toEqual({
+        workItems: [],
+        workItemsDeferred: 0,
+      });
+      expect(database.select).not.toHaveBeenCalled();
+    });
   });
 });

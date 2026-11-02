@@ -7,9 +7,6 @@ import {
   sendOnboardingEmail,
   sendSeasonalEmail,
 } from '@/lib/email';
-import { db } from '@interdomestik/database';
-import { subscriptions, user } from '@interdomestik/database/schema';
-import { and, eq, gte, lte } from 'drizzle-orm';
 
 import {
   ENGAGEMENT_CADENCE,
@@ -18,6 +15,7 @@ import {
 } from '@/lib/cron/engagement-schedule';
 
 import { createPendingEngagementSend, updateEngagementSend } from '../_engagement-email-sends';
+import { selectActiveSubscriptionMembers } from '../_scheduled-members';
 
 export type EngagementCronResults = {
   day7: number;
@@ -81,26 +79,10 @@ async function processLifecycleEngagement(
   for (const cadence of ENGAGEMENT_CADENCE) {
     const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
-    // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
-    // db-access-guard: system-exempt -- reason: engagement cron enumerates tenants before per-row scoped writes
-    const members = await db
-      .select({
-        userId: subscriptions.userId,
-        subId: subscriptions.id,
-        tenantId: subscriptions.tenantId,
-        name: user.name,
-        email: user.email,
-      })
-      .from(subscriptions)
-      .innerJoin(user, eq(subscriptions.userId, user.id))
-      .where(
-        and(
-          eq(subscriptions.status, 'active'),
-          gte(subscriptions.createdAt, start),
-          lte(subscriptions.createdAt, end)
-        )
-      )
-      .limit(200);
+    const members = await selectActiveSubscriptionMembers({
+      limit: 200,
+      createdBetween: { start, end },
+    });
 
     for (const member of members) {
       await processMemberEngagement(member, cadence, results, headers);
@@ -177,20 +159,7 @@ async function processSeasonalEngagement(
   if (!season) return;
 
   const templateKey = `seasonal_${season}_${now.getFullYear()}`;
-  // BLOCKED(rc31-u2): cron enumeration across all tenants (no session tenant); needs a privileged manifest entry or a per-tenant loop.
-  // db-access-guard: system-exempt -- reason: seasonal cron enumerates tenants before per-row scoped writes
-  const seasonalMembers = await db
-    .select({
-      userId: subscriptions.userId,
-      subId: subscriptions.id,
-      tenantId: subscriptions.tenantId,
-      name: user.name,
-      email: user.email,
-    })
-    .from(subscriptions)
-    .innerJoin(user, eq(subscriptions.userId, user.id))
-    .where(and(eq(subscriptions.status, 'active')))
-    .limit(100);
+  const seasonalMembers = await selectActiveSubscriptionMembers({ limit: 100 });
 
   for (const member of seasonalMembers) {
     await processSeasonalMember(member, season, templateKey, now, results, headers);
