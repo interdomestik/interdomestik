@@ -3,7 +3,7 @@ import { and, asc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm';
 import { db } from '@interdomestik/database/db';
 import { crmDeals, crmPipelines, crmPipelineStages } from '@interdomestik/database/schema';
 
-import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 
 import { runInCrmTenantContext } from './tenant-runner';
 

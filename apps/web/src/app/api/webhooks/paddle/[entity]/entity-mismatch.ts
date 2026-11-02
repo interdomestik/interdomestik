@@ -1,4 +1,4 @@
-import { resolvePaddleUserOwner } from '@interdomestik/database/paddle-provider-resolution';
+import { resolvePaddleUserOwner } from '@interdomestik/database';
 import {
   normalizeBillingText,
   resolveBillingScopeFromSnapshot,

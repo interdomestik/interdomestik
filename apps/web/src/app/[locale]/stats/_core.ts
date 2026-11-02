@@ -1,5 +1,5 @@
 import { claims, withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForPlatformAggregate } from '@interdomestik/database/platform-directory';
+import { listTenantIdsForPlatformAggregate } from '@interdomestik/database';
 import { claimLifecycleStatusIs } from '@interdomestik/domain-claims/claims/lifecycle-read-sql';
 import { count, eq, sql } from 'drizzle-orm';
 

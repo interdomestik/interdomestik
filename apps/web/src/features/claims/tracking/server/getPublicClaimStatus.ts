@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { resolveClaimTrackingTokenTenant } from '@interdomestik/database/public-token-tenant';
+import { resolveClaimTrackingTokenTenant } from '@interdomestik/database';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { claims, claimTrackingTokens } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';

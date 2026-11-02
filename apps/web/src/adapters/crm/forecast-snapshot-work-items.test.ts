@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const listTenantIdsForScheduledWork = vi.hoisted(() => vi.fn<() => Promise<string[]>>());
 
-vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
+vi.mock('@interdomestik/database', () => ({
   listTenantIdsForScheduledWork,
 }));
 

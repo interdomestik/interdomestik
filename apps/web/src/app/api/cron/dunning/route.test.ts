@@ -23,15 +23,24 @@ vi.mock('@/lib/email', () => ({
   sendPaymentFinalWarningEmail: vi.fn(),
   sendPaymentReminderEmail: vi.fn(),
 }));
-// prettier-ignore
 vi.mock('@interdomestik/database', () => ({
-  db: { query: { subscriptions: { findMany: h.findManySubscriptions }, user: { findFirst: h.findFirstUser } } },
-  subscriptions: { gracePeriodEndsAt: 'subscriptions.gracePeriodEndsAt', id: 'subscriptions.id', status: 'subscriptions.status', tenantId: 'subscriptions.tenantId' },
-  user: { id: 'user.id', tenantId: 'user.tenantId' }, withTenantContext: h.withTenantContext,
-}));
-vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
+  db: {
+    query: {
+      subscriptions: { findMany: h.findManySubscriptions },
+      user: { findFirst: h.findFirstUser },
+    },
+  },
+  subscriptions: {
+    gracePeriodEndsAt: 'subscriptions.gracePeriodEndsAt',
+    id: 'subscriptions.id',
+    status: 'subscriptions.status',
+    tenantId: 'subscriptions.tenantId',
+  },
+  user: { id: 'user.id', tenantId: 'user.tenantId' },
+  withTenantContext: h.withTenantContext,
   listTenantIdsForScheduledWork: h.listTenantIdsForScheduledWork,
 }));
+
 vi.mock('drizzle-orm', () => ({ and: h.and, eq: h.eq, gt: h.gt }));
 
 import { GET } from './route';

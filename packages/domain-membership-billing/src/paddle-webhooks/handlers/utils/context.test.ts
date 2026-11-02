@@ -20,6 +20,7 @@ vi.mock('@interdomestik/database', () => {
   return {
     db,
     withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(db)),
+    ...resolution,
   };
 });
 
@@ -27,8 +28,6 @@ const resolution = vi.hoisted(() => ({
   resolvePaddleSubscriptionOwner: vi.fn(),
   resolvePaddleUserOwner: vi.fn(),
 }));
-
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => resolution);
 
 // Helper to mock response AND execute 'where' callback for coverage
 const mockDbResponse = (returnValue: any) => {

@@ -26,7 +26,7 @@ export interface PaddleHandlerMocks {
   };
   /** Tenant-context boundary; tests assert the tenant it received. */
   withTenantContext: MockFunction;
-  /** Privileged provider-reference resolution (`@interdomestik/database/paddle-provider-resolution`). */
+  /** Privileged provider-reference resolvers, re-exported from the `@interdomestik/database` root. */
   resolution: PaddleResolutionMocks;
   selectResults: unknown[][];
   and: MockFunction;
@@ -52,7 +52,7 @@ export interface PaddleHandlerMocks {
   insertedUserValues: MockFunction;
   updatedUserValues: MockFunction;
 }
-export interface PaddleDatabaseMockModule {
+export interface PaddleDatabaseMockModule extends PaddleResolutionMocks {
   agentClients: {
     tenantId: string;
     memberId: string;
@@ -154,14 +154,8 @@ export function createPaddleDatabaseMockModule(
     user: hoisted.user,
     webhookEvents: hoisted.webhookEvents,
     withTenantContext: hoisted.withTenantContext,
+    ...hoisted.resolution,
   };
-}
-
-/** Mock for the privileged provider-reference resolvers; per-test owners come from the mock* helpers. */
-export function createPaddleResolutionMockModule(
-  hoisted: ReturnType<typeof createHoistedPaddleHandlerMocks>
-): PaddleResolutionMocks {
-  return hoisted.resolution;
 }
 
 export function createCommissionMockModule(): CommissionMockModule {

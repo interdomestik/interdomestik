@@ -1,4 +1,4 @@
-import { resolvePaddleUserOwner } from '@interdomestik/database/paddle-provider-resolution';
+import { resolvePaddleUserOwner } from '@interdomestik/database';
 import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 import { isPaddleSubscriptionReferenceAmbiguousError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 

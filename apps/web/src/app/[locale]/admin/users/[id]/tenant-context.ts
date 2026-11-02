@@ -1,4 +1,4 @@
-import { readActiveTenantId } from '@interdomestik/database/platform-directory';
+import { readActiveTenantId } from '@interdomestik/database';
 
 type SessionLike = {
   user?: {

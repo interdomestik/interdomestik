@@ -39,11 +39,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database/platform-directory', () => ({
-  listTenantIdsForPlatformAggregate: mocks.listTenantIdsForPlatformAggregate,
-}));
-
 vi.mock('@interdomestik/database', () => ({
+  listTenantIdsForPlatformAggregate: mocks.listTenantIdsForPlatformAggregate,
   db: mocks.db,
   withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
 }));

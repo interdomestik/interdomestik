@@ -1,5 +1,5 @@
 import { eq, user as userTable, withTenantContext } from '@interdomestik/database';
-import { resolvePaddleCustomerEmailOwner } from '@interdomestik/database/paddle-provider-resolution';
+import { resolvePaddleCustomerEmailOwner } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import { nanoid } from 'nanoid';
 import {

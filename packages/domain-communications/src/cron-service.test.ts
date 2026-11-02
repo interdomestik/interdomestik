@@ -25,10 +25,9 @@ const h = vi.hoisted(() => ({
 vi.mock('@interdomestik/database', () => ({
   inArray: (left: unknown, right: unknown[]) => ({ left, op: 'inArray', right }),
   withTenantContext: h.withTenantContext,
-}));
-vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
   listTenantIdsForScheduledWork: h.listTenantIdsForScheduledWork,
 }));
+
 vi.mock('@interdomestik/database/schema', () => ({
   emailCampaignLogs: {
     campaignId: 'emailCampaignLogs.campaignId',

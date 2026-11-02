@@ -23,11 +23,12 @@ const hoisted = vi.hoisted(() => ({
   withTenantContext: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => ({ withTenantContext: hoisted.withTenantContext }));
-vi.mock('@interdomestik/database/schema', () => hoisted.tables);
-vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
+vi.mock('@interdomestik/database', () => ({
+  withTenantContext: hoisted.withTenantContext,
   listTenantIdsForScheduledWork: hoisted.listTenantIdsForScheduledWork,
 }));
+vi.mock('@interdomestik/database/schema', () => hoisted.tables);
+
 vi.mock('drizzle-orm', () => ({
   and: hoisted.and,
   eq: hoisted.eq,

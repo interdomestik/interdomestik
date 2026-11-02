@@ -22,7 +22,7 @@ vi.mock('@/lib/auth', () => ({ auth: { api: { requestPasswordReset: vi.fn() } } 
 vi.mock('@/lib/email', () => ({
   paddleDunningEmailDeps: {},
 }));
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+vi.mock('@interdomestik/database', () => ({
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({

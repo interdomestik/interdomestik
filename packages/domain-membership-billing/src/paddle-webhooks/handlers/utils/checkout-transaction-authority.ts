@@ -1,4 +1,4 @@
-import { readVerifiedPaddleTransactionEvidence } from '@interdomestik/database/paddle-provider-resolution';
+import { readVerifiedPaddleTransactionEvidence } from '@interdomestik/database';
 import { RetryablePaddleWebhookError } from '../../errors';
 import type { CheckoutCustomData, ResolvePaddleCustomer } from '../../types';
 import type { TransactionOrderPayload } from './checkout-order-integrity';

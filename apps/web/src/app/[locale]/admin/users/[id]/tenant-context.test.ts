@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   readActiveTenantId: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/platform-directory', () => ({
+vi.mock('@interdomestik/database', () => ({
   readActiveTenantId: (...args: unknown[]) => mocks.readActiveTenantId(...args),
 }));
 

@@ -14,10 +14,6 @@ vi.mock('@interdomestik/database', async () => {
   const support = await import('./test-support');
   return support.createPaddleDatabaseMockModule(hoisted);
 });
-vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
-  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
-);
-
 vi.mock('../../commissions/create', async () => {
   const support = await import('./test-support');
   return support.createCommissionMockModule();

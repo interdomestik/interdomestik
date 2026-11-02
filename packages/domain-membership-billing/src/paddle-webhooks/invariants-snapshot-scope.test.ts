@@ -30,9 +30,6 @@ vi.mock('@interdomestik/database', () => ({
   },
   withTenantContext: hoisted.transaction,
   sql: hoisted.sql,
-}));
-
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
   resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
 }));
 

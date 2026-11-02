@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { resolvePaddleUserOwner } from '@interdomestik/database/paddle-provider-resolution';
+import { resolvePaddleUserOwner } from '@interdomestik/database';
 
 export type PaddleCanonicalUser = {
   id: string;

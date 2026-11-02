@@ -15,6 +15,10 @@ const mocks = vi.hoisted(() => ({
     Promise.resolve(null)
   ),
   findReferral: vi.fn<() => Promise<Record<string, unknown> | null>>(() => Promise.resolve(null)),
+  resolvePaddleUserOwner: vi.fn<
+    (userId: string) => Promise<{ userId: string; tenantId: string } | null>
+  >(() => Promise.resolve(null)),
+  resolvePaddleSubscriptionOwner: vi.fn(() => Promise.resolve(null)),
   createMemberReferralReward: vi.fn(() =>
     Promise.resolve({
       success: true,
@@ -62,6 +66,8 @@ vi.mock('@interdomestik/database', async () => {
     db: dbMock,
     withTenantContext: async (_context: { tenantId: string }, callback: (tx: unknown) => unknown) =>
       callback(dbMock),
+    resolvePaddleUserOwner: mocks.resolvePaddleUserOwner,
+    resolvePaddleSubscriptionOwner: mocks.resolvePaddleSubscriptionOwner,
   };
 });
 
@@ -106,6 +112,7 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
   });
 
   it('applies tenant default branch when agentId is missing', async () => {
+    mocks.resolvePaddleUserOwner.mockResolvedValueOnce({ userId: 'user-2', tenantId: 'tenant_mk' });
     mocks.findUser.mockResolvedValueOnce({
       tenantId: 'tenant_mk',
       email: 'u@example.com',

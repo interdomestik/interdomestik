@@ -47,7 +47,8 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   ensureTenantId: vi.fn(() => 'tenant-1'),
 }));
 

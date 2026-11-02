@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({ findFirst: vi.fn() }));
 
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+vi.mock('@interdomestik/database', () => ({
   readVerifiedPaddleTransactionEvidence: hoisted.findFirst,
 }));
 

@@ -1,5 +1,5 @@
 import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
-import { resolvePaddleSubscriptionOwner } from '@interdomestik/database/paddle-provider-resolution';
+import { resolvePaddleSubscriptionOwner } from '@interdomestik/database';
 
 import { PaddleSubscriptionReferenceAmbiguousError } from './paddle-webhooks/errors';
 

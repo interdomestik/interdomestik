@@ -17,9 +17,6 @@ vi.mock('@interdomestik/database', () => ({
     claimAmount: 'claims.claimAmount',
     tenantId: 'claims.tenantId',
   },
-}));
-
-vi.mock('@interdomestik/database/platform-directory', () => ({
   listTenantIdsForPlatformAggregate: hoisted.listTenantIds,
 }));
 

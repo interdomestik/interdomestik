@@ -1,5 +1,5 @@
 import { inArray, withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';

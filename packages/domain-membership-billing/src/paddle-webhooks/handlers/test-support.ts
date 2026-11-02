@@ -8,7 +8,6 @@ export {
   createHoistedPaddleHandlerMocks,
   createMemberNumberMockModule,
   createPaddleDatabaseMockModule,
-  createPaddleResolutionMockModule,
 } from './test-support-mocks';
 
 type RacedSubscriptionInsertMocks = { mockSet: MockFunction; mockWhere: MockFunction };

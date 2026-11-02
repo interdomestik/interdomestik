@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { resolveNpsSurveyTokenTenant } from '@interdomestik/database/public-token-tenant';
+import { resolveNpsSurveyTokenTenant } from '@interdomestik/database';
 import { npsSurveyResponses, npsSurveyTokens } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';

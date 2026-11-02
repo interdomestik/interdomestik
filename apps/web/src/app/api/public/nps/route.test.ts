@@ -15,11 +15,11 @@ const m = vi.hoisted(() => {
   return { columns, dbInsert, dbSelect, dbUpdate, insert, resolveNpsSurveyTokenTenant, select, txInsert, txSelect, txUpdate, update, withTenantContext };
 });
 
-// prettier-ignore
-vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, select: m.dbSelect, update: m.dbUpdate }, withTenantContext: m.withTenantContext }));
-
-// prettier-ignore
-vi.mock('@interdomestik/database/public-token-tenant', () => ({ resolveNpsSurveyTokenTenant: m.resolveNpsSurveyTokenTenant }));
+vi.mock('@interdomestik/database', () => ({
+  db: { insert: m.dbInsert, select: m.dbSelect, update: m.dbUpdate },
+  withTenantContext: m.withTenantContext,
+  resolveNpsSurveyTokenTenant: m.resolveNpsSurveyTokenTenant,
+}));
 
 // prettier-ignore
 vi.mock('@interdomestik/database/schema', () => ({ npsSurveyResponses: m.columns, npsSurveyTokens: m.columns }));

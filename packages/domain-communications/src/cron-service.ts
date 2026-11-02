@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 import { endOfDay, startOfDay, subDays } from 'date-fns';
 import {
   USER_BATCH_SIZE,

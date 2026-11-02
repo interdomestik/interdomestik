@@ -25,7 +25,7 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
+vi.mock('@interdomestik/database', () => ({
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 

@@ -10,10 +10,6 @@ const hoisted = await vi.hoisted(async () => {
 vi.mock('@interdomestik/database', async () =>
   (await import('./test-support')).createPaddleDatabaseMockModule(hoisted)
 );
-vi.mock('@interdomestik/database/paddle-provider-resolution', async () =>
-  (await import('./test-support')).createPaddleResolutionMockModule(hoisted)
-);
-
 vi.mock('../../commissions/create', async () =>
   (await import('./test-support')).createCommissionMockModule()
 );

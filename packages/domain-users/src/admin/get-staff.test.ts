@@ -23,7 +23,8 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   scopeFilter: vi.fn(() => ({
     tenantId: 'tenant-1',
     isFullTenantScope: true,

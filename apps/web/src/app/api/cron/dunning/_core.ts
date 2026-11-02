@@ -1,7 +1,7 @@
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
 import { subscriptions, user, withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 import { and, eq, gt } from 'drizzle-orm';
 
 export type DunningCronStats = {

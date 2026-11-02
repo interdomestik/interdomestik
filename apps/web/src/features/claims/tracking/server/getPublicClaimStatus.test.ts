@@ -19,9 +19,6 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/public-token-tenant', () => ({
   resolveClaimTrackingTokenTenant: hoisted.resolveClaimTrackingTokenTenant,
 }));
 

@@ -37,9 +37,6 @@ vi.mock('@interdomestik/database', () => ({
   or: hoisted.or,
   subscriptions: hoisted.subscriptions,
   withTenantContext: hoisted.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
   resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
 }));
 

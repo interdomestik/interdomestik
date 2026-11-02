@@ -22,12 +22,9 @@ vi.mock('@interdomestik/database', () => {
     eq: hoisted.eq,
     or: hoisted.or,
     subscriptions: hoisted.subscriptions,
+    resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
   };
 });
-
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
-  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
-}));
 
 import { withTenantContext } from '@interdomestik/database';
 import {

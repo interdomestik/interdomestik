@@ -11,7 +11,7 @@ const hoisted: {
 }));
 
 // Receipt persistence is a fixed privileged command; the domain only sees these three entry points.
-vi.mock('@interdomestik/database/paddle-webhook-receipts', () => ({
+vi.mock('@interdomestik/database', () => ({
   appendPaddleInvalidSignatureEvidence: hoisted.appendInvalidSignatureEvidence,
   admitVerifiedPaddleReceipt: hoisted.admitVerifiedReceipt,
   completePaddleReceiptLease: hoisted.completeReceiptLease,

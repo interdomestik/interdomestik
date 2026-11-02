@@ -1,6 +1,6 @@
 import { withTenantContext } from '@interdomestik/database';
 import { subscriptions, user } from '@interdomestik/database/schema';
-import { listTenantIdsForScheduledWork } from '@interdomestik/database/scheduled-tenant-work';
+import { listTenantIdsForScheduledWork } from '@interdomestik/database';
 import { and, eq, gte, lte } from 'drizzle-orm';
 
 export type ScheduledSubscriptionMember = {

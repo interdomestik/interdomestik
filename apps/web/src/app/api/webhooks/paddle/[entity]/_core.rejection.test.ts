@@ -24,14 +24,14 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => 
   };
 });
 
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
-  resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
-  resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
-}));
-
 vi.mock('@interdomestik/database', () => {
   const db = { query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } };
-  return { db, withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db) };
+  return {
+    db,
+    withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db),
+    resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
+    resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
+  };
 });
 
 import { handlePaddleWebhookEntityCore } from './_core';

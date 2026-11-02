@@ -59,9 +59,6 @@ vi.mock('@/lib/email', () => ({
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.ambientSelect },
   withTenantContext: hoisted.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/scheduled-tenant-work', () => ({
   listTenantIdsForScheduledWork: hoisted.listTenantIdsForScheduledWork,
 }));
 

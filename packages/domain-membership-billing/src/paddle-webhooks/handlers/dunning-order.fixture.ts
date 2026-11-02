@@ -163,10 +163,9 @@ vi.mock('@interdomestik/database', () => ({
   sql: hoisted.sql,
   subscriptions: hoisted.subscriptions,
   webhookEvents: { payload: 'webhook_events.payload' },
-}));
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
+
 vi.mock('@interdomestik/database/schema', () => ({
   auditLog: hoisted.auditLog,
   engagementEmailSends: hoisted.engagementEmailSends,

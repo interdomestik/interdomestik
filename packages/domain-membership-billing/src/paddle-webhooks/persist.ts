@@ -3,12 +3,12 @@ import {
   appendPaddleInvalidSignatureEvidence,
   completePaddleReceiptLease,
   type PaddleReceiptLease,
-} from '@interdomestik/database/paddle-webhook-receipts';
+} from '@interdomestik/database';
 
 import { RetryablePaddleWebhookError } from './errors';
 import type { PaddleWebhookAuditDeps } from './types';
 
-export type { PaddleReceiptLease } from '@interdomestik/database/paddle-webhook-receipts';
+export type { PaddleReceiptLease } from '@interdomestik/database';
 
 export {
   PaddleSubscriptionReferenceAmbiguousError,

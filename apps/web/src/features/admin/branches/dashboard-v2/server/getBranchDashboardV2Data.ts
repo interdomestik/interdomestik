@@ -3,7 +3,7 @@ import { getBranchCashPendingCount } from '@/features/admin/branches/server/bran
 import { computeHealthScore } from '@/features/admin/health/health-model';
 import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { withTenantContext } from '@interdomestik/database';
-import { resolveBranchOwner } from '@interdomestik/database/platform-directory';
+import { resolveBranchOwner } from '@interdomestik/database';
 import { readTenantCurrency } from '@interdomestik/database/tenant-directory';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as lifecycleSql from '@interdomestik/domain-claims/claims/lifecycle-read-sql';

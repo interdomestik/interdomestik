@@ -34,9 +34,6 @@ vi.mock('@interdomestik/database', () => ({
   eq: vi.fn((left, right) => ({ left, right })),
   user: { id: 'user.id' },
   withTenantContext: hoisted.withTenantContext,
-}));
-
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
   resolvePaddleCustomerEmailOwner: hoisted.resolvePaddleCustomerEmailOwner,
   readVerifiedPaddleTransactionEvidence: hoisted.readVerifiedPaddleTransactionEvidence,
 }));

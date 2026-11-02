@@ -1,5 +1,5 @@
 import { withTenantContext } from '@interdomestik/database';
-import { listTenantIdsForPlatformAggregate } from '@interdomestik/database/platform-directory';
+import { listTenantIdsForPlatformAggregate } from '@interdomestik/database';
 import { claims } from '@interdomestik/database/schema';
 import { eq, sql } from 'drizzle-orm';
 import { assertPlatformAnalyticsActor, type PlatformAnalyticsActor } from '../v2/super-admin';

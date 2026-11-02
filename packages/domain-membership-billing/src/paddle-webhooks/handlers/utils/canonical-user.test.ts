@@ -8,8 +8,6 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
-}));
-vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
   resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
 }));
 

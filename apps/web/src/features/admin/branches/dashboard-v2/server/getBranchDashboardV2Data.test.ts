@@ -21,10 +21,9 @@ vi.mock('@interdomestik/database/db', () => ({ db: {} }));
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
   withTenantContext: hoisted.withTenantContextMock,
-}));
-vi.mock('@interdomestik/database/platform-directory', () => ({
   resolveBranchOwner: hoisted.resolveBranchOwnerMock,
 }));
+
 vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantCurrency: hoisted.readTenantCurrencyMock,
 }));
