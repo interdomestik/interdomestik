@@ -205,7 +205,9 @@ test('admission keeps a null tenant for receipts whose tenant is unresolved', as
 
 test('admission reclaims by compare-and-set on the exact verified evidence', async t => {
   mockInsert(t, []);
-  const update = mockUpdate(t, [{ id: 'we_existing' }]);
+  // The database assigns the new generation; it deliberately differs from the application clock.
+  const returnedReceivedAt = new Date('2031-01-02T03:04:05.678Z');
+  const update = mockUpdate(t, [{ id: 'we_existing', receivedAt: returnedReceivedAt }]);
   const select = mockSelect(t, []);
 
   const admission = await admitVerifiedPaddleReceipt(VERIFIED);
@@ -228,11 +230,18 @@ test('admission reclaims by compare-and-set on the exact verified evidence', asy
   assert.equal(call.set!.processedAt, null);
   assert.equal(call.set!.processingResult, null);
   assert.equal(call.set!.error, null);
+  assert.deepEqual(Object.keys(call.returning as object).sort(), ['id', 'receivedAt']);
   assert.equal(
-    (call.set!.receivedAt as Date).getTime(),
     admission.lease.leaseStartedAt.getTime(),
-    'the new lease is the reclaimed received_at'
+    returnedReceivedAt.getTime(),
+    'the lease is the received_at returned by the reclaim, not the application clock'
   );
+  assert.ok(!(call.set!.receivedAt instanceof Date), 'received_at is assigned by SQL');
+  const generation = compile(call.set!.receivedAt).sql;
+  assert.ok(generation.includes('greatest('), generation);
+  assert.ok(generation.includes("date_trunc('milliseconds'"), generation);
+  assert.ok(generation.includes('"received_at"'), generation);
+  assert.ok(generation.includes("interval '1 millisecond'"), generation);
 
   const where = compile(call.where);
   for (const column of [
@@ -255,7 +264,7 @@ test('admission reclaims by compare-and-set on the exact verified evidence', asy
 
 test('admission reclaims a stale recoverable lease only for recoverable event types', async t => {
   mockInsert(t, []);
-  const recoverable = mockUpdate(t, [{ id: 'we_stale' }]);
+  const recoverable = mockUpdate(t, [{ id: 'we_stale', receivedAt: new Date() }]);
 
   await admitVerifiedPaddleReceipt(VERIFIED);
 
@@ -272,7 +281,7 @@ test('admission reclaims a stale recoverable lease only for recoverable event ty
     'stale after five minutes'
   );
 
-  const plain = mockUpdate(t, [{ id: 'we_retry' }]);
+  const plain = mockUpdate(t, [{ id: 'we_retry', receivedAt: new Date() }]);
   await admitVerifiedPaddleReceipt({ ...VERIFIED, eventType: 'transaction.completed' });
   const plainWhere = compile(plain.calls[0].where);
   assert.ok(plainWhere.params.includes('retryable_error'));

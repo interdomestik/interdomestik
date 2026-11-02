@@ -1,6 +1,8 @@
 import { and, eq, subscriptions, withTenantContext } from '@interdomestik/database';
 import { resolvePaddleSubscriptionOwner } from '@interdomestik/database/paddle-provider-resolution';
 
+import { PaddleSubscriptionReferenceAmbiguousError } from './paddle-webhooks/errors';
+
 import {
   getMembershipLifecycleBucket,
   membershipLifecycleGrantsAccess,
@@ -61,9 +63,12 @@ export async function findSubscriptionByProviderReference(
     );
   }
 
-  // Unscoped provider reference: resolve the owning tenant/id exactly (ambiguity fails closed),
-  // then read that one subscription inside its tenant.
+  // Unscoped provider reference: resolve the owning tenant/id exactly, then read that one
+  // subscription inside its tenant. Ambiguity is a terminal conflict, never "not found".
   const owner = await resolvePaddleSubscriptionOwner(normalizedReference);
+  if (owner === 'ambiguous') {
+    throw new PaddleSubscriptionReferenceAmbiguousError(normalizedReference);
+  }
   if (!owner) {
     return null;
   }

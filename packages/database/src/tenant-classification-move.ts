@@ -119,12 +119,17 @@ async function hasTenantBoundRecords(tx: Executor, userId: string, tenantId: str
 }
 
 /**
- * Moves a pending-classification user from one tenant to another as one atomic command. The
- * caller must already have authorized the actor for both tenants. Inside one transaction the user
- * row is locked first (FOR UPDATE, which also blocks concurrent inserts that reference the user by
- * foreign key), then target-tenant activity and the absence of tenant-bound records are checked,
- * then the row is moved with an affected-row check. A single-tenant RLS context cannot perform this
- * write, because the new row fails the source tenant's WITH CHECK.
+ * Moves a user from one tenant to another in one transaction: lock the user row (FOR UPDATE),
+ * check target-tenant activity and the absence of the listed tenant-bound records in the source
+ * tenant, then move the row with an affected-row check. The caller must already have authorized
+ * the actor (super_admin) for the move; this function authenticates nobody and writes no audit.
+ *
+ * Limits (see review 081/A): the probes cover the listed relationship columns only, the user's
+ * pending flag is reported, not required, and a dependent writer that read the user's tenant in an
+ * earlier transaction can still insert an old-tenant row after this commits, because child foreign
+ * keys reference user.id only. This is therefore not a guarantee that no old-tenant row can appear.
+ * A single-tenant RLS context cannot perform this write (the new row fails the source tenant's
+ * WITH CHECK), which is why it is a privileged command.
  */
 export async function moveUserTenantClassification(params: {
   userId: string;

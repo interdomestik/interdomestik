@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PaddleSubscriptionReferenceAmbiguousError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 import { hoisted, callPaddleWebhookCore, receiptAdmission } from './_core.fixture';
 
 describe('handlePaddleWebhookCore tenant resolution', () => {
@@ -98,5 +99,81 @@ describe('handlePaddleWebhookCore tenant resolution', () => {
     // The fallback resolves by the trimmed id only; the privileged lookup names the tenant.
     expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledTimes(1);
     expect(hoisted.resolvePaddleUserOwner).toHaveBeenCalledWith('user_from_custom_data');
+  });
+});
+
+describe('handlePaddleWebhookCore ambiguous subscription reference', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    hoisted.sha256Hex.mockReturnValue('payload_hash');
+    hoisted.parsePaddleWebhookBody.mockReturnValue({
+      parsedPayload: { data: {} },
+      eventTypeFromPayload: 'subscription.updated',
+      eventIdFromPayload: 'evt_payload',
+      eventTimestampFromPayload: null,
+    });
+    hoisted.verifyPaddleWebhook.mockResolvedValue({
+      eventData: {
+        eventType: 'subscription.updated',
+        eventId: 'evt_verified',
+        data: {
+          id: 'sub_provider_1',
+          customData: { userId: 'user_from_custom_data' },
+        },
+      },
+      signatureValid: true,
+      signatureBypassed: false,
+    });
+    hoisted.findSubscriptionByProviderReference.mockRejectedValue(
+      new PaddleSubscriptionReferenceAmbiguousError('sub_provider_1')
+    );
+    hoisted.resolvePaddleUserOwner.mockResolvedValue({
+      userId: 'user_from_custom_data',
+      tenantId: 'tenant_from_user',
+    });
+    hoisted.insertWebhookEvent.mockResolvedValue(receiptAdmission());
+    hoisted.persistInvoiceAndLedgerInvariants.mockResolvedValue(undefined);
+    hoisted.handlePaddleEvent.mockResolvedValue(undefined);
+    hoisted.markWebhookProcessed.mockResolvedValue(undefined);
+    hoisted.markWebhookFailed.mockResolvedValue(undefined);
+  });
+
+  it('admits the receipt without a tenant, records a non-retryable failure and runs nothing else', async () => {
+    await expect(callPaddleWebhookCore()).rejects.toBeInstanceOf(
+      PaddleSubscriptionReferenceAmbiguousError
+    );
+
+    // customData must not stand in for an ambiguous subscription reference.
+    expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
+    expect(hoisted.insertWebhookEvent).toHaveBeenCalledTimes(1);
+    expect(hoisted.insertWebhookEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: null }),
+      expect.any(Object)
+    );
+    expect(hoisted.persistInvoiceAndLedgerInvariants).not.toHaveBeenCalled();
+    expect(hoisted.hasTenantLeadForConversion).not.toHaveBeenCalled();
+    expect(hoisted.convertLeadToMember).not.toHaveBeenCalled();
+    expect(hoisted.handlePaddleEvent).not.toHaveBeenCalled();
+    expect(hoisted.markWebhookProcessed).not.toHaveBeenCalled();
+    expect(hoisted.markWebhookFailed).toHaveBeenCalledTimes(1);
+    expect(hoisted.markWebhookFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        retryable: false,
+        tenantId: null,
+        receiptLease: receiptAdmission().receiptLease,
+        error: expect.any(PaddleSubscriptionReferenceAmbiguousError),
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it('propagates other subscription lookup failures without admitting a receipt', async () => {
+    hoisted.findSubscriptionByProviderReference.mockRejectedValue(new Error('db down'));
+
+    await expect(callPaddleWebhookCore()).rejects.toThrow('db down');
+
+    expect(hoisted.insertWebhookEvent).not.toHaveBeenCalled();
+    expect(hoisted.resolvePaddleUserOwner).not.toHaveBeenCalled();
   });
 });

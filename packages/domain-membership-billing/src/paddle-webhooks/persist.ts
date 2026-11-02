@@ -10,7 +10,11 @@ import type { PaddleWebhookAuditDeps } from './types';
 
 export type { PaddleReceiptLease } from '@interdomestik/database/paddle-webhook-receipts';
 
-export { isRetryablePaddleWebhookError } from './errors';
+export {
+  PaddleSubscriptionReferenceAmbiguousError,
+  isPaddleSubscriptionReferenceAmbiguousError,
+  isRetryablePaddleWebhookError,
+} from './errors';
 
 export async function persistInvalidSignatureAttempt(
   params: {

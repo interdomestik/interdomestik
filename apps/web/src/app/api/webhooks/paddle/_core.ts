@@ -19,7 +19,11 @@ import {
   verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
 import { membershipConfirmationDeliveryStore } from '@interdomestik/domain-membership-billing/paddle-webhooks/membership-confirmation-delivery';
-import { isRetryablePaddleWebhookError } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
+import {
+  PaddleSubscriptionReferenceAmbiguousError,
+  isPaddleSubscriptionReferenceAmbiguousError,
+  isRetryablePaddleWebhookError,
+} from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 import { requestPasswordResetOnboarding } from './paddle-onboarding';
@@ -79,9 +83,19 @@ type WebhookSubscription = NonNullable<
   Awaited<ReturnType<typeof findSubscriptionByProviderReference>>
 >;
 
-async function resolveWebhookSubscription(data: unknown): Promise<WebhookSubscription | null> {
+type WebhookSubscriptionResolution = WebhookSubscription | 'ambiguous' | null;
+
+async function resolveWebhookSubscription(data: unknown): Promise<WebhookSubscriptionResolution> {
   for (const subscriptionReference of getPaddleSubscriptionReferences(data)) {
-    const subscription = await findSubscriptionByProviderReference(subscriptionReference);
+    let subscription: Awaited<ReturnType<typeof findSubscriptionByProviderReference>>;
+    try {
+      subscription = await findSubscriptionByProviderReference(subscriptionReference);
+    } catch (error) {
+      // The receipt is still admitted (tenant unresolved) so processing records the terminal
+      // conflict; no later reference or customData may stand in for an ambiguous one.
+      if (isPaddleSubscriptionReferenceAmbiguousError(error)) return 'ambiguous';
+      throw error;
+    }
     if (subscription?.tenantId) return subscription;
   }
 
@@ -183,8 +197,9 @@ function resolveProviderTransactionId(params: {
 
 async function resolveWebhookTenantId(
   data: unknown,
-  subscription: WebhookSubscription | null
+  subscription: WebhookSubscriptionResolution
 ): Promise<string | null> {
+  if (subscription === 'ambiguous') return null;
   const customData = getPaddleCustomData(data);
 
   if (subscription?.tenantId) return subscription.tenantId;
@@ -307,6 +322,12 @@ export async function handlePaddleWebhookCore(args: {
 
   const { receiptLease, webhookEventRowId } = insertResult;
   try {
+    if (subscription === 'ambiguous') {
+      // Terminal, non-retryable: recorded on the admitted receipt, then nothing else runs.
+      throw new PaddleSubscriptionReferenceAmbiguousError(
+        getPaddleSubscriptionReferences(data).join(',')
+      );
+    }
     await persistInvoiceAndLedgerInvariants(
       {
         headers,

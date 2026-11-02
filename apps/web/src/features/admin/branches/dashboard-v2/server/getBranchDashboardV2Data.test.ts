@@ -146,7 +146,10 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     const { where } = hoisted.branchFindFirstMock.mock.calls[0][0];
     const compiled = compile(where);
     expect(compiled.sql).toContain('"tenant_id"');
-    expect(compiled.params).toEqual(['tenant-owner', 'b1', 'b1']);
+    // The resolved owner binds the exact branch row: tenant plus id, no id-or-code match.
+    expect(compiled.sql).not.toContain(' or ');
+    expect(compiled.sql).not.toContain('"code"');
+    expect(compiled.params).toEqual(['tenant-owner', 'branch-id-1']);
   });
 
   it('never resolves a branch owner for a tenant-scoped role', async () => {
@@ -162,7 +165,11 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     expect(hoisted.resolveBranchOwnerMock).not.toHaveBeenCalled();
     expect(hoisted.readTenantCurrencyMock).toHaveBeenCalledWith('tenant-session');
     const { where } = hoisted.branchFindFirstMock.mock.calls[0][0];
-    expect(compile(where).params).toEqual(['tenant-session', 'b1', 'b1']);
+    const compiled = compile(where);
+    // Tenant scopes still match id or code inside the session tenant.
+    expect(compiled.sql).toContain(' or ');
+    expect(compiled.sql).toContain('"code"');
+    expect(compiled.params).toEqual(['tenant-session', 'b1', 'b1']);
     const contexts = hoisted.withTenantContextMock.mock.calls.map(call => call[0]);
     expect(contexts.every(ctx => ctx.tenantId === 'tenant-session')).toBe(true);
   });

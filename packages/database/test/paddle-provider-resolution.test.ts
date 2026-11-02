@@ -12,12 +12,24 @@ import { user } from '../src/schema/auth';
 import { subscriptions } from '../src/schema/subscriptions';
 import { webhookEvents } from '../src/schema/webhooks';
 
-type Captured = { columns: unknown; from: unknown; where: unknown; limit: unknown };
+type Captured = {
+  columns: unknown;
+  from: unknown;
+  where: unknown;
+  orderBy: unknown[] | undefined;
+  limit: unknown;
+};
 
 function mockSelect(t: test.TestContext, rows: unknown[]) {
   const calls: Captured[] = [];
   const method = t.mock.method(dbAdmin, 'select', ((columns: unknown) => {
-    const call: Captured = { columns, from: undefined, where: undefined, limit: undefined };
+    const call: Captured = {
+      columns,
+      from: undefined,
+      where: undefined,
+      orderBy: undefined,
+      limit: undefined,
+    };
     calls.push(call);
     const chain = {
       from: (table: unknown) => {
@@ -26,6 +38,10 @@ function mockSelect(t: test.TestContext, rows: unknown[]) {
       },
       where: (where: unknown) => {
         call.where = where;
+        return chain;
+      },
+      orderBy: (...order: unknown[]) => {
+        call.orderBy = order;
         return chain;
       },
       limit: (limit: unknown) => {
@@ -64,16 +80,23 @@ test('subscription owner resolver selects only id and tenant, matches id or prov
   assert.deepEqual(where.params, ['sub_provider_1', 'sub_provider_1']);
 });
 
-test('subscription owner resolver fails closed on no match and on ambiguity', async t => {
+test('subscription owner resolver reports none as null and two matches as ambiguous', async t => {
   const none = mockSelect(t, []);
   assert.equal(await resolvePaddleSubscriptionOwner('sub_unknown'), null);
   none.method.mock.restore();
 
-  mockSelect(t, [
+  const two = mockSelect(t, [
     { subscriptionId: 'sub_a', tenantId: 'tenant_ks' },
     { subscriptionId: 'sub_b', tenantId: 'tenant_mk' },
   ]);
-  assert.equal(await resolvePaddleSubscriptionOwner('sub_shared'), null);
+  assert.equal(await resolvePaddleSubscriptionOwner('sub_shared'), 'ambiguous');
+  two.method.mock.restore();
+
+  mockSelect(t, [{ subscriptionId: 'sub_a', tenantId: 'tenant_ks' }]);
+  assert.deepEqual(await resolvePaddleSubscriptionOwner('sub_a'), {
+    subscriptionId: 'sub_a',
+    tenantId: 'tenant_ks',
+  });
 });
 
 test('subscription owner resolver returns null for an empty or blank reference without querying', async t => {
@@ -153,7 +176,9 @@ test('customer email owner resolver reports none, ambiguous and blank distinctly
 
 test('entity-route transaction evidence binds transaction, provider, signature, event type and scope', async t => {
   const stored = { payload: { data: { id: 'txn_1' } }, processingResult: 'ok' };
-  const { calls } = mockSelect(t, [stored]);
+  const { calls } = mockSelect(t, [
+    { ...stored, processingScopeKey: 'entity:mk', payloadHash: 'hash_1' },
+  ]);
 
   const evidence = await readVerifiedPaddleTransactionEvidence({
     transactionId: 'txn_1',
@@ -161,9 +186,16 @@ test('entity-route transaction evidence binds transaction, provider, signature, 
     entityRoute: true,
   });
 
-  assert.deepEqual(evidence, stored);
+  assert.deepEqual(evidence, stored, 'only payload and processingResult are returned');
+  assert.deepEqual(Object.keys(evidence as object).sort(), ['payload', 'processingResult']);
   const [call] = calls;
-  assert.deepEqual(Object.keys(call.columns as object).sort(), ['payload', 'processingResult']);
+  assert.deepEqual(Object.keys(call.columns as object).sort(), [
+    'payload',
+    'payloadHash',
+    'processingResult',
+    'processingScopeKey',
+  ]);
+  assert.equal(call.orderBy, undefined);
   assert.equal(call.from, webhookEvents);
   assert.equal(call.limit, 2);
 
@@ -180,28 +212,120 @@ test('entity-route transaction evidence binds transaction, provider, signature, 
   assert.deepEqual(where.params, ['txn_1', 'paddle', true, 'transaction.completed', 'entity:mk']);
 });
 
-test('legacy-route transaction evidence is narrowed to verified Paddle receipts without a scope', async t => {
-  const stored = { payload: { data: { id: 'txn_1' } }, processingResult: null };
-  const { calls } = mockSelect(t, [stored]);
-
-  const evidence = await readVerifiedPaddleTransactionEvidence({
-    transactionId: 'txn_1',
+function legacyRow(overrides: Record<string, unknown> = {}) {
+  return {
+    payload: { data: { id: 'txn_1' } },
+    processingResult: null,
     processingScopeKey: 'global',
-    entityRoute: false,
-  });
+    payloadHash: 'hash_1',
+    ...overrides,
+  };
+}
 
-  assert.deepEqual(evidence, stored);
-  const where = compile(calls[0].where);
+const LEGACY_ARGS = {
+  transactionId: 'txn_1',
+  processingScopeKey: 'global',
+  entityRoute: false,
+} as const;
+
+test('legacy-route transaction evidence is narrowed to verified Paddle receipts, ordered, bounded to 11', async t => {
+  const { calls } = mockSelect(t, [legacyRow()]);
+
+  const evidence = await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS);
+
+  assert.deepEqual(evidence, { payload: { data: { id: 'txn_1' } }, processingResult: null });
+  assert.deepEqual(Object.keys(evidence as object).sort(), ['payload', 'processingResult']);
+  const [call] = calls;
+  assert.equal(call.from, webhookEvents);
+  assert.deepEqual(Object.keys(call.columns as object).sort(), [
+    'payload',
+    'payloadHash',
+    'processingResult',
+    'processingScopeKey',
+  ]);
+  const where = compile(call.where);
   assert.ok(where.sql.includes('"webhook_events"."provider_transaction_id" = $'));
   assert.ok(where.sql.includes('"webhook_events"."provider" = $'));
   assert.ok(where.sql.includes('"webhook_events"."signature_valid" = $'));
   assert.equal(where.sql.includes('processing_scope_key'), false, 'legacy route has no scope');
   assert.equal(where.sql.includes('event_type'), false);
   assert.deepEqual(where.params, ['txn_1', 'paddle', true]);
-  assert.equal(calls[0].limit, 2);
+  assert.equal(call.limit, 11);
+  const order = (call.orderBy ?? []).map(o => compile(o).sql);
+  assert.deepEqual(order, ['"webhook_events"."received_at" asc', '"webhook_events"."id" asc']);
 });
 
-test('transaction evidence returns null when absent or ambiguous across scopes', async t => {
+test('legacy-route evidence returns null for zero candidates and above the candidate bound', async t => {
+  const none = mockSelect(t, []);
+  assert.equal(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), null);
+  none.method.mock.restore();
+
+  const ten = mockSelect(
+    t,
+    Array.from({ length: 10 }, (_, index) => legacyRow({ processingScopeKey: `s${index}` }))
+  );
+  assert.ok(
+    await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS),
+    'exactly ten identical-payload candidates are still within the bound'
+  );
+  ten.method.mock.restore();
+
+  // Even with the caller's own scope present, an over-bound candidate set fails closed.
+  mockSelect(
+    t,
+    Array.from({ length: 11 }, (_, index) =>
+      legacyRow({ processingScopeKey: index === 0 ? 'global' : `s${index}` })
+    )
+  );
+  assert.equal(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), null);
+});
+
+test('legacy-route evidence prefers the single own-scope receipt even when other scopes differ', async t => {
+  mockSelect(t, [
+    legacyRow({ processingScopeKey: 'entity:ks', payloadHash: 'hash_other', payload: { a: 1 } }),
+    legacyRow({
+      processingScopeKey: 'global',
+      payloadHash: 'hash_own',
+      payload: { own: true },
+      processingResult: 'ok',
+    }),
+    legacyRow({ processingScopeKey: 'entity:mk', payloadHash: 'hash_third', payload: { b: 2 } }),
+  ]);
+
+  assert.deepEqual(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), {
+    payload: { own: true },
+    processingResult: 'ok',
+  });
+});
+
+test('legacy-route evidence is null when two receipts share the caller own scope', async t => {
+  mockSelect(t, [
+    legacyRow({ processingScopeKey: 'global' }),
+    legacyRow({ processingScopeKey: 'global' }),
+  ]);
+
+  assert.equal(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), null);
+});
+
+test('legacy-route evidence without an own-scope receipt needs identical payload hashes and returns the first', async t => {
+  const same = mockSelect(t, [
+    legacyRow({ processingScopeKey: 'entity:ks', payload: { first: true }, processingResult: 'a' }),
+    legacyRow({ processingScopeKey: 'entity:mk', payload: { second: true } }),
+  ]);
+  assert.deepEqual(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), {
+    payload: { first: true },
+    processingResult: 'a',
+  });
+  same.method.mock.restore();
+
+  mockSelect(t, [
+    legacyRow({ processingScopeKey: 'entity:ks', payloadHash: 'hash_1' }),
+    legacyRow({ processingScopeKey: 'entity:mk', payloadHash: 'hash_2' }),
+  ]);
+  assert.equal(await readVerifiedPaddleTransactionEvidence(LEGACY_ARGS), null);
+});
+
+test('entity-route transaction evidence returns null when absent or not exactly one row', async t => {
   const none = mockSelect(t, []);
   assert.equal(
     await readVerifiedPaddleTransactionEvidence({
@@ -214,14 +338,14 @@ test('transaction evidence returns null when absent or ambiguous across scopes',
   none.method.mock.restore();
 
   mockSelect(t, [
-    { payload: { data: { id: 'txn_1' } }, processingResult: 'ok' },
-    { payload: { data: { id: 'txn_1' } }, processingResult: 'ok' },
+    legacyRow({ processingScopeKey: 'entity:mk' }),
+    legacyRow({ processingScopeKey: 'entity:mk' }),
   ]);
   assert.equal(
     await readVerifiedPaddleTransactionEvidence({
       transactionId: 'txn_1',
-      processingScopeKey: 'global',
-      entityRoute: false,
+      processingScopeKey: 'entity:mk',
+      entityRoute: true,
     }),
     null
   );

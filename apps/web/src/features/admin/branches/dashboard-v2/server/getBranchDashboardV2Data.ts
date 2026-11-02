@@ -86,12 +86,14 @@ export async function getBranchDashboardV2Data(
         // Super_admin (cross-tenant) first resolves the branch's owning tenant from its id or
         // code; every scope then reads the branch inside one tenant context. Support lookup by
         // either ID (UUID) or code (e.g., branch_mk_b).
+        let resolvedOwnerBranchId: string | null = null;
         if (scope.isCrossTenantScope) {
           const owner = await resolveBranchOwner(branchId);
           if (!owner) {
             return null; // Unknown or ambiguous across tenants: allow the 404 handler to take over
           }
           tenantId = owner.tenantId;
+          resolvedOwnerBranchId = owner.branchId;
         }
         if (!tenantId) {
           throw new Error('Forbidden: Missing Tenant');
@@ -101,7 +103,10 @@ export async function getBranchDashboardV2Data(
           tx.query.branches.findFirst({
             where: and(
               eq(branches.tenantId, scopedTenantId),
-              or(eq(branches.id, branchId), eq(branches.code, branchId))
+              // A resolved owner binds the exact row; tenant scopes match id or code in-tenant.
+              resolvedOwnerBranchId
+                ? eq(branches.id, resolvedOwnerBranchId)
+                : or(eq(branches.id, branchId), eq(branches.code, branchId))
             ),
           })
         );

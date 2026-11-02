@@ -30,6 +30,12 @@ vi.mock('@interdomestik/database/paddle-provider-resolution', () => ({
 }));
 
 import { withTenantContext } from '@interdomestik/database';
+import {
+  PaddleSubscriptionReferenceAmbiguousError,
+  isPaddleSubscriptionReferenceAmbiguousError,
+  isRetryablePaddleWebhookError,
+} from './paddle-webhooks/errors';
+import * as persistExports from './paddle-webhooks/persist';
 import { findSubscriptionByProviderReference } from './subscription';
 
 type FindFirstArgs = {
@@ -103,11 +109,26 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
     );
   });
 
-  it('returns null without a tenant context when the owner lookup finds nothing or is ambiguous', async () => {
+  it('returns null without a tenant context when the owner lookup finds nothing', async () => {
     hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce(null);
 
     await expect(findSubscriptionByProviderReference('sub_provider_123')).resolves.toBeNull();
 
+    expect(withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
+  });
+
+  it('throws the terminal ambiguity error and never reads under a tenant when the owner is ambiguous', async () => {
+    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValueOnce('ambiguous');
+
+    const failure = await findSubscriptionByProviderReference('  sub_provider_123  ').catch(
+      (error: unknown) => error
+    );
+
+    expect(failure).toBeInstanceOf(PaddleSubscriptionReferenceAmbiguousError);
+    expect(isPaddleSubscriptionReferenceAmbiguousError(failure)).toBe(true);
+    expect((failure as Error).message).toContain('sub_provider_123');
+    expect(hoisted.resolvePaddleSubscriptionOwner).toHaveBeenCalledWith('sub_provider_123');
     expect(withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.findSubscriptionFirst).not.toHaveBeenCalled();
   });
@@ -118,5 +139,27 @@ describe('findSubscriptionByProviderReference tenant scope', () => {
     await findSubscriptionByProviderReference('sub_provider_123', { tenantId: 'tenant_abc' });
 
     expect(hoisted.resolvePaddleSubscriptionOwner).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaddleSubscriptionReferenceAmbiguousError', () => {
+  it('is a non-retryable terminal error with a type guard that rejects other errors', () => {
+    const error = new PaddleSubscriptionReferenceAmbiguousError('sub_x');
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe('PaddleSubscriptionReferenceAmbiguousError');
+    expect(isRetryablePaddleWebhookError(error)).toBe(false);
+    expect(isPaddleSubscriptionReferenceAmbiguousError(error)).toBe(true);
+    expect(isPaddleSubscriptionReferenceAmbiguousError(new Error('x'))).toBe(false);
+    expect(isPaddleSubscriptionReferenceAmbiguousError(null)).toBe(false);
+  });
+
+  it('is re-exported from the persist entry point with the same identity', () => {
+    expect(persistExports.PaddleSubscriptionReferenceAmbiguousError).toBe(
+      PaddleSubscriptionReferenceAmbiguousError
+    );
+    expect(persistExports.isPaddleSubscriptionReferenceAmbiguousError).toBe(
+      isPaddleSubscriptionReferenceAmbiguousError
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, or } from 'drizzle-orm';
+import { and, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { dbAdmin } from './db';
 import { webhookEvents } from './schema/webhooks';
@@ -80,7 +80,10 @@ function exactVerifiedEvidence(evidence: PaddleReceiptEvidence) {
 /**
  * Admits a verified (or explicitly bypassed) receipt. A new receipt is inserted; an existing one is
  * reclaimed only by compare-and-set on the exact verified evidence when it failed retryably or its
- * recoverable lease went stale. Each admission starts a new lease, which invalidates older ones.
+ * recoverable lease went stale. The lease generation is the stored `received_at`, kept at
+ * millisecond precision (what a JS Date carries). A reclaim sets it, in the same UPDATE, to at least
+ * one millisecond past the stored value, so per row it strictly increases and never repeats even
+ * if the application clock goes backwards; completion of any older lease then matches no row.
  */
 export async function admitVerifiedPaddleReceipt(
   evidence: PaddleReceiptEvidence & {
@@ -115,10 +118,14 @@ export async function admitVerifiedPaddleReceipt(
   }
 
   const staleBefore = new Date(leaseStartedAt.getTime() - RECOVERABLE_LEASE_STALE_MS);
+  const nextGeneration = sql`greatest(
+    date_trunc('milliseconds', ${leaseStartedAt.toISOString()}::timestamptz),
+    date_trunc('milliseconds', ${webhookEvents.receivedAt}) + interval '1 millisecond'
+  )`;
   // db-access-guard: system-exempt -- reason: compare-and-set reclaims only the exact verified failed receipt or a stale recoverable lease
   const reclaimed = await dbAdmin
     .update(webhookEvents)
-    .set({ receivedAt: leaseStartedAt, processedAt: null, processingResult: null, error: null })
+    .set({ receivedAt: nextGeneration, processedAt: null, processingResult: null, error: null })
     .where(
       and(
         ...exactVerifiedEvidence(evidence),
@@ -134,9 +141,13 @@ export async function admitVerifiedPaddleReceipt(
         )
       )
     )
-    .returning({ id: webhookEvents.id });
+    .returning({ id: webhookEvents.id, receivedAt: webhookEvents.receivedAt });
   if (reclaimed[0]) {
-    return { outcome: 'admitted', lease: { id: reclaimed[0].id, leaseStartedAt }, reclaimed: true };
+    return {
+      outcome: 'admitted',
+      lease: { id: reclaimed[0].id, leaseStartedAt: reclaimed[0].receivedAt },
+      reclaimed: true,
+    };
   }
 
   if (hasRecoverableLease(evidence)) {

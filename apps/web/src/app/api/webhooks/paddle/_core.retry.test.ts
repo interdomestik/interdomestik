@@ -46,6 +46,8 @@ vi.mock(
   })
 );
 vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks/persist', () => ({
+  PaddleSubscriptionReferenceAmbiguousError: class PaddleSubscriptionReferenceAmbiguousError extends Error {},
+  isPaddleSubscriptionReferenceAmbiguousError: () => false,
   isRetryablePaddleWebhookError: hoisted.isRetryablePaddleWebhookError,
 }));
 vi.mock('@interdomestik/domain-leads', () => ({
