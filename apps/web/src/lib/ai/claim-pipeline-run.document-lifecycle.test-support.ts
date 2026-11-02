@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => {
       async (
         _context: unknown,
         callback: (tx: { select: typeof select; update: typeof update }) => unknown
-      ) => callback({ select, update })
+      ) => await callback({ select, update })
     ),
     where,
   };

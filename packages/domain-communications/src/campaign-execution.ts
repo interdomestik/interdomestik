@@ -261,10 +261,10 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
   context: { logs: string[]; errors: string[]; stats: any }
 ) {
   const { tenantId: authorityTenantId } = readTenantAuthority(authority);
-  let afterId: string | null = null;
-  while (true) {
+  // Keyset pages in order: each page is fetched only after the previous one is fully processed.
+  const processFrom = async (afterId: string | null): Promise<void> => {
     const batch = await fetchBatch(afterId);
-    if (batch.length === 0) break;
+    if (batch.length === 0) return;
 
     const alreadySentSet = await getAlreadySentUserIdSet({
       authority,
@@ -317,8 +317,9 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
         );
       }
     });
-    afterId = batch.at(-1)!.id;
-  }
+    await processFrom(batch.at(-1)!.id);
+  };
+  await processFrom(null);
 }
 
 export async function processStandardUserCampaign(

@@ -110,7 +110,7 @@ export function historyRowFromTask(task: CrmTask) {
 
 export function createFakeDb(options: {
   historyRows?: readonly unknown[];
-  insertTaskError?: unknown;
+  insertTaskError?: Error;
   leadRow?: unknown;
   taskRow?: unknown;
   updateRows?: readonly unknown[];
