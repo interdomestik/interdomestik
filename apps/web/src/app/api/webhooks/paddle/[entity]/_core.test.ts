@@ -1,84 +1,10 @@
-import type { IngressCapability } from '@interdomestik/database/ingress';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const hoisted = vi.hoisted(() => ({
-  handlePaddleWebhookCore: vi.fn(),
-  parsePaddleWebhookBody: vi.fn(),
-  verifyPaddleWebhook: vi.fn(),
-  resolvePaddleUserOwner: vi.fn(),
-  resolvePaddleSubscriptionOwner: vi.fn(),
-  dbSubscriptionFindFirst: vi.fn(),
-}));
-
-vi.mock('../_core', () => ({
-  handlePaddleWebhookCore: hoisted.handlePaddleWebhookCore,
-}));
-
-vi.mock('@interdomestik/domain-membership-billing/paddle-webhooks', async () => {
-  const actual = await vi.importActual<
-    typeof import('@interdomestik/domain-membership-billing/paddle-webhooks')
-  >('@interdomestik/domain-membership-billing/paddle-webhooks');
-  return {
-    ...actual,
-    parsePaddleWebhookBody: hoisted.parsePaddleWebhookBody,
-    verifyPaddleWebhook: hoisted.verifyPaddleWebhook,
-  };
-});
-
-vi.mock('@interdomestik/database', () => {
-  const db = { query: { subscriptions: { findFirst: hoisted.dbSubscriptionFindFirst } } };
-  return {
-    db,
-    withTenantContext: async (_ctx: unknown, cb: (tx: unknown) => unknown) => cb(db),
-    resolvePaddleUserOwner: hoisted.resolvePaddleUserOwner,
-    resolvePaddleSubscriptionOwner: hoisted.resolvePaddleSubscriptionOwner,
-  };
-});
-
+import { installCoreHooks } from './_core.hooks.test-support';
+import { hoisted, TEST_PADDLE_DELIVERY } from './_core.test-support';
+import { describe, expect, it } from 'vitest';
 import { handlePaddleWebhookEntityCore } from './_core';
 
-// Stand-in for the verified-delivery capability `verifyPaddleWebhook` mints.
-const TEST_PADDLE_DELIVERY = Object.freeze({}) as IngressCapability<'paddle-delivery'>;
-
 describe('handlePaddleWebhookEntityCore', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    hoisted.handlePaddleWebhookCore.mockResolvedValue({ status: 200, body: { success: true } });
-    hoisted.parsePaddleWebhookBody.mockReturnValue({
-      parsedPayload: {
-        event_type: 'transaction.completed',
-        data: {
-          customData: {
-            userId: 'user_ks',
-          },
-        },
-      },
-      eventTypeFromPayload: 'transaction.completed',
-      eventIdFromPayload: 'evt_ks',
-      eventTimestampFromPayload: new Date('2026-02-23T00:00:00.000Z'),
-    });
-    hoisted.verifyPaddleWebhook.mockResolvedValue({
-      eventData: {
-        eventType: 'transaction.completed',
-        eventId: 'evt_ks',
-        data: {
-          customData: {
-            userId: 'user_ks',
-          },
-        },
-      },
-      signatureValid: true,
-      signatureBypassed: false,
-      delivery: TEST_PADDLE_DELIVERY,
-    });
-    hoisted.resolvePaddleUserOwner.mockResolvedValue({
-      userId: 'user_owner',
-      tenantId: 'tenant_ks',
-    });
-    hoisted.resolvePaddleSubscriptionOwner.mockResolvedValue(null);
-    hoisted.dbSubscriptionFindFirst.mockResolvedValue(null);
-  });
+  installCoreHooks();
 
   it('delegates to shared core when resolved payload tenant matches expected entity', async () => {
     const result = await handlePaddleWebhookEntityCore({

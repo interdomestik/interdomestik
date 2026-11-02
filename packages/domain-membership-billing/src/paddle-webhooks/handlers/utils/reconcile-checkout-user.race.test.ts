@@ -1,52 +1,5 @@
+import { hoisted } from './reconcile-checkout-user.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const hoisted = vi.hoisted(() => ({
-  db: {
-    query: {
-      user: { findFirst: vi.fn() },
-      tenantSettings: { findFirst: vi.fn() },
-    },
-    transaction: vi.fn(),
-  },
-  tx: {
-    insert: vi.fn(),
-    update: vi.fn(),
-    query: {} as Record<string, unknown>,
-  },
-  withTenantContext: vi.fn(),
-  authorizePaddleBillingTenant: vi.fn(),
-  authorizePaddleTenant: vi.fn(),
-  resolvePaddleCustomerEmailOwner: vi.fn(),
-  readVerifiedPaddleTransactionEvidence: vi.fn(),
-  insertedUserValues: vi.fn(),
-  updatedUserValues: vi.fn(),
-  issueTenantMemberNumber: vi.fn(),
-  hasTenantMemberCredential: vi.fn(),
-  nanoid: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  agentClients: {
-    tenantId: 'agent_clients.tenant_id',
-    memberId: 'agent_clients.member_id',
-    agentId: 'agent_clients.agent_id',
-  },
-  and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-  db: hoisted.db,
-  hasTenantMemberCredential: hoisted.hasTenantMemberCredential,
-  issueTenantMemberNumber: hoisted.issueTenantMemberNumber,
-  eq: vi.fn((left, right) => ({ left, right })),
-  user: { id: 'user.id' },
-  withTenantContext: hoisted.withTenantContext,
-  authorizePaddleBillingTenant: hoisted.authorizePaddleBillingTenant,
-  authorizePaddleTenant: hoisted.authorizePaddleTenant,
-  resolvePaddleCustomerEmailOwner: hoisted.resolvePaddleCustomerEmailOwner,
-  readVerifiedPaddleTransactionEvidence: hoisted.readVerifiedPaddleTransactionEvidence,
-}));
-
-vi.mock('nanoid', () => ({
-  nanoid: hoisted.nanoid,
-}));
 
 import {
   TEST_PADDLE_DELIVERY,

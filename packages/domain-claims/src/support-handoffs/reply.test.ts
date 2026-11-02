@@ -1,90 +1,10 @@
+import { mocks, memberSession } from './reply.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitSupportHandoffMemberReplyCore } from './reply';
 import type { SupportHandoffSession } from './types';
 import { ACTIVE_HANDOFF_STATUSES, MAX_MEMBER_REPLY_LENGTH } from './types';
-
-const mocks = vi.hoisted(() => {
-  const updateReturning = vi.fn();
-  const updateWhere = vi.fn();
-  const updateSet = vi.fn();
-  const selectLimit = vi.fn();
-  const selectWhere = vi.fn();
-  const selectFrom = vi.fn();
-  const column = (name: string) => `support_handoffs.${name}`;
-
-  return {
-    and: vi.fn((...conditions) => ({ conditions, predicate: 'and' })),
-    db: Object.fromEntries([
-      ['select', vi.fn(() => ({ from: selectFrom }))],
-      ['update', vi.fn(() => ({ set: updateSet }))],
-    ]),
-    ensureTenantId: vi.fn().mockReturnValue('tenant-1'),
-    eq: vi.fn((left, right) => ({ left, predicate: 'eq', right })),
-    inArray: vi.fn((left, right) => ({ left, predicate: 'inArray', right })),
-    isNotNull: vi.fn(columnName => ({ column: columnName, predicate: 'isNotNull' })),
-    isNull: vi.fn(columnName => ({ column: columnName, predicate: 'isNull' })),
-    logAuditEvent: vi.fn(),
-    selectFrom,
-    selectLimit,
-    selectWhere,
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
-    supportHandoffs: {
-      id: column('id'),
-      memberId: column('member_id'),
-      memberReply: column('member_reply'),
-      memberReplyAt: column('member_reply_at'),
-      memberReplyResponseVersion: column('member_reply_response_version'),
-      publicResponse: column('public_response'),
-      publicResponseAcknowledgedAt: column('public_response_acknowledged_at'),
-      publicResponseAcknowledgedById: column('public_response_acknowledged_by_id'),
-      publicResponseAcknowledgedVersion: column('public_response_acknowledged_version'),
-      publicResponseVersion: column('public_response_version'),
-      status: column('status'),
-      tenantId: column('tenant_id'),
-      updatedAt: column('updated_at'),
-    },
-    updateReturning,
-    updateSet,
-    updateWhere,
-    withTenant: vi.fn((_tenantId, _tenantColumn, condition) => ({ condition, tenantScoped: true })),
-  };
-});
-
-function databaseExports() {
-  return {
-    and: mocks.and,
-    db: mocks.db,
-    withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
-    eq: mocks.eq,
-    sql: mocks.sql,
-    supportHandoffs: mocks.supportHandoffs,
-  };
-}
-
-function tenantSecurityExports() {
-  return { withTenant: mocks.withTenant };
-}
-
-function sharedAuthExports() {
-  return { ensureTenantId: mocks.ensureTenantId };
-}
-
-function drizzleExports() {
-  return { inArray: mocks.inArray, isNotNull: mocks.isNotNull, isNull: mocks.isNull };
-}
-
-vi.mock('@interdomestik/database', databaseExports);
-vi.mock('@interdomestik/database/tenant-security', tenantSecurityExports);
-vi.mock('@interdomestik/shared-auth', sharedAuthExports);
-vi.mock('drizzle-orm', drizzleExports);
-
-function memberSession(overrides: Partial<SupportHandoffSession['user']> = {}) {
-  return {
-    user: Object.assign({ id: 'member-1', role: 'member', tenantId: 'tenant-1' }, overrides),
-  } as SupportHandoffSession;
-}
 
 function submitReply(session: SupportHandoffSession | null = memberSession()) {
   return submitSupportHandoffMemberReplyCore({

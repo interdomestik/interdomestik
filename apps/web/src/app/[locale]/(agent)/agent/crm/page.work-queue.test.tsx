@@ -1,41 +1,11 @@
+import { installPageHooks } from './page.hooks.test-support';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { hoisted, taskQueueItem } from './page.test-support';
 import CRMPage from './page';
 
 describe('CRMPage auth redirect', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.getSessionMock.mockResolvedValue(null);
-    hoisted.ensureTenantIdMock.mockReturnValue('tenant-1');
-    hoisted.getAgentCrmStatsCoreMock.mockResolvedValue({
-      newLeadsCount: 0,
-      contactedLeadsCount: 0,
-      closedWonDealsCount: 0,
-      paidCommissionTotal: 0,
-      dueFollowUps: [],
-    });
-    hoisted.getAgentCrmReportingCoreMock.mockResolvedValue({
-      sourceBreakdown: {
-        excludedMissingCurrencyCount: 0,
-        excludedMissingValueCount: 0,
-        groups: [],
-      },
-      weightedPipeline: {
-        currencySummaries: [],
-        excludedRowCount: 0,
-      },
-      winRateBySource: {
-        groups: [],
-      },
-      window: {
-        from: '2026-02-13T12:00:00.000Z',
-        to: '2026-05-14T12:00:00.000Z',
-      },
-    });
-    hoisted.getAgentCrmCompletedTaskQueueCoreMock.mockResolvedValue([]);
-    hoisted.getAgentCrmTaskQueueCoreMock.mockResolvedValue([]);
-  });
+  installPageHooks();
 
   it('renders multi-currency pipeline and source metrics without charts', async () => {
     hoisted.getSessionMock.mockResolvedValue({

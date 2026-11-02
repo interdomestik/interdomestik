@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { installAgentCrmFollowUpHooks } from './agent-crm-follow-up.core.hooks.test-support';
+import { describe, expect, it, vi } from 'vitest';
 import { activity, authority, lead, mocks, session } from './agent-crm-follow-up.core.test-support';
 import {
   completeAgentLeadFollowUpCore,
@@ -6,88 +7,7 @@ import {
 } from './agent-crm-follow-up.core';
 
 describe('agent CRM follow-up actions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.createCrmLeadFollowUpRepository.mockReturnValue({
-      completeFollowUpActivity: mocks.completeFollowUpActivity,
-      createFollowUpActivity: mocks.createFollowUpActivity,
-      findById: mocks.findById,
-    });
-    mocks.findById.mockResolvedValue(lead());
-    mocks.createFollowUpActivity.mockImplementation(async ({ activity: created }) =>
-      activity({ ...created, agentId: 'agent-1' })
-    );
-    mocks.listCrmLeadFollowUpActivitiesForLead.mockResolvedValue([]);
-    mocks.listCrmLeadFollowUpTasksForLead.mockResolvedValue([
-      activity({
-        expectedLifecycleVersion: 1,
-        followUpSource: 'crm_task',
-        id: 'lead-follow-up-task-1',
-        scheduledAt: '2026-05-10T09:00:00.000Z',
-      }),
-    ]);
-    mocks.createCrmTaskCore.mockResolvedValue({
-      outcome: 'success',
-      task: {
-        assignedTo: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          kind: 'actor',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        branchId: 'branch-1',
-        completedAt: null,
-        createReasonCode: 'follow_up',
-        createdAt: '2026-05-10T08:00:00.000Z',
-        createdBy: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        dueAt: '2026-05-10T09:00:00.000Z',
-        lifecycleVersion: 1,
-        status: 'pending',
-        subjectReference: { id: 'lead-1', kind: 'lead' },
-        taskId: 'lead-follow-up-task-1',
-        tenantId: 'tenant-1',
-      },
-      transition: null,
-    });
-    mocks.completeCrmTaskCore.mockResolvedValue({
-      outcome: 'success',
-      task: {
-        assignedTo: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          kind: 'actor',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        branchId: 'branch-1',
-        completedAt: '2026-05-10T09:30:00.000Z',
-        createReasonCode: 'follow_up',
-        createdAt: '2026-05-10T08:00:00.000Z',
-        createdBy: {
-          actorId: 'agent-1',
-          branchId: 'branch-1',
-          role: 'agent',
-          tenantId: 'tenant-1',
-        },
-        dueAt: '2026-05-10T09:00:00.000Z',
-        lifecycleVersion: 2,
-        status: 'completed',
-        subjectReference: { id: 'lead-1', kind: 'lead' },
-        taskId: 'lead-follow-up-task-1',
-        tenantId: 'tenant-1',
-      },
-      transition: null,
-    });
-    mocks.completeFollowUpActivity.mockResolvedValue(
-      activity({ completedAt: '2026-05-10T09:30:00.000Z' })
-    );
-  });
+  installAgentCrmFollowUpHooks();
 
   it('schedules a follow-up for an agent with tenant and branch scope', async () => {
     const result = await scheduleAgentLeadFollowUpCore({
