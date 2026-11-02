@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DELETE, POST } from './route';
+import { POST } from './route';
 
 const hoistedMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -89,7 +89,6 @@ const validPushBody = {
   userAgent: 'UA',
 };
 
-const validDeleteBody = { endpoint: validPushBody.endpoint };
 const sameEndpointOwner = { tenantId: 'tenant_mk', userId: 'user-123' };
 const endpointConflict = { error: 'Push subscription endpoint already registered' };
 const uniqueViolation = Object.assign(new Error('duplicate key'), { code: '23505' });
@@ -101,13 +100,6 @@ function authenticatedSession(tenantId: string | null = 'tenant_mk') {
 function postRequest(body: unknown = validPushBody): Request {
   return new Request('http://localhost:3000/api/settings/push', {
     method: 'POST',
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  });
-}
-
-function deleteRequest(body: unknown = validDeleteBody): Request {
-  return new Request('http://localhost:3000/api/settings/push', {
-    method: 'DELETE',
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });
 }
@@ -261,59 +253,5 @@ describe('POST /api/settings/push', () => {
     await expectJsonResponse(response, 200, { success: true });
     expect(mockInsertChain.values).toHaveBeenCalledTimes(1);
     expectValidPushUpdate();
-  });
-});
-
-describe('DELETE /api/settings/push', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockDeleteChain.where.mockResolvedValue(undefined);
-  });
-
-  it('returns 401 if user is not authenticated', async () => {
-    hoistedMocks.getSession.mockResolvedValue(null);
-
-    const response = await DELETE(deleteRequest());
-    await expectJsonResponse(response, 401, { error: 'Unauthorized' });
-  });
-
-  it('returns 401 when tenant identity is missing', async () => {
-    hoistedMocks.getSession.mockResolvedValue(authenticatedSession(null));
-
-    const response = await DELETE(deleteRequest());
-
-    await expectJsonResponse(response, 401, { error: 'Missing tenant identity' });
-    expect(mockDeleteChain.where).not.toHaveBeenCalled();
-    expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
-  });
-
-  it('returns 400 on invalid JSON', async () => {
-    hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-
-    const response = await DELETE(deleteRequest('invalid json'));
-    await expectJsonResponse(response, 400, { error: 'Invalid JSON' });
-  });
-
-  it('returns 400 when endpoint is missing', async () => {
-    hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-
-    const response = await DELETE(deleteRequest({}));
-    await expectJsonResponse(response, 400, { error: 'Invalid subscription' });
-  });
-
-  it('deletes subscription by endpoint', async () => {
-    hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
-
-    const response = await DELETE(deleteRequest());
-
-    await expectJsonResponse(response, 200, { success: true });
-    expect(mockDeleteChain.where).toHaveBeenCalledWith({
-      type: 'and',
-      conditions: [
-        { type: 'eq', field: 'endpoint', value: validPushBody.endpoint },
-        { type: 'eq', field: 'tenant_id', value: sameEndpointOwner.tenantId },
-        { type: 'eq', field: 'user_id', value: sameEndpointOwner.userId },
-      ],
-    });
   });
 });

@@ -4,108 +4,26 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, eq, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
-  sendEmail,
   sendClaimAssignedEmail,
   sendClaimSubmittedEmail,
   sendNewMessageEmail,
   sendPaymentVerificationEmail,
   sendStatusChangedEmail,
 } from '../email';
-import { buildEmailTemplate, joinUrl, DEFAULT_APP_URL } from '../email/templates';
 import { sendPushToUser } from '../push';
-import type { AuditLogger } from '../types';
+import {
+  queryUserById,
+  resolveNotificationContent,
+  sendLifecycleEmail,
+  sendVerifiedEmail,
+} from './notify-helpers';
+import type {
+  NotificationChannelOptions,
+  NotificationDeps,
+  NotificationEvent,
+} from './notify-types';
 
-// Notification event types
-export type NotificationEvent =
-  | 'claim_submitted'
-  | 'claim_assigned'
-  | 'claim_status_changed'
-  | 'claim_pack_generated'
-  | 'claim_pack_upgraded'
-  | 'document_requested'
-  | 'triage_complete'
-  | 'escalation_accepted'
-  | 'escalation_declined'
-  | 'new_message'
-  | 'sla_warning'
-  | 'sla_breached'
-  | 'membership_renewal'
-  | 'payment_verification_update'
-  | 'support_handoff_public_response';
-
-type NotificationDeps = {
-  sendPushToUser?: typeof sendPushToUser;
-  logAuditEvent?: AuditLogger;
-  tenantId: string;
-};
-
-// Every notification names the tenant that owns it; the recipient lookup and the in-app row both
-// run inside that tenant's context.
-type NotificationChannelOptions = {
-  tenantId: string;
-};
-
-function queryUserById(userId: string, tenantId: string) {
-  return withTenantContext({ tenantId }, tx =>
-    tx.query.user.findFirst({
-      where: (users, { eq }) => withTenant(tenantId, users.tenantId, eq(users.id, userId)),
-      columns: { email: true, emailVerified: true, tenantId: true },
-    })
-  );
-}
-
-function sendVerifiedEmail(
-  userId: string,
-  tenantId: string,
-  label: string,
-  dispatch: (verifiedEmail: string) => Promise<unknown>
-) {
-  queryUserById(userId, tenantId)
-    .then(userRecord => {
-      if (!userRecord?.email || !userRecord.emailVerified) {
-        return;
-      }
-
-      return dispatch(userRecord.email);
-    })
-    .catch(error => console.error(`Failed to send ${label} email:`, error));
-}
-
-function sendLifecycleEmail(
-  to: string,
-  props: {
-    title: string;
-    intro: string;
-    actionUrl: string;
-    ctaLabel?: string;
-    details?: string[];
-  }
-) {
-  if (!to) return Promise.resolve({ success: false as const, error: 'Missing recipient email' });
-
-  return sendEmail(
-    to,
-    buildEmailTemplate({
-      title: props.title,
-      intro: props.intro,
-      details: props.details,
-      ctaLabel: props.ctaLabel ?? 'Open Interdomestik',
-      ctaUrl: joinUrl(DEFAULT_APP_URL, props.actionUrl),
-    })
-  );
-}
-
-function resolveNotificationContent(
-  event: NotificationEvent,
-  payload: Record<string, string | number | boolean>,
-  override?: string
-) {
-  if (override) {
-    return override;
-  }
-
-  return payload.claimTitle ? `Update on: ${payload.claimTitle}` : `New update: ${event}`;
-}
+export type { NotificationEvent } from './notify-types';
 
 /**
  * Send a notification (In-app DB + Email is handled in notify functions)

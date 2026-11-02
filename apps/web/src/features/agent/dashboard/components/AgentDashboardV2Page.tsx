@@ -1,5 +1,4 @@
 import { getAgentLeaderboardCore } from '@/actions/leaderboard/get';
-import { getAgentDashboardV2StatsCore } from '@/app/[locale]/(agent)/agent/_core';
 import { AgentVerifiedID } from '@/components/agent/agent-verified-id';
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
@@ -8,7 +7,6 @@ import { MatteAnchorCard } from '@/components/dashboard/matte-anchor-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { localizeSeededBranchName } from '@/lib/localize-seeded-branch-name';
-import { withTenantContext } from '@interdomestik/database';
 import { getMyCommissionSummaryCore } from '@interdomestik/domain-membership-billing/commissions/summary';
 import { getAgentReferralLinkCore } from '@interdomestik/domain-referrals/referrals/get-agent-link';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -24,6 +22,8 @@ import { ArrowRight, UserPlus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { readAgentDashboardBranch, readAgentDashboardV2Stats } from './agent-dashboard-v2-reads';
 
 export async function AgentDashboardV2Page({
   locale,
@@ -48,17 +48,9 @@ export async function AgentDashboardV2Page({
   const tenantId = ensureTenantId(session);
 
   const [stats, branch, referralLinkResult, leaderboardResult, summaryResult] = await Promise.all([
-    withTenantContext({ tenantId }, tx =>
-      getAgentDashboardV2StatsCore({ agentId, tenantId }, { db: tx })
-    ),
+    readAgentDashboardV2Stats({ agentId, tenantId }),
     session.user.branchId
-      ? withTenantContext({ tenantId }, tx =>
-          tx.query.branches.findFirst({
-            where: (fields, { and, eq }) =>
-              and(eq(fields.id, session.user.branchId), eq(fields.tenantId, tenantId)),
-            columns: { name: true },
-          })
-        )
+      ? readAgentDashboardBranch({ branchId: session.user.branchId, tenantId })
       : null,
     getAgentReferralLinkCore({ session }),
     getAgentLeaderboardCore({ session, period: 'month' }),

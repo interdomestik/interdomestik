@@ -1,6 +1,6 @@
 import { inArray, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
+import { ROLES, scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 
 import type { UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
@@ -13,7 +13,7 @@ export async function getStaffCore(params: { session: UserSession | null }) {
 
   const staff = await withTenantContext({ tenantId }, tx =>
     tx.query.user.findMany({
-      where: withTenant(tenantId, user.tenantId, inArray(user.role, ['staff', 'admin'])),
+      where: withTenant(tenantId, user.tenantId, inArray(user.role, [ROLES.staff, ROLES.admin])),
       orderBy: (users, { asc }) => [asc(users.name)],
     })
   );

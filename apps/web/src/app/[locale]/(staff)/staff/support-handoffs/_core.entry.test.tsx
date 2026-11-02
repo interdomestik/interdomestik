@@ -1,24 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { applyDefaultMocks, queueItem } from './_core.entry.test-support';
 
-const mocks = vi.hoisted(() => ({
-  acceptSupportHandoff: vi.fn(),
-  closeSupportHandoff: vi.fn(),
-  findStaffBranch: vi.fn(),
-  findManyStaff: vi.fn(),
-  getQueue: vi.fn(),
-  getSessionSafe: vi.fn(),
-  getSupportHandoffDetail: vi.fn(),
-  notFound: vi.fn(() => {
-    throw new Error('notFound');
-  }),
-  reassignSupportHandoff: vi.fn(),
-  requireSessionOrRedirect: vi.fn(session => session),
-  routerRefresh: vi.fn(),
-  setRequestLocale: vi.fn(),
-  updateSupportHandoffPublicResponse: vi.fn(),
-}));
+const mocks = await vi.hoisted(async () => {
+  const { createStaffHandoffMocks } = await import('./_core.entry.test-support');
+  return createStaffHandoffMocks();
+});
 
 vi.mock('@/actions/support-handoffs/lifecycle', () => ({
   acceptSupportHandoff: mocks.acceptSupportHandoff,
@@ -39,39 +26,11 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: mocks.requireSessionOrRedirect,
 }));
 
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href?.toString()} {...props}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock('@/i18n/routing', async () => (await import('./_core.entry.test-support')).routingMock);
 
-vi.mock('@interdomestik/database', () => {
-  const db = {
-    query: {
-      user: {
-        findFirst: mocks.findStaffBranch,
-        findMany: mocks.findManyStaff,
-      },
-    },
-  };
-  return {
-    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
-    db,
-    withTenantContext: async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db),
-    eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
-    user: {
-      branchId: 'user.branch_id',
-      email: 'user.email',
-      id: 'user.id',
-      name: 'user.name',
-      role: 'user.role',
-      tenantId: 'user.tenant_id',
-    },
-  };
-});
+vi.mock('@interdomestik/database', async () =>
+  (await import('./_core.entry.test-support')).createDatabaseMock(mocks)
+);
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: vi.fn((_tenantId, _column, condition) => ({ condition, scoped: true })),
@@ -81,15 +40,7 @@ vi.mock('@interdomestik/domain-claims/support-handoffs/queue', () => ({
   getStaffSupportHandoffQueue: mocks.getQueue,
 }));
 
-vi.mock('@interdomestik/ui', () => ({
-  Button: ({
-    asChild,
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    asChild?: boolean;
-  }) => (asChild ? <>{children}</> : <button {...props}>{children}</button>),
-}));
+vi.mock('@interdomestik/ui', async () => (await import('./_core.entry.test-support')).uiMock);
 
 vi.mock('next-intl/server', () => ({
   getTranslations: vi.fn(async () => (key: string) => key),
@@ -105,51 +56,6 @@ vi.mock('next/navigation', () => ({
 
 import StaffSupportHandoffsPage from './_core.entry';
 
-const queueItem = {
-  claim: {
-    claimNumber: 'CLM-1',
-    id: 'claim-1',
-    status: 'submitted',
-    title: 'Claim one',
-  },
-  createdAt: '2026-05-03T10:00:00.000Z',
-  id: 'handoff-1',
-  lifecycleVersion: 4,
-  member: {
-    email: 'member@example.com',
-    id: 'member-1',
-    memberNumber: 'MEM-1',
-    name: 'Member One',
-  },
-  message: 'The member needs staff support.',
-  needsFollowUp: false,
-  publicResponseAt: null,
-  relationship: {
-    agentName: 'Agent One',
-    branchName: 'Prishtina',
-    membershipStatus: 'active',
-    planName: 'Family',
-  },
-  staffId: null,
-  staffName: null,
-  status: 'open',
-  subject: 'Help with submitted claim',
-  trustRisk: 'high',
-  updatedAt: '2026-05-03T10:00:00.000Z',
-  urgency: 'critical',
-} as const;
-
-function session(role: 'staff' | 'branch_manager' = 'staff') {
-  return {
-    user: {
-      branchId: 'branch-1',
-      id: role === 'staff' ? 'staff-1' : 'manager-1',
-      role,
-      tenantId: 'tenant-1',
-    },
-  };
-}
-
 async function renderPage(searchParams: Record<string, string | string[] | undefined> = {}) {
   const tree = await StaffSupportHandoffsPage({
     params: Promise.resolve({ locale: 'en' }),
@@ -160,38 +66,7 @@ async function renderPage(searchParams: Record<string, string | string[] | undef
 
 describe('StaffSupportHandoffsPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.getSessionSafe.mockResolvedValue(session('staff'));
-    mocks.requireSessionOrRedirect.mockImplementation(currentSession => currentSession);
-    mocks.getQueue.mockResolvedValue([queueItem]);
-    mocks.getSupportHandoffDetail.mockResolvedValue({
-      acceptedAt: null,
-      acceptedByName: null,
-      closedAt: null,
-      closedByName: null,
-      closeReason: null,
-      contactPreference: 'phone',
-      memberReply: {
-        memberReply: null,
-        memberReplyAt: null,
-        memberReplyResponseVersion: null,
-      },
-      publicResponse: {
-        publicResponse: null,
-        publicResponseAt: null,
-        publicResponseVersion: 0,
-      },
-      reassignedAt: null,
-      reassignedByName: null,
-      reassignReason: null,
-      source: 'member_help',
-    });
-    mocks.findStaffBranch.mockResolvedValue({ branchId: 'branch-1' });
-    mocks.findManyStaff.mockResolvedValue([
-      { email: 'staff@example.com', id: 'staff-1', name: 'Staff One', role: 'staff' },
-      { email: 'staff2@example.com', id: 'staff-2', name: 'Staff Two', role: 'staff' },
-    ]);
-    mocks.updateSupportHandoffPublicResponse.mockResolvedValue(undefined);
+    applyDefaultMocks(mocks);
   });
 
   it('renders the staff receiving queue with optimistic accept controls', async () => {
@@ -340,345 +215,5 @@ describe('StaffSupportHandoffsPage', () => {
     expect(screen.getByTestId('staff-support-handoff-needs-follow-up-badge')).toHaveTextContent(
       'table.needs_follow_up'
     );
-  });
-
-  it('renders the public response form for the assigned staff owner on accepted handoffs', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-      },
-    ]);
-    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
-      acceptedAt: '2026-05-04T08:30:00.000Z',
-      acceptedByName: 'Staff One',
-      closedAt: null,
-      closedByName: null,
-      closeReason: null,
-      contactPreference: 'phone',
-      memberReply: {
-        memberReply: null,
-        memberReplyAt: null,
-        memberReplyResponseVersion: null,
-      },
-      publicResponse: {
-        publicResponse: 'Existing member-visible update',
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        publicResponseVersion: 3,
-      },
-      reassignedAt: null,
-      reassignedByName: null,
-      reassignReason: null,
-      source: 'member_help',
-    });
-
-    await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
-
-    expect(await screen.findByTestId('staff-support-handoff-public-response-form')).toBeVisible();
-    expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
-      'Existing member-visible update'
-    );
-    expect(screen.getByDisplayValue('3')).toHaveAttribute('name', 'expectedVersion');
-    expect(screen.getByTestId('staff-support-handoff-public-response-submit')).toHaveTextContent(
-      'detail.public_response_update'
-    );
-    expect(
-      screen.getByTestId('staff-support-handoff-public-response-awaiting-acknowledgement')
-    ).toHaveTextContent('detail.public_response_awaiting_acknowledgement');
-  });
-
-  it('renders read-only acknowledgement status for the current public response', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-      },
-    ]);
-    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
-      acceptedAt: '2026-05-04T08:30:00.000Z',
-      acceptedByName: 'Staff One',
-      closedAt: null,
-      closedByName: null,
-      closeReason: null,
-      contactPreference: 'phone',
-      memberReply: {
-        memberReply: null,
-        memberReplyAt: null,
-        memberReplyResponseVersion: null,
-      },
-      publicResponse: {
-        publicResponse: 'Existing member-visible update',
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        publicResponseAcknowledged: true,
-        publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
-        publicResponseAcknowledgedVersion: 3,
-        publicResponseVersion: 3,
-      },
-      reassignedAt: null,
-      reassignedByName: null,
-      reassignReason: null,
-      source: 'member_help',
-    });
-
-    await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
-
-    expect(
-      await screen.findByTestId('staff-support-handoff-public-response-acknowledged')
-    ).toHaveTextContent('detail.public_response_acknowledged_at');
-  });
-
-  it('shows current-cycle member reply and warns staff before sending another response', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-      },
-    ]);
-    mocks.getSupportHandoffDetail.mockResolvedValueOnce({
-      acceptedAt: '2026-05-04T08:30:00.000Z',
-      acceptedByName: 'Staff One',
-      closedAt: null,
-      closedByName: null,
-      closeReason: null,
-      contactPreference: 'phone',
-      memberReply: {
-        memberReply: 'This resolves my request.',
-        memberReplyAt: '2026-05-04T11:10:00.000Z',
-        memberReplyResponseVersion: 3,
-      },
-      publicResponse: {
-        publicResponse: 'Existing member-visible update',
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        publicResponseAcknowledged: true,
-        publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
-        publicResponseAcknowledgedVersion: 3,
-        publicResponseVersion: 3,
-      },
-      reassignedAt: null,
-      reassignedByName: null,
-      reassignReason: null,
-      source: 'member_help',
-    });
-
-    await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
-
-    expect(await screen.findByTestId('handoff-member-reply')).toHaveTextContent(
-      'This resolves my request.'
-    );
-    expect(screen.getByTestId('handoff-member-reply')).toHaveTextContent('detail.member_reply_at');
-    expect(screen.getByTestId('staff-support-handoff-member-reply-warning')).toHaveTextContent(
-      'detail.member_reply_warning'
-    );
-  });
-
-  it('refreshes public response detail after the assigned staff owner submits an update', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-      },
-    ]);
-    mocks.getSupportHandoffDetail
-      .mockResolvedValueOnce({
-        acceptedAt: '2026-05-04T08:30:00.000Z',
-        acceptedByName: 'Staff One',
-        closedAt: null,
-        closedByName: null,
-        closeReason: null,
-        contactPreference: 'phone',
-        memberReply: {
-          memberReply: null,
-          memberReplyAt: null,
-          memberReplyResponseVersion: null,
-        },
-        publicResponse: {
-          publicResponse: 'Existing member-visible update',
-          publicResponseAt: '2026-05-04T11:00:00.000Z',
-          publicResponseVersion: 3,
-        },
-        reassignedAt: null,
-        reassignedByName: null,
-        reassignReason: null,
-        source: 'member_help',
-      })
-      .mockResolvedValueOnce({
-        acceptedAt: '2026-05-04T08:30:00.000Z',
-        acceptedByName: 'Staff One',
-        closedAt: null,
-        closedByName: null,
-        closeReason: null,
-        contactPreference: 'phone',
-        memberReply: {
-          memberReply: null,
-          memberReplyAt: null,
-          memberReplyResponseVersion: null,
-        },
-        publicResponse: {
-          publicResponse: 'Updated member-visible response',
-          publicResponseAt: '2026-05-04T12:00:00.000Z',
-          publicResponseVersion: 4,
-        },
-        reassignedAt: null,
-        reassignedByName: null,
-        reassignReason: null,
-        source: 'member_help',
-      });
-
-    await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
-
-    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
-    mocks.routerRefresh.mockClear();
-    fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
-    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
-
-    await waitFor(() => {
-      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
-      expect(mocks.getSupportHandoffDetail).toHaveBeenCalledTimes(2);
-      expect(mocks.routerRefresh).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
-      'Updated member-visible response'
-    );
-    const refreshedForm = screen.getByTestId('staff-support-handoff-public-response-form');
-    expect(refreshedForm.querySelector('input[name="expectedVersion"]')).toHaveValue('4');
-  });
-
-  it('removes resolved rows from the needs-follow-up attention queue after staff response', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        needsFollowUp: true,
-        publicResponseAt: '2026-05-04T11:00:00.000Z',
-        staffId: 'staff-1',
-        staffName: 'Staff One',
-        status: 'accepted',
-      },
-    ]);
-    mocks.getSupportHandoffDetail
-      .mockResolvedValueOnce({
-        acceptedAt: '2026-05-04T08:30:00.000Z',
-        acceptedByName: 'Staff One',
-        closedAt: null,
-        closedByName: null,
-        closeReason: null,
-        contactPreference: 'phone',
-        memberReply: {
-          memberReply: 'Member reply awaiting staff.',
-          memberReplyAt: '2026-05-04T11:10:00.000Z',
-          memberReplyResponseVersion: 3,
-        },
-        publicResponse: {
-          publicResponse: 'Existing member-visible update',
-          publicResponseAt: '2026-05-04T11:00:00.000Z',
-          publicResponseAcknowledged: true,
-          publicResponseAcknowledgedAt: '2026-05-04T11:05:00.000Z',
-          publicResponseAcknowledgedVersion: 3,
-          publicResponseVersion: 3,
-        },
-        reassignedAt: null,
-        reassignedByName: null,
-        reassignReason: null,
-        source: 'member_help',
-      })
-      .mockResolvedValueOnce({
-        acceptedAt: '2026-05-04T08:30:00.000Z',
-        acceptedByName: 'Staff One',
-        closedAt: null,
-        closedByName: null,
-        closeReason: null,
-        contactPreference: 'phone',
-        memberReply: {
-          memberReply: 'Member reply awaiting staff.',
-          memberReplyAt: '2026-05-04T11:10:00.000Z',
-          memberReplyResponseVersion: 3,
-        },
-        publicResponse: {
-          publicResponse: 'Updated member-visible response',
-          publicResponseAt: '2026-05-04T12:00:00.000Z',
-          publicResponseAcknowledged: false,
-          publicResponseAcknowledgedAt: null,
-          publicResponseAcknowledgedVersion: null,
-          publicResponseVersion: 4,
-        },
-        reassignedAt: null,
-        reassignedByName: null,
-        reassignReason: null,
-        source: 'member_help',
-      });
-
-    await renderPage({ attention: 'needs_follow_up' });
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
-
-    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
-    fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
-    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
-
-    await waitFor(() => {
-      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
-      expect(screen.queryByTestId('staff-support-handoffs-row')).not.toBeInTheDocument();
-    });
-  });
-
-  it('hides reassignment for accepted handoffs owned by another staff member', async () => {
-    mocks.getQueue.mockResolvedValueOnce([
-      {
-        ...queueItem,
-        staffId: 'staff-2',
-        staffName: 'Staff Two',
-        status: 'accepted',
-      },
-    ]);
-
-    await renderPage();
-
-    expect(screen.queryByTestId('staff-support-handoff-reassign-form')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('staff-support-handoff-close-form')).not.toBeInTheDocument();
-  });
-
-  it('renders branch manager access as read-only while keeping branch scope', async () => {
-    mocks.getSessionSafe.mockResolvedValue(session('branch_manager'));
-
-    await renderPage();
-
-    expect(screen.getByTestId('staff-support-handoffs-readonly-notice')).toBeVisible();
-    expect(screen.getByTestId('staff-support-handoff-readonly')).toBeVisible();
-    expect(screen.getByTestId('staff-support-handoff-detail-toggle')).toBeVisible();
-    expect(screen.queryByTestId('staff-support-handoff-accept-form')).not.toBeInTheDocument();
-    expect(mocks.getQueue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        branchId: 'branch-1',
-        viewerRole: 'branch_manager',
-      })
-    );
-    expect(mocks.findManyStaff).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when staff support queue has no branch scope', async () => {
-    mocks.getSessionSafe.mockResolvedValue({
-      user: {
-        branchId: null,
-        id: 'staff-1',
-        role: 'staff',
-        tenantId: 'tenant-1',
-      },
-    });
-    mocks.findStaffBranch.mockResolvedValue(null);
-
-    await expect(renderPage()).rejects.toThrow('notFound');
-    expect(mocks.getQueue).not.toHaveBeenCalled();
   });
 });

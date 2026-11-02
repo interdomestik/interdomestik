@@ -4,9 +4,7 @@ import {
 } from '@/actions/thank-you-letter/delivery';
 import { logAuditEvent } from '@/lib/audit';
 import { paddleDunningEmailDeps } from '@/lib/email';
-import { resolvePaddleUserOwner } from '@interdomestik/database/paddle-provider-resolution';
 import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
-import { findSubscriptionByProviderReference } from '@interdomestik/domain-membership-billing/subscription';
 import {
   handlePaddleEvent,
   insertWebhookEvent,
@@ -21,7 +19,6 @@ import {
 import { membershipConfirmationDeliveryStore } from '@interdomestik/domain-membership-billing/paddle-webhooks/membership-confirmation-delivery';
 import {
   PaddleSubscriptionReferenceAmbiguousError,
-  isPaddleSubscriptionReferenceAmbiguousError,
   isRetryablePaddleWebhookError,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks/persist';
 
@@ -29,7 +26,13 @@ import type { Paddle } from '@paddle/paddle-node-sdk';
 import { requestPasswordResetOnboarding } from './paddle-onboarding';
 import { resolvePaddleCustomer } from './paddle-customer';
 import { buildPaddleEventDispatchParams } from './paddle-event-dispatch';
-import { getPaddleLeadId } from './paddle-lead-id';
+import { reconcilePaddleLeadConversion } from './paddle-lead-conversion';
+import {
+  getPaddleSubscriptionReferences,
+  normalizeText,
+  resolveWebhookSubscription,
+  resolveWebhookTenantId,
+} from './paddle-webhook-resolution';
 
 export {
   buildTenantPasswordResetRedirectUrl,
@@ -41,118 +44,11 @@ export type PaddleWebhookCoreResult = {
   body: Record<string, unknown>;
 };
 
-type PaddleWebhookData = {
-  id?: string;
-  subscriptionId?: string | null;
-  subscription_id?: string | null;
-  customData?: { userId?: string; tenantId?: string; leadId?: unknown };
-  custom_data?: { userId?: string; tenantId?: string; leadId?: unknown };
-};
-
 type PaddleTransactionData = {
   id?: string;
   transactionId?: string;
   transaction_id?: string;
 };
-
-function normalizeText(value: string | null | undefined): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function getPaddleCustomData(data: unknown): PaddleWebhookData['customData'] | undefined {
-  if (!data || typeof data !== 'object') return undefined;
-  const payload = data as PaddleWebhookData;
-  return payload.custom_data ?? payload.customData;
-}
-
-function getPaddleSubscriptionReferences(data: unknown): string[] {
-  if (!data || typeof data !== 'object') return [];
-  const payload = data as PaddleWebhookData;
-  return [
-    normalizeText(payload.subscriptionId),
-    normalizeText(payload.subscription_id),
-    normalizeText(payload.id),
-  ].filter(
-    (value, index, values): value is string => Boolean(value) && values.indexOf(value) === index
-  );
-}
-
-type WebhookSubscription = NonNullable<
-  Awaited<ReturnType<typeof findSubscriptionByProviderReference>>
->;
-
-type WebhookSubscriptionResolution = WebhookSubscription | 'ambiguous' | null;
-
-async function resolveWebhookSubscription(data: unknown): Promise<WebhookSubscriptionResolution> {
-  for (const subscriptionReference of getPaddleSubscriptionReferences(data)) {
-    let subscription: Awaited<ReturnType<typeof findSubscriptionByProviderReference>>;
-    try {
-      subscription = await findSubscriptionByProviderReference(subscriptionReference);
-    } catch (error) {
-      // The receipt is still admitted (tenant unresolved) so processing records the terminal
-      // conflict; no later reference or customData may stand in for an ambiguous one.
-      if (isPaddleSubscriptionReferenceAmbiguousError(error)) return 'ambiguous';
-      throw error;
-    }
-    if (subscription?.tenantId) return subscription;
-  }
-
-  return null;
-}
-
-function hasLeadConversionProviderConflict(params: {
-  data: unknown;
-  tenantId: string;
-  subscription: WebhookSubscription | null;
-}): boolean {
-  const customData = getPaddleCustomData(params.data);
-  const providerUserId = normalizeText(customData?.userId);
-  const providerTenantId = normalizeText(customData?.tenantId);
-  const subscriptionTenantId = normalizeText(params.subscription?.tenantId);
-  const subscriptionUserId = normalizeText(params.subscription?.userId);
-
-  if (providerTenantId && providerTenantId !== params.tenantId) return true;
-  if (subscriptionTenantId && subscriptionTenantId !== params.tenantId) return true;
-  if (params.subscription && providerUserId && !subscriptionUserId) return true;
-  if (subscriptionUserId && providerUserId && subscriptionUserId !== providerUserId) return true;
-
-  return false;
-}
-
-async function reconcilePaddleLeadConversion(params: {
-  eventType: string | undefined;
-  data: unknown;
-  tenantId: string | null;
-  subscription: WebhookSubscription | null;
-}): Promise<void> {
-  if (params.eventType !== 'transaction.completed' || !params.tenantId) return;
-
-  const leadId = getPaddleLeadId(params.data);
-  if (!leadId) return;
-
-  if (
-    hasLeadConversionProviderConflict({
-      data: params.data,
-      tenantId: params.tenantId,
-      subscription: params.subscription,
-    })
-  ) {
-    return;
-  }
-
-  const { convertLeadToMember, hasTenantLeadForConversion } =
-    await import('@interdomestik/domain-leads');
-
-  const leadBelongsToTenant = await hasTenantLeadForConversion(
-    { tenantId: params.tenantId },
-    { leadId }
-  );
-  if (!leadBelongsToTenant) return;
-
-  await convertLeadToMember({ tenantId: params.tenantId }, { leadId });
-}
 
 function resolveProcessingScopeKey(params: {
   tenantId?: string | null;
@@ -193,25 +89,6 @@ function resolveProviderTransactionId(params: {
     normalizeText(payload.transactionId) ||
     normalizeText(payload.transaction_id)
   );
-}
-
-async function resolveWebhookTenantId(
-  data: unknown,
-  subscription: WebhookSubscriptionResolution
-): Promise<string | null> {
-  if (subscription === 'ambiguous') return null;
-  const customData = getPaddleCustomData(data);
-
-  if (subscription?.tenantId) return subscription.tenantId;
-
-  const userId = normalizeText(customData?.userId);
-  if (userId) {
-    // Fallback after canonical subscription lookup: exact user id to owning tenant only.
-    const owner = await resolvePaddleUserOwner(userId);
-    if (owner) return owner.tenantId;
-  }
-
-  return null;
 }
 
 export async function handlePaddleWebhookCore(args: {

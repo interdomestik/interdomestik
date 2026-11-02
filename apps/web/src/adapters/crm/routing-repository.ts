@@ -1,9 +1,6 @@
 import type {
   CrmRoutingRepository,
-  CrmRoutingAssignmentAuditRecord,
   CrmRoutingCursorAdvanceResult,
-  CrmRoutingRule,
-  CrmRoutingStrategy,
 } from '@interdomestik/domain-crm/routing';
 import type { CrmActorContext } from '@interdomestik/domain-crm/context';
 import { randomUUID } from 'node:crypto';
@@ -18,201 +15,34 @@ import {
   user,
 } from '@interdomestik/database/schema';
 
+import type {
+  AdminCrmRoutingRuleAdminRepository,
+  AdminCrmRoutingRuleRow,
+} from './routing-admin-types';
+import {
+  auditValues,
+  mapAdminRule,
+  mapAudit,
+  mapRule,
+  ruleWriteValues,
+  type CrmRoutingRuleRow,
+} from './routing-row-mapping';
 import { runInCrmTenantContext } from './tenant-runner';
 
 type CrmRoutingDb = typeof db;
-type CrmRoutingRuleRow = typeof crmRoutingRules.$inferSelect;
-type CrmRoutingAssignmentAuditRow = typeof crmRoutingAssignmentsAudit.$inferSelect;
 
-export type AdminCrmRoutingRuleRow = CrmRoutingRule & {
-  archivedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AdminCrmRoutingRuleWriteInput = {
-  agentIds: readonly string[];
-  branchId?: string | null;
-  effectiveFrom?: string | null;
-  effectiveTo?: string | null;
-  enabled?: boolean;
-  fallbackAgentId?: string | null;
-  fallbackRuleId?: string | null;
-  leadType?: string | null;
-  maxNewLeadsPerAgentPerDay?: number | null;
-  maxOpenLeadsPerAgent?: number | null;
-  priority: number;
-  source?: string | null;
-  strategy: CrmRoutingStrategy;
-  utmCampaign?: string | null;
-  utmMedium?: string | null;
-  utmSource?: string | null;
-};
-
-export type AdminCrmRoutingAgentScopeRow = {
-  branchId: string | null;
-  id: string;
-  role: string;
-  tenantId: string;
-};
-
-export type AdminCrmRoutingBranchRow = {
-  id: string;
-  label: string;
-  tenantId: string;
-};
-
-export interface AdminCrmRoutingRuleAdminRepository {
-  archiveRoutingRule(params: {
-    actor: CrmActorContext;
-    ruleId: string;
-  }): Promise<AdminCrmRoutingRuleRow | null>;
-  createRoutingRule(params: {
-    actor: CrmActorContext;
-    input: AdminCrmRoutingRuleWriteInput;
-  }): Promise<AdminCrmRoutingRuleRow>;
-  getRoutingRule(params: {
-    actor: CrmActorContext;
-    ruleId: string;
-  }): Promise<AdminCrmRoutingRuleRow | null>;
-  listAgentScopes(params: {
-    agentIds: readonly string[];
-    tenantId: string;
-  }): Promise<readonly AdminCrmRoutingAgentScopeRow[]>;
-  listBranches(params: { tenantId: string }): Promise<readonly AdminCrmRoutingBranchRow[]>;
-  listRoutingRulesForAdmin(params: {
-    actor: CrmActorContext;
-  }): Promise<readonly AdminCrmRoutingRuleRow[]>;
-  reorderRoutingRules(params: {
-    actor: CrmActorContext;
-    branchId?: string | null;
-    ruleIds: readonly string[];
-  }): Promise<readonly AdminCrmRoutingRuleRow[]>;
-  setRoutingRuleEnabled(params: {
-    actor: CrmActorContext;
-    enabled: boolean;
-    ruleId: string;
-  }): Promise<AdminCrmRoutingRuleRow | null>;
-  updateRoutingRule(params: {
-    actor: CrmActorContext;
-    expectedUpdatedAt: string;
-    input: AdminCrmRoutingRuleWriteInput;
-    ruleId: string;
-  }): Promise<AdminCrmRoutingRuleRow | 'cursor_conflict' | null>;
-}
-
-function toIso(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function mapRule(row: CrmRoutingRuleRow): CrmRoutingRule {
-  return {
-    agentIds: row.agentPool,
-    branchId: row.branchId ?? null,
-    effectiveFrom: toIso(row.effectiveFrom),
-    effectiveTo: toIso(row.effectiveTo),
-    enabled: row.enabled,
-    fallbackAgentId: row.fallbackAgentId ?? null,
-    fallbackRuleId: row.fallbackRuleId ?? null,
-    id: row.id,
-    leadType: row.leadType ?? null,
-    maxNewLeadsPerAgentPerDay: row.maxNewLeadsPerAgentPerDay ?? null,
-    maxOpenLeadsPerAgent: row.maxOpenLeadsPerAgent ?? null,
-    priority: row.priority,
-    source: row.source ?? null,
-    strategy: row.strategy as CrmRoutingStrategy,
-    tenantId: row.tenantId,
-    utmCampaign: row.utmCampaign ?? null,
-    utmMedium: row.utmMedium ?? null,
-    utmSource: row.utmSource ?? null,
-  };
-}
-
-function mapAdminRule(row: CrmRoutingRuleRow): AdminCrmRoutingRuleRow {
-  return {
-    ...mapRule(row),
-    archivedAt: toIso(row.archivedAt),
-    createdAt: toIso(row.createdAt) ?? '',
-    updatedAt: toIso(row.updatedAt) ?? '',
-  };
-}
-
-function nullableDate(value: string | null | undefined): Date | null {
-  if (!value) return null;
-  return new Date(value);
-}
-
-function ruleWriteValues(input: AdminCrmRoutingRuleWriteInput) {
-  return {
-    agentPool: [...input.agentIds],
-    branchId: input.branchId ?? null,
-    effectiveFrom: nullableDate(input.effectiveFrom),
-    effectiveTo: nullableDate(input.effectiveTo),
-    enabled: input.enabled ?? true,
-    fallbackAgentId: input.fallbackAgentId ?? null,
-    fallbackRuleId: input.fallbackRuleId ?? null,
-    leadType: input.leadType ?? null,
-    maxNewLeadsPerAgentPerDay: input.maxNewLeadsPerAgentPerDay ?? null,
-    maxOpenLeadsPerAgent: input.maxOpenLeadsPerAgent ?? null,
-    priority: input.priority,
-    source: input.source ?? null,
-    strategy: input.strategy,
-    updatedAt: new Date(),
-    utmCampaign: input.utmCampaign ?? null,
-    utmMedium: input.utmMedium ?? null,
-    utmSource: input.utmSource ?? null,
-  };
-}
+export type {
+  AdminCrmRoutingAgentScopeRow,
+  AdminCrmRoutingBranchRow,
+  AdminCrmRoutingRuleAdminRepository,
+  AdminCrmRoutingRuleRow,
+  AdminCrmRoutingRuleWriteInput,
+} from './routing-admin-types';
 
 function adminRulePredicates(actor: CrmActorContext, ruleId?: string) {
   const predicates = [eq(crmRoutingRules.tenantId, actor.tenantId)];
   if (ruleId) predicates.push(eq(crmRoutingRules.id, ruleId));
   return predicates;
-}
-
-function mapAudit(row: CrmRoutingAssignmentAuditRow): CrmRoutingAssignmentAuditRecord {
-  if (!row.actorId || !row.selectedAgentId) {
-    throw new Error('CRM routing audit row is missing assignment actor or selected agent');
-  }
-  const occurredAt = toIso(row.occurredAt);
-  if (!occurredAt || Number.isNaN(Date.parse(occurredAt))) {
-    throw new Error('CRM routing audit row is missing a valid occurrence timestamp');
-  }
-
-  return {
-    actorId: row.actorId,
-    agentId: row.selectedAgentId,
-    branchId: row.branchId ?? null,
-    idempotencyKey: row.idempotencyKey ?? null,
-    leadId: row.leadId,
-    occurredAt,
-    reasonCode: row.reasonCode as CrmRoutingAssignmentAuditRecord['reasonCode'],
-    ruleId: row.ruleId,
-    strategy: row.strategy as CrmRoutingStrategy,
-    tenantId: row.tenantId,
-  };
-}
-
-function auditValues(params: {
-  auditRecord: CrmRoutingAssignmentAuditRecord;
-  idempotencyKey?: string | null;
-}) {
-  const idempotencyKey = params.idempotencyKey ?? params.auditRecord.idempotencyKey ?? null;
-
-  return {
-    actorId: params.auditRecord.actorId,
-    branchId: params.auditRecord.branchId ?? null,
-    id: randomUUID(),
-    idempotencyKey,
-    leadId: params.auditRecord.leadId,
-    occurredAt: new Date(params.auditRecord.occurredAt),
-    reasonCode: params.auditRecord.reasonCode,
-    ruleId: params.auditRecord.ruleId,
-    selectedAgentId: params.auditRecord.agentId,
-    strategy: params.auditRecord.strategy,
-    tenantId: params.auditRecord.tenantId,
-  };
 }
 
 export function createCrmRoutingRepository(database: CrmRoutingDb = db): CrmRoutingRepository {

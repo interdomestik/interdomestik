@@ -11,7 +11,12 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
-import { loadClaimAssignmentContext, type ClaimAssignmentContext } from './submit-assignment';
+import { loadClaimAssignmentContext } from './submit-assignment';
+import {
+  dispatchQueuedClaimAiRuns,
+  logClaimSubmittedAudit,
+  notifyClaimSubmitted,
+} from './submit-side-effects';
 import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -110,93 +115,6 @@ async function persistSubmittedClaim(args: {
     claimNumber,
     queuedRuns: [],
   };
-}
-
-async function logClaimSubmittedAudit(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  tenantId: string;
-  requestHeaders: Headers;
-  claimId: string;
-  data: CreateClaimValues;
-  assignment: Pick<
-    ClaimAssignmentContext,
-    'agentAttributionSource' | 'agentId' | 'branchId' | 'branchResolutionSource'
-  >;
-}) {
-  if (!args.deps.logAuditEvent) {
-    return;
-  }
-
-  await args.deps.logAuditEvent({
-    actorId: args.session.user.id,
-    actorRole: args.session.user.role,
-    tenantId: args.tenantId,
-    action: 'claim.submitted',
-    entityType: 'claim',
-    entityId: args.claimId,
-    metadata: {
-      status: 'submitted',
-      category: args.data.category,
-      companyName: args.data.companyName,
-      claimAmount: args.data.claimAmount || null,
-      documents: args.data.files?.length || 0,
-      agentId: args.assignment.agentId,
-      agentAttributionSource: args.assignment.agentAttributionSource,
-      branchId: args.assignment.branchId,
-      branchResolutionSource: args.assignment.branchResolutionSource,
-    },
-    headers: args.requestHeaders,
-  });
-}
-
-async function dispatchQueuedClaimAiRuns(
-  queuedRuns: QueuedClaimAiRun[],
-  deps: ClaimsDeps
-): Promise<void> {
-  if (!deps.dispatchClaimAiRun) {
-    return;
-  }
-
-  for (const queuedRun of queuedRuns) {
-    try {
-      await deps.dispatchClaimAiRun(queuedRun);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to dispatch claim AI run.';
-      if (deps.markClaimAiRunDispatchFailed) {
-        await deps.markClaimAiRunDispatchFailed({
-          runId: queuedRun.runId,
-          tenantId: queuedRun.tenantId,
-          message,
-        });
-      }
-    }
-  }
-}
-
-function notifyClaimSubmitted(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  tenantId: string;
-  claimId: string;
-  data: CreateClaimValues;
-}) {
-  if (!args.deps.notifyClaimSubmitted) {
-    return;
-  }
-
-  Promise.resolve(
-    args.deps.notifyClaimSubmitted(
-      args.session.user.id,
-      args.session.user.email || '',
-      {
-        id: args.claimId,
-        title: args.data.title,
-        category: args.data.category,
-      },
-      { tenantId: args.tenantId }
-    )
-  ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
 }
 
 export async function submitClaimCore(

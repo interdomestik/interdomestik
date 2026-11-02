@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { matchesAccessTenant } from '@/lib/db/access-tenant-predicate';
 import { DEFAULT_EVIDENCE_BUCKET } from '@/lib/storage/evidence-bucket';
 import { createInitialClaimUploadIntentToken } from '@/features/claims/upload/server/initial-claim-upload';
+import type { UploadErr, UploadResult } from './upload-result';
 import {
   assertEvidenceStoragePath,
   buildEvidenceStoragePath,
@@ -27,6 +28,8 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 export const DEFAULT_BUCKET = DEFAULT_EVIDENCE_BUCKET;
 export const DEFAULT_CLASSIFICATION = 'pii' as const;
 
+export type { UploadResult } from './upload-result';
+
 export const uploadRequestSchema = z.object({
   fileName: z.string().min(1),
   fileType: z.string().min(1),
@@ -35,39 +38,6 @@ export const uploadRequestSchema = z.object({
 });
 
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
-
-type UploadOk = {
-  ok: true;
-  status: 200;
-  body: {
-    upload: {
-      id: string;
-      path: string;
-      token: string;
-      signedUrl: string;
-      bucket: string;
-      expiresIn: number;
-      intentToken?: string;
-    };
-    classification: string;
-    maxFileSize: number;
-    allowedMimeTypes: readonly string[];
-  };
-};
-
-type UploadErr = {
-  ok: false;
-  status: 400 | 403 | 404 | 413 | 415 | 500;
-  error:
-    | 'Invalid file name'
-    | 'Forbidden'
-    | 'Claim not found'
-    | 'File too large'
-    | 'File type not allowed'
-    | 'Failed to create signed upload URL';
-};
-
-export type UploadResult = UploadOk | UploadErr;
 
 type InitialUploadIntentResult =
   { ok: true; intentToken: string } | { ok: false; result: UploadErr };

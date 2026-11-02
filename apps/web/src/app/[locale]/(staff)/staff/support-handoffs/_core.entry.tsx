@@ -8,21 +8,26 @@ import { Link } from '@/i18n/routing';
 import { resolveStaffSupportSessionBranch } from '@/lib/support-handoffs/staff-session';
 import { and, eq, user, withTenantContext } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import {
-  getStaffSupportHandoffQueue,
-  type SupportHandoffClaimLinkFilter,
-} from '@interdomestik/domain-claims/support-handoffs/queue';
-import type {
-  SupportHandoffQueueAssignmentFilter,
-  SupportHandoffQueueAttentionFilter,
-  SupportHandoffStatus,
-  SupportHandoffUrgency,
-} from '@interdomestik/domain-claims/support-handoffs/types';
+import { getStaffSupportHandoffQueue } from '@interdomestik/domain-claims/support-handoffs/queue';
 import { Button } from '@interdomestik/ui';
 import { MessageSquareText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
+import {
+  ATTENTION_FILTERS,
+  CLAIM_LINK_FILTERS,
+  STATUS_FILTERS,
+  URGENCY_FILTERS,
+  buildSupportHandoffsHref,
+  getFilterOptions,
+  parseAssignmentFilter,
+  parseAttentionFilter,
+  parseClaimLinkFilter,
+  parseSearchTerm,
+  parseStatusFilter,
+  parseUrgencyFilter,
+} from './support-handoff-filters';
 import { SupportHandoffAttentionRow } from './support-handoff-attention-row';
 import { SupportHandoffDetailPanel } from './support-handoff-detail-panel';
 
@@ -32,84 +37,6 @@ type Props = {
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-type SearchParamValue = string | string[] | undefined;
-
-const STATUS_FILTERS = ['all', 'open', 'accepted', 'closed'] as const;
-const URGENCY_FILTERS = ['all', 'critical', 'high', 'normal', 'low'] as const;
-const CLAIM_LINK_FILTERS = ['all', 'linked', 'unlinked'] as const;
-const ATTENTION_FILTERS = ['all', 'needs_follow_up'] as const;
-
-function getSingleParam(value: SearchParamValue) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function isOneOf<T extends readonly string[]>(
-  values: T,
-  value: string | undefined
-): value is T[number] {
-  return !!value && values.includes(value);
-}
-
-function parseAssignmentFilter(
-  value: SearchParamValue,
-  role: string | null | undefined
-): SupportHandoffQueueAssignmentFilter {
-  const filter = getSingleParam(value);
-  if (filter === 'unassigned') return 'unassigned';
-  if (filter === 'mine' && role === 'staff') return 'mine';
-  return 'all';
-}
-
-function parseStatusFilter(
-  value: SearchParamValue,
-  attention: SupportHandoffQueueAttentionFilter
-): SupportHandoffStatus | 'all' {
-  if (attention === 'needs_follow_up') return 'accepted';
-
-  const filter = getSingleParam(value);
-  if (isOneOf(STATUS_FILTERS, filter)) return filter;
-  return 'open';
-}
-
-function parseUrgencyFilter(value: SearchParamValue): SupportHandoffUrgency | 'all' {
-  const filter = getSingleParam(value);
-  return isOneOf(URGENCY_FILTERS, filter) ? filter : 'all';
-}
-
-function parseClaimLinkFilter(value: SearchParamValue): SupportHandoffClaimLinkFilter {
-  const filter = getSingleParam(value);
-  return isOneOf(CLAIM_LINK_FILTERS, filter) ? filter : 'all';
-}
-
-function parseAttentionFilter(value: SearchParamValue): SupportHandoffQueueAttentionFilter {
-  const filter = getSingleParam(value);
-  return isOneOf(ATTENTION_FILTERS, filter) ? filter : 'all';
-}
-
-function parseSearchTerm(value: SearchParamValue) {
-  const normalized = getSingleParam(value)?.trim().replace(/\s+/g, ' ').slice(0, 80);
-  return normalized || undefined;
-}
-
-function buildSupportHandoffsHref(args: {
-  assigned: SupportHandoffQueueAssignmentFilter;
-  attention: SupportHandoffQueueAttentionFilter;
-  claim: SupportHandoffClaimLinkFilter;
-  search?: string;
-  status: SupportHandoffStatus | 'all';
-  urgency: SupportHandoffUrgency | 'all';
-}) {
-  const params = new URLSearchParams();
-  if (args.assigned !== 'all') params.set('assigned', args.assigned);
-  if (args.attention !== 'all') params.set('attention', args.attention);
-  if (args.status !== 'open') params.set('status', args.status);
-  if (args.urgency !== 'all') params.set('urgency', args.urgency);
-  if (args.claim !== 'all') params.set('claim', args.claim);
-  if (args.search) params.set('search', args.search);
-  const query = params.toString();
-  return query ? `/staff/support-handoffs?${query}` : '/staff/support-handoffs';
-}
 
 async function getAssignableStaff(args: { branchId: string | null; tenantId: string }) {
   return withTenantContext({ tenantId: args.tenantId }, tx =>
@@ -129,22 +56,6 @@ async function getAssignableStaff(args: { branchId: string | null; tenantId: str
       },
     })
   );
-}
-
-function getFilterOptions<T extends string>(args: {
-  current: T;
-  labels: Record<T, string>;
-  values: readonly T[];
-  toHref: (value: T) => string;
-  testPrefix: string;
-}) {
-  return args.values.map(value => ({
-    href: args.toHref(value),
-    isActive: args.current === value,
-    label: args.labels[value],
-    testId: `${args.testPrefix}-${value}`,
-    value,
-  }));
 }
 
 export default async function StaffSupportHandoffsPage({ params, searchParams }: Props) {

@@ -1,0 +1,265 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => {
+  const txInsertOnConflictDoNothing = vi.fn().mockResolvedValue(undefined);
+  const txInsertValues = vi.fn();
+  const txInsertReturning = vi.fn();
+  const txInsert = vi.fn(() => ({ values: txInsertValues }));
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn((..._predicate: unknown[]) => ({
+    returning: txUpdateReturning,
+  }));
+  const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
+  const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
+  const txExecute = vi.fn();
+  type Tx = {
+    execute: typeof txExecute;
+    insert: typeof txInsert;
+    select: typeof select;
+    update: typeof txUpdate;
+  };
+  const transaction = vi.fn(async (callback: (tx: Tx) => Promise<unknown>) =>
+    callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
+  );
+
+  const selectWhere = vi.fn();
+  const selectInnerJoin = vi.fn(() => ({ where: selectWhere }));
+  const selectFrom = vi.fn(() => ({ innerJoin: selectInnerJoin, where: selectWhere }));
+  const select = vi.fn(() => ({ from: selectFrom }));
+  const updateReturning = vi.fn();
+  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
+  const updateSet = vi.fn(() => ({ where: updateWhere }));
+  const update = vi.fn(() => ({ set: updateSet }));
+
+  return {
+    createAdminClient: vi.fn(),
+    db: {
+      select,
+      transaction,
+      update,
+    },
+    nanoid: vi.fn(),
+    select,
+    selectFrom,
+    selectInnerJoin,
+    selectWhere,
+    transaction,
+    txInsert,
+    txInsertOnConflictDoNothing,
+    txInsertReturning,
+    txInsertValues,
+    txExecute,
+    txUpdate,
+    txUpdateReturning,
+    txUpdateSet,
+    txUpdateWhere,
+    updateReturning,
+    withTenantContext: vi.fn(
+      async (
+        _context: { tenantId: string; role?: string },
+        callback: (tx: Tx) => Promise<unknown>
+      ) => callback({ execute: txExecute, insert: txInsert, select, update: txUpdate })
+    ),
+  };
+});
+
+vi.mock('@/lib/db.server', () => ({
+  db: mocks.db,
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  createAdminClient: mocks.createAdminClient,
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values })),
+  withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/schema', () => ({
+  aiRuns: {
+    __name: 'ai_runs',
+    errorCode: {},
+    id: {},
+    status: {},
+    tenantId: { __name: 'ai_runs.tenant_id' },
+  },
+  documentExtractions: {
+    __name: 'document_extractions',
+    sourceRunId: { __name: 'document_extractions.source_run_id' },
+  },
+  documents: {
+    __name: 'documents',
+    deletedAt: { __name: 'documents.deleted_at' },
+    id: { __name: 'documents.id' },
+    tenantId: { __name: 'documents.tenant_id' },
+  },
+  policies: { __name: 'policies' },
+}));
+
+vi.mock('drizzle-orm', () => ({
+  and: vi.fn((...args: unknown[]) => ({ __op: 'and', args })),
+  eq: vi.fn((left: unknown, right: unknown) => ({ __op: 'eq', left, right })),
+  isNull: vi.fn((field: unknown) => ({ __op: 'isNull', field })),
+}));
+
+vi.mock('nanoid', () => ({
+  nanoid: mocks.nanoid,
+}));
+
+import { processPolicyAnalysisRunService } from './_services';
+
+describe('processPolicyAnalysisRunService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.nanoid.mockReturnValueOnce('extraction-1');
+    mocks.selectWhere.mockResolvedValue([
+      {
+        runId: 'run-1',
+        tenantId: 'tenant-1',
+        documentId: 'document-1',
+        policyId: 'policy-1',
+        storagePath: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
+        requestJson: {
+          fileName: 'file.pdf',
+          mimeType: 'application/pdf',
+        },
+        status: 'queued',
+      },
+    ]);
+    mocks.updateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txExecute.mockResolvedValue([{ id: 'document-1' }]);
+    mocks.txInsertValues.mockImplementation(() => ({
+      onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
+      returning: mocks.txInsertReturning,
+    }));
+  });
+
+  it('completes a queued run and persists the extraction in the background path', async () => {
+    const analysis = {
+      provider: 'Acme Insurance',
+      policyNumber: 'POL-123',
+      coverageAmount: 100000,
+      currency: 'EUR',
+      deductible: 500,
+      confidence: 0.83,
+      warnings: ['Confirm deductible.'],
+      hiddenPerks: [],
+      summary: 'Extracted in background.',
+    };
+
+    const result = await processPolicyAnalysisRunService({
+      runId: 'run-1',
+      tenantId: 'tenant-1',
+      deps: {
+        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+        analyzeImage: vi.fn(),
+        analyzePdf: vi
+          .fn()
+          .mockResolvedValue(
+            'Valid text content from PDF that is definitely longer than fifty characters.'
+          ),
+        analyzeText: vi.fn().mockResolvedValue(analysis),
+      },
+    });
+
+    expect(result).toEqual({
+      status: 'completed',
+      runId: 'run-1',
+      policyId: 'policy-1',
+      analysis,
+    });
+    expect(mocks.withTenantContext).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', role: 'system' },
+      expect.any(Function)
+    );
+    expect(mocks.txUpdate).toHaveBeenCalledWith(expect.objectContaining({ __name: 'ai_runs' }));
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        status: 'processing',
+        startedAt: expect.any(Date),
+      })
+    );
+    expect(mocks.txUpdateReturning).toHaveBeenCalledWith({ id: {} });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).toHaveBeenCalledTimes(3);
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ __name: 'ai_runs' })
+    );
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        status: 'completed',
+        outputJson: analysis,
+        completedAt: expect.any(Date),
+      })
+    );
+    expect(mocks.txUpdate).toHaveBeenNthCalledWith(3, { __name: 'policies' });
+    expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        provider: 'Acme Insurance',
+        policyNumber: 'POL-123',
+        analysisJson: analysis,
+      })
+    );
+    expect(mocks.txInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ __name: 'document_extractions' })
+    );
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'extraction-1',
+        tenantId: 'tenant-1',
+        documentId: 'document-1',
+        entityType: 'policy',
+        entityId: 'policy-1',
+        workflow: 'policy_extract',
+        schemaVersion: 'policy_extract_v1',
+        extractedJson: analysis,
+        warnings: ['Confirm deductible.'],
+        sourceRunId: 'run-1',
+        reviewStatus: 'pending',
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      })
+    );
+    expect(mocks.txInsertOnConflictDoNothing).toHaveBeenCalledWith({
+      target: { __name: 'document_extractions.source_run_id' },
+    });
+  });
+
+  it('fails the run before persistence when policy extraction does not satisfy the strict schema', async () => {
+    const result = await processPolicyAnalysisRunService({
+      runId: 'run-1',
+      tenantId: 'tenant-1',
+      deps: {
+        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+        analyzeImage: vi.fn(),
+        analyzePdf: vi
+          .fn()
+          .mockResolvedValue(
+            'Valid text content from PDF that is definitely longer than fifty characters.'
+          ),
+        analyzeText: vi.fn().mockResolvedValue({
+          provider: 'Acme Insurance',
+          policyNumber: 'POL-123',
+          coverageAmount: '100000',
+          currency: 'EUR',
+          deductible: 500,
+          confidence: 0.83,
+          warnings: [],
+        }),
+      },
+    });
+
+    expect(result).toEqual({ status: 'failed', runId: 'run-1', policyId: 'policy-1' });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'policy_extract_validation_failed',
+        completedAt: expect.any(Date),
+      })
+    );
+  });
+});
