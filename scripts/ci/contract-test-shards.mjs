@@ -18,15 +18,18 @@ export const GUARD_TRUST_SHARDS = Object.freeze({
     'scripts/ci/db-access-guard.test.mjs',
     'scripts/ci/db-access-git.test.mjs',
   ]),
-  's2-workflow': Object.freeze(['scripts/ci/tenant-guard-s2-workflow.test.mjs']),
+  's2-workflow': Object.freeze([
+    'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
+    'scripts/ci/tenant-guard-s2-workflow.test.mjs',
+  ]),
 });
 
 // Legacy DB-access guard assertions retired by the owner-authorized switch to the S″ tenant guard
 // (2026-11-02), by exact file or exact test name. Their bytes stay unchanged (db-access-adoption
 // hashes them; baseline604 and ADOPTION are never edited) and they still run at a historical
 // checkout. They exercise the removed ci.yml protected_db_access step, or the legacy 604-entry and
-// kernel-immutability policy. Successor coverage: tenant-guard.test.mjs and
-// tenant-guard-s2-workflow.test.mjs.
+// kernel-immutability policy. Successor coverage: tenant-guard*.test.mjs and
+// tenant-guard-s2-workflow*.test.mjs.
 export const RETIRED_LEGACY_FILES = Object.freeze([
   'scripts/ci/db-access-protected-bootstrap.test.mjs',
   'scripts/ci/db-access-protected-route.test.mjs',

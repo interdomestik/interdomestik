@@ -23,6 +23,7 @@ const GUARD_TRUST_FILES = [
   'scripts/ci/db-access-required-merge.test.mjs',
   'scripts/ci/db-access-guard.test.mjs',
   'scripts/ci/db-access-git.test.mjs',
+  'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
   'scripts/ci/tenant-guard-s2-workflow.test.mjs',
 ];
 const RETIRED_FILES = [
@@ -96,7 +97,7 @@ test('guard-trust shards are pinned by exact name and are the only exclusions fr
     authority: [GUARD_TRUST_FILES[0]],
     candidate: [GUARD_TRUST_FILES[1]],
     'merge-guard-git': GUARD_TRUST_FILES.slice(2, 5),
-    's2-workflow': [GUARD_TRUST_FILES[5]],
+    's2-workflow': GUARD_TRUST_FILES.slice(5),
   });
   const { all, shards } = contractTestPlan(root);
   assert.deepEqual(

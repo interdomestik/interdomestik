@@ -1,5 +1,6 @@
 import path from 'node:path/posix';
 import ts from 'typescript';
+import { hasDefaultModifier, hasExportModifier, packageCandidates } from './package-exports.mjs';
 import { parseSource } from './syntax.mjs';
 
 // Static module resolution over the workspace. A specifier can reach a different file under the
@@ -44,49 +45,6 @@ export function createModuleGraph({
       }
     }
     return null;
-  }
-
-  // Every condition's target, not one preferred condition: a custom condition can select a
-  // different file, and which conditions a consumer enables is not known here.
-  function exportTargets(value) {
-    if (typeof value === 'string') return [value];
-    if (Array.isArray(value)) return value.flatMap(exportTargets);
-    if (value && typeof value === 'object') return Object.values(value).flatMap(exportTargets);
-    return [];
-  }
-
-  function packageCandidates(pkg, sub) {
-    const candidates = [];
-    const key = `.${sub}`;
-    if (pkg.exports && typeof pkg.exports === 'object' && !Array.isArray(pkg.exports)) {
-      const keyed = Object.keys(pkg.exports).some(entry => entry.startsWith('.'));
-      const map = keyed ? pkg.exports : { '.': pkg.exports };
-      if (key in map) {
-        for (const target of exportTargets(map[key])) candidates.push(path.join(pkg.dir, target));
-      } else {
-        for (const [pattern, value] of Object.entries(map)) {
-          if (!pattern.includes('*')) continue;
-          const [prefix, suffix] = pattern.split('*');
-          if (
-            key.startsWith(prefix) &&
-            key.endsWith(suffix) &&
-            key.length >= prefix.length + suffix.length
-          ) {
-            const match = key.slice(prefix.length, key.length - suffix.length);
-            for (const target of exportTargets(value)) {
-              candidates.push(path.join(pkg.dir, target.replace('*', match)));
-            }
-          }
-        }
-      }
-    } else if (typeof pkg.exports === 'string' && sub === '') {
-      candidates.push(path.join(pkg.dir, pkg.exports));
-    } else if (sub === '' && pkg.main) {
-      candidates.push(path.join(pkg.dir, pkg.main));
-    }
-    // tsconfig `paths` map every workspace package to its src tree, subpaths included.
-    candidates.push(path.join(pkg.dir, 'src', sub));
-    return candidates;
   }
 
   const resolutionCache = new Map();
@@ -162,18 +120,6 @@ export function createModuleGraph({
     }
     resolutionCache.set(cacheKey, result);
     return result;
-  }
-
-  function hasExportModifier(node) {
-    return Boolean(
-      ts.getModifiers?.(node)?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)
-    );
-  }
-
-  function hasDefaultModifier(node) {
-    return Boolean(
-      ts.getModifiers?.(node)?.some(modifier => modifier.kind === ts.SyntaxKind.DefaultKeyword)
-    );
   }
 
   /** Per-file export table: name -> entry, plus star re-exports and value imports. */

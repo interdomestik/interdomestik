@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import { sha256 } from './tenant-guard/rules.mjs';
-import { collectUnits, fingerprint, isFunctionLike, parseSource, unitName } from './tenant-guard/syntax.mjs';
+import {
+  collectUnits,
+  fingerprint,
+  isFunctionLike,
+  parseSource,
+  unitName,
+} from './tenant-guard/syntax.mjs';
 
 // Prints a source-bound contract entry for review:
 //   node scripts/ci/tenant-guard-contract.mjs <file> <unit> <kind>=<count>... --reason "<why>"
@@ -12,11 +18,15 @@ const reason = reasonIndex >= 0 ? args[reasonIndex + 1] : null;
 const positional = reasonIndex >= 0 ? args.slice(0, reasonIndex) : args;
 const [file, unit, ...kindArgs] = positional;
 if (!file || !unit || kindArgs.length === 0 || !reason) {
-  console.error('usage: tenant-guard-contract.mjs <file> <unit> <kind>=<count>... --reason "<why>"');
+  console.error(
+    'usage: tenant-guard-contract.mjs <file> <unit> <kind>=<count>... --reason "<why>"'
+  );
   process.exit(2);
 }
 const sourceFile = parseSource(file, fs.readFileSync(file, 'utf8'));
-const named = collectUnits(sourceFile).filter(candidate => unitName(candidate, sourceFile) === unit);
+const named = collectUnits(sourceFile).filter(
+  candidate => unitName(candidate, sourceFile) === unit
+);
 // `export const f = () => ...` names both the statement and the function; operations live in the function.
 const functions = named.filter(isFunctionLike);
 const matches = functions.length > 0 ? functions : named;
@@ -30,4 +40,6 @@ const kinds = Object.fromEntries(
     return [kind, Number(count)];
   })
 );
-console.log(JSON.stringify({ file, unit, kinds, sha256: sha256(fingerprint(matches[0], sourceFile)), reason }));
+console.log(
+  JSON.stringify({ file, unit, kinds, sha256: sha256(fingerprint(matches[0], sourceFile)), reason })
+);
