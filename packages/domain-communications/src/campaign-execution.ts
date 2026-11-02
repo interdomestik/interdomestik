@@ -265,7 +265,6 @@ export async function executeCampaign<T extends CampaignExecutionItem>(
   const processFrom = async (afterId: string | null): Promise<void> => {
     const batch = await fetchBatch(afterId);
     if (batch.length === 0) return;
-
     const alreadySentSet = await getAlreadySentUserIdSet({
       authority,
       campaignId,
