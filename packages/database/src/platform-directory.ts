@@ -1,4 +1,4 @@
-import { and, asc, eq, ne, or } from 'drizzle-orm';
+import { and, asc, eq, or } from 'drizzle-orm';
 import { dbAdmin } from './db';
 import { branches } from './schema/rbac';
 import { tenants } from './schema/tenants';
@@ -6,12 +6,11 @@ import { tenants } from './schema/tenants';
 /** Upper bound on tenants a platform aggregate visits; exceeding it fails closed. */
 export const MAX_PLATFORM_TENANTS = 500;
 
-export type ActiveTenantDirectoryEntry = { id: string; name: string; countryCode: string };
 export type BranchOwner = { branchId: string; tenantId: string };
 
 // Platform-level reads that precede any tenant context: the tenant directory is deny-all to
-// runtime roles. These fixed projections return identifiers and directory labels only, never member
-// or case data. Callers authorize the actor (super_admin, or a public aggregate with no actor
+// runtime roles. These fixed projections return identifiers only, never directory, member or case
+// data. Callers authorize the actor (super_admin, or a public aggregate with no actor
 // input) before calling, and read every row of tenant data inside withTenantContext.
 
 /**
@@ -42,22 +41,6 @@ export async function readActiveTenantId(tenantId: string): Promise<string | nul
     .where(and(eq(tenants.id, normalized), eq(tenants.isActive, true)))
     .limit(2);
   return rows.length === 1 ? rows[0].id : null;
-}
-
-/**
- * Active tenants other than `excludeTenantId`, as directory labels for a super-admin choosing a
- * reassignment target. Returns id, display name and country code only.
- */
-export async function listActiveTenantDirectory(args: {
-  excludeTenantId: string;
-}): Promise<ActiveTenantDirectoryEntry[]> {
-  // db-access-guard: system-exempt -- reason: active tenant directory labels for an authorized super-admin choice; no member data
-  return dbAdmin
-    .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
-    .from(tenants)
-    .where(and(eq(tenants.isActive, true), ne(tenants.id, args.excludeTenantId)))
-    .orderBy(asc(tenants.name))
-    .limit(MAX_PLATFORM_TENANTS);
 }
 
 /**

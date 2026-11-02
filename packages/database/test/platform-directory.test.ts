@@ -4,7 +4,6 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { dbAdmin } from '../src/db';
 import {
   MAX_PLATFORM_TENANTS,
-  listActiveTenantDirectory,
   listTenantIdsForPlatformAggregate,
   readActiveTenantId,
   resolveBranchOwner,
@@ -109,27 +108,6 @@ test('active tenant id check returns null for no row, an ambiguous result, and b
   assert.equal(await readActiveTenantId(''), null);
   assert.equal(await readActiveTenantId('   '), null);
   assert.equal(blank.calls.length, 0, 'blank ids must not query');
-});
-
-test('active tenant directory filters active, excludes one tenant, orders by name, bounded', async t => {
-  const rows = [
-    { id: 'tenant-al', name: 'AL', countryCode: 'AL' },
-    { id: 'tenant-mk', name: 'MK', countryCode: 'MK' },
-  ];
-  const { calls } = mockSelect(t, rows);
-
-  assert.deepEqual(await listActiveTenantDirectory({ excludeTenantId: 'tenant-ks' }), rows);
-
-  assert.equal(calls.length, 1);
-  assert.deepEqual(Object.keys(calls[0].columns as object).sort(), ['countryCode', 'id', 'name']);
-  assert.equal(calls[0].limit, 500);
-  const compiled = compile(calls[0].where);
-  assert.match(compiled.sql, /"tenants"\."is_active" = \$1/);
-  assert.match(compiled.sql, /"tenants"\."id" <> \$2/);
-  assert.deepEqual(compiled.params, [true, 'tenant-ks']);
-  const orderBy = calls[0].orderBy as unknown[];
-  assert.equal(orderBy.length, 1);
-  assert.equal(compile(orderBy[0]).sql, '"tenants"."name" asc');
 });
 
 test('branch owner resolves by id or code, limited to two rows, and returns the single match', async t => {

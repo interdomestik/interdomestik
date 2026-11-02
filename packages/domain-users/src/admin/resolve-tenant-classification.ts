@@ -1,5 +1,4 @@
 import { eq, user, withTenantContext } from '@interdomestik/database';
-import { moveUserTenantClassification } from '@interdomestik/database/tenant-classification-move';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -69,12 +68,11 @@ async function validateResolutionInput(params: {
   }
 }
 
-const MOVE_OUTCOME_ERRORS = {
-  user_not_found: 'User not found',
-  target_tenant_not_found: 'Target tenant not found',
-  tenant_bound_records_exist:
-    'Cannot reassign tenant classification while tenant-bound records exist',
-} as const;
+// Pilot policy (owner decision, review 081/A): online cross-tenant reassignment is unavailable for
+// every role, super_admin included. A dependent writer that read the user's tenant earlier could
+// still commit an old-tenant row after a move, because child rows reference user.id only. Only
+// confirming the current tenant is supported until a writer-safe transfer protocol exists.
+export const TENANT_REASSIGNMENT_UNAVAILABLE_ERROR = 'Tenant reassignment is unavailable';
 
 async function confirmCurrentTenant(
   userId: string,
@@ -114,27 +112,14 @@ export async function resolveTenantClassificationCore(params: {
   }
 
   const { currentTenantId, nextTenantId, resolutionMode } = validation.data;
+  if (resolutionMode === 'reassign') {
+    return { error: TENANT_REASSIGNMENT_UNAVAILABLE_ERROR };
+  }
 
   try {
-    let previousPending: boolean;
-    if (resolutionMode === 'reassign') {
-      // One privileged transaction: lock the user, check target activity and tenant-bound
-      // records, then move it with an affected-row check.
-      const moved = await moveUserTenantClassification({
-        userId: params.userId,
-        fromTenantId: currentTenantId,
-        toTenantId: nextTenantId,
-      });
-      if (moved.outcome !== 'moved') {
-        return { error: MOVE_OUTCOME_ERRORS[moved.outcome] };
-      }
-      previousPending = moved.previousPending;
-    } else {
-      const confirmed = await confirmCurrentTenant(params.userId, currentTenantId);
-      if (!confirmed) {
-        return { error: 'User not found' };
-      }
-      previousPending = confirmed.previousPending;
+    const confirmed = await confirmCurrentTenant(params.userId, currentTenantId);
+    if (!confirmed) {
+      return { error: 'User not found' };
     }
 
     return {
@@ -142,7 +127,7 @@ export async function resolveTenantClassificationCore(params: {
       data: {
         previousTenantId: currentTenantId,
         tenantId: nextTenantId,
-        previousPending,
+        previousPending: confirmed.previousPending,
         tenantClassificationPending: false,
         resolutionMode,
       },

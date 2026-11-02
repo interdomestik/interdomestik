@@ -18,10 +18,7 @@ export default async function MemberProfilePage({
     redirect(`/${locale}/login`);
   }
   const tenantId = await resolveAdminTenantContext({ session, searchParams: sp });
-  const tenantClassificationOptions = await getTenantClassificationOptions({
-    session,
-    currentTenantId: tenantId,
-  });
+  const tenantClassificationOptions = getTenantClassificationOptions();
 
   return (
     <AdminUserDetailV2Page

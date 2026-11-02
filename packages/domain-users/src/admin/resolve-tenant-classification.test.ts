@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => {
     findFirst,
     tx,
     withTenantContext: vi.fn(),
-    moveUserTenantClassification: vi.fn(),
     user: {
       id: 'user.id',
       tenantId: 'user.tenantId',
@@ -45,10 +44,6 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
 }));
 
-vi.mock('@interdomestik/database/tenant-classification-move', () => ({
-  moveUserTenantClassification: mocks.moveUserTenantClassification,
-}));
-
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
@@ -62,7 +57,10 @@ vi.mock('./access', () => ({
   requireTenantAdminSession: vi.fn(async (session: unknown) => session),
 }));
 
-import { resolveTenantClassificationCore } from './resolve-tenant-classification';
+import {
+  TENANT_REASSIGNMENT_UNAVAILABLE_ERROR,
+  resolveTenantClassificationCore,
+} from './resolve-tenant-classification';
 
 const adminSession = {
   user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_ks' },
@@ -82,10 +80,6 @@ describe('resolveTenantClassificationCore', () => {
     );
     mocks.findFirst.mockResolvedValue({ id: 'member-1', tenantClassificationPending: true });
     mocks.returning.mockResolvedValue([{ id: 'member-1' }]);
-    mocks.moveUserTenantClassification.mockResolvedValue({
-      outcome: 'moved',
-      previousPending: true,
-    });
   });
 
   describe('confirm_current', () => {
@@ -114,7 +108,6 @@ describe('resolveTenantClassificationCore', () => {
         'user.tenantId',
         expect.anything()
       );
-      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
 
     it('reports previousPending false for an already-resolved user', async () => {
@@ -170,8 +163,8 @@ describe('resolveTenantClassificationCore', () => {
     });
   });
 
-  describe('reassign', () => {
-    it('moves the user for a super admin and returns the move result', async () => {
+  describe('reassign (unavailable for the pilot)', () => {
+    it('rejects a super admin reassignment before any tenant read or write', async () => {
       const result = await resolveTenantClassificationCore({
         session: superAdminSession,
         userId: 'member-1',
@@ -179,72 +172,10 @@ describe('resolveTenantClassificationCore', () => {
         targetTenantId: 'tenant_mk',
       });
 
-      expect(result).toEqual({
-        success: true,
-        data: {
-          previousTenantId: 'tenant_ks',
-          tenantId: 'tenant_mk',
-          previousPending: true,
-          tenantClassificationPending: false,
-          resolutionMode: 'reassign',
-        },
-      });
-      expect(mocks.moveUserTenantClassification).toHaveBeenCalledTimes(1);
-      expect(mocks.moveUserTenantClassification).toHaveBeenCalledWith({
-        userId: 'member-1',
-        fromTenantId: 'tenant_ks',
-        toTenantId: 'tenant_mk',
-      });
+      expect(result).toEqual({ error: TENANT_REASSIGNMENT_UNAVAILABLE_ERROR });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
-    });
-
-    it('propagates previousPending false from the move', async () => {
-      mocks.moveUserTenantClassification.mockResolvedValue({
-        outcome: 'moved',
-        previousPending: false,
-      });
-
-      const result = await resolveTenantClassificationCore({
-        session: superAdminSession,
-        userId: 'member-1',
-        currentTenantId: 'tenant_ks',
-        targetTenantId: 'tenant_mk',
-      });
-
-      expect(result).toMatchObject({ success: true, data: { previousPending: false } });
-    });
-
-    it.each([
-      ['user_not_found', 'User not found'],
-      ['target_tenant_not_found', 'Target tenant not found'],
-      [
-        'tenant_bound_records_exist',
-        'Cannot reassign tenant classification while tenant-bound records exist',
-      ],
-    ])('maps the %s outcome to the %s error', async (outcome, error) => {
-      mocks.moveUserTenantClassification.mockResolvedValue({ outcome });
-
-      const result = await resolveTenantClassificationCore({
-        session: superAdminSession,
-        userId: 'member-1',
-        currentTenantId: 'tenant_ks',
-        targetTenantId: 'tenant_mk',
-      });
-
-      expect(result).toEqual({ error });
-    });
-
-    it('returns a generic error when the move throws', async () => {
-      mocks.moveUserTenantClassification.mockRejectedValue(new Error('db down'));
-
-      const result = await resolveTenantClassificationCore({
-        session: superAdminSession,
-        userId: 'member-1',
-        currentTenantId: 'tenant_ks',
-        targetTenantId: 'tenant_mk',
-      });
-
-      expect(result).toEqual({ error: 'Failed to resolve tenant classification' });
+      expect(mocks.findFirst).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
     });
 
     it('rejects a non-super-admin whose resolved tenant differs from the current tenant', async () => {
@@ -263,7 +194,6 @@ describe('resolveTenantClassificationCore', () => {
       });
 
       expect(result).toEqual({ error: 'Unauthorized' });
-      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
 
@@ -276,7 +206,7 @@ describe('resolveTenantClassificationCore', () => {
       });
 
       expect(result).toEqual({ error: 'Unauthorized' });
-      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
 
@@ -290,7 +220,6 @@ describe('resolveTenantClassificationCore', () => {
 
       expect(result).toEqual({ error: 'Unauthorized' });
       expect(mocks.withTenantContext).not.toHaveBeenCalled();
-      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
     });
 
     it('requires a user id', async () => {
@@ -312,7 +241,7 @@ describe('resolveTenantClassificationCore', () => {
       });
 
       expect(result).toEqual({ error: 'Current tenant is required' });
-      expect(mocks.moveUserTenantClassification).not.toHaveBeenCalled();
+      expect(mocks.withTenantContext).not.toHaveBeenCalled();
     });
   });
 });

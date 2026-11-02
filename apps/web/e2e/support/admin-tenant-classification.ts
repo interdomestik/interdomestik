@@ -175,15 +175,14 @@ export async function confirmCurrentTenantClassification(params: {
   await expectTenantClassificationPersisted({ page, memberId, expectedTenantId });
 }
 
-export async function reassignTenantClassification(params: {
+export async function expectTenantReassignmentUnavailable(params: {
   page: Page;
   testInfo: TestInfo;
   memberId: string;
   currentTenantId: string;
-  nextTenantId: string;
   dismissCookieBanner?: boolean;
 }) {
-  const { page, testInfo, memberId, currentTenantId, nextTenantId, dismissCookieBanner } = params;
+  const { page, testInfo, memberId, currentTenantId, dismissCookieBanner } = params;
   const detailPath = `${routes.adminUsers(testInfo)}/${memberId}?tenantId=${currentTenantId}`;
 
   await loginAsSuperAdmin(page, testInfo);
@@ -195,19 +194,13 @@ export async function reassignTenantClassification(params: {
     await ensureCookieBannerDismissed(page);
   }
 
+  // Pilot policy: only "confirm current tenant" is offered, even to super_admin; the server
+  // command rejects reassignment for every role (covered by unit tests).
   const ready = dashboardReady(page);
   await expect(ready.getByTestId('tenant-classification-controls')).toBeVisible();
-  await expect(ready.getByTestId('tenant-classification-reassign')).toBeVisible();
-
-  await ready.getByTestId('tenant-classification-reassign-select').selectOption(nextTenantId);
-  await ready.getByTestId('tenant-classification-reassign').scrollIntoViewIfNeeded();
-  await ready.getByTestId('tenant-classification-reassign').click({ force: true });
-  await expect
-    .poll(() => new URL(page.url()).searchParams.get('tenantId'), {
-      timeout: 15_000,
-    })
-    .toBe(nextTenantId);
-  await expectTenantClassificationPersisted({ page, memberId, expectedTenantId: nextTenantId });
+  await expect(ready.getByTestId('tenant-classification-confirm')).toBeVisible();
+  await expect(ready.getByTestId('tenant-classification-reassign')).toHaveCount(0);
+  await expect(ready.getByTestId('tenant-classification-reassign-select')).toHaveCount(0);
 }
 
 type SuiteOptions = {
@@ -269,7 +262,9 @@ export function registerTenantClassificationSuite(
       }
     });
 
-    test('super admin can reassign the tenant classification', async ({ page }, testInfo) => {
+    test('super admin is offered no tenant reassignment during the pilot', async ({
+      page,
+    }, testInfo) => {
       if (!isMkProject(testInfo)) {
         if (annotateSkippedProjects) {
           testInfo.annotations.push({
@@ -290,12 +285,11 @@ export function registerTenantClassificationSuite(
       });
 
       try {
-        await reassignTenantClassification({
+        await expectTenantReassignmentUnavailable({
           page,
           testInfo,
           memberId,
           currentTenantId: 'tenant_ks',
-          nextTenantId: 'tenant_mk',
           dismissCookieBanner: dismissCookieBannerOnReassign,
         });
       } finally {
