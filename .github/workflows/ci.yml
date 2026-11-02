@@ -310,7 +310,9 @@ jobs:
         if: needs.validation-surface.outputs.run_broad == 'true'
         run: |
           node scripts/check-env-ci.mjs
-          pnpm test:ci:contracts
+          # Every scripts/ci contract test: core plus the three guard-trust shards run
+          # concurrently, each serialized internally; any shard failure fails this step.
+          pnpm test:ci:contracts:parallel
           pnpm check:e2e-contracts
           # Candidate evidence only; protected_db_access is the independent authority.
           pnpm check:db-access
