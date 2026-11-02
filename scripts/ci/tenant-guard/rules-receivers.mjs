@@ -2,6 +2,7 @@
 
 import ts from 'typescript';
 import { originKey } from './modules.mjs';
+import { hasFlag } from './rules-digest.mjs';
 import { createReceiverProblem } from './rules-receivers-problem.mjs';
 import { forEachOrigin } from './rules-origins.mjs';
 
@@ -20,7 +21,7 @@ export function installReceivers(ctx) {
     if (
       ts.isVariableDeclaration(declaration) &&
       ts.isIdentifier(declaration.name) &&
-      (declaration.parent.flags & ts.NodeFlags.Const) !== 0
+      hasFlag(declaration.parent, ts.NodeFlags.Const)
     ) {
       return { local: declaration };
     }

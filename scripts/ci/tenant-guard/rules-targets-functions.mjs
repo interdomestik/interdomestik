@@ -4,7 +4,10 @@ import ts from 'typescript';
 import { hasFlag } from './rules-digest.mjs';
 import { isFunctionLike } from './syntax.mjs';
 
-const FALLBACK_OPERATORS = [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken];
+const FALLBACK_OPERATORS = new Set([
+  ts.SyntaxKind.QuestionQuestionToken,
+  ts.SyntaxKind.BarBarToken,
+]);
 
 /**
  * Builds `functionTargets(fact, expression, path = [], seen = new Set())`: the functions an
@@ -36,7 +39,7 @@ function targetsOf(env, fact, expression, path, seen) {
   if (isFunctionLike(node)) return path.length === 0 ? [{ fact, fn: node }] : null;
   if (ts.isConditionalExpression(node))
     return unionOf(env, fact, [node.whenTrue, node.whenFalse], path, seen);
-  if (ts.isBinaryExpression(node) && FALLBACK_OPERATORS.includes(node.operatorToken.kind))
+  if (ts.isBinaryExpression(node) && FALLBACK_OPERATORS.has(node.operatorToken.kind))
     return unionOf(env, fact, [node.left, node.right], path, seen);
   if (ts.isPropertyAccessExpression(node))
     return env.resolve(fact, node.expression, [node.name.text, ...path], seen);

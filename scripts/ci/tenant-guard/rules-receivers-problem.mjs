@@ -1,8 +1,12 @@
 // Tenant guard stage helper: whether an expression is a recognized query receiver.
 
 import ts from 'typescript';
+import { hasFlag } from './rules-digest.mjs';
 
-const FALLBACK_OPERATORS = [ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken];
+const FALLBACK_OPERATORS = new Set([
+  ts.SyntaxKind.QuestionQuestionToken,
+  ts.SyntaxKind.BarBarToken,
+]);
 
 /**
  * Builds `receiverProblem(fact, expression, path = [], seen = new Set())`: null when `expression`
@@ -51,7 +55,7 @@ function problemOf(env, at, expression) {
     return (
       env.check(fact, node.whenTrue, path, seen) ?? env.check(fact, node.whenFalse, path, seen)
     );
-  if (ts.isBinaryExpression(node) && FALLBACK_OPERATORS.includes(node.operatorToken.kind)) {
+  if (ts.isBinaryExpression(node) && FALLBACK_OPERATORS.has(node.operatorToken.kind)) {
     return env.check(fact, node.left, path, seen) ?? env.check(fact, node.right, path, seen);
   }
   if (ts.isObjectLiteralExpression(node))
@@ -167,10 +171,10 @@ function variableProblem(env, site, binding) {
   if (property === '...' && path.length > 0 && !env.restCarries(declaration.name, path[0]))
     return null; // the rest omits it: undefined
   const at = property === null || property === '...' ? path : [property, ...path];
-  if ((declaration.parent.flags & ts.NodeFlags.Const) !== 0) {
+  if (hasFlag(declaration.parent, ts.NodeFlags.Const)) {
     return declaration.initializer ? env.check(fact, declaration.initializer, at, seen) : unknown;
   }
-  if ((declaration.parent.flags & ts.NodeFlags.Let) === 0 || property !== null) return unknown;
+  if (!hasFlag(declaration.parent, ts.NodeFlags.Let) || property !== null) return unknown;
   return letProblem(env, site, binding);
 }
 

@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { hasFlag } from './rules-digest.mjs';
 
 export const isFunctionLike = node =>
   ts.isFunctionDeclaration(node) ||
@@ -257,7 +258,7 @@ function declareImport(declare, sourceFile, node) {
 /** `var` is function-scoped; `let`/`const` belong to their loop, else their block. */
 function variableScopeOf(node) {
   const list = node.parent;
-  const isVar = ts.isVariableDeclarationList(list) && (list.flags & ts.NodeFlags.BlockScoped) === 0;
+  const isVar = ts.isVariableDeclarationList(list) && !hasFlag(list, ts.NodeFlags.BlockScoped);
   if (isVar) return functionScopeOf(node);
   const loop =
     list.parent &&
