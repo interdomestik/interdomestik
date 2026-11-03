@@ -137,7 +137,7 @@ function ScopedMessagingPanel({
   const handleRetry = (message: OptimisticMessage) => {
     // Remove failed message and resend it under the same key, so a lost success is not duplicated.
     setOptimisticMessages(prev => prev.filter(m => m.id !== message.id));
-    handleSendMessage(message.content, message.isInternal, message.clientMessageId);
+    void handleSendMessage(message.content, message.isInternal, message.clientMessageId);
   };
 
   const allMessages = [...messages, ...optimisticMessages].sort(

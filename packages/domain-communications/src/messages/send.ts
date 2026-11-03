@@ -1,4 +1,4 @@
-import { claimMessages, user } from '@interdomestik/database';
+import { claimMessages, user, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -40,6 +40,47 @@ export type SendMessageDbCoreResult =
   | { success: false; error: string };
 
 /**
+ * Decides whether the actor may post this message on an in-tenant claim, returning the denial
+ * reason or null. Checks run in a fixed order so each role keeps its established error.
+ */
+async function findMessageSendDenial(args: {
+  role: string;
+  userId: string;
+  branchId: string | null;
+  tenantId: string;
+  claim: { branchId: string | null; staffId: string | null; userId: string };
+  isInternal: boolean;
+  tx: TenantTransaction;
+}): Promise<string | null> {
+  const { role, userId, branchId, claim } = args;
+  const isScopedStaff = role === 'staff';
+  const isStaff = isScopedStaff || isFullTenantClaimsRole(role);
+  const isAgent = role === 'agent';
+
+  if (role === 'branch_manager') return 'Access denied';
+  // Full-tenant roles can message any in-tenant claim: no check below denies them.
+  if (isScopedStaff && !hasScopedStaffClaimAccess({ branchId, claim, userId })) {
+    return 'Access denied';
+  }
+  if (!isStaff && !isAgent && claim.userId !== userId) return 'Access denied';
+
+  if (isAgent) {
+    const canAccess = await hasAgentClaimAccess({
+      agentId: userId,
+      agentBranchId: branchId,
+      claimBranchId: claim.branchId ?? null,
+      memberId: claim.userId,
+      tenantId: args.tenantId,
+      tx: args.tx,
+    });
+    if (!canAccess) return 'Access denied: You can only message your assigned clients';
+  }
+
+  if (args.isInternal && !isStaff) return 'Only staff can send internal messages';
+  return null;
+}
+
+/**
  * Core message send logic (DB + audit).
  * Intentionally excludes Next.js cache revalidation and notifications.
  */
@@ -69,11 +110,7 @@ export async function sendMessageDbCore(params: {
     const userRole = actor.role || 'user';
     const { tenantId } = readTenantAuthority(authority);
     const trimmed = content.trim();
-    const isScopedStaff = userRole === 'staff';
-    const isBranchManager = userRole === 'branch_manager';
-    const isPrivilegedStaff = isFullTenantClaimsRole(userRole);
-    const isStaff = isScopedStaff || isPrivilegedStaff;
-    const isAgent = userRole === 'agent';
+    const isStaff = userRole === 'staff' || isFullTenantClaimsRole(userRole);
 
     if (!trimmed) {
       return { success: false, error: 'Message cannot be empty' };
@@ -97,45 +134,17 @@ export async function sendMessageDbCore(params: {
         return { success: false, error: 'Claim not found' };
       }
 
-      if (isBranchManager) {
-        return { success: false, error: 'Access denied' };
-      }
-
-      if (isPrivilegedStaff) {
-        // Full-tenant roles can message any in-tenant claim.
-      } else if (
-        isScopedStaff &&
-        !hasScopedStaffClaimAccess({
-          branchId: actor.branchId ?? null,
-          claim,
-          userId,
-        })
-      ) {
-        return { success: false, error: 'Access denied' };
-      } else if (!isStaff && !isAgent && claim.userId !== userId) {
-        return { success: false, error: 'Access denied' };
-      }
-
-      if (isAgent) {
-        const canAccess = await hasAgentClaimAccess({
-          agentId: userId,
-          agentBranchId: actor.branchId ?? null,
-          claimBranchId: claim.branchId ?? null,
-          memberId: claim.userId,
-          tenantId,
-          tx,
-        });
-
-        if (!canAccess) {
-          return {
-            success: false,
-            error: 'Access denied: You can only message your assigned clients',
-          };
-        }
-      }
-
-      if (isInternal && !isStaff) {
-        return { success: false, error: 'Only staff can send internal messages' };
+      const denied = await findMessageSendDenial({
+        role: userRole,
+        userId,
+        branchId: actor.branchId ?? null,
+        tenantId,
+        claim,
+        isInternal,
+        tx,
+      });
+      if (denied) {
+        return { success: false, error: denied };
       }
 
       const stored = await storeClaimMessage(
