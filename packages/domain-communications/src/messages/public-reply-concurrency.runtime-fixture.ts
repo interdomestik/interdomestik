@@ -29,7 +29,8 @@ export async function runReplyPreparationWorkers(url: string, role: string, para
   const env: NodeJS.ProcessEnv = {
     PATH: process.env.PATH,
     HOME: process.env.HOME,
-    TMPDIR: process.env.TMPDIR,
+    // No temp directory is shared with the worker: tsx compiles in memory instead of caching.
+    TSX_DISABLE_CACHE: '1',
     NODE_ENV: 'test',
     NODE_OPTIONS: '--max-old-space-size=512',
     DATABASE_URL: url,

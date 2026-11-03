@@ -133,7 +133,7 @@ async function collectPosture(role: string): Promise<RestrictedRolePosture> {
   });
   const ownedProtectedTables = tableRows.filter(row => row.owner === role).length;
   if (ownedProtectedTables !== 0) throw new Error('Restricted role owns a protected table');
-  const memberships = Number(memberRow?.n ?? NaN);
+  const memberships = Number(memberRow?.n ?? Number.NaN);
   if (memberships !== 0) throw new Error('Restricted role has role memberships');
   return { flags, ownedProtectedTables, memberships, tables };
 }
@@ -233,7 +233,7 @@ function runReaderChild(
 export async function withRestrictedAgentClaimsRole<T>(
   action: (handle: RestrictedRoleHandle) => Promise<T>
 ): Promise<T> {
-  const roleName = `s8_rls_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
+  const roleName = `s8_rls_${randomUUID().replaceAll('-', '').slice(0, 20)}`;
   const password = randomBytes(24).toString('hex');
   if (!/^[0-9a-f]{48}$/.test(password)) throw new Error('Unexpected generated credential shape');
   const role = ident(roleName);

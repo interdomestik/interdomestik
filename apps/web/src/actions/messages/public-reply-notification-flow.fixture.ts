@@ -67,10 +67,14 @@ function nameOf(table: unknown): string {
   if (!name) throw new Error('Unknown fixture table');
   return name;
 }
+// Ambient clients never close; transaction clients get their own lifetime.
+const OPEN_LIFETIME = Object.freeze({ open: true });
+// Runs synchronously like an async body: a throw becomes a rejection, never a sync throw.
+const promised = <T>(run: () => T): Promise<T> => new Promise<T>(resolve => resolve(run()));
 function client(
   context?: { tenantId: string },
   staged?: Record<string, Row[]>,
-  lifetime = { open: true }
+  lifetime: { open: boolean } = OPEN_LIFETIME
 ) {
   const check = () => {
     if (!lifetime.open) throw new Error('Fixture transaction already closed');
@@ -92,8 +96,8 @@ function client(
       Object.keys(tables).map(name => [
         name,
         {
-          findFirst: async (args: Find = {}) => rows(name).find(predicate(args, name)),
-          findMany: async (args: Find = {}) => rows(name).filter(predicate(args, name)),
+          findFirst: (args: Find = {}) => promised(() => rows(name).find(predicate(args, name))),
+          findMany: (args: Find = {}) => promised(() => rows(name).filter(predicate(args, name))),
         },
       ])
     ),
@@ -121,58 +125,66 @@ function client(
           });
           return true;
         });
-        const builder = {
-          onConflictDoNothing: () => {
-            ignoreConflict = true;
-            return builder;
-          },
-          returning: () => promise.then(inserted => (inserted ? [{ id: input.id }] : [])),
-          then: promise.then.bind(promise),
+        // The insert is awaitable like a Drizzle builder because it is the write promise itself.
+        const returning = () => promise.then(inserted => (inserted ? [{ id: input.id }] : []));
+        const onConflictDoNothing = () => {
+          ignoreConflict = true;
+          return Object.assign(promise, { returning });
         };
-        return builder;
+        return Object.assign(promise, { returning, onConflictDoNothing });
       },
     }),
     delete: (table: unknown) => ({
-      where: async (where: Predicate) => {
-        check();
-        if (!context) throw new Error('Unscoped fixture delete');
-        const target = staged ?? state.rows;
-        const name = nameOf(table);
-        target[name] = target[name].filter(row => row.tenantId !== context.tenantId || !where(row));
-      },
+      where: (where: Predicate) =>
+        promised(() => {
+          check();
+          if (!context) throw new Error('Unscoped fixture delete');
+          const target = staged ?? state.rows;
+          const name = nameOf(table);
+          target[name] = target[name].filter(
+            row => row.tenantId !== context.tenantId || !where(row)
+          );
+        }),
     }),
     select: () => {
       let where: Predicate = () => true;
       let name = 'claimMessages';
-      const read = async (limit = Number.POSITIVE_INFINITY) => {
-        check();
-        if (name === 'claimMessages' && state.projectionFault)
-          throw new Error('Synthetic projection failure');
-        return rows(name)
-          .filter(where)
-          .slice(0, limit)
-          .map(row =>
-            name === 'claimMessages'
-              ? {
-                  ...row,
-                  sender: (staged ?? state.rows).user.find(user => user.id === row.senderId),
-                }
-              : row
-          );
-      };
+      const read = (limit = Number.POSITIVE_INFINITY) =>
+        promised(() => {
+          check();
+          if (name === 'claimMessages' && state.projectionFault)
+            throw new Error('Synthetic projection failure');
+          return rows(name)
+            .filter(where)
+            .slice(0, limit)
+            .map(row =>
+              name === 'claimMessages'
+                ? {
+                    ...row,
+                    sender: (staged ?? state.rows).user.find(user => user.id === row.senderId),
+                  }
+                : row
+            );
+        });
       const builder = {
         from: (table: unknown) => {
           name = nameOf(table);
           return builder;
         },
         leftJoin: () => builder,
+        // An unlimited read is awaited on where(); limit() replaces it before it runs.
         where: (value: Predicate) => {
           where = value;
-          return builder;
+          let limited = false;
+          const all = Promise.resolve().then(() => (limited ? [] : read()));
+          return Object.assign(all, {
+            limit: (count?: number) => {
+              limited = true;
+              return read(count);
+            },
+          });
         },
         limit: read,
-        then: <T>(resolve: (value: Row[]) => T, reject: (reason: unknown) => T) =>
-          read().then(resolve, reject),
       };
       return builder;
     },
@@ -207,9 +219,9 @@ export async function withTenantContext<T>(
 }
 export const delivery =
   (kind: string) =>
-  async (...args: unknown[]) => {
+  (...args: unknown[]) => {
     state.external.push({ kind, args });
-    return { success: true };
+    return Promise.resolve({ success: true });
   };
 export const email = Object.fromEntries(
   [

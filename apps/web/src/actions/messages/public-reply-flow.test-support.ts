@@ -1,13 +1,13 @@
 import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 
 const load = vi.hoisted(() => () => import('./public-reply-notification-flow.fixture'));
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('@/lib/auth', async () => ({
+vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: async () => (await load()).state.session } },
 }));
-vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
-vi.mock('@/lib/audit', () => ({ logAuditEvent: async () => undefined }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
+vi.mock('@/lib/audit', () => ({ logAuditEvent: () => Promise.resolve(undefined) }));
 vi.mock('drizzle-orm', async original => ({
   ...(await original<typeof import('drizzle-orm')>()),
   ...(await load()).operators,
