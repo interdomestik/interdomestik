@@ -10,18 +10,7 @@ vi.mock('@/actions/messages', () => ({
   sendMessage: vi.fn(),
 }));
 
-// The input and thread are reduced to their send and retry callbacks.
-vi.mock('./message-input', () => ({
-  MessageInput: ({
-    onSendMessage,
-  }: {
-    onSendMessage: (content: string, isInternal: boolean) => Promise<boolean>;
-  }) => (
-    <button type="button" onClick={() => void onSendMessage('Draft reply', false)}>
-      send
-    </button>
-  ),
-}));
+// The real composer stays mounted; the thread is reduced to its retry callback.
 vi.mock('./message-thread', () => ({
   MessageThread: ({
     messages,
@@ -41,45 +30,61 @@ vi.mock('./message-thread', () => ({
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 
 const send = vi.mocked(sendMessage);
+const keyOfCall = (index: number) => send.mock.calls[index]?.[3];
+
+async function submitDraft(text?: string) {
+  if (text !== undefined) await userEvent.type(screen.getByTestId('message-input'), text);
+  await userEvent.click(screen.getByTestId('send-message-button'));
+}
 
 describe('MessagingPanel send retry', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getMessagesForClaim).mockResolvedValue({ success: true, messages: [] });
     vi.mocked(markMessagesAsRead).mockResolvedValue({ success: true } as never);
-  });
-
-  it('resends a failed message under its original client message key', async () => {
-    send.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ success: true });
     render(
       <MessagingPanel
         claimId="claim-1"
         currentUser={{ id: 'staff-1', name: 'Staff', image: null, role: 'staff' }}
       />
     );
+  });
 
-    await userEvent.click(screen.getByRole('button', { name: 'send' }));
+  it('resubmits an unchanged draft under its key and rotates the key after success', async () => {
+    send.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ success: true });
+
+    await submitDraft('Draft reply');
+    expect(await screen.findByTestId('message-inline-error')).toBeInTheDocument();
+    expect(screen.getByTestId('message-input')).toHaveValue('Draft reply');
+    await submitDraft();
+    await waitFor(() => expect(screen.getByTestId('message-input')).toHaveValue(''));
+    await submitDraft('Next reply');
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(3));
+    expect(keyOfCall(0)).toMatch(/^[\w-]{8,64}$/);
+    expect(send).toHaveBeenNthCalledWith(2, 'claim-1', 'Draft reply', false, keyOfCall(0));
+    expect(keyOfCall(2)).not.toBe(keyOfCall(0));
+  });
+
+  it('gives an edited draft a new key after a failed send', async () => {
+    send.mockResolvedValueOnce({ success: false, error: 'denied' });
+
+    await submitDraft('Draft reply');
+    expect(await screen.findByTestId('message-inline-error')).toBeInTheDocument();
+    await submitDraft(' edited');
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    expect(send.mock.calls[1]?.[1]).toBe('Draft reply edited');
+    expect(keyOfCall(1)).not.toBe(keyOfCall(0));
+  });
+
+  it('resends a failed thread message under its original key', async () => {
+    send.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({ success: true });
+
+    await submitDraft('Draft reply');
     await userEvent.click(await screen.findByRole('button', { name: 'retry' }));
 
     await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
-    const clientMessageId = send.mock.calls[0]?.[3];
-    expect(clientMessageId).toMatch(/^[\w-]{8,64}$/);
-    expect(send).toHaveBeenLastCalledWith('claim-1', 'Draft reply', false, clientMessageId);
-  });
-
-  it('gives each new send its own client message key', async () => {
-    send.mockResolvedValue({ success: true });
-    render(
-      <MessagingPanel
-        claimId="claim-1"
-        currentUser={{ id: 'staff-1', name: 'Staff', image: null, role: 'staff' }}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', { name: 'send' }));
-    await userEvent.click(screen.getByRole('button', { name: 'send' }));
-
-    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
-    expect(send.mock.calls[1]?.[3]).not.toBe(send.mock.calls[0]?.[3]);
+    expect(send).toHaveBeenLastCalledWith('claim-1', 'Draft reply', false, keyOfCall(0));
   });
 });

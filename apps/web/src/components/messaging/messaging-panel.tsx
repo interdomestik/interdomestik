@@ -106,7 +106,8 @@ function ScopedMessagingPanel({
       clientMessageId,
     };
 
-    setOptimisticMessages(prev => [...prev, optimisticMessage]);
+    // A resubmitted draft replaces its own failed entry instead of showing twice.
+    setOptimisticMessages(prev => [...prev.filter(m => m.id !== tempId), optimisticMessage]);
 
     try {
       const { sendMessage } = await import('@/actions/messages');
