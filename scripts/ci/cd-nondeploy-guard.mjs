@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
 const MANIFEST_PATH = 'scripts/ci/cd-nondeploy-scope.json';
@@ -138,18 +139,27 @@ function isNonterminal(run) {
   return run.status !== 'completed';
 }
 
-export async function fetchCurrentRun({ token, runId, fetchImpl = fetch }) {
+async function fetchRunJson(url, token, fetchImpl, lookup = 'run') {
   if (!token) fail('GitHub run lookup token is unavailable');
-  const response = await fetchImpl(`${GITHUB_RUN_URL}/${runId}`, {
-    redirect: 'error',
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: `Bearer ${token}`,
-      'x-github-api-version': '2022-11-28',
-    },
-  });
-  if (!response.ok) fail(`GitHub current run lookup failed with HTTP ${response.status}`);
-  const run = await response.json();
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetchImpl(url, {
+      redirect: 'error',
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${token}`,
+        'x-github-api-version': '2022-11-28',
+      },
+    });
+    if (response.ok) return response.json();
+    if (![500, 502, 503, 504].includes(response.status) || attempt === 2)
+      fail(`GitHub ${lookup} lookup failed with HTTP ${response.status}`);
+    await response.body?.cancel();
+    await setTimeout(1000 * 2 ** attempt);
+  }
+}
+
+export async function fetchCurrentRun({ token, runId, fetchImpl = fetch }) {
+  const run = await fetchRunJson(`${GITHUB_RUN_URL}/${runId}`, token, fetchImpl, 'current run');
   if (!run || Array.isArray(run) || typeof run !== 'object')
     fail('GitHub current run lookup response is invalid');
   return run;
@@ -158,22 +168,12 @@ export async function fetchCurrentRun({ token, runId, fetchImpl = fetch }) {
 export async function fetchRunPage({ token, page, fetchImpl = fetch }) {
   const url = new URL(GITHUB_RUNS_URL);
   url.search = new URLSearchParams({ per_page: '100', page: String(page) });
-  const response = await fetchImpl(url, {
-    redirect: 'error',
-    headers: {
-      accept: 'application/vnd.github+json',
-      authorization: `Bearer ${token}`,
-      'x-github-api-version': '2022-11-28',
-    },
-  });
-  if (!response.ok) fail(`GitHub run lookup failed with HTTP ${response.status}`);
-  const body = await response.json();
+  const body = await fetchRunJson(url, token, fetchImpl);
   if (!Array.isArray(body.workflow_runs)) fail('GitHub run lookup response is invalid');
   return body.workflow_runs;
 }
 
 export async function fetchNonterminalRuns({ token, fetchImpl = fetch }) {
-  if (!token) fail('GitHub run lookup token is unavailable');
   // Status-filtered workflow lists can omit a live run; classify complete pages locally.
   const runs = new Map();
   async function collect(page) {

@@ -44,6 +44,85 @@ test('run-page lookup pins its target and validates response shape', async () =>
   assert.equal(requests[0].url.searchParams.get('page'), '2');
   assert.equal(requests[0].options.redirect, 'error');
 });
+for (const [name, lookup, response] of [
+  ['current run', fetchCurrentRun, currentResponse({ id: 41 })],
+  ['run page', fetchRunPage, runResponse([])],
+]) {
+  test(`${name} lookup recovers from transient HTTP errors with identical requests`, async () => {
+    for (const statuses of [
+      [500, 502],
+      [503, 504],
+    ]) {
+      const requests = [];
+      let cancelled = 0;
+      const result = await lookup({
+        token: 'test-token',
+        runId: 41,
+        page: 2,
+        fetchImpl: async (url, options) => {
+          requests.push({ url: String(url), options });
+          const status = statuses[requests.length - 1];
+          return status
+            ? {
+                ok: false,
+                status,
+                body: {
+                  cancel: async () => {
+                    cancelled += 1;
+                  },
+                },
+              }
+            : response;
+        },
+      });
+      assert.deepEqual(result, name === 'current run' ? { id: 41 } : []);
+      assert.equal(requests.length, 3);
+      assert.equal(cancelled, 2);
+      assert.deepEqual(requests[1], requests[0]);
+      assert.deepEqual(requests[2], requests[0]);
+    }
+  });
+  test(`${name} lookup fails closed after three transient HTTP failures`, async () => {
+    let requests = 0;
+    await assert.rejects(
+      () =>
+        lookup({
+          token: 'test-token',
+          runId: 41,
+          page: 2,
+          fetchImpl: async () => {
+            requests += 1;
+            return { ok: false, status: 502 };
+          },
+        }),
+      /lookup failed with HTTP 502/u
+    );
+    assert.equal(requests, 3);
+  });
+  test(`${name} lookup does not retry permanent errors or invalid evidence`, async () => {
+    for (const failure of [
+      { ok: false, status: 401 },
+      { ok: false, status: 403 },
+      { ok: false, status: 404 },
+      { ok: false, status: 429 },
+      { ok: true, json: async () => null },
+    ]) {
+      let requests = 0;
+      await assert.rejects(() =>
+        lookup({
+          token: 'test-token',
+          runId: 41,
+          page: 2,
+          fetchImpl: async () => {
+            requests += 1;
+            return failure;
+          },
+        })
+      );
+      assert.equal(requests, 1);
+    }
+  });
+}
 test('unfiltered run pages retain current identity and reject a later-page competitor', async () => {
   const requests = [];
   const completed = Array.from({ length: 100 }, (_, index) => ({

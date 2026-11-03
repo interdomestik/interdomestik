@@ -250,6 +250,24 @@ test('only the exact current SHA and attempt may be nonterminal', () => {
     error: /competing nonterminal run/u,
   }).finally(() => fs.rmSync(root, { recursive: true, force: true }));
 });
+test('exhausted transient run lookup writes a failure receipt without deployment outputs', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-unavailable-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const env = guardEnv(root);
+  let requests = 0;
+  await assertFailureReceipt({
+    env,
+    root,
+    fetchImpl: async url => {
+      if (new URL(url).pathname.endsWith(`/runs/${env.GITHUB_RUN_ID}`))
+        return currentResponse(currentRun(env));
+      requests += 1;
+      return { ok: false, status: 502 };
+    },
+    error: /GitHub run lookup failed with HTTP 502/u,
+  });
+  assert.equal(requests, 3);
+});
 test('success receipt is canonically bound to event SHA, range, run, and attempt', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cd-success-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
