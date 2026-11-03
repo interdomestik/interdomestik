@@ -13,6 +13,8 @@ import { NO_MESSAGES, useMessageReadState } from './use-message-read-state';
 export type OptimisticMessage = MessageWithSender & {
   status?: 'pending' | 'failed';
   tempId?: string;
+  /** Retry key the server uses to store this draft at most once. */
+  clientMessageId?: string;
 };
 
 interface MessagingPanelProps {
@@ -79,8 +81,12 @@ function ScopedMessagingPanel({
     });
   }, [refresh]);
 
-  const handleSendMessage = async (content: string, isInternal: boolean): Promise<boolean> => {
-    const tempId = `temp-${Date.now()}`;
+  const handleSendMessage = async (
+    content: string,
+    isInternal: boolean,
+    clientMessageId: string = crypto.randomUUID()
+  ): Promise<boolean> => {
+    const tempId = `temp-${clientMessageId}`;
     const optimisticMessage: OptimisticMessage = {
       id: tempId,
       claimId,
@@ -97,13 +103,14 @@ function ScopedMessagingPanel({
       },
       status: 'pending',
       tempId,
+      clientMessageId,
     };
 
     setOptimisticMessages(prev => [...prev, optimisticMessage]);
 
     try {
       const { sendMessage } = await import('@/actions/messages');
-      const result = await sendMessage(claimId, content, isInternal);
+      const result = await sendMessage(claimId, content, isInternal, clientMessageId);
 
       if (result.success) {
         // Remove optimistic message and refresh
@@ -126,9 +133,9 @@ function ScopedMessagingPanel({
   };
 
   const handleRetry = (message: OptimisticMessage) => {
-    // Remove failed message and re-trigger the same send.
+    // Remove failed message and resend it under the same key, so a lost success is not duplicated.
     setOptimisticMessages(prev => prev.filter(m => m.id !== message.id));
-    handleSendMessage(message.content, message.isInternal);
+    handleSendMessage(message.content, message.isInternal, message.clientMessageId);
   };
 
   const allMessages = [...messages, ...optimisticMessages].sort(

@@ -19,16 +19,22 @@ export async function sendMessageDbCore(params: {
   claimId: string;
   content: string;
   isInternal?: boolean;
+  clientMessageId?: string;
 }): Promise<SendMessageDbCoreResult> {
   const validation = sendMessageSchema.safeParse({
     claimId: params.claimId,
     content: params.content,
     isInternal: params.isInternal,
+    clientMessageId: params.clientMessageId,
   });
 
   if (!validation.success) {
     const formatted = validation.error.format(); // NOSONAR
-    const error = formatted.content?._errors[0] || formatted.claimId?._errors[0] || 'Invalid input';
+    const error =
+      formatted.content?._errors[0] ||
+      formatted.claimId?._errors[0] ||
+      formatted.clientMessageId?._errors[0] ||
+      'Invalid input';
     return { success: false, error };
   }
 

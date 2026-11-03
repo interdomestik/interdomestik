@@ -76,9 +76,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 afterAll(() => errors.mockRestore());
-export async function reply(claimId = ids.claim, internal = false) {
-  const result = await sendMessage(claimId, 'Synthetic public reply', internal);
-  expect(state.external).toEqual([]);
+export async function reply(claimId = ids.claim, internal = false, clientMessageId?: string) {
+  const delivered = state.external.length;
+  const result = await sendMessage(claimId, 'Synthetic public reply', internal, clientMessageId);
+  // Delivery runs only after the response, when the scheduled jobs settle.
+  expect(state.external).toHaveLength(delivered);
   await settle();
   return result;
 }

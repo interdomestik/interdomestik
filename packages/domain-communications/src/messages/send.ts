@@ -6,10 +6,11 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { AuditLogger, Session } from '../types';
 import { hasAgentClaimAccess, hasScopedStaffClaimAccess, isFullTenantClaimsRole } from './access';
 import { normalizeSelectedMessages } from './normalize';
+import { CLIENT_MESSAGE_ID_PATTERN } from './schemas';
+import { storeClaimMessage } from './store-message';
 import type { MessageWithSender, SelectedMessageRow } from './types';
 
 export {
@@ -33,6 +34,8 @@ export type SendMessageDbCoreResult =
       isInternal: boolean;
       isStaff: boolean;
       claimOwnerEmail: string | null;
+      /** True when a resent client message key returned the already stored message. */
+      replayed: boolean;
     }
   | { success: false; error: string };
 
@@ -47,12 +50,14 @@ export async function sendMessageDbCore(params: {
   claimId: string;
   content: string;
   isInternal?: boolean;
+  clientMessageId?: string;
   deps?: {
     logAuditEvent?: AuditLogger;
   };
 }): Promise<SendMessageDbCoreResult> {
   const { session, authority, requestHeaders, claimId, content } = params;
   const isInternal = params.isInternal ?? false;
+  const clientMessageId = params.clientMessageId ?? null;
 
   try {
     if (!session?.user || !authority) {
@@ -76,6 +81,10 @@ export async function sendMessageDbCore(params: {
 
     if (trimmed.length > 5000) {
       return { success: false, error: 'Message too long (max 5000 characters)' };
+    }
+
+    if (clientMessageId !== null && !CLIENT_MESSAGE_ID_PATTERN.test(clientMessageId)) {
+      return { success: false, error: 'Invalid message key' };
     }
 
     const result = await withTenantAuthority<SendMessageDbCoreResult>(authority, async tx => {
@@ -129,17 +138,15 @@ export async function sendMessageDbCore(params: {
         return { success: false, error: 'Only staff can send internal messages' };
       }
 
-      const messageId = nanoid();
-
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated session before claim message insert
-      await tx.insert(claimMessages).values({
-        id: messageId,
-        tenantId,
-        claimId,
-        senderId: userId,
-        content: trimmed,
-        isInternal,
-      });
+      const stored = await storeClaimMessage(
+        tx,
+        { tenantId, claimId, senderId: userId, content: trimmed, isInternal },
+        clientMessageId
+      );
+      if (!stored.success) {
+        return stored;
+      }
+      const { messageId, replayed } = stored;
 
       const selected = (await tx
         .select({
@@ -183,9 +190,10 @@ export async function sendMessageDbCore(params: {
         isInternal,
         isStaff,
         claimOwnerEmail,
+        replayed,
       };
     });
-    if (result.success && params.deps?.logAuditEvent) {
+    if (result.success && !result.replayed && params.deps?.logAuditEvent) {
       try {
         await params.deps.logAuditEvent({
           authority,

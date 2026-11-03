@@ -25,18 +25,28 @@ export async function getMessagesForClaim(claimId: string): Promise<{
  * Send a message on a claim.
  * - Members can send regular messages.
  * - Staff can send both regular and internal messages.
+ * - A resent `clientMessageId` returns the stored message instead of sending it twice.
  */
 export async function sendMessage(
   claimId: string,
   content: string,
-  isInternal: boolean = false
+  isInternal: boolean = false,
+  clientMessageId?: string
 ): Promise<{
   success: boolean;
   message?: import('./messages/types').MessageWithSender;
   error?: string;
 }> {
   const { requestHeaders, session, authority } = await getActionContext();
-  return sendMessageCore({ session, authority, requestHeaders, claimId, content, isInternal });
+  return sendMessageCore({
+    session,
+    authority,
+    requestHeaders,
+    claimId,
+    content,
+    isInternal,
+    clientMessageId,
+  });
 }
 
 /**
