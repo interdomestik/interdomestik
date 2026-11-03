@@ -97,7 +97,7 @@ async function expectRow(page: Page, info: TestInfo, row: AccessRow) {
 
 /** Restricts a test to the tenant host whose dataset seeds its actors and cases. */
 function requireSeededHost(info: TestInfo, project: (name: string) => boolean, timeoutMs: number) {
-  test.skip(!project(info.project.name), 'Actor and cases are seeded on another tenant host');
+  info.skip(!project(info.project.name), 'Actor and cases are seeded on another tenant host');
   test.setTimeout(timeoutMs);
 }
 
