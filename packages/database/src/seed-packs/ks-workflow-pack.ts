@@ -8,7 +8,7 @@ import { E2E_PASSWORD } from '../e2e-users';
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
-const KS_PACK_RANDOM_SEED = 0x6b73_2026;
+const KS_PACK_RANDOM_SEED = 0x6b_73_20_26;
 
 export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');

@@ -111,11 +111,17 @@ async function collectRelationshipViolations(
   schema: AssertSchema,
   failures: string[]
 ) {
-  for (const [name, expected] of Object.entries(E2E_CASE_FIXTURES)) {
-    const row = await db.query.claims.findFirst({
-      where: eq(schema.claims.id, expected.id),
-      columns: { tenantId: true, branchId: true, userId: true, agentId: true, staffId: true },
-    });
+  const cases = Object.entries(E2E_CASE_FIXTURES);
+  const caseRows = await Promise.all(
+    cases.map(([, expected]) =>
+      db.query.claims.findFirst({
+        where: eq(schema.claims.id, expected.id),
+        columns: { tenantId: true, branchId: true, userId: true, agentId: true, staffId: true },
+      })
+    )
+  );
+  for (const [index, [name, expected]] of cases.entries()) {
+    const row = caseRows[index];
     if (!row) {
       failures.push(`case ${name}: ${expected.id} missing`);
       continue;
@@ -127,11 +133,17 @@ async function collectRelationshipViolations(
     expectEqual(failures, `case ${name}.staffId`, row.staffId, expected.staffId);
   }
 
-  for (const [name, expected] of Object.entries(E2E_AGENT_LINK_FIXTURES)) {
-    const row = await db.query.agentClients.findFirst({
-      where: eq(schema.agentClients.id, expected.id),
-      columns: { tenantId: true, agentId: true, memberId: true, status: true },
-    });
+  const links = Object.entries(E2E_AGENT_LINK_FIXTURES);
+  const linkRows = await Promise.all(
+    links.map(([, expected]) =>
+      db.query.agentClients.findFirst({
+        where: eq(schema.agentClients.id, expected.id),
+        columns: { tenantId: true, agentId: true, memberId: true, status: true },
+      })
+    )
+  );
+  for (const [index, [name, expected]] of links.entries()) {
+    const row = linkRows[index];
     if (!row) {
       failures.push(`agent link ${name}: ${expected.id} missing`);
       continue;
@@ -159,17 +171,21 @@ async function collectRelationshipViolations(
       memberId: E2E_CASE_FIXTURES.KS_ANCHOR.ownerUserId,
     },
   ];
-  for (const link of forbiddenActiveLinks) {
-    const active = await db.query.agentClients.findFirst({
-      where: and(
-        eq(schema.agentClients.agentId, link.agentId),
-        eq(schema.agentClients.memberId, link.memberId),
-        eq(schema.agentClients.status, 'active')
-      ),
-      columns: { id: true },
-    });
-    if (active) failures.push(`relationship violated: ${link.label}`);
-  }
+  const activeLinks = await Promise.all(
+    forbiddenActiveLinks.map(link =>
+      db.query.agentClients.findFirst({
+        where: and(
+          eq(schema.agentClients.agentId, link.agentId),
+          eq(schema.agentClients.memberId, link.memberId),
+          eq(schema.agentClients.status, 'active')
+        ),
+        columns: { id: true },
+      })
+    )
+  );
+  forbiddenActiveLinks.forEach((link, index) => {
+    if (activeLinks[index]) failures.push(`relationship violated: ${link.label}`);
+  });
 
   const unassignedStaff = await db.query.user.findFirst({
     where: eq(schema.user.id, E2E_USER_IDS.KS_STAFF_UNASSIGNED),
@@ -183,11 +199,17 @@ async function collectRelationshipViolations(
     E2E_CASE_FIXTURES.KS_ANCHOR.tenantId
   );
 
-  for (const [name, expected] of Object.entries(E2E_MESSAGE_FIXTURES)) {
-    const row = await db.query.claimMessages.findFirst({
-      where: eq(schema.claimMessages.id, expected.id),
-      columns: { tenantId: true, claimId: true, senderId: true, isInternal: true },
-    });
+  const messages = Object.entries(E2E_MESSAGE_FIXTURES);
+  const messageRows = await Promise.all(
+    messages.map(([, expected]) =>
+      db.query.claimMessages.findFirst({
+        where: eq(schema.claimMessages.id, expected.id),
+        columns: { tenantId: true, claimId: true, senderId: true, isInternal: true },
+      })
+    )
+  );
+  for (const [index, [name, expected]] of messages.entries()) {
+    const row = messageRows[index];
     if (!row) {
       failures.push(`message ${name}: ${expected.id} missing`);
       continue;

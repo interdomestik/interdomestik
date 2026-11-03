@@ -9,7 +9,7 @@ const draw = (seed: number, count: number) => {
 };
 
 test('a seed always yields the same sequence', () => {
-  assert.deepEqual(draw(0x6b73_2026, 32), draw(0x6b73_2026, 32));
+  assert.deepEqual(draw(0x6b_73_20_26, 32), draw(0x6b_73_20_26, 32));
 });
 
 test('different seeds yield different sequences in [0, 1)', () => {

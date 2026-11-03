@@ -12,28 +12,24 @@ function isTransientDbWriteError(error: unknown): boolean {
   );
 }
 
-export async function withTransientDbWriteRetry<T>(
-  label: string,
-  run: () => Promise<T>
-): Promise<T> {
-  const maxAttempts = 3;
-  let attempt = 0;
+const MAX_ATTEMPTS = 3;
 
-  while (attempt < maxAttempts) {
-    attempt += 1;
-    try {
-      return await run();
-    } catch (error) {
-      if (!isTransientDbWriteError(error) || attempt >= maxAttempts) {
-        throw error;
-      }
-      const delayMs = attempt * 200;
-      console.warn(
-        `[seed:ks-workflow] transient db write failure for ${label}; retrying attempt ${attempt + 1}/${maxAttempts} after ${delayMs}ms`
-      );
-      await sleep(delayMs);
+async function attemptWrite<T>(label: string, run: () => Promise<T>, attempt: number): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isTransientDbWriteError(error) || attempt >= MAX_ATTEMPTS) {
+      throw error;
     }
+    const delayMs = attempt * 200;
+    console.warn(
+      `[seed:ks-workflow] transient db write failure for ${label}; retrying attempt ${attempt + 1}/${MAX_ATTEMPTS} after ${delayMs}ms`
+    );
+    await sleep(delayMs);
+    return attemptWrite(label, run, attempt + 1);
   }
+}
 
-  throw new Error(`unreachable retry state for ${label}`);
+export function withTransientDbWriteRetry<T>(label: string, run: () => Promise<T>): Promise<T> {
+  return attemptWrite(label, run, 1);
 }

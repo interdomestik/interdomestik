@@ -25,18 +25,20 @@ export function buildRoleRelationshipMessages({
 export async function seedRoleRelationshipMessages(context: SeedGoldenContext): Promise<void> {
   const { at, db, schema } = context;
 
-  for (const message of buildRoleRelationshipMessages({ at })) {
-    await db
-      .insert(schema.claimMessages)
-      .values(message)
-      .onConflictDoUpdate({
-        target: schema.claimMessages.id,
-        set: {
-          content: message.content,
-          isInternal: message.isInternal,
-          senderId: message.senderId,
-          createdAt: message.createdAt,
-        },
-      });
-  }
+  await Promise.all(
+    buildRoleRelationshipMessages({ at }).map(message =>
+      db
+        .insert(schema.claimMessages)
+        .values(message)
+        .onConflictDoUpdate({
+          target: schema.claimMessages.id,
+          set: {
+            content: message.content,
+            isInternal: message.isInternal,
+            senderId: message.senderId,
+            createdAt: message.createdAt,
+          },
+        })
+    )
+  );
 }
