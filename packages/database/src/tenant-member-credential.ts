@@ -66,7 +66,7 @@ export async function appendTenantMemberCredential(
     const now = new Date();
     await tx.insert(account).values({
       id: `${userId}-credential`,
-      accountId: email,
+      accountId: userId,
       providerId: 'credential',
       userId,
       password: credential.passwordHash,

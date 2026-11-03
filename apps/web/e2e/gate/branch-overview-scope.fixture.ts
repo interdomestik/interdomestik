@@ -190,7 +190,7 @@ export async function withBranchOverviewScopeFixture<T>(
     await db.insert(account).values(
       [tenantAdmin, branchManager, missingBranchManager].map(owner => ({
         id: `${owner.id}-credential`,
-        accountId: owner.email,
+        accountId: owner.id,
         providerId: 'credential',
         userId: owner.id,
         password: credential.password,

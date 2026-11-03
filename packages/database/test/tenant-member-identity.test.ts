@@ -90,7 +90,8 @@ test('an agent attaches the first credential of a member it created in its own t
     { ...(admin.inserts[0] as Record<string, unknown>), createdAt: 0, updatedAt: 0 },
     {
       id: 'member-1-credential',
-      accountId: 'member@example.com',
+      // The credential account is keyed by the user id, as better-auth itself writes it.
+      accountId: 'member-1',
       providerId: 'credential',
       userId: 'member-1',
       password: HASH,

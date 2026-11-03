@@ -2,46 +2,13 @@ import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { hashPassword } from '../seed-utils/hash-password';
 import { withClaimLifecycleFields } from '../seed-utils/claim-lifecycle';
 import { goldenId, packId } from '../seed-utils/seed-ids';
+import { createSeededRandom } from '../seed-utils/seeded-random';
+import { withTransientDbWriteRetry } from '../seed-utils/transient-write-retry';
 import { E2E_PASSWORD } from '../e2e-users';
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
-const TRANSIENT_DB_WRITE_ERROR_CODES = new Set(['EADDRNOTAVAIL', 'ECONNRESET', 'ETIMEDOUT']);
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function isTransientDbWriteError(error: unknown): boolean {
-  const err = error as { code?: string; cause?: { code?: string } };
-  return (
-    TRANSIENT_DB_WRITE_ERROR_CODES.has(String(err?.code || '')) ||
-    TRANSIENT_DB_WRITE_ERROR_CODES.has(String(err?.cause?.code || ''))
-  );
-}
-
-async function withTransientDbWriteRetry<T>(label: string, run: () => Promise<T>): Promise<T> {
-  const maxAttempts = 3;
-  let attempt = 0;
-
-  while (attempt < maxAttempts) {
-    attempt += 1;
-    try {
-      return await run();
-    } catch (error) {
-      if (!isTransientDbWriteError(error) || attempt >= maxAttempts) {
-        throw error;
-      }
-      const delayMs = attempt * 200;
-      console.warn(
-        `[seed:ks-workflow] transient db write failure for ${label}; retrying attempt ${attempt + 1}/${maxAttempts} after ${delayMs}ms`
-      );
-      await sleep(delayMs);
-    }
-  }
-
-  throw new Error(`unreachable retry state for ${label}`);
-}
+const KS_PACK_RANDOM_SEED = 0x6b_73_20_26;
 
 export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
@@ -49,6 +16,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   const { db } = await import('../db');
   const schema = await import('../schema');
   const { at } = config;
+  const random = createSeededRandom(KS_PACK_RANDOM_SEED);
 
   const TENANTS = {
     KS: 'tenant_ks',
@@ -273,7 +241,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       .insert(schema.account)
       .values({
         id: `${u.id}-credential`,
-        accountId: u.email,
+        accountId: u.id,
         providerId: 'credential',
         userId: u.id,
         password: u.passHash || hashedPass,
@@ -371,7 +339,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       { name: 'incident_photo.jpg', type: 'image/jpeg', cat: 'evidence' },
     ];
     for (const d of docs) {
-      if (Math.random() > 0.4) {
+      if (random() > 0.4) {
         await withTransientDbWriteRetry(`${claimId}:document:${d.name}`, () =>
           db
             .insert(schema.claimDocuments)
@@ -447,13 +415,13 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   const makeClaimNumber = (idx: number) =>
     `CLM-XK-2026-${(800000 + idx).toString().padStart(6, '0')}`;
 
-  const randomItem = <T>(arr: T[] | readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  const randomItem = <T>(arr: T[] | readonly T[]): T => arr[Math.floor(random() * arr.length)];
   const randomDatePast = (daysMax: number) => {
     const d = at();
-    d.setDate(d.getDate() - Math.floor(Math.random() * daysMax));
+    d.setDate(d.getDate() - Math.floor(random() * daysMax));
     return d;
   };
-  const randomAmount = () => (Math.random() * 2000 + 100).toFixed(2);
+  const randomAmount = () => (random() * 2000 + 100).toFixed(2);
 
   const seedBranchClaims = async (branchId: string, count: number, prefix: string) => {
     const staffId = packId('ks', 'staff_extra');
@@ -517,7 +485,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       );
 
       // Enrich 50% of claims for visual depth without slowing down seeding too much
-      if (Math.random() > 0.5) {
+      if (random() > 0.5) {
         await addEnrichment(claimId, memberId, staffId, createdAt, status);
       }
     }

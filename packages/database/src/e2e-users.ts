@@ -138,6 +138,35 @@ export const E2E_USERS = {
     tenantId: 'tenant_ks',
     branchId: 'ks_branch_a',
   },
+  // Branchless KS staff: assigned to other cases, never to the KS anchor case.
+  KS_STAFF_UNASSIGNED: {
+    email: 'staff.ks.2@interdomestik.com',
+    name: 'Besian Mustafa',
+    dbRole: 'staff',
+    tenantId: 'tenant_ks',
+  },
+  // KS branch B agent whose only client link is inactive (attribution without access).
+  KS_AGENT_INACTIVE_LINK: {
+    email: 'agent.ks.b1@interdomestik.com',
+    name: 'Valmir Shala',
+    dbRole: 'agent',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_b',
+  },
+
+  // PLATFORM READ ROLES (home tenant only; the runtime has no tenant-selection field)
+  GLOBAL_SUPPORT: {
+    email: 'support.global@interdomestik.com',
+    name: 'Global Support',
+    dbRole: 'global_support',
+    tenantId: 'tenant_ks',
+  },
+  AUDITOR: {
+    email: 'auditor.mk@interdomestik.com',
+    name: 'Assurance Auditor',
+    dbRole: 'auditor',
+    tenantId: 'tenant_mk',
+  },
 } as const;
 
 export type E2EUserKey = keyof typeof E2E_USERS;

@@ -50,7 +50,7 @@ export async function seedAgentPack(config: SeedConfig) {
     .insert(ctx.account)
     .values({
       id: packId('agent', 'agon', 'creds'),
-      accountId: agentEmail,
+      accountId: agentUserId,
       providerId: 'credential',
       userId: agentUserId,
       password: agentPasswordHash,
@@ -104,7 +104,7 @@ export async function seedAgentPack(config: SeedConfig) {
       .insert(ctx.account)
       .values({
         id: packId('agent', 'client', i, 'creds'),
-        accountId: client.email,
+        accountId: clientId,
         providerId: 'credential',
         userId: clientId,
         password: genericPasswordHash,

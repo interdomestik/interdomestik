@@ -5,6 +5,7 @@ import {
   upsertCommercialAgreements,
 } from './commercial-agreements';
 import { TENANTS } from './constants';
+import { seedRoleRelationshipMessages } from './role-relationships';
 import type { ClaimStatus } from '../constants';
 import type { SeedGoldenContext } from './types';
 const ksAStatuses = [
@@ -112,6 +113,8 @@ export function buildClaimsToSeed({ at, schema }: Pick<SeedGoldenContext, 'at' |
       companyName: 'Test Insurer',
       claimAmount: '500.00',
       claimNumber: 'CLM-MK-2026-000001',
+      // Fixed at the seed base time (previously database now()); named MK_FOREIGN_TENANT fixture.
+      createdAt: now,
     },
     {
       id: goldenId('ks_track_claim_001'),
@@ -202,6 +205,8 @@ export async function seedClaims(context: SeedGoldenContext) {
         },
       });
   }
+
+  await seedRoleRelationshipMessages(context);
 
   await upsertCommercialAgreements({
     agreements: buildCommercialAgreementsToSeed({
